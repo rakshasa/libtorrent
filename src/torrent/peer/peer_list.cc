@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <rak/functional.h>
 #include <rak/socket_address.h>
 
 #include "download/available_list.h"
@@ -69,7 +68,9 @@ PeerList::~PeerList() {
   LT_LOG_EVENTS("deleting list total:%" PRIuPTR " available:%" PRIuPTR,
                 size(), m_available_list->size());
 
-  std::for_each(begin(), end(), rak::on(rak::mem_ref(&value_type::second), rak::call_delete<PeerInfo>()));
+  for (const auto& v : *this) {
+    delete v.second;
+  }
   base_type::clear();
 
   m_info = NULL;
@@ -164,7 +165,9 @@ PeerList::insert_available(const void* al) {
       continue;
     }
 
-    availItr = std::find_if(availItr, availLast, rak::bind2nd(std::ptr_fun(&socket_address_less_rak), *itr));
+    availItr = std::find_if(availItr, availLast, [&itr](const rak::socket_address& sa) {
+      return socket_address_less_rak(sa, *itr);
+    });
 
     if (availItr != availLast && !socket_address_less(availItr->c_sockaddr(), itr->c_sockaddr())) {
       // The address is already in m_available_list, so don't bother
@@ -319,10 +322,10 @@ PeerList::disconnected(PeerInfo* p, int flags) {
 
   range_type range = base_type::equal_range(sock_key);
   
-  iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ref(&value_type::second)));
+  iterator itr = std::find_if(range.first, range.second, [p](auto& v) { return p == v.second; });
 
   if (itr == range.second) {
-    if (std::find_if(base_type::begin(), base_type::end(), rak::equal(p, rak::mem_ref(&value_type::second))) == base_type::end())
+    if (std::none_of(base_type::begin(), base_type::end(), [p](auto& v){ return p == v.second; }))
       throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist.");
     else
       throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");

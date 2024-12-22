@@ -33,7 +33,6 @@ test_thread_base::test_basic() {
 
   CPPUNIT_ASSERT(thread->flags() == 0);
 
-  CPPUNIT_ASSERT(!thread->is_main_polling());
   CPPUNIT_ASSERT(!thread->is_active());
   CPPUNIT_ASSERT(thread->global_queue_size() == 0);
   CPPUNIT_ASSERT(thread->poll() == NULL);

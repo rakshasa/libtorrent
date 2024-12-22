@@ -1,24 +1,26 @@
 #ifndef LIBTORRENT_UTILS_THREAD_BASE_H
 #define LIBTORRENT_UTILS_THREAD_BASE_H
 
-#import <functional>
-#import <pthread.h>
-#import <sys/types.h>
+#include <atomic>
+#include <functional>
+#include <mutex>
+#include <pthread.h>
+#include <sys/types.h>
 
-#import <torrent/common.h>
-#import <torrent/utils/signal_bitfield.h>
+#include <torrent/common.h>
+#include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
 
 class Poll;
 class thread_interrupt;
 
-class LIBTORRENT_EXPORT lt_cacheline_aligned thread_base {
+class LIBTORRENT_EXPORT thread_base {
 public:
   typedef void* (*pthread_func)(void*);
   typedef std::function<void ()>     slot_void;
   typedef std::function<uint64_t ()> slot_timer;
-  typedef class signal_bitfield      signal_type;
+  typedef class signal_bitfield      signal_bitfield_t;
 
   enum state_type {
     STATE_UNKNOWN,
@@ -48,13 +50,13 @@ public:
   bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
   bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
 
-  state_type          state() const;
-  int                 flags() const;
+  state_type          state() const { return m_state; }
+  int                 flags() const { return m_flags; }
 
   virtual const char* name() const = 0;
 
   Poll*               poll()            { return m_poll; }
-  signal_type*        signal_bitfield() { return &m_signal_bitfield; }
+  signal_bitfield_t*  signal_bitfield() { return &m_signal_bitfield; }
   pthread_t           pthread()         { return m_thread; }
 
   virtual void        init_thread() = 0;
@@ -76,19 +78,14 @@ public:
   static inline void  release_global_lock();
   static inline void  waive_global_lock();
 
-  static inline bool  is_main_polling() { return m_global.main_polling; }
-  static inline void  entering_main_polling();
-  static inline void  leaving_main_polling();
-
   static bool         should_handle_sigusr1();
 
   static void*        event_loop(thread_base* thread);
 
 protected:
-  struct lt_cacheline_aligned global_lock_type {
-    int             waiting;
-    int             main_polling;
-    pthread_mutex_t lock;
+  struct global_lock_type {
+    std::atomic_int waiting{0};
+    std::mutex      mutex;
   };
 
   virtual void        call_events() = 0;
@@ -96,20 +93,20 @@ protected:
 
   static global_lock_type m_global;
 
-  pthread_t           m_thread;
-  state_type          m_state lt_cacheline_aligned;
-  int                 m_flags lt_cacheline_aligned;
+  pthread_t               m_thread;
+  std::atomic<state_type> m_state;
+  std::atomic_int         m_flags;
 
   int                 m_instrumentation_index;
 
   Poll*               m_poll;
-  signal_type         m_signal_bitfield;
+  signal_bitfield_t   m_signal_bitfield;
 
   slot_void           m_slot_do_work;
   slot_timer          m_slot_next_timeout;
 
-  thread_interrupt*   m_interrupt_sender;
-  thread_interrupt*   m_interrupt_receiver;
+  std::unique_ptr<thread_interrupt> m_interrupt_sender;
+  std::unique_ptr<thread_interrupt> m_interrupt_receiver;
 };
 
 inline bool
@@ -122,18 +119,6 @@ thread_base::is_current() const {
   return m_thread == pthread_self();
 }
 
-inline int
-thread_base::flags() const {
-  __sync_synchronize();
-  return m_flags;
-}
-
-inline thread_base::state_type
-thread_base::state() const {
-  __sync_synchronize();
-  return m_state;
-}
-
 inline void
 thread_base::send_event_signal(unsigned int index, bool do_interrupt) {
   m_signal_bitfield.signal(index);
@@ -144,46 +129,27 @@ thread_base::send_event_signal(unsigned int index, bool do_interrupt) {
 
 inline void
 thread_base::acquire_global_lock() {
-  __sync_add_and_fetch(&thread_base::m_global.waiting, 1);
-  pthread_mutex_lock(&thread_base::m_global.lock);
-  __sync_sub_and_fetch(&thread_base::m_global.waiting, 1);
+  thread_base::m_global.waiting++;
+  thread_base::m_global.mutex.lock();
+  thread_base::m_global.waiting--;
 }
 
 inline bool
 thread_base::trylock_global_lock() {
-  return pthread_mutex_trylock(&thread_base::m_global.lock) == 0;
+  return thread_base::m_global.mutex.try_lock();
 }
 
 inline void
 thread_base::release_global_lock() {
-  pthread_mutex_unlock(&thread_base::m_global.lock);
+  thread_base::m_global.mutex.unlock();
 }
 
 inline void
 thread_base::waive_global_lock() {
-  pthread_mutex_unlock(&thread_base::m_global.lock);
-
-  // Do we need to sleep here? Make a CppUnit test for this.
+  release_global_lock();
   acquire_global_lock();
 }
 
-// 'entering/leaving_main_polling' is used by the main polling thread
-// to indicate to other threads when it is safe to change the main
-// thread's event entries.
-//
-// A thread should first aquire global lock, then if it needs to
-// change poll'ed sockets on the main thread it should call
-// 'interrupt_main_polling' unless 'is_main_polling() == false'.
-inline void
-thread_base::entering_main_polling() {
-  __sync_lock_test_and_set(&thread_base::m_global.main_polling, 1);
 }
-
-inline void
-thread_base::leaving_main_polling() {
-  __sync_lock_test_and_set(&thread_base::m_global.main_polling, 0);
-}
-
-}  
 
 #endif

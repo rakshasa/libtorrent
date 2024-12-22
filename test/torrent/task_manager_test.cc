@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <atomic>
+
 #include "task_manager_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TaskManagerTest);
@@ -7,8 +9,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(TaskManagerTest);
 struct TMT_Data {
   TMT_Data(TaskManagerTest* m) : manager(m), counter(0) {}
 
-  TaskManagerTest *manager;
-  unsigned int counter;
+  TaskManagerTest* manager;
+  atomic_uint      counter;
 };
 
 void
@@ -22,33 +24,32 @@ TaskManagerTest::tearDown() {
 
 void*
 TMT_Func(TMT_Data* data) {
-  __sync_add_and_fetch(&data->counter, 1);
-
+  data->counter++;
   return NULL;
 }
 
 void*
 TMT_lock_func(TMT_Data* data) {
-  __sync_add_and_fetch(&data->counter, 1);
+  data->counter++;
 
   data->manager->m_manager.acquire_global_lock();
   usleep(10000);
   data->manager->m_manager.release_global_lock();
 
-  __sync_add_and_fetch(&data->counter, 1);
+  data->counter++;
 
   return NULL;
 }
 
 void*
 TMT_waive_lock_func(TMT_Data* data) {
-  __sync_add_and_fetch(&data->counter, 1);
+  data->counter++;
 
   data->manager->m_manager.acquire_global_lock();
   usleep(20000);
   data->manager->m_manager.waive_global_lock();
 
-  __sync_add_and_fetch(&data->counter, 1);
+  data->counter++;
 
   return NULL;
 }

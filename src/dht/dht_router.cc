@@ -38,7 +38,6 @@
 #include "globals.h"
 
 #include <sstream>
-#include <rak/functional.h>
 
 #include "torrent/dht_manager.h"
 #include "torrent/download_info.h"

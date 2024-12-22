@@ -69,8 +69,7 @@ TrackerController::update_timeout(uint32_t seconds_to_next) {
   if (seconds_to_next != 0)
     next_timeout = (cachedTime + rak::timer::from_seconds(seconds_to_next)).round_seconds();
 
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout, next_timeout);
+  priority_queue_update(&taskScheduler, &m_private->task_timeout, next_timeout);
 }
 
 inline int
@@ -145,8 +144,7 @@ TrackerController::scrape_request(uint32_t seconds_to_request) {
   if (seconds_to_request != 0)
     next_timeout = (cachedTime + rak::timer::from_seconds(seconds_to_request)).round_seconds();
 
-  priority_queue_erase(&taskScheduler, &m_private->task_scrape);
-  priority_queue_insert(&taskScheduler, &m_private->task_scrape, next_timeout);
+  priority_queue_update(&taskScheduler, &m_private->task_scrape, next_timeout);
 }
 
 // The send_*_event() functions tries to ensure the relevant trackers
@@ -393,10 +391,11 @@ tracker_next_timeout_promiscuous(Tracker* tracker) {
 
   int32_t interval;
 
-  if (tracker->failed_counter())
-    interval = 5 << std::min<int>(tracker->failed_counter() - 1, 6);
-  else
+  if (tracker->failed_counter()) {
+    interval = tracker->failed_time_next() - tracker->failed_time_last();
+  } else {
     interval = tracker->normal_interval();
+  }
 
   int32_t min_interval = std::max(tracker->min_interval(), (uint32_t)300);
   int32_t use_interval = std::min(interval, min_interval);

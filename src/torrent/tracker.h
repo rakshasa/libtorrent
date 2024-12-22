@@ -29,12 +29,20 @@ public:
     EVENT_SCRAPE
   };
 
-  static const int flag_enabled = 0x1;
+  static const int flag_enabled       = 0x1;
   static const int flag_extra_tracker = 0x2;
-  static const int flag_can_scrape = 0x4;
+  static const int flag_can_scrape    = 0x4;
 
   static const int max_flag_size   = 0x10;
   static const int mask_base_flags = 0x10 - 1;
+
+  static constexpr int default_min_interval = 600;
+  static constexpr int min_min_interval     = 300;
+  static constexpr int max_min_interval     = 4 * 3600;
+
+  static constexpr int default_normal_interval = 1800;
+  static constexpr int min_normal_interval     = 600;
+  static constexpr int max_normal_interval     = 8 * 3600;
 
   virtual ~Tracker() {}
 
@@ -112,8 +120,8 @@ protected:
 
   void                set_group(uint32_t v)                 { m_group = v; }
 
-  void                set_normal_interval(int v)            { m_normal_interval = std::min(std::max(600, v), 8 * 3600); }
-  void                set_min_interval(int v)               { m_min_interval = std::min(std::max(300, v), 4 * 3600); }
+  void                set_normal_interval(int v)            { m_normal_interval = std::min(std::max(min_normal_interval, v), max_normal_interval); }
+  void                set_min_interval(int v)               { m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval); }
 
   int                 m_flags;
 

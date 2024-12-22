@@ -39,7 +39,6 @@
 #include <algorithm>
 #include <functional>
 #include <set>
-#include <rak/functional.h>
 #include <rak/timer.h>
 
 #include "data/chunk.h"
@@ -68,18 +67,22 @@ TransferList::~TransferList() {
 
 TransferList::iterator
 TransferList::find(uint32_t index) {
-  return std::find_if(begin(), end(), rak::equal(index, std::mem_fun(&BlockList::index)));
+  return std::find_if(begin(), end(), [index](BlockList* b) { return index == b->index(); });
 }
 
 TransferList::const_iterator
 TransferList::find(uint32_t index) const {
-  return std::find_if(begin(), end(), rak::equal(index, std::mem_fun(&BlockList::index)));
+  return std::find_if(begin(), end(), [index](BlockList* b) { return index == b->index(); });
 }
 
 void
 TransferList::clear() {
-  std::for_each(begin(), end(), std::bind(m_slot_canceled, std::bind(&BlockList::index, std::placeholders::_1)));
-  std::for_each(begin(), end(), rak::call_delete<BlockList>());
+  for (const auto& block_list : *this) {
+    m_slot_canceled(block_list->index());
+  }
+  for (const auto& block_list : *this) {
+    delete block_list;
+  }
 
   base_type::clear();
 }
@@ -146,9 +149,10 @@ TransferList::hash_succeeded(uint32_t index, Chunk* chunk) {
   m_completedList.push_back(std::make_pair(rak::timer::current().usec(), index));
   
   if (rak::timer(m_completedList.front().first) + rak::timer::from_minutes(60) < rak::timer::current()) {
-    completed_list_type::iterator itr = std::find_if(m_completedList.begin(), m_completedList.end(),
-                                                     rak::less_equal(rak::timer::current() - rak::timer::from_minutes(30),
-                                                                     rak::mem_ref(&completed_list_type::value_type::first)));
+    auto itr = std::find_if(m_completedList.begin(), m_completedList.end(), [](auto v) {
+      return (rak::timer::current() - rak::timer::from_minutes(30)) <= v.first;
+    });
+
     m_completedList.erase(m_completedList.begin(), itr);
   }
 

@@ -1,43 +1,6 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <algorithm>
-#include <rak/functional.h>
 #include <rak/socket_address.h>
 
 #include "download/download_main.h"
@@ -47,6 +10,7 @@
 #include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
+#include "utils/functional.h"
 
 #include "connection_list.h"
 #include "peer.h"
@@ -71,9 +35,11 @@ ConnectionList::ConnectionList(DownloadMain* download) :
 
 void
 ConnectionList::clear() {
-  std::for_each(begin(), end(), rak::on(std::mem_fun(&Peer::m_ptr), rak::call_delete<PeerConnectionBase>()));
+  for (const auto& peer : *this) {
+    delete peer->m_ptr();
+  }
   base_type::clear();
-  
+
   m_disconnectQueue.clear();
 }
 
@@ -110,7 +76,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
   base_type::push_back(peerConnection);
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  rak::slot_list_call(m_signalConnected, peerConnection);
+  utils::slot_list_call(m_signalConnected, peerConnection);
 
   return peerConnection;
 }
@@ -136,7 +102,7 @@ ConnectionList::erase(iterator pos, int flags) {
   base_type::pop_back();
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  rak::slot_list_call(m_signalDisconnected, peerConnection);
+  utils::slot_list_call(m_signalDisconnected, peerConnection);
 
   // Before of after the signal?
   peerConnection->cleanup();
@@ -179,7 +145,7 @@ ConnectionList::erase_remaining(iterator pos, int flags) {
 
 void
 ConnectionList::erase_seeders() {
-  erase_remaining(std::partition(begin(), end(), rak::on(std::mem_fun(&Peer::c_ptr), std::mem_fun(&PeerConnectionBase::is_not_seeder))),
+  erase_remaining(std::partition(begin(), end(), [](Peer* p) { return p->c_ptr()->is_not_seeder(); }),
                   disconnect_unwanted);
 }
 
@@ -213,15 +179,16 @@ struct connection_list_less {
 
 ConnectionList::iterator
 ConnectionList::find(const char* id) {
-  return std::find_if(begin(), end(), rak::equal(*HashString::cast_from(id),
-                                                 rak::on(std::mem_fun(&Peer::m_ptr), rak::on(std::mem_fun(&PeerConnectionBase::peer_info), std::mem_fun(&PeerInfo::id)))));
+  return std::find_if(begin(), end(), [id](Peer* p) {
+    return *HashString::cast_from(id) == p->m_ptr()->peer_info()->id();
+  });
 }
 
 ConnectionList::iterator
 ConnectionList::find(const sockaddr* sa) {
-  return std::find_if(begin(), end(), rak::equal_ptr(rak::socket_address::cast_from(sa),
-                                                     rak::on(std::mem_fun(&Peer::m_ptr), rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
-                                                                                                 std::mem_fun(&PeerInfo::socket_address)))));
+  return std::find_if(begin(), end(), [sa](Peer* p) {
+    return *rak::socket_address::cast_from(sa) == *p->m_ptr()->peer_info()->socket_address();
+  });
 }
 
 void

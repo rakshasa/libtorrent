@@ -1,46 +1,8 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #ifndef LIBTORRENT_UTILS_RANGES_H
 #define LIBTORRENT_UTILS_RANGES_H
 
 #include <algorithm>
 #include <vector>
-
-#include <rak/functional.h>
 
 namespace torrent {
 
@@ -93,7 +55,7 @@ ranges<RangesType>::insert(value_type r) {
   if (r.first >= r.second)
     return;
 
-  iterator first = std::find_if(begin(), end(), rak::less_equal(r.first, rak::const_mem_ref(&value_type::second)));
+  iterator first = std::find_if(begin(), end(), [r](const value_type v) { return r.first <= v.second; });
 
   if (first == end() || r.second < first->first) {
     // The new range is before the first, after the last or between
@@ -104,7 +66,7 @@ ranges<RangesType>::insert(value_type r) {
     first->first = std::min(r.first, first->first);
     first->second = std::max(r.second, first->second);
 
-    iterator last = std::find_if(first, end(), rak::less(first->second, rak::const_mem_ref(&value_type::second)));
+    iterator last = std::find_if(first, end(), [first](const value_type v) { return first->second < v.second; });
 
     if (last != end() && first->second >= last->first)
       first->second = (last++)->second;
@@ -119,8 +81,8 @@ ranges<RangesType>::erase(value_type r) {
   if (r.first >= r.second)
     return;
 
-  iterator first = std::find_if(begin(), end(), rak::less(r.first, rak::const_mem_ref(&value_type::second)));
-  iterator last  = std::find_if(first, end(), rak::less(r.second, rak::const_mem_ref(&value_type::second)));
+  iterator first = std::find_if(begin(), end(), [r](const value_type v) { return r.first < v.second; });
+  iterator last  = std::find_if(first, end(), [r](const value_type v) { return r.second < v.second; });
 
   if (first == end())
     return;
@@ -151,13 +113,13 @@ ranges<RangesType>::erase(value_type r) {
 template <typename RangesType>
 inline typename ranges<RangesType>::iterator
 ranges<RangesType>::find(bound_type index) {
-  return std::find_if(begin(), end(), rak::less(index, rak::const_mem_ref(&value_type::second)));
+  return std::find_if(begin(), end(), [index](const value_type v) { return index < v.second; });
 }
 
 template <typename RangesType>
 inline typename ranges<RangesType>::const_iterator
 ranges<RangesType>::find(bound_type index) const {
-  return std::find_if(begin(), end(), rak::less(index, rak::const_mem_ref(&value_type::second)));
+  return std::find_if(begin(), end(), [index](const value_type v) { return index < v.second; });
 }
 
 // Use find with no closest match.

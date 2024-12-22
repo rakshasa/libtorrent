@@ -130,6 +130,7 @@ libtorrent_other_la_SOURCES = \
 	\
 	utils/diffie_hellman.cc \
 	utils/diffie_hellman.h \
+	utils/functional.h \
 	utils/instrumentation.cc \
 	utils/instrumentation.h \
 	utils/rc4.h \

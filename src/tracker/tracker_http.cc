@@ -4,7 +4,6 @@
 
 #import <iomanip>
 #import <sstream>
-#import <rak/functional.h>
 #import <rak/string_manip.h>
 
 #import "net/address_list.h"
@@ -39,7 +38,7 @@ TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags)
   m_data(NULL) {
 
   m_get->signal_done().push_back(std::bind(&TrackerHttp::receive_done, this));
-  m_get->signal_failed().push_back(std::bind(&TrackerHttp::receive_failed, this, std::placeholders::_1));
+  m_get->signal_failed().push_back(std::bind(&TrackerHttp::receive_signal_failed, this, std::placeholders::_1));
 
   // Haven't considered if this needs any stronger error detection,
   // can dropping the '?' be used for malicious purposes?
@@ -250,6 +249,9 @@ TrackerHttp::receive_done() {
   Object b;
   *m_data >> b;
 
+  // Temporarily reset the interval
+  m_normal_interval = 0;
+  m_min_interval = 0;
   if (m_data->fail()) {
     std::string dump = m_data->str();
     return receive_failed("Could not parse bencoded data: " + rak::sanitize(rak::striptags(dump)).substr(0,99));
@@ -258,17 +260,29 @@ TrackerHttp::receive_done() {
   if (!b.is_map())
     return receive_failed("Root not a bencoded map");
 
-  if (b.has_key("failure reason"))
+  if (b.has_key("failure reason")) {
+    if (m_latest_event != EVENT_SCRAPE)
+      process_failure(b);
     return receive_failed("Failure reason \"" +
-			 (b.get_key("failure reason").is_string() ?
-			  b.get_key_string("failure reason") :
-			  std::string("failure reason not a string"))
-			 + "\"");
+                         (b.get_key("failure reason").is_string() ?
+                          b.get_key_string("failure reason") :
+                          std::string("failure reason not a string"))
+                         + "\"");
+  }
+
+  // If no failures, set intervals to defaults prior to processing
 
   if (m_latest_event == EVENT_SCRAPE)
     process_scrape(b);
   else
     process_success(b);
+}
+
+void
+TrackerHttp::receive_signal_failed(std::string msg) {
+  m_normal_interval = 0;
+  m_min_interval    = 0;
+  return receive_failed(msg);
 }
 
 void
@@ -287,7 +301,7 @@ TrackerHttp::receive_failed(std::string msg) {
 }
 
 void
-TrackerHttp::process_success(const Object& object) {
+TrackerHttp::process_failure(const Object& object) {
   if (object.has_key_value("interval"))
     set_normal_interval(object.get_key_value("interval"));
   
@@ -305,12 +319,36 @@ TrackerHttp::process_success(const Object& object) {
 
   if (object.has_key_value("downloaded"))
     m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
+}
 
-  AddressList l;
+void
+TrackerHttp::process_success(const Object& object) {
 
+  if (object.has_key_value("interval"))
+    set_normal_interval(object.get_key_value("interval"));
+  else
+    set_normal_interval(default_normal_interval);
+
+  if (object.has_key_value("min interval"))
+    set_min_interval(object.get_key_value("min interval"));
+  else
+    set_min_interval(default_min_interval);
+
+  if (object.has_key_string("tracker id"))
+    m_tracker_id = object.get_key_string("tracker id");
+
+  if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
+    m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
+    m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
+    m_scrape_time_last = cachedTime.seconds();
+  }
+
+  if (object.has_key_value("downloaded"))
+    m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
   if (!object.has_key("peers") && !object.has_key("peers6"))
     return receive_failed("No peers returned");
 
+  AddressList l;
   if (object.has_key("peers")) {
     try {
       // Due to some trackers sending the wrong type when no peers are

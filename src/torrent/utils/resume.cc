@@ -362,13 +362,12 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   // Add information on what chunks might still not have been properly
   // written to disk.
   object.erase_key("uncertain_pieces");
-  object.insert_key("uncertain_pieces.timestamp", rak::timer::current_seconds());
+  object.erase_key("uncertain_pieces.timestamp");
 
   const TransferList::completed_list_type& completedList = download.transfer_list()->completed_list();
-  TransferList::completed_list_type::const_iterator itr =
-    std::find_if(completedList.begin(), completedList.end(),
-                 rak::less_equal((rak::timer::current() - rak::timer::from_minutes(15)).usec(),
-                                 rak::const_mem_ref(&TransferList::completed_list_type::value_type::first)));
+  auto itr = std::find_if(completedList.begin(), completedList.end(), [](const auto& v) {
+    return (rak::timer::current() - rak::timer::from_minutes(15).usec()) <= v.first;
+  });
 
   if (itr == completedList.end())
     return;
@@ -384,6 +383,7 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   for (std::vector<uint32_t>::iterator itr2 = buffer.begin(), last = buffer.end(); itr2 != last; itr2++)
     *itr2 = htonl(*itr2);
 
+  object.insert_key("uncertain_pieces.timestamp", rak::timer::current_seconds());
   Object::string_type& completed = object.insert_key("uncertain_pieces", std::string()).as_string();
   completed.append((const char*)&buffer.front(), buffer.size() * sizeof(uint32_t));
 }

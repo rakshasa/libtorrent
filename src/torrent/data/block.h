@@ -126,9 +126,12 @@ public:
   // block == NULL.
   static void               release(BlockTransfer* transfer);
 
+  // Only allow move constructions
+  Block(const Block&) = delete;
+  void operator = (const Block&) = delete;
+  Block(Block&&) = default;
+
 private:
-  Block(const Block&);
-  void operator = (const Block&);
 
   void                      invalidate_transfer(BlockTransfer* transfer) LIBTORRENT_NO_EXPORT;
 

@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <rak/error_number.h>
-#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
@@ -84,7 +83,7 @@ ChunkList::has_chunk(size_type index, int prot) const {
 void
 ChunkList::resize(size_type to_size) {
   LT_LOG_THIS(INFO, "Resizing: from:%" PRIu32 " to:%" PRIu32 ".", size(), to_size);
-  
+
   if (!empty())
     throw internal_error("ChunkList::resize(...) called on an non-empty object.");
 
@@ -105,7 +104,7 @@ ChunkList::clear() {
   for (Queue::iterator itr = m_queue.begin(), last = m_queue.end(); itr != last; ++itr) {
     if ((*itr)->references() != 1 || (*itr)->writable() != 1)
       throw internal_error("ChunkList::clear() called but a node in the queue is still referenced.");
-    
+
     (*itr)->dec_rw();
     clear_chunk(*itr);
   }
@@ -291,7 +290,9 @@ ChunkList::sync_chunks(int flags) {
   if (flags & sync_all)
     split = m_queue.begin();
   else
-    split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+    split = std::stable_partition(m_queue.begin(), m_queue.end(), [](ChunkListNode* n) {
+      return 1 != n->writable();
+    });
 
   // Allow a flag that does more culling, so that we only get large
   // continous sections.

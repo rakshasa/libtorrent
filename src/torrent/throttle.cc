@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <climits>
+
 #include <rak/timer.h> 
 
 #include "net/throttle_internal.h"
@@ -77,18 +79,18 @@ Throttle::create_slave() {
 
 bool
 Throttle::is_throttled() {
-  return m_maxRate != 0 && m_maxRate != std::numeric_limits<uint32_t>::max();
+  return m_maxRate != 0 && m_maxRate < UINT_MAX;
 }
 
 void
-Throttle::set_max_rate(uint32_t v) {
+Throttle::set_max_rate(uint64_t v) {
   if (v == m_maxRate)
     return;
 
-  if (v > (1 << 30))
-    throw input_error("Throttle rate must be between 0 and 2^30.");
+  if (v > (UINT_MAX - 1))
+    throw input_error("Throttle rate must be between 0 and 4294967295.");
 
-  uint32_t oldRate = m_maxRate;
+  uint64_t oldRate = m_maxRate;
   m_maxRate = v;
 
   m_throttleList->set_min_chunk_size(calculate_min_chunk_size());

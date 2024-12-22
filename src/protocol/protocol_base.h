@@ -144,12 +144,15 @@ public:
   bool                can_write_port() const                  { return m_buffer.reserved_left() >= sizeof_port; }
   bool                can_write_extension() const             { return m_buffer.reserved_left() >= sizeof_extension; }
 
+  size_type           max_write_request() const               { return m_buffer.reserved_left() / sizeof_request; }
+
   bool                can_read_have_body() const              { return m_buffer.remaining() >= sizeof_have_body; }
   bool                can_read_request_body() const           { return m_buffer.remaining() >= sizeof_request_body; }
   bool                can_read_cancel_body() const            { return m_buffer.remaining() >= sizeof_request_body; }
   bool                can_read_piece_body() const             { return m_buffer.remaining() >= sizeof_piece_body; }
   bool                can_read_port_body() const              { return m_buffer.remaining() >= sizeof_port_body; }
   bool                can_read_extension_body() const         { return m_buffer.remaining() >= sizeof_extension_body; }
+
 
 protected:
   State               m_state;

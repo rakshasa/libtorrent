@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <functional>
 #include <cinttypes>
-#include <rak/functional.h>
 
 #include "torrent/data/block.h"
 #include "torrent/data/block_list.h"
@@ -88,19 +87,26 @@ RequestList::~RequestList() {
   priority_queue_erase(&taskScheduler, &m_delay_process_unordered);
 }
 
-const Piece*
-RequestList::delegate() {
-  BlockTransfer* transfer = m_delegator->delegate(m_peerChunks, m_affinity);
+std::vector<const Piece*>
+RequestList::delegate(uint32_t maxPieces) {
+  std::vector<BlockTransfer*> transfers = m_delegator->delegate(m_peerChunks, m_affinity, maxPieces);
 
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DELEGATED, 1);
+  std::vector<const Piece*> pieces;
 
-  if (transfer == NULL)
-    return NULL;
+  if (transfers.empty())
+    return pieces;
 
-  m_affinity = transfer->index();
-  m_queues.push_back(bucket_queued, transfer);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DELEGATED, transfers.size());
 
-  return &transfer->piece();
+  for (auto& itr : transfers) {
+    m_queues.push_back(bucket_queued, itr);
+    pieces.push_back(&(itr->piece()));
+  }
+
+  // Use the last index returned for the next affinity
+  m_affinity = transfers.back()->index();
+
+  return pieces;
 }
 
 void
@@ -147,7 +153,6 @@ void
 RequestList::unchoked() {
   m_last_unchoke = cachedTime;
 
-  priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
 
   // Clear choked queue if the peer doesn't start sending previously
   // requested pieces.
@@ -155,8 +160,10 @@ RequestList::unchoked() {
   // This handles the case where a peer does a choke immediately
   // followed unchoke before starting to send pieces.
   if (!m_queues.queue_empty(bucket_choked)) {
-    priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
+    priority_queue_update(&taskScheduler, &m_delay_remove_choked,
                           (cachedTime + rak::timer::from_seconds(timeout_remove_choked)).round_seconds());
+  } else {
+    priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
   }
 }
 
@@ -244,8 +251,7 @@ RequestList::downloading(const Piece& piece) {
 
     // We make sure that the choked queue eventually gets cleared if
     // the peer has skipped sending some pieces from the choked queue.
-    priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
-    priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
+    priority_queue_update(&taskScheduler, &m_delay_remove_choked,
                           (cachedTime + rak::timer::from_seconds(timeout_choked_received)).round_seconds());
     break;
   default:
