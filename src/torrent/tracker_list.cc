@@ -66,22 +66,22 @@ TrackerList::TrackerList() :
 
 bool
 TrackerList::has_active() const {
-  return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_busy)) != end();
+  return std::find_if(begin(), end(), std::mem_fn(&Tracker::is_busy)) != end();
 }
 
 bool
 TrackerList::has_active_not_scrape() const {
-  return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_busy_not_scrape)) != end();
+  return std::find_if(begin(), end(), std::mem_fn(&Tracker::is_busy_not_scrape)) != end();
 }
 
 bool
 TrackerList::has_active_in_group(uint32_t group) const {
-  return std::find_if(begin_group(group), end_group(group), std::mem_fun(&Tracker::is_busy)) != end_group(group);
+  return std::find_if(begin_group(group), end_group(group), std::mem_fn(&Tracker::is_busy)) != end_group(group);
 }
 
 bool
 TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
-  return std::find_if(begin_group(group), end_group(group), std::mem_fun(&Tracker::is_busy_not_scrape)) != end_group(group);
+  return std::find_if(begin_group(group), end_group(group), std::mem_fn(&Tracker::is_busy_not_scrape)) != end_group(group);
 }
 
 bool
@@ -91,7 +91,7 @@ TrackerList::has_usable() const {
 
 unsigned int
 TrackerList::count_active() const {
-  return std::count_if(begin(), end(), std::mem_fun(&Tracker::is_busy));
+  return std::count_if(begin(), end(), std::mem_fn(&Tracker::is_busy));
 }
 
 unsigned int
@@ -127,7 +127,7 @@ TrackerList::clear() {
 
 void
 TrackerList::clear_stats() {
-  std::for_each(begin(), end(), std::mem_fun(&Tracker::clear_stats));
+  std::for_each(begin(), end(), std::mem_fn(&Tracker::clear_stats));
 }
 
 void
@@ -229,7 +229,7 @@ TrackerList::find_usable(const_iterator itr) const {
 
 TrackerList::iterator
 TrackerList::find_next_to_request(iterator itr) {
-  TrackerList::iterator preferred = itr = std::find_if(itr, end(), std::mem_fun(&Tracker::can_request_state));
+  TrackerList::iterator preferred = itr = std::find_if(itr, end(), std::mem_fn(&Tracker::can_request_state));
 
   if (preferred == end() || (*preferred)->failed_counter() == 0)
     return preferred;

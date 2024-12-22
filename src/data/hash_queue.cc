@@ -157,8 +157,8 @@ HashQueue::clear() {
     throw internal_error("HashQueue::clear() called but valid nodes were found.");
 
   // Replace with a dtor check to ensure it is empty?
-//   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
-//   base_type::clear();
+  //   std::for_each(begin(), end(), std::mem_fn(&HashQueueNode::clear));
+  //   base_type::clear();
 }
 
 void
