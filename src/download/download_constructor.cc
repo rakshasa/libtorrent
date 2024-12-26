@@ -63,12 +63,12 @@ DownloadConstructor::parse_name(const Object& b) {
   pathList.back().set_encoding(m_defaultEncoding);
   pathList.back().push_back(b.get_key_string("name"));
 
-  for (Object::map_const_iterator itr = b.as_map().begin();
-       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path)) != b.as_map().end();
-       ++itr) {
-    pathList.emplace_back();
-    pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
-    pathList.back().push_back(itr->second.as_string());
+  for (const auto& map : b.as_map()) {
+    if (download_constructor_is_single_path(map)) {
+      pathList.emplace_back();
+      pathList.back().set_encoding(map.first.substr(sizeof("name.") - 1));
+      pathList.back().push_back(map.second.as_string());
+    }
   }
 
   if (pathList.empty())
@@ -142,7 +142,7 @@ DownloadConstructor::parse_tracker(const Object& b) {
       // Some torrent makers create empty/invalid 'announce-list'
       // entries while still having valid 'announce'.
       !(announce_list = &b.get_key_list("announce-list"))->empty() &&
-      std::find_if(announce_list->begin(), announce_list->end(), std::mem_fn(&Object::is_list)) != announce_list->end()) {
+      std::any_of(announce_list->begin(), announce_list->end(), std::mem_fn(&Object::is_list))) {
     for (const auto& group : *announce_list) {
       add_tracker_group(group);
     }
@@ -228,12 +228,12 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
   pathList.back().set_encoding(m_defaultEncoding);
   pathList.back().push_back(b.get_key_string("name"));
 
-  for (Object::map_const_iterator itr = b.as_map().begin();
-       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path)) != b.as_map().end();
-       ++itr) {
-    pathList.emplace_back();
-    pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
-    pathList.back().push_back(itr->second.as_string());
+  for (const auto& map : b.as_map()) {
+    if (download_constructor_is_single_path(map)) {
+      pathList.emplace_back();
+      pathList.back().set_encoding(map.first.substr(sizeof("name.") - 1));
+      pathList.back().push_back(map.second.as_string());
+    }
   }
 
   if (pathList.empty())
@@ -261,12 +261,10 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
     if (listItr->has_key_list("path"))
       pathList.push_back(create_path(listItr->get_key_list("path"), m_defaultEncoding));
 
-    Object::map_const_iterator itr = listItr->as_map().begin();
-    Object::map_const_iterator last = listItr->as_map().end();
-
-    while ((itr = std::find_if(itr, last, download_constructor_is_multi_path)) != last) {
-      pathList.push_back(create_path(itr->second.as_list(), itr->first.substr(sizeof("path.") - 1)));
-      ++itr;
+    for (const auto& path : listItr->as_map()) {
+      if (download_constructor_is_multi_path(path)) {
+        pathList.push_back(create_path(path.second.as_list(), path.first.substr(sizeof("path.") - 1)));
+      }
     }
 
     if (pathList.empty())
