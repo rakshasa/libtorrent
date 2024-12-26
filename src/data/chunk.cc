@@ -95,7 +95,7 @@ Chunk::at_position(uint32_t pos) {
   if (pos >= m_chunkSize)
     throw internal_error("Chunk::at_position(...) tried to get Chunk position out of range.");
 
-  auto itr = std::find_if(begin(), end(), [pos](const auto& chunk) { return chunk.is_contained(pos); });
+  auto itr = std::find(begin(), end(), pos);
   if (itr == end())
     throw internal_error("Chunk::at_position(...) might be mangled, at_position failed horribly");
 

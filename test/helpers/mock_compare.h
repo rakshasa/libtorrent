@@ -46,7 +46,7 @@ struct mock_compare_map {
   }
 
   static bool has_value(const T* v) {
-    return std::find_if(values.begin(), values.end(), [v](typename values_type::value_type& kv) { return v == kv.second; }) != values.end();
+    return std::any_of(values.begin(), values.end(), [v](const auto& kv) { return v == kv.second; });
   }
 
   static const T* get(const T* k) {
