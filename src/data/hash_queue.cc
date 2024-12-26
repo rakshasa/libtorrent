@@ -110,7 +110,7 @@ HashQueue::has(HashQueueNode::id_type id) {
 
 bool
 HashQueue::has(HashQueueNode::id_type id, uint32_t index) {
-  return std::find_if(begin(), end(), HashQueueEqual(id, index)) != end();
+  return std::any_of(begin(), end(), HashQueueEqual(id, index));
 }
 
 void
