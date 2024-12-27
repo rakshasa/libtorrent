@@ -279,7 +279,7 @@ PollKQueue::close(Event* event) {
       itr->udata = NULL;
 
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
-                                   rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
+                                   [event](struct kevent& e) { return event == e.udata; }) - m_changes;
 }
 
 void
@@ -305,7 +305,7 @@ PollKQueue::closed(Event* event) {
       itr->udata = NULL;
 
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
-                                   rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
+                                   [event](struct kevent& e) { return event == e.udata; }) - m_changes;
 }
 
 // Use custom defines for EPOLL* to make the below code compile with
