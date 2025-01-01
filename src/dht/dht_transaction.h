@@ -70,7 +70,7 @@ class DhtTransactionAnnouncePeer;
 
 
 // Compare predicate for ID closeness.
-struct dht_compare_closer : public std::binary_function<const DhtNode*, const DhtNode*, bool> {
+struct dht_compare_closer {
   dht_compare_closer(const HashString& target) : m_target(target) { }
 
   bool operator () (const DhtNode* one, const DhtNode* two) const;

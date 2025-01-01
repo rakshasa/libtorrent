@@ -58,7 +58,7 @@ namespace torrent {
 // aligned 64-bit access.
 static const unsigned int hashstring_hash_ofs = 8;
 
-struct hashstring_ptr_hash : public std::unary_function<const HashString*, size_t> {
+struct hashstring_ptr_hash {
   size_t operator () (const HashString* n) const {
 #if USE_ALIGNED
     size_t result = 0;
@@ -75,7 +75,7 @@ struct hashstring_ptr_hash : public std::unary_function<const HashString*, size_
   }
 };
 
-struct hashstring_hash : public std::unary_function<HashString, size_t> {
+struct hashstring_hash {
   size_t operator () (const HashString& n) const {
 #if USE_ALIGNED
     size_t result = 0;
@@ -93,7 +93,7 @@ struct hashstring_hash : public std::unary_function<HashString, size_t> {
 };
 
 // Compare HashString pointers by dereferencing them.
-struct hashstring_ptr_equal : public std::binary_function<const HashString*, const HashString*, bool> {
+struct hashstring_ptr_equal {
   size_t operator () (const HashString* one, const HashString* two) const 
   { return *one == *two; }
 };

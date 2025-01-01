@@ -2,8 +2,9 @@
 
 #include "socket_address.h"
 
-#include <cstring>
+#include <algorithm>
 #include <arpa/inet.h>
+#include <cstring>
 #include <sys/un.h>
 
 // TODO: Deprecate.
