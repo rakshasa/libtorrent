@@ -134,11 +134,8 @@ sa_length(const sockaddr* sa) {
 
 sa_unique_ptr
 sa_make_unspec() {
-  sa_unique_ptr sa(new sockaddr);
-
-  std::memset(sa.get(), 0, sizeof(sockaddr));
-  sa.get()->sa_family = AF_UNSPEC;
-
+  auto sa       = std::make_unique<sockaddr>();
+  sa->sa_family = AF_UNSPEC;
   return sa;
 }
 
@@ -157,9 +154,7 @@ sa_make_unix(const std::string& pathname) {
   if (!pathname.empty())
     throw internal_error("torrent::sa_make_unix: function not implemented");
 
-  sun_unique_ptr sunp(new sockaddr_un);
-
-  std::memset(sunp.get(), 0, sizeof(sockaddr_un));
+  auto sunp        = std::make_unique<sockaddr_un>();
   sunp->sun_family = AF_UNIX;
   // TODO: verify length, copy pathname
 
@@ -256,33 +251,25 @@ sa_copy_addr_in6(const sockaddr_in6* sa, uint16_t port) {
 
 sin_unique_ptr
 sin_copy(const sockaddr_in* sa) {
-  sin_unique_ptr result(new sockaddr_in);
-  std::memcpy(result.get(), sa, sizeof(sockaddr_in));
-  return result;
+  return std::make_unique<sockaddr_in>(*sa);
 }
 
 sin6_unique_ptr
 sin6_copy(const sockaddr_in6* sa) {
-  sin6_unique_ptr result(new sockaddr_in6);
-  std::memcpy(result.get(), sa, sizeof(sockaddr_in6));
-  return result;
+  return std::make_unique<sockaddr_in6>(*sa);
 }
 
 sin_unique_ptr
 sin_make() {
-  sin_unique_ptr sa(new sockaddr_in);
-  std::memset(sa.get(), 0, sizeof(sockaddr_in));
-  sa.get()->sin_family = AF_INET;
-
+  auto sa        = std::make_unique<sockaddr_in>();
+  sa->sin_family = AF_INET;
   return sa;
 }
 
 sin6_unique_ptr
 sin6_make() {
-  sin6_unique_ptr sa(new sockaddr_in6);
-  std::memset(sa.get(), 0, sizeof(sockaddr_in6));
-  sa.get()->sin6_family = AF_INET6;
-
+  auto sa         = std::make_unique<sockaddr_in6>();
+  sa->sin6_family = AF_INET6;
   return sa;
 }
 
@@ -307,19 +294,19 @@ sin_from_v4mapped_in6(const sockaddr_in6* sin6) {
   if (!sin6_is_v4mapped(sin6))
     throw internal_error("torrent::sin6_is_v4mapped: sockaddr_in6 is not v4mapped");
 
-  sin_unique_ptr result = sin_make();
-  result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sin6, 3)));
-  result.get()->sin_port = sin6->sin6_port;
+  auto result             = sin_make();
+  result->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sin6, 3)));
+  result->sin_port        = sin6->sin6_port;
 
   return result;
 }
 
 sin6_unique_ptr
 sin6_to_v4mapped_in(const sockaddr_in* sin) {
-  sin6_unique_ptr result = sin6_make();
+  auto result = sin6_make();
 
-  result.get()->sin6_addr = sin6_make_addr32(0, 0, 0xffff, ntohl(sin->sin_addr.s_addr));
-  result.get()->sin6_port = sin->sin_port;
+  result->sin6_addr = sin6_make_addr32(0, 0, 0xffff, ntohl(sin->sin_addr.s_addr));
+  result->sin6_port = sin->sin_port;
 
   return result;
 }
