@@ -74,7 +74,7 @@ TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
 
-  m_taskTimeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
+  m_taskTimeout.slot() = [this] { receive_timeout(); };
 }
 
 TrackerUdp::~TrackerUdp() {
@@ -130,11 +130,7 @@ TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& 
 
 TrackerUdp::resolver_type*
 TrackerUdp::make_resolver_slot(const hostname_type& hostname) {
-  return manager->connection_manager()->resolver()(hostname.data(), PF_UNSPEC, SOCK_DGRAM,
-                                                   std::bind(&TrackerUdp::start_announce,
-                                                             this,
-                                                             std::placeholders::_1,
-                                                             std::placeholders::_2));
+  return manager->connection_manager()->resolver()(hostname.data(), PF_UNSPEC, SOCK_DGRAM, [this](auto sa, auto err) { start_announce(sa, err); });
 }
 
 void

@@ -136,12 +136,12 @@ ResourceManager::push_group(const std::string& name) {
   choke_base_type::back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
   choke_base_type::back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 
-  choke_base_type::back()->up_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_upload_unchoke, this, std::placeholders::_1));
-  choke_base_type::back()->down_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_download_unchoke, this, std::placeholders::_1));
-  choke_base_type::back()->up_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_upload_can_unchoke, this));
-  choke_base_type::back()->down_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_download_can_unchoke, this));
-  choke_base_type::back()->up_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_upload_choke, std::placeholders::_1, std::placeholders::_2));
-  choke_base_type::back()->down_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_download_choke, std::placeholders::_1, std::placeholders::_2));
+  choke_base_type::back()->up_queue()->set_slot_unchoke([this](auto i) { receive_upload_unchoke(i); });
+  choke_base_type::back()->down_queue()->set_slot_unchoke([this](auto i) { receive_download_unchoke(i); });
+  choke_base_type::back()->up_queue()->set_slot_can_unchoke([this] { return retrieve_upload_can_unchoke(); });
+  choke_base_type::back()->down_queue()->set_slot_can_unchoke([this] { return retrieve_download_can_unchoke(); });
+  choke_base_type::back()->up_queue()->set_slot_connection([](auto peer, auto choke) { return peer->receive_upload_choke(choke); });
+  choke_base_type::back()->down_queue()->set_slot_connection([](auto peer, auto choke) { return peer->receive_download_choke(choke); });
 }
 
 ResourceManager::iterator
@@ -295,13 +295,9 @@ ResourceManager::receive_tick() {
   m_currentlyUploadUnchoked   += balance_unchoked(choke_base_type::size(), m_maxUploadUnchoked, true);
   m_currentlyDownloadUnchoked += balance_unchoked(choke_base_type::size(), m_maxDownloadUnchoked, false);
 
-  unsigned int up_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0,
-                                             std::bind(std::plus<unsigned int>(), std::placeholders::_1,
-                                                       std::bind(&choke_group::up_unchoked, std::placeholders::_2)));
+  auto up_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0U, [](auto sum, auto choke) { return sum + choke->up_unchoked(); });
 
-  unsigned int down_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0,
-                                               std::bind(std::plus<unsigned int>(), std::placeholders::_1,
-                                                         std::bind(&choke_group::down_unchoked, std::placeholders::_2)));
+  auto down_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0U, [](auto sum, auto choke) { return sum + choke->down_unchoked(); });
 
   if (m_currentlyUploadUnchoked != up_unchoked)
     throw torrent::internal_error("m_currentlyUploadUnchoked != choke_base_type::back()->up_queue()->size_unchoked()");
@@ -355,15 +351,11 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
   choke_group** group_last = choke_groups + group_size();
 
   if (is_up) {
-    std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
-                                                 std::bind(&choke_group::up_requested, std::placeholders::_1),
-                                                 std::bind(&choke_group::up_requested, std::placeholders::_2)));
+    std::sort(group_first, group_last, [](auto lhs, auto rhs) { return lhs->up_requested() < rhs->up_requested(); });
 
     LT_LOG_THIS("balancing upload unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
   } else {
-    std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
-                                                 std::bind(&choke_group::down_requested, std::placeholders::_1),
-                                                 std::bind(&choke_group::down_requested, std::placeholders::_2)));
+    std::sort(group_first, group_last, [](auto lhs, auto rhs) { return lhs->down_requested() < rhs->down_requested(); });
 
     LT_LOG_THIS("balancing download unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
   }

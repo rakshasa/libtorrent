@@ -103,11 +103,7 @@ ConnectionManager::ConnectionManager() :
   rak::socket_address::cast_from(m_localAddress)->clear();
   rak::socket_address::cast_from(m_proxyAddress)->clear();
 
-  m_slot_resolver = std::bind(&resolve_host,
-                              std::placeholders::_1,
-                              std::placeholders::_2,
-                              std::placeholders::_3,
-                              std::placeholders::_4);
+  m_slot_resolver = resolve_host;
 }
 
 ConnectionManager::~ConnectionManager() {

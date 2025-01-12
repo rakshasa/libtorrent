@@ -38,6 +38,7 @@
 #define LIBTORRENT_TRACKER_CONTROLLER_H
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include <torrent/common.h>
@@ -153,7 +154,7 @@ private:
   slot_tracker        m_slot_tracker_disabled;
 
   // Refactor this out.
-  tracker_controller_private* m_private;
+  std::unique_ptr<tracker_controller_private> m_private;
 };
 
 uint32_t tracker_next_timeout(Tracker* tracker, int controller_flags);
