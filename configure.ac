@@ -30,7 +30,7 @@ AC_C_BIGENDIAN(
   AC_MSG_ERROR([Could not determine endianness])
 )
 
-AX_CXX_COMPILE_STDCXX(14, noext, mandatory)
+AX_CXX_COMPILE_STDCXX(17, noext, mandatory)
 
 RAK_CHECK_CFLAGS
 RAK_CHECK_CXXFLAGS
