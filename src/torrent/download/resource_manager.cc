@@ -140,8 +140,8 @@ ResourceManager::push_group(const std::string& name) {
   choke_base_type::back()->down_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_download_unchoke, this, std::placeholders::_1));
   choke_base_type::back()->up_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_upload_can_unchoke, this));
   choke_base_type::back()->down_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_download_can_unchoke, this));
-  choke_base_type::back()->up_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_upload_choke, std::placeholders::_1, std::placeholders::_2));
-  choke_base_type::back()->down_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_download_choke, std::placeholders::_1, std::placeholders::_2));
+  choke_base_type::back()->up_queue()->set_slot_connection(&PeerConnectionBase::receive_upload_choke);
+  choke_base_type::back()->down_queue()->set_slot_connection(&PeerConnectionBase::receive_download_choke);
 }
 
 ResourceManager::iterator
