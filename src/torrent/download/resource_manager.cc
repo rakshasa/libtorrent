@@ -339,33 +339,25 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
   // that won't work as they need to choke peers once their priority
   // is turned off.
 
-  choke_group* choke_groups[group_size()];
-  std::copy(choke_base_type::begin(), choke_base_type::end(), choke_groups);
+  auto choke_groups = std::vector<choke_group*>(choke_base_type::begin(), choke_base_type::end());
 
   // Start with the group requesting fewest slots (relative to weight)
   // so that we only need to iterate through the list once allocating
   // slots. There will be no slots left unallocated unless all groups
   // have reached max slots allowed.
 
-  choke_group** group_first = choke_groups;
-  choke_group** group_last = choke_groups + group_size();
-
   if (is_up) {
-    std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
-                                                 std::bind(&choke_group::up_requested, std::placeholders::_1),
-                                                 std::bind(&choke_group::up_requested, std::placeholders::_2)));
+    std::sort(choke_groups.begin(), choke_groups.end(), [](auto lhs, auto rhs) { return lhs->up_requested() < rhs->up_requested(); });
 
     LT_LOG_THIS("balancing upload unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
   } else {
-    std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
-                                                 std::bind(&choke_group::down_requested, std::placeholders::_1),
-                                                 std::bind(&choke_group::down_requested, std::placeholders::_2)));
+    std::sort(choke_groups.begin(), choke_groups.end(), [](auto lhs, auto rhs) { return lhs->down_requested() < rhs->down_requested(); });
 
     LT_LOG_THIS("balancing download unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
   }
 
-  while (group_first != group_last) {
-    choke_queue* cm = is_up ? (*group_first)->up_queue() : (*group_first)->down_queue();
+  for (const auto& group : choke_groups) {
+    choke_queue* cm = is_up ? group->up_queue() : group->down_queue();
 
     // change += cm->cycle(weight != 0 ? (quota * itr->priority()) / weight : 0);
     change += cm->cycle(weight != 0 ? quota / weight : 0);
@@ -373,7 +365,6 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
     quota -= cm->size_unchoked();
     // weight -= itr->priority();
     weight--;
-    group_first++;
   }
 
   if (weight != 0)
