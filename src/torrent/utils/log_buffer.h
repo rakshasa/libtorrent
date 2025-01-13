@@ -1,11 +1,11 @@
 #ifndef LIBTORRENT_TORRENT_UTILS_LOG_BUFFER_H
 #define LIBTORRENT_TORRENT_UTILS_LOG_BUFFER_H
 
-#include <string>
 #include <deque>
 #include <functional>
 #include <memory>
-#include <pthread.h>
+#include <mutex>
+#include <string>
 
 namespace torrent {
 
@@ -41,13 +41,14 @@ public:
   using base_type::empty;
   using base_type::size;
 
-  log_buffer() : m_max_size(200) { pthread_mutex_init(&m_lock, NULL); }
+  log_buffer() :
+      m_max_size(200) {}
 
   unsigned int        max_size() const { return m_max_size; }
   
   // Always lock before calling any function.
-  void                lock()   { pthread_mutex_lock(&m_lock); }
-  void                unlock() { pthread_mutex_unlock(&m_lock); }
+  void                lock()   { m_lock.lock(); }
+  void                unlock() { m_lock.unlock(); }
 
   const_iterator      find_older(int32_t older_than);
 
@@ -56,7 +57,7 @@ public:
   void                lock_and_push_log(const char* data, size_t length, int group);
 
 private:
-  pthread_mutex_t     m_lock;
+  std::mutex          m_lock;
   unsigned int        m_max_size;
   slot_void           m_slot_update;
 };

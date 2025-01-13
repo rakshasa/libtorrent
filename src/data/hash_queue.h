@@ -37,10 +37,11 @@
 #ifndef LIBTORRENT_DATA_HASH_QUEUE_H
 #define LIBTORRENT_DATA_HASH_QUEUE_H
 
+#include <condition_variable>
 #include <deque>
 #include <functional>
 #include <map>
-#include <pthread.h>
+#include <mutex>
 
 #include "torrent/hash_string.h"
 #include "hash_queue_node.h"
@@ -76,7 +77,7 @@ public:
   using base_type::back;
 
   HashQueue(thread_disk* thread);
-  ~HashQueue() { clear(); pthread_mutex_destroy(&m_done_chunks_lock); }
+  ~HashQueue() { clear(); }
 
   void                push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d);
 
@@ -98,7 +99,8 @@ private:
   done_chunks_type    m_done_chunks;
   slot_bool           m_slot_has_work;
 
-  pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
+  std::mutex m_done_chunks_lock;
+  std::condition_variable m_cv;
 };
 
 }
