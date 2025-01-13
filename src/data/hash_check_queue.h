@@ -39,7 +39,7 @@
 
 #include <deque>
 #include <functional>
-#include <pthread.h>
+#include <mutex>
 
 #include "rak/allocators.h"
 
@@ -77,7 +77,7 @@ public:
 
 private:
   slot_chunk_handle   m_slot_chunk_done;
-  pthread_mutex_t     m_lock;
+  std::mutex          m_lock;
 };
 
 }
