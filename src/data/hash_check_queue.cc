@@ -44,13 +44,8 @@
 
 namespace torrent {
 
-HashCheckQueue::HashCheckQueue() {
-  pthread_mutex_init(&m_lock, NULL);
-}
-
-HashCheckQueue::~HashCheckQueue() {
-  pthread_mutex_destroy(&m_lock);
-}
+HashCheckQueue::HashCheckQueue()  = default;
+HashCheckQueue::~HashCheckQueue() = default;
 
 // Always poke thread_disk after calling this.
 void
@@ -58,7 +53,7 @@ HashCheckQueue::push_back(HashChunk* hash_chunk) {
   if (hash_chunk == NULL || !hash_chunk->chunk()->is_loaded() || !hash_chunk->chunk()->is_blocking())
     throw internal_error("Invalid hash chunk passed to HashCheckQueue.");
 
-  pthread_mutex_lock(&m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   // Set blocking...(? this needs to be possible to do after getting
   // the chunk) When doing this make sure we verify that the handle is
@@ -69,8 +64,6 @@ HashCheckQueue::push_back(HashChunk* hash_chunk) {
   int64_t size = hash_chunk->chunk()->chunk()->chunk_size();
   instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT, 1);
   instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, size);
-
-  pthread_mutex_unlock(&m_lock);
 }
 
 // erase...
@@ -89,7 +82,7 @@ HashCheckQueue::push_back(HashChunk* hash_chunk) {
 
 bool
 HashCheckQueue::remove(HashChunk* hash_chunk) {
-  pthread_mutex_lock(&m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   bool result;
   iterator itr = std::find(begin(), end(), hash_chunk);
@@ -106,13 +99,12 @@ HashCheckQueue::remove(HashChunk* hash_chunk) {
     result = false;
   }
 
-  pthread_mutex_unlock(&m_lock);
   return result;
 }
 
 void
 HashCheckQueue::perform() {
-  pthread_mutex_lock(&m_lock);
+  auto lock = std::unique_lock(m_lock);
 
   while (!empty()) {
     HashChunk* hash_chunk = base_type::front();
@@ -125,7 +117,7 @@ HashCheckQueue::perform() {
     instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT, -1);
     instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, -size);
 
-    pthread_mutex_unlock(&m_lock);
+    lock.unlock();
 
     if (!hash_chunk->perform(~uint32_t(), true))
       throw internal_error("HashCheckQueue::perform(): !hash_chunk->perform(~uint32_t(), true).");
@@ -134,10 +126,8 @@ HashCheckQueue::perform() {
     hash_chunk->hash_c(hash.data());
 
     m_slot_chunk_done(hash_chunk, hash);
-    pthread_mutex_lock(&m_lock);
+    lock.lock();
   }
-
-  pthread_mutex_unlock(&m_lock);
 }
 
 }
