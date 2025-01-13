@@ -392,7 +392,7 @@ resume_save_uncertain_pieces(Download download, Object& object) {
 }
 
 bool
-resume_check_target_files(Download download, __UNUSED const Object& object) {
+resume_check_target_files(Download download, [[maybe_unused]] const Object& object) {
   FileList* fileList = download.file_list();
 
   if (!fileList->is_open())
@@ -426,7 +426,7 @@ resume_check_target_files(Download download, __UNUSED const Object& object) {
   } else {
     // We consider empty file lists as being valid.
     return fileList->empty() || fileList->front()->is_created();
-  }    
+  }
 }
 
 void

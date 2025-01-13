@@ -302,7 +302,7 @@ TrackerUdp::event_write() {
   if (m_writeBuffer->size_end() == 0)
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
-  int __UNUSED s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
+  [[maybe_unused]] int s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
 
   manager->poll()->remove_write(this);
 }

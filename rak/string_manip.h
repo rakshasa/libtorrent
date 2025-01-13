@@ -143,8 +143,8 @@ public:
     return *this;
   }
 
-  bool operator == (__UNUSED const split_iterator_t& itr) const { return m_pos == m_seq->end(); }
-  bool operator != (__UNUSED const split_iterator_t& itr) const { return m_pos != m_seq->end(); }
+  bool operator == ([[maybe_unused]] const split_iterator_t& itr) const { return m_pos == m_seq->end(); }
+  bool operator != ([[maybe_unused]] const split_iterator_t& itr) const { return m_pos != m_seq->end(); }
 
 private:
   const Sequence* m_seq;
@@ -161,7 +161,7 @@ split_iterator(const Sequence& seq, typename Sequence::value_type delim) {
 
 template <typename Sequence>
 inline split_iterator_t<Sequence>
-split_iterator(__UNUSED const Sequence& seq) {
+split_iterator([[maybe_unused]] const Sequence& seq) {
   return split_iterator_t<Sequence>();
 }
 
