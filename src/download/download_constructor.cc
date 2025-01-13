@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <algorithm>
@@ -78,7 +42,7 @@ DownloadConstructor::initialize(Object& b) {
   if (b.has_key_value("creation date"))
     m_download->info()->set_creation_date(b.get_key_value("creation date"));
 
-  if (b.get_key("info").has_key_value("private") && 
+  if (b.get_key("info").has_key_value("private") &&
       b.get_key("info").get_key_value("private") == 1)
     m_download->info()->set_private();
 
@@ -206,8 +170,10 @@ DownloadConstructor::add_tracker_group(const Object& b) {
   if (!b.is_list())
     throw bencode_error("Tracker group list not a list");
 
+  auto group = m_download->main()->tracker_list()->size_group();
+
   for (const auto& tracker : b.as_list()) {
-    add_tracker_single(tracker, m_download->main()->tracker_list()->size_group());
+    add_tracker_single(tracker, group);
   }
 }
 
@@ -215,7 +181,7 @@ void
 DownloadConstructor::add_tracker_single(const Object& b, int group) {
   if (!b.is_string())
     throw bencode_error("Tracker entry not a string");
-    
+
   m_download->main()->tracker_list()->insert_url(group, rak::trim_classic(b.as_string()));
 }
 
@@ -274,7 +240,7 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
   *fileList->front()->mutable_path() = choose_path(&pathList);
-  fileList->update_paths(fileList->begin(), fileList->end());  
+  fileList->update_paths(fileList->begin(), fileList->end());
 }
 
 void
@@ -328,7 +294,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
 
   fileList->initialize(torrentSize, chunkSize);
   fileList->split(fileList->begin(), &*splitList.begin(), &*splitList.end());
-  fileList->update_paths(fileList->begin(), fileList->end());  
+  fileList->update_paths(fileList->begin(), fileList->end());
 }
 
 inline Path
@@ -354,7 +320,7 @@ DownloadConstructor::choose_path(std::list<Path>* pathList) {
   std::list<Path>::iterator pathLast         = pathList->end();
   EncodingList::const_iterator encodingFirst = m_encodingList->begin();
   EncodingList::const_iterator encodingLast  = m_encodingList->end();
-  
+
   for ( ; encodingFirst != encodingLast; ++encodingFirst) {
     auto itr = std::find_if(pathFirst, pathLast, [encodingFirst](const Path& p) {
       return strcasecmp(p.encoding().c_str(), encodingFirst->c_str()) == 0;
