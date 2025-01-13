@@ -394,7 +394,7 @@ PollKQueue::remove_error(Event* event) {
 #else // USE_QUEUE
 
 PollKQueue*
-PollKQueue::create(__UNUSED int maxOpenSockets) {
+PollKQueue::create([[maybe_unused]] int maxOpenSockets) {
   return NULL;
 }
 
@@ -402,7 +402,7 @@ PollKQueue::~PollKQueue() {
 }
 
 int
-PollKQueue::poll(__UNUSED int msec) {
+PollKQueue::poll([[maybe_unused]] int msec) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
@@ -422,57 +422,57 @@ PollKQueue::open_max() const {
 }
 
 void
-PollKQueue::open(__UNUSED torrent::Event* event) {
+PollKQueue::open([[maybe_unused]] torrent::Event* event) {
 }
 
 void
-PollKQueue::close(__UNUSED torrent::Event* event) {
+PollKQueue::close([[maybe_unused]] torrent::Event* event) {
 }
 
 void
-PollKQueue::closed(__UNUSED torrent::Event* event) {
+PollKQueue::closed([[maybe_unused]] torrent::Event* event) {
 }
 
 bool
-PollKQueue::in_read(__UNUSED torrent::Event* event) {
+PollKQueue::in_read([[maybe_unused]] torrent::Event* event) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 bool
-PollKQueue::in_write(__UNUSED torrent::Event* event) {
+PollKQueue::in_write([[maybe_unused]] torrent::Event* event) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 bool
-PollKQueue::in_error(__UNUSED torrent::Event* event) {
+PollKQueue::in_error([[maybe_unused]] torrent::Event* event) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 void
-PollKQueue::insert_read(__UNUSED torrent::Event* event) {
+PollKQueue::insert_read([[maybe_unused]] torrent::Event* event) {
 }
 
 void
-PollKQueue::insert_write(__UNUSED torrent::Event* event) {
+PollKQueue::insert_write([[maybe_unused]] torrent::Event* event) {
 }
 
 void
-PollKQueue::insert_error(__UNUSED torrent::Event* event) {
+PollKQueue::insert_error([[maybe_unused]] torrent::Event* event) {
 }
 
 void
-PollKQueue::remove_read(__UNUSED torrent::Event* event) {
+PollKQueue::remove_read([[maybe_unused]] torrent::Event* event) {
 }
 
 void
-PollKQueue::remove_write(__UNUSED torrent::Event* event) {
+PollKQueue::remove_write([[maybe_unused]] torrent::Event* event) {
 }
 
 void
-PollKQueue::remove_error(__UNUSED torrent::Event* event) {
+PollKQueue::remove_error([[maybe_unused]] torrent::Event* event) {
 }
 
-PollKQueue::PollKQueue(__UNUSED int fd, __UNUSED int maxEvents, __UNUSED int maxOpenSockets) {
+PollKQueue::PollKQueue([[maybe_unused]] int fd, [[maybe_unused]] int maxEvents, [[maybe_unused]] int maxOpenSockets) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 

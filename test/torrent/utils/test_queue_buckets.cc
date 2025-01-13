@@ -44,7 +44,7 @@ static int items_destroyed = 0;
 
 template <>
 void
-test_constants::destroy<int>(__UNUSED int& obj) {
+test_constants::destroy<int>([[maybe_unused]] int& obj) {
   items_destroyed++;
 }
 

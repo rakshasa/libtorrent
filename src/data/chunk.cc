@@ -199,10 +199,10 @@ Chunk::preload(uint32_t position, uint32_t length, bool useAdvise) {
 
     } else {
       for (char* first = (char*)data.first, *last = (char*)data.first + data.second; first < last; first += 4096)
-        volatile char __UNUSED touchChunk = *(char*)data.first;
+        [[maybe_unused]] volatile char touchChunk = *(char*)data.first;
 
       // Make sure we touch the last page in the range.
-      volatile char __UNUSED touchChunk = *((char*)data.first + data.second - 1);
+      [[maybe_unused]] volatile char ouchChunk = *((char*)data.first + data.second - 1);
     }
 
   } while (itr.next());

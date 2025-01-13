@@ -87,7 +87,7 @@ ChunkSelector::update_priorities() {
 }
 
 uint32_t
-ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
+ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   // This needs to be re-enabled.
   if (m_position == invalid_chunk)
     return invalid_chunk;
