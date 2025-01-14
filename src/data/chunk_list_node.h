@@ -38,6 +38,7 @@
 #define LIBTORRENT_DATA_CHUNK_LIST_NODE_H
 
 #include <cinttypes>
+#include <new>
 #include <rak/timer.h>
 
 namespace torrent {
