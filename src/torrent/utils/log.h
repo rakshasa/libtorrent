@@ -144,7 +144,7 @@ enum {
   { if (torrent::log_groups[log_group].valid())                         \
       torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__); }
 
-typedef std::function<void (const char*, unsigned int, int)> log_slot;
+typedef std::function<void (const char*, size_t, int)> log_slot;
 
 class LIBTORRENT_EXPORT log_group {
 public:
