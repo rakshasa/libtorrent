@@ -57,9 +57,8 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
     thread_base::release_global_lock();
 
   rak::address_info* ai;
-  int err;
 
-  if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
+  if (int err = rak::address_info::get_address_info(host, family, socktype, &ai); err != 0) {
     if (manager->main_thread_main()->is_current())
       thread_base::acquire_global_lock();
 
