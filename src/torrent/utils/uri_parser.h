@@ -42,7 +42,7 @@
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
 
-namespace torrent { namespace utils {
+namespace torrent::utils {
 
 typedef std::vector<std::string> uri_resource_list;
 typedef std::vector<std::string> uri_query_list;
@@ -91,6 +91,6 @@ public:
   uri_error(const std::string& msg) : ::torrent::input_error(msg) {}
 };
 
-}}
+}
 
 #endif
