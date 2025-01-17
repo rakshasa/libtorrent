@@ -37,7 +37,7 @@ socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port
     throw internal_error("socket_listen::open: socket address is inet without v4only flag");
 
   if (first_port == 0 || last_port == 0 || start_port == 0 ||
-      !(first_port <= last_port && first_port <= start_port && start_port <= last_port))
+      first_port > last_port || first_port > start_port || start_port > last_port)
     throw internal_error("socket_listen::open: port range not valid");
 
   int fd = fd_open(open_flags);

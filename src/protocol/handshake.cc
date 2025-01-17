@@ -638,7 +638,7 @@ Handshake::read_port() {
 
 void
 Handshake::read_done() {
-  if (m_readDone != false)
+  if (m_readDone)
     throw internal_error("Handshake::read_done() m_readDone != false.");
 
 //   if (m_peerInfo->supports_extensions() && m_extensions->is_initial_handshake())
@@ -1171,7 +1171,7 @@ void
 Handshake::write_bitfield() {
   const Bitfield* bitfield = m_download->file_list()->bitfield();
 
-  if (m_writeDone != false)
+  if (m_writeDone)
     throw internal_error("Handshake::event_write() m_writeDone != false.");
 
   if (m_writeBuffer.remaining())
