@@ -162,18 +162,16 @@ ThrottleList::node_quota(ThrottleNode* node) {
     // Returns max for signed integer to ensure we don't overflow
     // claculations.
     return std::numeric_limits<int32_t>::max();
-
-  } else if (!is_active(node)) {
+  }
+  if (!is_active(node)) {
     throw internal_error(is_inactive(node) ?
                          "ThrottleList::node_quota(...) called on an inactive node." :
                          "ThrottleList::node_quota(...) could not find node.");
-
-  } else if (node->quota() + m_unallocatedQuota >= m_minChunkSize) {
-    return node->quota() + m_unallocatedQuota;
-
-  } else {
-    return 0;
   }
+  if (node->quota() + m_unallocatedQuota >= m_minChunkSize) {
+    return node->quota() + m_unallocatedQuota;
+  }
+  return 0;
 }
 
 void

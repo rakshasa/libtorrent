@@ -253,8 +253,7 @@ ChunkSelector::search_linear_range(const Bitfield* bf, rak::partial_queue* pq, u
 
   if (wanted)
     return search_linear_byte(pq, m_data->untouched_bitfield()->position(local), wanted);
-  else
-    return true;
+  return true;
 }
 
 // Take pointer to partial_queue

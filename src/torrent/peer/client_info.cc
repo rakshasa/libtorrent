@@ -74,7 +74,7 @@ bool
 ClientInfo::less_intersects(const ClientInfo& left, const ClientInfo& right) {
   if (left.type() > right.type())
     return false;
-  else if (left.type() < right.type())
+  if (left.type() < right.type())
     return true;
 
   int keyComp = std::memcmp(left.key(), right.key(), ClientInfo::max_key_size);
@@ -88,7 +88,7 @@ bool
 ClientInfo::less_disjoint(const ClientInfo& left, const ClientInfo& right) {
   if (left.type() > right.type())
     return false;
-  else if (left.type() < right.type())
+  if (left.type() < right.type())
     return true;
 
   int keyComp = std::memcmp(left.key(), right.key(), ClientInfo::max_key_size);

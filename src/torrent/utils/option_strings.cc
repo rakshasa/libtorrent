@@ -280,8 +280,7 @@ option_to_string_or_throw(option_enum opt_enum, unsigned int value, const char* 
 
   if (result == NULL)
     throw input_error(not_found);
-  else
-    return result;
+  return result;
 }
 
 const char*
@@ -290,8 +289,7 @@ option_as_string(option_enum opt_enum, unsigned int value) {
 
   if (result == NULL)
     throw input_error("Invalid option value.");
-  else
-    return result;
+  return result;
 }
 
 torrent::Object

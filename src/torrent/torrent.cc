@@ -31,28 +31,28 @@ uint32_t
 calculate_max_open_files(uint32_t openMax) {
   if (openMax >= 8096)
     return 256;
-  else if (openMax >= 1024)
+  if (openMax >= 1024)
     return 128;
-  else if (openMax >= 512)
+  if (openMax >= 512)
     return 64;
-  else if (openMax >= 128)
+  if (openMax >= 128)
     return 16;
-  else // Assumes we don't try less than 64.
-    return 4;
+  // Assumes we don't try less than 64.
+  return 4;
 }
 
 uint32_t
 calculate_reserved(uint32_t openMax) {
   if (openMax >= 8096)
     return 256;
-  else if (openMax >= 1024)
+  if (openMax >= 1024)
     return 128;
-  else if (openMax >= 512)
+  if (openMax >= 512)
     return 64;
-  else if (openMax >= 128)
+  if (openMax >= 128)
     return 32;
-  else // Assumes we don't try less than 64.
-    return 16;
+  // Assumes we don't try less than 64.
+  return 16;
 }    
 
 void

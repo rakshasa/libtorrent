@@ -423,10 +423,8 @@ resume_check_target_files(Download download, [[maybe_unused]] const Object& obje
 
     return true;
 
-  } else {
-    // We consider empty file lists as being valid.
-    return fileList->empty() || fileList->front()->is_created();
-  }
+  } // We consider empty file lists as being valid.
+  return fileList->empty() || fileList->front()->is_created();
 }
 
 void

@@ -57,8 +57,7 @@ inline uint32_t
 choke_queue::max_alternate() const {
   if (m_currently_unchoked < 31)
     return (m_currently_unchoked + 7) / 8;
-  else
-    return (m_currently_unchoked + 9) / 10;
+  return (m_currently_unchoked + 9) / 10;
 }
 
 group_stats

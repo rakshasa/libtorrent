@@ -117,23 +117,22 @@ Throttle::calculate_min_chunk_size() const {
   if (m_maxRate <= (8 << 10))
     return (1 << 9);
 
-  else if (m_maxRate <= (32 << 10))
+  if (m_maxRate <= (32 << 10))
     return (2 << 9);
 
-  else if (m_maxRate <= (64 << 10))
+  if (m_maxRate <= (64 << 10))
     return (3 << 9);
 
-  else if (m_maxRate <= (128 << 10))
+  if (m_maxRate <= (128 << 10))
     return (4 << 9);
 
-  else if (m_maxRate <= (512 << 10))
+  if (m_maxRate <= (512 << 10))
     return (8 << 9);
 
-  else if (m_maxRate <= (2048 << 10))
+  if (m_maxRate <= (2048 << 10))
     return (16 << 9);
 
-  else
-    return (32 << 9);
+  return (32 << 9);
 }
 
 uint32_t
@@ -154,10 +153,9 @@ Throttle::calculate_interval() const {
 
   if (interval == 0)
     return 1 * 100000;
-  else if (interval > 10)
+  if (interval > 10)
     return 10 * 100000;
-  else
-    return interval * 100000;
+  return interval * 100000;
 }
 
 }

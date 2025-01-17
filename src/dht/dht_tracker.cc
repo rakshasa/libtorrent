@@ -58,8 +58,8 @@ DhtTracker::add_peer(uint32_t addr, uint16_t port) {
       m_peers[i].peer.port = compact.port;
       m_lastSeen[i] = cachedTime.seconds();
       return;
-
-    } else if (m_lastSeen[i] < minSeen) {
+    }
+    if (m_lastSeen[i] < minSeen) {
       minSeen = m_lastSeen[i];
       oldest = i;
     }

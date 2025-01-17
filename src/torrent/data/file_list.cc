@@ -104,13 +104,11 @@ FileList::completed_bytes() const {
     // The last chunk is not done, or the last chunk is the same size
     // as the others.
     return completed_chunks() * cs;
-
-  } else {
-    if (completed_chunks() == 0)
-      throw internal_error("FileList::bytes_completed() completed_chunks() == 0.", data()->hash());
-
-    return (completed_chunks() - 1) * cs + size_bytes() % cs;
   }
+  if (completed_chunks() == 0)
+    throw internal_error("FileList::bytes_completed() completed_chunks() == 0.", data()->hash());
+
+  return (completed_chunks() - 1) * cs + size_bytes() % cs;
 }
 
 uint64_t
@@ -130,8 +128,7 @@ uint32_t
 FileList::chunk_index_size(uint32_t index) const {
   if (index + 1 != size_chunks() || size_bytes() % chunk_size() == 0)
     return chunk_size();
-  else
-    return size_bytes() % chunk_size();
+  return size_bytes() % chunk_size();
 }
 
 void

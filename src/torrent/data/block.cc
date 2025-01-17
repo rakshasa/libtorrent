@@ -193,13 +193,11 @@ Block::transfering(BlockTransfer* transfer) {
   if (m_leader != NULL) {
     transfer->set_state(BlockTransfer::STATE_NOT_LEADER);
     return false;
-
-  } else {
-    m_leader = transfer;
-
-    transfer->set_state(BlockTransfer::STATE_LEADER);
-    return true;
   }
+  m_leader = transfer;
+
+  transfer->set_state(BlockTransfer::STATE_LEADER);
+  return true;
 }
 
 // TODO: Don't depend on m_leader for access to block transfer data of
@@ -392,8 +390,7 @@ Block::find_queued(const PeerInfo* p) {
 
   if (itr == m_queued.end())
     return NULL;
-  else
-    return *itr;
+  return *itr;
 }
 
 const BlockTransfer*
@@ -402,8 +399,7 @@ Block::find_queued(const PeerInfo* p) const {
 
   if (itr == m_queued.end())
     return NULL;
-  else
-    return *itr;
+  return *itr;
 }
 
 BlockTransfer*
@@ -412,8 +408,7 @@ Block::find_transfer(const PeerInfo* p) {
 
   if (itr == m_transfers.end())
     return NULL;
-  else
-    return *itr;
+  return *itr;
 }
 
 const BlockTransfer*
@@ -422,8 +417,7 @@ Block::find_transfer(const PeerInfo* p) const {
 
   if (itr == m_transfers.end())
     return NULL;
-  else
-    return *itr;
+  return *itr;
 }
 
 }

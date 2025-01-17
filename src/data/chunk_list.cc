@@ -364,19 +364,15 @@ ChunkList::sync_options(ChunkListNode* node, int flags) {
 
     if (flags & sync_safe)
       return std::make_pair(MemoryChunk::sync_sync, true);
-    else
-      return std::make_pair(MemoryChunk::sync_async, true);
-
-  } else if (flags & sync_safe) {
-      
-    if (node->sync_triggered())
-      return std::make_pair(MemoryChunk::sync_sync, true);
-    else
-      return std::make_pair(MemoryChunk::sync_async, false);
-
-  } else {
     return std::make_pair(MemoryChunk::sync_async, true);
   }
+  if (flags & sync_safe) {
+
+    if (node->sync_triggered())
+      return std::make_pair(MemoryChunk::sync_sync, true);
+    return std::make_pair(MemoryChunk::sync_async, false);
+  }
+  return std::make_pair(MemoryChunk::sync_async, true);
 }
 
 // Using a rather simple algorithm for now. This should really be more

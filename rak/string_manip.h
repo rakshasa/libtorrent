@@ -171,11 +171,10 @@ hexchar_to_value(char c) {
   if (c >= '0' && c <= '9')
     return c - '0';
 
-  else if (c >= 'A' && c <= 'F')
+  if (c >= 'A' && c <= 'F')
     return 10 + c - 'A';
-    
-  else
-    return 10 + c - 'a';
+
+  return 10 + c - 'a';
 }
 
 template <int pos, typename Value>
@@ -186,8 +185,7 @@ value_to_hexchar(Value v) {
 
   if (v < 0xA)
     return '0' + v;
-  else
-    return 'A' + v - 0xA;
+  return 'A' + v - 0xA;
 }
 
 template <typename InputIterator, typename OutputIterator> 
@@ -218,12 +216,20 @@ copy_escape_html(InputIterator first1, InputIterator last1, OutputIterator first
     if (std::isalpha(*first1, std::locale::classic()) ||
         std::isdigit(*first1, std::locale::classic()) ||
         *first1 == '-') {
-      if (first2 == last2) break; else *(first2++) = *first1;
+      if (first2 == last2)
+        break;
+      *(first2++) = *first1;
 
     } else {
-      if (first2 == last2) break; else *(first2++) = '%';
-      if (first2 == last2) break; else *(first2++) = value_to_hexchar<1>(*first1);
-      if (first2 == last2) break; else *(first2++) = value_to_hexchar<0>(*first1);
+      if (first2 == last2)
+        break;
+      *(first2++) = '%';
+      if (first2 == last2)
+        break;
+      *(first2++) = value_to_hexchar<1>(*first1);
+      if (first2 == last2)
+        break;
+      *(first2++) = value_to_hexchar<0>(*first1);
     }
 
     ++first1;
@@ -277,8 +283,12 @@ template <typename InputIterator, typename OutputIterator>
 OutputIterator
 transform_hex(InputIterator first1, InputIterator last1, OutputIterator first2, OutputIterator last2) {
   while (first1 != last1) {
-    if (first2 == last2) break; else *(first2++) = value_to_hexchar<1>(*first1);
-    if (first2 == last2) break; else *(first2++) = value_to_hexchar<0>(*first1);
+    if (first2 == last2)
+      break;
+    *(first2++) = value_to_hexchar<1>(*first1);
+    if (first2 == last2)
+      break;
+    *(first2++) = value_to_hexchar<0>(*first1);
 
     ++first1;
   }

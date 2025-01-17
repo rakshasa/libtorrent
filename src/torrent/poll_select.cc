@@ -49,9 +49,8 @@ struct poll_check_t {
         thread_base::waive_global_lock();
 
       return true;
-    } else {
-      return false;
     }
+    return false;
   }
 
   Poll*      m_poll;

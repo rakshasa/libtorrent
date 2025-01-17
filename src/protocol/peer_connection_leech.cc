@@ -188,15 +188,15 @@ PeerConnection<type>::read_message() {
     m_down->set_last_command(ProtocolBase::KEEP_ALIVE);
 
     return true;
-
-  } else if (buf->remaining() < 1) {
+  }
+  if (buf->remaining() < 1) {
     buf->set_position_itr(beginning);
     return false;
-
-  } else if (length > (1 << 20)) {
+  }
+  if (length > (1 << 20)) {
     throw communication_error("PeerConnection::read_message() got an invalid message length.");
   }
-    
+
   // We do not verify the message length of those with static
   // length. A bug in the remote client causing the message start to
   // be unsyncronized would in practically all cases be caught with
@@ -293,26 +293,19 @@ PeerConnection<type>::read_message() {
         m_tryRequest = true;
         down_chunk_finished();
         return true;
-
-      } else {
-        m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
-        m_down->throttle()->insert(m_peerChunks.download_throttle());
-        return false;
       }
-      
-    } else {
-
+      m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+      m_down->throttle()->insert(m_peerChunks.download_throttle());
+      return false;
+    }
       if (down_chunk_from_buffer()) {
         m_tryRequest = true;
         down_chunk_finished();
         return true;
-
-      } else {
-        m_down->set_state(ProtocolRead::READ_PIECE);
-        m_down->throttle()->insert(m_peerChunks.download_throttle());
-        return false;
       }
-    }
+      m_down->set_state(ProtocolRead::READ_PIECE);
+      m_down->throttle()->insert(m_peerChunks.download_throttle());
+      return false;
 
   case ProtocolBase::CANCEL:
     if (!m_down->can_read_cancel_body())
@@ -401,10 +394,9 @@ PeerConnection<type>::event_read() {
         if (m_down->buffer()->size_end() == read_size) {
           m_down->buffer()->move_unused();
           break;
-        } else {
-          m_down->buffer()->move_unused();
-          return;
         }
+        m_down->buffer()->move_unused();
+        return;
 
       case ProtocolRead::READ_PIECE:
         if (type != Download::CONNECTION_LEECH)

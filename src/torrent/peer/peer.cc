@@ -83,11 +83,10 @@ Peer::transfer() const {
   if (c_ptr()->request_list()->transfer() != NULL)
     return c_ptr()->request_list()->transfer();
 
-  else if (!c_ptr()->request_list()->queued_empty())
+  if (!c_ptr()->request_list()->queued_empty())
     return c_ptr()->request_list()->queued_front();
 
-  else
-    return NULL;
+  return NULL;
 }
 
 void

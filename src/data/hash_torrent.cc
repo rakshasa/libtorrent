@@ -159,7 +159,8 @@ HashTorrent::queue(bool quick) {
     if (itr == m_ranges.end()) {
       m_position = m_chunk_list->size();
       break;
-    } else if (m_position < itr->first) {
+    }
+    if (m_position < itr->first) {
       m_position = itr->first;
     }
 

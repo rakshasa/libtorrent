@@ -942,14 +942,13 @@ PeerConnectionBase::should_request() {
     // || m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
-  else if (!m_download->delegator()->get_aggressive())
+  if (!m_download->delegator()->get_aggressive())
     return true;
 
-  else
-    // We check if the peer is stalled, if it is not then we should
-    // request. If the peer is stalled then we only request if the
-    // download rate is below a certain value.
-    return m_downStall <= 1 || m_download->info()->down_rate()->rate() < (10 << 10);
+  // We check if the peer is stalled, if it is not then we should
+  // request. If the peer is stalled then we only request if the
+  // download rate is below a certain value.
+  return m_downStall <= 1 || m_download->info()->down_rate()->rate() < (10 << 10);
 }
 
 bool

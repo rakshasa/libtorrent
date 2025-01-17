@@ -208,8 +208,7 @@ DhtRouter::get_node(const HashString& id) {
   if (itr == m_nodes.end()) {
     if (id == this->id())
       return this;
-    else
-      return NULL;
+    return NULL;
   }
 
   return itr.node();

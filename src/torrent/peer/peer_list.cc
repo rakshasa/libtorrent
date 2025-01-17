@@ -33,21 +33,19 @@ socket_address_less(const sockaddr* s1, const sockaddr* s2) {
 
   if (sa1->family() != sa2->family()) {
     return sa1->family() < sa2->family();
-
-  } else if (sa1->family() == rak::socket_address::af_inet) {
+  }
+  if (sa1->family() == rak::socket_address::af_inet) {
     // Sort by hardware byte order to ensure proper ordering for
     // humans.
     return sa1->sa_inet()->address_h() < sa2->sa_inet()->address_h();
-
-  } else if (sa1->family() == rak::socket_address::af_inet6) {
+  }
+  if (sa1->family() == rak::socket_address::af_inet6) {
     const in6_addr addr1 = sa1->sa_inet6()->address();
     const in6_addr addr2 = sa2->sa_inet6()->address();
 
     return memcmp(&addr1, &addr2, sizeof(in6_addr)) < 0;
-
-  } else {
-    throw internal_error("socket_address_key(...) tried to compare an invalid family type.");
   }
+  throw internal_error("socket_address_key(...) tried to compare an invalid family type.");
 }
 
 //
@@ -319,8 +317,7 @@ PeerList::disconnected(PeerInfo* p, int flags) {
   if (itr == range.second) {
     if (std::none_of(base_type::begin(), base_type::end(), [p](auto& v){ return p == v.second; }))
       throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist.");
-    else
-      throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");
+    throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");
   }
   
   disconnected(itr, flags);

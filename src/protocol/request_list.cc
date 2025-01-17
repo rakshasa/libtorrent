@@ -342,15 +342,11 @@ RequestList::calculate_pipe_size(uint32_t rate) {
   if (!m_delegator->get_aggressive()) {
     if (rate < 20)
       return rate + 2;
-    else
-      return rate / 5 + 18;
-
-  } else {
-    if (rate < 10)
-      return rate / 5 + 1;
-    else
-      return rate / 10 + 2;
+    return rate / 5 + 18;
   }
+  if (rate < 10)
+    return rate / 5 + 1;
+  return rate / 10 + 2;
 }
 
 }

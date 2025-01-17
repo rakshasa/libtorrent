@@ -176,8 +176,7 @@ uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
   if (!m_slot_filter)
     return 1;
-  else
-    return m_slot_filter(sa);
+  return m_slot_filter(sa);
 }
 
 bool

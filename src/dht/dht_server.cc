@@ -693,14 +693,12 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
   }
 
   if (quick) {
-    return ++itr;         // don't actually delete the transaction until the final timeout
-
-  } else {
-    drop_packet(transaction->packet());
-    delete itr->second;
-    m_transactions.erase(itr++);
-    return itr;
+    return ++itr; // don't actually delete the transaction until the final timeout
   }
+  drop_packet(transaction->packet());
+  delete itr->second;
+  m_transactions.erase(itr++);
+  return itr;
 }
 
 void

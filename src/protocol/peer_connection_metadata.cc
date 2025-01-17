@@ -116,15 +116,15 @@ PeerConnectionMetadata::read_message() {
     m_down->set_last_command(ProtocolBase::KEEP_ALIVE);
 
     return true;
-
-  } else if (buf->remaining() < 1) {
+  }
+  if (buf->remaining() < 1) {
     buf->set_position_itr(beginning);
     return false;
-
-  } else if (length > (1 << 20)) {
+  }
+  if (length > (1 << 20)) {
     throw communication_error("PeerConnection::read_message() got an invalid message length.");
   }
-    
+
   m_down->set_last_command((ProtocolBase::Protocol)buf->peek_8());
 
   // Ignore most messages, they aren't relevant for a metadata download.
@@ -251,10 +251,9 @@ PeerConnectionMetadata::event_read() {
         if (m_down->buffer()->size_end() == read_size) {
           m_down->buffer()->move_unused();
           break;
-        } else {
-          m_down->buffer()->move_unused();
-          return;
         }
+        m_down->buffer()->move_unused();
+        return;
 
       case ProtocolRead::READ_EXTENSION:
         if (!down_extension())
@@ -449,10 +448,9 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
   if (m_extensions->request_metadata_piece(p)) {
     LT_LOG_METADATA_EVENTS("request metadata piece succeded", 0);
     return true;
-  } else {
-    LT_LOG_METADATA_EVENTS("request metadata piece failed", 0);
-    return false;
   }
+  LT_LOG_METADATA_EVENTS("request metadata piece failed", 0);
+  return false;
 }
 
 void

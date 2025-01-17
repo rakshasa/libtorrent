@@ -359,14 +359,12 @@ socket_address::set_address_c_str(const char* a) {
   if (sa_inet()->set_address_c_str(a)) {
     sa_inet()->set_family();
     return true;
-
-  } else if (sa_inet6()->set_address_c_str(a)) {
+  }
+  if (sa_inet6()->set_address_c_str(a)) {
     sa_inet6()->set_family();
     return true;
-
-  } else {
-    return false;
   }
+  return false;
 }
 
 // Is the zero length really needed, should we require some length?

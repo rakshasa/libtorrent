@@ -57,8 +57,7 @@ thread_main::next_timeout_usec() {
 
   if (!taskScheduler.empty())
     return std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
-  else
-    return rak::timer::from_seconds(60).usec();
+  return rak::timer::from_seconds(60).usec();
 }
 
 }
