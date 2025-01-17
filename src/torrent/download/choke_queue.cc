@@ -78,7 +78,7 @@ choke_queue::prepare_weights(group_stats gs) {
 
     // Aggregate the statistics... Remember to update them after
     // optimistic/pessimistic unchokes.
-    gs.sum_min_needed += std::min(group->size_connections(), std::min(group->min_slots(), group->max_slots()));
+    gs.sum_min_needed += std::min({group->size_connections(), group->max_slots(), group->min_slots()});
 
     uint32_t max_slots = std::min(group->size_connections(), group->max_slots());
 
@@ -493,7 +493,7 @@ choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator 
       if (weights[itr] == 0 || target[itr].first >= s)
         continue;
 
-      uint32_t u = std::min(unchoke, std::min(s - target[itr].first, weights[itr] - start));
+      uint32_t u = std::min({unchoke, s - target[itr].first, weights[itr] - start});
 
       start = 0;
       unchoke -= u;
