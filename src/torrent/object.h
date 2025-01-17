@@ -246,8 +246,8 @@ public:
   void                swap_same_type(Object& left, Object& right);
 
  private:
-  inline bool         check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
-  inline void         check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
+  bool                check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
+  void                check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
 
   template <typename T> void check_value_throw(const char* err_msg) const;
 
