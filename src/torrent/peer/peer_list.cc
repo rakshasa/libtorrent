@@ -147,30 +147,28 @@ PeerList::insert_available(const void* al) {
   // Optimize this so that we don't traverse the tree for every
   // insert, since we know 'al' is sorted.
 
-  AddressList::const_iterator itr   = addressList->begin();
-  AddressList::const_iterator last  = addressList->end();
   AvailableList::const_iterator availItr  = m_available_list->begin();
   AvailableList::const_iterator availLast = m_available_list->end();
 
-  for (; itr != last; itr++) {
-    if (!socket_address_key::is_comparable_sockaddr(itr->c_sockaddr()) || itr->port() == 0) {
+  for (const auto& addr : *addressList) {
+    if (!socket_address_key::is_comparable_sockaddr(addr.c_sockaddr()) || addr.port() == 0) {
       invalid++;
-      LT_LOG_ADDRESS("skipped invalid address " LT_LOG_SA_FMT, itr->address_str().c_str(), itr->port());
+      LT_LOG_ADDRESS("skipped invalid address " LT_LOG_SA_FMT, addr.address_str().c_str(), addr.port());
       continue;
     }
 
-    availItr = std::find_if(availItr, availLast, [&itr](const rak::socket_address& sa) {
-      return socket_address_less_rak(sa, *itr);
+    availItr = std::find_if(availItr, availLast, [&addr](const rak::socket_address& sa) {
+      return socket_address_less_rak(sa, addr);
     });
 
-    if (availItr != availLast && !socket_address_less(availItr->c_sockaddr(), itr->c_sockaddr())) {
+    if (availItr != availLast && !socket_address_less(availItr->c_sockaddr(), addr.c_sockaddr())) {
       // The address is already in m_available_list, so don't bother
       // going further.
       unneeded++;
       continue;
     }
 
-    socket_address_key sock_key = socket_address_key::from_sockaddr(itr->c_sockaddr());
+    socket_address_key sock_key = socket_address_key::from_sockaddr(addr.c_sockaddr());
 
     // Check if the peerinfo exists, if it does, check if we would
     // ever want to connect. Just update the timer for the last
@@ -184,7 +182,7 @@ PeerList::insert_available(const void* al) {
       PeerInfo* peerInfo = range.first->second;
 
       if (peerInfo->listen_port() == 0)
-        peerInfo->set_port(itr->port());
+        peerInfo->set_port(addr.port());
 
       if (peerInfo->connection() != NULL ||
           peerInfo->last_handshake() + 600 > (uint32_t)cachedTime.seconds()) {
@@ -203,9 +201,9 @@ PeerList::insert_available(const void* al) {
     // won't happen often enough to be worth it.
 
     inserted++;
-    m_available_list->push_back(&*itr);
+    m_available_list->push_back(&addr);
 
-    LT_LOG_ADDRESS("added available address " LT_LOG_SA_FMT, itr->address_str().c_str(), itr->port());
+    LT_LOG_ADDRESS("added available address " LT_LOG_SA_FMT, addr.address_str().c_str(), addr.port());
   }
 
   LT_LOG_EVENTS("inserted peers"

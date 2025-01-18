@@ -42,6 +42,8 @@
 
 #include "chunk_statistics.h"
 
+#include <algorithm>
+
 namespace torrent {
 
 inline bool
@@ -145,9 +147,8 @@ ChunkStatistics::received_have_chunk(PeerChunks* pc, uint32_t index, uint32_t le
       
       m_complete++;
       m_accounted--;
-      
-      for (iterator itr = base_type::begin(), last = base_type::end(); itr != last; ++itr)
-	*itr -= 1;
+
+      std::transform(base_type::begin(), base_type::end(), base_type::begin(), [] (auto c) { return c - 1; });
     }
 
   } else {

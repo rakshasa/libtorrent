@@ -171,8 +171,8 @@ bool
 Chunk::sync(int flags) {
   bool success = true;
 
-  for (iterator itr = begin(), last = end(); itr != last; ++itr)
-    if (!itr->chunk().sync(0, itr->chunk().size(), flags))
+  for (auto& c : *this)
+    if (!c.chunk().sync(0, c.chunk().size(), flags))
       success = false;
 
   return success;

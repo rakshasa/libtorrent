@@ -60,12 +60,12 @@ download_data::calc_wanted_chunks() const {
 
   uint32_t result = 0;
 
-  for (download_data::priority_ranges::const_iterator itr = wanted_ranges.begin(), last = wanted_ranges.end(); itr != last; itr++) {
+  for (const auto& wanted_range : wanted_ranges) {
     //remaining = completed->count_range(itr->first, itr->second);
 
-    uint32_t idx = itr->first;
+    uint32_t idx = wanted_range.first;
 
-    while (idx != itr->second)
+    while (idx != wanted_range.second)
       result += !m_completed_bitfield.get(idx++);
   }
 

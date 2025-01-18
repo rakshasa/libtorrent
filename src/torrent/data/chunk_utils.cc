@@ -57,15 +57,15 @@ chunk_list_mapping(Download* download) {
 
   std::vector<vm_mapping> mappings;
 
-  for (ChunkList::const_iterator itr = chunk_list->begin(), last = chunk_list->end(); itr != last; itr++) {
-    if (!itr->is_valid())
+  for (const auto& chunk : *chunk_list) {
+    if (!chunk.is_valid())
       continue;
 
-    for (Chunk::const_iterator itr2 = itr->chunk()->begin(), last2 = itr->chunk()->end(); itr2 != last2; itr2++) {
-      if (itr2->mapped() != ChunkPart::MAPPED_MMAP)
+    for (const auto& itr2 : *chunk.chunk()) {
+      if (itr2.mapped() != ChunkPart::MAPPED_MMAP)
         continue;
 
-      vm_mapping val = { itr2->chunk().ptr(), itr2->chunk().size_aligned() };
+      vm_mapping val = {itr2.chunk().ptr(), itr2.chunk().size_aligned()};
       mappings.push_back(val);
     }
   }
@@ -75,14 +75,11 @@ chunk_list_mapping(Download* download) {
 
 chunk_info_result
 chunk_list_address_info(void* address) {
-  ChunkManager::iterator first = manager->chunk_manager()->begin();
-  ChunkManager::iterator last = manager->chunk_manager()->begin();
-  
-  while (first != last) {
-    ChunkList::chunk_address_result result = (*first)->find_address(address);
+  for (const auto& chunk : *manager->chunk_manager()) {
+    auto result = chunk->find_address(address);
 
-    if (result.first != (*first)->end()) {
-      DownloadManager::iterator d_itr = manager->download_manager()->find_chunk_list(*first);
+    if (result.first != chunk->end()) {
+      auto d_itr = manager->download_manager()->find_chunk_list(chunk);
 
       if (d_itr == manager->download_manager()->end())
         return chunk_info_result();
@@ -99,8 +96,6 @@ chunk_list_address_info(void* address) {
 
       return ci;
     }
-
-    first++;
   }
 
   return chunk_info_result();

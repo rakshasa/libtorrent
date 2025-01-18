@@ -161,10 +161,10 @@ uint64_t
 FileList::free_diskspace() const {
   uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
 
-  for (path_list::const_iterator itr = m_indirectLinks.begin(), last = m_indirectLinks.end(); itr != last; ++itr) {
+  for (const auto& link : m_indirectLinks) {
     rak::fs_stat stat;
 
-    if (!stat.update(*itr))
+    if (!stat.update(link))
       continue;
 
     freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
@@ -297,9 +297,7 @@ FileList::make_all_paths() {
   Path dummyPath;
   const Path* lastPath = &dummyPath;
 
-  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-    File* entry = *itr;
-
+  for (auto& entry : *this) {
     // No need to create directories if the entry has already been
     // opened.
     if (entry->is_open())
@@ -432,9 +430,9 @@ FileList::open(int flags) {
     }
 
   } catch (local_error& e) {
-    for (iterator itr2 = begin(), last = end(); itr2 != last; ++itr2) {
-      (*itr2)->unset_flags_protected(File::flag_active);
-      manager->file_manager()->close(*itr2);
+    for (auto& itr2 : *this) {
+      itr2->unset_flags_protected(File::flag_active);
+      manager->file_manager()->close(itr2);
     }
 
     if (itr == end()) {
@@ -672,14 +670,14 @@ FileList::update_completed() {
   m_data.update_wanted_chunks();
 
   if (bitfield()->is_all_set()) {
-    for (iterator itr = begin(), last = end(); itr != last; ++itr)
-      (*itr)->set_completed_protected((*itr)->size_chunks());
+    for (auto file : *this)
+      file->set_completed_protected(file->size_chunks());
 
   } else {
     // Clear any old progress data from the entries as we don't clear
     // this on close, etc.
-    for (iterator itr = begin(), last = end(); itr != last; ++itr)
-      (*itr)->set_completed_protected(0);
+    for (auto file : *this)
+      file->set_completed_protected(0);
 
     if (bitfield()->is_all_unset())
       return;

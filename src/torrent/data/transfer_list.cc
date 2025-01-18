@@ -215,22 +215,21 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
 
   blockList->inc_failed();
 
-  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr) {
-    
-    if (itr->failed_list() == NULL)
-      itr->set_failed_list(new BlockFailed());
+  for (auto& transfer : *blockList) {
 
-    BlockFailed::iterator failedItr = std::find_if(itr->failed_list()->begin(), itr->failed_list()->end(),
-                                                   transfer_list_compare_data(chunk, itr->piece()));
+    if (transfer.failed_list() == NULL)
+      transfer.set_failed_list(new BlockFailed());
 
-    if (failedItr == itr->failed_list()->end()) {
+    BlockFailed::iterator failedItr = std::find_if(transfer.failed_list()->begin(), transfer.failed_list()->end(), transfer_list_compare_data(chunk, transfer.piece()));
+
+    if (failedItr == transfer.failed_list()->end()) {
       // We've never encountered this data before, make a new entry.
-      char* buffer = new char[itr->piece().length()];
+      char* buffer = new char[transfer.piece().length()];
 
-      chunk->to_buffer(buffer, itr->piece().offset(), itr->piece().length());
+      chunk->to_buffer(buffer, transfer.piece().offset(), transfer.piece().length());
 
-      itr->failed_list()->emplace_back(buffer, 1);
-      failedItr = itr->failed_list()->end() - 1;
+      transfer.failed_list()->emplace_back(buffer, 1);
+      failedItr = transfer.failed_list()->end() - 1;
 
       // Count how many new data sets?
 
@@ -238,16 +237,16 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
       // Increment promoted when the entry's reference count becomes
       // larger than others, but not if it previously was the largest.
 
-      BlockFailed::iterator maxItr = itr->failed_list()->max_element();
+      BlockFailed::iterator maxItr = transfer.failed_list()->max_element();
 
-      if (maxItr->second == failedItr->second && maxItr != (itr->failed_list()->reverse_max_element().base() - 1))
+      if (maxItr->second == failedItr->second && maxItr != (transfer.failed_list()->reverse_max_element().base() - 1))
         promoted++;
 
       failedItr->second++;
     }
 
-    itr->failed_list()->set_current(failedItr);
-    itr->leader()->set_failed_index(failedItr - itr->failed_list()->begin());
+    transfer.failed_list()->set_current(failedItr);
+    transfer.leader()->set_failed_index(failedItr - transfer.failed_list()->begin());
   }
 
   return promoted;
@@ -257,15 +256,14 @@ void
 TransferList::mark_failed_peers(BlockList* blockList, Chunk* chunk) {
   std::set<PeerInfo*> badPeers;
 
-  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr) {
+  for (auto& block : *blockList) {
     // This chunk data is good, set it as current and
     // everyone who sent something else is a bad peer.
-    itr->failed_list()->set_current(std::find_if(itr->failed_list()->begin(), itr->failed_list()->end(),
-                                                 transfer_list_compare_data(chunk, itr->piece())));
+    block.failed_list()->set_current(std::find_if(block.failed_list()->begin(), block.failed_list()->end(), transfer_list_compare_data(chunk, block.piece())));
 
-    for (Block::transfer_list_type::const_iterator itr2 = itr->transfers()->begin(), last2 = itr->transfers()->end(); itr2 != last2; ++itr2)
-      if ((*itr2)->failed_index() != itr->failed_list()->current() && (*itr2)->failed_index() != ~uint32_t())
-        badPeers.insert((*itr2)->peer_info());
+    for (auto& transfer : *block.transfers())
+      if (transfer->failed_index() != block.failed_list()->current() && transfer->failed_index() != ~uint32_t())
+        badPeers.insert(transfer->peer_info());
   }
 
   std::for_each(badPeers.begin(), badPeers.end(), m_slot_corrupt);
@@ -275,22 +273,22 @@ TransferList::mark_failed_peers(BlockList* blockList, Chunk* chunk) {
 // largest reference counts.
 void
 TransferList::retry_most_popular(BlockList* blockList, Chunk* chunk) {
-  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr) {
-    
-    BlockFailed::reverse_iterator failedItr = itr->failed_list()->reverse_max_element();
+  for (auto& block : *blockList) {
 
-    if (failedItr == itr->failed_list()->rend())
+    BlockFailed::reverse_iterator failedItr = block.failed_list()->reverse_max_element();
+
+    if (failedItr == block.failed_list()->rend())
       throw internal_error("TransferList::retry_most_popular(...) No failed list entry found.");
 
     // The data is the same, so no need to copy.
-    if (failedItr == itr->failed_list()->current_reverse_iterator())
+    if (failedItr == block.failed_list()->current_reverse_iterator())
       continue;
 
     // Change the leader to the currently held buffer?
 
-    chunk->from_buffer(failedItr->first, itr->piece().offset(), itr->piece().length());
+    chunk->from_buffer(failedItr->first, block.piece().offset(), block.piece().length());
 
-    itr->failed_list()->set_current(failedItr);
+    block.failed_list()->set_current(failedItr);
   }
 
   m_slot_completed(blockList->index());

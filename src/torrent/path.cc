@@ -66,9 +66,9 @@ Path::as_string() const {
 
   std::string s;
 
-  for (const_iterator itr = begin(); itr != end(); ++itr) {
+  for (const auto& c : *this) {
     s += '/';
-    s += *itr;
+    s += c;
   }
 
   return s;
