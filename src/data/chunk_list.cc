@@ -85,8 +85,10 @@ ChunkList::resize(size_type to_size) {
 
   uint32_t index = 0;
 
-  for (iterator itr = begin(), last = end(); itr != last; ++itr, ++index)
-    itr->set_index(index);
+  for (auto& chunk : *this) {
+    chunk.set_index(index);
+    ++index;
+  }
 }
 
 void
@@ -95,12 +97,12 @@ ChunkList::clear() {
 
   // Don't do any sync'ing as whomever decided to shut down really
   // doesn't care, so just de-reference all chunks in queue.
-  for (Queue::iterator itr = m_queue.begin(), last = m_queue.end(); itr != last; ++itr) {
-    if ((*itr)->references() != 1 || (*itr)->writable() != 1)
+  for (auto chunk : m_queue) {
+    if (chunk->references() != 1 || chunk->writable() != 1)
       throw internal_error("ChunkList::clear() called but a node in the queue is still referenced.");
 
-    (*itr)->dec_rw();
-    clear_chunk(*itr);
+    chunk->dec_rw();
+    clear_chunk(chunk);
   }
 
   m_queue.clear();

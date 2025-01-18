@@ -97,11 +97,11 @@ log_rebuild_cache() {
   std::for_each(log_cache.begin(), log_cache.end(), std::mem_fn(&log_cache_entry::clear));
   log_cache.clear();
 
-  for (int idx = 0, last = log_groups.size(); idx != last; idx++) {
-    const log_group::outputs_type& use_outputs = log_groups[idx].cached_outputs();
+  for (auto& idx : log_groups) {
+    const log_group::outputs_type& use_outputs = idx.cached_outputs();
 
     if (use_outputs == 0) {
-      log_groups[idx].set_cached(NULL, NULL);
+      idx.set_cached(NULL, NULL);
       continue;
     }
 
@@ -122,7 +122,7 @@ log_rebuild_cache() {
       }
     }
 
-    log_groups[idx].set_cached(cache_itr->cache_first, cache_itr->cache_last);
+    idx.set_cached(cache_itr->cache_first, cache_itr->cache_last);
   }
 }
 

@@ -69,21 +69,21 @@ choke_queue::prepare_weights(group_stats gs) {
   //
   // also remember to clear the queue/unchoked thingies.
 
-  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.end(); itr != last; itr++) {
-    m_heuristics_list[m_heuristics].slot_choke_weight((*itr)->mutable_unchoked()->begin(), (*itr)->mutable_unchoked()->end());
-    std::sort((*itr)->mutable_unchoked()->begin(), (*itr)->mutable_unchoked()->end(), choke_manager_less);
+  for (auto group : m_group_container) {
+    m_heuristics_list[m_heuristics].slot_choke_weight(group->mutable_unchoked()->begin(), group->mutable_unchoked()->end());
+    std::sort(group->mutable_unchoked()->begin(), group->mutable_unchoked()->end(), choke_manager_less);
 
-    m_heuristics_list[m_heuristics].slot_unchoke_weight((*itr)->mutable_queued()->begin(), (*itr)->mutable_queued()->end());
-    std::sort((*itr)->mutable_queued()->begin(), (*itr)->mutable_queued()->end(), choke_manager_less);
+    m_heuristics_list[m_heuristics].slot_unchoke_weight(group->mutable_queued()->begin(), group->mutable_queued()->end());
+    std::sort(group->mutable_queued()->begin(), group->mutable_queued()->end(), choke_manager_less);
 
     // Aggregate the statistics... Remember to update them after
     // optimistic/pessimistic unchokes.
-    gs.sum_min_needed += std::min((*itr)->size_connections(), std::min((*itr)->min_slots(), (*itr)->max_slots()));
+    gs.sum_min_needed += std::min(group->size_connections(), std::min(group->min_slots(), group->max_slots()));
 
-    uint32_t max_slots = std::min((*itr)->size_connections(), (*itr)->max_slots());
+    uint32_t max_slots = std::min(group->size_connections(), group->max_slots());
 
     gs.sum_max_needed += max_slots;
-    gs.sum_max_leftovers += (*itr)->size_connections() - max_slots;
+    gs.sum_max_leftovers += group->size_connections() - max_slots;
 
     // Counter for how many can choke/unchoke based on weights?
     // However one should never have zero weight for any weight group.
@@ -94,8 +94,7 @@ choke_queue::prepare_weights(group_stats gs) {
 
 group_stats
 choke_queue::retrieve_connections(group_stats gs, container_type* queued, container_type* unchoked) {
-  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.end(); itr != last; itr++) {
-    group_entry* entry = *itr;
+  for (auto entry : m_group_container) {
     unsigned int min_slots = std::min(entry->min_slots(), entry->max_slots());
 
     lt_log_print(LOG_PEER_DEBUG, "Choke queue retrieve_connections; queued:%u unchoked:%u min_slots:%u max_slots:%u.",
@@ -143,7 +142,7 @@ choke_queue::retrieve_connections(group_stats gs, container_type* queued, contai
                      entry->queued()->end() - std::min<uint32_t>(entry->queued()->size(), entry->max_slots() - entry->unchoked()->size()),
                      entry->queued()->end());
     }
-  }    
+  }
 
   return gs;
 }
@@ -153,9 +152,9 @@ choke_queue::rebuild_containers(container_type* queued, container_type* unchoked
   queued->clear();
   unchoked->clear();
 
-  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.end(); itr != last; itr++) {
-    queued->insert(queued->end(), (*itr)->queued()->begin(), (*itr)->queued()->end());
-    unchoked->insert(unchoked->end(), (*itr)->unchoked()->begin(), (*itr)->unchoked()->end());
+  for (auto& group : m_group_container) {
+    queued->insert(queued->end(), group->queued()->begin(), group->queued()->end());
+    unchoked->insert(unchoked->end(), group->unchoked()->begin(), group->unchoked()->end());
   }
 }
 

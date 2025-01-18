@@ -102,19 +102,19 @@ TrackerList::count_usable() const {
 
 void
 TrackerList::close_all_excluding(int event_bitmap) {
-  for (iterator itr = begin(); itr != end(); itr++) {
-    if ((event_bitmap & (1 << (*itr)->latest_event())))
+  for (auto tracker : *this) {
+    if ((event_bitmap & (1 << tracker->latest_event())))
       continue;
 
-    (*itr)->close();
+    tracker->close();
   }
 }
 
 void
 TrackerList::disown_all_including(int event_bitmap) {
-  for (iterator itr = begin(); itr != end(); itr++) {
-    if ((event_bitmap & (1 << (*itr)->latest_event())))
-      (*itr)->disown();
+  for (auto& tracker : *this) {
+    if ((event_bitmap & (1 << tracker->latest_event())))
+      tracker->disown();
   }
 }
 
