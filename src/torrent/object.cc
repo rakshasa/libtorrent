@@ -145,20 +145,15 @@ Object::merge_copy(const Object& object, uint32_t skip_mask, uint32_t maxDepth) 
     map_type& dest = as_map();
     map_type::iterator destItr = dest.begin();
 
-    map_type::const_iterator srcItr = object.as_map().begin();
-    map_type::const_iterator srcLast = object.as_map().end();
+    for (const auto& map : object.as_map()) {
+      destItr = std::find_if(destItr, dest.end(), [&map](const auto& v) { return map.first <= v.first; });
 
-    while (srcItr != srcLast) {
-      destItr = std::find_if(destItr, dest.end(), [srcItr](const auto& v) { return srcItr->first <= v.first; });
-
-      if (srcItr->first < destItr->first)
+      if (map.first < destItr->first)
         // destItr remains valid and pointing to the next possible
         // position.
-        dest.insert(destItr, *srcItr);
+        dest.insert(destItr, map);
       else
-        destItr->second.merge_copy(srcItr->second, maxDepth - 1);
-
-      srcItr++;
+        destItr->second.merge_copy(map.second, maxDepth - 1);
     }
 
 //   } else if (object.is_list()) {

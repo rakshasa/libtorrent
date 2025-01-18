@@ -67,9 +67,12 @@ object_read_string(std::istream* input, std::string& str) {
 	  return false;
   }
 
-  for (std::string::iterator itr = str.begin(); itr != str.end() && input->good(); ++itr)
-    *itr = input->get();
-  
+  for (auto& c : str) {
+    if (!input->good())
+      break;
+    c = input->get();
+  }
+
   return !input->fail();
 }
 
@@ -544,11 +547,11 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
   case Object::TYPE_LIST:
     object_write_bencode_c_char(output, 'l');
 
-    for (Object::list_const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last; ++itr) {
-      if (itr->is_empty() || itr->flags() & skip_mask)
+    for (const auto& list : object->as_list()) {
+      if (list.is_empty() || list.flags() & skip_mask)
         continue;
 
-      object_write_bencode_c_object(output, &*itr, skip_mask);
+      object_write_bencode_c_object(output, &list, skip_mask);
     }
 
     object_write_bencode_c_char(output, 'e');
@@ -557,12 +560,12 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
   case Object::TYPE_MAP:
     object_write_bencode_c_char(output, 'd');
 
-    for (Object::map_const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last; ++itr) {
-      if (itr->second.is_empty() || itr->second.flags() & skip_mask)
+    for (const auto& map : object->as_map()) {
+      if (map.second.is_empty() || map.second.flags() & skip_mask)
         continue;
 
-      object_write_bencode_c_obj_string(output, itr->first);
-      object_write_bencode_c_object(output, &itr->second, skip_mask);
+      object_write_bencode_c_obj_string(output, map.first);
+      object_write_bencode_c_object(output, &map.second, skip_mask);
     }
 
     object_write_bencode_c_char(output, 'e');

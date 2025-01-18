@@ -459,10 +459,10 @@ DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, raw_string n
             reinterpret_cast<const compact_node_info*>(nodes.data() + nodes.size() - nodes.size() % sizeof(compact_node_info)),
             std::back_inserter(list));
 
-  for (node_info_list::iterator itr = list.begin(); itr != list.end(); ++itr) {
-    if (itr->id() != m_router->id()) {
-      rak::socket_address sa = itr->address();
-      transaction->search()->add_contact(itr->id(), &sa);
+  for (auto& node : list) {
+    if (node.id() != m_router->id()) {
+      rak::socket_address sa = node.address();
+      transaction->search()->add_contact(node.id(), &sa);
     }
   }
 
@@ -705,9 +705,9 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
 void
 DhtServer::clear_transactions() {
-  for (transaction_map::iterator itr = m_transactions.begin(), last = m_transactions.end(); itr != last; itr++) {
-    drop_packet(itr->second->packet());
-    delete itr->second;
+  for (auto& transaction : m_transactions) {
+    drop_packet(transaction.second->packet());
+    delete transaction.second;
   }
 
   m_transactions.clear();

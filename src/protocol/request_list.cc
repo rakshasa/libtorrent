@@ -92,9 +92,9 @@ RequestList::delegate(uint32_t maxPieces) {
 
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DELEGATED, transfers.size());
 
-  for (auto& itr : transfers) {
-    m_queues.push_back(bucket_queued, itr);
-    pieces.push_back(&(itr->piece()));
+  for (auto transfer : transfers) {
+    m_queues.push_back(bucket_queued, transfer);
+    pieces.push_back(&transfer->piece());
   }
 
   // Use the last index returned for the next affinity
@@ -330,13 +330,8 @@ RequestList::transfer_dissimilar() {
 
 bool
 RequestList::is_interested_in_active() const {
-  for (TransferList::const_iterator
-         itr = m_delegator->transfer_list()->begin(),
-         last = m_delegator->transfer_list()->end(); itr != last; ++itr)
-    if (m_peerChunks->bitfield()->get((*itr)->index()))
-      return true;
-
-  return false;
+  auto list = m_delegator->transfer_list();
+  return std::any_of(list->begin(), list->end(), [this](auto transfer) { return m_peerChunks->bitfield()->get(transfer->index()); });
 }
 
 uint32_t

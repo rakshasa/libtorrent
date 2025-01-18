@@ -111,8 +111,8 @@ ClientList::ClientList() {
 }
 
 ClientList::~ClientList() {
-  for (iterator itr = begin(), last = end(); itr != last; ++itr)
-    delete itr->info();
+  for (auto& client : *this)
+    delete client.info();
 }
 
 ClientList::iterator

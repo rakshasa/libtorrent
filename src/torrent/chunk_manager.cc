@@ -82,8 +82,8 @@ uint64_t
 ChunkManager::sync_queue_memory_usage() const {
   uint64_t size = 0;
 
-  for (const_iterator itr = begin(), last = end(); itr != last; itr++)
-    size += (*itr)->queue_size() * (*itr)->chunk_size();
+  for (auto chunk : *this)
+    size += chunk->queue_size() * chunk->chunk_size();
 
   return size;
 }
@@ -92,8 +92,8 @@ uint32_t
 ChunkManager::sync_queue_size() const {
   uint32_t size = 0;
 
-  for (const_iterator itr = begin(), last = end(); itr != last; itr++)
-    size += (*itr)->queue_size();
+  for (auto chunk : *this)
+    size += chunk->queue_size();
 
   return size;
 }
