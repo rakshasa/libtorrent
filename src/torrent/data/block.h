@@ -42,6 +42,8 @@
 #include <torrent/data/block_transfer.h>
 #include <cstdlib>
 
+#include "rak/allocators.h"
+
 namespace torrent {
 
 // If you start adding slots, make sure the rest of the code creates
@@ -52,8 +54,8 @@ public:
   // Using vectors as they will remain small, thus the cost of erase
   // should be small. Later we can do faster erase by ignoring the
   // ordering.
-  typedef std::vector<BlockTransfer*>              transfer_list_type;
-  typedef uint32_t                                 size_type;
+  typedef std::vector<BlockTransfer*, rak::cacheline_allocator<BlockTransfer*>> transfer_list_type;
+  typedef uint32_t                                                              size_type;
 
   typedef enum {
     STATE_INCOMPLETE,
@@ -127,9 +129,9 @@ public:
   static void               release(BlockTransfer* transfer);
 
   // Only allow move constructions
-  Block(const Block&) = delete;
-  void operator = (const Block&) = delete;
-  Block(Block&&) = default;
+  //Block(const Block&) = delete;
+  //void operator = (const Block&) = delete;
+  //Block(Block&&) = default;
 
 private:
 
