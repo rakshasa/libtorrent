@@ -43,12 +43,14 @@
 #include <torrent/data/block.h>
 #include <torrent/data/piece.h>
 
+#include "rak/allocators.h"
+
 namespace torrent {
 
-class LIBTORRENT_EXPORT BlockList : private std::vector<Block> {
+class LIBTORRENT_EXPORT BlockList : private std::vector<Block, rak::cacheline_allocator<Block>> {
 public:
-  typedef uint32_t           size_type;
-  typedef std::vector<Block> base_type;
+  typedef uint32_t                                            size_type;
+  typedef std::vector<Block, rak::cacheline_allocator<Block>> base_type;
 
   using base_type::value_type;
   using base_type::reference;
