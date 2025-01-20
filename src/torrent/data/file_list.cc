@@ -393,7 +393,7 @@ FileList::open(int flags) {
 
       if (entry->is_padding())
         continue;
-      
+
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
       if (entry->path()->back().empty())

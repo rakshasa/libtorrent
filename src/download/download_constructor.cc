@@ -276,14 +276,14 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
 
     torrentSize += length;
 
-    int flags = 0;
-    if (listItr->has_key_string("attr")) {
-      std::string attr = listItr->get_key_string("attr");
-      if (attr.find('p') != std::string::npos)
-        flags |= File::flag_attr_padding;
+    int attr_flags = 0;
+
+    if (object.has_key_string("attr")) {
+      if (object.get_key_string("attr").find('p') != std::string::npos)
+        attr_flags |= File::flag_attr_padding;
     }
 
-    *splitItr = FileList::split_type(length, choose_path(&pathList), flags);
+    *splitItr = FileList::split_type(length, choose_path(&pathList), attr_flags);
   }
 
   FileList* fileList = m_download->main()->file_list();
