@@ -58,10 +58,13 @@ libtorrent_torrent_la_SOURCES = \
 	peer/connection_list.h \
 	peer/peer.cc \
 	peer/peer.h \
-        peer/peer_info.cc \
-        peer/peer_info.h \
+	peer/peer_info.cc \
+    peer/peer_info.h \
 	peer/peer_list.cc \
 	peer/peer_list.h \
+\
+	utils/tracker_manager.cc \
+	utils/tracker_manager.h \
 \
 	utils/directory_events.cc \
 	utils/directory_events.h \

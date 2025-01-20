@@ -3,7 +3,9 @@
 
 #include <string>
 #include <cinttypes>
+#include <atomic>
 #include <torrent/common.h>
+#include <torrent/tracker/tracker_state.h>
 
 namespace torrent {
 
@@ -50,12 +52,12 @@ public:
 
   bool                is_enabled() const        { return (m_flags & flag_enabled); }
   bool                is_extra_tracker() const  { return (m_flags & flag_extra_tracker); }
-  bool                is_in_use() const         { return is_enabled() && m_success_counter != 0; }
+  bool                is_in_use() const         { return is_enabled() && m_state.load().success_counter() != 0; }
 
   bool                can_scrape() const        { return (m_flags & flag_can_scrape); }
 
   virtual bool        is_busy() const = 0;
-  bool                is_busy_not_scrape() const { return m_latest_event != EVENT_SCRAPE && is_busy(); }
+  bool                is_busy_not_scrape() const { return m_state.load().latest_event() != EVENT_SCRAPE && is_busy(); }
   virtual bool        is_usable() const          { return is_enabled(); }
 
   bool                can_request_state() const;
@@ -72,34 +74,35 @@ public:
   void                set_url(const std::string& url)       { m_url = url; }
 
   const std::string&  tracker_id() const                    { return m_tracker_id; }
-  void                set_tracker_id(const std::string& id) { m_tracker_id = id; }
 
-  uint32_t            normal_interval() const               { return m_normal_interval; }
-  uint32_t            min_interval() const                  { return m_min_interval; }
+  // uint32_t            normal_interval() const               { return m_state.load().normal_interval(); }
+  // uint32_t            min_interval() const                  { return m_state.load().min_interval(); }
 
-  int                 latest_event() const                  { return m_latest_event; }
-  uint32_t            latest_new_peers() const              { return m_latest_new_peers; }
-  uint32_t            latest_sum_peers() const              { return m_latest_sum_peers; }
+  // int                 latest_event() const                  { return m_state.load().latest_event(); }
+  // uint32_t            latest_new_peers() const              { return m_state.load().latest_new_peers(); }
+  // uint32_t            latest_sum_peers() const              { return m_state.load().latest_sum_peers(); }
 
-  uint32_t            success_time_next() const;
-  uint32_t            success_time_last() const             { return m_success_time_last; }
-  uint32_t            success_counter() const               { return m_success_counter; }
+  // uint32_t            success_time_next() const;
+  // uint32_t            success_time_last() const             { return m_state.load().success_time_last(); }
+  // uint32_t            success_counter() const               { return m_state.load().success_counter(); }
 
-  uint32_t            failed_time_next() const;
-  uint32_t            failed_time_last() const              { return m_failed_time_last; }
-  uint32_t            failed_counter() const                { return m_failed_counter; }
+  // uint32_t            failed_time_next() const;
+  // uint32_t            failed_time_last() const              { return m_state.load().failed_time_last(); }
+  // uint32_t            failed_counter() const                { return m_state.load().failed_counter(); }
 
-  uint32_t            activity_time_last() const            { return failed_counter() ? m_failed_time_last : m_success_time_last; }
-  uint32_t            activity_time_next() const            { return failed_counter() ? failed_time_next() : success_time_next(); }
+  // uint32_t            activity_time_last() const            { return m_state.load().activity_time_last(); }
+  // uint32_t            activity_time_next() const            { return m_state.load().activity_time_next(); }
 
-  uint32_t            scrape_time_last() const              { return m_scrape_time_last; }
-  uint32_t            scrape_counter() const                { return m_scrape_counter; }
+  // uint32_t            scrape_time_last() const              { return m_state.load().scrape_time_last(); }
+  // uint32_t            scrape_counter() const                { return m_state.load().scrape_counter(); }
 
-  uint32_t            scrape_complete() const               { return m_scrape_complete; }
-  uint32_t            scrape_incomplete() const             { return m_scrape_incomplete; }
-  uint32_t            scrape_downloaded() const             { return m_scrape_downloaded; }
+  // uint32_t            scrape_complete() const               { return m_state.load().scrape_complete(); }
+  // uint32_t            scrape_incomplete() const             { return m_state.load().scrape_incomplete(); }
+  // uint32_t            scrape_downloaded() const             { return m_state.load().scrape_downloaded(); }
 
-  virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; } 
+  TrackerState        state() const                         { return m_state.load(); }
+
+  virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; }
 
   static std::string  scrape_url_from(std::string url);
 
@@ -118,10 +121,10 @@ protected:
 
   void                clear_stats();
 
-  void                set_group(uint32_t v)                 { m_group = v; }
+  void                set_group(uint32_t v) { m_group = v; }
 
-  void                set_normal_interval(int v)            { m_normal_interval = std::min(std::max(min_normal_interval, v), max_normal_interval); }
-  void                set_min_interval(int v)               { m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval); }
+  void                set_normal_interval(int v);
+  void                set_min_interval(int v);
 
   int                 m_flags;
 
@@ -131,35 +134,31 @@ protected:
   std::string         m_url;
   std::string         m_tracker_id;
 
-  uint32_t            m_normal_interval;
-  uint32_t            m_min_interval;
-
-  int                 m_latest_event;
-  uint32_t            m_latest_new_peers;
-  uint32_t            m_latest_sum_peers;
-
-  uint32_t            m_success_time_last;
-  uint32_t            m_success_counter;
-
-  uint32_t            m_failed_time_last;
-  uint32_t            m_failed_counter;
-
-  uint32_t            m_scrape_time_last;
-  uint32_t            m_scrape_counter;
-
-  uint32_t            m_scrape_complete;
-  uint32_t            m_scrape_incomplete;
-  uint32_t            m_scrape_downloaded;
-
   // Timing of the last request, and a counter for how many requests
   // there's been in the recent past.
   uint32_t            m_request_time_last;
   uint32_t            m_request_counter;
+
+  std::atomic<TrackerState> m_state;
 };
 
 inline bool
 Tracker::can_request_state() const {
-  return !(is_busy() && latest_event() != EVENT_SCRAPE) && is_usable();
+  return !(is_busy() && state().latest_event() != EVENT_SCRAPE) && is_usable();
+}
+
+inline void
+Tracker::set_normal_interval(int v) {
+  auto state = m_state.load();
+  state.m_normal_interval = std::min(std::max(min_normal_interval, v), max_normal_interval);
+  m_state.store(state);
+}
+
+inline void
+Tracker::set_min_interval(int v) {
+  auto state = m_state.load();
+  state.m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval);
+  m_state.store(state);
 }
 
 }
