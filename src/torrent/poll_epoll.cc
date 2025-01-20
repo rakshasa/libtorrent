@@ -89,13 +89,21 @@ PollEPoll::create(int maxOpenSockets) {
   return new PollEPoll(fd, 1024, maxOpenSockets);
 }
 
-PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) :
+PollEPoll::PollEPoll(int fd, int max_events, int max_open_sockets) :
   m_fd(fd),
-  m_maxEvents(maxEvents),
+  m_maxEvents(max_events),
   m_waitingEvents(0),
   m_events(new epoll_event[m_maxEvents]) {
 
-  m_table.resize(maxOpenSockets);
+  try {
+    m_table.resize(max_open_sockets);
+  } catch (std::bad_alloc) {
+    char errmsg[1024];
+    snprintf(errmsg, sizeof(errmsg),
+             "PollEPoll::PollEPoll(...): Error allocating m_table array: too much space requested: max_open_sockets:%d", max_open_sockets);
+
+    throw internal_error(errmsg);
+  }
 }
 
 PollEPoll::~PollEPoll() {
