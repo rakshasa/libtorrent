@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <limits>
@@ -201,11 +202,12 @@ FileList::split(iterator position, split_type* first, split_type* last) {
     File* newFile = new File();
 
     newFile->set_offset(offset);
-    newFile->set_size_bytes(first->first);
+    newFile->set_size_bytes(std::get<0>(*first));
     newFile->set_range(m_chunkSize);
-    *newFile->mutable_path() = first->second;
+    *newFile->mutable_path() = std::get<1>(*first);
+    newFile->set_flags(std::get<2>(*first));
 
-    offset += first->first;
+    offset += std::get<0>(*first);
     *itr = newFile;
 
     itr++;
@@ -389,6 +391,9 @@ FileList::open(int flags) {
       if (entry->is_open())
         continue;
 
+      if (entry->is_padding())
+        continue;
+
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
       if (entry->path()->back().empty())
@@ -467,9 +472,12 @@ FileList::close() {
 
   LT_LOG_FL(INFO, "Closing.", 0);
 
-  for (auto file : *this) {
-    file->unset_flags_protected(File::flag_active);
-    manager->file_manager()->close(file);
+  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    if ((*itr)->is_padding())
+      continue;
+
+    (*itr)->unset_flags_protected(File::flag_active);
+    manager->file_manager()->close(*itr);
   }
 
   m_isOpen = false;
@@ -547,6 +555,9 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   offset -= (*itr)->offset();
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
+  if ((*itr)->is_padding())
+    return SocketFile().create_padding_chunk(length, prot, MemoryChunk::map_shared);
+
   if ((int64_t)offset < 0)
     throw internal_error("FileList::chunk_part(...) caught a negative offset", data()->hash());
 
@@ -554,6 +565,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
 
   if (!(*itr)->prepare(prot))
     return MemoryChunk();
+
 
   return SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
 }

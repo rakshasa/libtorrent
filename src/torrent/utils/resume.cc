@@ -97,6 +97,9 @@ resume_load_progress(Download download, const Object& object) {
   FileList* fileList = download.file_list();
 
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
+    if ( (*listItr)->is_padding())
+      continue;
+
     std::string file_path = (*listItr)->path()->as_string();
     unsigned int file_index = std::distance(fileList->begin(), listItr);
 
