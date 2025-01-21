@@ -27,9 +27,9 @@ public:
   friend class DownloadWrapper;
   friend class Handshake;
 
-  typedef std::vector<File*>            base_type;
-  typedef std::vector<std::string>      path_list;
-  typedef std::pair<uint64_t, Path>     split_type;
+  typedef std::vector<File*>              base_type;
+  typedef std::vector<std::string>        path_list;
+  typedef std::tuple<uint64_t, Path, int> split_type;
 
   // The below are using-directives that make visible functions and
   // typedefs in the parent std::vector, only those listed below are
