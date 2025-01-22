@@ -1,13 +1,25 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_STATE_H
 #define LIBTORRENT_TRACKER_TRACKER_STATE_H
 
+#include <algorithm>
 #include <torrent/common.h>
 
 namespace torrent {
 
+class TrackerHttp;
+
 class TrackerState {
 public:
   friend class Tracker;
+  friend class TrackerHttp;
+
+  static constexpr int default_min_interval = 600;
+  static constexpr int min_min_interval     = 300;
+  static constexpr int max_min_interval     = 4 * 3600;
+
+  static constexpr int default_normal_interval = 1800;
+  static constexpr int min_normal_interval     = 600;
+  static constexpr int max_normal_interval     = 8 * 3600;
 
   uint32_t            normal_interval() const               { return m_normal_interval; }
   uint32_t            min_interval() const                  { return m_min_interval; }
@@ -35,26 +47,42 @@ public:
   uint32_t            scrape_downloaded() const             { return m_scrape_downloaded; }
 
 protected:
-  uint32_t m_normal_interval;
-  uint32_t m_min_interval;
+  void                set_normal_interval(int v);
+  void                set_min_interval(int v);
 
-  int      m_latest_event;
-  uint32_t m_latest_new_peers;
-  uint32_t m_latest_sum_peers;
+  uint32_t m_normal_interval{0};
+  uint32_t m_min_interval{0};
 
-  uint32_t m_success_time_last;
-  uint32_t m_success_counter;
+  // Use EVENT_NONE.
+  int      m_latest_event{0};
+  uint32_t m_latest_new_peers{0};
+  uint32_t m_latest_sum_peers{0};
 
-  uint32_t m_failed_time_last;
-  uint32_t m_failed_counter;
+  uint32_t m_success_time_last{0};
+  uint32_t m_success_counter{0};
 
-  uint32_t m_scrape_time_last;
-  uint32_t m_scrape_counter;
+  uint32_t m_failed_time_last{0};
+  uint32_t m_failed_counter{0};
 
-  uint32_t m_scrape_complete;
-  uint32_t m_scrape_incomplete;
-  uint32_t m_scrape_downloaded;
+  uint32_t m_scrape_time_last{0};
+  uint32_t m_scrape_counter{0};
+
+  uint32_t m_scrape_complete{0};
+  uint32_t m_scrape_incomplete{0};
+  uint32_t m_scrape_downloaded{0};
 };
+
+// move to tracker_state:
+inline void
+TrackerState::set_normal_interval(int v) {
+  m_normal_interval = std::min(std::max(min_normal_interval, v), max_normal_interval);
+}
+
+inline void
+TrackerState::set_min_interval(int v) {
+  m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval);
+}
+
 
 } // namespace torrent
 

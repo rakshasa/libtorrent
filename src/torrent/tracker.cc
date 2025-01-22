@@ -19,32 +19,13 @@ constexpr int Tracker::max_normal_interval;
 Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
   m_flags(flags),
   m_parent(parent),
-  m_group(0),
   m_url(url),
-
-  m_normal_interval(0),
-  m_min_interval(0),
-
-  m_latest_event(EVENT_NONE),
-  m_latest_new_peers(0),
-  m_latest_sum_peers(0),
-
-  m_success_time_last(0),
-  m_success_counter(0),
-
-  m_failed_time_last(0),
-  m_failed_counter(0),
-
-  m_scrape_time_last(0),
-  m_scrape_counter(0),
-
-  m_scrape_complete(0),
-  m_scrape_incomplete(0),
-  m_scrape_downloaded(0),
-
-  m_request_time_last(torrent::cachedTime.seconds()),
-  m_request_counter(0)
+  m_request_time_last(torrent::cachedTime.seconds())
 {
+  // TODO: Not needed when EVENT_NONE is default.
+  auto tracker_state = TrackerState{};
+  tracker_state.m_latest_event = EVENT_NONE;
+  m_state.store(tracker_state);
 }
 
 void
@@ -122,6 +103,20 @@ Tracker::clear_stats() {
   m_success_counter = 0;
   m_failed_counter = 0;
   m_scrape_counter = 0;
+}
+
+void
+Tracker::update_tracker_id(const std::string& id) {
+  if (id.empty())
+    return;
+
+  if (tracker_id() == id)
+    return;
+
+  auto new_id = std::array<char,64>{};
+  std::copy_n(id.begin(), std::min(id.size(), size_t(63)), new_id.begin());
+
+  m_tracker_id.store(new_id);
 }
 
 }

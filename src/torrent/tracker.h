@@ -1,9 +1,10 @@
 #ifndef LIBTORRENT_TRACKER_H
 #define LIBTORRENT_TRACKER_H
 
-#include <string>
-#include <cinttypes>
+#include <array>
 #include <atomic>
+#include <cinttypes>
+#include <string>
 #include <torrent/common.h>
 #include <torrent/tracker/tracker_state.h>
 
@@ -38,6 +39,7 @@ public:
   static const int max_flag_size   = 0x10;
   static const int mask_base_flags = 0x10 - 1;
 
+  // TODO: Move to state.
   static constexpr int default_min_interval = 600;
   static constexpr int min_min_interval     = 300;
   static constexpr int max_min_interval     = 4 * 3600;
@@ -73,36 +75,11 @@ public:
   const std::string&  url() const                           { return m_url; }
   void                set_url(const std::string& url)       { m_url = url; }
 
-  const std::string&  tracker_id() const                    { return m_tracker_id; }
-
-  // uint32_t            normal_interval() const               { return m_state.load().normal_interval(); }
-  // uint32_t            min_interval() const                  { return m_state.load().min_interval(); }
-
-  // int                 latest_event() const                  { return m_state.load().latest_event(); }
-  // uint32_t            latest_new_peers() const              { return m_state.load().latest_new_peers(); }
-  // uint32_t            latest_sum_peers() const              { return m_state.load().latest_sum_peers(); }
-
-  // uint32_t            success_time_next() const;
-  // uint32_t            success_time_last() const             { return m_state.load().success_time_last(); }
-  // uint32_t            success_counter() const               { return m_state.load().success_counter(); }
-
-  // uint32_t            failed_time_next() const;
-  // uint32_t            failed_time_last() const              { return m_state.load().failed_time_last(); }
-  // uint32_t            failed_counter() const                { return m_state.load().failed_counter(); }
-
-  // uint32_t            activity_time_last() const            { return m_state.load().activity_time_last(); }
-  // uint32_t            activity_time_next() const            { return m_state.load().activity_time_next(); }
-
-  // uint32_t            scrape_time_last() const              { return m_state.load().scrape_time_last(); }
-  // uint32_t            scrape_counter() const                { return m_state.load().scrape_counter(); }
-
-  // uint32_t            scrape_complete() const               { return m_state.load().scrape_complete(); }
-  // uint32_t            scrape_incomplete() const             { return m_state.load().scrape_incomplete(); }
-  // uint32_t            scrape_downloaded() const             { return m_state.load().scrape_downloaded(); }
+  std::string         tracker_id() const                    { return std::string(m_tracker_id.load().data()); }
 
   TrackerState        state() const                         { return m_state.load(); }
 
-  virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; }
+  virtual void        get_status(char* buffer, [[maybe_unused]] int length)  { buffer[0] = 0; }
 
   static std::string  scrape_url_from(std::string url);
 
@@ -123,21 +100,23 @@ protected:
 
   void                set_group(uint32_t v) { m_group = v; }
 
-  void                set_normal_interval(int v);
-  void                set_min_interval(int v);
+  // Only the tracker thread should call these.
+  void                clear_intervals();
+  void                set_latest_event(int v);
+  void                update_tracker_id(const std::string& id);
 
   int                 m_flags;
 
   TrackerList*        m_parent;
-  uint32_t            m_group;
+  uint32_t            m_group{0};
 
-  std::string         m_url;
-  std::string         m_tracker_id;
+  std::string                      m_url;
+  std::atomic<std::array<char,64>> m_tracker_id{{}};
 
   // Timing of the last request, and a counter for how many requests
   // there's been in the recent past.
   uint32_t            m_request_time_last;
-  uint32_t            m_request_counter;
+  uint32_t            m_request_counter{0};
 
   std::atomic<TrackerState> m_state;
 };
@@ -148,16 +127,17 @@ Tracker::can_request_state() const {
 }
 
 inline void
-Tracker::set_normal_interval(int v) {
+Tracker::clear_intervals() {
   auto state = m_state.load();
-  state.m_normal_interval = std::min(std::max(min_normal_interval, v), max_normal_interval);
+  state.m_normal_interval = 0;
+  state.m_min_interval = 0;
   m_state.store(state);
 }
 
 inline void
-Tracker::set_min_interval(int v) {
+Tracker::set_latest_event(int v) {
   auto state = m_state.load();
-  state.m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval);
+  state.m_latest_event = v;
   m_state.store(state);
 }
 
