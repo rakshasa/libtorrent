@@ -71,7 +71,7 @@ public:
   slot_void&          slot_do_work()      { return m_slot_do_work; }
   slot_timer&         slot_next_timeout() { return m_slot_next_timeout; }
 
-  static inline int   global_queue_size() { return m_global.waiting; }
+  static int   global_queue_size() { return m_global.waiting; }
 
   static inline void  acquire_global_lock();
   static inline bool  trylock_global_lock();

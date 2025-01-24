@@ -42,7 +42,7 @@
 
 #include "rak/string_manip.h"
 
-namespace torrent { namespace utils {
+namespace torrent::utils {
 
 inline bool
 is_unreserved_uri_char(char c) {
@@ -196,4 +196,4 @@ uri_parse_query_str(const char* query, uri_query_state& state) {
   uri_parse_query_str(std::string(query), state);
 }
 
-}}
+}
