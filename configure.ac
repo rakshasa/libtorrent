@@ -22,6 +22,12 @@ AC_SUBST(LIBTORRENT_INTERFACE_VERSION_INFO)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 
 AC_PROG_CXX
+
+# Filter out unwanted flags added by autoconf on some systems, e.g. MacOS.
+TORRENT_REMOVE_UNWANTED(CXX, $CXX, -std=c++11 -std=gnu++11)
+
+AX_CXX_COMPILE_STDCXX(17, noext, mandatory)
+
 AC_SYS_LARGEFILE
 
 AC_C_BIGENDIAN(
@@ -29,8 +35,6 @@ AC_C_BIGENDIAN(
   AC_DEFINE(IS_LITTLE_ENDIAN, 1, Little endian),
   AC_MSG_ERROR([Could not determine endianness])
 )
-
-AX_CXX_COMPILE_STDCXX(17, noext, mandatory)
 
 RAK_CHECK_CFLAGS
 RAK_CHECK_CXXFLAGS
