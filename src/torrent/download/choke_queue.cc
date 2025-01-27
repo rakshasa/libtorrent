@@ -425,7 +425,7 @@ choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain*
 
 void
 choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator last,
-                             uint32_t max, uint32_t* weights, choke_queue::target_type* target) {
+                             uint32_t max, const uint32_t* weights, choke_queue::target_type* target) {
   // Sorting the connections from the lowest to highest value.
   // TODO:  std::sort(first, last, choke_manager_less);
 

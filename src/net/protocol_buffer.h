@@ -141,10 +141,7 @@ inline bool
 ProtocolBuffer<tmpl_size>::consume(difference_type v) {
   m_position += v;
 
-  if (remaining())
-    return false;
-
-  return true; 
+  return !static_cast<bool>(remaining());
 }
 
 template <uint16_t tmpl_size>

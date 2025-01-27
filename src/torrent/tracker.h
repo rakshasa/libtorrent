@@ -159,7 +159,7 @@ protected:
 
 inline bool
 Tracker::can_request_state() const {
-  return !(is_busy() && latest_event() != EVENT_SCRAPE) && is_usable();
+  return (!is_busy() || latest_event() == EVENT_SCRAPE) && is_usable();
 }
 
 }
