@@ -245,36 +245,36 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
 }
 
 void
-DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
-  const Object::list_type& objectList = b.as_list();
+DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
+  const Object::list_type& object_list = b.as_list();
 
   // Multi file torrent
-  if (objectList.empty())
+  if (object_list.empty())
     throw input_error("Bad torrent file, entry has no files.");
 
-  int64_t torrentSize = 0;
-  std::vector<FileList::split_type> splitList(objectList.size());
-  std::vector<FileList::split_type>::iterator splitItr = splitList.begin();
+  int64_t torrent_size = 0;
+  std::vector<FileList::split_type> split_list;
+  split_list.reserve(object_list.size());
 
-  for (const auto& object : objectList) {
-    std::list<Path> pathList;
+  for (const auto& object : object_list) {
+    std::list<Path> path_list;
 
     if (object.has_key_list("path"))
-      pathList.push_back(create_path(object.get_key_list("path"), m_defaultEncoding));
+      path_list.push_back(create_path(object.get_key_list("path"), m_defaultEncoding));
 
     for (const auto& path : object.as_map())
       if (download_constructor_is_multi_path(path))
-        pathList.push_back(create_path(path.second.as_list(), path.first.substr(sizeof("path.") - 1)));
+        path_list.push_back(create_path(path.second.as_list(), path.first.substr(sizeof("path.") - 1)));
 
-    if (pathList.empty())
+    if (path_list.empty())
       throw input_error("Bad torrent file, an entry has no valid filename.");
 
     int64_t length = object.get_key_value("length");
 
-    if (length < 0 || torrentSize + length < 0)
+    if (length < 0 || torrent_size + length < 0)
       throw input_error("Bad torrent file, invalid length for file.");
 
-    torrentSize += length;
+    torrent_size += length;
 
     int attr_flags = 0;
 
@@ -283,15 +283,15 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
         attr_flags |= File::flag_attr_padding;
     }
 
-    *splitItr = FileList::split_type(length, choose_path(&pathList), attr_flags);
+    split_list.emplace_back(length, choose_path(&path_list), attr_flags);
   }
 
-  FileList* fileList = m_download->main()->file_list();
-  fileList->set_multi_file(true);
+  FileList* file_list = m_download->main()->file_list();
+  file_list->set_multi_file(true);
 
-  fileList->initialize(torrentSize, chunkSize);
-  fileList->split(fileList->begin(), &*splitList.begin(), &*splitList.end());
-  fileList->update_paths(fileList->begin(), fileList->end());
+  file_list->initialize(torrent_size, chunk_size);
+  file_list->split(file_list->begin(), &*split_list.begin(), &*split_list.end());
+  file_list->update_paths(file_list->begin(), file_list->end());
 }
 
 inline Path
