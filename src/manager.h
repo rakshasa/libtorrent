@@ -43,7 +43,7 @@ public:
   ClientList*         client_list()                             { return m_clientList; }
   ConnectionManager*  connection_manager()                      { return m_connectionManager; }
   DhtManager*         dht_manager()                             { return m_dhtManager; }
-  
+
   Poll*               poll()                                    { return m_main_thread_main.poll(); }
 
   thread_main*        main_thread_main()                        { return &m_main_thread_main; }

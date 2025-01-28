@@ -96,12 +96,12 @@ protected:
   // Safeguard to catch bugs that lead to hammering of trackers.
   void                inc_request_counter();
 
-  void                clear_stats();
-
   void                set_group(uint32_t v) { m_group = v; }
 
   // Only the tracker thread should call these.
   void                clear_intervals();
+  void                clear_stats();
+
   void                set_latest_event(int v);
   void                update_tracker_id(const std::string& id);
 
@@ -124,21 +124,6 @@ protected:
 inline bool
 Tracker::can_request_state() const {
   return !(is_busy() && state().latest_event() != EVENT_SCRAPE) && is_usable();
-}
-
-inline void
-Tracker::clear_intervals() {
-  auto state = m_state.load();
-  state.m_normal_interval = 0;
-  state.m_min_interval = 0;
-  m_state.store(state);
-}
-
-inline void
-Tracker::set_latest_event(int v) {
-  auto state = m_state.load();
-  state.m_latest_event = v;
-  m_state.store(state);
 }
 
 }

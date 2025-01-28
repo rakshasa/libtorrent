@@ -51,25 +51,6 @@ Tracker::disable() {
     m_parent->slot_tracker_disabled()(this);
 }
 
-uint32_t
-Tracker::success_time_next() const {
-  if (m_success_counter == 0)
-    return 0;
-
-  return m_success_time_last + std::max(m_normal_interval, (uint32_t)min_normal_interval);
-}
-
-uint32_t
-Tracker::failed_time_next() const {
-  if (m_failed_counter == 0)
-    return 0;
-
-  if (m_min_interval > min_min_interval)
-    return m_failed_time_last + m_min_interval;
-
-  return m_failed_time_last + std::min(5 << std::min(m_failed_counter - 1, (uint32_t)6), min_min_interval-1);
-}
-
 std::string
 Tracker::scrape_url_from(std::string url) {
   size_t delim_slash = url.rfind('/');
@@ -95,14 +76,36 @@ Tracker::inc_request_counter() {
     throw internal_error("Tracker request had more than 10 requests in 10 seconds.");
 }
 
+inline void
+Tracker::clear_intervals() {
+  auto state = m_state.load();
+
+  state.m_normal_interval = 0;
+  state.m_min_interval = 0;
+
+  m_state.store(state);
+}
+
 void
 Tracker::clear_stats() {
-  m_latest_new_peers = 0;
-  m_latest_sum_peers = 0;
+  auto state = m_state.load();
 
-  m_success_counter = 0;
-  m_failed_counter = 0;
-  m_scrape_counter = 0;
+  state.m_latest_new_peers = 0;
+  state.m_latest_sum_peers = 0;
+  state.m_success_counter = 0;
+  state.m_failed_counter = 0;
+  state.m_scrape_counter = 0;
+
+  m_state.store(state);
+}
+
+inline void
+Tracker::set_latest_event(int v) {
+  auto state = m_state.load();
+
+  state.m_latest_event = v;
+
+  m_state.store(state);
 }
 
 void
