@@ -2,10 +2,10 @@
 
 #include <algorithm>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
+#include "torrent/tracker.h"
+#include "torrent/tracker_list.h"
 #include "globals.h"
-#include "tracker.h"
-#include "tracker_list.h"
 
 namespace torrent {
 

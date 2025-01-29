@@ -7,29 +7,51 @@
 #include <mutex>
 #include <set>
 #include <torrent/common.h>
+#include <torrent/hash_string.h>
+#include <torrent/tracker.h>
 
 namespace torrent {
 
-class Tracker;
+class DownloadInfo;
 class TrackerManager;
 
 // TODO: This should be renamed to Tracker later.
 class LIBTORRENT_EXPORT TrackerWrapper {
 public:
-  TrackerWrapper(std::shared_ptr<Tracker>&& tracker) : m_tracker(tracker) {}
+  TrackerWrapper(const HashString& info_hash, std::shared_ptr<Tracker>&& tracker);
+
+  bool operator<(const TrackerWrapper& rhs) const;
 
 protected:
   friend class TrackerManager;
 
-  Tracker* get() const { return m_tracker.get(); }
+  Tracker*                  get()        { return m_tracker.get(); }
+  const Tracker*            get() const  { return m_tracker.get(); }
+  std::shared_ptr<Tracker>& get_shared() { return m_tracker; }
+
+  const HashString&         info_hash() const { return m_info_hash; }
 
 private:
   std::shared_ptr<Tracker> m_tracker;
+  HashString               m_info_hash;
 };
 
-class LIBTORRENT_EXPORT TrackerManager : private std::set<std::shared_ptr<Tracker>> {
+inline
+TrackerWrapper::TrackerWrapper(const HashString& info_hash, std::shared_ptr<Tracker>&& tracker) :
+  m_tracker(tracker),
+  m_info_hash(info_hash) {
+}
+
+inline bool
+TrackerWrapper::operator<(const TrackerWrapper& rhs) const {
+  return this->get() < rhs.get();
+}
+
+class LIBTORRENT_EXPORT TrackerManager : private std::set<TrackerWrapper> {
 public:
-  TrackerWrapper add(Tracker* tracker);
+  typedef std::set<TrackerWrapper> base_type;
+
+  TrackerWrapper add(DownloadInfo* download_info, Tracker* tracker_worker);
   void           remove(TrackerWrapper tracker);
 
 private:

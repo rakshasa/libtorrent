@@ -196,6 +196,9 @@ const char* option_list_log_group[] = {
   "storage",
   "system",
 
+  "tracker_events",
+  "tracker_request",
+
   "ui_events",
 
   NULL
@@ -235,7 +238,7 @@ int
 option_find_string(option_enum opt_enum, const char* name) {
   if (opt_enum < OPTION_START_COMPACT) {
     option_pair* itr = option_pair_lists[opt_enum];
-  
+
     do {
       if (std::strcmp(itr->name, name) == 0)
         return itr->value;
@@ -243,7 +246,7 @@ option_find_string(option_enum opt_enum, const char* name) {
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
     const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
-  
+
     do {
       if (std::strcmp(*itr, name) == 0)
         return std::distance(option_single_lists[opt_enum - OPTION_START_COMPACT].name, itr);
@@ -257,7 +260,7 @@ const char*
 option_to_string(option_enum opt_enum, unsigned int value, const char* not_found) {
   if (opt_enum < OPTION_START_COMPACT) {
     option_pair* itr = option_pair_lists[opt_enum];
-  
+
     do {
       if (itr->value == value)
         return itr->name;
