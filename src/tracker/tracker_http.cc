@@ -77,13 +77,13 @@ TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
 }
 
 void
-TrackerHttp::send_state(int state) {
+TrackerHttp::send_state(int new_state) {
   close_directly();
 
   if (m_parent == NULL)
     throw internal_error("TrackerHttp::send_state(...) does not have a valid m_parent.");
 
-  set_latest_event(state);
+  set_latest_event(new_state);
 
   std::stringstream s;
   s.imbue(std::locale::classic());
@@ -101,8 +101,8 @@ TrackerHttp::send_state(int state) {
   if (m_parent->key())
     s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_parent->key() << std::dec;
 
-  if (!m_tracker_id.empty())
-    s << "&trackerid=" << rak::copy_escape_html(m_tracker_id);
+  if (!m_tracker_id.load().empty())
+    s << "&trackerid=" << rak::copy_escape_html(tracker_id());
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
@@ -121,7 +121,7 @@ TrackerHttp::send_state(int state) {
   if (info->is_compact())
     s << "&compact=1";
 
-  if (m_parent->numwant() >= 0 && state != DownloadInfo::STOPPED)
+  if (m_parent->numwant() >= 0 && new_state != DownloadInfo::STOPPED)
     s << "&numwant=" << m_parent->numwant();
 
   if (manager->connection_manager()->listen_port())
@@ -135,7 +135,7 @@ TrackerHttp::send_state(int state) {
     << "&downloaded=" << completed_adjusted
     << "&left=" << download_left;
 
-  switch(state) {
+  switch(new_state) {
   case DownloadInfo::STARTED:
     s << "&event=started";
     break;
@@ -155,7 +155,7 @@ TrackerHttp::send_state(int state) {
 
   LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(),
                       "Tracker HTTP request: state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
-                      option_as_string(OPTION_TRACKER_EVENT, state),
+                      option_as_string(OPTION_TRACKER_EVENT, new_state),
                       uploaded_adjusted, completed_adjusted, download_left);
 
   m_get->set_url(request_url);
@@ -304,16 +304,16 @@ TrackerHttp::receive_failed(std::string msg) {
 
 void
 TrackerHttp::process_failure(const Object& object) {
+  auto tracker_state = state();
+
   if (object.has_key_value("interval"))
-    set_normal_interval(object.get_key_value("interval"));
+    tracker_state.set_normal_interval(object.get_key_value("interval"));
 
   if (object.has_key_value("min interval"))
-    set_min_interval(object.get_key_value("min interval"));
+    tracker_state.set_min_interval(object.get_key_value("min interval"));
 
   if (object.has_key_string("tracker id"))
-    m_tracker_id = object.get_key_string("tracker id");
-
-  auto tracker_state = m_state.load();
+    update_tracker_id(object.get_key_string("tracker id"));
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
@@ -342,7 +342,7 @@ TrackerHttp::process_success(const Object& object) {
     tracker_state.set_min_interval(default_min_interval);
 
   if (object.has_key_string("tracker id"))
-    m_tracker_id = object.get_key_string("tracker id");
+    update_tracker_id(object.get_key_string("tracker id"));
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
@@ -395,17 +395,21 @@ TrackerHttp::process_scrape(const Object& object) {
 
   const Object& stats = files.get_key(m_parent->info()->hash().str());
 
+  auto tracker_state = m_state.load();
+
   if (stats.has_key_value("complete"))
-    m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
+    tracker_state.m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
 
   if (stats.has_key_value("incomplete"))
-    m_scrape_incomplete = std::max<int64_t>(stats.get_key_value("incomplete"), 0);
+    tracker_state.m_scrape_incomplete = std::max<int64_t>(stats.get_key_value("incomplete"), 0);
 
   if (stats.has_key_value("downloaded"))
-    m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
+    tracker_state.m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
+
+  m_state.store(tracker_state);
 
   LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
-                 files.as_map().size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);
+                 files.as_map().size(), tracker_state.m_scrape_complete, tracker_state.m_scrape_incomplete, tracker_state.m_scrape_downloaded);
 
   close_directly();
   m_parent->receive_scrape_success(this);

@@ -88,6 +88,7 @@ protected:
   Tracker(const Tracker& t);
   void operator = (const Tracker& t);
 
+  // TODO: Rename to send_event.
   virtual void        send_state(int state) = 0;
   virtual void        send_scrape();
   virtual void        close() = 0;

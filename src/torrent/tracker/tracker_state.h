@@ -6,14 +6,18 @@
 
 namespace torrent {
 
+class TrackerDht;
 class TrackerHttp;
 class TrackerList;
+class TrackerUdp;
 
 class TrackerState {
 public:
   friend class Tracker;
+  friend class TrackerDht;
   friend class TrackerHttp;
   friend class TrackerList;
+  friend class TrackerUdp;
 
   static constexpr int default_min_interval = 600;
   static constexpr int min_min_interval     = 300;

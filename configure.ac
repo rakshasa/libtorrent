@@ -114,7 +114,5 @@ AC_CONFIG_FILES([
 	src/torrent/Makefile
     test/Makefile
 ])
-    #test/torrent/net/Makefile
-    #test/net/Makefile
 
 AC_OUTPUT

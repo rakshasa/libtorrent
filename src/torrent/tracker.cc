@@ -76,7 +76,7 @@ Tracker::inc_request_counter() {
     throw internal_error("Tracker request had more than 10 requests in 10 seconds.");
 }
 
-inline void
+void
 Tracker::clear_intervals() {
   auto state = m_state.load();
 
@@ -99,7 +99,7 @@ Tracker::clear_stats() {
   m_state.store(state);
 }
 
-inline void
+void
 Tracker::set_latest_event(int v) {
   auto state = m_state.load();
 

@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #define __STDC_FORMAT_MACROS
@@ -66,13 +30,7 @@
 namespace torrent {
 
 TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
-  Tracker(parent, url, flags),
-
-  m_port(0),
-
-  m_slot_resolver(NULL),
-  m_readBuffer(NULL),
-  m_writeBuffer(NULL) {
+  Tracker(parent, url, flags) {
 
   m_taskTimeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
 }
@@ -85,25 +43,26 @@ TrackerUdp::~TrackerUdp() {
 
   close_directly();
 }
-  
+
 bool
 TrackerUdp::is_busy() const {
   return get_fd().is_valid();
 }
 
 void
-TrackerUdp::send_state(int state) {
+TrackerUdp::send_state(int new_state) {
   close_directly();
-  m_latest_event = state;
 
   hostname_type hostname;
 
   if (!parse_udp_url(m_url, hostname, m_port))
     return receive_failed("could not parse hostname or port");
 
+  set_latest_event(new_state);
+
   LT_LOG_TRACKER(DEBUG, "hostname lookup (address:%s)", hostname.data());
 
-  m_sendState = state;
+  m_send_state = new_state;
 
   // Because we can only remember one slot, set any pending resolves blocked
   // so that if this tracker is deleted, the member function won't be called.
@@ -116,7 +75,7 @@ TrackerUdp::send_state(int state) {
 }
 
 bool
-TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const {
+TrackerUdp::parse_udp_url([[maybe_unused]] const std::string& url, hostname_type& hostname, int& port) const {
   if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
       port > 0 && port < (1 << 16))
     return true;
@@ -138,7 +97,7 @@ TrackerUdp::make_resolver_slot(const hostname_type& hostname) {
 }
 
 void
-TrackerUdp::start_announce(const sockaddr* sa, int err) {
+TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
   if (m_slot_resolver != NULL) {
     *m_slot_resolver = resolver_type();
     m_slot_resolver = NULL;
@@ -184,7 +143,7 @@ TrackerUdp::close() {
     return;
 
   LT_LOG_TRACKER(DEBUG, "request cancelled (state:%s url:%s)",
-                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), m_url.c_str());
 
   close_directly();
 }
@@ -195,7 +154,7 @@ TrackerUdp::disown() {
     return;
 
   LT_LOG_TRACKER(DEBUG, "request disowned (state:%s url:%s)",
-                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), m_url.c_str());
 
   close_directly();
 }
@@ -342,7 +301,7 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_64(completed_adjusted);
   m_writeBuffer->write_64(download_left);
   m_writeBuffer->write_64(uploaded_adjusted);
-  m_writeBuffer->write_32(m_sendState);
+  m_writeBuffer->write_32(m_send_state);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
@@ -361,7 +320,7 @@ TrackerUdp::prepare_announce_input() {
 
   LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
                       "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
-                      option_as_string(OPTION_TRACKER_EVENT, m_sendState),
+                      option_as_string(OPTION_TRACKER_EVENT, m_send_state),
                       m_transactionId, uploaded_adjusted, completed_adjusted, download_left);
 }
 
@@ -382,12 +341,16 @@ TrackerUdp::process_announce_output() {
       m_readBuffer->read_32() != m_transactionId)
     return false;
 
-  set_normal_interval(m_readBuffer->read_32());
-  set_min_interval(default_min_interval);
+  auto tracker_state = state();
 
-  m_scrape_incomplete = m_readBuffer->read_32(); // leechers
-  m_scrape_complete   = m_readBuffer->read_32(); // seeders
-  m_scrape_time_last  = rak::timer::current().seconds();
+  tracker_state.set_normal_interval(m_readBuffer->read_32());
+  tracker_state.set_min_interval(default_min_interval);
+
+  tracker_state.m_scrape_incomplete = m_readBuffer->read_32(); // leechers
+  tracker_state.m_scrape_complete   = m_readBuffer->read_32(); // seeders
+  tracker_state.m_scrape_time_last  = rak::timer::current().seconds();
+
+  m_state.store(tracker_state);
 
   AddressList l;
 
@@ -402,7 +365,7 @@ TrackerUdp::process_announce_output() {
 
   return true;
 }
-  
+
 bool
 TrackerUdp::process_error_output() {
   if (m_readBuffer->size_end() < 8 ||
