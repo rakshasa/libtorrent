@@ -73,7 +73,7 @@ TrackerDht::send_state(int new_state) {
   auto tracker_state = state();
   tracker_state.set_normal_interval(20 * 60);
   tracker_state.set_min_interval(0);
-  m_state.store(tracker_state);
+  set_state(tracker_state);
 }
 
 void

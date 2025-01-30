@@ -301,7 +301,7 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
   tracker_state.m_latest_sum_peers = l->size();
   tracker_state.m_latest_new_peers = m_slot_success(tracker, l);
 
-  tracker->m_state.store(tracker_state);
+  tracker->set_state(tracker_state);
 }
 
 void
@@ -318,7 +318,7 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
   tracker_state.m_failed_time_last = cachedTime.seconds();
   tracker_state.m_failed_counter++;
 
-  tracker->m_state.store(tracker_state);
+  tracker->set_state(tracker_state);
 
   m_slot_failed(tracker, msg);
 }
@@ -337,7 +337,7 @@ TrackerList::receive_scrape_success(Tracker* tracker) {
   tracker_state.m_scrape_time_last = cachedTime.seconds();
   tracker_state.m_scrape_counter++;
 
-  tracker->m_state.store(tracker_state);
+  tracker->set_state(tracker_state);
 
   if (m_slot_scrape_success)
     m_slot_scrape_success(tracker);

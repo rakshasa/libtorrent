@@ -90,7 +90,8 @@ TrackerHttp::send_state(int new_state) {
 
   char localId[61];
 
-  DownloadInfo* info = m_parent->info();
+  auto info = m_parent->info();
+  auto tracker_id = this->tracker_id();
 
   request_prefix(&s, m_url);
 
@@ -101,8 +102,8 @@ TrackerHttp::send_state(int new_state) {
   if (m_parent->key())
     s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_parent->key() << std::dec;
 
-  if (!m_tracker_id.load().empty())
-    s << "&trackerid=" << rak::copy_escape_html(tracker_id());
+  if (!tracker_id.empty())
+    s << "&trackerid=" << rak::copy_escape_html(tracker_id);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
@@ -324,12 +325,12 @@ TrackerHttp::process_failure(const Object& object) {
   if (object.has_key_value("downloaded"))
     tracker_state.m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
 
-  m_state.store(tracker_state);
+  set_state(tracker_state);
 }
 
 void
 TrackerHttp::process_success(const Object& object) {
-  auto tracker_state = m_state.load();
+  auto tracker_state = state();
 
   if (object.has_key_value("interval"))
     tracker_state.set_normal_interval(object.get_key_value("interval"));
@@ -353,7 +354,7 @@ TrackerHttp::process_success(const Object& object) {
   if (object.has_key_value("downloaded"))
     tracker_state.m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
 
-  m_state.store(tracker_state);
+  set_state(tracker_state);
 
   if (!object.has_key("peers") && !object.has_key("peers6"))
     return receive_failed("No peers returned");
@@ -395,7 +396,7 @@ TrackerHttp::process_scrape(const Object& object) {
 
   const Object& stats = files.get_key(m_parent->info()->hash().str());
 
-  auto tracker_state = m_state.load();
+  auto tracker_state = state();
 
   if (stats.has_key_value("complete"))
     tracker_state.m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
@@ -406,7 +407,7 @@ TrackerHttp::process_scrape(const Object& object) {
   if (stats.has_key_value("downloaded"))
     tracker_state.m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
 
-  m_state.store(tracker_state);
+  set_state(tracker_state);
 
   LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
                  files.as_map().size(), tracker_state.m_scrape_complete, tracker_state.m_scrape_incomplete, tracker_state.m_scrape_downloaded);
