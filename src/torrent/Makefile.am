@@ -58,10 +58,14 @@ libtorrent_torrent_la_SOURCES = \
 	peer/connection_list.h \
 	peer/peer.cc \
 	peer/peer.h \
-        peer/peer_info.cc \
-        peer/peer_info.h \
+	peer/peer_info.cc \
+	peer/peer_info.h \
 	peer/peer_list.cc \
 	peer/peer_list.h \
+\
+	tracker/tracker_manager.cc \
+	tracker/tracker_manager.h \
+	tracker/tracker_state.h \
 \
 	utils/directory_events.cc \
 	utils/directory_events.h \
@@ -179,7 +183,7 @@ libtorrent_torrent_peer_include_HEADERS = \
 	peer/client_list.h \
 	peer/connection_list.h \
 	peer/peer.h \
-        peer/peer_info.h \
+	peer/peer_info.h \
 	peer/peer_list.h
 
 libtorrent_torrent_utils_includedir = $(includedir)/torrent/utils
@@ -195,6 +199,12 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/thread_base.h \
 	utils/thread_interrupt.h \
 	utils/uri_parser.h
+
+libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
+libtorrent_torrent_tracker_include_HEADERS = \
+	tracker/tracker_manager.h \
+	tracker/tracker_state.h
+
 
 libtorrent_torrent_includedir = $(includedir)/torrent
 libtorrent_torrent_include_HEADERS = \

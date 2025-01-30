@@ -1,56 +1,20 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <functional>
 #include <random>
 
 #include "net/address_list.h"
+#include "torrent/exceptions.h"
+#include "torrent/download_info.h"
+#include "torrent/tracker.h"
+#include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
-#include "torrent/download_info.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_udp.h"
 
 #include "globals.h"
-#include "exceptions.h"
-#include "tracker.h"
-#include "tracker_list.h"
 
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, info(), "tracker_list", log_fmt, __VA_ARGS__);
@@ -103,7 +67,7 @@ TrackerList::count_usable() const {
 void
 TrackerList::close_all_excluding(int event_bitmap) {
   for (auto tracker : *this) {
-    if ((event_bitmap & (1 << tracker->latest_event())))
+    if ((event_bitmap & (1 << tracker->state().latest_event())))
       continue;
 
     tracker->close();
@@ -113,7 +77,7 @@ TrackerList::close_all_excluding(int event_bitmap) {
 void
 TrackerList::disown_all_including(int event_bitmap) {
   for (auto& tracker : *this) {
-    if ((event_bitmap & (1 << tracker->latest_event())))
+    if ((event_bitmap & (1 << tracker->state().latest_event())))
       tracker->disown();
   }
 }
@@ -137,7 +101,7 @@ TrackerList::send_state(Tracker* tracker, int new_event) {
     return;
 
   if (tracker->is_busy()) {
-    if (tracker->latest_event() != Tracker::EVENT_SCRAPE)
+    if (tracker->state().latest_event() != Tracker::EVENT_SCRAPE)
       return;
 
     tracker->close();
@@ -159,7 +123,7 @@ TrackerList::send_scrape(Tracker* tracker) {
   if (!(tracker->flags() & Tracker::flag_can_scrape))
     return;
 
-  if (rak::timer::from_seconds(tracker->scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
+  if (rak::timer::from_seconds(tracker->state().scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
     return;
 
   tracker->send_scrape();
@@ -172,7 +136,7 @@ TrackerList::send_scrape(Tracker* tracker) {
 TrackerList::iterator
 TrackerList::insert(unsigned int group, Tracker* tracker) {
   tracker->set_group(group);
-  
+
   iterator itr = base_type::insert(end_group(group), tracker);
 
   if (m_slot_tracker_enabled)
@@ -208,7 +172,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
 
     return;
   }
-  
+
   LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, url.c_str());
   insert(group, tracker);
 }
@@ -231,20 +195,23 @@ TrackerList::find_usable(const_iterator itr) const {
 TrackerList::iterator
 TrackerList::find_next_to_request(iterator itr) {
   auto preferred = itr = std::find_if(itr, end(), std::mem_fn(&Tracker::can_request_state));
+  auto preferred_state = (*preferred)->state();
 
-  if (preferred == end() || (*preferred)->failed_counter() == 0)
+  if (preferred == end() || preferred_state.failed_counter() == 0)
     return preferred;
 
   while (++itr != end()) {
     if (!(*itr)->can_request_state())
       continue;
 
-    if ((*itr)->failed_counter() != 0) {
-      if ((*itr)->failed_time_next() < (*preferred)->failed_time_next())
+    auto itr_state = (*itr)->state();
+
+    if (itr_state.failed_counter() != 0) {
+      if (itr_state.failed_time_next() < preferred_state.failed_time_next())
         preferred = itr;
 
     } else {
-      if ((*itr)->success_time_next() < (*preferred)->failed_time_next())
+      if (itr_state.success_time_next() < preferred_state.failed_time_next())
         preferred = itr;
 
       break;
@@ -298,9 +265,9 @@ void
 TrackerList::randomize_group_entries() {
   static std::random_device rd;
   static std::mt19937       rng(rd());
-  // Random random random.
+
   iterator itr = begin();
-  
+
   while (itr != end()) {
     iterator tmp = end_group((*itr)->group());
     std::shuffle(itr, tmp, rng);
@@ -310,10 +277,10 @@ TrackerList::randomize_group_entries() {
 }
 
 void
-TrackerList::receive_success(Tracker* tb, AddressList* l) {
-  iterator itr = find(tb);
+TrackerList::receive_success(Tracker* tracker, AddressList* l) {
+  iterator itr = find(tracker);
 
-  if (itr == end() || tb->is_busy())
+  if (itr == end() || tracker->is_busy())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
   // Promote the tracker to the front of the group since it was
@@ -323,57 +290,70 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
-  LT_LOG_TRACKER(INFO, "received %u peers (url:%s)", l->size(), tb->url().c_str());
+  LT_LOG_TRACKER(INFO, "received %u peers (url:%s)", l->size(), tracker->url().c_str());
 
-  tb->m_success_time_last = cachedTime.seconds();
-  tb->m_success_counter++;
-  tb->m_failed_counter = 0;
+  auto tracker_state = tracker->state();
 
-  tb->m_latest_sum_peers = l->size();
-  tb->m_latest_new_peers = m_slot_success(tb, l);
+  tracker_state.m_success_time_last = cachedTime.seconds();
+  tracker_state.m_success_counter++;
+  tracker_state.m_failed_counter = 0;
+
+  tracker_state.m_latest_sum_peers = l->size();
+  tracker_state.m_latest_new_peers = m_slot_success(tracker, l);
+
+  tracker->m_state.store(tracker_state);
 }
 
 void
-TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
-  iterator itr = find(tb);
+TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
+  iterator itr = find(tracker);
 
-  if (itr == end() || tb->is_busy())
+  if (itr == end() || tracker->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "failed to connect to tracker (url:%s msg:%s)", tb->url().c_str(), msg.c_str());
+  LT_LOG_TRACKER(INFO, "failed to connect to tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
 
-  tb->m_failed_time_last = cachedTime.seconds();
-  tb->m_failed_counter++;
-  m_slot_failed(tb, msg);
+  auto tracker_state = tracker->state();
+
+  tracker_state.m_failed_time_last = cachedTime.seconds();
+  tracker_state.m_failed_counter++;
+
+  tracker->m_state.store(tracker_state);
+
+  m_slot_failed(tracker, msg);
 }
 
 void
-TrackerList::receive_scrape_success(Tracker* tb) {
-  iterator itr = find(tb);
+TrackerList::receive_scrape_success(Tracker* tracker) {
+  iterator itr = find(tracker);
 
-  if (itr == end() || tb->is_busy())
+  if (itr == end() || tracker->is_busy())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tb->url().c_str());
+  LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tracker->url().c_str());
 
-  tb->m_scrape_time_last = cachedTime.seconds();
-  tb->m_scrape_counter++;
+  auto tracker_state = tracker->state();
+
+  tracker_state.m_scrape_time_last = cachedTime.seconds();
+  tracker_state.m_scrape_counter++;
+
+  tracker->m_state.store(tracker_state);
 
   if (m_slot_scrape_success)
-    m_slot_scrape_success(tb);
+    m_slot_scrape_success(tracker);
 }
 
 void
-TrackerList::receive_scrape_failed(Tracker* tb, const std::string& msg) {
-  iterator itr = find(tb);
+TrackerList::receive_scrape_failed(Tracker* tracker, const std::string& msg) {
+  iterator itr = find(tracker);
 
-  if (itr == end() || tb->is_busy())
+  if (itr == end() || tracker->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "failed to scrape tracker (url:%s msg:%s)", tb->url().c_str(), msg.c_str());
+  LT_LOG_TRACKER(INFO, "failed to scrape tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
 
   if (m_slot_scrape_failed)
-    m_slot_scrape_failed(tb, msg);
+    m_slot_scrape_failed(tracker, msg);
 }
 
 }

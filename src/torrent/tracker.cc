@@ -2,10 +2,10 @@
 
 #include <algorithm>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
+#include "torrent/tracker.h"
+#include "torrent/tracker_list.h"
 #include "globals.h"
-#include "tracker.h"
-#include "tracker_list.h"
 
 namespace torrent {
 
@@ -19,32 +19,13 @@ constexpr int Tracker::max_normal_interval;
 Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
   m_flags(flags),
   m_parent(parent),
-  m_group(0),
   m_url(url),
-
-  m_normal_interval(0),
-  m_min_interval(0),
-
-  m_latest_event(EVENT_NONE),
-  m_latest_new_peers(0),
-  m_latest_sum_peers(0),
-
-  m_success_time_last(0),
-  m_success_counter(0),
-
-  m_failed_time_last(0),
-  m_failed_counter(0),
-
-  m_scrape_time_last(0),
-  m_scrape_counter(0),
-
-  m_scrape_complete(0),
-  m_scrape_incomplete(0),
-  m_scrape_downloaded(0),
-
-  m_request_time_last(torrent::cachedTime.seconds()),
-  m_request_counter(0)
+  m_request_time_last(torrent::cachedTime.seconds())
 {
+  // TODO: Not needed when EVENT_NONE is default.
+  auto tracker_state = TrackerState{};
+  tracker_state.m_latest_event = EVENT_NONE;
+  m_state.store(tracker_state);
 }
 
 void
@@ -68,25 +49,6 @@ Tracker::disable() {
 
   if (m_parent->slot_tracker_disabled())
     m_parent->slot_tracker_disabled()(this);
-}
-
-uint32_t
-Tracker::success_time_next() const {
-  if (m_success_counter == 0)
-    return 0;
-
-  return m_success_time_last + std::max(m_normal_interval, (uint32_t)min_normal_interval);
-}
-
-uint32_t
-Tracker::failed_time_next() const {
-  if (m_failed_counter == 0)
-    return 0;
-
-  if (m_min_interval > min_min_interval)
-    return m_failed_time_last + m_min_interval;
-
-  return m_failed_time_last + std::min(5 << std::min(m_failed_counter - 1, (uint32_t)6), min_min_interval-1);
 }
 
 std::string
@@ -115,13 +77,49 @@ Tracker::inc_request_counter() {
 }
 
 void
-Tracker::clear_stats() {
-  m_latest_new_peers = 0;
-  m_latest_sum_peers = 0;
+Tracker::clear_intervals() {
+  auto state = m_state.load();
 
-  m_success_counter = 0;
-  m_failed_counter = 0;
-  m_scrape_counter = 0;
+  state.m_normal_interval = 0;
+  state.m_min_interval = 0;
+
+  m_state.store(state);
+}
+
+void
+Tracker::clear_stats() {
+  auto state = m_state.load();
+
+  state.m_latest_new_peers = 0;
+  state.m_latest_sum_peers = 0;
+  state.m_success_counter = 0;
+  state.m_failed_counter = 0;
+  state.m_scrape_counter = 0;
+
+  m_state.store(state);
+}
+
+void
+Tracker::set_latest_event(int v) {
+  auto state = m_state.load();
+
+  state.m_latest_event = v;
+
+  m_state.store(state);
+}
+
+void
+Tracker::update_tracker_id(const std::string& id) {
+  if (id.empty())
+    return;
+
+  if (tracker_id() == id)
+    return;
+
+  auto new_id = std::array<char,64>{};
+  std::copy_n(id.begin(), std::min(id.size(), size_t(63)), new_id.begin());
+
+  m_tracker_id.store(new_id);
 }
 
 }
