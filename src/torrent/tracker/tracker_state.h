@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <torrent/common.h>
 
+class TrackerTest;
+
 namespace torrent {
 
 class TrackerDht;
@@ -17,6 +19,7 @@ public:
   friend class TrackerDht;
   friend class TrackerHttp;
   friend class TrackerList;
+  friend class ::TrackerTest;
   friend class TrackerUdp;
 
   static constexpr int default_min_interval = 600;
