@@ -6,8 +6,8 @@
 #include "rak/priority_queue_default.h"
 
 #include "globals.h"
-#include "tracker_list_test.h"
-#include "tracker_controller_test.h"
+#include "torrent/tracker_list_test.h"
+#include "torrent/tracker_controller_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
 
@@ -117,12 +117,12 @@ tracker_controller_test::test_timeout() {
 void
 tracker_controller_test::test_single_success() {
   TEST_SINGLE_BEGIN();
-  
+
   tracker_list.send_state_idx(0, 1);
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
-  
+
   tracker_list.send_state_idx(0, 2);
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
 
@@ -257,6 +257,7 @@ tracker_controller_test::test_send_update_normal() {
 void
 tracker_controller_test::test_send_update_failure() {
   torrent::cachedTime = rak::timer::from_seconds(1 << 20);
+
   TEST_SINGLE_BEGIN();
 
   tracker_controller.send_update_event();
@@ -335,6 +336,7 @@ tracker_controller_test::test_multiple_failure() {
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
 
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_1_0->state().normal_interval()));
+
   TEST_MULTI3_IS_BUSY("10000", "10000");
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
   TEST_MULTI3_IS_BUSY("01000", "01000");
@@ -466,7 +468,7 @@ tracker_controller_test::test_multiple_send_update() {
   tracker_controller.send_update_event();
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
   TEST_MULTI3_IS_BUSY("10000", "10000");
- 
+
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   tracker_0_0->set_failed(1, torrent::cachedTime.seconds());

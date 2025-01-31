@@ -172,7 +172,7 @@ TrackerController::send_stop_event() {
   }
 
   m_flags |= flag_send_stop;
-  
+
   LT_LOG_TRACKER(INFO, "Sending stopped event.", 0);
 
   close();
@@ -196,7 +196,7 @@ TrackerController::send_completed_event() {
 
   m_flags &= ~mask_send;
   m_flags |= flag_send_completed;
-  
+
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
     LT_LOG_TRACKER(INFO, "Queueing completed event.", 0);
     return;
@@ -261,7 +261,7 @@ TrackerController::enable(int enable_flags) {
   m_flags &= ~flag_send_stop;
 
   m_tracker_list->close_all_excluding((1 << Tracker::EVENT_COMPLETED));
-  
+
   if (!(enable_flags & enable_dont_reset_stats))
     m_tracker_list->clear_stats();
 

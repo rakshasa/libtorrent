@@ -6,8 +6,8 @@
 #include "rak/priority_queue_default.h"
 
 #include "globals.h"
-#include "tracker_list_test.h"
-#include "tracker_controller_requesting.h"
+#include "torrent/tracker_list_test.h"
+#include "torrent/tracker_controller_requesting.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_requesting);
 
@@ -36,7 +36,7 @@ do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t mi
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
   CPPUNIT_ASSERT(success1 ? tracker_0_0->trigger_success() : tracker_0_0->trigger_failure());
 
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0->normal_interval());
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0->state().normal_interval());
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
 
   tracker_controller.start_requesting();
@@ -46,15 +46,15 @@ do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t mi
   CPPUNIT_ASSERT(!tracker_0_0->is_busy());
 
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::flag_requesting));
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0->min_interval()));
-  
+  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0->state().min_interval()));
+
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
 
   if (success2) {
     CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
     CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 30));
-    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0->min_interval() - 30));
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0->state().min_interval() - 30));
   } else {
     CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
 
@@ -115,7 +115,7 @@ do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t m
   TEST_MULTI3_IS_BUSY("10000", "10000");
   CPPUNIT_ASSERT(success1 ? tracker_0_0->trigger_success() : tracker_0_0->trigger_failure());
 
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0->normal_interval());
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0->state().normal_interval());
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
 
   tracker_controller.start_requesting();
@@ -133,20 +133,20 @@ do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t m
   TEST_MULTI3_IS_BUSY("00101", "00101");
 
   TrackerTest* next_tracker = tracker_0_0;
-  unsigned int next_timeout = next_tracker->min_interval();
+  unsigned int next_timeout = next_tracker->state().min_interval();
   const char*  next_is_busy = "10111";
 
-  if (tracker_0_0->min_interval() < tracker_2_0->min_interval()) {
-    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->min_interval() - 30));
+  if (tracker_0_0->state().min_interval() < tracker_2_0->state().min_interval()) {
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->state().min_interval() - 30));
     TEST_MULTI3_IS_BUSY("10101", "10101");
-  } else if (tracker_0_0->min_interval() > tracker_2_0->min_interval()) {
+  } else if (tracker_0_0->state().min_interval() > tracker_2_0->state().min_interval()) {
     next_tracker = tracker_2_0;
-    next_timeout = tracker_0_0->min_interval() - tracker_2_0->min_interval();
+    next_timeout = tracker_0_0->state().min_interval() - tracker_2_0->state().min_interval();
     next_is_busy = "10101";
-    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->min_interval() - 30));
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->state().min_interval() - 30));
     TEST_MULTI3_IS_BUSY("00111", "00111");
   } else {
-    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->min_interval() - 30));
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->state().min_interval() - 30));
     TEST_MULTI3_IS_BUSY("10111", "10111");
   }
 

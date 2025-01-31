@@ -4,7 +4,7 @@
 #include "net/address_list.h"
 
 #include "globals.h"
-#include "tracker_list_test.h"
+#include "torrent/tracker_list_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
 
@@ -184,7 +184,7 @@ tracker_list_test::test_enable() {
 
   tracker_0->enable(); tracker_1->enable();
   CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 0);
-  
+
   tracker_0->disable(); tracker_1->enable();
   CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 1);
 

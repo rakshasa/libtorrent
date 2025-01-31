@@ -195,9 +195,13 @@ TrackerList::find_usable(const_iterator itr) const {
 TrackerList::iterator
 TrackerList::find_next_to_request(iterator itr) {
   auto preferred = itr = std::find_if(itr, end(), std::mem_fn(&Tracker::can_request_state));
+
+  if (preferred == end())
+    return preferred;
+
   auto preferred_state = (*preferred)->state();
 
-  if (preferred == end() || preferred_state.failed_counter() == 0)
+  if (preferred_state.failed_counter() == 0)
     return preferred;
 
   while (++itr != end()) {
