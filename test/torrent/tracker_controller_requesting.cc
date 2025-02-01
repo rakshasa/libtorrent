@@ -4,10 +4,10 @@
 #include <iostream>
 
 #include "rak/priority_queue_default.h"
+#include "test/torrent/tracker_list_test.h"
+#include "test/torrent/tracker_controller_requesting.h"
 
 #include "globals.h"
-#include "torrent/tracker_list_test.h"
-#include "torrent/tracker_controller_requesting.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_requesting);
 

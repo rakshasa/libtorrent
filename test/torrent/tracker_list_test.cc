@@ -1,10 +1,10 @@
 #include "config.h"
 
-#include "torrent/http.h"
 #include "net/address_list.h"
+#include "test/torrent/tracker_list_test.h"
+#include "torrent/http.h"
 
 #include "globals.h"
-#include "torrent/tracker_list_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
 
