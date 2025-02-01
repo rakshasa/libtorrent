@@ -311,11 +311,11 @@ TrackerController::stop_requesting() {
 
 uint32_t
 tracker_next_timeout(Tracker* tracker, int controller_flags) {
-  // TODO: Rewrite to be in tracker thread or atomic tracker state.
-  auto tracker_state = tracker->state();
-
   if ((controller_flags & TrackerController::flag_requesting))
     return tracker_next_timeout_promiscuous(tracker);
+
+  // TODO: Rewrite to be in tracker thread or atomic tracker state.
+  auto tracker_state = tracker->state();
 
   if ((tracker->is_busy() && tracker_state.latest_event() != Tracker::EVENT_SCRAPE) ||
       !tracker->is_usable())

@@ -211,12 +211,16 @@ TrackerList::find_next_to_request(iterator itr) {
     auto itr_state = (*itr)->state();
 
     if (itr_state.failed_counter() != 0) {
-      if (itr_state.failed_time_next() < preferred_state.failed_time_next())
+      if (itr_state.failed_time_next() < preferred_state.failed_time_next()) {
         preferred = itr;
+        preferred_state = (*preferred)->state();
+      }
 
     } else {
-      if (itr_state.success_time_next() < preferred_state.failed_time_next())
+      if (itr_state.success_time_next() < preferred_state.failed_time_next()) {
         preferred = itr;
+        preferred_state = (*preferred)->state();
+      }
 
       break;
     }
@@ -289,7 +293,7 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
 
   // Promote the tracker to the front of the group since it was
   // successfull.
-  itr = promote(itr);
+  promote(itr);
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());

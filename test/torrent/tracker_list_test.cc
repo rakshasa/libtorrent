@@ -72,8 +72,6 @@ TrackerTest::set_new_min_interval(uint32_t timeout) {
 
 void
 TrackerTest::send_state(int state) {
-  std::cout << "send_state: 0 " << this << " " << is_busy() << " " << is_open() << std::endl;
-
   // Trackers close on-going requests when new state is sent.
   m_busy = true;
   m_open = true;
@@ -83,8 +81,6 @@ TrackerTest::send_state(int state) {
 
 void
 TrackerTest::send_scrape() {
-  std::cout << "send_scrape: 0 " << this << " " << is_busy() << " " << is_open() << std::endl;
-
   // We ignore scrapes if we're already making a request.
   // if (m_open)
   //   return;
@@ -137,26 +133,18 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, u
 
 bool
 TrackerTest::trigger_failure() {
-  std::cout << "trigger_failure: 0 " << this << " " << is_busy() << " " << is_open() << std::endl;
-
   CPPUNIT_ASSERT(is_busy() && is_open());
 
   if (parent() == NULL)
     return false;
-
-  std::cout << "trigger_failure: 1" << std::endl;
 
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
   return_new_peers = 0;
 
   if (state().latest_event() == EVENT_SCRAPE) {
-    std::cout << "trigger_failure: scrape:2" << std::endl;
-
     parent()->receive_scrape_failed(this, "failed");
   } else {
-    std::cout << "trigger_failure: normal:2" << std::endl;
-
     auto tracker_state = state();
     tracker_state.set_normal_interval(0);
     tracker_state.set_min_interval(0);
@@ -164,8 +152,6 @@ TrackerTest::trigger_failure() {
 
     parent()->receive_failed(this, "failed");
   }
-
-  std::cout << "trigger_failure: 3" << std::endl;
 
   m_requesting_state = -1;
   return true;
