@@ -16,6 +16,8 @@ test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t 
   uint32_t next_timeout = tracker_controller->task_timeout()->is_queued() ? tracker_controller->seconds_to_next_timeout() : ~uint32_t();
   uint32_t next_scrape  = tracker_controller->task_scrape()->is_queued()  ? tracker_controller->seconds_to_next_scrape()  : ~uint32_t();
 
+  std::cout << "test_goto_next_timeout: " << next_timeout << ' ' << next_scrape << ' ' << assumed_timeout << ' ' << is_scrape << std::endl;
+
   if (next_timeout == next_scrape && next_timeout == ~uint32_t()) {
     std::cout << "(nq)";
     return false;
@@ -330,22 +332,35 @@ tracker_controller_test::test_multiple_failure() {
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
   CPPUNIT_ASSERT(!tracker_controller.is_failure_mode());
 
+  std::cout << "test_multiple_failure: 1" << std::endl;
   TEST_MULTI3_IS_BUSY("01000", "01000");
+  std::cout << "test_multiple_failure: 2" << std::endl;
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
+  std::cout << "test_multiple_failure: 3" << std::endl;
   TEST_MULTI3_IS_BUSY("00100", "00100");
+  std::cout << "test_multiple_failure: 4" << std::endl;
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
 
+  // CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_1_0->state().normal_interval()));
+  // TODO: Why are we checking 1_0? possible issue with default interval constrcutor.
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_1_0->state().normal_interval()));
+
+  std::cout << "test_multiple_failure: 5" << std::endl;
 
   TEST_MULTI3_IS_BUSY("10000", "10000");
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+  std::cout << "test_multiple_failure: 5.1" << std::endl;
   TEST_MULTI3_IS_BUSY("01000", "01000");
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
+
+  std::cout << "test_multiple_failure: 5.2" << std::endl;
 
   CPPUNIT_ASSERT(!tracker_controller.is_failure_mode());
   TEST_MULTI3_IS_BUSY("00100", "00100");
   CPPUNIT_ASSERT(tracker_1_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_controller.is_failure_mode());
+
+  std::cout << "test_multiple_failure: 6" << std::endl;
 
   TEST_MULTI3_IS_BUSY("00010", "00010");
   CPPUNIT_ASSERT(tracker_2_0->trigger_failure());
@@ -356,11 +371,13 @@ tracker_controller_test::test_multiple_failure() {
 
   // for (int i = 0; i < 5; i++)
   //   std::cout << std::endl << i << ": "
-  //             << tracker_list[i]->activity_time_last() << ' ' 
+  //             << tracker_list[i]->activity_time_last() << ' '
   //             << tracker_list[i]->success_time_last() << ' '
   //             << tracker_list[i]->failed_time_last() << std::endl;
 
   // Try inserting some delays in order to test the timers.
+
+  std::cout << "test_multiple_failure: 7" << std::endl;
 
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 5));
   TEST_MULTI3_IS_BUSY("00100", "00100");

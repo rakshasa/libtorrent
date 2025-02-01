@@ -72,6 +72,9 @@ TrackerTest::set_new_min_interval(uint32_t timeout) {
 
 void
 TrackerTest::send_state(int state) {
+  std::cout << "send_state: 0 " << this << " " << is_busy() << " " << is_open() << std::endl;
+
+  // Trackers close on-going requests when new state is sent.
   m_busy = true;
   m_open = true;
   m_requesting_state = state;
@@ -80,6 +83,12 @@ TrackerTest::send_state(int state) {
 
 void
 TrackerTest::send_scrape() {
+  std::cout << "send_scrape: 0 " << this << " " << is_busy() << " " << is_open() << std::endl;
+
+  // We ignore scrapes if we're already making a request.
+  // if (m_open)
+  //   return;
+
   m_busy = true;
   m_open = true;
   m_requesting_state = torrent::Tracker::EVENT_SCRAPE;
@@ -88,6 +97,8 @@ TrackerTest::send_scrape() {
 
 bool
 TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
+  CPPUNIT_ASSERT(is_busy() && is_open());
+
   torrent::TrackerList::address_list address_list;
 
   for (unsigned int i = 0; i != sum_peers; i++) {
@@ -100,7 +111,9 @@ TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
 
 bool
 TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers) {
-  if (parent() == NULL || !is_busy() || !is_open())
+  CPPUNIT_ASSERT(is_busy() && is_open());
+
+  if (parent() == NULL)
     return false;
 
   m_busy = false;
@@ -124,16 +137,26 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, u
 
 bool
 TrackerTest::trigger_failure() {
-  if (parent() == NULL || !is_busy() || !is_open())
+  std::cout << "trigger_failure: 0 " << this << " " << is_busy() << " " << is_open() << std::endl;
+
+  CPPUNIT_ASSERT(is_busy() && is_open());
+
+  if (parent() == NULL)
     return false;
+
+  std::cout << "trigger_failure: 1" << std::endl;
 
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
   return_new_peers = 0;
 
   if (state().latest_event() == EVENT_SCRAPE) {
+    std::cout << "trigger_failure: scrape:2" << std::endl;
+
     parent()->receive_scrape_failed(this, "failed");
   } else {
+    std::cout << "trigger_failure: normal:2" << std::endl;
+
     auto tracker_state = state();
     tracker_state.set_normal_interval(0);
     tracker_state.set_min_interval(0);
@@ -141,6 +164,8 @@ TrackerTest::trigger_failure() {
 
     parent()->receive_failed(this, "failed");
   }
+
+  std::cout << "trigger_failure: 3" << std::endl;
 
   m_requesting_state = -1;
   return true;

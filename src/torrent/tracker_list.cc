@@ -197,7 +197,7 @@ TrackerList::find_next_to_request(iterator itr) {
   auto preferred = itr = std::find_if(itr, end(), std::mem_fn(&Tracker::can_request_state));
 
   if (preferred == end())
-    return preferred;
+    return end();
 
   auto preferred_state = (*preferred)->state();
 
@@ -301,10 +301,13 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
   tracker_state.m_success_time_last = cachedTime.seconds();
   tracker_state.m_success_counter++;
   tracker_state.m_failed_counter = 0;
-
   tracker_state.m_latest_sum_peers = l->size();
-  tracker_state.m_latest_new_peers = m_slot_success(tracker, l);
+  tracker->set_state(tracker_state);
 
+  auto new_peers = m_slot_success(tracker, l);
+
+  tracker_state = tracker->state();
+  tracker_state.m_latest_new_peers = new_peers;
   tracker->set_state(tracker_state);
 }
 
@@ -321,7 +324,6 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
 
   tracker_state.m_failed_time_last = cachedTime.seconds();
   tracker_state.m_failed_counter++;
-
   tracker->set_state(tracker_state);
 
   m_slot_failed(tracker, msg);
@@ -340,7 +342,6 @@ TrackerList::receive_scrape_success(Tracker* tracker) {
 
   tracker_state.m_scrape_time_last = cachedTime.seconds();
   tracker_state.m_scrape_counter++;
-
   tracker->set_state(tracker_state);
 
   if (m_slot_scrape_success)

@@ -143,6 +143,7 @@ Tracker::state() const {
   return m_state;
 }
 
+// TODO: Use lambda function to update within the lock.
 inline void
 Tracker::set_state(const TrackerState& state) {
   std::lock_guard<std::mutex> lock(m_state_mutex);
