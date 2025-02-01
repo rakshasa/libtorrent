@@ -77,16 +77,16 @@ public:
   void                set_scrape_on_success(bool state) { if (state) m_flags |= flag_scrape_on_success; else m_flags &= ~flag_scrape_on_success; }
   void                set_can_scrape()              { m_flags |= flag_can_scrape; }
 
-  void                set_success(uint32_t counter, uint32_t time_last) { m_success_counter = counter; m_success_time_last = time_last; set_normal_interval(default_normal_interval); set_min_interval(default_min_interval);}
-  void                set_failed(uint32_t counter, uint32_t time_last)  { m_failed_counter = counter; m_failed_time_last = time_last; m_normal_interval = 0; m_min_interval = 0; }
-  void                set_latest_new_peers(uint32_t peers)              { m_latest_new_peers = peers; }
-  void                set_latest_sum_peers(uint32_t peers)              { m_latest_sum_peers = peers; }
+  void                set_success(uint32_t counter, uint32_t time_last);
+  void                set_failed(uint32_t counter, uint32_t time_last);
+  void                set_latest_new_peers(uint32_t peers);
+  void                set_latest_sum_peers(uint32_t peers);
 
-  void                set_new_normal_interval(uint32_t timeout)         { set_normal_interval(timeout); }
-  void                set_new_min_interval(uint32_t timeout)            { set_min_interval(timeout); }
+  void                set_new_normal_interval(uint32_t timeout);
+  void                set_new_min_interval(uint32_t timeout);
 
-  virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = m_latest_event = state; }
-  virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_state = m_latest_event = torrent::Tracker::EVENT_SCRAPE; }
+  virtual void        send_state(int state);
+  virtual void        send_scrape();
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
   virtual void        disown()              { m_busy = false; m_open = false; m_requesting_state = -1; }
 

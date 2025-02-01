@@ -195,9 +195,13 @@ TrackerList::find_usable(const_iterator itr) const {
 TrackerList::iterator
 TrackerList::find_next_to_request(iterator itr) {
   auto preferred = itr = std::find_if(itr, end(), std::mem_fn(&Tracker::can_request_state));
+
+  if (preferred == end())
+    return end();
+
   auto preferred_state = (*preferred)->state();
 
-  if (preferred == end() || preferred_state.failed_counter() == 0)
+  if (preferred_state.failed_counter() == 0)
     return preferred;
 
   while (++itr != end()) {
@@ -207,12 +211,16 @@ TrackerList::find_next_to_request(iterator itr) {
     auto itr_state = (*itr)->state();
 
     if (itr_state.failed_counter() != 0) {
-      if (itr_state.failed_time_next() < preferred_state.failed_time_next())
+      if (itr_state.failed_time_next() < preferred_state.failed_time_next()) {
         preferred = itr;
+        preferred_state = (*preferred)->state();
+      }
 
     } else {
-      if (itr_state.success_time_next() < preferred_state.failed_time_next())
+      if (itr_state.success_time_next() < preferred_state.failed_time_next()) {
         preferred = itr;
+        preferred_state = (*preferred)->state();
+      }
 
       break;
     }
@@ -285,7 +293,7 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
 
   // Promote the tracker to the front of the group since it was
   // successfull.
-  itr = promote(itr);
+  promote(itr);
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
@@ -297,11 +305,14 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
   tracker_state.m_success_time_last = cachedTime.seconds();
   tracker_state.m_success_counter++;
   tracker_state.m_failed_counter = 0;
-
   tracker_state.m_latest_sum_peers = l->size();
-  tracker_state.m_latest_new_peers = m_slot_success(tracker, l);
+  tracker->set_state(tracker_state);
 
-  tracker->m_state.store(tracker_state);
+  auto new_peers = m_slot_success(tracker, l);
+
+  tracker_state = tracker->state();
+  tracker_state.m_latest_new_peers = new_peers;
+  tracker->set_state(tracker_state);
 }
 
 void
@@ -317,8 +328,7 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
 
   tracker_state.m_failed_time_last = cachedTime.seconds();
   tracker_state.m_failed_counter++;
-
-  tracker->m_state.store(tracker_state);
+  tracker->set_state(tracker_state);
 
   m_slot_failed(tracker, msg);
 }
@@ -336,8 +346,7 @@ TrackerList::receive_scrape_success(Tracker* tracker) {
 
   tracker_state.m_scrape_time_last = cachedTime.seconds();
   tracker_state.m_scrape_counter++;
-
-  tracker->m_state.store(tracker_state);
+  tracker->set_state(tracker_state);
 
   if (m_slot_scrape_success)
     m_slot_scrape_success(tracker);

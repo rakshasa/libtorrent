@@ -4,6 +4,7 @@
 #include <array>
 #include <atomic>
 #include <cinttypes>
+#include <mutex>
 #include <string>
 #include <torrent/common.h>
 #include <torrent/tracker/tracker_state.h>
@@ -54,12 +55,12 @@ public:
 
   bool                is_enabled() const        { return (m_flags & flag_enabled); }
   bool                is_extra_tracker() const  { return (m_flags & flag_extra_tracker); }
-  bool                is_in_use() const         { return is_enabled() && m_state.load().success_counter() != 0; }
+  bool                is_in_use() const         { return is_enabled() && state().success_counter() != 0; }
 
   bool                can_scrape() const        { return (m_flags & flag_can_scrape); }
 
   virtual bool        is_busy() const = 0;
-  bool                is_busy_not_scrape() const { return m_state.load().latest_event() != EVENT_SCRAPE && is_busy(); }
+  bool                is_busy_not_scrape() const { return state().latest_event() != EVENT_SCRAPE && is_busy(); }
   virtual bool        is_usable() const          { return is_enabled(); }
 
   bool                can_request_state() const;
@@ -75,9 +76,8 @@ public:
   const std::string&  url() const                           { return m_url; }
   void                set_url(const std::string& url)       { m_url = url; }
 
-  std::string         tracker_id() const                    { return std::string(m_tracker_id.load().data()); }
-
-  TrackerState        state() const                         { return m_state.load(); }
+  std::string         tracker_id() const;
+  TrackerState        state() const;;
 
   virtual void        get_status(char* buffer, [[maybe_unused]] int length)  { buffer[0] = 0; }
 
@@ -104,6 +104,7 @@ protected:
   void                clear_stats();
 
   void                set_latest_event(int v);
+  void                set_state(const TrackerState& state);
   void                update_tracker_id(const std::string& id);
 
   int                 m_flags;
@@ -111,20 +112,42 @@ protected:
   TrackerList*        m_parent;
   uint32_t            m_group{0};
 
-  std::string                      m_url;
-  std::atomic<std::array<char,64>> m_tracker_id{{}};
+  std::string         m_url;
 
   // Timing of the last request, and a counter for how many requests
   // there's been in the recent past.
   uint32_t            m_request_time_last;
   uint32_t            m_request_counter{0};
 
-  std::atomic<TrackerState> m_state;
+private:
+  // Only the tracker thread should change state.
+  mutable std::mutex  m_state_mutex;
+  TrackerState        m_state;
+  std::string         m_tracker_id;
 };
 
 inline bool
 Tracker::can_request_state() const {
   return !(is_busy() && state().latest_event() != EVENT_SCRAPE) && is_usable();
+}
+
+inline std::string
+Tracker::tracker_id() const {
+  std::lock_guard<std::mutex> lock(m_state_mutex);
+  return m_tracker_id;
+}
+
+inline TrackerState
+Tracker::state() const {
+  std::lock_guard<std::mutex> lock(m_state_mutex);
+  return m_state;
+}
+
+// TODO: Use lambda function to update within the lock.
+inline void
+Tracker::set_state(const TrackerState& state) {
+  std::lock_guard<std::mutex> lock(m_state_mutex);
+  m_state = state;
 }
 
 }

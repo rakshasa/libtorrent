@@ -22,10 +22,7 @@ Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
   m_url(url),
   m_request_time_last(torrent::cachedTime.seconds())
 {
-  // TODO: Not needed when EVENT_NONE is default.
-  auto tracker_state = TrackerState{};
-  tracker_state.m_latest_event = EVENT_NONE;
-  m_state.store(tracker_state);
+  m_state.m_latest_event = EVENT_NONE;
 }
 
 void
@@ -78,34 +75,27 @@ Tracker::inc_request_counter() {
 
 void
 Tracker::clear_intervals() {
-  auto state = m_state.load();
+  std::lock_guard<std::mutex> lock(m_state_mutex);
 
-  state.m_normal_interval = 0;
-  state.m_min_interval = 0;
-
-  m_state.store(state);
+  m_state.m_normal_interval = 0;
+  m_state.m_min_interval = 0;
 }
 
 void
 Tracker::clear_stats() {
-  auto state = m_state.load();
+  std::lock_guard<std::mutex> lock(m_state_mutex);
 
-  state.m_latest_new_peers = 0;
-  state.m_latest_sum_peers = 0;
-  state.m_success_counter = 0;
-  state.m_failed_counter = 0;
-  state.m_scrape_counter = 0;
-
-  m_state.store(state);
+  m_state.m_latest_new_peers = 0;
+  m_state.m_latest_sum_peers = 0;
+  m_state.m_success_counter = 0;
+  m_state.m_failed_counter = 0;
+  m_state.m_scrape_counter = 0;
 }
 
 void
 Tracker::set_latest_event(int v) {
-  auto state = m_state.load();
-
-  state.m_latest_event = v;
-
-  m_state.store(state);
+  std::lock_guard<std::mutex> lock(m_state_mutex);
+  m_state.m_latest_event = v;
 }
 
 void
@@ -113,13 +103,12 @@ Tracker::update_tracker_id(const std::string& id) {
   if (id.empty())
     return;
 
-  if (tracker_id() == id)
+  std::lock_guard<std::mutex> lock(m_state_mutex);
+
+  if (m_tracker_id == id)
     return;
 
-  auto new_id = std::array<char,64>{};
-  std::copy_n(id.begin(), std::min(id.size(), size_t(63)), new_id.begin());
-
-  m_tracker_id.store(new_id);
+  m_tracker_id = id;
 }
 
 }

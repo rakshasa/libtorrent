@@ -25,17 +25,17 @@ void
 tracker_timeout_test::test_set_timeout() {
   TrackerTest tracker(NULL, "");
 
-  CPPUNIT_ASSERT(tracker.normal_interval() == 0);
+  CPPUNIT_ASSERT(tracker.state().normal_interval() == 0);
 
   tracker.set_new_normal_interval(100);
-  CPPUNIT_ASSERT(tracker.normal_interval() == 600);
+  CPPUNIT_ASSERT(tracker.state().normal_interval() == 600);
   tracker.set_new_normal_interval(8 * 4000);
-  CPPUNIT_ASSERT(tracker.normal_interval() == 8 * 3600);
+  CPPUNIT_ASSERT(tracker.state().normal_interval() == 8 * 3600);
 
   tracker.set_new_min_interval(100);
-  CPPUNIT_ASSERT_EQUAL((uint32_t)300, tracker.min_interval());
+  CPPUNIT_ASSERT_EQUAL((uint32_t)300, tracker.state().min_interval());
   tracker.set_new_min_interval(4 * 4000);
-  CPPUNIT_ASSERT(tracker.min_interval() == 4 * 3600);
+  CPPUNIT_ASSERT(tracker.state().min_interval() == 4 * 3600);
 }
 
 void
@@ -130,7 +130,6 @@ tracker_timeout_test::test_timeout_requesting() {
   tracker.set_failed(7 + 1, torrent::cachedTime.seconds());
   CPPUNIT_ASSERT_EQUAL((uint32_t)299, torrent::tracker_next_timeout(&tracker, flags));
 
-  
   //std::cout << "timeout:" << torrent::tracker_next_timeout(&tracker, flags) << std::endl;
 
   tracker.set_failed(0, torrent::cachedTime.seconds());
@@ -142,7 +141,7 @@ tracker_timeout_test::test_timeout_requesting() {
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
   tracker.set_success(6, torrent::cachedTime.seconds());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
-  
+
   tracker.set_success(1, torrent::cachedTime.seconds());
   // tracker.set_latest_sum_peers(9);
   // CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 20);

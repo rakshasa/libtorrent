@@ -157,7 +157,7 @@ inline void
 TrackerList::send_state_itr(iterator itr, int new_event) {
   if (itr == end())
     return;
-    
+
   send_state(*itr, new_event);
 }
 

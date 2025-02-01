@@ -22,6 +22,7 @@
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/net");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/utils");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("data");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("net");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("tracker");
 
@@ -30,7 +31,7 @@ do_test_panic(int signum) {
   signal(signum, SIG_DFL);
 
   std::cout << std::endl << std::endl << "Caught " << strsignal(signum) << ", dumping stack:" << std::endl << std::endl;
-  
+
 #ifdef HAVE_BACKTRACE
   void* stackPtrs[20];
 
@@ -63,14 +64,14 @@ register_signal_handlers() {
   }
 }
 
-int main(int argc, char* argv[]) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
   register_signal_handlers();
 
   CppUnit::TestResult controller;
   CppUnit::TestResultCollector result;
   progress_listener progress;
 
-  controller.addListener( &result );        
+  controller.addListener( &result );
   controller.addListener( &progress );
 
   CppUnit::TextUi::TestRunner runner;
@@ -79,13 +80,13 @@ int main(int argc, char* argv[]) {
   try {
     std::cout << "Running ";
     runner.run( controller );
- 
+
     // TODO: Make outputter.
     dump_failures(progress.failures());
 
     // Print test in a compiler compatible format.
     CppUnit::CompilerOutputter outputter( &result, std::cerr );
-    outputter.write();                      
+    outputter.write();
 
   } catch ( std::invalid_argument &e ) { // Test path not resolved
     std::cerr  <<  std::endl <<  "ERROR: "  <<  e.what() << std::endl;
