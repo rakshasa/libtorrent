@@ -247,6 +247,17 @@ Download::set_pex_enabled(bool enabled) {
     m_ptr->info()->unset_flags(DownloadInfo::flag_pex_enabled);
 }
 
+bool
+Download::is_sequential_enabled() {
+  return m_ptr->main()->chunk_selector()->is_sequential_enabled();
+}
+
+void
+Download::set_sequential_enabled(bool enabled) {
+  m_ptr->main()->chunk_selector()->set_sequential_enabled(enabled);
+}
+
+
 Object*
 Download::bencode() {
   return m_ptr->bencode();

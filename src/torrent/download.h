@@ -99,6 +99,10 @@ public:
 
   void                set_pex_enabled(bool enabled);
 
+  // Sequential download
+  bool                is_sequential_enabled();
+  void                set_sequential_enabled(bool enabled);
+
   Object*             bencode();
   const Object*       bencode() const;
 

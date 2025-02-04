@@ -76,6 +76,15 @@ public:
   void                initialize(ChunkStatistics* cs);
   void                cleanup();
 
+    // Sequential chunk selection
+  bool is_sequential_enabled() {
+    return m_sequential;
+  };
+  void set_sequential_enabled(bool enabled) {
+    m_sequential = enabled;
+  };
+
+
   // Call this once you've modified the bitfield or priorities to
   // update cached information. This must be called once before using
   // find.
@@ -118,6 +127,8 @@ private:
   rak::partial_queue  m_sharedQueue;
 
   uint32_t            m_position;
+
+  bool                m_sequential = false;
 };
 
 }
