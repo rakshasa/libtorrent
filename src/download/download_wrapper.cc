@@ -35,11 +35,7 @@
 namespace torrent {
 
 DownloadWrapper::DownloadWrapper() :
-  m_main(new DownloadMain),
-
-  m_bencode(NULL),
-  m_hashChecker(NULL),
-  m_connectionType(0) {
+  m_main(new DownloadMain) {
 
   m_main->delay_download_done().slot()       = std::bind(&download_data::call_download_done, data());
   m_main->delay_partially_done().slot()      = std::bind(&download_data::call_partially_done, data());

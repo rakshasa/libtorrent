@@ -81,7 +81,7 @@ private:
   Throttle*           m_uploadThrottle;
   Throttle*           m_downloadThrottle;
 
-  unsigned int        m_ticks;
+  unsigned int        m_ticks{0};
   rak::priority_item  m_taskTick;
 };
 
