@@ -15,6 +15,9 @@ public:
 
   DiffieHellman(const unsigned char prime[], int primeLength,
                 const unsigned char generator[], int generatorLength);
+  ~DiffieHellman() = default;
+  DiffieHellman(const DiffieHellman&) = delete;
+  DiffieHellman& operator=(const DiffieHellman&) = delete;
 
   bool         is_valid() const;
 
@@ -27,9 +30,6 @@ public:
   std::string  secret_str() const   { return std::string(m_secret.get(), m_size); }
 
 private:
-  DiffieHellman(const DiffieHellman& dh);
-  DiffieHellman& operator = (const DiffieHellman& dh);
-
   dh_ptr       m_dh;
   secret_ptr   m_secret;
   int          m_size;

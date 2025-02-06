@@ -98,7 +98,6 @@ public:
     TYPE_DICT_KEY
   };
 
-  Object()                     : m_flags(TYPE_NONE) {}
   Object(const value_type v)   : m_flags(TYPE_VALUE) { new (&_value()) value_type(v); }
   Object(const char* s)        : m_flags(TYPE_STRING) { new (&_string()) string_type(s); }
   Object(const string_type& s) : m_flags(TYPE_STRING) { new (&_string()) string_type(s); }
@@ -106,9 +105,11 @@ public:
   Object(const raw_string& r)  : m_flags(TYPE_RAW_STRING) { new (&_raw_string()) raw_string(r); }
   Object(const raw_list& r)    : m_flags(TYPE_RAW_LIST) { new (&_raw_list()) raw_list(r); }
   Object(const raw_map& r)     : m_flags(TYPE_RAW_MAP) { new (&_raw_map()) raw_map(r); }
-  Object(const Object& b);
 
+  Object() {}
   ~Object() { clear(); }
+  Object(const Object& b);
+  Object& operator=(const Object& b);
 
   // TODO: Move this out of the class namespace, call them
   // make_object_. 
@@ -241,8 +242,6 @@ public:
                                  uint32_t skip_mask = flag_static_data,
                                  uint32_t maxDepth = ~uint32_t());
 
-  Object&             operator = (const Object& b);
-
   // Internal:
   void                swap_same_type(Object& left, Object& right);
 
@@ -252,7 +251,7 @@ public:
 
   template <typename T> void check_value_throw(const char* err_msg) const;
 
-  uint32_t            m_flags;
+  uint32_t            m_flags{TYPE_NONE};
 
 #ifndef HAVE_STDCXX_0X
   value_type&         _value()             { return t_value; }

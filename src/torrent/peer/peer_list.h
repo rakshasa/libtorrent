@@ -51,6 +51,8 @@ public:
 
   PeerList();
   ~PeerList();
+  PeerList(const PeerList&) = delete;
+  PeerList& operator=(const PeerList&) = delete;
 
   PeerInfo*           insert_address(const sockaddr* address, int flags);
 
@@ -80,9 +82,6 @@ protected:
   iterator            disconnected(iterator itr, int flags) LIBTORRENT_NO_EXPORT;
 
 private:
-  PeerList(const PeerList&);
-  void operator = (const PeerList&);
-
   static ipv4_table   m_ipv4_table;
 
   DownloadInfo*       m_info;

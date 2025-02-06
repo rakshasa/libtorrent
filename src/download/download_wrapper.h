@@ -21,6 +21,8 @@ class DownloadWrapper {
 public:
   DownloadWrapper();
   ~DownloadWrapper();
+  DownloadWrapper(const DownloadWrapper&) = delete;
+  DownloadWrapper& operator=(const DownloadWrapper&) = delete;
 
   DownloadInfo*       info()                                  { return m_main->info(); }
   download_data*      data()                                  { return m_main->file_list()->mutable_data(); }
@@ -69,9 +71,6 @@ public:
   void                receive_update_priorities();
 
 private:
-  DownloadWrapper(const DownloadWrapper&);
-  void operator = (const DownloadWrapper&);
-
   void                finished_download();
 
   DownloadMain*       m_main;

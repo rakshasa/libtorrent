@@ -53,6 +53,8 @@ class LIBTORRENT_EXPORT PollSelect : public Poll {
 public:
   static PollSelect*  create(int maxOpenSockets);
   virtual ~PollSelect();
+  PollSelect(const PollSelect&) = delete;
+  PollSelect& operator=(const PollSelect&) = delete;
 
   virtual uint32_t    open_max() const;
 
@@ -80,9 +82,7 @@ public:
   virtual void        remove_error(Event* event);
 
 private:
-  PollSelect() {}
-  PollSelect(const PollSelect&);
-  void operator = (const PollSelect&);
+  PollSelect() = default;
 
   SocketSet*          m_readSet;
   SocketSet*          m_writeSet;

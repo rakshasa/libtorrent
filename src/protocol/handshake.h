@@ -60,6 +60,8 @@ public:
 
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
   ~Handshake();
+  Handshake(const Handshake&) = delete;
+  Handshake& operator=(const Handshake&) = delete;
 
   const char*         type_name() const { return "handshake"; }
 
@@ -99,9 +101,6 @@ public:
   int                 retry_options();
 
 protected:
-  Handshake(const Handshake&);
-  void operator = (const Handshake&);
-
   void                read_done();
   void                write_done();
 

@@ -50,8 +50,10 @@ public:
   typedef value_type*           iterator;
   typedef const value_type*     const_iterator;
 
-  Bitfield() : m_size(0), m_set(0), m_data(NULL)    {}
+  Bitfield() = default;
   ~Bitfield()                                       { clear(); }
+  Bitfield(const Bitfield&) = delete;
+  Bitfield& operator=(const Bitfield&) = delete;
 
   bool                empty() const                 { return m_data == NULL; }
 
@@ -112,13 +114,10 @@ public:
   static value_type   mask_from(size_type idx)      { return (value_type)~0 >> idx; }
 
 private:
-  Bitfield(const Bitfield& bf);
-  Bitfield& operator = (const Bitfield& bf);
+  size_type           m_size{};
+  size_type           m_set{};
 
-  size_type           m_size;
-  size_type           m_set;
-
-  value_type*         m_data;
+  value_type*         m_data{};
 };
 
 }
