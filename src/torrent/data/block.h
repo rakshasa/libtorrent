@@ -28,6 +28,12 @@ public:
   Block();
   ~Block();
 
+  // Only allow move constructions
+  //Block(const Block&) = delete;
+  //Block& operator=(const Block&) = delete;
+  //Block(Block&&) = default;
+  //Block& operator=(Block&&) = default;
+
   bool                      is_stalled() const                           { return m_notStalled == 0; }
   bool                      is_finished() const                          { return m_leader != NULL && m_leader->is_finished(); }
   bool                      is_transfering() const                       { return m_leader != NULL && !m_leader->is_finished(); }
@@ -89,12 +95,6 @@ public:
   // will just delete the object. Made static so it can be called when
   // block == NULL.
   static void               release(BlockTransfer* transfer);
-
-  // Only allow move constructions
-  //Block(const Block&) = delete;
-  //void operator = (const Block&) = delete;
-  //Block(Block&&) = default;
-
 private:
 
   void                      invalidate_transfer(BlockTransfer* transfer) LIBTORRENT_NO_EXPORT;

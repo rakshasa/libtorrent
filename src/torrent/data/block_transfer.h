@@ -25,6 +25,8 @@ public:
 
   BlockTransfer();
   ~BlockTransfer();
+  BlockTransfer(const BlockTransfer&) = delete;
+  BlockTransfer& operator=(const BlockTransfer&) = delete;
 
   // TODO: Do we need to also check for peer_info?...
   bool                is_valid() const              { return m_block != NULL; }
@@ -66,9 +68,6 @@ public:
   void                set_failed_index(uint32_t i)  { m_failedIndex = i; }
 
 private:
-  BlockTransfer(const BlockTransfer&);
-  void operator = (const BlockTransfer&);
-
   key_type            m_peer_info;
   Block*              m_block;
   Piece               m_piece;

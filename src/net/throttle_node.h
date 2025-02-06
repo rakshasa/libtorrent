@@ -55,6 +55,8 @@ public:
   typedef std::function<void ()> slot_void;
 
   ThrottleNode(uint32_t rateSpan) : m_rate(rateSpan)  { clear_quota(); }
+  ThrottleNode(const ThrottleNode&) = delete;
+  ThrottleNode& operator=(const ThrottleNode&) = delete;
 
   Rate*               rate()                          { return &m_rate; }
   const Rate*         rate() const                    { return &m_rate; }
@@ -72,9 +74,6 @@ public:
   slot_void&          slot_activate()                 { return m_slot_activate; }
 
 private:
-  ThrottleNode(const ThrottleNode&);
-  void operator = (const ThrottleNode&);
-
   uint32_t            m_quota;
   iterator            m_listIterator;
 

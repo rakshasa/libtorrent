@@ -58,8 +58,11 @@ public:
   static const int flag_prioritize_last    = (1 << 6);
 
   static const int flag_attr_padding       = (1 << 7);
+
   File();
   ~File();
+  File(const File&) = delete;
+  File& operator=(const File&) = delete;
 
   bool                is_created() const;
   bool                is_open() const                          { return m_fd != -1; }
@@ -136,9 +139,6 @@ protected:
   void                set_match_depth_next(uint32_t l)         { m_matchDepthNext = l; }
 
 private:
-  File(const File&);
-  void operator = (const File&);
-
   bool                resize_file();
 
   int                 m_fd;
