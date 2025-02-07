@@ -66,6 +66,7 @@ libtorrent_torrent_la_SOURCES = \
 	tracker/tracker_manager.cc \
 	tracker/tracker_manager.h \
 	tracker/tracker_state.h \
+	tracker/tracker_wrappers.h \
 \
 	utils/directory_events.cc \
 	utils/directory_events.h \
