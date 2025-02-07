@@ -5,16 +5,16 @@
 
 #include "rak/priority_queue_default.h"
 #include "test/torrent/tracker_list_test.h"
-#include "test/torrent/tracker_controller_test.h"
+#include "test/torrent/test_tracker_controller.h"
 
 #include "globals.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
+CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller);
 
 bool
 test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout, bool is_scrape) {
-  uint32_t next_timeout = tracker_controller->task_timeout()->is_queued() ? tracker_controller->seconds_to_next_timeout() : ~uint32_t();
-  uint32_t next_scrape  = tracker_controller->task_scrape()->is_queued()  ? tracker_controller->seconds_to_next_scrape()  : ~uint32_t();
+  uint32_t next_timeout = tracker_controller->is_timeout_queued() ? tracker_controller->seconds_to_next_timeout() : ~uint32_t();
+  uint32_t next_scrape  = tracker_controller->is_scrape_queued()  ? tracker_controller->seconds_to_next_scrape()  : ~uint32_t();
 
   if (next_timeout == next_scrape && next_timeout == ~uint32_t()) {
     std::cout << "(nq)";
@@ -49,19 +49,19 @@ test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t 
 }
 
 void
-tracker_controller_test::setUp() {
+test_tracker_controller::setUp() {
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
   torrent::cachedTime = rak::timer::current();
 }
 
 void
-tracker_controller_test::tearDown() {
+test_tracker_controller::tearDown() {
   torrent::taskScheduler.clear();
 }
 
 void
-tracker_controller_test::test_basic() {
+test_tracker_controller::test_basic() {
   torrent::TrackerController tracker_controller(NULL);
 
   CPPUNIT_ASSERT(tracker_controller.flags() == 0);
@@ -70,7 +70,7 @@ tracker_controller_test::test_basic() {
 }
 
 void
-tracker_controller_test::test_enable() {
+test_tracker_controller::test_enable() {
   torrent::TrackerList tracker_list;
   torrent::TrackerController tracker_controller(&tracker_list);
 
@@ -81,7 +81,7 @@ tracker_controller_test::test_enable() {
 }
 
 void
-tracker_controller_test::test_requesting() {
+test_tracker_controller::test_requesting() {
   torrent::TrackerList tracker_list;
   torrent::TrackerController tracker_controller(&tracker_list);
 
@@ -98,13 +98,13 @@ tracker_controller_test::test_requesting() {
 }
 
 void
-tracker_controller_test::test_timeout() {
+test_tracker_controller::test_timeout() {
   TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
 
   CPPUNIT_ASSERT(enabled_counter == 1);
   CPPUNIT_ASSERT(!tracker_0_0->is_busy());
-  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
   tracker_controller.enable();
 
@@ -115,7 +115,7 @@ tracker_controller_test::test_timeout() {
 }
 
 void
-tracker_controller_test::test_single_success() {
+test_tracker_controller::test_single_success() {
   TEST_SINGLE_BEGIN();
 
   tracker_list.send_state_idx(0, 1);
@@ -136,7 +136,7 @@ tracker_controller_test::test_single_success() {
   torrent::cachedTime += rak::timer::from_seconds(test_interval);
 
 void
-tracker_controller_test::test_single_failure() {
+test_tracker_controller::test_single_failure() {
   torrent::cachedTime = rak::timer::from_seconds(1 << 20);
   TEST_SINGLE_BEGIN();
 
@@ -158,18 +158,18 @@ tracker_controller_test::test_single_failure() {
 }
 
 void
-tracker_controller_test::test_single_disable() {
+test_tracker_controller::test_single_disable() {
   TEST_SINGLE_BEGIN();
   tracker_list.send_state_idx(0, 0);
   TEST_SINGLE_END(0, 0);
 }
 
 void
-tracker_controller_test::test_send_start() {
+test_tracker_controller::test_send_start() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
-  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
   CPPUNIT_ASSERT(tracker_0_0->requesting_state() == torrent::Tracker::EVENT_STARTED);
@@ -188,11 +188,11 @@ tracker_controller_test::test_send_start() {
 }
 
 void
-tracker_controller_test::test_send_stop_normal() {
+test_tracker_controller::test_send_stop_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   tracker_controller.send_stop_event();
@@ -215,11 +215,11 @@ tracker_controller_test::test_send_stop_normal() {
 // send_stop during request and right after start, send stop failed.
 
 void
-tracker_controller_test::test_send_completed_normal() {
+test_tracker_controller::test_send_completed_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   tracker_controller.send_completed_event();
@@ -240,13 +240,13 @@ tracker_controller_test::test_send_completed_normal() {
 }
 
 void
-tracker_controller_test::test_send_update_normal() {
+test_tracker_controller::test_send_update_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == torrent::TrackerController::flag_send_update);
 
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
   CPPUNIT_ASSERT(tracker_0_0->state().latest_event() == torrent::Tracker::EVENT_NONE);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
@@ -255,7 +255,7 @@ tracker_controller_test::test_send_update_normal() {
 }
 
 void
-tracker_controller_test::test_send_update_failure() {
+test_tracker_controller::test_send_update_failure() {
   torrent::cachedTime = rak::timer::from_seconds(1 << 20);
 
   TEST_SINGLE_BEGIN();
@@ -269,17 +269,17 @@ tracker_controller_test::test_send_update_failure() {
 }
 
 void
-tracker_controller_test::test_send_task_timeout() {
+test_tracker_controller::test_send_task_timeout() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
 
   TEST_SEND_SINGLE_END(0, 0);
 }
 
 void
-tracker_controller_test::test_send_close_on_enable() {
+test_tracker_controller::test_send_close_on_enable() {
   TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
@@ -300,7 +300,7 @@ tracker_controller_test::test_send_close_on_enable() {
 }
 
 void
-tracker_controller_test::test_multiple_success() {
+test_tracker_controller::test_multiple_success() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -323,7 +323,7 @@ tracker_controller_test::test_multiple_success() {
 }
 
 void
-tracker_controller_test::test_multiple_failure() {
+test_tracker_controller::test_multiple_failure() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -376,7 +376,7 @@ tracker_controller_test::test_multiple_failure() {
 }
 
 void
-tracker_controller_test::test_multiple_cycle() {
+test_tracker_controller::test_multiple_cycle() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -394,7 +394,7 @@ tracker_controller_test::test_multiple_cycle() {
 }
 
 void
-tracker_controller_test::test_multiple_cycle_second_group() {
+test_tracker_controller::test_multiple_cycle_second_group() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -412,7 +412,7 @@ tracker_controller_test::test_multiple_cycle_second_group() {
 }
 
 void
-tracker_controller_test::test_multiple_send_stop() {
+test_tracker_controller::test_multiple_send_stop() {
   TEST_MULTI3_BEGIN();
 
   tracker_list.send_state_idx(1, torrent::Tracker::EVENT_NONE);
@@ -462,7 +462,7 @@ tracker_controller_test::test_multiple_send_stop() {
 }
 
 void
-tracker_controller_test::test_multiple_send_update() {
+test_tracker_controller::test_multiple_send_update() {
   TEST_MULTI3_BEGIN();
 
   tracker_controller.send_update_event();
@@ -491,52 +491,52 @@ tracker_controller_test::test_multiple_send_update() {
 // The enable/disable tracker functions will poke the tracker
 // controller, ensuring the tast timeout gets re-started.
 void
-tracker_controller_test::test_timeout_lacking_usable() {
+test_tracker_controller::test_timeout_lacking_usable() {
   TEST_MULTI3_BEGIN();
 
   std::for_each(tracker_list.begin(), tracker_list.end(), std::mem_fn(&torrent::Tracker::disable));
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
 
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
 
   TEST_MULTI3_IS_BUSY("00000", "00000");
-  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
   tracker_1_0->enable();
 
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
 
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
 
   TEST_MULTI3_IS_BUSY("00100", "00100");
 
-  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
   tracker_3_0->enable();
-  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
   CPPUNIT_ASSERT(enabled_counter == 5 + 2 && disabled_counter == 5);
   TEST_MULTIPLE_END(0, 0);
 }
 
 void
-tracker_controller_test::test_disable_tracker() {
+test_tracker_controller::test_disable_tracker() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
 
   tracker_0_0->disable();
 
   CPPUNIT_ASSERT(!tracker_0_0->is_busy());
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
 
   TEST_SINGLE_END(0, 0);
 }
 
 void
-tracker_controller_test::test_new_peers() {
+test_tracker_controller::test_new_peers() {
   TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 

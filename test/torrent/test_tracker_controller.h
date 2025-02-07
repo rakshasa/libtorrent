@@ -1,9 +1,8 @@
-#include <cppunit/extensions/HelperMacros.h>
-
+#include "helpers/test_fixture.h"
 #include "torrent/tracker_controller.h"
 
-class tracker_controller_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(tracker_controller_test);
+class test_tracker_controller : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_controller);
 
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
@@ -145,7 +144,7 @@ public:
                  failure_counter == failed);
 
 #define TEST_GOTO_NEXT_SCRAPE(assumed_scrape)                           \
-  CPPUNIT_ASSERT(tracker_controller.task_scrape()->is_queued());        \
+  CPPUNIT_ASSERT(tracker_controller.is_scrape_queued());                \
   CPPUNIT_ASSERT(assumed_scrape == tracker_controller.seconds_to_next_scrape()); \
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, assumed_scrape, true));
 

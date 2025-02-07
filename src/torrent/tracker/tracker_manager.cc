@@ -7,6 +7,8 @@
 #include "torrent/tracker.h"
 #include "torrent/utils/log.h"
 
+// TODO: Remove old logging categories.
+
 #define LT_LOG_TRACKER_EVENTS(log_level, log_fmt, ...)                  \
   lt_log_print(LOG_TRACKER_EVENTS, "tracker_manager", log_fmt, __VA_ARGS__);
 

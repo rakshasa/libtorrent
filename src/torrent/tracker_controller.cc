@@ -1,20 +1,22 @@
 #include "config.h"
 
+#include "torrent/tracker_controller.h"
+
 #include "rak/priority_queue_default.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/tracker.h"
-#include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 
 #include "globals.h"
 
-#define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
-  lt_log_print_info(LOG_TRACKER_##log_level, m_tracker_list->info(), "tracker_controller", log_fmt, __VA_ARGS__);
+#define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                              \
+  lt_log_print_info(LOG_TRACKER_EVENTS, m_tracker_list->info(), "tracker_controller", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
+// TODO: Make these member variables.
 struct tracker_controller_private {
   rak::priority_item task_timeout;
   rak::priority_item task_scrape;
@@ -61,14 +63,14 @@ TrackerController::~TrackerController() {
   delete m_private;
 }
 
-rak::priority_item*
-TrackerController::task_timeout() {
-  return &m_private->task_timeout;
+bool
+TrackerController::is_timeout_queued() const {
+  return m_private->task_timeout.is_queued();
 }
 
-rak::priority_item*
-TrackerController::task_scrape() {
-  return &m_private->task_scrape;
+bool
+TrackerController::is_scrape_queued() const {
+  return m_private->task_scrape.is_queued();
 }
 
 int64_t
@@ -124,7 +126,7 @@ TrackerController::send_start_event() {
   // send it when the tracker controller get's enabled.
 
   // If the controller is already running, we insert this new event.
-  
+
   // Return, or something, if already active and sending?
 
   if (m_flags & flag_send_start) {
@@ -134,9 +136,9 @@ TrackerController::send_start_event() {
 
   m_flags &= ~mask_send;
   m_flags |= flag_send_start;
-  
+
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
-    LT_LOG_TRACKER(INFO, "Queueing started event.", 0);
+    LT_LOG_TRACKER_EVENTS("sending start event : queued", 0);
     return;
   }
 
@@ -146,7 +148,7 @@ TrackerController::send_start_event() {
 
   // Do we use the old 'focus' thing?... Rather react on no reply,
   // go into promiscious.
-  LT_LOG_TRACKER(INFO, "Sending started event.", 0);
+  LT_LOG_TRACKER_EVENTS("sending start event : requesting", 0);
 
   close();
   m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STARTED);
@@ -167,13 +169,13 @@ TrackerController::send_stop_event() {
   m_flags &= ~mask_send;
 
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
-    LT_LOG_TRACKER(INFO, "Skipping stopped event as no tracker need it.", 0);
+    LT_LOG_TRACKER_EVENTS("sending stop event : skipped stopped event as no tracker needs it", 0);
     return;
   }
 
   m_flags |= flag_send_stop;
 
-  LT_LOG_TRACKER(INFO, "Sending stopped event.", 0);
+  LT_LOG_TRACKER_EVENTS("sending stop event : requesting", 0);
 
   close();
 
@@ -198,13 +200,11 @@ TrackerController::send_completed_event() {
   m_flags |= flag_send_completed;
 
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
-    LT_LOG_TRACKER(INFO, "Queueing completed event.", 0);
+    LT_LOG_TRACKER_EVENTS("sending completed event : queued", 0);
     return;
   }
 
-  LT_LOG_TRACKER(INFO, "Sending completed event.", 0);
-
-  // Send to all trackers that would want to know.
+  LT_LOG_TRACKER_EVENTS("sending completed event : requesting", 0);
 
   close();
 
@@ -230,7 +230,7 @@ TrackerController::send_update_event() {
   if (!(m_flags & mask_send))
     m_flags |= flag_send_update;
 
-  LT_LOG_TRACKER(INFO, "Sending update event.", 0);
+  LT_LOG_TRACKER_EVENTS("sending update event : requesting", 0);
 
   m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_NONE);
 
@@ -265,7 +265,7 @@ TrackerController::enable(int enable_flags) {
   if (!(enable_flags & enable_dont_reset_stats))
     m_tracker_list->clear_stats();
 
-  LT_LOG_TRACKER(INFO, "Called enable with %u trackers.", m_tracker_list->size());
+  LT_LOG_TRACKER_EVENTS("enabled : trackers:%u", m_tracker_list->size());
 
   // Adding of the tracker requests gets done after the caller has had
   // a chance to override the default behavior.
@@ -283,7 +283,7 @@ TrackerController::disable() {
   m_tracker_list->close_all_excluding((1 << Tracker::EVENT_STOPPED) | (1 << Tracker::EVENT_COMPLETED));
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
-  LT_LOG_TRACKER(INFO, "Called disable with %u trackers.", m_tracker_list->size());
+  LT_LOG_TRACKER_EVENTS("disabled : trackers:%u", m_tracker_list->size());
 }
 
 void
@@ -296,7 +296,7 @@ TrackerController::start_requesting() {
   if ((m_flags & flag_active))
     update_timeout(0);
 
-  LT_LOG_TRACKER(INFO, "Start requesting.", 0);
+  LT_LOG_TRACKER_EVENTS("started requesting", 0);
 }
 
 void
@@ -306,7 +306,7 @@ TrackerController::stop_requesting() {
 
   m_flags &= ~flag_requesting;
 
-  LT_LOG_TRACKER(INFO, "Stop requesting.", 0);
+  LT_LOG_TRACKER_EVENTS("stopped requesting", 0);
 }
 
 uint32_t
@@ -537,7 +537,7 @@ TrackerController::receive_failure(Tracker* tracker, const std::string& msg) {
   }
 
   if (tracker == nullptr) {
-    LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
+    LT_LOG_TRACKER_EVENTS("received failure : tracker_id:%s msg:'%s'", tracker->tracker_id().c_str(), msg.c_str());
     m_slot_failure(msg);
     return;
   }

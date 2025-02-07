@@ -7,6 +7,11 @@
 #include <torrent/common.h>
 #include <torrent/tracker.h>
 
+// TODO: Remove from export, rtorrent doesn't need this much api access.
+
+// TODO: Remove all unused functions and slots, move to src/tracker. Then add a
+// TrackerControllerWrapper that download and api uses.
+
 // Refactor:
 namespace rak { class priority_item; }
 
@@ -51,6 +56,8 @@ public:
   bool                is_requesting() const       { return m_flags & flag_requesting; }
   bool                is_failure_mode() const     { return m_flags & flag_failure_mode; }
   bool                is_promiscuous_mode() const { return m_flags & flag_promiscuous_mode; }
+  bool                is_timeout_queued() const;
+  bool                is_scrape_queued() const;
 
   TrackerList*        tracker_list()        { return m_tracker_list; }
   TrackerList*        tracker_list() const  { return m_tracker_list; }
@@ -63,7 +70,6 @@ public:
   void                manual_request(bool request_now);
   void                scrape_request(uint32_t seconds_to_request);
 
-  //protected:
   void                send_start_event();
   void                send_stop_event();
   void                send_completed_event();
@@ -90,10 +96,6 @@ public:
 
   slot_tracker&       slot_tracker_enabled()  { return m_slot_tracker_enabled; }
   slot_tracker&       slot_tracker_disabled() { return m_slot_tracker_disabled; }
-
-  // TEMP:
-  rak::priority_item* task_timeout();
-  rak::priority_item* task_scrape();
 
 private:
   void                do_timeout();
