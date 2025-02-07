@@ -1,9 +1,8 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "test/helpers/test_fixture.h"
+#include "test/torrent/test_tracker_controller.h"
 
-#include "tracker_controller_test.h"
-
-class tracker_controller_features : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(tracker_controller_features);
+class test_tracker_controller_features : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_controller_features);
 
   CPPUNIT_TEST(test_requesting_basic);
   CPPUNIT_TEST(test_requesting_timeout);
