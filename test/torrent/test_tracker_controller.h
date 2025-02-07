@@ -1,4 +1,4 @@
-#include "helpers/test_fixture.h"
+#include "test/helpers/test_fixture.h"
 #include "torrent/tracker_controller.h"
 
 class test_tracker_controller : public test_fixture {
