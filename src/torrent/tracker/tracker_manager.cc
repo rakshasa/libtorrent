@@ -36,7 +36,6 @@ TrackerManager::remove_tracker(TrackerWrapper tracker) {
   std::lock_guard<std::mutex> guard(m_lock);
 
   // We assume there are other references to the tracker, so gracefully close it.
-
   m_trackers.erase(tracker);
 
   LT_LOG_TRACKER_EVENTS("removed tracker: info_hash:%s url:%s", tracker.info_hash().c_str(), tracker.get()->url().c_str());
@@ -55,6 +54,16 @@ TrackerManager::add_controller(DownloadInfo* download_info, TrackerController* c
   LT_LOG_TRACKER_EVENTS("added controller: info_hash:%s", download_info->hash().c_str());
 
   return wrapper;
+}
+
+void
+TrackerManager::remove_controller(TrackerControllerWrapper controller) {
+  std::lock_guard<std::mutex> guard(m_lock);
+
+  // We assume there are other references to the controller, so gracefully close it.
+  m_controllers.erase(controller);
+
+  LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", controller.info_hash().c_str());
 }
 
 } // namespace torrent
