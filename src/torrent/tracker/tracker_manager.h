@@ -13,10 +13,10 @@
 
 namespace torrent {
 
+// TODO: Don't export, this should be in src/tracker?
+
 class LIBTORRENT_EXPORT TrackerManager {
 public:
-  typedef std::set<TrackerWrapper> base_type;
-
   TrackerWrapper add_tracker(DownloadInfo* download_info, Tracker* tracker_worker);
   void           remove_tracker(TrackerWrapper tracker);
 

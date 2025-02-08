@@ -60,6 +60,12 @@ public:
   const HashString&   info_hash() const { return m_info_hash; }
 
   bool                is_active() const;
+  bool                is_requesting() const;
+  bool                is_failure_mode() const;
+  bool                is_promiscuous_mode() const;
+
+  uint32_t            seconds_to_next_timeout() const;
+  uint32_t            seconds_to_next_scrape() const;
 
   void                manual_request(bool request_now);
   void                scrape_request(uint32_t seconds_to_request);

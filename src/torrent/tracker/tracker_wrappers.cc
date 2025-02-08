@@ -17,6 +17,31 @@ TrackerControllerWrapper::is_active() const {
   return m_ptr->is_active();
 }
 
+bool
+TrackerControllerWrapper::is_requesting() const {
+  return m_ptr->is_requesting();
+}
+
+bool
+TrackerControllerWrapper::is_failure_mode() const {
+  return m_ptr->is_failure_mode();
+}
+
+bool
+TrackerControllerWrapper::is_promiscuous_mode() const {
+  return m_ptr->is_promiscuous_mode();
+}
+
+uint32_t
+TrackerControllerWrapper::seconds_to_next_timeout() const {
+  return m_ptr->seconds_to_next_timeout();
+}
+
+uint32_t
+TrackerControllerWrapper::seconds_to_next_scrape() const {
+  return m_ptr->seconds_to_next_scrape();
+}
+
 void
 TrackerControllerWrapper::enable() {
   m_ptr->enable();

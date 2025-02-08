@@ -104,6 +104,8 @@ DownloadMain::~DownloadMain() {
   m_connectionList->clear();
   m_tracker_list->clear();
 
+  manager->tracker_manager()->remove_controller(m_tracker_controller);
+
   assert(m_info->size_pex() == 0 && "DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
 
   delete m_tracker_list;
