@@ -23,6 +23,8 @@
 #include "globals.h"
 #include "manager.h"
 
+// TODO: Update this to use the new logging system, dump the full request url.
+
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
 

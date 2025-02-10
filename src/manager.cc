@@ -52,8 +52,8 @@ Manager::Manager() :
       return hash_queue->work();
     });
 
-  m_hash_queue->slot_has_work() = [hash_work_signal, main_thread_disk = &m_main_thread_disk](bool is_done) {
-      main_thread_disk->send_event_signal(hash_work_signal, is_done);
+  m_hash_queue->slot_has_work() = [hash_work_signal, thread = &m_main_thread_main](bool is_done) {
+      thread->send_event_signal(hash_work_signal, is_done);
     };
 
   m_taskTick.slot() = std::bind(&Manager::receive_tick, this);

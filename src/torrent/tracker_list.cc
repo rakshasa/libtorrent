@@ -129,7 +129,7 @@ TrackerList::send_scrape(Tracker* tracker) {
   tracker->send_scrape();
   tracker->inc_request_counter();
 
-  LT_LOG_TRACKER(INFO, "sending 'scrape' (group:%u url:%s)",
+  LT_LOG_TRACKER(INFO, "sending scrape (group:%u url:%s)",
                  tracker->group(), tracker->url().c_str());
 }
 
