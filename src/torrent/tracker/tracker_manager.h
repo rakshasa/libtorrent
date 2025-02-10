@@ -17,15 +17,11 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT TrackerManager {
 public:
-  TrackerWrapper add_tracker(DownloadInfo* download_info, Tracker* tracker_worker);
-  void           remove_tracker(TrackerWrapper tracker);
-
   TrackerControllerWrapper add_controller(DownloadInfo* download_info, TrackerController* controller);
   void                     remove_controller(TrackerControllerWrapper controller);
 
 private:
   std::mutex                         m_lock;
-  std::set<TrackerWrapper>           m_trackers;
   std::set<TrackerControllerWrapper> m_controllers;
 };
 

@@ -1,10 +1,16 @@
 #include "config.h"
 
+#include "download/download_main.h"
+
 #include <cassert>
 #include <cstring>
 #include <limits>
 
 #include "data/chunk_list.h"
+#include "download/available_list.h"
+#include "download/chunk_selector.h"
+#include "download/chunk_statistics.h"
+#include "download/download_wrapper.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/initial_seed.h"
@@ -24,12 +30,6 @@
 #include "torrent/tracker_list.h"
 #include "torrent/tracker/tracker_manager.h"
 #include "torrent/utils/log.h"
-
-#include "available_list.h"
-#include "chunk_selector.h"
-#include "chunk_statistics.h"
-#include "download_main.h"
-#include "download_wrapper.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
@@ -69,15 +69,7 @@ DownloadMain::DownloadMain() :
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
 
-  auto tracker_controller = new TrackerController(m_tracker_list);
-
-  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_scrape_success() = std::bind(&TrackerController::receive_scrape, tracker_controller, std::placeholders::_1);
-  m_tracker_list->slot_tracker_enabled()  = std::bind(&TrackerController::receive_tracker_enabled, tracker_controller, std::placeholders::_1);
-  m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, tracker_controller, std::placeholders::_1);
-
-  m_tracker_controller = manager->tracker_manager()->add_controller(m_info, tracker_controller);
+  // Only set trivial values here, the rest is done in DownloadWrapper.
 
   m_connectionList = new ConnectionList(this);
 
@@ -100,12 +92,6 @@ DownloadMain::DownloadMain() :
 DownloadMain::~DownloadMain() {
   assert(!m_taskTrackerRequest.is_queued() && "DownloadMain::~DownloadMain(): m_taskTrackerRequest is queued.");
 
-  // Check if needed.
-  m_connectionList->clear();
-  m_tracker_list->clear();
-
-  manager->tracker_manager()->remove_controller(m_tracker_controller);
-
   assert(m_info->size_pex() == 0 && "DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
 
   delete m_tracker_list;
@@ -118,6 +104,20 @@ DownloadMain::~DownloadMain() {
 
   m_ut_pex_delta.clear();
   m_ut_pex_initial.clear();
+}
+
+void
+DownloadMain::post_initialize() {
+  auto tracker_controller = new TrackerController(m_tracker_list);
+
+  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_scrape_success() = std::bind(&TrackerController::receive_scrape, tracker_controller, std::placeholders::_1);
+  m_tracker_list->slot_tracker_enabled()  = std::bind(&TrackerController::receive_tracker_enabled, tracker_controller, std::placeholders::_1);
+  m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, tracker_controller, std::placeholders::_1);
+
+  // TODO: Move tracker list to manager, and add the proper barrier for slots.
+  m_tracker_controller = manager->tracker_manager()->add_controller(info(), tracker_controller);
 }
 
 std::pair<ThrottleList*, ThrottleList*>

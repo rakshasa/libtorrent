@@ -137,9 +137,9 @@ public:
 
 private:
   std::string         m_name;
-  HashString          m_hash;
-  HashString          m_hashObfuscated;
-  HashString          m_localId;
+  HashString          m_hash{HashString::new_zero()};
+  HashString          m_hashObfuscated{HashString::new_zero()};
+  HashString          m_localId{HashString::new_zero()};
 
   mutable int         m_flags;
 

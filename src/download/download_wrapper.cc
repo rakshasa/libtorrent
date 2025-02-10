@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "download/download_wrapper.h"
+
 #include <iterator>
 #include <stdlib.h>
 #include <rak/file_stat.h>
@@ -7,6 +9,8 @@
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
+#include "download/available_list.h"
+#include "download/chunk_selector.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
@@ -19,13 +23,9 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
+#include "torrent/tracker/tracker_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/functional.h"
-
-#include "available_list.h"
-#include "chunk_selector.h"
-
-#include "download_wrapper.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_info(LOG_TORRENT_INFO, this->info(), "download", log_fmt, __VA_ARGS__);
@@ -47,8 +47,6 @@ DownloadWrapper::DownloadWrapper() :
 
   m_main->peer_list()->set_info(info());
   m_main->tracker_list()->set_info(info());
-  m_main->tracker_controller().set_slots([this](auto l) { return receive_tracker_success(l); },
-                                         [this](auto& m) { return receive_tracker_failed(m); });
 
   m_main->chunk_list()->slot_storage_error() = std::bind(&DownloadWrapper::receive_storage_error, this, std::placeholders::_1);
 }
@@ -63,6 +61,14 @@ DownloadWrapper::~DownloadWrapper() {
   // If the client wants to do a quick cleanup after calling close, it
   // will need to manually cancel the tracker requests.
   m_main->tracker_controller().close();
+
+  // Check if needed.
+  m_main->connection_list()->clear();
+  m_main->tracker_list()->clear();
+
+  // TODO: Check first, and return if zero. Need to make the below shared ptrs.
+  if (info()->hash() != HashString::new_zero())
+    manager->tracker_manager()->remove_controller(m_main->tracker_controller());
 
   delete m_hashChecker;
   delete m_bencode;
@@ -92,6 +98,11 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   // Connect various signals and slots.
   m_hashChecker->slot_check_chunk() = std::bind(&DownloadWrapper::check_chunk_hash, this, std::placeholders::_1);
   m_hashChecker->delay_checked().slot() = std::bind(&DownloadWrapper::receive_initial_hash, this);
+
+  m_main->post_initialize();
+
+  m_main->tracker_controller().set_slots([this](auto l) { return receive_tracker_success(l); },
+                                         [this](auto& m) { return receive_tracker_failed(m); });
 }
 
 void
