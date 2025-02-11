@@ -181,7 +181,7 @@ TrackerUdp::close_directly() {
   get_fd().clear();
 }
 
-TrackerUdp::Type
+tracker_enum
 TrackerUdp::type() const {
   return TRACKER_UDP;
 }

@@ -5,6 +5,7 @@
 
 #include "torrent/object.h"
 #include "torrent/tracker.h"
+#include "tracker/tracker_worker.h"
 
 namespace torrent {
 
@@ -22,7 +23,7 @@ public:
   virtual void        close();
   virtual void        disown();
 
-  virtual Type        type() const;
+  virtual tracker_enum type() const;
 
 private:
   void                close_directly();

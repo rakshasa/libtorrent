@@ -29,7 +29,7 @@ public:
   virtual void        close();
   virtual void        disown();
 
-  virtual Type        type() const;
+  virtual tracker_enum type() const;
 
   virtual void        get_status(char* buffer, int length);
 

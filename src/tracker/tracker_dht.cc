@@ -87,7 +87,7 @@ TrackerDht::disown() {
   close();
 }
 
-TrackerDht::Type
+tracker_enum
 TrackerDht::type() const {
   return TRACKER_DHT;
 }

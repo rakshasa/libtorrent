@@ -222,7 +222,7 @@ TrackerHttp::disown() {
   m_data = NULL;
 }
 
-TrackerHttp::Type
+tracker_enum
 TrackerHttp::type() const {
   return TRACKER_HTTP;
 }

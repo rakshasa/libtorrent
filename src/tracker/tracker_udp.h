@@ -36,7 +36,7 @@ public:
   virtual void        close();
   virtual void        disown();
 
-  virtual Type        type() const;
+  virtual tracker_enum type() const;
 
   virtual void        event_read();
   virtual void        event_write();

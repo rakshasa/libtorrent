@@ -64,7 +64,7 @@ public:
   virtual bool        is_busy() const { return m_busy; }
   bool                is_open() const { return m_open; }
 
-  virtual Type        type() const { return (Type)(TRACKER_DHT + 1); }
+  virtual torrent::tracker_enum type() const { return (torrent::tracker_enum)(torrent::TRACKER_DHT + 1); }
 
   int                 requesting_state() const { return m_requesting_state; }
 

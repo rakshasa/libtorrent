@@ -18,13 +18,6 @@ class LIBTORRENT_EXPORT Tracker {
 public:
   friend class TrackerList;
 
-  typedef enum {
-    TRACKER_NONE,
-    TRACKER_HTTP,
-    TRACKER_UDP,
-    TRACKER_DHT,
-  } Type;
-
   enum tracker_event {
     EVENT_NONE,
     EVENT_COMPLETED,
@@ -72,8 +65,8 @@ public:
 
   TrackerList*        parent()                              { return m_parent; }
 
-  uint32_t            group() const                         { return m_group; }
-  virtual Type        type() const = 0;
+  uint32_t             group() const                        { return m_group; }
+  virtual tracker_enum type() const = 0;
 
   const std::string&  url() const                           { return m_url; }
   void                set_url(const std::string& url)       { m_url = url; }
