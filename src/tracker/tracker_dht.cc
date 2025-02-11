@@ -46,7 +46,7 @@ TrackerDht::is_usable() const {
 }
 
 void
-TrackerDht::send_state(int new_state) {
+TrackerDht::send_event(TrackerState::event_enum new_state) {
   if (m_parent == NULL)
     throw internal_error("TrackerDht::send_state(...) does not have a valid m_parent.");
 
@@ -59,9 +59,8 @@ TrackerDht::send_state(int new_state) {
 
   set_latest_event(new_state);
 
-  if (new_state == DownloadInfo::STOPPED) {
+  if (new_state == TrackerState::EVENT_STOPPED)
     return;
-  }
 
   m_dht_state = state_searching;
 

@@ -50,9 +50,9 @@ tracker_timeout_test::test_timeout_tracker() {
   flags = torrent::TrackerController::flag_active;
 
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
-  tracker.send_state(torrent::Tracker::EVENT_NONE);
+  tracker.send_event(torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == ~uint32_t());
-  tracker.send_state(torrent::Tracker::EVENT_SCRAPE);
+  tracker.send_event(torrent::TrackerState::EVENT_SCRAPE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
 
   tracker.close();
@@ -61,9 +61,9 @@ tracker_timeout_test::test_timeout_tracker() {
   // Check also failed...
 
   CPPUNIT_ASSERT_EQUAL((uint32_t)1800, torrent::tracker_next_timeout(&tracker, flags));
-  tracker.send_state(torrent::Tracker::EVENT_NONE);
+  tracker.send_event(torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == ~uint32_t());
-  tracker.send_state(torrent::Tracker::EVENT_SCRAPE);
+  tracker.send_event(torrent::TrackerState::EVENT_SCRAPE);
   CPPUNIT_ASSERT_EQUAL((uint32_t)1800, torrent::tracker_next_timeout(&tracker, flags));
 
   tracker.close();
@@ -77,9 +77,9 @@ tracker_timeout_test::test_timeout_tracker() {
   flags = torrent::TrackerController::flag_active | torrent::TrackerController::flag_promiscuous_mode;
 
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
-  tracker.send_state(torrent::Tracker::EVENT_NONE);
+  tracker.send_event(torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == ~uint32_t());
-  tracker.send_state(torrent::Tracker::EVENT_SCRAPE);
+  tracker.send_event(torrent::TrackerState::EVENT_SCRAPE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
 }
 
@@ -91,9 +91,9 @@ tracker_timeout_test::test_timeout_update() {
   flags = torrent::TrackerController::flag_active | torrent::TrackerController::flag_send_update;
 
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
-  tracker.send_state(torrent::Tracker::EVENT_SCRAPE);
+  tracker.send_event(torrent::TrackerState::EVENT_SCRAPE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
-  tracker.send_state(torrent::Tracker::EVENT_NONE);
+  tracker.send_event(torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == ~uint32_t());
 
   tracker.close();
@@ -113,9 +113,9 @@ tracker_timeout_test::test_timeout_requesting() {
   flags = torrent::TrackerController::flag_active | torrent::TrackerController::flag_requesting;
 
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
-  tracker.send_state(torrent::Tracker::EVENT_SCRAPE);
+  tracker.send_event(torrent::TrackerState::EVENT_SCRAPE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 0);
-  tracker.send_state(torrent::Tracker::EVENT_NONE);
+  tracker.send_event(torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == ~uint32_t());
 
   // tracker.set_latest_new_peers(10 - 1);

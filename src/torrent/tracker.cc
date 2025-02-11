@@ -9,20 +9,12 @@
 
 namespace torrent {
 
-constexpr int Tracker::default_min_interval;
-constexpr int Tracker::min_min_interval;
-constexpr int Tracker::max_min_interval;
-constexpr int Tracker::default_normal_interval;
-constexpr int Tracker::min_normal_interval;
-constexpr int Tracker::max_normal_interval;
-
 Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
   m_flags(flags),
   m_parent(parent),
   m_url(url),
   m_request_time_last(torrent::cachedTime.seconds())
 {
-  m_state.m_latest_event = EVENT_NONE;
 }
 
 void
@@ -93,9 +85,9 @@ Tracker::clear_stats() {
 }
 
 void
-Tracker::set_latest_event(int v) {
+Tracker::set_latest_event(TrackerState::event_enum event) {
   std::lock_guard<std::mutex> lock(m_state_mutex);
-  m_state.m_latest_event = v;
+  m_state.m_latest_event = event;
 }
 
 void

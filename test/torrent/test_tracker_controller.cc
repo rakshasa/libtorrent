@@ -118,12 +118,12 @@ void
 test_tracker_controller::test_single_success() {
   TEST_SINGLE_BEGIN();
 
-  tracker_list.send_state_idx(0, 1);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
 
-  tracker_list.send_state_idx(0, 2);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_COMPLETED);
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
 
   TEST_SINGLE_END(1, 1);
@@ -160,7 +160,7 @@ test_tracker_controller::test_single_failure() {
 void
 test_tracker_controller::test_single_disable() {
   TEST_SINGLE_BEGIN();
-  tracker_list.send_state_idx(0, 0);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
   TEST_SINGLE_END(0, 0);
 }
 
@@ -172,7 +172,7 @@ test_tracker_controller::test_send_start() {
   CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
-  CPPUNIT_ASSERT(tracker_0_0->requesting_state() == torrent::Tracker::EVENT_STARTED);
+  CPPUNIT_ASSERT(tracker_0_0->requesting_state() == torrent::TrackerState::EVENT_STARTED);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::mask_send));
@@ -247,7 +247,7 @@ test_tracker_controller::test_send_update_normal() {
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == torrent::TrackerController::flag_send_update);
 
   CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
-  CPPUNIT_ASSERT(tracker_0_0->state().latest_event() == torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_event() == torrent::TrackerState::EVENT_NONE);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
@@ -286,10 +286,10 @@ test_tracker_controller::test_send_close_on_enable() {
   TRACKER_INSERT(0, tracker_2);
   TRACKER_INSERT(0, tracker_3);
 
-  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
-  tracker_list.send_state_idx(1, torrent::Tracker::EVENT_STARTED);
-  tracker_list.send_state_idx(2, torrent::Tracker::EVENT_STOPPED);
-  tracker_list.send_state_idx(3, torrent::Tracker::EVENT_COMPLETED);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
+  tracker_list.send_event_idx(1, torrent::TrackerState::EVENT_STARTED);
+  tracker_list.send_event_idx(2, torrent::TrackerState::EVENT_STOPPED);
+  tracker_list.send_event_idx(3, torrent::TrackerState::EVENT_COMPLETED);
 
   tracker_controller.enable();
 
@@ -415,9 +415,9 @@ void
 test_tracker_controller::test_multiple_send_stop() {
   TEST_MULTI3_BEGIN();
 
-  tracker_list.send_state_idx(1, torrent::Tracker::EVENT_NONE);
-  tracker_list.send_state_idx(3, torrent::Tracker::EVENT_NONE);
-  tracker_list.send_state_idx(4, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_event_idx(1, torrent::TrackerState::EVENT_NONE);
+  tracker_list.send_event_idx(3, torrent::TrackerState::EVENT_NONE);
+  tracker_list.send_event_idx(4, torrent::TrackerState::EVENT_NONE);
 
   CPPUNIT_ASSERT(tracker_0_1->trigger_success());
   CPPUNIT_ASSERT(tracker_2_0->trigger_success());
@@ -540,7 +540,7 @@ test_tracker_controller::test_new_peers() {
   TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
-  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
 
   CPPUNIT_ASSERT(tracker_0->trigger_success(10));
   CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 10);

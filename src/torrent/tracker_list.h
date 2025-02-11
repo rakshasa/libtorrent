@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <torrent/common.h>
+#include <torrent/tracker/tracker_state.h>
 
 namespace torrent {
 
@@ -76,9 +77,10 @@ public:
   iterator            insert(unsigned int group, Tracker* tracker);
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
-  void                send_state(Tracker* tracker, int new_event);
-  void                send_state_idx(unsigned idx, int new_event);
-  void                send_state_itr(iterator itr, int new_event);
+  // TODO: Move these to controller / tracker.
+  void                send_event(Tracker* tracker, TrackerState::event_enum new_event);
+  void                send_event_idx(unsigned idx, TrackerState::event_enum new_event);
+  void                send_event_itr(iterator itr, TrackerState::event_enum new_event);
 
   void                send_scrape(Tracker* tracker);
 
@@ -149,16 +151,16 @@ private:
 };
 
 inline void
-TrackerList::send_state_idx(unsigned idx, int new_event) {
-  send_state(at(idx), new_event);
+TrackerList::send_event_idx(unsigned idx, TrackerState::event_enum new_event) {
+  send_event(at(idx), new_event);
 }
 
 inline void
-TrackerList::send_state_itr(iterator itr, int new_event) {
+TrackerList::send_event_itr(iterator itr, TrackerState::event_enum new_event) {
   if (itr == end())
     return;
 
-  send_state(*itr, new_event);
+  send_event(*itr, new_event);
 }
 
 }

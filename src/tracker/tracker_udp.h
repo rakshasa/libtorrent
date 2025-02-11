@@ -31,7 +31,7 @@ public:
 
   virtual bool        is_busy() const;
 
-  virtual void        send_state(int new_state);
+  virtual void        send_event(TrackerState::event_enum new_state);
 
   virtual void        close();
   virtual void        disown();
