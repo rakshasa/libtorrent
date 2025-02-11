@@ -5,10 +5,9 @@
 
 #include "globals.h"
 
-#include "delegator.h"
-
 #include "data/chunk_handle.h"
 #include "download/available_list.h"
+#include "download/delegator.h"
 #include "net/data_buffer.h"
 #include "torrent/download_info.h"
 #include "torrent/download/group_entry.h"
@@ -37,11 +36,9 @@ public:
 
   DownloadMain();
   ~DownloadMain();
-  DownloadMain(const DownloadMain&) = delete;
-  DownloadMain& operator=(const DownloadMain&) = delete;
 
   DownloadMain(const DownloadMain&) = delete;
-  void operator = (const DownloadMain&) = delete;
+  DownloadMain& operator=(const DownloadMain&) = delete;
 
   void                post_initialize();
 
