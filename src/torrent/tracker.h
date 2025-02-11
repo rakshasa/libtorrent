@@ -49,9 +49,7 @@ public:
   static constexpr int min_normal_interval     = 600;
   static constexpr int max_normal_interval     = 8 * 3600;
 
-  virtual ~Tracker() = default;
-  Tracker(const Tracker&) = delete;
-  Tracker& operator=(const Tracker&) = delete;
+  virtual ~Tracker() {}
 
   int                 flags() const { return m_flags; }
 
@@ -87,6 +85,8 @@ public:
 
 protected:
   Tracker(TrackerList* parent, const std::string& url, int flags = 0);
+  Tracker(const Tracker& t);
+  void operator = (const Tracker& t);
 
   // TODO: Rename to send_event.
   virtual void        send_state(int state) = 0;

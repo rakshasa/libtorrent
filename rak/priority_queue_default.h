@@ -14,15 +14,13 @@ class priority_item {
 public:
   typedef std::function<void (void)> slot_void;
 
-  priority_item() = default;
+  priority_item() {}
   ~priority_item() {
     assert(!is_queued() && "priority_item::~priority_item() called on a queued item.");
 
     m_time = timer();
     m_slot = slot_void();
   }
-  priority_item(const priority_item&) = delete;
-  priority_item& operator=(const priority_item&) = delete;
 
   bool                is_valid() const              { return (bool)m_slot; }
   bool                is_queued() const             { return m_time != timer(); }
@@ -36,6 +34,9 @@ public:
   bool                compare(const timer& t) const { return m_time > t; }
 
 private:
+  priority_item(const priority_item&);
+  void operator = (const priority_item&);
+
   timer               m_time;
   slot_void           m_slot;
 };

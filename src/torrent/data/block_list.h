@@ -29,9 +29,6 @@ public:
 
   BlockList(const Piece& piece, uint32_t blockLength);
   ~BlockList();
-  BlockList(const BlockList&) = delete;
-  BlockList& operator=(const BlockList&) = delete;
-
   bool                is_all_finished() const       { return m_finished == size(); }
 
   const Piece&        piece() const                 { return m_piece; }
@@ -63,6 +60,9 @@ public:
   void                do_all_failed();
 
 private:
+  BlockList(const BlockList&);
+  void operator = (const BlockList&);
+
   Piece               m_piece;
   priority_t          m_priority;
 

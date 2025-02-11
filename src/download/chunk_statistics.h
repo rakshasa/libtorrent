@@ -61,10 +61,8 @@ public:
 
   static const size_type max_accounted = 255;
 
-  ChunkStatistics() = default;
-  ~ChunkStatistics() = default;
-  ChunkStatistics(const ChunkStatistics&) = delete;
-  ChunkStatistics& operator=(const ChunkStatistics&) = delete;
+  ChunkStatistics() : m_complete(0), m_accounted(0) {}
+  ~ChunkStatistics() {}
 
   size_type           complete() const              { return m_complete; }
   //size_type           incomplete() const;
@@ -104,8 +102,12 @@ public:
 
 private:
   inline bool         should_add(PeerChunks* pc);
-  size_type           m_complete{};
-  size_type           m_accounted{};
+
+  ChunkStatistics(const ChunkStatistics&);
+  void operator = (const ChunkStatistics&);
+
+  size_type           m_complete;
+  size_type           m_accounted;
 };
 
 }

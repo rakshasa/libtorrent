@@ -69,8 +69,6 @@ public:
 
   BlockFailed() : m_current(invalid_index) {}
   ~BlockFailed();
-  BlockFailed(const BlockFailed&) = delete;
-  BlockFailed& operator=(const BlockFailed&) = delete;
 
   size_type           current() const                   { return m_current; }
   iterator            current_iterator()                { return begin() + m_current; }
@@ -84,6 +82,9 @@ public:
   reverse_iterator    reverse_max_element();
 
 private:
+  BlockFailed(const BlockFailed&);
+  void operator = (const BlockFailed&);
+
   static void         delete_entry(value_type e)                    { delete [] e.first; }
   static bool         compare_entries(value_type e1, value_type e2) { return e1.second < e2.second; }
 

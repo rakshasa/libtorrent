@@ -61,10 +61,8 @@ class LIBTORRENT_EXPORT Http {
   static const int flag_delete_self   = 0x1;
   static const int flag_delete_stream = 0x2;
 
-  Http() = default;
+  Http() : m_flags(0), m_stream(NULL), m_timeout(0) {}
   virtual ~Http();
-  Http(const Http&) = delete;
-  Http& operator=(const Http&) = delete;
 
   // Start must never throw on bad input. Calling start/stop on an
   // object in the wrong state should throw a torrent::internal_error.
@@ -100,15 +98,18 @@ protected:
   void               trigger_done();
   void               trigger_failed(const std::string& message);
 
-  int                m_flags{};
+  int                m_flags;
   std::string        m_url;
-  std::iostream*     m_stream{};
-  uint32_t           m_timeout{};
+  std::iostream*     m_stream;
+  uint32_t           m_timeout;
 
   signal_void        m_signal_done;
   signal_string      m_signal_failed;
 
 private:
+  Http(const Http&);
+  void               operator = (const Http&);
+
   static slot_http   m_factory;
 };
 

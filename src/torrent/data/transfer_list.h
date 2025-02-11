@@ -67,8 +67,6 @@ public:
 
   TransferList();
   ~TransferList();
-  TransferList(const TransferList&) = delete;
-  TransferList& operator=(const TransferList&) = delete;
 
   iterator            find(uint32_t index);
   const_iterator      find(uint32_t index) const;
@@ -101,6 +99,9 @@ public:
   slot_peer_info&     slot_corrupt()   { return m_slot_corrupt; }
 
 private:
+  TransferList(const TransferList&);
+  void operator = (const TransferList&);
+
   unsigned int        update_failed(BlockList* blockList, Chunk* chunk);
   void                mark_failed_peers(BlockList* blockList, Chunk* chunk);
 

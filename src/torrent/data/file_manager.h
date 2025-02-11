@@ -60,8 +60,6 @@ public:
 
   FileManager();
   ~FileManager();
-  FileManager(const FileManager&) = delete;
-  FileManager& operator=(const FileManager&) = delete;
 
   size_type           open_files() const              { return base_type::size(); }
 
@@ -79,6 +77,9 @@ public:
   uint64_t            files_failed_counter() const { return m_filesFailedCounter; }
 
 private:
+  FileManager(const FileManager&) LIBTORRENT_NO_EXPORT;
+  void operator = (const FileManager&) LIBTORRENT_NO_EXPORT;
+
   size_type           m_maxOpenFiles;
 
   uint64_t            m_filesOpenedCounter;

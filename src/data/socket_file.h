@@ -25,10 +25,8 @@ public:
   static const int flag_fallocate          = (1 << 0);
   static const int flag_fallocate_blocking = (1 << 1);
 
-  SocketFile() = default;
+  SocketFile() : m_fd(invalid_fd) {}
   SocketFile(fd_type fd) : m_fd(fd) {}
-  SocketFile(const SocketFile&) = delete;
-  SocketFile& operator=(const SocketFile&) = delete;
 
   bool                is_open() const                                   { return m_fd != invalid_fd; }
 
@@ -47,7 +45,11 @@ public:
 
 private:
   // Use custom flags if stuff like file locking etc is implemented.
-  fd_type             m_fd{invalid_fd};
+
+  SocketFile(const SocketFile&);
+  void operator = (const SocketFile&);
+
+  fd_type             m_fd;
 };
 
 }
