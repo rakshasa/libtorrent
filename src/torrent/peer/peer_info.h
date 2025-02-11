@@ -64,6 +64,8 @@ public:
 
   PeerInfo(const sockaddr* address);
   ~PeerInfo();
+  PeerInfo(const PeerInfo&) = delete;
+  PeerInfo& operator=(const PeerInfo&) = delete;
 
   bool                is_connected() const                  { return m_flags & flag_connected; }
   bool                is_incoming() const                   { return m_flags & flag_incoming; }
@@ -123,9 +125,6 @@ protected:
   void                set_connection(PeerConnectionBase* c) { m_connection = c; }
 
 private:
-  PeerInfo(const PeerInfo&);
-  void operator = (const PeerInfo&);
-
   // Replace id with a char buffer, or a cheap struct?
   int                 m_flags;
   HashString          m_id;

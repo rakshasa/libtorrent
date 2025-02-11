@@ -49,6 +49,8 @@ class SocketBase : public Event {
 public:
   SocketBase() { set_fd(SocketFd()); }
   virtual ~SocketBase();
+  SocketBase(const SocketBase&) = delete;
+  SocketBase& operator=(const SocketBase&) = delete;
 
   // Ugly hack... But the alternative is to include SocketFd as part
   // of the library API or make SocketFd::m_fd into an non-modifiable
@@ -64,10 +66,6 @@ public:
   void                receive_throttle_up_activate();
 
 protected:
-  // Disable copying
-  SocketBase(const SocketBase&);
-  void operator = (const SocketBase&);
-
   static const size_t null_buffer_size = 1 << 17;
 
   static char*        m_nullBuffer;
