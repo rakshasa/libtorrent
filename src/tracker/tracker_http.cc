@@ -2,6 +2,8 @@
 
 #define __STDC_FORMAT_MACROS
 
+#include "tracker/tracker_http.h"
+
 #include <iomanip>
 #include <sstream>
 #include <rak/string_manip.h>
@@ -18,10 +20,10 @@
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 
-#include "tracker_http.h"
-
 #include "globals.h"
 #include "manager.h"
+
+// TODO: Update this to use the new logging system, dump the full request url.
 
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
@@ -305,6 +307,9 @@ TrackerHttp::receive_failed(std::string msg) {
 
 void
 TrackerHttp::process_failure(const Object& object) {
+  if (object.has_key_string("tracker id"))
+    update_tracker_id(object.get_key_string("tracker id"));
+
   auto tracker_state = state();
 
   if (object.has_key_value("interval"))
@@ -312,9 +317,6 @@ TrackerHttp::process_failure(const Object& object) {
 
   if (object.has_key_value("min interval"))
     tracker_state.set_min_interval(object.get_key_value("min interval"));
-
-  if (object.has_key_string("tracker id"))
-    update_tracker_id(object.get_key_string("tracker id"));
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
@@ -330,6 +332,9 @@ TrackerHttp::process_failure(const Object& object) {
 
 void
 TrackerHttp::process_success(const Object& object) {
+  if (object.has_key_string("tracker id"))
+    update_tracker_id(object.get_key_string("tracker id"));
+
   auto tracker_state = state();
 
   if (object.has_key_value("interval"))
@@ -341,9 +346,6 @@ TrackerHttp::process_success(const Object& object) {
     tracker_state.set_min_interval(object.get_key_value("min interval"));
   else
     tracker_state.set_min_interval(default_min_interval);
-
-  if (object.has_key_string("tracker id"))
-    update_tracker_id(object.get_key_string("tracker id"));
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);

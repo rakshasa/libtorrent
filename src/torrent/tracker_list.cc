@@ -129,7 +129,7 @@ TrackerList::send_scrape(Tracker* tracker) {
   tracker->send_scrape();
   tracker->inc_request_counter();
 
-  LT_LOG_TRACKER(INFO, "sending 'scrape' (group:%u url:%s)",
+  LT_LOG_TRACKER(INFO, "sending scrape (group:%u url:%s)",
                  tracker->group(), tracker->url().c_str());
 }
 
@@ -322,7 +322,7 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
   if (itr == end() || tracker->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "failed to connect to tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
+  LT_LOG_TRACKER(INFO, "failed to send request to tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
 
   auto tracker_state = tracker->state();
 
@@ -359,7 +359,7 @@ TrackerList::receive_scrape_failed(Tracker* tracker, const std::string& msg) {
   if (itr == end() || tracker->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "failed to scrape tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
+  LT_LOG_TRACKER(INFO, "failed to send scrape to tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
 
   if (m_slot_scrape_failed)
     m_slot_scrape_failed(tracker, msg);

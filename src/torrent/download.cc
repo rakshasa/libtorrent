@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <cinttypes>
@@ -55,7 +19,6 @@
 #include "torrent/download_info.h"
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
-#include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 
@@ -149,12 +112,16 @@ Download::start(int flags) {
   file_list()->open(flags & ~FileList::open_no_create);
 
   if (m_ptr->connection_type() == CONNECTION_INITIAL_SEED) {
-    if (!m_ptr->main()->start_initial_seeding()) 
+    if (!m_ptr->main()->start_initial_seeding())
       set_connection_type(CONNECTION_SEED);
   }
 
   m_ptr->main()->start();
-  m_ptr->main()->tracker_controller()->enable((flags & start_skip_tracker) ? TrackerController::enable_dont_reset_stats : 0);
+
+  if ((flags & start_skip_tracker))
+    m_ptr->main()->tracker_controller().enable_dont_reset_stats();
+  else
+    m_ptr->main()->tracker_controller().enable();
 
   // Reset the uploaded/download baseline when we restart the download
   // so that broken trackers get the right uploaded ratio.
@@ -168,7 +135,7 @@ Download::start(int flags) {
   }
 
   if (!(flags & start_skip_tracker))
-    m_ptr->main()->tracker_controller()->send_start_event();
+    m_ptr->main()->tracker_controller().send_start_event();
 }
 
 void
@@ -181,9 +148,9 @@ Download::stop(int flags) {
   m_ptr->main()->stop();
 
   if (!(flags & stop_skip_tracker))
-    m_ptr->main()->tracker_controller()->send_stop_event();
+    m_ptr->main()->tracker_controller().send_stop_event();
 
-  m_ptr->main()->tracker_controller()->disable();
+  m_ptr->main()->tracker_controller().disable();
 }
 
 bool
@@ -203,7 +170,7 @@ Download::hash_check(bool tryQuick) {
 
   if (bitfield->empty()) {
     // The bitfield still hasn't been allocated, so no resume data was
-    // given. 
+    // given.
     bitfield->allocate();
     bitfield->unset_all();
 
@@ -262,14 +229,14 @@ Download::file_list() const {
   return m_ptr->main()->file_list();
 }
 
-TrackerController*
-Download::tracker_controller() const {
-  return m_ptr->main()->tracker_controller();
-}
-
 TrackerList*
 Download::tracker_list() const {
   return m_ptr->main()->tracker_list();
+}
+
+TrackerControllerWrapper
+Download::tracker_controller() {
+  return m_ptr->main()->tracker_controller();
 }
 
 PeerList*
@@ -300,7 +267,7 @@ Download::connection_list() const {
 uint64_t
 Download::bytes_done() const {
   uint64_t a = 0;
- 
+
   Delegator* d = m_ptr->main()->delegator();
 
   for (auto itr1 : *d->transfer_list())
@@ -311,7 +278,7 @@ Download::bytes_done() const {
   return a + m_ptr->main()->file_list()->completed_bytes();
 }
 
-uint32_t 
+uint32_t
 Download::chunks_hashed() const {
   return m_ptr->hash_checker()->position();
 }
@@ -346,7 +313,7 @@ Download::set_bitfield(bool allSet) {
     bitfield->set_all();
   else
     bitfield->unset_all();
-  
+
   m_ptr->data()->update_wanted_chunks();
   m_ptr->hash_checker()->hashing_ranges().clear();
 }
@@ -364,7 +331,7 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
   bitfield->allocate();
   std::memcpy(bitfield->begin(), first, bitfield->size_bytes());
   bitfield->update();
-  
+
   m_ptr->data()->update_wanted_chunks();
   m_ptr->hash_checker()->hashing_ranges().clear();
 }
@@ -380,13 +347,13 @@ Download::update_range(int flags, uint32_t first, uint32_t last) {
 
   if (flags & update_range_recheck)
     m_ptr->hash_checker()->hashing_ranges().insert(first, last);
-  
+
   if (flags & (update_range_clear | update_range_recheck)) {
     m_ptr->data()->mutable_completed_bitfield()->unset_range(first, last);
     m_ptr->data()->update_wanted_chunks();
   }
 }
- 
+
 void
 Download::sync_chunks() {
   m_ptr->main()->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force);
@@ -475,60 +442,60 @@ Download::set_download_throttle(Throttle* t) {
 
   m_ptr->main()->set_download_throttle(t->throttle_list());
 }
-  
+
 void
 Download::send_completed() {
-  m_ptr->main()->tracker_controller()->send_completed_event();
+  m_ptr->main()->tracker_controller().send_completed_event();
 }
 
 void
 Download::manual_request(bool force) {
-  m_ptr->main()->tracker_controller()->manual_request(force);
+  m_ptr->main()->tracker_controller().manual_request(force);
 }
 
 void
 Download::manual_cancel() {
-  m_ptr->main()->tracker_controller()->close();
+  m_ptr->main()->tracker_controller().close();
 }
 
 // DEPRECATE
 void
 Download::set_uploads_max(uint32_t v) {
-  if (v > (1 << 16)) 
-    throw input_error("Max uploads must be between 0 and 2^16."); 
-	 	 
-  // For the moment, treat 0 as unlimited. 
-  m_ptr->main()->up_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v); 
+  if (v > (1 << 16))
+    throw input_error("Max uploads must be between 0 and 2^16.");
+
+  // For the moment, treat 0 as unlimited.
+  m_ptr->main()->up_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v);
   m_ptr->main()->choke_group()->up_queue()->balance_entry(m_ptr->main()->up_group_entry());
 }
 
 void
 Download::set_uploads_min(uint32_t v) {
-  if (v > (1 << 16)) 
-    throw input_error("Min uploads must be between 0 and 2^16."); 
-	 	 
-  // For the moment, treat 0 as unlimited. 
-  m_ptr->main()->up_group_entry()->set_min_slots(v); 
+  if (v > (1 << 16))
+    throw input_error("Min uploads must be between 0 and 2^16.");
+
+  // For the moment, treat 0 as unlimited.
+  m_ptr->main()->up_group_entry()->set_min_slots(v);
   m_ptr->main()->choke_group()->up_queue()->balance_entry(m_ptr->main()->up_group_entry());
 }
 
 void
 Download::set_downloads_max(uint32_t v) {
-  if (v > (1 << 16)) 
-    throw input_error("Max downloads must be between 0 and 2^16."); 
-	 	 
-  // For the moment, treat 0 as unlimited. 
-  m_ptr->main()->down_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v); 
+  if (v > (1 << 16))
+    throw input_error("Max downloads must be between 0 and 2^16.");
+
+  // For the moment, treat 0 as unlimited.
+  m_ptr->main()->down_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v);
   m_ptr->main()->choke_group()->down_queue()->balance_entry(m_ptr->main()->down_group_entry());
 }
 
 void
 Download::set_downloads_min(uint32_t v) {
-  if (v > (1 << 16)) 
-    throw input_error("Min downloads must be between 0 and 2^16."); 
-	 	 
-  // For the moment, treat 0 as unlimited. 
-  m_ptr->main()->down_group_entry()->set_min_slots(v); 
+  if (v > (1 << 16))
+    throw input_error("Min downloads must be between 0 and 2^16.");
+
+  // For the moment, treat 0 as unlimited.
+  m_ptr->main()->down_group_entry()->set_min_slots(v);
   m_ptr->main()->choke_group()->down_queue()->balance_entry(m_ptr->main()->down_group_entry());
 }
 
@@ -572,7 +539,7 @@ void
 Download::set_upload_choke_heuristic(HeuristicType t) {
   if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
-  
+
   m_ptr->main()->choke_group()->up_queue()->set_heuristics((choke_queue::heuristics_enum)t);
 }
 
@@ -585,8 +552,8 @@ void
 Download::set_download_choke_heuristic(HeuristicType t) {
   if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
-  
-  m_ptr->main()->choke_group()->down_queue()->set_heuristics((choke_queue::heuristics_enum)t);
+
+   m_ptr->main()->choke_group()->down_queue()->set_heuristics((choke_queue::heuristics_enum)t);
 }
 
 void

@@ -14,6 +14,7 @@
 #include "torrent/download/group_entry.h"
 #include "torrent/data/file_list.h"
 #include "torrent/peer/peer_list.h"
+#include "torrent/tracker/tracker_wrappers.h"
 
 namespace torrent {
 
@@ -25,8 +26,6 @@ class choke_group;
 class ConnectionList;
 class DownloadWrapper;
 class HandshakeManager;
-class TrackerController;
-class TrackerList;
 class DownloadInfo;
 class ThrottleList;
 class InitialSeeding;
@@ -39,18 +38,23 @@ public:
   DownloadMain();
   ~DownloadMain();
 
+  DownloadMain(const DownloadMain&) = delete;
+  void operator = (const DownloadMain&) = delete;
+
+  void                post_initialize();
+
   void                open(int flags);
   void                close();
 
   void                start();
   void                stop();
 
-  class choke_group*       choke_group()                              { return m_choke_group; }
-  const class choke_group* c_choke_group() const                      { return m_choke_group; }
-  void                set_choke_group(class choke_group* grp)         { m_choke_group = grp; }
+  class choke_group*       choke_group()                           { return m_choke_group; }
+  const class choke_group* c_choke_group() const                   { return m_choke_group; }
+  void                     set_choke_group(class choke_group* grp) { m_choke_group = grp; }
 
-  TrackerController*  tracker_controller()                       { return m_tracker_controller; }
-  TrackerList*        tracker_list()                             { return m_tracker_list; }
+  TrackerControllerWrapper tracker_controller()                    { return m_tracker_controller; }
+  TrackerList*             tracker_list()                          { return m_tracker_list; }
 
   DownloadInfo*       info()                                     { return m_info; }
 
@@ -84,7 +88,7 @@ public:
 
   DataBuffer          get_ut_pex(bool initial)                   { return (initial ? m_ut_pex_initial : m_ut_pex_delta).clone(); }
 
-  bool                want_pex_msg()                             { return m_info->is_pex_active() && m_peerList.available_list()->want_more(); }; 
+  bool                want_pex_msg()                             { return m_info->is_pex_active() && m_peerList.available_list()->want_more(); };
 
   void                set_metadata_size(size_t s);
 
@@ -125,17 +129,13 @@ public:
   rak::priority_item& delay_disconnect_peers() { return m_delayDisconnectPeers; }
 
 private:
-  // Disable copy ctor and assignment.
-  DownloadMain(const DownloadMain&);
-  void operator = (const DownloadMain&);
-
   void                setup_start();
   void                setup_stop();
 
   DownloadInfo*       m_info;
 
-  TrackerController*  m_tracker_controller;
-  TrackerList*        m_tracker_list;
+  TrackerControllerWrapper m_tracker_controller;
+  TrackerList*             m_tracker_list;
 
   class choke_group*  m_choke_group;
 
