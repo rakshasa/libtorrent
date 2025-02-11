@@ -2,6 +2,7 @@
 #define LIBTORRENT_MANAGER_H
 
 #include <list>
+#include <memory>
 #include <string>
 #include <rak/priority_queue_default.h>
 
@@ -11,20 +12,19 @@
 
 namespace torrent {
 
-class Poll;
-
-class HashQueue;
-class HandshakeManager;
-class DownloadManager;
-class DownloadWrapper;
-class DownloadMain;
-class FileManager;
-class ResourceManager;
-class PeerInfo;
 class ChunkManager;
 class ConnectionManager;
-class Throttle;
 class DhtManager;
+class DownloadManager;
+class DownloadWrapper;
+class FileManager;
+class HashQueue;
+class HandshakeManager;
+class PeerInfo;
+class Poll;
+class ResourceManager;
+class TrackerManager;
+class Throttle;
 
 typedef std::list<std::string> EncodingList;
 
@@ -33,16 +33,17 @@ public:
   Manager();
   ~Manager();
 
-  DownloadManager*    download_manager()                        { return m_downloadManager; }
-  FileManager*        file_manager()                            { return m_fileManager; }
-  HandshakeManager*   handshake_manager()                       { return m_handshakeManager; }
-  HashQueue*          hash_queue()                              { return m_hashQueue; }
-  ResourceManager*    resource_manager()                        { return m_resourceManager; }
+  ChunkManager*       chunk_manager()                           { return m_chunk_manager.get(); }
+  ConnectionManager*  connection_manager()                      { return m_connection_manager.get(); }
+  DhtManager*         dht_manager()                             { return m_dht_manager.get(); }
+  DownloadManager*    download_manager()                        { return m_download_manager.get(); }
+  FileManager*        file_manager()                            { return m_file_manager.get(); }
+  HandshakeManager*   handshake_manager()                       { return m_handshake_manager.get(); }
+  ResourceManager*    resource_manager()                        { return m_resource_manager.get(); }
+  TrackerManager*     tracker_manager()                         { return m_tracker_manager.get(); }
 
-  ChunkManager*       chunk_manager()                           { return m_chunkManager; }
-  ClientList*         client_list()                             { return m_clientList; }
-  ConnectionManager*  connection_manager()                      { return m_connectionManager; }
-  DhtManager*         dht_manager()                             { return m_dhtManager; }
+  ClientList*         client_list()                             { return m_client_list.get(); }
+  HashQueue*          hash_queue()                              { return m_hash_queue.get(); }
 
   Poll*               poll()                                    { return m_main_thread_main.poll(); }
 
@@ -60,16 +61,17 @@ public:
   void                receive_tick();
 
 private:
-  DownloadManager*    m_downloadManager;
-  FileManager*        m_fileManager;
-  HandshakeManager*   m_handshakeManager;
-  HashQueue*          m_hashQueue;
-  ResourceManager*    m_resourceManager;
+  std::unique_ptr<ChunkManager>      m_chunk_manager;
+  std::unique_ptr<ConnectionManager> m_connection_manager;
+  std::unique_ptr<DhtManager>        m_dht_manager;
+  std::unique_ptr<DownloadManager>   m_download_manager;
+  std::unique_ptr<FileManager>       m_file_manager;
+  std::unique_ptr<HandshakeManager>  m_handshake_manager;
+  std::unique_ptr<ResourceManager>   m_resource_manager;
+  std::unique_ptr<TrackerManager>    m_tracker_manager;
 
-  ChunkManager*       m_chunkManager;
-  ClientList*         m_clientList;
-  ConnectionManager*  m_connectionManager;
-  DhtManager*         m_dhtManager;
+  std::unique_ptr<ClientList>        m_client_list;
+  std::unique_ptr<HashQueue>         m_hash_queue;
 
   thread_main         m_main_thread_main;
   thread_disk         m_main_thread_disk;

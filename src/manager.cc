@@ -21,6 +21,7 @@
 #include "torrent/download/resource_manager.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/throttle.h"
+#include "torrent/tracker/tracker_manager.h"
 
 #include "manager.h"
 
@@ -29,61 +30,50 @@ namespace torrent {
 Manager* manager = NULL;
 
 Manager::Manager() :
-  m_downloadManager(new DownloadManager),
-  m_fileManager(new FileManager),
-  m_handshakeManager(new HandshakeManager),
-  m_resourceManager(new ResourceManager),
+  m_chunk_manager(new ChunkManager),
+  m_connection_manager(new ConnectionManager),
+  m_dht_manager(new DhtManager),
+  m_download_manager(new DownloadManager),
+  m_file_manager(new FileManager),
+  m_handshake_manager(new HandshakeManager),
+  m_resource_manager(new ResourceManager),
+  m_tracker_manager(new TrackerManager),
 
-  m_chunkManager(new ChunkManager),
-  m_clientList(new ClientList),
-  m_connectionManager(new ConnectionManager),
-  m_dhtManager(new DhtManager),
+  m_client_list(new ClientList),
 
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle()),
 
   m_ticks(0) {
 
-  m_hashQueue = new HashQueue(&m_main_thread_disk);
-  m_hashQueue->slot_has_work() =
-    std::bind(&thread_base::send_event_signal,
-              &m_main_thread_main,
-              m_main_thread_main.signal_bitfield()->add_signal(std::bind(&HashQueue::work, m_hashQueue)),
-              std::placeholders::_1);
+  m_hash_queue = std::make_unique<HashQueue>(&m_main_thread_disk);
+
+  auto hash_work_signal = m_main_thread_main.signal_bitfield()->add_signal([hash_queue = m_hash_queue.get()]() {
+      return hash_queue->work();
+    });
+
+  m_hash_queue->slot_has_work() = [hash_work_signal, thread = &m_main_thread_main](bool is_done) {
+      thread->send_event_signal(hash_work_signal, is_done);
+    };
 
   m_taskTick.slot() = std::bind(&Manager::receive_tick, this);
 
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 
-  m_handshakeManager->slot_download_id() =
-    std::bind(&DownloadManager::find_main, m_downloadManager, std::placeholders::_1);
-  m_handshakeManager->slot_download_obfuscated() =
-    std::bind(&DownloadManager::find_main_obfuscated, m_downloadManager, std::placeholders::_1);
-  m_connectionManager->listen()->slot_accepted() =
-    std::bind(&HandshakeManager::add_incoming, m_handshakeManager, std::placeholders::_1, std::placeholders::_2);
+  m_handshake_manager->slot_download_id() = [this](auto hash) { return m_download_manager->find_main(hash); };
+  m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
+  m_connection_manager->listen()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
 
-  m_resourceManager->push_group("default");
-  m_resourceManager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
-  m_resourceManager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
+  m_resource_manager->push_group("default");
+  m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
+  m_resource_manager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 }
 
 Manager::~Manager() {
   priority_queue_erase(&taskScheduler, &m_taskTick);
 
-  m_handshakeManager->clear();
-  m_downloadManager->clear();
-
-  delete m_downloadManager;
-  delete m_fileManager;
-  delete m_handshakeManager;
-  delete m_hashQueue;
-
-  delete m_resourceManager;
-  delete m_dhtManager;
-  delete m_connectionManager;
-  delete m_chunkManager;
-
-  delete m_clientList;
+  m_handshake_manager->clear();
+  m_download_manager->clear();
 
   Throttle::destroy_throttle(m_uploadThrottle);
   Throttle::destroy_throttle(m_downloadThrottle);
@@ -94,20 +84,20 @@ Manager::~Manager() {
 void
 Manager::initialize_download(DownloadWrapper* d) {
   d->main()->slot_count_handshakes([this](DownloadMain* download) {
-    return m_handshakeManager->size_info(download);
+    return m_handshake_manager->size_info(download);
   });
   d->main()->slot_start_handshake([this](const rak::socket_address& sa, DownloadMain* download) {
-    return m_handshakeManager->add_outgoing(sa, download);
+    return m_handshake_manager->add_outgoing(sa, download);
   });
   d->main()->slot_stop_handshakes([this](DownloadMain* download) {
-    return m_handshakeManager->erase_download(download);
+    return m_handshake_manager->erase_download(download);
   });
 
   // TODO: The resource manager doesn't need to know about this
   // download until we start/stop the torrent.
-  m_downloadManager->insert(d);
-  m_resourceManager->insert(d->main(), 1);
-  m_chunkManager->insert(d->main()->chunk_list());
+  m_download_manager->insert(d);
+  m_resource_manager->insert(d->main(), 1);
+  m_chunk_manager->insert(d->main()->chunk_list());
 
   d->main()->chunk_list()->set_chunk_size(d->main()->file_list()->chunk_size());
 
@@ -120,10 +110,10 @@ Manager::cleanup_download(DownloadWrapper* d) {
   d->main()->stop();
   d->close();
 
-  m_resourceManager->erase(d->main());
-  m_chunkManager->erase(d->main()->chunk_list());
+  m_resource_manager->erase(d->main());
+  m_chunk_manager->erase(d->main()->chunk_list());
 
-  m_downloadManager->erase(d);
+  m_download_manager->erase(d);
 }
 
 void
@@ -133,17 +123,17 @@ Manager::receive_tick() {
   if (m_ticks % 2 == 0)
     instrumentation_tick();
 
-  m_resourceManager->receive_tick();
-  m_chunkManager->periodic_sync();
+  m_resource_manager->receive_tick();
+  m_chunk_manager->periodic_sync();
 
   // To ensure the downloads get equal chance over time at using
   // various limited resources, like sockets for handshakes, cycle the
   // group in reverse order.
-  if (!m_downloadManager->empty()) {
-    auto split = m_downloadManager->end() - m_ticks % m_downloadManager->size() - 1;
+  if (!m_download_manager->empty()) {
+    auto split = m_download_manager->end() - m_ticks % m_download_manager->size() - 1;
 
-    std::for_each(split, m_downloadManager->end(), [this](auto wrapper) { return wrapper->receive_tick(m_ticks); });
-    std::for_each(m_downloadManager->begin(), split, [this](auto wrapper) { return wrapper->receive_tick(m_ticks); });
+    std::for_each(split, m_download_manager->end(), [this](auto wrapper) { return wrapper->receive_tick(m_ticks); });
+    std::for_each(m_download_manager->begin(), split, [this](auto wrapper) { return wrapper->receive_tick(m_ticks); });
   }
 
   // If you change the interval, make sure the keepalives gets
