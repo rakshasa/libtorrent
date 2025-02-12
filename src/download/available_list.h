@@ -71,8 +71,6 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
-  AvailableList() : m_maxSize(1000) {}
-
   value_type          pop_random();
 
   // Fuzzy size limit.
@@ -94,7 +92,7 @@ public:
   AddressList*        buffer()                            { return &m_buffer; }
 
 private:
-  size_type           m_maxSize;
+  size_type           m_maxSize{1000};
 
   AddressList         m_buffer;
 };

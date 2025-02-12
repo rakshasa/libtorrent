@@ -42,9 +42,9 @@ Manager::Manager() :
   m_client_list(new ClientList),
 
   m_uploadThrottle(Throttle::create_throttle()),
-  m_downloadThrottle(Throttle::create_throttle()),
+  m_downloadThrottle(Throttle::create_throttle())
 
-  m_ticks(0) {
+  {
 
   m_hash_queue = std::make_unique<HashQueue>(&m_main_thread_disk);
 

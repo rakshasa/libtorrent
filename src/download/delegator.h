@@ -59,8 +59,6 @@ public:
 
   static const unsigned int block_size = 1 << 14;
 
-  Delegator() : m_aggressive(false) { }
-
   TransferList*       transfer_list()                     { return &m_transfers; }
   const TransferList* transfer_list() const               { return &m_transfers; }
 
@@ -79,7 +77,7 @@ private:
 
   TransferList       m_transfers;
 
-  bool               m_aggressive;
+  bool               m_aggressive{false};
 
   // Propably should add a m_slotChunkStart thing, which will take
   // care of enabling etc, and will be possible to listen to.
