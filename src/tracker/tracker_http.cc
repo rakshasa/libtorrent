@@ -79,7 +79,7 @@ TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
 }
 
 void
-TrackerHttp::send_state(int new_state) {
+TrackerHttp::send_event(TrackerState::event_enum new_state) {
   close_directly();
 
   if (m_parent == NULL)
@@ -124,7 +124,7 @@ TrackerHttp::send_state(int new_state) {
   if (info->is_compact())
     s << "&compact=1";
 
-  if (m_parent->numwant() >= 0 && new_state != DownloadInfo::STOPPED)
+  if (m_parent->numwant() >= 0 && new_state != TrackerState::EVENT_STOPPED)
     s << "&numwant=" << m_parent->numwant();
 
   if (manager->connection_manager()->listen_port())
@@ -139,13 +139,13 @@ TrackerHttp::send_state(int new_state) {
     << "&left=" << download_left;
 
   switch(new_state) {
-  case DownloadInfo::STARTED:
+  case TrackerState::EVENT_STARTED:
     s << "&event=started";
     break;
-  case DownloadInfo::STOPPED:
+  case TrackerState::EVENT_STOPPED:
     s << "&event=stopped";
     break;
-  case DownloadInfo::COMPLETED:
+  case TrackerState::EVENT_COMPLETED:
     s << "&event=completed";
     break;
   default:
@@ -173,7 +173,7 @@ TrackerHttp::send_scrape() {
   if (m_data != NULL)
     return;
 
-  set_latest_event(EVENT_SCRAPE);
+  set_latest_event(TrackerState::EVENT_SCRAPE);
 
   std::stringstream s;
   s.imbue(std::locale::classic());
@@ -222,7 +222,7 @@ TrackerHttp::disown() {
   m_data = NULL;
 }
 
-TrackerHttp::Type
+tracker_enum
 TrackerHttp::type() const {
   return TRACKER_HTTP;
 }
@@ -266,7 +266,7 @@ TrackerHttp::receive_done() {
     return receive_failed("Root not a bencoded map");
 
   if (b.has_key("failure reason")) {
-    if (state().latest_event() != EVENT_SCRAPE)
+    if (state().latest_event() != TrackerState::EVENT_SCRAPE)
       process_failure(b);
 
     return receive_failed("Failure reason \"" +
@@ -278,7 +278,7 @@ TrackerHttp::receive_done() {
 
   // If no failures, set intervals to defaults prior to processing
 
-  if (state().latest_event() == EVENT_SCRAPE)
+  if (state().latest_event() == TrackerState::EVENT_SCRAPE)
     process_scrape(b);
   else
     process_success(b);
@@ -299,7 +299,7 @@ TrackerHttp::receive_failed(std::string msg) {
 
   close_directly();
 
-  if (state().latest_event() == EVENT_SCRAPE)
+  if (state().latest_event() == TrackerState::EVENT_SCRAPE)
     m_parent->receive_scrape_failed(this, msg);
   else
     m_parent->receive_failed(this, msg);
@@ -340,12 +340,12 @@ TrackerHttp::process_success(const Object& object) {
   if (object.has_key_value("interval"))
     tracker_state.set_normal_interval(object.get_key_value("interval"));
   else
-    tracker_state.set_normal_interval(default_normal_interval);
+    tracker_state.set_normal_interval(TrackerState::default_normal_interval);
 
   if (object.has_key_value("min interval"))
     tracker_state.set_min_interval(object.get_key_value("min interval"));
   else
-    tracker_state.set_min_interval(default_min_interval);
+    tracker_state.set_min_interval(TrackerState::default_min_interval);
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);

@@ -15,12 +15,13 @@ class TrackerUdp;
 
 class TrackerState {
 public:
-  friend class Tracker;
-  friend class TrackerDht;
-  friend class TrackerHttp;
-  friend class TrackerList;
-  friend class ::TrackerTest;
-  friend class TrackerUdp;
+  enum event_enum {
+    EVENT_NONE,
+    EVENT_COMPLETED,
+    EVENT_STARTED,
+    EVENT_STOPPED,
+    EVENT_SCRAPE
+  };
 
   static constexpr int default_min_interval = 600;
   static constexpr int min_min_interval     = 300;
@@ -56,29 +57,35 @@ public:
   uint32_t            scrape_downloaded() const             { return m_scrape_downloaded; }
 
 protected:
+  friend class Tracker;
+  friend class TrackerDht;
+  friend class TrackerHttp;
+  friend class TrackerList;
+  friend class TrackerUdp;
+  friend class ::TrackerTest;
+
   void                set_normal_interval(int v);
   void                set_min_interval(int v);
 
-  uint32_t m_normal_interval{0};
-  uint32_t m_min_interval{0};
+  uint32_t            m_normal_interval{0};
+  uint32_t            m_min_interval{0};
 
-  // Use EVENT_NONE.
-  int      m_latest_event{0};
-  uint32_t m_latest_new_peers{0};
-  uint32_t m_latest_sum_peers{0};
+  event_enum          m_latest_event{EVENT_NONE};
+  uint32_t            m_latest_new_peers{0};
+  uint32_t            m_latest_sum_peers{0};
 
-  uint32_t m_success_time_last{0};
-  uint32_t m_success_counter{0};
+  uint32_t            m_success_time_last{0};
+  uint32_t            m_success_counter{0};
 
-  uint32_t m_failed_time_last{0};
-  uint32_t m_failed_counter{0};
+  uint32_t            m_failed_time_last{0};
+  uint32_t            m_failed_counter{0};
 
-  uint32_t m_scrape_time_last{0};
-  uint32_t m_scrape_counter{0};
+  uint32_t            m_scrape_time_last{0};
+  uint32_t            m_scrape_counter{0};
 
-  uint32_t m_scrape_complete{0};
-  uint32_t m_scrape_incomplete{0};
-  uint32_t m_scrape_downloaded{0};
+  uint32_t            m_scrape_complete{0};
+  uint32_t            m_scrape_incomplete{0};
+  uint32_t            m_scrape_downloaded{0};
 };
 
 inline void

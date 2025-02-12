@@ -50,7 +50,7 @@ TrackerUdp::is_busy() const {
 }
 
 void
-TrackerUdp::send_state(int new_state) {
+TrackerUdp::send_event(TrackerState::event_enum new_state) {
   close_directly();
 
   hostname_type hostname;
@@ -181,7 +181,7 @@ TrackerUdp::close_directly() {
   get_fd().clear();
 }
 
-TrackerUdp::Type
+tracker_enum
 TrackerUdp::type() const {
   return TRACKER_UDP;
 }
@@ -344,7 +344,7 @@ TrackerUdp::process_announce_output() {
   auto tracker_state = state();
 
   tracker_state.set_normal_interval(m_readBuffer->read_32());
-  tracker_state.set_min_interval(default_min_interval);
+  tracker_state.set_min_interval(TrackerState::default_min_interval);
 
   tracker_state.m_scrape_incomplete = m_readBuffer->read_32(); // leechers
   tracker_state.m_scrape_complete   = m_readBuffer->read_32(); // seeders

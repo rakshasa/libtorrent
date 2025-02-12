@@ -18,36 +18,12 @@ class LIBTORRENT_EXPORT Tracker {
 public:
   friend class TrackerList;
 
-  typedef enum {
-    TRACKER_NONE,
-    TRACKER_HTTP,
-    TRACKER_UDP,
-    TRACKER_DHT,
-  } Type;
-
-  enum tracker_event {
-    EVENT_NONE,
-    EVENT_COMPLETED,
-    EVENT_STARTED,
-    EVENT_STOPPED,
-    EVENT_SCRAPE
-  };
-
   static const int flag_enabled       = 0x1;
   static const int flag_extra_tracker = 0x2;
   static const int flag_can_scrape    = 0x4;
 
   static const int max_flag_size   = 0x10;
   static const int mask_base_flags = 0x10 - 1;
-
-  // TODO: Move to state.
-  static constexpr int default_min_interval = 600;
-  static constexpr int min_min_interval     = 300;
-  static constexpr int max_min_interval     = 4 * 3600;
-
-  static constexpr int default_normal_interval = 1800;
-  static constexpr int min_normal_interval     = 600;
-  static constexpr int max_normal_interval     = 8 * 3600;
 
   virtual ~Tracker() = default;
   Tracker(const Tracker&) = delete;
@@ -62,7 +38,7 @@ public:
   bool                can_scrape() const        { return (m_flags & flag_can_scrape); }
 
   virtual bool        is_busy() const = 0;
-  bool                is_busy_not_scrape() const { return state().latest_event() != EVENT_SCRAPE && is_busy(); }
+  bool                is_busy_not_scrape() const { return state().latest_event() != TrackerState::EVENT_SCRAPE && is_busy(); }
   virtual bool        is_usable() const          { return is_enabled(); }
 
   bool                can_request_state() const;
@@ -72,8 +48,8 @@ public:
 
   TrackerList*        parent()                              { return m_parent; }
 
-  uint32_t            group() const                         { return m_group; }
-  virtual Type        type() const = 0;
+  uint32_t             group() const                        { return m_group; }
+  virtual tracker_enum type() const = 0;
 
   const std::string&  url() const                           { return m_url; }
   void                set_url(const std::string& url)       { m_url = url; }
@@ -88,8 +64,7 @@ public:
 protected:
   Tracker(TrackerList* parent, const std::string& url, int flags = 0);
 
-  // TODO: Rename to send_event.
-  virtual void        send_state(int state) = 0;
+  virtual void        send_event(TrackerState::event_enum state) = 0;
   virtual void        send_scrape();
   virtual void        close() = 0;
   virtual void        disown() = 0;
@@ -103,7 +78,7 @@ protected:
   void                clear_intervals();
   void                clear_stats();
 
-  void                set_latest_event(int v);
+  void                set_latest_event(TrackerState::event_enum event);
   void                set_state(const TrackerState& state);
   void                update_tracker_id(const std::string& id);
 
@@ -128,7 +103,7 @@ private:
 
 inline bool
 Tracker::can_request_state() const {
-  return !(is_busy() && state().latest_event() != EVENT_SCRAPE) && is_usable();
+  return !(is_busy() && state().latest_event() != TrackerState::EVENT_SCRAPE) && is_usable();
 }
 
 inline std::string

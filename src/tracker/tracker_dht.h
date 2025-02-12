@@ -25,11 +25,11 @@ public:
   virtual bool        is_busy() const;
   virtual bool        is_usable() const;
 
-  virtual void        send_state(int new_state);
+  virtual void        send_event(TrackerState::event_enum new_state);
   virtual void        close();
   virtual void        disown();
 
-  virtual Type        type() const;
+  virtual tracker_enum type() const;
 
   virtual void        get_status(char* buffer, int length);
 

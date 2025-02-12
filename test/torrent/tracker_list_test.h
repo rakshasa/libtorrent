@@ -1,5 +1,6 @@
 #include <torrent/tracker.h>
 #include <torrent/tracker_list.h>
+#include <torrent/tracker/tracker_state.h>
 #include <rak/timer.h>
 #include <cppunit/extensions/HelperMacros.h>
 
@@ -64,7 +65,7 @@ public:
   virtual bool        is_busy() const { return m_busy; }
   bool                is_open() const { return m_open; }
 
-  virtual Type        type() const { return (Type)(TRACKER_DHT + 1); }
+  virtual torrent::tracker_enum type() const { return (torrent::tracker_enum)(torrent::TRACKER_DHT + 1); }
 
   int                 requesting_state() const { return m_requesting_state; }
 
@@ -85,7 +86,7 @@ public:
   void                set_new_normal_interval(uint32_t timeout);
   void                set_new_min_interval(uint32_t timeout);
 
-  virtual void        send_state(int state);
+  virtual void        send_event(torrent::TrackerState::event_enum new_state);
   virtual void        send_scrape();
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
   virtual void        disown()              { m_busy = false; m_open = false; m_requesting_state = -1; }

@@ -11,6 +11,9 @@ jobs:
     - name: Update Packages
       run: |
         sudo apt-get update
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y clang-tidy bear libcppunit-dev
     - uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha }}
@@ -27,9 +30,6 @@ jobs:
         autoheader
         automake --add-missing
         ./configure
-    - name: Install Dependencies
-      run: |
-        sudo apt-get install -y clang-tidy bear
     - name: Prepare compile_commands.json
       run: |
         bear -- make

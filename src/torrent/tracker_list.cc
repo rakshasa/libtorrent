@@ -96,18 +96,18 @@ TrackerList::clear_stats() {
 }
 
 void
-TrackerList::send_state(Tracker* tracker, int new_event) {
-  if (!tracker->is_usable() || new_event == Tracker::EVENT_SCRAPE)
+TrackerList::send_event(Tracker* tracker, TrackerState::event_enum new_event) {
+  if (!tracker->is_usable() || new_event == TrackerState::EVENT_SCRAPE)
     return;
 
   if (tracker->is_busy()) {
-    if (tracker->state().latest_event() != Tracker::EVENT_SCRAPE)
+    if (tracker->state().latest_event() != TrackerState::EVENT_SCRAPE)
       return;
 
     tracker->close();
   }
 
-  tracker->send_state(new_event);
+  tracker->send_event(new_event);
   tracker->inc_request_counter();
 
   LT_LOG_TRACKER(INFO, "sending '%s (group:%u url:%s)",

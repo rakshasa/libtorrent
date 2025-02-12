@@ -30,12 +30,12 @@ tracker_list_features_test::test_new_peers() {
   CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 0);
   CPPUNIT_ASSERT(tracker_0->state().latest_sum_peers() == 0);
 
-  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_0->trigger_success(10, 20));
   CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 10);
   CPPUNIT_ASSERT(tracker_0->state().latest_sum_peers() == 20);
 
-  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 10);
   CPPUNIT_ASSERT(tracker_0->state().latest_sum_peers() == 20);
@@ -60,20 +60,20 @@ tracker_list_features_test::test_has_active() {
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
-  tracker_list.send_state_idx(0, 1);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(tracker_list.has_active_not_scrape());
   tracker_0_0->trigger_success();
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
-  tracker_list.send_state_idx(2, 1); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_list.send_event_idx(2, torrent::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_1_0->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
   // Test multiple active trackers.
-  tracker_list.send_state_idx(0, 1); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
 
-  tracker_list.send_state_idx(1, 1);
+  tracker_list.send_event_idx(1, torrent::TrackerState::EVENT_NONE);
   tracker_0_0->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_0_1->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
@@ -155,23 +155,23 @@ tracker_list_features_test::test_count_active() {
 
   CPPUNIT_ASSERT(tracker_list.count_active() == 0);
 
-  tracker_list.send_state_idx(0, 1);
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_list.count_active() == 1);
 
-  tracker_list.send_state_idx(3, 1);
+  tracker_list.send_event_idx(3, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_list.count_active() == 2);
 
-  tracker_list.send_state_idx(1, 1);
-  tracker_list.send_state_idx(2, 1);
+  tracker_list.send_event_idx(1, torrent::TrackerState::EVENT_NONE);
+  tracker_list.send_event_idx(2, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_list.count_active() == 4);
 
   tracker_0_0->trigger_success();
   CPPUNIT_ASSERT(tracker_list.count_active() == 3);
-  
+
   tracker_0_1->trigger_success();
   tracker_2_0->trigger_success();
   CPPUNIT_ASSERT(tracker_list.count_active() == 1);
-  
+
   tracker_1_0->trigger_success();
   CPPUNIT_ASSERT(tracker_list.count_active() == 0);
 }
@@ -201,28 +201,28 @@ tracker_list_features_test::test_request_safeguard() {
   TRACKER_INSERT(0, tracker_foo);
 
   for (unsigned int i = 0; i < 9; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_1, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_1, torrent::TrackerState::EVENT_NONE), false));
     CPPUNIT_ASSERT(tracker_1->trigger_success());
     CPPUNIT_ASSERT(tracker_1->state().success_counter() == (i + 1));
   }
 
-  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_1, 1), true));
+  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_1, torrent::TrackerState::EVENT_NONE), true));
   CPPUNIT_ASSERT(tracker_1->trigger_success());
 
   torrent::cachedTime += rak::timer::from_seconds(1000);
 
   for (unsigned int i = 0; i < 9; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_foo, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_foo, torrent::TrackerState::EVENT_NONE), false));
     CPPUNIT_ASSERT(tracker_foo->trigger_success());
     CPPUNIT_ASSERT(tracker_foo->state().success_counter() == (i + 1));
     CPPUNIT_ASSERT(tracker_foo->is_usable());
   }
 
-  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_foo, 1), true));
+  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_foo, torrent::TrackerState::EVENT_NONE), true));
   CPPUNIT_ASSERT(tracker_foo->trigger_success());
 
   for (unsigned int i = 0; i < 40; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_2, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_2, torrent::TrackerState::EVENT_NONE), false));
     CPPUNIT_ASSERT(tracker_2->trigger_success());
     CPPUNIT_ASSERT(tracker_2->state().success_counter() == (i + 1));
 
@@ -230,7 +230,7 @@ tracker_list_features_test::test_request_safeguard() {
   }
 
   for (unsigned int i = 0; i < 17; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_3, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_3, torrent::TrackerState::EVENT_NONE), false));
     CPPUNIT_ASSERT(tracker_3->trigger_success());
     CPPUNIT_ASSERT(tracker_3->state().success_counter() == (i + 1));
 
@@ -238,6 +238,6 @@ tracker_list_features_test::test_request_safeguard() {
       torrent::cachedTime += rak::timer::from_seconds(1);
   }
 
-  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_3, 1), true));
+  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_3, torrent::TrackerState::EVENT_NONE), true));
   CPPUNIT_ASSERT(tracker_3->trigger_success());
 }

@@ -37,14 +37,14 @@ TrackerController::update_timeout(uint32_t seconds_to_next) {
   priority_queue_update(&taskScheduler, &m_private->task_timeout, next_timeout);
 }
 
-inline int
-TrackerController::current_send_state() const {
+inline TrackerState::event_enum
+TrackerController::current_send_event() const {
   switch ((m_flags & mask_send)) {
-  case flag_send_start:     return Tracker::EVENT_STARTED;
-  case flag_send_stop:      return Tracker::EVENT_STOPPED;
-  case flag_send_completed: return Tracker::EVENT_COMPLETED;
+  case flag_send_start:     return TrackerState::EVENT_STARTED;
+  case flag_send_stop:      return TrackerState::EVENT_STOPPED;
+  case flag_send_completed: return TrackerState::EVENT_COMPLETED;
   case flag_send_update:
-  default:                  return Tracker::EVENT_NONE;
+  default:                  return TrackerState::EVENT_NONE;
   }
 }
 
@@ -151,7 +151,7 @@ TrackerController::send_start_event() {
   LT_LOG_TRACKER_EVENTS("sending start event : requesting", 0);
 
   close();
-  m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STARTED);
+  m_tracker_list->send_event_itr(m_tracker_list->find_usable(m_tracker_list->begin()), TrackerState::EVENT_STARTED);
 
   if (m_tracker_list->count_usable() > 1) {
     m_flags |= flag_promiscuous_mode;
@@ -183,7 +183,7 @@ TrackerController::send_stop_event() {
     if (!tracker->is_in_use())
       continue;
 
-    m_tracker_list->send_state(tracker, Tracker::EVENT_STOPPED);
+    m_tracker_list->send_event(tracker, TrackerState::EVENT_STOPPED);
   }
 
   // Timer...
@@ -212,7 +212,7 @@ TrackerController::send_completed_event() {
     if (!tracker->is_in_use())
       continue;
 
-    m_tracker_list->send_state(tracker, Tracker::EVENT_COMPLETED);
+    m_tracker_list->send_event(tracker, TrackerState::EVENT_COMPLETED);
   }
 
   // Timer...
@@ -232,13 +232,13 @@ TrackerController::send_update_event() {
 
   LT_LOG_TRACKER_EVENTS("sending update event : requesting", 0);
 
-  m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_NONE);
+  m_tracker_list->send_event_itr(m_tracker_list->find_usable(m_tracker_list->begin()), TrackerState::EVENT_NONE);
 
   // if (m_tracker_list->has_active())
   //   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 }
 
-// Currently being used by send_state, fixme.
+// Currently being used by send_event, fixme.
 void
 TrackerController::close(int flags) {
   m_flags &= ~(flag_requesting | flag_promiscuous_mode);
@@ -260,7 +260,7 @@ TrackerController::enable(int enable_flags) {
   m_flags |= flag_active;
   m_flags &= ~flag_send_stop;
 
-  m_tracker_list->close_all_excluding((1 << Tracker::EVENT_COMPLETED));
+  m_tracker_list->close_all_excluding((1 << TrackerState::EVENT_COMPLETED));
 
   if (!(enable_flags & enable_dont_reset_stats))
     m_tracker_list->clear_stats();
@@ -280,7 +280,7 @@ TrackerController::disable() {
   // Disable other flags?...
   m_flags &= ~(flag_active | flag_requesting | flag_promiscuous_mode);
 
-  m_tracker_list->close_all_excluding((1 << Tracker::EVENT_STOPPED) | (1 << Tracker::EVENT_COMPLETED));
+  m_tracker_list->close_all_excluding((1 << TrackerState::EVENT_STOPPED) | (1 << TrackerState::EVENT_COMPLETED));
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
   LT_LOG_TRACKER_EVENTS("disabled : trackers:%u", m_tracker_list->size());
@@ -317,7 +317,7 @@ tracker_next_timeout(Tracker* tracker, int controller_flags) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
   auto tracker_state = tracker->state();
 
-  if ((tracker->is_busy() && tracker_state.latest_event() != Tracker::EVENT_SCRAPE) ||
+  if ((tracker->is_busy() && tracker_state.latest_event() != TrackerState::EVENT_SCRAPE) ||
       !tracker->is_usable())
     return ~uint32_t();
 
@@ -342,7 +342,7 @@ tracker_next_timeout_update(Tracker* tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
   auto tracker_state = tracker->state();
 
-  if ((tracker->is_busy() && tracker_state.latest_event() != Tracker::EVENT_SCRAPE) ||
+  if ((tracker->is_busy() && tracker_state.latest_event() != TrackerState::EVENT_SCRAPE) ||
       !tracker->is_usable())
     return ~uint32_t();
 
@@ -357,7 +357,7 @@ tracker_next_timeout_promiscuous(Tracker* tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
   auto tracker_state = tracker->state();
 
-  if ((tracker->is_busy() && tracker_state.latest_event() != Tracker::EVENT_SCRAPE) ||
+  if ((tracker->is_busy() && tracker_state.latest_event() != TrackerState::EVENT_SCRAPE) ||
       !tracker->is_usable())
     return ~uint32_t();
 
@@ -409,7 +409,7 @@ TrackerController::do_timeout() {
 
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
-  int send_state = current_send_state();
+  TrackerState::event_enum send_event = current_send_event();
 
   if ((m_flags & (flag_promiscuous_mode | flag_requesting))) {
     uint32_t next_timeout = ~uint32_t();
@@ -445,7 +445,7 @@ TrackerController::do_timeout() {
       }
 
       if (preferred != group_end)
-        m_tracker_list->send_state_itr(preferred, send_state);
+        m_tracker_list->send_event_itr(preferred, send_event);
 
       itr = group_end;
     }
@@ -466,7 +466,7 @@ TrackerController::do_timeout() {
     int32_t next_timeout = tracker_state.activity_time_next();
 
     if (next_timeout <= cachedTime.seconds())
-      m_tracker_list->send_state_itr(itr, send_state);
+      m_tracker_list->send_event_itr(itr, send_event);
     else
       update_timeout(next_timeout - cachedTime.seconds());
   }
