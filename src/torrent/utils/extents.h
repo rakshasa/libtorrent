@@ -64,7 +64,7 @@ void extents<Address, Value, Compare>::insert(key_type address_start, key_type a
     if(do_delete_due_to_overlap || do_delete_due_to_total_overlap) {
       range_map.erase (delete_key);
     }
-    else {
+    else if (iter != range_map.end()) {
       ignore_due_to_total_overlap = ignore_due_to_total_overlap || ( iter->first <= address_start && (iter->second).first >= address_end );
     }
   }
