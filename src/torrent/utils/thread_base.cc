@@ -92,7 +92,8 @@ thread_base::event_loop(thread_base* thread) {
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(thread->name());
 #elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
-  pthread_setname_np(thread->m_thread, thread->name());
+  // Cannot use thread->m_thread here as it may not be set before pthread_create returns.
+  pthread_setname_np(pthread_self(), thread->name());
 #endif
 
   lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
