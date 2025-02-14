@@ -3,11 +3,11 @@
 
 #include "net/address_list.h"
 #include "torrent/object.h"
-#include "torrent/tracker.h"
+#include "tracker/tracker_worker.h"
 
 namespace torrent {
 
-class TrackerDht : public Tracker {
+class TrackerDht : public TrackerWorker {
 public:
   TrackerDht(TrackerList* parent, const std::string& url, int flags);
   ~TrackerDht();

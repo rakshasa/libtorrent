@@ -5,24 +5,51 @@
 #include "torrent/exceptions.h"
 #include "torrent/tracker.h"
 #include "torrent/tracker_list.h"
+#include "tracker/tracker_worker.h"
 #include "globals.h"
 
 namespace torrent {
 
-Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
-  m_flags(flags),
+Tracker::Tracker(TrackerList* parent, std::shared_ptr<TrackerWorker>&& worker) :
   m_parent(parent),
-  m_url(url),
-  m_request_time_last(torrent::cachedTime.seconds())
-{
+  m_request_time_last(torrent::cachedTime.seconds()),
+  m_worker(std::move(worker)) {
+}
+
+bool
+Tracker::is_enabled() const         { return m_worker->is_enabled(); }
+
+bool
+Tracker::is_extra_tracker() const   { return m_worker->is_extra_tracker(); }
+
+bool
+Tracker::is_in_use() const          { return m_worker->is_in_use(); }
+
+bool
+Tracker::is_busy() const            { return m_worker->is_busy(); }
+
+bool
+Tracker::is_busy_not_scrape() const { return m_worker->is_busy_not_scrape(); }
+
+bool
+Tracker::is_usable() const {
+  return m_worker->is_usable();
+}
+
+bool
+Tracker::can_request_state() const {
+  return !(m_worker->is_busy() && state().latest_event() != TrackerState::EVENT_SCRAPE) && is_usable();
+}
+
+bool
+Tracker::can_scrape() const {
+  return m_worker->can_scrape();
 }
 
 void
 Tracker::enable() {
-  if (is_enabled())
+  if (!m_worker->enable())
     return;
-
-  m_flags |= flag_enabled;
 
   if (m_parent->slot_tracker_enabled())
     m_parent->slot_tracker_enabled()(this);
@@ -30,30 +57,22 @@ Tracker::enable() {
 
 void
 Tracker::disable() {
-  if (!is_enabled())
+  if (!m_worker->disable())
     return;
-
-  close();
-  m_flags &= ~flag_enabled;
 
   if (m_parent->slot_tracker_disabled())
     m_parent->slot_tracker_disabled()(this);
 }
 
-std::string
-Tracker::scrape_url_from(std::string url) {
-  size_t delim_slash = url.rfind('/');
-
-  if (delim_slash == std::string::npos || url.find("/announce", delim_slash) != delim_slash)
-    throw internal_error("Tried to make scrape url from invalid url.");
-
-  return url.replace(delim_slash, sizeof("/announce") - 1, "/scrape");
+const std::string&
+Tracker::url() const {
+  return m_worker->url();
 }
 
-void
-Tracker::send_scrape() {
-  throw internal_error("Tracker type does not support scrape.");
-}
+// void
+// Tracker::send_scrape() {
+//   throw internal_error("Tracker type does not support scrape.");
+// }
 
 void
 Tracker::inc_request_counter() {
@@ -63,44 +82,6 @@ Tracker::inc_request_counter() {
 
   if (m_request_counter >= 10)
     throw internal_error("Tracker request had more than 10 requests in 10 seconds.");
-}
-
-void
-Tracker::clear_intervals() {
-  std::lock_guard<std::mutex> lock(m_state_mutex);
-
-  m_state.m_normal_interval = 0;
-  m_state.m_min_interval = 0;
-}
-
-void
-Tracker::clear_stats() {
-  std::lock_guard<std::mutex> lock(m_state_mutex);
-
-  m_state.m_latest_new_peers = 0;
-  m_state.m_latest_sum_peers = 0;
-  m_state.m_success_counter = 0;
-  m_state.m_failed_counter = 0;
-  m_state.m_scrape_counter = 0;
-}
-
-void
-Tracker::set_latest_event(TrackerState::event_enum event) {
-  std::lock_guard<std::mutex> lock(m_state_mutex);
-  m_state.m_latest_event = event;
-}
-
-void
-Tracker::update_tracker_id(const std::string& id) {
-  if (id.empty())
-    return;
-
-  std::lock_guard<std::mutex> lock(m_state_mutex);
-
-  if (m_tracker_id == id)
-    return;
-
-  m_tracker_id = id;
 }
 
 }

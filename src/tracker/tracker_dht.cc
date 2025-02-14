@@ -23,7 +23,7 @@ const char* TrackerDht::states[] = { "Idle", "Searching", "Announcing" };
 bool TrackerDht::is_allowed() { return manager->dht_manager()->is_valid(); }
 
 TrackerDht::TrackerDht(TrackerList* parent, const std::string& url, int flags) :
-  Tracker(parent, url, flags),
+  TrackerWorker(parent, url, flags),
   m_dht_state(state_idle) {
 
   if (!manager->dht_manager()->is_valid())
@@ -105,8 +105,8 @@ TrackerDht::receive_success() {
     throw internal_error("TrackerDht::receive_success called while not busy.");
 
   m_dht_state = state_idle;
-  m_parent->receive_success(this, &m_peers);
-  m_peers.clear();
+
+  m_slot_success(std::move(m_peers));
 }
 
 void
@@ -115,7 +115,8 @@ TrackerDht::receive_failed(const char* msg) {
     throw internal_error("TrackerDht::receive_failed called while not busy.");
 
   m_dht_state = state_idle;
-  m_parent->receive_failed(this, msg);
+
+  m_slot_failure(msg);
   m_peers.clear();
 }
 

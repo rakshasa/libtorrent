@@ -21,16 +21,16 @@
 #include "tracker_udp.h"
 #include "manager.h"
 
-#define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
-  lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker_udp", "[%u] " log_fmt, group(), __VA_ARGS__);
+#define LT_LOG_TRACKER_REQUESTS(log_fmt, ...)                             \
+  lt_log_print_info(LOG_TRACKER_REQUESTS, m_parent->info(), "tracker_udp", log_fmt, __VA_ARGS__);
 
 #define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
-  lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "tracker_udp", "[%u] " log_fmt, group(), __VA_ARGS__);
+  lt_log_print_info_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, m_parent->info(), "tracker_udp", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
 TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
-  Tracker(parent, url, flags) {
+  TrackerWorker(parent, url, flags) {
 
   m_taskTimeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
 }
@@ -55,12 +55,12 @@ TrackerUdp::send_event(TrackerState::event_enum new_state) {
 
   hostname_type hostname;
 
-  if (!parse_udp_url(m_url, hostname, m_port))
+  if (!parse_udp_url(url(), hostname, m_port))
     return receive_failed("could not parse hostname or port");
 
   set_latest_event(new_state);
 
-  LT_LOG_TRACKER(DEBUG, "hostname lookup (address:%s)", hostname.data());
+  LT_LOG_TRACKER_REQUESTS("hostname lookup (address:%s)", hostname.data());
 
   m_send_state = new_state;
 
@@ -75,12 +75,12 @@ TrackerUdp::send_event(TrackerState::event_enum new_state) {
 }
 
 bool
-TrackerUdp::parse_udp_url([[maybe_unused]] const std::string& url, hostname_type& hostname, int& port) const {
-  if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
+TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const {
+  if (std::sscanf(url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
       port > 0 && port < (1 << 16))
     return true;
 
-  if (std::sscanf(m_url.c_str(), "udp://[%1023[^]]]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
+  if (std::sscanf(url.c_str(), "udp://[%1023[^]]]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
       port > 0 && port < (1 << 16))
     return true;
 
@@ -109,7 +109,7 @@ TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
   m_connectAddress = *rak::socket_address::cast_from(sa);
   m_connectAddress.set_port(m_port);
 
-  LT_LOG_TRACKER(DEBUG, "address found (address:%s)", m_connectAddress.address_str().c_str());
+  LT_LOG_TRACKER_REQUESTS("address found (address:%s)", m_connectAddress.address_str().c_str());
 
   if (!m_connectAddress.is_valid())
     return receive_failed("invalid tracker address");
@@ -142,8 +142,8 @@ TrackerUdp::close() {
   if (!get_fd().is_valid())
     return;
 
-  LT_LOG_TRACKER(DEBUG, "request cancelled (state:%s url:%s)",
-                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), m_url.c_str());
+  LT_LOG_TRACKER_REQUESTS("request cancelled (state:%s url:%s)",
+                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
 
   close_directly();
 }
@@ -153,8 +153,8 @@ TrackerUdp::disown() {
   if (!get_fd().is_valid())
     return;
 
-  LT_LOG_TRACKER(DEBUG, "request disowned (state:%s url:%s)",
-                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), m_url.c_str());
+  LT_LOG_TRACKER_REQUESTS("request disowned (state:%s url:%s)",
+                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
 
   close_directly();
 }
@@ -189,7 +189,7 @@ TrackerUdp::type() const {
 void
 TrackerUdp::receive_failed(const std::string& msg) {
   close_directly();
-  m_parent->receive_failed(this, msg);
+  m_slot_failure(msg);
 }
 
 void
@@ -361,7 +361,8 @@ TrackerUdp::process_announce_output() {
   // Some logic here to decided on whetever we're going to close the
   // connection or not?
   close_directly();
-  m_parent->receive_success(this, &l);
+
+  m_slot_success(std::move(l));
 
   return true;
 }

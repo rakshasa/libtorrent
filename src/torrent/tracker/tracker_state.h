@@ -57,11 +57,13 @@ public:
   uint32_t            scrape_downloaded() const             { return m_scrape_downloaded; }
 
 protected:
+  // TODO: Cull this list.
   friend class Tracker;
   friend class TrackerDht;
   friend class TrackerHttp;
   friend class TrackerList;
   friend class TrackerUdp;
+  friend class TrackerWorker;
   friend class ::TrackerTest;
 
   void                set_normal_interval(int v);

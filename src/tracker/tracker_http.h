@@ -4,25 +4,26 @@
 #include <iosfwd>
 
 #include "torrent/object.h"
-#include "torrent/tracker.h"
+#include "torrent/tracker/tracker_state.h"
+#include "tracker/tracker_worker.h"
 
 namespace torrent {
 
 class Http;
 
-class TrackerHttp : public Tracker {
+class TrackerHttp : public TrackerWorker {
 public:
   TrackerHttp(TrackerList* parent, const std::string& url, int flags);
   ~TrackerHttp();
 
-  virtual bool        is_busy() const;
+  bool                is_busy() const override;
 
-  virtual void        send_event(TrackerState::event_enum new_state);
-  virtual void        send_scrape();
-  virtual void        close();
-  virtual void        disown();
+  void                send_event(TrackerState::event_enum new_state) override;
+  void                send_scrape() override;
+  void                close() override;
+  void                disown() override;
 
-  virtual tracker_enum type() const;
+  tracker_enum        type() const override;
 
 private:
   void                close_directly();

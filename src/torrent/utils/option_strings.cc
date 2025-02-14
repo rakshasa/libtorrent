@@ -196,8 +196,9 @@ const char* option_list_log_group[] = {
   "storage",
   "system",
 
+  "tracker_dump",
   "tracker_events",
-  "tracker_request",
+  "tracker_requests",
 
   "ui_events",
 
