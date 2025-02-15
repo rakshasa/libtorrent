@@ -84,10 +84,11 @@ TrackerList::disown_all_including(int event_bitmap) {
 
 void
 TrackerList::clear() {
-  for (const auto& tracker : *this) {
+  auto list = std::move(*(base_type*)this);
+
+  for (const auto& tracker : list) {
     delete tracker;
   }
-  base_type::clear();
 }
 
 void
@@ -148,7 +149,7 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
 // TODO: Use proper flags for insert options.
 void
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
-  TrackerWorker* tracker;
+  TrackerWorker* worker;
 
   int flags = TrackerWorker::flag_enabled;
 
@@ -157,13 +158,13 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
-    tracker = new TrackerHttp(this, url, flags);
+    worker = new TrackerHttp(this, url, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    tracker = new TrackerUdp(this, url, flags);
+    worker = new TrackerUdp(this, url, flags);
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    tracker = new TrackerDht(this, url, flags);
+    worker = new TrackerDht(this, url, flags);
 
   } else {
     LT_LOG_TRACKER(WARN, "could find matching tracker protocol (url:%s)", url.c_str());
@@ -174,8 +175,31 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     return;
   }
 
+  auto tracker = new Tracker(this, std::shared_ptr<TrackerWorker>(worker));
+
+  // These slots are called from within the worker thread, so we need to
+  // use proper signal passing to the main thread.
+
+  worker->m_slot_success = [this, tracker](AddressList&& l) {
+    if (m_slot_success)
+      m_slot_success(tracker, &l);
+  };
+  worker->m_slot_failure = [this, tracker](const std::string& msg) {
+    if (m_slot_failed)
+      m_slot_failed(tracker, msg);
+  };
+  worker->m_slot_scrape_success = [this, tracker]() {
+    if (m_slot_scrape_success)
+      m_slot_scrape_success(tracker);
+  };
+  worker->m_slot_scrape_failure = [this, tracker](const std::string& msg) {
+    if (m_slot_scrape_failed)
+      m_slot_scrape_failed(tracker, msg);
+  };
+
   LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, url.c_str());
-  insert(group, new Tracker(this, std::shared_ptr<TrackerWorker>(tracker)));
+
+  insert(group, tracker);
 }
 
 TrackerList::iterator

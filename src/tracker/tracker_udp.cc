@@ -74,6 +74,11 @@ TrackerUdp::send_event(TrackerState::event_enum new_state) {
   m_slot_resolver = make_resolver_slot(hostname);
 }
 
+void
+TrackerUdp::send_scrape() {
+  throw internal_error("Tracker type UDP does not support scrape.");
+}
+
 bool
 TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const {
   if (std::sscanf(url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&

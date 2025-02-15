@@ -39,11 +39,8 @@ public:
   void                enable();
   void                disable();
 
-  // TrackerList*        parent()                              { return m_parent; }
-
-  uint32_t             group() const                        { return m_group; }
-  // virtual tracker_enum type() const = 0;
-
+  uint32_t            group() const { return m_group; }
+  tracker_enum        type() const;
   const std::string&  url() const;
 
   std::string         tracker_id() const;

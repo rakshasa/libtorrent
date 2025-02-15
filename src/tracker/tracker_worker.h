@@ -23,6 +23,7 @@ public:
   static const int mask_base_flags = 0x10 - 1;
 
   TrackerWorker(TrackerList* parent, const std::string& url, int flags = 0);
+  virtual ~TrackerWorker() = default;
 
   TrackerWorker() = delete;
   TrackerWorker(const TrackerWorker&) = delete;
@@ -51,7 +52,7 @@ public:
   bool                disable();
 
   virtual void        send_event(TrackerState::event_enum state) = 0;
-  virtual void        send_scrape();
+  virtual void        send_scrape() = 0;
   virtual void        close() = 0;
   virtual void        disown() = 0;
 

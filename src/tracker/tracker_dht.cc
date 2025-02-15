@@ -76,6 +76,11 @@ TrackerDht::send_event(TrackerState::event_enum new_state) {
 }
 
 void
+TrackerDht::send_scrape() {
+  throw internal_error("Tracker type DHT does not support scrape.");
+}
+
+void
 TrackerDht::close() {
   if (is_busy())
     manager->dht_manager()->router()->cancel_announce(m_parent->info(), this);

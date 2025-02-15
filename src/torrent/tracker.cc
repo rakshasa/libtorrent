@@ -64,15 +64,25 @@ Tracker::disable() {
     m_parent->slot_tracker_disabled()(this);
 }
 
+tracker_enum
+Tracker::type() const {
+  return m_worker->type();
+}
+
 const std::string&
 Tracker::url() const {
   return m_worker->url();
 }
 
-// void
-// Tracker::send_scrape() {
-//   throw internal_error("Tracker type does not support scrape.");
-// }
+std::string
+Tracker::tracker_id() const {
+  return m_worker->tracker_id();
+}
+
+TrackerState
+Tracker::state() const {
+  return m_worker->state();
+}
 
 void
 Tracker::inc_request_counter() {

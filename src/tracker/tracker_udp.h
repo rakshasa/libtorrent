@@ -33,6 +33,7 @@ public:
   bool                is_busy() const override;
 
   void                send_event(TrackerState::event_enum new_state) override;
+  void                send_scrape() override;
 
   void                close() override;
   void                disown() override;
