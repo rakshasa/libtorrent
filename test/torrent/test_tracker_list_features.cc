@@ -2,47 +2,46 @@
 
 #include <functional>
 
-#include "torrent/http.h"
-#include "net/address_list.h"
-
 #include "globals.h"
-#include "tracker_list_test.h"
-#include "tracker_list_features_test.h"
+#include "net/address_list.h"
+#include "test/torrent/test_tracker_list.h"
+#include "test/torrent/test_tracker_list_features.h"
+#include "torrent/http.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_features_test);
+CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerListFeatures);
 
 void
-tracker_list_features_test::setUp() {
+TestTrackerListFeatures::setUp() {
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
   torrent::cachedTime = rak::timer::current();
+
+  test_fixture::setUp();
 }
 
 void
-tracker_list_features_test::tearDown() {
-}
-
-void
-tracker_list_features_test::test_new_peers() {
+TestTrackerListFeatures::test_new_peers() {
   TRACKER_SETUP();
-  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(0, tracker_0_0);
 
-  CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 0);
-  CPPUNIT_ASSERT(tracker_0->state().latest_sum_peers() == 0);
+  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
 
-  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
-  CPPUNIT_ASSERT(tracker_0->trigger_success(10, 20));
-  CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 10);
-  CPPUNIT_ASSERT(tracker_0->state().latest_sum_peers() == 20);
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_new_peers() == 0);
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_sum_peers() == 0);
 
   tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
-  CPPUNIT_ASSERT(tracker_0->trigger_failure());
-  CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 10);
-  CPPUNIT_ASSERT(tracker_0->state().latest_sum_peers() == 20);
+  CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success(10, 20));
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_new_peers() == 10);
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_sum_peers() == 20);
+
+  tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_new_peers() == 10);
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_sum_peers() == 20);
 
   tracker_list.clear_stats();
-  CPPUNIT_ASSERT(tracker_0->state().latest_new_peers() == 0);
-  CPPUNIT_ASSERT(tracker_0->state().latest_sum_peers() == 0);
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_new_peers() == 0);
+  CPPUNIT_ASSERT(tracker_0_0->state().latest_sum_peers() == 0);
 }
 
 // test last_connect timer.
@@ -51,11 +50,15 @@ tracker_list_features_test::test_new_peers() {
 // test has_active, and then clean up TrackerManager.
 
 void
-tracker_list_features_test::test_has_active() {
+TestTrackerListFeatures::test_has_active() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
   TRACKER_INSERT(0, tracker_0_1);
   TRACKER_INSERT(1, tracker_1_0);
+
+  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
+  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
+  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
 
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
@@ -63,33 +66,38 @@ tracker_list_features_test::test_has_active() {
   tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(tracker_list.has_active_not_scrape());
-  tracker_0_0->trigger_success();
+  tracker_0_0_worker->trigger_success();
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
   tracker_list.send_event_idx(2, torrent::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
-  tracker_1_0->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
+  tracker_1_0_worker->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
   // Test multiple active trackers.
   tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
 
   tracker_list.send_event_idx(1, torrent::TrackerState::EVENT_NONE);
-  tracker_0_0->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
-  tracker_0_1->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
+  tracker_0_0_worker->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_0_1_worker->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
-  tracker_1_0->set_can_scrape();
+  tracker_1_0_worker->set_can_scrape();
   tracker_list.send_scrape(tracker_1_0);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 }
 
 void
-tracker_list_features_test::test_find_next_to_request() {
+TestTrackerListFeatures::test_find_next_to_request() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(0, tracker_2);
   TRACKER_INSERT(0, tracker_3);
+
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
+  auto tracker_1_worker = dynamic_cast<TrackerTest*>(tracker_1->m_worker.get());
+  auto tracker_2_worker = dynamic_cast<TrackerTest*>(tracker_2->m_worker.get());
+  auto tracker_3_worker = dynamic_cast<TrackerTest*>(tracker_3->m_worker.get());
 
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin() + 1) == tracker_list.begin() + 1);
@@ -99,59 +107,68 @@ tracker_list_features_test::test_find_next_to_request() {
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 
   tracker_0->enable();
-  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_0_worker->set_failed(1, torrent::cachedTime.seconds() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 
-  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 0);
-  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_1_worker->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_2_worker->set_failed(1, torrent::cachedTime.seconds() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 3);
 
-  tracker_3->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_3_worker->set_failed(1, torrent::cachedTime.seconds() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
 
-  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 3);
-  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 2);
-  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 4);
-  tracker_3->set_failed(1, torrent::cachedTime.seconds() - 2);
+  tracker_0_worker->set_failed(1, torrent::cachedTime.seconds() - 3);
+  tracker_1_worker->set_failed(1, torrent::cachedTime.seconds() - 2);
+  tracker_2_worker->set_failed(1, torrent::cachedTime.seconds() - 4);
+  tracker_3_worker->set_failed(1, torrent::cachedTime.seconds() - 2);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 2);
 
-  tracker_1->set_failed(0, torrent::cachedTime.seconds() - 1);
-  tracker_1->set_success(1, torrent::cachedTime.seconds() - 1);
+  tracker_1_worker->set_failed(0, torrent::cachedTime.seconds() - 1);
+  tracker_1_worker->set_success(1, torrent::cachedTime.seconds() - 1);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
-  tracker_1->set_success(1, torrent::cachedTime.seconds() - (tracker_1->state().normal_interval() - 1));
+  tracker_1_worker->set_success(1, torrent::cachedTime.seconds() - (tracker_1->state().normal_interval() - 1));
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 }
 
 void
-tracker_list_features_test::test_find_next_to_request_groups() {
+TestTrackerListFeatures::test_find_next_to_request_groups() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(1, tracker_2);
   TRACKER_INSERT(1, tracker_3);
 
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
+  auto tracker_1_worker = dynamic_cast<TrackerTest*>(tracker_1->m_worker.get());
+  auto tracker_2_worker = dynamic_cast<TrackerTest*>(tracker_2->m_worker.get());
+
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
 
-  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_0_worker->set_failed(1, torrent::cachedTime.seconds() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 
-  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_1_worker->set_failed(1, torrent::cachedTime.seconds() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 2);
 
-  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_2_worker->set_failed(1, torrent::cachedTime.seconds() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 3);
 
-  tracker_1->set_failed(0, torrent::cachedTime.seconds() - 0);
+  tracker_1_worker->set_failed(0, torrent::cachedTime.seconds() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 }
 
 void
-tracker_list_features_test::test_count_active() {
+TestTrackerListFeatures::test_count_active() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
   TRACKER_INSERT(0, tracker_0_1);
   TRACKER_INSERT(1, tracker_1_0);
   TRACKER_INSERT(2, tracker_2_0);
+
+  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
+  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
+  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
+  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
 
   CPPUNIT_ASSERT(tracker_list.count_active() == 0);
 
@@ -165,14 +182,14 @@ tracker_list_features_test::test_count_active() {
   tracker_list.send_event_idx(2, torrent::TrackerState::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_list.count_active() == 4);
 
-  tracker_0_0->trigger_success();
+  tracker_0_0_worker->trigger_success();
   CPPUNIT_ASSERT(tracker_list.count_active() == 3);
 
-  tracker_0_1->trigger_success();
-  tracker_2_0->trigger_success();
+  tracker_0_1_worker->trigger_success();
+  tracker_2_0_worker->trigger_success();
   CPPUNIT_ASSERT(tracker_list.count_active() == 1);
 
-  tracker_1_0->trigger_success();
+  tracker_1_0_worker->trigger_success();
   CPPUNIT_ASSERT(tracker_list.count_active() == 0);
 }
 
@@ -193,37 +210,42 @@ verify_did_internal_error(std::function<void ()> func, bool should_throw) {
 }
 
 void
-tracker_list_features_test::test_request_safeguard() {
+TestTrackerListFeatures::test_request_safeguard() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(0, tracker_2);
   TRACKER_INSERT(0, tracker_3);
   TRACKER_INSERT(0, tracker_foo);
 
+  auto tracker_1_worker = dynamic_cast<TrackerTest*>(tracker_1->m_worker.get());
+  auto tracker_2_worker = dynamic_cast<TrackerTest*>(tracker_2->m_worker.get());
+  auto tracker_3_worker = dynamic_cast<TrackerTest*>(tracker_3->m_worker.get());
+  auto tracker_foo_worker = dynamic_cast<TrackerTest*>(tracker_foo->m_worker.get());
+
   for (unsigned int i = 0; i < 9; i++) {
     CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_1, torrent::TrackerState::EVENT_NONE), false));
-    CPPUNIT_ASSERT(tracker_1->trigger_success());
+    CPPUNIT_ASSERT(tracker_1_worker->trigger_success());
     CPPUNIT_ASSERT(tracker_1->state().success_counter() == (i + 1));
   }
 
   CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_1, torrent::TrackerState::EVENT_NONE), true));
-  CPPUNIT_ASSERT(tracker_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_1_worker->trigger_success());
 
   torrent::cachedTime += rak::timer::from_seconds(1000);
 
   for (unsigned int i = 0; i < 9; i++) {
     CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_foo, torrent::TrackerState::EVENT_NONE), false));
-    CPPUNIT_ASSERT(tracker_foo->trigger_success());
+    CPPUNIT_ASSERT(tracker_foo_worker->trigger_success());
     CPPUNIT_ASSERT(tracker_foo->state().success_counter() == (i + 1));
     CPPUNIT_ASSERT(tracker_foo->is_usable());
   }
 
   CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_foo, torrent::TrackerState::EVENT_NONE), true));
-  CPPUNIT_ASSERT(tracker_foo->trigger_success());
+  CPPUNIT_ASSERT(tracker_foo_worker->trigger_success());
 
   for (unsigned int i = 0; i < 40; i++) {
     CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_2, torrent::TrackerState::EVENT_NONE), false));
-    CPPUNIT_ASSERT(tracker_2->trigger_success());
+    CPPUNIT_ASSERT(tracker_2_worker->trigger_success());
     CPPUNIT_ASSERT(tracker_2->state().success_counter() == (i + 1));
 
     torrent::cachedTime += rak::timer::from_seconds(1);
@@ -231,7 +253,7 @@ tracker_list_features_test::test_request_safeguard() {
 
   for (unsigned int i = 0; i < 17; i++) {
     CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_3, torrent::TrackerState::EVENT_NONE), false));
-    CPPUNIT_ASSERT(tracker_3->trigger_success());
+    CPPUNIT_ASSERT(tracker_3_worker->trigger_success());
     CPPUNIT_ASSERT(tracker_3->state().success_counter() == (i + 1));
 
     if (i % 2)
@@ -239,5 +261,5 @@ tracker_list_features_test::test_request_safeguard() {
   }
 
   CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_3, torrent::TrackerState::EVENT_NONE), true));
-  CPPUNIT_ASSERT(tracker_3->trigger_success());
+  CPPUNIT_ASSERT(tracker_3_worker->trigger_success());
 }

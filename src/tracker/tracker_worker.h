@@ -10,6 +10,9 @@
 #include "torrent/object.h"
 #include "torrent/tracker.h"
 
+class TestTrackerController;
+class TestTrackerControllerRequesting;
+
 namespace torrent {
 
 class TrackerList;
@@ -59,10 +62,14 @@ public:
 
 protected:
   friend class TrackerList;
+  friend class ::TestTrackerController;
+  friend class ::TestTrackerControllerRequesting;
 
   // TODO: Make thread safe:
   void                set_latest_event(TrackerState::event_enum event);
+  void                set_min_interval(uint32_t v);
   void                set_state(const TrackerState& state);
+
   void                update_tracker_id(const std::string& id);
 
   // Only the tracker thread should call these.
@@ -101,6 +108,12 @@ inline TrackerState
 TrackerWorker::state() const {
   std::lock_guard<std::mutex> lock(m_state_mutex);
   return m_state;
+}
+
+inline void
+TrackerWorker::set_min_interval(uint32_t v) {
+  std::lock_guard<std::mutex> lock(m_state_mutex);
+  m_state.set_min_interval(v);
 }
 
 // TODO: Use lambda function to update within the lock.

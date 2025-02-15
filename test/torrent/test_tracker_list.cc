@@ -1,12 +1,13 @@
 #include "config.h"
 
-#include "net/address_list.h"
-#include "test/torrent/tracker_list_test.h"
-#include "torrent/http.h"
+#include "test/torrent/test_tracker_list.h"
 
 #include "globals.h"
+#include "net/address_list.h"
+#include "torrent/http.h"
+#include "torrent/utils/uri_parser.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
+CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerList);
 
 uint32_t return_new_peers = 0xdeadbeef;
 
@@ -109,7 +110,7 @@ bool
 TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers) {
   CPPUNIT_ASSERT(is_busy() && is_open());
 
-  if (parent() == NULL)
+  if (m_parent == NULL)
     return false;
 
   m_busy = false;
@@ -117,14 +118,14 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, u
   return_new_peers = new_peers;
 
   if (state().latest_event() == torrent::TrackerState::EVENT_SCRAPE) {
-    parent()->receive_scrape_success(this);
+    m_slot_scrape_success();
   } else {
     auto tracker_state = state();
     tracker_state.set_normal_interval(torrent::TrackerState::default_normal_interval);
     tracker_state.set_min_interval(torrent::TrackerState::default_min_interval);
     set_state(tracker_state);
 
-    parent()->receive_success(this, address_list);
+    m_slot_success(std::move(*address_list));
   }
 
   m_requesting_state = -1;
@@ -135,7 +136,7 @@ bool
 TrackerTest::trigger_failure() {
   CPPUNIT_ASSERT(is_busy() && is_open());
 
-  if (parent() == NULL)
+  if (m_parent == NULL)
     return false;
 
   m_busy = false;
@@ -143,14 +144,14 @@ TrackerTest::trigger_failure() {
   return_new_peers = 0;
 
   if (state().latest_event() == torrent::TrackerState::EVENT_SCRAPE) {
-    parent()->receive_scrape_failed(this, "failed");
+    m_slot_scrape_failure("failed");
   } else {
     auto tracker_state = state();
     tracker_state.set_normal_interval(0);
     tracker_state.set_min_interval(0);
     set_state(tracker_state);
 
-    parent()->receive_failed(this, "failed");
+    m_slot_failure("failed");
   }
 
   m_requesting_state = -1;
@@ -159,7 +160,7 @@ TrackerTest::trigger_failure() {
 
 bool
 TrackerTest::trigger_scrape() {
-  if (parent() == NULL || !is_busy() || !is_open())
+  if (m_parent == NULL || !is_busy() || !is_open())
     return false;
 
   if (state().latest_event() != torrent::TrackerState::EVENT_SCRAPE)
@@ -168,20 +169,25 @@ TrackerTest::trigger_scrape() {
   return trigger_success();
 }
 
+torrent::Tracker*
+TestTrackerList::new_tracker(torrent::TrackerList* parent, const std::string& url, int flags) {
+  return new torrent::Tracker(parent, std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(parent, url, flags)));
+}
+
 void
-tracker_list_test::test_basic() {
+TestTrackerList::test_basic() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
   CPPUNIT_ASSERT(tracker_0 == tracker_list[0]);
 
-  CPPUNIT_ASSERT(tracker_list[0]->parent() == &tracker_list);
+  CPPUNIT_ASSERT(tracker_list[0]->m_parent == &tracker_list);
   CPPUNIT_ASSERT(std::distance(tracker_list.begin_group(0), tracker_list.end_group(0)) == 1);
   CPPUNIT_ASSERT(tracker_list.find_usable(tracker_list.begin()) != tracker_list.end());
 }
 
 void
-tracker_list_test::test_enable() {
+TestTrackerList::test_enable() {
   TRACKER_SETUP();
   int enabled_counter = 0;
   int disabled_counter = 0;
@@ -208,7 +214,7 @@ tracker_list_test::test_enable() {
 }
 
 void
-tracker_list_test::test_close() {
+TestTrackerList::test_close() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
@@ -255,28 +261,28 @@ tracker_list_test::test_close() {
 // Test clear.
 
 void
-tracker_list_test::test_tracker_flags() {
+TestTrackerList::test_tracker_flags() {
   TRACKER_SETUP();
-  tracker_list.insert(0, new TrackerTest(&tracker_list, ""));
-  tracker_list.insert(0, new TrackerTest(&tracker_list, "", 0));
-  tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_enabled));
-  tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_extra_tracker));
-  tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker));
+  tracker_list.insert(0, new_tracker(&tracker_list, ""));
+  tracker_list.insert(0, new_tracker(&tracker_list, "", 0));
+  tracker_list.insert(0, new_tracker(&tracker_list, "", torrent::TrackerWorker::flag_enabled));
+  tracker_list.insert(0, new_tracker(&tracker_list, "", torrent::TrackerWorker::flag_extra_tracker));
+  tracker_list.insert(0, new_tracker(&tracker_list, "", torrent::TrackerWorker::flag_enabled | torrent::TrackerWorker::flag_extra_tracker));
 
-  CPPUNIT_ASSERT((tracker_list[0]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_enabled);
-  CPPUNIT_ASSERT((tracker_list[1]->flags() & torrent::Tracker::mask_base_flags) == 0);
-  CPPUNIT_ASSERT((tracker_list[2]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_enabled);
-  CPPUNIT_ASSERT((tracker_list[3]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_extra_tracker);
-  CPPUNIT_ASSERT((tracker_list[4]->flags() & torrent::Tracker::mask_base_flags) == (torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker));
+  CPPUNIT_ASSERT((tracker_list[0]->get()->flags() & torrent::TrackerWorker::mask_base_flags) == torrent::TrackerWorker::flag_enabled);
+  CPPUNIT_ASSERT((tracker_list[1]->get()->flags() & torrent::TrackerWorker::mask_base_flags) == 0);
+  CPPUNIT_ASSERT((tracker_list[2]->get()->flags() & torrent::TrackerWorker::mask_base_flags) == torrent::TrackerWorker::flag_enabled);
+  CPPUNIT_ASSERT((tracker_list[3]->get()->flags() & torrent::TrackerWorker::mask_base_flags) == torrent::TrackerWorker::flag_extra_tracker);
+  CPPUNIT_ASSERT((tracker_list[4]->get()->flags() & torrent::TrackerWorker::mask_base_flags) == (torrent::TrackerWorker::flag_enabled | torrent::TrackerWorker::flag_extra_tracker));
 }
 
 void
-tracker_list_test::test_find_url() {
+TestTrackerList::test_find_url() {
   TRACKER_SETUP();
 
-  tracker_list.insert(0, new TrackerTest(&tracker_list, "http://1"));
-  tracker_list.insert(0, new TrackerTest(&tracker_list, "http://2"));
-  tracker_list.insert(1, new TrackerTest(&tracker_list, "http://3"));
+  tracker_list.insert(0, new_tracker(&tracker_list, "http://1"));
+  tracker_list.insert(0, new_tracker(&tracker_list, "http://2"));
+  tracker_list.insert(1, new_tracker(&tracker_list, "http://3"));
 
   CPPUNIT_ASSERT(tracker_list.find_url("http://") == tracker_list.end());
 
@@ -291,65 +297,67 @@ tracker_list_test::test_find_url() {
 }
 
 void
-tracker_list_test::test_can_scrape() {
+TestTrackerList::test_can_scrape() {
   TRACKER_SETUP();
   torrent::Http::slot_factory() = std::bind(&http_factory);
 
   tracker_list.insert_url(0, "http://example.com/announce");
-  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
-  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+  CPPUNIT_ASSERT((tracker_list.back()->get()->flags() & torrent::TrackerWorker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::utils::uri_generate_scrape_url(tracker_list.back()->url()) ==
                  "http://example.com/scrape");
 
   tracker_list.insert_url(0, "http://example.com/x/announce");
-  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
-  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+  CPPUNIT_ASSERT((tracker_list.back()->get()->flags() & torrent::TrackerWorker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::utils::uri_generate_scrape_url(tracker_list.back()->url()) ==
                  "http://example.com/x/scrape");
 
   tracker_list.insert_url(0, "http://example.com/announce.php");
-  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
-  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+  CPPUNIT_ASSERT((tracker_list.back()->get()->flags() & torrent::TrackerWorker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::utils::uri_generate_scrape_url(tracker_list.back()->url()) ==
                  "http://example.com/scrape.php");
 
   tracker_list.insert_url(0, "http://example.com/a");
-  CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+  CPPUNIT_ASSERT(!(tracker_list.back()->get()->flags() & torrent::TrackerWorker::flag_can_scrape));
 
   tracker_list.insert_url(0, "http://example.com/announce?x2%0644");
-  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
-  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+  CPPUNIT_ASSERT((tracker_list.back()->get()->flags() & torrent::TrackerWorker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::utils::uri_generate_scrape_url(tracker_list.back()->url()) ==
                  "http://example.com/scrape?x2%0644");
 
   tracker_list.insert_url(0, "http://example.com/announce?x=2/4");
-  CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+  CPPUNIT_ASSERT(!(tracker_list.back()->get()->flags() & torrent::TrackerWorker::flag_can_scrape));
 
   tracker_list.insert_url(0, "http://example.com/x%064announce");
-  CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+  CPPUNIT_ASSERT(!(tracker_list.back()->get()->flags() & torrent::TrackerWorker::flag_can_scrape));
 }
 
 void
-tracker_list_test::test_single_success() {
+TestTrackerList::test_single_success() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
+
   CPPUNIT_ASSERT(!tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_busy_not_scrape());
-  CPPUNIT_ASSERT(!tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
+  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->requesting_state() == -1);
   CPPUNIT_ASSERT(tracker_0->state().latest_event() == torrent::TrackerState::EVENT_NONE);
 
   tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_STARTED);
 
   CPPUNIT_ASSERT(tracker_0->is_busy());
   CPPUNIT_ASSERT(tracker_0->is_busy_not_scrape());
-  CPPUNIT_ASSERT(tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == torrent::TrackerState::EVENT_STARTED);
+  CPPUNIT_ASSERT(tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->requesting_state() == torrent::TrackerState::EVENT_STARTED);
   CPPUNIT_ASSERT(tracker_0->state().latest_event() == torrent::TrackerState::EVENT_STARTED);
 
-  CPPUNIT_ASSERT(tracker_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_busy_not_scrape());
-  CPPUNIT_ASSERT(!tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
+  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->requesting_state() == -1);
   CPPUNIT_ASSERT(tracker_0->state().latest_event() == torrent::TrackerState::EVENT_STARTED);
 
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
@@ -358,23 +366,25 @@ tracker_list_test::test_single_success() {
 }
 
 void
-tracker_list_test::test_single_failure() {
+TestTrackerList::test_single_failure() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
+
   tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
-  CPPUNIT_ASSERT(tracker_0->trigger_failure());
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_failure());
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
-  CPPUNIT_ASSERT(!tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
+  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->requesting_state() == -1);
 
   CPPUNIT_ASSERT(success_counter == 0 && failure_counter == 1);
   CPPUNIT_ASSERT(tracker_0->state().success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->state().failed_counter() == 1);
 
   tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
-  CPPUNIT_ASSERT(tracker_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
 
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 1);
   CPPUNIT_ASSERT(tracker_0->state().success_counter() == 1);
@@ -382,36 +392,42 @@ tracker_list_test::test_single_failure() {
 }
 
 void
-tracker_list_test::test_single_closing() {
+TestTrackerList::test_single_closing() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
-  CPPUNIT_ASSERT(!tracker_0->is_open());
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
 
-  tracker_0->set_close_on_done(false);
+  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
+
+  tracker_0_worker->set_close_on_done(false);
   tracker_list.send_event_idx(0, torrent::TrackerState::EVENT_NONE);
 
-  CPPUNIT_ASSERT(tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
-  CPPUNIT_ASSERT(tracker_0->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->is_open());
 
   tracker_list.close_all();
   tracker_list.clear_stats();
 
-  CPPUNIT_ASSERT(!tracker_0->is_open());
+  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
   CPPUNIT_ASSERT(tracker_0->state().success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->state().failed_counter() == 0);
 }
 
 void
-tracker_list_test::test_multiple_success() {
+TestTrackerList::test_multiple_success() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
   TRACKER_INSERT(0, tracker_0_1);
   TRACKER_INSERT(1, tracker_1_0);
   TRACKER_INSERT(1, tracker_1_1);
+
+  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
+  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
+  auto tracker_1_1_worker = dynamic_cast<TrackerTest*>(tracker_1_1->m_worker.get());
 
   CPPUNIT_ASSERT(!tracker_0_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0_1->is_busy());
@@ -425,7 +441,7 @@ tracker_list_test::test_multiple_success() {
   CPPUNIT_ASSERT(!tracker_1_0->is_busy());
   CPPUNIT_ASSERT(!tracker_1_1->is_busy());
 
-  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
 
   CPPUNIT_ASSERT(!tracker_0_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0_1->is_busy());
@@ -440,14 +456,14 @@ tracker_list_test::test_multiple_success() {
   CPPUNIT_ASSERT(!tracker_1_0->is_busy());
   CPPUNIT_ASSERT(tracker_1_1->is_busy());
 
-  CPPUNIT_ASSERT(tracker_1_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_1_1_worker->trigger_success());
 
   CPPUNIT_ASSERT(!tracker_0_0->is_busy());
   CPPUNIT_ASSERT(tracker_0_1->is_busy());
   CPPUNIT_ASSERT(!tracker_1_0->is_busy());
   CPPUNIT_ASSERT(!tracker_1_1->is_busy());
 
-  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_1_worker->trigger_success());
 
   CPPUNIT_ASSERT(!tracker_0_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0_1->is_busy());
@@ -458,25 +474,27 @@ tracker_list_test::test_multiple_success() {
 }
 
 void
-tracker_list_test::test_scrape_success() {
+TestTrackerList::test_scrape_success() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
-  tracker_0->set_can_scrape();
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
+
+  tracker_0_worker->set_can_scrape();
   tracker_list.send_scrape(tracker_0);
 
   CPPUNIT_ASSERT(tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_busy_not_scrape());
-  CPPUNIT_ASSERT(tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == torrent::TrackerState::EVENT_SCRAPE);
+  CPPUNIT_ASSERT(tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->requesting_state() == torrent::TrackerState::EVENT_SCRAPE);
   CPPUNIT_ASSERT(tracker_0->state().latest_event() == torrent::TrackerState::EVENT_SCRAPE);
 
-  CPPUNIT_ASSERT(tracker_0->trigger_scrape());
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_scrape());
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_busy_not_scrape());
-  CPPUNIT_ASSERT(!tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
+  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->requesting_state() == -1);
   CPPUNIT_ASSERT(tracker_0->state().latest_event() == torrent::TrackerState::EVENT_SCRAPE);
 
   CPPUNIT_ASSERT(success_counter == 0 && failure_counter == 0);
@@ -487,18 +505,20 @@ tracker_list_test::test_scrape_success() {
 }
 
 void
-tracker_list_test::test_scrape_failure() {
+TestTrackerList::test_scrape_failure() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
-  tracker_0->set_can_scrape();
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
+
+  tracker_0_worker->set_can_scrape();
   tracker_list.send_scrape(tracker_0);
 
-  CPPUNIT_ASSERT(tracker_0->trigger_failure());
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_failure());
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
-  CPPUNIT_ASSERT(!tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
+  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
+  CPPUNIT_ASSERT(tracker_0_worker->requesting_state() == -1);
   CPPUNIT_ASSERT(tracker_0->state().latest_event() == torrent::TrackerState::EVENT_SCRAPE);
 
   CPPUNIT_ASSERT(success_counter == 0 && failure_counter == 0);
@@ -528,7 +548,7 @@ check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* 
 }
 
 void
-tracker_list_test::test_has_active() {
+TestTrackerList::test_has_active() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
@@ -537,6 +557,10 @@ tracker_list_test::test_has_active() {
   TRACKER_INSERT(4, tracker_4);
 
   // TODO: Test scrape...
+  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
+  auto tracker_1_worker = dynamic_cast<TrackerTest*>(tracker_1->m_worker.get());
+  auto tracker_2_worker = dynamic_cast<TrackerTest*>(tracker_2->m_worker.get());
+  auto tracker_3_worker = dynamic_cast<TrackerTest*>(tracker_3->m_worker.get());
 
   TEST_TRACKERS_IS_BUSY_5("00000", "00000");
   CPPUNIT_ASSERT(!tracker_list.has_active());
@@ -551,7 +575,7 @@ tracker_list_test::test_has_active() {
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "100000", false));
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "100000", true));
 
-  CPPUNIT_ASSERT(tracker_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
   TEST_TRACKERS_IS_BUSY_5("00000", "00000");
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
@@ -566,7 +590,7 @@ tracker_list_test::test_has_active() {
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "100100", false));
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "100100", true));
 
-  tracker_2->set_can_scrape();
+  tracker_2_worker->set_can_scrape();
   tracker_list.send_scrape(tracker_2);
 
   tracker_list.send_event_idx(1, torrent::TrackerState::EVENT_NONE);
@@ -577,15 +601,15 @@ tracker_list_test::test_has_active() {
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "100100", false));
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "110100", true));
 
-  CPPUNIT_ASSERT(tracker_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_1_worker->trigger_success());
   TEST_TRACKERS_IS_BUSY_5("00110", "00110");
   CPPUNIT_ASSERT( tracker_list.has_active());
   CPPUNIT_ASSERT( tracker_list.has_active_not_scrape());
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "000100", false));
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "010100", true));
 
-  CPPUNIT_ASSERT(tracker_2->trigger_scrape());
-  CPPUNIT_ASSERT(tracker_3->trigger_success());
+  CPPUNIT_ASSERT(tracker_2_worker->trigger_scrape());
+  CPPUNIT_ASSERT(tracker_3_worker->trigger_success());
   TEST_TRACKERS_IS_BUSY_5("00000", "00000");
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());

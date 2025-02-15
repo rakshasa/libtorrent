@@ -10,6 +10,14 @@
 #include <torrent/common.h>
 #include <torrent/tracker/tracker_state.h>
 
+// TODO: Replace with a single static function in TrackerTest.
+class TestTrackerController;
+class TestTrackerControllerFeatures;
+class TestTrackerControllerRequesting;
+class TestTrackerList;
+class TestTrackerListFeatures;
+class TestTrackerTimeout;
+
 namespace torrent {
 
 class AddressList;
@@ -18,8 +26,6 @@ class TrackerWorker;
 
 class LIBTORRENT_EXPORT Tracker {
 public:
-  friend class TrackerList;
-
   virtual ~Tracker() = default;
   Tracker(const Tracker&) = delete;
 
@@ -49,14 +55,17 @@ public:
   virtual void        get_status(char* buffer, [[maybe_unused]] int length)  { buffer[0] = 0; }
 
 protected:
-  // Tracker(TrackerList* parent, const std::string& url, int flags = 0);
+  friend class TrackerList;
+  friend class ::TestTrackerController;
+  friend class ::TestTrackerControllerFeatures;
+  friend class ::TestTrackerControllerRequesting;
+  friend class ::TestTrackerList;
+  friend class ::TestTrackerListFeatures;
+  friend class ::TestTrackerTimeout;
+
   Tracker(TrackerList* parent, std::shared_ptr<TrackerWorker>&& worker);
 
-  // virtual void        send_event(TrackerState::event_enum state) = 0;
-  // virtual void        send_scrape();
-  // virtual void        close() = 0;
-  // virtual void        disown() = 0;
-
+  // Rename get_worker
   TrackerWorker*      get() { return m_worker.get(); }
 
   // Safeguard to catch bugs that lead to hammering of trackers.

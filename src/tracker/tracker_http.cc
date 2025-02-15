@@ -19,6 +19,7 @@
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/uri_parser.h"
 
 #include "globals.h"
 #include "manager.h"
@@ -30,16 +31,6 @@
   lt_log_print_info_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, m_parent->info(), "tracker_http", log_fmt, __VA_ARGS__);
 
 namespace torrent {
-
-static std::string
-generate_scrape_url(std::string url) {
-  size_t delim_slash = url.rfind('/');
-
-  if (delim_slash == std::string::npos || url.find("/announce", delim_slash) != delim_slash)
-    throw internal_error("Tried to make scrape url from invalid url.");
-
-  return url.replace(delim_slash, sizeof("/announce") - 1, "/scrape");
-}
 
 TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags) :
   TrackerWorker(parent, url, flags),
@@ -186,7 +177,7 @@ TrackerHttp::send_scrape() {
   std::stringstream s;
   s.imbue(std::locale::classic());
 
-  request_prefix(&s, generate_scrape_url(url()));
+  request_prefix(&s, utils::uri_generate_scrape_url(url()));
 
   m_data = new std::stringstream();
 

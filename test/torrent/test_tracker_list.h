@@ -1,11 +1,12 @@
-#include <torrent/tracker.h>
-#include <torrent/tracker_list.h>
-#include <torrent/tracker/tracker_state.h>
-#include <rak/timer.h>
-#include <cppunit/extensions/HelperMacros.h>
+#include "test/helpers/test_fixture.h"
+#include "torrent/tracker.h"
+#include "torrent/tracker_list.h"
+#include "torrent/tracker/tracker_state.h"
+#include "tracker/tracker_worker.h"
+#include "rak/timer.h"
 
-class tracker_list_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(tracker_list_test);
+class TestTrackerList : public test_fixture {
+  CPPUNIT_TEST_SUITE(TestTrackerList);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
   CPPUNIT_TEST(test_close);
@@ -48,16 +49,18 @@ public:
   void test_scrape_failure();
 
   void test_has_active();
+
+  static torrent::Tracker* new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::TrackerWorker::flag_enabled);
 };
 
-class TrackerTest : public torrent::Tracker {
+class TrackerTest : public torrent::TrackerWorker {
 public:
   static const int flag_close_on_done = max_flag_size << 0;
   static const int flag_scrape_on_success = max_flag_size << 1;
 
   // TODO: Clean up tracker related enums.
-  TrackerTest(torrent::TrackerList* parent, const std::string& url, int flags = torrent::Tracker::flag_enabled) :
-    torrent::Tracker(parent, url, flags),
+  TrackerTest(torrent::TrackerList* parent, const std::string& url, int flags = torrent::TrackerWorker::flag_enabled) :
+    torrent::TrackerWorker(parent, url, flags),
     m_busy(false),
     m_open(false),
     m_requesting_state(-1) { m_flags |= flag_close_on_done; }
@@ -116,8 +119,8 @@ bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const c
   tracker_list.slot_scrape_success() = std::bind(&increment_value_void, &scrape_success_counter); \
   tracker_list.slot_scrape_failure() = std::bind(&increment_value_void, &scrape_failure_counter);
 
-#define TRACKER_INSERT(group, name)                             \
-  TrackerTest* name = new TrackerTest(&tracker_list, "");       \
+#define TRACKER_INSERT(group, name)                                     \
+  auto name = TestTrackerList::new_tracker(&tracker_list, "");          \
   tracker_list.insert(group, name);
 
 #define TEST_TRACKER_IS_BUSY(tracker, state)            \
