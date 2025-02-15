@@ -53,7 +53,8 @@ public:
   using base_type::operator[];
 
   TrackerList();
-  ~TrackerList() = default;
+  ~TrackerList();
+
   TrackerList(const TrackerList&) = delete;
   TrackerList& operator=(const TrackerList&) = delete;
 
@@ -130,15 +131,14 @@ public:
 
 protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
-
   void                set_state(int s)                        { m_state = s; }
 
 private:
-  DownloadInfo*       m_info;
+  DownloadInfo*       m_info{nullptr};
   int                 m_state;
 
-  uint32_t            m_key;
-  int32_t             m_numwant;
+  uint32_t            m_key{0};
+  int32_t             m_numwant{-1};
 
   slot_address_list   m_slot_success;
   slot_string         m_slot_failed;

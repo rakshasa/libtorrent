@@ -4,6 +4,7 @@
 #define LIBTORRENT_TRACKER_TRACKER_WORKER_H
 
 #include <iosfwd>
+#include <functional>
 #include <string>
 
 #include "torrent/object.h"

@@ -22,11 +22,16 @@
 namespace torrent {
 
 TrackerList::TrackerList() :
-  m_info(NULL),
-  m_state(DownloadInfo::STOPPED),
+  m_state(DownloadInfo::STOPPED) {
+}
 
-  m_key(0),
-  m_numwant(-1) {
+TrackerList::~TrackerList() {
+  m_slot_success = nullptr;
+  m_slot_failed = nullptr;
+  m_slot_scrape_success = nullptr;
+  m_slot_scrape_failed = nullptr;
+  m_slot_tracker_enabled = nullptr;
+  m_slot_tracker_disabled = nullptr;
 }
 
 bool
