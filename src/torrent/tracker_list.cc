@@ -145,6 +145,24 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
 
   iterator itr = base_type::insert(end_group(group), tracker);
 
+  // These slots are called from within the worker thread, so we need to
+  // use proper signal passing to the main thread.
+
+  tracker->m_worker->m_slot_success = [this, tracker](AddressList&& l) {
+    receive_success(tracker, &l);
+  };
+  tracker->m_worker->m_slot_failure = [this, tracker](const std::string& msg) {
+    receive_failed(tracker, msg);
+  };
+  tracker->m_worker->m_slot_scrape_success = [this, tracker]() {
+    receive_scrape_success(tracker);
+  };
+  tracker->m_worker->m_slot_scrape_failure = [this, tracker](const std::string& msg) {
+    receive_scrape_failed(tracker, msg);
+  };
+
+  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, tracker->m_worker->url().c_str());
+
   if (m_slot_tracker_enabled)
     m_slot_tracker_enabled(tracker);
 
@@ -180,31 +198,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     return;
   }
 
-  auto tracker = new Tracker(this, std::shared_ptr<TrackerWorker>(worker));
-
-  // These slots are called from within the worker thread, so we need to
-  // use proper signal passing to the main thread.
-
-  worker->m_slot_success = [this, tracker](AddressList&& l) {
-    if (m_slot_success)
-      m_slot_success(tracker, &l);
-  };
-  worker->m_slot_failure = [this, tracker](const std::string& msg) {
-    if (m_slot_failed)
-      m_slot_failed(tracker, msg);
-  };
-  worker->m_slot_scrape_success = [this, tracker]() {
-    if (m_slot_scrape_success)
-      m_slot_scrape_success(tracker);
-  };
-  worker->m_slot_scrape_failure = [this, tracker](const std::string& msg) {
-    if (m_slot_scrape_failed)
-      m_slot_scrape_failed(tracker, msg);
-  };
-
-  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, url.c_str());
-
-  insert(group, tracker);
+  insert(group, new Tracker(this, std::shared_ptr<TrackerWorker>(worker)));
 }
 
 TrackerList::iterator
@@ -340,6 +334,9 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
   tracker_state.m_latest_sum_peers = l->size();
   tracker->get()->set_state(tracker_state);
 
+  if (!m_slot_success)
+    return;
+
   auto new_peers = m_slot_success(tracker, l);
 
   tracker_state = tracker->state();
@@ -362,7 +359,8 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
   tracker_state.m_failed_counter++;
   tracker->get()->set_state(tracker_state);
 
-  m_slot_failed(tracker, msg);
+  if (m_slot_failed)
+    m_slot_failed(tracker, msg);
 }
 
 void

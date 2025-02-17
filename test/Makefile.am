@@ -31,6 +31,8 @@ LibTorrent_Test_Common = \
 	helpers/network.h \
 	helpers/progress_listener.cc \
 	helpers/progress_listener.h \
+	helpers/protectors.cc \
+	helpers/protectors.h \
 	helpers/test_fixture.cc \
 	helpers/test_fixture.h \
 	helpers/test_thread.cc \
