@@ -8,10 +8,10 @@
 #include "test/torrent/test_tracker_controller_features.h"
 #include "test/torrent/test_tracker_list.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerControllerFeatures);
+CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller_features);
 
 void
-TestTrackerControllerFeatures::setUp() {
+test_tracker_controller_features::setUp() {
   test_fixture::setUp();
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
@@ -20,21 +20,21 @@ TestTrackerControllerFeatures::setUp() {
 }
 
 void
-TestTrackerControllerFeatures::tearDown() {
+test_tracker_controller_features::tearDown() {
   torrent::taskScheduler.clear();
 
   test_fixture::tearDown();
 }
 
 void
-TestTrackerControllerFeatures::test_requesting_basic() {
+test_tracker_controller_features::test_requesting_basic() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
-  auto tracker_3_0_worker = dynamic_cast<TrackerTest*>(tracker_3_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
+  auto tracker_3_0_worker = TrackerTest::test_worker(tracker_3_0);
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success(8, 9));
 
@@ -68,7 +68,7 @@ TestTrackerControllerFeatures::test_requesting_basic() {
 }
 
 void
-TestTrackerControllerFeatures::test_requesting_timeout() {
+test_tracker_controller_features::test_requesting_timeout() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -77,11 +77,11 @@ TestTrackerControllerFeatures::test_requesting_timeout() {
 
   TEST_MULTI3_IS_BUSY("10111", "10111");
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
-  auto tracker_3_0_worker = dynamic_cast<TrackerTest*>(tracker_3_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
+  auto tracker_3_0_worker = TrackerTest::test_worker(tracker_3_0);
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
   CPPUNIT_ASSERT_EQUAL((uint32_t)5, tracker_controller.seconds_to_next_timeout());
@@ -104,7 +104,7 @@ TestTrackerControllerFeatures::test_requesting_timeout() {
 }
 
 void
-TestTrackerControllerFeatures::test_promiscious_timeout() {
+test_tracker_controller_features::test_promiscious_timeout() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
@@ -114,10 +114,10 @@ TestTrackerControllerFeatures::test_promiscious_timeout() {
 
   CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
-  auto tracker_3_0_worker = dynamic_cast<TrackerTest*>(tracker_3_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
+  auto tracker_3_0_worker = TrackerTest::test_worker(tracker_3_0);
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
@@ -137,15 +137,15 @@ TestTrackerControllerFeatures::test_promiscious_timeout() {
 // situations. This includes fixing old tests.
 
 void
-TestTrackerControllerFeatures::test_promiscious_failed() {
+test_tracker_controller_features::test_promiscious_failed() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
-  auto tracker_3_0_worker = dynamic_cast<TrackerTest*>(tracker_3_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
+  auto tracker_3_0_worker = TrackerTest::test_worker(tracker_3_0);
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
@@ -174,13 +174,13 @@ TestTrackerControllerFeatures::test_promiscious_failed() {
 }
 
 void
-TestTrackerControllerFeatures::test_scrape_basic() {
+test_tracker_controller_features::test_scrape_basic() {
   TEST_GROUP_BEGIN();
   tracker_controller.disable();
 
-  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
-  auto tracker_0_2_worker = dynamic_cast<TrackerTest*>(tracker_0_2->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
+  auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
+  auto tracker_0_2_worker = TrackerTest::test_worker(tracker_0_2);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
 
   CPPUNIT_ASSERT(!tracker_controller.is_scrape_queued());
   tracker_0_1_worker->set_can_scrape();
@@ -220,11 +220,11 @@ TestTrackerControllerFeatures::test_scrape_basic() {
 }
 
 void
-TestTrackerControllerFeatures::test_scrape_priority() {
+test_tracker_controller_features::test_scrape_priority() {
   TEST_SINGLE_BEGIN();
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
   tracker_0_0_worker->trigger_success();
   tracker_0_0_worker->set_can_scrape();
@@ -266,7 +266,7 @@ TestTrackerControllerFeatures::test_scrape_priority() {
 }
 
 void
-TestTrackerControllerFeatures::test_groups_requesting() {
+test_tracker_controller_features::test_groups_requesting() {
   TEST_GROUP_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
@@ -277,9 +277,9 @@ TestTrackerControllerFeatures::test_groups_requesting() {
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
   TEST_GROUP_IS_BUSY("100101", "100101");
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
   CPPUNIT_ASSERT(tracker_1_0_worker->trigger_success());
@@ -309,16 +309,16 @@ TestTrackerControllerFeatures::test_groups_requesting() {
 }
 
 void
-TestTrackerControllerFeatures::test_groups_scrape() {
+test_tracker_controller_features::test_groups_scrape() {
   TEST_GROUP_BEGIN();
   tracker_controller.disable();
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
-  auto tracker_0_2_worker = dynamic_cast<TrackerTest*>(tracker_0_2->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
-  auto tracker_1_1_worker = dynamic_cast<TrackerTest*>(tracker_1_1->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
+  auto tracker_0_2_worker = TrackerTest::test_worker(tracker_0_2);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+  auto tracker_1_1_worker = TrackerTest::test_worker(tracker_1_1);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
 
   tracker_0_0_worker->set_can_scrape();
   tracker_0_1_worker->set_can_scrape();

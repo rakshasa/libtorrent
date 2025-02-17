@@ -1,18 +1,18 @@
 #include "config.h"
 
+#include "test/torrent/test_tracker_timeout.h"
+
 #include <iostream>
 #include <torrent/tracker_controller.h>
 
-#include "rak/priority_queue_default.h"
-
 #include "globals.h"
 #include "test/torrent/test_tracker_list.h"
-#include "test/torrent/test_tracker_timeout.h"
+#include "rak/priority_queue_default.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerTimeout);
+CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_timeout);
 
 void
-TestTrackerTimeout::setUp() {
+test_tracker_timeout::setUp() {
   torrent::cachedTime = rak::timer::current();
   //  torrent::cachedTime = rak::timer::current().round_seconds();
 
@@ -20,7 +20,7 @@ TestTrackerTimeout::setUp() {
 }
 
 void
-TestTrackerTimeout::test_set_timeout() {
+test_tracker_timeout::test_set_timeout() {
   TrackerTest tracker(NULL, "");
 
   CPPUNIT_ASSERT(tracker.state().normal_interval() == 0);
@@ -37,9 +37,9 @@ TestTrackerTimeout::test_set_timeout() {
 }
 
 void
-TestTrackerTimeout::test_timeout_tracker() {
-  auto tracker = std::unique_ptr<torrent::Tracker>(TestTrackerList::new_tracker(NULL, "http://tracker.com/announce"));
-  auto tracker_worker = dynamic_cast<TrackerTest*>(tracker->m_worker.get());
+test_tracker_timeout::test_timeout_tracker() {
+  auto tracker = std::unique_ptr<torrent::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
+  auto tracker_worker = TrackerTest::test_worker(tracker.get());
 
   int flags = 0;
 
@@ -84,9 +84,9 @@ TestTrackerTimeout::test_timeout_tracker() {
 }
 
 void
-TestTrackerTimeout::test_timeout_update() {
-  auto tracker = std::unique_ptr<torrent::Tracker>(TestTrackerList::new_tracker(NULL, "http://tracker.com/announce"));
-  auto tracker_worker = dynamic_cast<TrackerTest*>(tracker->m_worker.get());
+test_tracker_timeout::test_timeout_update() {
+  auto tracker = std::unique_ptr<torrent::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
+  auto tracker_worker = TrackerTest::test_worker(tracker.get());
 
   int flags = 0;
 
@@ -108,9 +108,9 @@ TestTrackerTimeout::test_timeout_update() {
 }
 
 void
-TestTrackerTimeout::test_timeout_requesting() {
-  auto tracker = std::unique_ptr<torrent::Tracker>(TestTrackerList::new_tracker(NULL, "http://tracker.com/announce"));
-  auto tracker_worker = dynamic_cast<TrackerTest*>(tracker->m_worker.get());
+test_tracker_timeout::test_timeout_requesting() {
+  auto tracker = std::unique_ptr<torrent::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
+  auto tracker_worker = TrackerTest::test_worker(tracker.get());
 
   int flags = 0;
 

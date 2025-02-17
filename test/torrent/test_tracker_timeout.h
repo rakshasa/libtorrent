@@ -1,8 +1,8 @@
 #include "test/helpers/test_fixture.h"
 #include "torrent/tracker_controller.h"
 
-class TestTrackerTimeout : public test_fixture {
-  CPPUNIT_TEST_SUITE(TestTrackerTimeout);
+class test_tracker_timeout : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_timeout);
   CPPUNIT_TEST(test_set_timeout);
 
   CPPUNIT_TEST(test_timeout_tracker);

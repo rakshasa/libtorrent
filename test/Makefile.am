@@ -38,6 +38,8 @@ LibTorrent_Test_Common = \
 	helpers/test_thread.cc \
 	helpers/test_thread.h \
 	helpers/test_utils.h \
+	helpers/tracker_test.cc \
+	helpers/tracker_test.h \
 	helpers/utils.h
 
 LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \

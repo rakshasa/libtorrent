@@ -27,7 +27,6 @@ public:
   friend class DownloadWrapper;
 
   typedef std::vector<Tracker*> base_type;
-  typedef AddressList           address_list;
 
   typedef std::function<void (Tracker*)>                     slot_tracker;
   typedef std::function<void (Tracker*, const std::string&)> slot_string;

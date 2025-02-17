@@ -1,8 +1,8 @@
 #include "test/helpers/test_fixture.h"
 #include "torrent/tracker_controller.h"
 
-class TestTrackerController : public test_fixture {
-  CPPUNIT_TEST_SUITE(TestTrackerController);
+class test_tracker_controller : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_controller);
 
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);

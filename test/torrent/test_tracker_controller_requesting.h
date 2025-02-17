@@ -1,8 +1,8 @@
 #include "test/helpers/test_fixture.h"
 #include "test/torrent/test_tracker_controller.h"
 
-class TestTrackerControllerRequesting : public test_fixture {
-  CPPUNIT_TEST_SUITE(TestTrackerControllerRequesting);
+class test_tracker_controller_requesting : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_controller_requesting);
 
   CPPUNIT_TEST(test_hammering_basic_success);
   CPPUNIT_TEST(test_hammering_basic_success_long_timeout);

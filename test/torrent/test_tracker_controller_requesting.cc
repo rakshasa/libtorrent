@@ -9,10 +9,10 @@
 
 #include "globals.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerControllerRequesting);
+CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller_requesting);
 
 void
-TestTrackerControllerRequesting::setUp() {
+test_tracker_controller_requesting::setUp() {
   test_fixture::setUp();
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
@@ -21,23 +21,23 @@ TestTrackerControllerRequesting::setUp() {
 }
 
 void
-TestTrackerControllerRequesting::tearDown() {
+test_tracker_controller_requesting::tearDown() {
   torrent::taskScheduler.clear();
 
   test_fixture::tearDown();
 }
 
 void
-TestTrackerControllerRequesting::do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t min_interval) {
+test_tracker_controller_requesting::do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t min_interval) {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
   if (min_interval != 0)
-    tracker_0_0_worker->set_min_interval(min_interval);
+    tracker_0_0_worker->set_new_min_interval(min_interval);
   else
-    tracker_0_0_worker->set_min_interval(600);
+    tracker_0_0_worker->set_new_min_interval(600);
 
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
   CPPUNIT_ASSERT(success1 ? tracker_0_0_worker->trigger_success() : tracker_0_0_worker->trigger_failure());
@@ -77,44 +77,44 @@ TestTrackerControllerRequesting::do_test_hammering_basic(bool success1, bool suc
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_basic_success() {
+test_tracker_controller_requesting::test_hammering_basic_success() {
   do_test_hammering_basic(true, true, true);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_basic_success_long_timeout() {
+test_tracker_controller_requesting::test_hammering_basic_success_long_timeout() {
   do_test_hammering_basic(true, true, true, 1000);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_basic_success_short_timeout() {
+test_tracker_controller_requesting::test_hammering_basic_success_short_timeout() {
   do_test_hammering_basic(true, true, true, 300);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_basic_failure() {
+test_tracker_controller_requesting::test_hammering_basic_failure() {
   do_test_hammering_basic(true, false, false);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_basic_failure_long_timeout() {
+test_tracker_controller_requesting::test_hammering_basic_failure_long_timeout() {
   do_test_hammering_basic(true, false, false, 1000);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_basic_failure_short_timeout() {
+test_tracker_controller_requesting::test_hammering_basic_failure_short_timeout() {
   do_test_hammering_basic(true, false, false, 300);
 }
 
 // Differentiate between failure connection / http error and tracker returned error.
 
 void
-TestTrackerControllerRequesting::do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t min_interval) {
+test_tracker_controller_requesting::do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t min_interval) {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
 
   if (min_interval != 0)
     tracker_0_0_worker->set_new_min_interval(min_interval);
@@ -182,20 +182,20 @@ TestTrackerControllerRequesting::do_test_hammering_multi3(bool success1, bool su
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_multi_success() {
+test_tracker_controller_requesting::test_hammering_multi_success() {
   do_test_hammering_multi3(true, true, true);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_multi_success_long_timeout() {
+test_tracker_controller_requesting::test_hammering_multi_success_long_timeout() {
   do_test_hammering_multi3(true, true, true, 1000);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_multi_success_short_timeout() {
+test_tracker_controller_requesting::test_hammering_multi_success_short_timeout() {
   do_test_hammering_multi3(true, true, true, 300);
 }
 
 void
-TestTrackerControllerRequesting::test_hammering_multi_failure() {
+test_tracker_controller_requesting::test_hammering_multi_failure() {
 }

@@ -10,13 +10,7 @@
 #include <torrent/common.h>
 #include <torrent/tracker/tracker_state.h>
 
-// TODO: Replace with a single static function in TrackerTest.
-class TestTrackerController;
-class TestTrackerControllerFeatures;
-class TestTrackerControllerRequesting;
-class TestTrackerList;
-class TestTrackerListFeatures;
-class TestTrackerTimeout;
+class TrackerTest;
 
 namespace torrent {
 
@@ -56,12 +50,7 @@ public:
 
 protected:
   friend class TrackerList;
-  friend class ::TestTrackerController;
-  friend class ::TestTrackerControllerFeatures;
-  friend class ::TestTrackerControllerRequesting;
-  friend class ::TestTrackerList;
-  friend class ::TestTrackerListFeatures;
-  friend class ::TestTrackerTimeout;
+  friend class ::TrackerTest;
 
   Tracker(TrackerList* parent, std::shared_ptr<TrackerWorker>&& worker);
 

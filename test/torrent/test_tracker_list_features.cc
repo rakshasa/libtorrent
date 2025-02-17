@@ -8,10 +8,10 @@
 #include "test/torrent/test_tracker_list_features.h"
 #include "torrent/http.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerListFeatures);
+CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_list_features);
 
 void
-TestTrackerListFeatures::setUp() {
+test_tracker_list_features::setUp() {
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
   torrent::cachedTime = rak::timer::current();
@@ -20,11 +20,11 @@ TestTrackerListFeatures::setUp() {
 }
 
 void
-TestTrackerListFeatures::test_new_peers() {
+test_tracker_list_features::test_new_peers() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
   CPPUNIT_ASSERT(tracker_0_0->state().latest_new_peers() == 0);
   CPPUNIT_ASSERT(tracker_0_0->state().latest_sum_peers() == 0);
@@ -50,15 +50,15 @@ TestTrackerListFeatures::test_new_peers() {
 // test has_active, and then clean up TrackerManager.
 
 void
-TestTrackerListFeatures::test_has_active() {
+test_tracker_list_features::test_has_active() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
   TRACKER_INSERT(0, tracker_0_1);
   TRACKER_INSERT(1, tracker_1_0);
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
 
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
@@ -87,17 +87,17 @@ TestTrackerListFeatures::test_has_active() {
 }
 
 void
-TestTrackerListFeatures::test_find_next_to_request() {
+test_tracker_list_features::test_find_next_to_request() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(0, tracker_2);
   TRACKER_INSERT(0, tracker_3);
 
-  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
-  auto tracker_1_worker = dynamic_cast<TrackerTest*>(tracker_1->m_worker.get());
-  auto tracker_2_worker = dynamic_cast<TrackerTest*>(tracker_2->m_worker.get());
-  auto tracker_3_worker = dynamic_cast<TrackerTest*>(tracker_3->m_worker.get());
+  auto tracker_0_worker = TrackerTest::test_worker(tracker_0);
+  auto tracker_1_worker = TrackerTest::test_worker(tracker_1);
+  auto tracker_2_worker = TrackerTest::test_worker(tracker_2);
+  auto tracker_3_worker = TrackerTest::test_worker(tracker_3);
 
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin() + 1) == tracker_list.begin() + 1);
@@ -131,16 +131,16 @@ TestTrackerListFeatures::test_find_next_to_request() {
 }
 
 void
-TestTrackerListFeatures::test_find_next_to_request_groups() {
+test_tracker_list_features::test_find_next_to_request_groups() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(1, tracker_2);
   TRACKER_INSERT(1, tracker_3);
 
-  auto tracker_0_worker = dynamic_cast<TrackerTest*>(tracker_0->m_worker.get());
-  auto tracker_1_worker = dynamic_cast<TrackerTest*>(tracker_1->m_worker.get());
-  auto tracker_2_worker = dynamic_cast<TrackerTest*>(tracker_2->m_worker.get());
+  auto tracker_0_worker = TrackerTest::test_worker(tracker_0);
+  auto tracker_1_worker = TrackerTest::test_worker(tracker_1);
+  auto tracker_2_worker = TrackerTest::test_worker(tracker_2);
 
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
 
@@ -158,17 +158,17 @@ TestTrackerListFeatures::test_find_next_to_request_groups() {
 }
 
 void
-TestTrackerListFeatures::test_count_active() {
+test_tracker_list_features::test_count_active() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
   TRACKER_INSERT(0, tracker_0_1);
   TRACKER_INSERT(1, tracker_1_0);
   TRACKER_INSERT(2, tracker_2_0);
 
-  auto tracker_0_0_worker = dynamic_cast<TrackerTest*>(tracker_0_0->m_worker.get());
-  auto tracker_0_1_worker = dynamic_cast<TrackerTest*>(tracker_0_1->m_worker.get());
-  auto tracker_1_0_worker = dynamic_cast<TrackerTest*>(tracker_1_0->m_worker.get());
-  auto tracker_2_0_worker = dynamic_cast<TrackerTest*>(tracker_2_0->m_worker.get());
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+  auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
 
   CPPUNIT_ASSERT(tracker_list.count_active() == 0);
 
@@ -210,17 +210,17 @@ verify_did_internal_error(std::function<void ()> func, bool should_throw) {
 }
 
 void
-TestTrackerListFeatures::test_request_safeguard() {
+test_tracker_list_features::test_request_safeguard() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(0, tracker_2);
   TRACKER_INSERT(0, tracker_3);
   TRACKER_INSERT(0, tracker_foo);
 
-  auto tracker_1_worker = dynamic_cast<TrackerTest*>(tracker_1->m_worker.get());
-  auto tracker_2_worker = dynamic_cast<TrackerTest*>(tracker_2->m_worker.get());
-  auto tracker_3_worker = dynamic_cast<TrackerTest*>(tracker_3->m_worker.get());
-  auto tracker_foo_worker = dynamic_cast<TrackerTest*>(tracker_foo->m_worker.get());
+  auto tracker_1_worker = TrackerTest::test_worker(tracker_1);
+  auto tracker_2_worker = TrackerTest::test_worker(tracker_2);
+  auto tracker_3_worker = TrackerTest::test_worker(tracker_3);
+  auto tracker_foo_worker = TrackerTest::test_worker(tracker_foo);
 
   for (unsigned int i = 0; i < 9; i++) {
     CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_1, torrent::TrackerState::EVENT_NONE), false));
