@@ -59,8 +59,9 @@ thread_base::stop_thread_wait() {
 
   release_global_lock();
 
-  while (!is_inactive()) {
-    usleep(1000);
+  {
+    auto lock = std::unique_lock(m_global.mutex);
+    m_global.cv.wait(lock, [this] { return !is_inactive(); });
   }
 
   acquire_global_lock();
