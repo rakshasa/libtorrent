@@ -1,9 +1,8 @@
-#include <cppunit/extensions/HelperMacros.h>
-
+#include "test/helpers/test_fixture.h"
 #include "torrent/tracker_controller.h"
 
-class tracker_timeout_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(tracker_timeout_test);
+class test_tracker_timeout : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_timeout);
   CPPUNIT_TEST(test_set_timeout);
 
   CPPUNIT_TEST(test_timeout_tracker);
@@ -13,7 +12,6 @@ class tracker_timeout_test : public CppUnit::TestFixture {
 
 public:
   void setUp();
-  void tearDown();
 
   void test_set_timeout();
 

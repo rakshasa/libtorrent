@@ -31,11 +31,15 @@ LibTorrent_Test_Common = \
 	helpers/network.h \
 	helpers/progress_listener.cc \
 	helpers/progress_listener.h \
+	helpers/protectors.cc \
+	helpers/protectors.h \
 	helpers/test_fixture.cc \
 	helpers/test_fixture.h \
 	helpers/test_thread.cc \
 	helpers/test_thread.h \
 	helpers/test_utils.h \
+	helpers/tracker_test.cc \
+	helpers/tracker_test.h \
 	helpers/utils.h
 
 LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
@@ -82,12 +86,12 @@ LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/test_tracker_controller_features.h \
 	torrent/test_tracker_controller_requesting.cc \
 	torrent/test_tracker_controller_requesting.h \
-	torrent/tracker_list_test.cc \
-	torrent/tracker_list_test.h \
-	torrent/tracker_list_features_test.cc \
-	torrent/tracker_list_features_test.h \
-	torrent/tracker_timeout_test.cc \
-	torrent/tracker_timeout_test.h
+	torrent/test_tracker_list.cc \
+	torrent/test_tracker_list.h \
+	torrent/test_tracker_list_features.cc \
+	torrent/test_tracker_list_features.h \
+	torrent/test_tracker_timeout.cc \
+	torrent/test_tracker_timeout.h
 
 LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
 	data/test_chunk_list.cc \

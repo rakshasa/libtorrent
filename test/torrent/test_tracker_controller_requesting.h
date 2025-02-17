@@ -37,4 +37,7 @@ public:
   void test_hammering_multi_failure();
   void test_hammering_multi_failure_long_timeout();
   void test_hammering_multi_failure_short_timeout();
+
+  void do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t min_interval = 0);
+  void do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t min_interval = 0);
 };

@@ -1,7 +1,7 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "test/helpers/test_fixture.h"
 
-class tracker_list_features_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(tracker_list_features_test);
+class test_tracker_list_features : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_list_features);
   CPPUNIT_TEST(test_new_peers);
   CPPUNIT_TEST(test_has_active);
   CPPUNIT_TEST(test_find_next_to_request);
@@ -13,7 +13,6 @@ class tracker_list_features_test : public CppUnit::TestFixture {
 
 public:
   void setUp();
-  void tearDown();
 
   void test_new_peers();
   void test_has_active();

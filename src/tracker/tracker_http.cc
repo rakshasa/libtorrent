@@ -19,22 +19,21 @@
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/uri_parser.h"
 
 #include "globals.h"
 #include "manager.h"
 
-// TODO: Update this to use the new logging system, dump the full request url.
-
-#define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
-  lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
+#define LT_LOG_TRACKER_REQUESTS(log_fmt, ...)                             \
+  lt_log_print_info(LOG_TRACKER_REQUESTS, m_parent->info(), "tracker_http", log_fmt, __VA_ARGS__);
 
 #define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
-  lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
+  lt_log_print_info_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, m_parent->info(), "tracker_http", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags) :
-  Tracker(parent, url, flags),
+  TrackerWorker(parent, url, flags),
 
   m_get(Http::slot_factory()()),
   m_data(NULL) {
@@ -95,7 +94,7 @@ TrackerHttp::send_event(TrackerState::event_enum new_state) {
   auto info = m_parent->info();
   auto tracker_id = this->tracker_id();
 
-  request_prefix(&s, m_url);
+  request_prefix(&s, url());
 
   *rak::copy_escape_html(info->local_id().begin(), info->local_id().end(), localId) = '\0';
 
@@ -178,7 +177,7 @@ TrackerHttp::send_scrape() {
   std::stringstream s;
   s.imbue(std::locale::classic());
 
-  request_prefix(&s, scrape_url_from(m_url));
+  request_prefix(&s, utils::uri_generate_scrape_url(url()));
 
   m_data = new std::stringstream();
 
@@ -198,8 +197,8 @@ TrackerHttp::close() {
   if (m_data == NULL)
     return;
 
-  LT_LOG_TRACKER(DEBUG, "Tracker HTTP request cancelled: state:%s url:%s.",
-                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), m_url.c_str());
+  LT_LOG_TRACKER_REQUESTS("Tracker HTTP request cancelled: state:%s url:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
 
   close_directly();
 }
@@ -209,8 +208,8 @@ TrackerHttp::disown() {
   if (m_data == NULL)
     return;
 
-  LT_LOG_TRACKER(DEBUG, "Tracker HTTP request disowned: state:%s url:%s.",
-                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), m_url.c_str());
+  LT_LOG_TRACKER_REQUESTS("Tracker HTTP request disowned: state:%s url:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
 
   m_get->set_delete_self();
   m_get->set_delete_stream();
@@ -300,9 +299,9 @@ TrackerHttp::receive_failed(std::string msg) {
   close_directly();
 
   if (state().latest_event() == TrackerState::EVENT_SCRAPE)
-    m_parent->receive_scrape_failed(this, msg);
+    m_slot_scrape_failure(msg);
   else
-    m_parent->receive_failed(this, msg);
+    m_slot_failure(msg);
 }
 
 void
@@ -382,7 +381,8 @@ TrackerHttp::process_success(const Object& object) {
     l.parse_address_compact_ipv6(object.get_key_string("peers6"));
 
   close_directly();
-  m_parent->receive_success(this, &l);
+
+  m_slot_success(std::move(l));
 }
 
 void
@@ -411,11 +411,11 @@ TrackerHttp::process_scrape(const Object& object) {
 
   set_state(tracker_state);
 
-  LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
-                 files.as_map().size(), tracker_state.m_scrape_complete, tracker_state.m_scrape_incomplete, tracker_state.m_scrape_downloaded);
+  LT_LOG_TRACKER_REQUESTS("Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
+                          files.as_map().size(), tracker_state.m_scrape_complete, tracker_state.m_scrape_incomplete, tracker_state.m_scrape_downloaded);
 
   close_directly();
-  m_parent->receive_scrape_success(this);
+  m_slot_scrape_success();
 }
 
 }

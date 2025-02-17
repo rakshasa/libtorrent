@@ -3,11 +3,11 @@
 
 #include "net/address_list.h"
 #include "torrent/object.h"
-#include "torrent/tracker.h"
+#include "tracker/tracker_worker.h"
 
 namespace torrent {
 
-class TrackerDht : public Tracker {
+class TrackerDht : public TrackerWorker {
 public:
   TrackerDht(TrackerList* parent, const std::string& url, int flags);
   ~TrackerDht();
@@ -22,16 +22,18 @@ public:
 
   static bool         is_allowed();
 
-  virtual bool        is_busy() const;
-  virtual bool        is_usable() const;
+  bool                is_busy() const override;
+  bool                is_usable() const override;
 
-  virtual void        send_event(TrackerState::event_enum new_state);
-  virtual void        close();
-  virtual void        disown();
+  void                send_event(TrackerState::event_enum new_state) override;
+  void                send_scrape() override;
 
-  virtual tracker_enum type() const;
+  void                close() override;
+  void                disown() override;
 
-  virtual void        get_status(char* buffer, int length);
+  tracker_enum        type() const override;
+
+  void                get_status(char* buffer, int length);
 
   state_type          get_dht_state() const            { return m_dht_state; }
   void                set_dht_state(state_type state)  { m_dht_state = state; }

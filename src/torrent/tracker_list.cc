@@ -22,11 +22,16 @@
 namespace torrent {
 
 TrackerList::TrackerList() :
-  m_info(NULL),
-  m_state(DownloadInfo::STOPPED),
+  m_state(DownloadInfo::STOPPED) {
+}
 
-  m_key(0),
-  m_numwant(-1) {
+TrackerList::~TrackerList() {
+  m_slot_success = nullptr;
+  m_slot_failed = nullptr;
+  m_slot_scrape_success = nullptr;
+  m_slot_scrape_failed = nullptr;
+  m_slot_tracker_enabled = nullptr;
+  m_slot_tracker_disabled = nullptr;
 }
 
 bool
@@ -70,7 +75,7 @@ TrackerList::close_all_excluding(int event_bitmap) {
     if ((event_bitmap & (1 << tracker->state().latest_event())))
       continue;
 
-    tracker->close();
+    tracker->get()->close();
   }
 }
 
@@ -78,21 +83,22 @@ void
 TrackerList::disown_all_including(int event_bitmap) {
   for (auto& tracker : *this) {
     if ((event_bitmap & (1 << tracker->state().latest_event())))
-      tracker->disown();
+      tracker->get()->disown();
   }
 }
 
 void
 TrackerList::clear() {
-  for (const auto& tracker : *this) {
+  auto list = std::move(*(base_type*)this);
+
+  for (const auto& tracker : list) {
     delete tracker;
   }
-  base_type::clear();
 }
 
 void
 TrackerList::clear_stats() {
-  std::for_each(begin(), end(), std::mem_fn(&Tracker::clear_stats));
+  std::for_each(begin(), end(), [](auto tracker) { tracker->get()->clear_stats(); });
 }
 
 void
@@ -104,10 +110,10 @@ TrackerList::send_event(Tracker* tracker, TrackerState::event_enum new_event) {
     if (tracker->state().latest_event() != TrackerState::EVENT_SCRAPE)
       return;
 
-    tracker->close();
+    tracker->get()->close();
   }
 
-  tracker->send_event(new_event);
+  tracker->get()->send_event(new_event);
   tracker->inc_request_counter();
 
   LT_LOG_TRACKER(INFO, "sending '%s (group:%u url:%s)",
@@ -120,13 +126,13 @@ TrackerList::send_scrape(Tracker* tracker) {
   if (tracker->is_busy() || !tracker->is_usable())
     return;
 
-  if (!(tracker->flags() & Tracker::flag_can_scrape))
+  if (!(tracker->get()->flags() & TrackerWorker::flag_can_scrape))
     return;
 
   if (rak::timer::from_seconds(tracker->state().scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
     return;
 
-  tracker->send_scrape();
+  tracker->get()->send_scrape();
   tracker->inc_request_counter();
 
   LT_LOG_TRACKER(INFO, "sending scrape (group:%u url:%s)",
@@ -139,6 +145,24 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
 
   iterator itr = base_type::insert(end_group(group), tracker);
 
+  // These slots are called from within the worker thread, so we need to
+  // use proper signal passing to the main thread.
+
+  tracker->m_worker->m_slot_success = [this, tracker](AddressList&& l) {
+    receive_success(tracker, &l);
+  };
+  tracker->m_worker->m_slot_failure = [this, tracker](const std::string& msg) {
+    receive_failed(tracker, msg);
+  };
+  tracker->m_worker->m_slot_scrape_success = [this, tracker]() {
+    receive_scrape_success(tracker);
+  };
+  tracker->m_worker->m_slot_scrape_failure = [this, tracker](const std::string& msg) {
+    receive_scrape_failed(tracker, msg);
+  };
+
+  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, tracker->m_worker->url().c_str());
+
   if (m_slot_tracker_enabled)
     m_slot_tracker_enabled(tracker);
 
@@ -148,21 +172,22 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
 // TODO: Use proper flags for insert options.
 void
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
-  Tracker* tracker;
-  int flags = Tracker::flag_enabled;
+  TrackerWorker* worker;
+
+  int flags = TrackerWorker::flag_enabled;
 
   if (extra_tracker)
-    flags |= Tracker::flag_extra_tracker;
+    flags |= TrackerWorker::flag_extra_tracker;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
-    tracker = new TrackerHttp(this, url, flags);
+    worker = new TrackerHttp(this, url, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    tracker = new TrackerUdp(this, url, flags);
+    worker = new TrackerUdp(this, url, flags);
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    tracker = new TrackerDht(this, url, flags);
+    worker = new TrackerDht(this, url, flags);
 
   } else {
     LT_LOG_TRACKER(WARN, "could find matching tracker protocol (url:%s)", url.c_str());
@@ -173,8 +198,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     return;
   }
 
-  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, url.c_str());
-  insert(group, tracker);
+  insert(group, new Tracker(this, std::shared_ptr<TrackerWorker>(worker)));
 }
 
 TrackerList::iterator
@@ -300,19 +324,24 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
 
   LT_LOG_TRACKER(INFO, "received %u peers (url:%s)", l->size(), tracker->url().c_str());
 
+  // TODO: Update staate in TrackerWorker.
+
   auto tracker_state = tracker->state();
 
   tracker_state.m_success_time_last = cachedTime.seconds();
   tracker_state.m_success_counter++;
   tracker_state.m_failed_counter = 0;
   tracker_state.m_latest_sum_peers = l->size();
-  tracker->set_state(tracker_state);
+  tracker->get()->set_state(tracker_state);
+
+  if (!m_slot_success)
+    return;
 
   auto new_peers = m_slot_success(tracker, l);
 
   tracker_state = tracker->state();
   tracker_state.m_latest_new_peers = new_peers;
-  tracker->set_state(tracker_state);
+  tracker->get()->set_state(tracker_state);
 }
 
 void
@@ -328,9 +357,10 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
 
   tracker_state.m_failed_time_last = cachedTime.seconds();
   tracker_state.m_failed_counter++;
-  tracker->set_state(tracker_state);
+  tracker->get()->set_state(tracker_state);
 
-  m_slot_failed(tracker, msg);
+  if (m_slot_failed)
+    m_slot_failed(tracker, msg);
 }
 
 void
@@ -346,7 +376,7 @@ TrackerList::receive_scrape_success(Tracker* tracker) {
 
   tracker_state.m_scrape_time_last = cachedTime.seconds();
   tracker_state.m_scrape_counter++;
-  tracker->set_state(tracker_state);
+  tracker->get()->set_state(tracker_state);
 
   if (m_slot_scrape_success)
     m_slot_scrape_success(tracker);

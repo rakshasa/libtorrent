@@ -17,6 +17,7 @@
 #endif
 
 #include "helpers/progress_listener.h"
+#include "helpers/protectors.h"
 #include "helpers/utils.h"
 
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/net");
@@ -71,8 +72,11 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
   CppUnit::TestResultCollector result;
   progress_listener progress;
 
-  controller.addListener( &result );
-  controller.addListener( &progress );
+  controller.addListener(&result);
+  controller.addListener(&progress);
+
+  controller.popProtector();
+  controller.pushProtector(new ExceptionProtector());
 
   CppUnit::TextUi::TestRunner runner;
   add_tests(runner, std::getenv("TEST_NAME"));

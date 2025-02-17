@@ -1,11 +1,12 @@
-#include <torrent/tracker.h>
-#include <torrent/tracker_list.h>
-#include <torrent/tracker/tracker_state.h>
-#include <rak/timer.h>
-#include <cppunit/extensions/HelperMacros.h>
+#include "test/helpers/test_fixture.h"
+#include "test/helpers/tracker_test.h"
+#include "torrent/tracker.h"
+#include "torrent/tracker_list.h"
+#include "torrent/tracker/tracker_state.h"
+#include "rak/timer.h"
 
-class tracker_list_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(tracker_list_test);
+class test_tracker_list : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_tracker_list);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
   CPPUNIT_TEST(test_close);
@@ -50,59 +51,6 @@ public:
   void test_has_active();
 };
 
-class TrackerTest : public torrent::Tracker {
-public:
-  static const int flag_close_on_done = max_flag_size << 0;
-  static const int flag_scrape_on_success = max_flag_size << 1;
-
-  // TODO: Clean up tracker related enums.
-  TrackerTest(torrent::TrackerList* parent, const std::string& url, int flags = torrent::Tracker::flag_enabled) :
-    torrent::Tracker(parent, url, flags),
-    m_busy(false),
-    m_open(false),
-    m_requesting_state(-1) { m_flags |= flag_close_on_done; }
-
-  virtual bool        is_busy() const { return m_busy; }
-  bool                is_open() const { return m_open; }
-
-  virtual torrent::tracker_enum type() const { return (torrent::tracker_enum)(torrent::TRACKER_DHT + 1); }
-
-  int                 requesting_state() const { return m_requesting_state; }
-
-  bool                trigger_success(uint32_t new_peers = 0, uint32_t sum_peers = 0);
-  bool                trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers = 0);
-  bool                trigger_failure();
-  bool                trigger_scrape();
-
-  void                set_close_on_done(bool state) { if (state) m_flags |= flag_close_on_done; else m_flags &= ~flag_close_on_done; }
-  void                set_scrape_on_success(bool state) { if (state) m_flags |= flag_scrape_on_success; else m_flags &= ~flag_scrape_on_success; }
-  void                set_can_scrape()              { m_flags |= flag_can_scrape; }
-
-  void                set_success(uint32_t counter, uint32_t time_last);
-  void                set_failed(uint32_t counter, uint32_t time_last);
-  void                set_latest_new_peers(uint32_t peers);
-  void                set_latest_sum_peers(uint32_t peers);
-
-  void                set_new_normal_interval(uint32_t timeout);
-  void                set_new_min_interval(uint32_t timeout);
-
-  virtual void        send_event(torrent::TrackerState::event_enum new_state);
-  virtual void        send_scrape();
-  virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
-  virtual void        disown()              { m_busy = false; m_open = false; m_requesting_state = -1; }
-
-private:
-  bool                m_busy;
-  bool                m_open;
-  int                 m_requesting_state;
-};
-
-extern uint32_t return_new_peers;
-inline uint32_t increment_value(int* value) { (*value)++; return return_new_peers; }
-
-inline void increment_value_void(int* value) { (*value)++; }
-inline unsigned int increment_value_uint(int* value) { (*value)++; return return_new_peers; }
-
 bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* states, bool scrape);
 
 #define TRACKER_SETUP()                                                 \
@@ -116,8 +64,8 @@ bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const c
   tracker_list.slot_scrape_success() = std::bind(&increment_value_void, &scrape_success_counter); \
   tracker_list.slot_scrape_failure() = std::bind(&increment_value_void, &scrape_failure_counter);
 
-#define TRACKER_INSERT(group, name)                             \
-  TrackerTest* name = new TrackerTest(&tracker_list, "");       \
+#define TRACKER_INSERT(group, name)                                     \
+  auto name = TrackerTest::new_tracker(&tracker_list, "");              \
   tracker_list.insert(group, name);
 
 #define TEST_TRACKER_IS_BUSY(tracker, state)            \
