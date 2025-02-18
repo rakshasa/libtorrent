@@ -27,7 +27,7 @@ AddressList::parse_address_compact(const std::string& s) {
 }
 
 // Move somewhere else.
-struct SocketAddressCompact {
+struct [[gnu::packed]] SocketAddressCompact {
   SocketAddressCompact() {}
   SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
   SocketAddressCompact(const rak::socket_address_inet* sa) : addr(sa->address_n()), port(sa->port_n()) {}
@@ -45,9 +45,9 @@ struct SocketAddressCompact {
   uint16_t port;
 
   const char*         c_str() const { return reinterpret_cast<const char*>(this); }
-} __attribute__ ((packed));
+};
 
-struct SocketAddressCompact6 {
+struct [[gnu::packed]] SocketAddressCompact6 {
   SocketAddressCompact6() {}
   SocketAddressCompact6(in6_addr a, uint16_t p) : addr(a), port(p) {}
   SocketAddressCompact6(const rak::socket_address_inet6* sa) : addr(sa->address()), port(sa->port_n()) {}
@@ -65,7 +65,7 @@ struct SocketAddressCompact6 {
   uint16_t port;
 
   const char*         c_str() const { return reinterpret_cast<const char*>(this); }
-} __attribute__ ((packed));
+};
 
 }
 

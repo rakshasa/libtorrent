@@ -114,13 +114,13 @@ private:
   static const int dht_error_protocol   = 203;
   static const int dht_error_bad_method = 204;
 
-  struct compact_node_info {
+  struct [[gnu::packed]] compact_node_info {
     char                 _id[20];
     SocketAddressCompact _addr;
 
     HashString&          id()          { return *HashString::cast_from(_id); }
     rak::socket_address  address()     { return rak::socket_address(_addr); }
-  } __attribute__ ((packed));
+  };
 
   typedef std::deque<DhtTransactionPacket*> packet_queue;
   typedef std::list<compact_node_info> node_info_list;
