@@ -50,7 +50,7 @@
 
 // Not really important, so no need to make this a configure check.
 #ifdef __GNUC__
-#define ATTRIBUTE_PRINTF(num) __attribute__ ((format (printf, num, num+1)))
+#define ATTRIBUTE_PRINTF(num) [[gnu::format(printf, num, num + 1)]]
 #else
 #define ATTRIBUTE_PRINTF(num)
 #endif
