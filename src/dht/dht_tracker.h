@@ -74,7 +74,7 @@ public:
 
 private:
   // We need to store the address as a bencoded string.
-  struct BencodeAddress {
+  struct [[gnu::packed]] BencodeAddress {
     char                 header[2];
     SocketAddressCompact peer;
 
@@ -83,7 +83,7 @@ private:
     const char*  bencode() const { return header; }
 
     bool         empty() const   { return !peer.port; }
-  } __attribute__ ((packed));
+  };
 
   typedef std::vector<BencodeAddress> PeerList;
 

@@ -12,7 +12,7 @@
 
 namespace torrent {
 
-struct socket_address_compact {
+struct [[gnu::packed]] socket_address_compact {
   socket_address_compact() {}
   socket_address_compact(uint32_t a, uint16_t p) : addr(a), port(p) {}
   socket_address_compact(const rak::socket_address_inet* sa) : addr(sa->address_n()), port(sa->port_n()) {}
@@ -31,9 +31,9 @@ struct socket_address_compact {
 
   // TODO: c_str? should be c_ptr or something.
   const char*         c_str() const { return reinterpret_cast<const char*>(this); }
-} __attribute__ ((packed));
+};
 
-struct socket_address_compact6 {
+struct [[gnu::packed]] socket_address_compact6 {
   socket_address_compact6() {}
   socket_address_compact6(in6_addr a, uint16_t p) : addr(a), port(p) {}
   socket_address_compact6(const rak::socket_address_inet6* sa) : addr(sa->address()), port(sa->port_n()) {}
@@ -51,7 +51,7 @@ struct socket_address_compact6 {
   uint16_t port;
 
   const char*         c_str() const { return reinterpret_cast<const char*>(this); }
-} __attribute__ ((packed));
+};
 
 }
 

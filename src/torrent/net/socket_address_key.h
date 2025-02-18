@@ -14,7 +14,7 @@
 
 namespace torrent {
 
-class socket_address_key {
+class [[gnu::packed]] socket_address_key {
 public:
   // TODO: Disable default ctor?
 
@@ -42,7 +42,7 @@ private:
     in_addr m_addr;
     in6_addr m_addr6;
   };
-} __attribute__ ((packed));
+};
 
 inline bool
 socket_address_key::is_comparable_sockaddr(const sockaddr* sa) {
