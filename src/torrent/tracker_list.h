@@ -81,8 +81,6 @@ public:
 
   DownloadInfo*       info()                                  { return m_info; }
   int                 state()                                 { return m_state; }
-
-  // TODO: Key is not changed, fixme.
   uint32_t            key() const                             { return m_key; }
 
   int32_t             numwant() const                         { return m_numwant; }
@@ -129,11 +127,13 @@ protected:
 
   void                set_info(DownloadInfo* info)            { m_info = info; }
   void                set_state(int s)                        { m_state = s; }
+  void                set_key(uint32_t k)                     { m_key = k; }
 
 private:
   DownloadInfo*       m_info{nullptr};
   int                 m_state;
 
+  // TODO: Key should be part of download static info.
   uint32_t            m_key{0};
   int32_t             m_numwant{-1};
 

@@ -72,7 +72,7 @@ DownloadWrapper::~DownloadWrapper() {
 }
 
 void
-DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
+DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint32_t tracker_key) {
   char hashObfuscated[20];
   sha1_salt("req2", 4, hash.c_str(), hash.length(), hashObfuscated);
 
@@ -85,6 +85,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   info()->slot_completed() = std::bind(&FileList::completed_bytes, m_main->file_list());
 
   file_list()->mutable_data()->mutable_hash().assign(hash.c_str());
+
+  m_main->tracker_list()->set_key(tracker_key);
 
   m_main->slot_hash_check_add([this](torrent::ChunkHandle handle) { return check_chunk_hash(handle); });
 
