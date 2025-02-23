@@ -30,7 +30,7 @@ public:
   ChunkList*          chunk_list()                            { return m_main->chunk_list(); }
 
   // Initialize hash checker and various download stuff.
-  void                initialize(const std::string& hash, const std::string& id);
+  void                initialize(const std::string& hash, const std::string& id, uint32_t tracker_key);
 
   void                close();
 

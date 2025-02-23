@@ -125,6 +125,10 @@ enum {
   { if (torrent::log_groups[log_group].valid())                         \
       torrent::log_groups[log_group].internal_print(NULL, NULL, NULL, 0, __VA_ARGS__); }
 
+#define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
+  { if (torrent::log_groups[log_group].valid())                         \
+    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__); }
+
 #define lt_log_print_info(log_group, log_info, log_subsystem, ...)      \
   { if (torrent::log_groups[log_group].valid())                         \
       torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, NULL, 0, __VA_ARGS__); }
@@ -137,9 +141,9 @@ enum {
   { if (torrent::log_groups[log_group].valid())                         \
       torrent::log_groups[log_group].internal_print(NULL, NULL, log_dump_data, log_dump_size, __VA_ARGS__); }
 
-#define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
+#define lt_log_print_hash_dump(log_group, log_dump_data, log_dump_size, log_hash, log_subsystem, ...) \
   { if (torrent::log_groups[log_group].valid())                         \
-    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); }
 
 #define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, log_subsystem, ...) \
   { if (torrent::log_groups[log_group].valid())                         \

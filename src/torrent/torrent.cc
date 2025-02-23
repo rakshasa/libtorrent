@@ -53,7 +53,7 @@ calculate_reserved(uint32_t openMax) {
     return 32;
   else // Assumes we don't try less than 64.
     return 16;
-}    
+}
 
 void
 initialize() {
@@ -131,7 +131,7 @@ encoding_list() {
 }
 
 Download
-download_add(Object* object) {
+download_add(Object* object, uint32_t tracker_key) {
   auto                download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
@@ -159,7 +159,7 @@ download_add(Object* object) {
   std::string local_id = PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size());
 
   download->set_hash_queue(manager->hash_queue());
-  download->initialize(infoHash, local_id);
+  download->initialize(infoHash, local_id, tracker_key);
 
   // Add trackers, etc, after setting the info hash so that log
   // entries look sane.

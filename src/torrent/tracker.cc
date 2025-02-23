@@ -38,7 +38,7 @@ Tracker::is_usable() const {
 
 bool
 Tracker::can_request_state() const {
-  return !(m_worker->is_busy() && state().latest_event() != TrackerState::EVENT_SCRAPE) && is_usable();
+  return !(m_worker->is_busy() && state().latest_event() != tracker::TrackerState::EVENT_SCRAPE) && is_usable();
 }
 
 bool
@@ -51,6 +51,7 @@ Tracker::enable() {
   if (!m_worker->enable())
     return;
 
+  // TODO: Move to worker.
   if (m_parent->slot_tracker_enabled())
     m_parent->slot_tracker_enabled()(this);
 }
@@ -71,7 +72,7 @@ Tracker::type() const {
 
 const std::string&
 Tracker::url() const {
-  return m_worker->url();
+  return m_worker->info().url;
 }
 
 std::string
@@ -79,7 +80,7 @@ Tracker::tracker_id() const {
   return m_worker->tracker_id();
 }
 
-TrackerState
+tracker::TrackerState
 Tracker::state() const {
   return m_worker->state();
 }

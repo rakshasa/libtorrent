@@ -11,12 +11,12 @@
 #include <torrent/tracker.h>
 #include <torrent/tracker/tracker_wrappers.h>
 
-namespace torrent {
-
-// TODO: Don't export, this should be in src/tracker?
+namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT TrackerManager {
 public:
+  // TODO: Make protected.
+
   TrackerControllerWrapper add_controller(DownloadInfo* download_info, TrackerController* controller);
   void                     remove_controller(TrackerControllerWrapper controller);
 

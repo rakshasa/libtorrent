@@ -44,8 +44,8 @@ public:
 
   static const int enable_dont_reset_stats = 0x1;
 
-  static const int close_disown_stop       = 0x1 << TrackerState::EVENT_STOPPED;
-  static const int close_disown_completed  = 0x1 << TrackerState::EVENT_COMPLETED;
+  static const int close_disown_stop       = 0x1 << tracker::TrackerState::EVENT_STOPPED;
+  static const int close_disown_completed  = 0x1 << tracker::TrackerState::EVENT_COMPLETED;
 
   TrackerController(TrackerList* trackers);
   ~TrackerController();
@@ -105,7 +105,7 @@ private:
 
   void                update_timeout(uint32_t seconds_to_next);
 
-  inline TrackerState::event_enum current_send_event() const;
+  inline tracker::TrackerState::event_enum current_send_event() const;
 
   int                 m_flags;
   TrackerList*        m_tracker_list;

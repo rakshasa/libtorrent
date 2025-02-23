@@ -13,12 +13,14 @@ class Http;
 
 class TrackerHttp : public TrackerWorker {
 public:
-  TrackerHttp(TrackerList* parent, const std::string& url, int flags);
+  static const uint32_t http_timeout = 60;
+
+  TrackerHttp(const TrackerInfo& info, int flags = 0);
   ~TrackerHttp();
 
   bool                is_busy() const override;
 
-  void                send_event(TrackerState::event_enum new_state) override;
+  void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
   void                close() override;
   void                disown() override;

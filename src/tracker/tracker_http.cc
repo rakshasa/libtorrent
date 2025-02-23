@@ -25,15 +25,15 @@
 #include "manager.h"
 
 #define LT_LOG_TRACKER_REQUESTS(log_fmt, ...)                             \
-  lt_log_print_info(LOG_TRACKER_REQUESTS, m_parent->info(), "tracker_http", log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_http", log_fmt, __VA_ARGS__);
 
 #define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
-  lt_log_print_info_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, m_parent->info(), "tracker_http", log_fmt, __VA_ARGS__);
+  lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, "tracker_http", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags) :
-  TrackerWorker(parent, url, flags),
+TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags) :
+  TrackerWorker(info, flags),
 
   m_get(Http::slot_factory()()),
   m_data(NULL) {
@@ -43,16 +43,16 @@ TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags)
 
   // Haven't considered if this needs any stronger error detection,
   // can dropping the '?' be used for malicious purposes?
-  size_t delim_options = url.rfind('?');
+  size_t delim_options = info.url.rfind('?');
 
   m_dropDeliminator = delim_options != std::string::npos &&
-    url.find('/', delim_options) == std::string::npos;
+    info.url.find('/', delim_options) == std::string::npos;
 
-  // Check the url if we can use scrape.
-  size_t delim_slash = url.rfind('/');
+  // Check the info().url() if we can use scrape.
+  size_t delim_slash = info.url.rfind('/');
 
   if (delim_slash != std::string::npos &&
-      url.find("/announce", delim_slash) == delim_slash)
+      info.url.find("/announce", delim_slash) == delim_slash)
     m_flags |= flag_can_scrape;
 }
 
@@ -70,19 +70,16 @@ void
 TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
   char hash[61];
 
-  *rak::copy_escape_html(m_parent->info()->hash().begin(),
-                         m_parent->info()->hash().end(), hash) = '\0';
+  *rak::copy_escape_html(info().info_hash.begin(),
+                         info().info_hash.end(), hash) = '\0';
   *stream << url
           << (m_dropDeliminator ? '&' : '?')
           << "info_hash=" << hash;
 }
 
 void
-TrackerHttp::send_event(TrackerState::event_enum new_state) {
+TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   close_directly();
-
-  if (m_parent == NULL)
-    throw internal_error("TrackerHttp::send_state(...) does not have a valid m_parent.");
 
   set_latest_event(new_state);
 
@@ -91,17 +88,17 @@ TrackerHttp::send_event(TrackerState::event_enum new_state) {
 
   char localId[61];
 
-  auto info = m_parent->info();
   auto tracker_id = this->tracker_id();
 
-  request_prefix(&s, url());
+  request_prefix(&s, info().url);
 
-  *rak::copy_escape_html(info->local_id().begin(), info->local_id().end(), localId) = '\0';
+  *rak::copy_escape_html(info().local_id.begin(), info().local_id.end(), localId) = '\0';
 
-  s << "&peer_id=" << localId;
+  s << "&peer_id=" << localId
+    << "&compact=1";
 
-  if (m_parent->key())
-    s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_parent->key() << std::dec;
+  if (info().key)
+    s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << info().key << std::dec;
 
   if (!tracker_id.empty())
     s << "&trackerid=" << rak::copy_escape_html(tracker_id);
@@ -120,31 +117,26 @@ TrackerHttp::send_event(TrackerState::event_enum new_state) {
     s << "&ip=" << localAddress->address_str();
   }
 
-  if (info->is_compact())
-    s << "&compact=1";
+  auto parameters = m_slot_parameters();
 
-  if (m_parent->numwant() >= 0 && new_state != TrackerState::EVENT_STOPPED)
-    s << "&numwant=" << m_parent->numwant();
+  if (parameters.numwant >= 0 && new_state != tracker::TrackerState::EVENT_STOPPED)
+    s << "&numwant=" << parameters.numwant;
 
   if (manager->connection_manager()->listen_port())
     s << "&port=" << manager->connection_manager()->listen_port();
 
-  uint64_t uploaded_adjusted = info->uploaded_adjusted();
-  uint64_t completed_adjusted = info->completed_adjusted();
-  uint64_t download_left = info->slot_left()();
-
-  s << "&uploaded=" << uploaded_adjusted
-    << "&downloaded=" << completed_adjusted
-    << "&left=" << download_left;
+  s << "&uploaded=" << parameters.uploaded_adjusted
+    << "&downloaded=" << parameters.completed_adjusted
+    << "&left=" << parameters.download_left;
 
   switch(new_state) {
-  case TrackerState::EVENT_STARTED:
+  case tracker::TrackerState::EVENT_STARTED:
     s << "&event=started";
     break;
-  case TrackerState::EVENT_STOPPED:
+  case tracker::TrackerState::EVENT_STOPPED:
     s << "&event=stopped";
     break;
-  case TrackerState::EVENT_COMPLETED:
+  case tracker::TrackerState::EVENT_COMPLETED:
     s << "&event=completed";
     break;
   default:
@@ -158,7 +150,7 @@ TrackerHttp::send_event(TrackerState::event_enum new_state) {
   LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(),
                       "Tracker HTTP request: state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
                       option_as_string(OPTION_TRACKER_EVENT, new_state),
-                      uploaded_adjusted, completed_adjusted, download_left);
+                      parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
 
   m_get->set_url(request_url);
   m_get->set_stream(m_data);
@@ -172,12 +164,12 @@ TrackerHttp::send_scrape() {
   if (m_data != NULL)
     return;
 
-  set_latest_event(TrackerState::EVENT_SCRAPE);
+  set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
 
   std::stringstream s;
   s.imbue(std::locale::classic());
 
-  request_prefix(&s, utils::uri_generate_scrape_url(url()));
+  request_prefix(&s, utils::uri_generate_scrape_url(info().url));
 
   m_data = new std::stringstream();
 
@@ -198,7 +190,7 @@ TrackerHttp::close() {
     return;
 
   LT_LOG_TRACKER_REQUESTS("Tracker HTTP request cancelled: state:%s url:%s.",
-                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
@@ -209,7 +201,7 @@ TrackerHttp::disown() {
     return;
 
   LT_LOG_TRACKER_REQUESTS("Tracker HTTP request disowned: state:%s url:%s.",
-                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   m_get->set_delete_self();
   m_get->set_delete_stream();
@@ -265,7 +257,7 @@ TrackerHttp::receive_done() {
     return receive_failed("Root not a bencoded map");
 
   if (b.has_key("failure reason")) {
-    if (state().latest_event() != TrackerState::EVENT_SCRAPE)
+    if (state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
       process_failure(b);
 
     return receive_failed("Failure reason \"" +
@@ -277,7 +269,7 @@ TrackerHttp::receive_done() {
 
   // If no failures, set intervals to defaults prior to processing
 
-  if (state().latest_event() == TrackerState::EVENT_SCRAPE)
+  if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE)
     process_scrape(b);
   else
     process_success(b);
@@ -298,7 +290,7 @@ TrackerHttp::receive_failed(std::string msg) {
 
   close_directly();
 
-  if (state().latest_event() == TrackerState::EVENT_SCRAPE)
+  if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE)
     m_slot_scrape_failure(msg);
   else
     m_slot_failure(msg);
@@ -339,12 +331,12 @@ TrackerHttp::process_success(const Object& object) {
   if (object.has_key_value("interval"))
     tracker_state.set_normal_interval(object.get_key_value("interval"));
   else
-    tracker_state.set_normal_interval(TrackerState::default_normal_interval);
+    tracker_state.set_normal_interval(tracker::TrackerState::default_normal_interval);
 
   if (object.has_key_value("min interval"))
     tracker_state.set_min_interval(object.get_key_value("min interval"));
   else
-    tracker_state.set_min_interval(TrackerState::default_min_interval);
+    tracker_state.set_min_interval(tracker::TrackerState::default_min_interval);
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
@@ -393,10 +385,10 @@ TrackerHttp::process_scrape(const Object& object) {
   // Add better validation here...
   const Object& files = object.get_key("files");
 
-  if (!files.has_key_map(m_parent->info()->hash().str()))
+  if (!files.has_key_map(info().info_hash.str()))
     return receive_failed("Tracker scrape replay did not contain infohash.");
 
-  const Object& stats = files.get_key(m_parent->info()->hash().str());
+  const Object& stats = files.get_key(info().info_hash.str());
 
   auto tracker_state = state();
 

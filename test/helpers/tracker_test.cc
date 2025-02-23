@@ -14,8 +14,8 @@ TrackerTest::set_success(uint32_t counter, uint32_t time_last) {
   auto tracker_state = state();
   tracker_state.m_success_counter = counter;
   tracker_state.m_success_time_last = time_last;
-  tracker_state.set_normal_interval(torrent::TrackerState::default_normal_interval);
-  tracker_state.set_min_interval(torrent::TrackerState::default_min_interval);
+  tracker_state.set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
+  tracker_state.set_min_interval(torrent::tracker::TrackerState::default_min_interval);
   set_state(tracker_state);
 }
 
@@ -58,7 +58,7 @@ TrackerTest::set_new_min_interval(uint32_t timeout) {
 }
 
 void
-TrackerTest::send_event(torrent::TrackerState::event_enum new_state) {
+TrackerTest::send_event(torrent::tracker::TrackerState::event_enum new_state) {
   // Trackers close on-going requests when new state is sent.
   m_busy = true;
   m_open = true;
@@ -74,8 +74,8 @@ TrackerTest::send_scrape() {
 
   m_busy = true;
   m_open = true;
-  m_requesting_state = torrent::TrackerState::EVENT_SCRAPE;
-  set_latest_event(torrent::TrackerState::EVENT_SCRAPE);
+  m_requesting_state = torrent::tracker::TrackerState::EVENT_SCRAPE;
+  set_latest_event(torrent::tracker::TrackerState::EVENT_SCRAPE);
 }
 
 bool
@@ -96,22 +96,22 @@ bool
 TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_peers) {
   CPPUNIT_ASSERT(is_busy() && is_open());
 
-  if (m_parent == NULL)
-    return false;
-
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
   return_new_peers = new_peers;
 
-  if (state().latest_event() == torrent::TrackerState::EVENT_SCRAPE) {
-    m_slot_scrape_success();
+  if (state().latest_event() == torrent::tracker::TrackerState::EVENT_SCRAPE) {
+    if (m_slot_scrape_success)
+      m_slot_scrape_success();
+
   } else {
     auto tracker_state = state();
-    tracker_state.set_normal_interval(torrent::TrackerState::default_normal_interval);
-    tracker_state.set_min_interval(torrent::TrackerState::default_min_interval);
+    tracker_state.set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
+    tracker_state.set_min_interval(torrent::tracker::TrackerState::default_min_interval);
     set_state(tracker_state);
 
-    m_slot_success(std::move(*address_list));
+    if (m_slot_success)
+      m_slot_success(std::move(*address_list));
   }
 
   m_requesting_state = -1;
@@ -122,22 +122,22 @@ bool
 TrackerTest::trigger_failure() {
   CPPUNIT_ASSERT(is_busy() && is_open());
 
-  if (m_parent == NULL)
-    return false;
-
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
   return_new_peers = 0;
 
-  if (state().latest_event() == torrent::TrackerState::EVENT_SCRAPE) {
-    m_slot_scrape_failure("failed");
+  if (state().latest_event() == torrent::tracker::TrackerState::EVENT_SCRAPE) {
+    if (m_slot_scrape_failure)
+      m_slot_scrape_failure("failed");
+
   } else {
     auto tracker_state = state();
     tracker_state.set_normal_interval(0);
     tracker_state.set_min_interval(0);
     set_state(tracker_state);
 
-    m_slot_failure("failed");
+    if (m_slot_failure)
+      m_slot_failure("failed");
   }
 
   m_requesting_state = -1;
@@ -146,10 +146,10 @@ TrackerTest::trigger_failure() {
 
 bool
 TrackerTest::trigger_scrape() {
-  if (m_parent == NULL || !is_busy() || !is_open())
+  if (!is_busy() || !is_open())
     return false;
 
-  if (state().latest_event() != torrent::TrackerState::EVENT_SCRAPE)
+  if (state().latest_event() != torrent::tracker::TrackerState::EVENT_SCRAPE)
     return false;
 
   return trigger_success();

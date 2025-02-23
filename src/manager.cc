@@ -37,7 +37,7 @@ Manager::Manager() :
   m_file_manager(new FileManager),
   m_handshake_manager(new HandshakeManager),
   m_resource_manager(new ResourceManager),
-  m_tracker_manager(new TrackerManager),
+  m_tracker_manager(new tracker::TrackerManager),
 
   m_client_list(new ClientList),
 

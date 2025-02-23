@@ -23,8 +23,11 @@ class HandshakeManager;
 class PeerInfo;
 class Poll;
 class ResourceManager;
-class TrackerManager;
 class Throttle;
+
+namespace tracker {
+class TrackerManager;
+}
 
 typedef std::list<std::string> EncodingList;
 
@@ -40,7 +43,7 @@ public:
   FileManager*        file_manager()                            { return m_file_manager.get(); }
   HandshakeManager*   handshake_manager()                       { return m_handshake_manager.get(); }
   ResourceManager*    resource_manager()                        { return m_resource_manager.get(); }
-  TrackerManager*     tracker_manager()                         { return m_tracker_manager.get(); }
+  tracker::TrackerManager* tracker_manager()                    { return m_tracker_manager.get(); }
 
   ClientList*         client_list()                             { return m_client_list.get(); }
   HashQueue*          hash_queue()                              { return m_hash_queue.get(); }
@@ -68,7 +71,7 @@ private:
   std::unique_ptr<FileManager>       m_file_manager;
   std::unique_ptr<HandshakeManager>  m_handshake_manager;
   std::unique_ptr<ResourceManager>   m_resource_manager;
-  std::unique_ptr<TrackerManager>    m_tracker_manager;
+  std::unique_ptr<tracker::TrackerManager> m_tracker_manager;
 
   std::unique_ptr<ClientList>        m_client_list;
   std::unique_ptr<HashQueue>         m_hash_queue;

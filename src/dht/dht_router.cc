@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 #include "globals.h"
 
@@ -159,15 +123,15 @@ DhtRouter::stop() {
 
 // Start a DHT get_peers and announce_peer request.
 void
-DhtRouter::announce(DownloadInfo* info, TrackerDht* tracker) {
-  m_server.announce(*find_bucket(info->hash())->second, info->hash(), tracker);
+DhtRouter::announce(const HashString& info_hash, TrackerDht* tracker) {
+  m_server.announce(*find_bucket(info_hash)->second, info_hash, tracker);
 }
 
 // Cancel any running requests from the given tracker.
 // If info or tracker is not NULL, only cancel matching requests.
 void
-DhtRouter::cancel_announce(DownloadInfo* info, const TrackerDht* tracker) {
-  m_server.cancel_announce(info, tracker);
+DhtRouter::cancel_announce(const HashString* info_hash, const TrackerDht* tracker) {
+  m_server.cancel_announce(info_hash, tracker);
 }
 
 DhtTracker*
@@ -609,7 +573,7 @@ DhtRouter::delete_node(const DhtNodeList::accessor& itr) {
 struct contact_node_t {
   contact_node_t(DhtRouter* router, int port) : m_router(router), m_port(port) { }
 
-  void operator() (const sockaddr* sa, int err)
+  void operator() (const sockaddr* sa, [[maybe_unused]] int err)
     { if (sa != NULL) m_router->contact(rak::socket_address::cast_from(sa), m_port); }
 
   DhtRouter* m_router;

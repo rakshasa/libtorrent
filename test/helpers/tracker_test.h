@@ -10,8 +10,8 @@ public:
   static const int flag_scrape_on_success = max_flag_size << 1;
 
   // TODO: Clean up tracker related enums.
-  TrackerTest(torrent::TrackerList* parent, const std::string& url, int flags = torrent::TrackerWorker::flag_enabled) :
-    torrent::TrackerWorker(parent, url, flags),
+  TrackerTest(const torrent::TrackerInfo& info, int flags = torrent::TrackerWorker::flag_enabled) :
+    torrent::TrackerWorker(info, flags),
     m_busy(false),
     m_open(false),
     m_requesting_state(-1) { m_flags |= flag_close_on_done; }
@@ -40,14 +40,14 @@ public:
   void                set_new_normal_interval(uint32_t timeout);
   void                set_new_min_interval(uint32_t timeout);
 
-  virtual void        send_event(torrent::TrackerState::event_enum new_state);
+  virtual void        send_event(torrent::tracker::TrackerState::event_enum new_state);
   virtual void        send_scrape();
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
   virtual void        disown()              { m_busy = false; m_open = false; m_requesting_state = -1; }
 
-  static torrent::Tracker*     new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::TrackerWorker::flag_enabled);
-  static TrackerTest*          test_worker(torrent::Tracker* tracker);
-  static torrent::TrackerList* test_parent(torrent::Tracker* tracker);
+  static torrent::Tracker* new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::TrackerWorker::flag_enabled);
+  static TrackerTest*      test_worker(torrent::Tracker* tracker);
+  static int               test_flags(torrent::Tracker* tracker);
 
 private:
   bool                m_busy;
@@ -57,7 +57,15 @@ private:
 
 inline torrent::Tracker*
 TrackerTest::new_tracker(torrent::TrackerList* parent, const std::string& url, int flags) {
-  return new torrent::Tracker(parent, std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(parent, url, flags)));
+  auto tracker_info = torrent::TrackerInfo{
+    // .info_hash = m_info->hash(),
+    // .obfuscated_hash = m_info->hash_obfuscated(),
+    // .local_id = m_info->local_id(),
+    .url = url,
+    // .key = m_key
+  };
+
+  return new torrent::Tracker(parent, std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(tracker_info, flags)));
 }
 
 inline TrackerTest*
@@ -65,9 +73,9 @@ TrackerTest::test_worker(torrent::Tracker* tracker) {
   return dynamic_cast<TrackerTest*>(tracker->get());
 }
 
-inline torrent::TrackerList*
-TrackerTest::test_parent(torrent::Tracker* tracker) {
-  return tracker->get()->m_parent;
+inline int
+TrackerTest::test_flags(torrent::Tracker* tracker) {
+  return dynamic_cast<TrackerTest*>(tracker->get())->flags();
 }
 
 extern uint32_t return_new_peers;

@@ -24,7 +24,10 @@ public:
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 
-  TrackerUdp(TrackerList* parent, const std::string& url, int flags);
+  static const uint32_t udp_timeout = 30;
+  static const uint32_t udp_tries = 2;
+
+  TrackerUdp(const TrackerInfo& info, int flags = 0);
   ~TrackerUdp();
 
   const char*         type_name() const override { return "tracker_udp"; }
@@ -32,7 +35,7 @@ public:
   // TODO: Make sure TrackerWorker has all the virtual functions required.
   bool                is_busy() const override;
 
-  void                send_event(TrackerState::event_enum new_state) override;
+  void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
 
   void                close() override;

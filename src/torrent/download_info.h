@@ -16,6 +16,9 @@ class DownloadMain;
 
 // This will become a Download 'handle' of kinds.
 
+// TODO: Split into DownloadInfo and DownloadState.
+// TODO: Rename 'hash' to 'info_hash'.
+
 class LIBTORRENT_EXPORT DownloadInfo {
 public:
   typedef std::function<uint64_t ()>                              slot_stat_type;
@@ -32,7 +35,6 @@ public:
 
   static const int flag_open                = (1 << 0);
   static const int flag_active              = (1 << 1);
-  static const int flag_compact             = (1 << 2);
   static const int flag_accepting_new_peers = (1 << 3);
   static const int flag_accepting_seeders   = (1 << 4); // Only used during leeching.
   static const int flag_private             = (1 << 5);
@@ -60,7 +62,6 @@ public:
 
   bool                is_open() const                              { return m_flags & flag_open; }
   bool                is_active() const                            { return m_flags & flag_active; }
-  bool                is_compact() const                           { return m_flags & flag_compact; }
   bool                is_accepting_new_peers() const               { return m_flags & flag_accepting_new_peers; }
   bool                is_accepting_seeders() const                 { return m_flags & flag_accepting_seeders; }
   bool                is_private() const                           { return m_flags & flag_private; }
@@ -111,10 +112,6 @@ public:
   // Unix epoche, 0 == unknown.
   uint32_t            creation_date() const                        { return m_creationDate; }
   uint32_t            load_date() const                            { return m_loadDate; }
-
-  uint32_t            http_timeout() const                         { return 60; }
-  uint32_t            udp_timeout() const                          { return 30; }
-  uint32_t            udp_tries() const                            { return 2; }
 
   uint32_t            upload_unchoked() const                      { return m_upload_unchoked; }
   uint32_t            download_unchoked() const                    { return m_download_unchoked; }
