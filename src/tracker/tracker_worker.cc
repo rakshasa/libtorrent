@@ -5,10 +5,9 @@
 
 namespace torrent {
 
-TrackerWorker::TrackerWorker(TrackerList* parent, const std::string& url, int flags) :
+TrackerWorker::TrackerWorker(const TrackerInfo& info, int flags) :
   m_flags(flags),
-  m_parent(parent),
-  m_url(url) {
+  m_info(info) {
 }
 
 bool
@@ -52,7 +51,7 @@ TrackerWorker::clear_stats() {
 }
 
 void
-TrackerWorker::set_latest_event(TrackerState::event_enum event) {
+TrackerWorker::set_latest_event(tracker::TrackerState::event_enum event) {
   std::lock_guard<std::mutex> lock(m_state_mutex);
   m_state.m_latest_event = event;
 }

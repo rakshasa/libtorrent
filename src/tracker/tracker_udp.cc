@@ -22,15 +22,15 @@
 #include "manager.h"
 
 #define LT_LOG_TRACKER_REQUESTS(log_fmt, ...)                             \
-  lt_log_print_info(LOG_TRACKER_REQUESTS, m_parent->info(), "tracker_udp", log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
 
 #define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
-  lt_log_print_info_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, m_parent->info(), "tracker_udp", log_fmt, __VA_ARGS__);
+  lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
-TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
-  TrackerWorker(parent, url, flags) {
+TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
+  TrackerWorker(info, flags) {
 
   m_taskTimeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
 }
@@ -50,12 +50,12 @@ TrackerUdp::is_busy() const {
 }
 
 void
-TrackerUdp::send_event(TrackerState::event_enum new_state) {
+TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   close_directly();
 
   hostname_type hostname;
 
-  if (!parse_udp_url(url(), hostname, m_port))
+  if (!parse_udp_url(info().url, hostname, m_port))
     return receive_failed("could not parse hostname or port");
 
   set_latest_event(new_state);
@@ -138,8 +138,8 @@ TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
   manager->poll()->insert_write(this);
   manager->poll()->insert_error(this);
 
-  m_tries = m_parent->info()->udp_tries();
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
+  m_tries = udp_tries;
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 }
 
 void
@@ -148,7 +148,7 @@ TrackerUdp::close() {
     return;
 
   LT_LOG_TRACKER_REQUESTS("request cancelled (state:%s url:%s)",
-                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
+                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
@@ -159,7 +159,7 @@ TrackerUdp::disown() {
     return;
 
   LT_LOG_TRACKER_REQUESTS("request disowned (state:%s url:%s)",
-                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), url().c_str());
+                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
@@ -205,7 +205,7 @@ TrackerUdp::receive_timeout() {
   if (--m_tries == 0) {
     receive_failed("unable to connect to UDP tracker");
   } else {
-    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 
     manager->poll()->insert_write(this);
   }
@@ -238,9 +238,9 @@ TrackerUdp::event_read() {
 
     prepare_announce_input();
 
-    priority_queue_update(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
+    priority_queue_update(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 
-    m_tries = m_parent->info()->udp_tries();
+    m_tries = udp_tries;
     manager->poll()->insert_write(this);
     return;
 
@@ -288,24 +288,20 @@ TrackerUdp::prepare_connect_input() {
 
 void
 TrackerUdp::prepare_announce_input() {
-  DownloadInfo* info = m_parent->info();
-
   m_writeBuffer->reset();
 
   m_writeBuffer->write_64(m_connectionId);
   m_writeBuffer->write_32(m_action = 1);
   m_writeBuffer->write_32(m_transactionId = random());
 
-  m_writeBuffer->write_range(info->hash().begin(), info->hash().end());
-  m_writeBuffer->write_range(info->local_id().begin(), info->local_id().end());
+  m_writeBuffer->write_range(info().info_hash.begin(), info().info_hash.end());
+  m_writeBuffer->write_range(info().local_id.begin(), info().local_id.end());
 
-  uint64_t uploaded_adjusted = info->uploaded_adjusted();
-  uint64_t completed_adjusted = info->completed_adjusted();
-  uint64_t download_left = info->slot_left()();
+  auto parameters = m_slot_parameters();
 
-  m_writeBuffer->write_64(completed_adjusted);
-  m_writeBuffer->write_64(download_left);
-  m_writeBuffer->write_64(uploaded_adjusted);
+  m_writeBuffer->write_64(parameters.completed_adjusted);
+  m_writeBuffer->write_64(parameters.download_left);
+  m_writeBuffer->write_64(parameters.uploaded_adjusted);
   m_writeBuffer->write_32(m_send_state);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
@@ -316,8 +312,8 @@ TrackerUdp::prepare_announce_input() {
     local_addr = localAddress->sa_inet()->address_n();
 
   m_writeBuffer->write_32_n(local_addr);
-  m_writeBuffer->write_32(m_parent->key());
-  m_writeBuffer->write_32(m_parent->numwant());
+  m_writeBuffer->write_32(info().key);
+  m_writeBuffer->write_32(parameters.numwant);
   m_writeBuffer->write_16(manager->connection_manager()->listen_port());
 
   if (m_writeBuffer->size_end() != 98)
@@ -326,7 +322,7 @@ TrackerUdp::prepare_announce_input() {
   LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
                       "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
                       option_as_string(OPTION_TRACKER_EVENT, m_send_state),
-                      m_transactionId, uploaded_adjusted, completed_adjusted, download_left);
+                      m_transactionId, parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
 }
 
 bool
@@ -349,7 +345,7 @@ TrackerUdp::process_announce_output() {
   auto tracker_state = state();
 
   tracker_state.set_normal_interval(m_readBuffer->read_32());
-  tracker_state.set_min_interval(TrackerState::default_min_interval);
+  tracker_state.set_min_interval(tracker::TrackerState::default_min_interval);
 
   tracker_state.m_scrape_incomplete = m_readBuffer->read_32(); // leechers
   tracker_state.m_scrape_complete   = m_readBuffer->read_32(); // seeders

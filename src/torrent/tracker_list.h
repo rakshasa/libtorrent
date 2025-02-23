@@ -8,12 +8,9 @@
 #include <torrent/common.h>
 #include <torrent/tracker/tracker_state.h>
 
-namespace torrent {
+class test_tracker_list;
 
-class AddressList;
-class DownloadInfo;
-class DownloadWrapper;
-class Tracker;
+namespace torrent {
 
 // The tracker list will contain a list of tracker, divided into
 // subgroups. Each group must be randomized before we start. When
@@ -24,8 +21,6 @@ class Tracker;
 
 class LIBTORRENT_EXPORT TrackerList : private std::vector<Tracker*> {
 public:
-  friend class DownloadWrapper;
-
   typedef std::vector<Tracker*> base_type;
 
   typedef std::function<void (Tracker*)>                     slot_tracker;
@@ -78,17 +73,17 @@ public:
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   // TODO: Move these to controller / tracker.
-  void                send_event(Tracker* tracker, TrackerState::event_enum new_event);
-  void                send_event_idx(unsigned idx, TrackerState::event_enum new_event);
-  void                send_event_itr(iterator itr, TrackerState::event_enum new_event);
+  void                send_event(Tracker* tracker, tracker::TrackerState::event_enum new_event);
+  void                send_event_idx(unsigned idx, tracker::TrackerState::event_enum new_event);
+  void                send_event_itr(iterator itr, tracker::TrackerState::event_enum new_event);
 
   void                send_scrape(Tracker* tracker);
 
   DownloadInfo*       info()                                  { return m_info; }
   int                 state()                                 { return m_state; }
 
+  // TODO: Key is not changed, fixme.
   uint32_t            key() const                             { return m_key; }
-  void                set_key(uint32_t key)                   { m_key = key; }
 
   int32_t             numwant() const                         { return m_numwant; }
   void                set_numwant(int32_t n)                  { m_numwant = n; }
@@ -129,6 +124,9 @@ public:
   slot_tracker&       slot_tracker_disabled()                 { return m_slot_tracker_disabled; }
 
 protected:
+  friend class DownloadWrapper;
+  friend class ::test_tracker_list;
+
   void                set_info(DownloadInfo* info)            { m_info = info; }
   void                set_state(int s)                        { m_state = s; }
 
@@ -150,12 +148,12 @@ private:
 };
 
 inline void
-TrackerList::send_event_idx(unsigned idx, TrackerState::event_enum new_event) {
+TrackerList::send_event_idx(unsigned idx, tracker::TrackerState::event_enum new_event) {
   send_event(at(idx), new_event);
 }
 
 inline void
-TrackerList::send_event_itr(iterator itr, TrackerState::event_enum new_event) {
+TrackerList::send_event_itr(iterator itr, tracker::TrackerState::event_enum new_event) {
   if (itr == end())
     return;
 

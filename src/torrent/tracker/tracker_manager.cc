@@ -8,12 +8,10 @@
 #include "torrent/tracker_controller.h"
 #include "torrent/utils/log.h"
 
-// TODO: Remove old logging categories.
-
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
   lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker_manager", log_fmt, __VA_ARGS__);
 
-namespace torrent {
+namespace torrent::tracker {
 
 TrackerControllerWrapper
 TrackerManager::add_controller(DownloadInfo* download_info, TrackerController* controller) {

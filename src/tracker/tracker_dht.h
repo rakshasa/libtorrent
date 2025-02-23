@@ -9,7 +9,7 @@ namespace torrent {
 
 class TrackerDht : public TrackerWorker {
 public:
-  TrackerDht(TrackerList* parent, const std::string& url, int flags);
+  TrackerDht(const TrackerInfo& info, int flags = 0);
   ~TrackerDht();
 
   typedef enum {
@@ -25,7 +25,7 @@ public:
   bool                is_busy() const override;
   bool                is_usable() const override;
 
-  void                send_event(TrackerState::event_enum new_state) override;
+  void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
 
   void                close() override;

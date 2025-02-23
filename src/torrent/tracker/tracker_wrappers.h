@@ -10,9 +10,7 @@
 #include <torrent/common.h>
 #include <torrent/hash_string.h>
 
-namespace torrent {
-
-class AddressList;
+namespace torrent::tracker {
 
 // TODO: This should be renamed to Tracker later.
 class LIBTORRENT_EXPORT TrackerWrapper {
@@ -73,9 +71,9 @@ public:
   bool operator<(const TrackerControllerWrapper& rhs) const;
 
 protected:
-  friend class Download;
-  friend class DownloadMain;
-  friend class DownloadWrapper;
+  friend class torrent::Download;
+  friend class torrent::DownloadMain;
+  friend class torrent::DownloadWrapper;
   friend class TrackerManager;
 
   TrackerController*       get()        { return m_ptr.get(); }

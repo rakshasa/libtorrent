@@ -22,8 +22,8 @@ const char* TrackerDht::states[] = { "Idle", "Searching", "Announcing" };
 
 bool TrackerDht::is_allowed() { return manager->dht_manager()->is_valid(); }
 
-TrackerDht::TrackerDht(TrackerList* parent, const std::string& url, int flags) :
-  TrackerWorker(parent, url, flags),
+TrackerDht::TrackerDht(const TrackerInfo& info, int flags) :
+  TrackerWorker(info, flags),
   m_dht_state(state_idle) {
 
   if (!manager->dht_manager()->is_valid())
@@ -46,12 +46,9 @@ TrackerDht::is_usable() const {
 }
 
 void
-TrackerDht::send_event(TrackerState::event_enum new_state) {
-  if (m_parent == NULL)
-    throw internal_error("TrackerDht::send_state(...) does not have a valid m_parent.");
-
+TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
   if (is_busy()) {
-    manager->dht_manager()->router()->cancel_announce(m_parent->info(), this);
+    manager->dht_manager()->router()->cancel_announce(&info().info_hash, this);
 
     if (is_busy())
       throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
@@ -59,7 +56,7 @@ TrackerDht::send_event(TrackerState::event_enum new_state) {
 
   set_latest_event(new_state);
 
-  if (new_state == TrackerState::EVENT_STOPPED)
+  if (new_state == tracker::TrackerState::EVENT_STOPPED)
     return;
 
   m_dht_state = state_searching;
@@ -67,7 +64,7 @@ TrackerDht::send_event(TrackerState::event_enum new_state) {
   if (!manager->dht_manager()->is_active())
     return receive_failed("DHT server not active.");
 
-  manager->dht_manager()->router()->announce(m_parent->info(), this);
+  manager->dht_manager()->router()->announce(info().info_hash, this);
 
   auto tracker_state = state();
   tracker_state.set_normal_interval(20 * 60);
@@ -83,7 +80,7 @@ TrackerDht::send_scrape() {
 void
 TrackerDht::close() {
   if (is_busy())
-    manager->dht_manager()->router()->cancel_announce(m_parent->info(), this);
+    manager->dht_manager()->router()->cancel_announce(&info().info_hash, this);
 }
 
 void

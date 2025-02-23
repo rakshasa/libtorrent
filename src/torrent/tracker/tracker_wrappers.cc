@@ -10,7 +10,7 @@
 // #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
 //   lt_log_print(LOG_TRACKER_EVENTS, "tracker_manager", log_fmt, __VA_ARGS__);
 
-namespace torrent {
+namespace torrent::tracker {
 
 bool
 TrackerControllerWrapper::is_active() const {

@@ -1,11 +1,8 @@
 #ifndef LIBTORRENT_TRACKER_H
 #define LIBTORRENT_TRACKER_H
 
-#include <array>
-#include <atomic>
 #include <cinttypes>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <torrent/common.h>
 #include <torrent/tracker/tracker_state.h>
@@ -43,9 +40,10 @@ public:
   tracker_enum        type() const;
   const std::string&  url() const;
 
-  std::string         tracker_id() const;
-  TrackerState        state() const;;
+  std::string           tracker_id() const;
+  tracker::TrackerState state() const;;
 
+  // TODO: This should be fixed.
   virtual void        get_status(char* buffer, [[maybe_unused]] int length)  { buffer[0] = 0; }
 
 protected:

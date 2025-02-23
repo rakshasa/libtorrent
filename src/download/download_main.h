@@ -52,8 +52,8 @@ public:
   const class choke_group* c_choke_group() const                   { return m_choke_group; }
   void                     set_choke_group(class choke_group* grp) { m_choke_group = grp; }
 
-  TrackerControllerWrapper tracker_controller()                    { return m_tracker_controller; }
-  TrackerList*             tracker_list()                          { return m_tracker_list; }
+  tracker::TrackerControllerWrapper tracker_controller()           { return m_tracker_controller; }
+  TrackerList*                      tracker_list()                 { return m_tracker_list; }
 
   DownloadInfo*       info()                                     { return m_info; }
 
@@ -133,8 +133,8 @@ private:
 
   DownloadInfo*       m_info;
 
-  TrackerControllerWrapper m_tracker_controller;
-  TrackerList*             m_tracker_list;
+  tracker::TrackerControllerWrapper m_tracker_controller;
+  TrackerList*                      m_tracker_list;
 
   class choke_group*  m_choke_group;
 

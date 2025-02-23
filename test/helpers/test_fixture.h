@@ -3,7 +3,7 @@
 
 #include <cppunit/TestFixture.h>
 
-#include "helpers/mock_function.h"
+#include "test/helpers/mock_function.h"
 
 class test_fixture : public CppUnit::TestFixture {
 public:

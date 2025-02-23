@@ -102,12 +102,12 @@ TrackerList::clear_stats() {
 }
 
 void
-TrackerList::send_event(Tracker* tracker, TrackerState::event_enum new_event) {
-  if (!tracker->is_usable() || new_event == TrackerState::EVENT_SCRAPE)
+TrackerList::send_event(Tracker* tracker, tracker::TrackerState::event_enum new_event) {
+  if (!tracker->is_usable() || new_event == tracker::TrackerState::EVENT_SCRAPE)
     return;
 
   if (tracker->is_busy()) {
-    if (tracker->state().latest_event() != TrackerState::EVENT_SCRAPE)
+    if (tracker->state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
       return;
 
     tracker->get()->close();
@@ -160,8 +160,16 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
   tracker->m_worker->m_slot_scrape_failure = [this, tracker](const std::string& msg) {
     receive_scrape_failed(tracker, msg);
   };
+  tracker->m_worker->m_slot_parameters = [this]() -> TrackerParameters {
+     return TrackerParameters{
+       .numwant = m_numwant,
+       .uploaded_adjusted = m_info->uploaded_adjusted(),
+       .completed_adjusted = m_info->completed_adjusted(),
+       .download_left = m_info->slot_left()()
+     };
+    };
 
-  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, tracker->m_worker->url().c_str());
+  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, tracker->m_worker->info().url.c_str());
 
   if (m_slot_tracker_enabled)
     m_slot_tracker_enabled(tracker);
@@ -179,15 +187,23 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   if (extra_tracker)
     flags |= TrackerWorker::flag_extra_tracker;
 
+  auto tracker_info = TrackerInfo{
+    .info_hash = m_info->hash(),
+    .obfuscated_hash = m_info->hash_obfuscated(),
+    .local_id = m_info->local_id(),
+    .url = url,
+    .key = m_key
+  };
+
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
-    worker = new TrackerHttp(this, url, flags);
+    worker = new TrackerHttp(tracker_info, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    worker = new TrackerUdp(this, url, flags);
+    worker = new TrackerUdp(tracker_info, flags);
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    worker = new TrackerDht(this, url, flags);
+    worker = new TrackerDht(tracker_info, flags);
 
   } else {
     LT_LOG_TRACKER(WARN, "could find matching tracker protocol (url:%s)", url.c_str());

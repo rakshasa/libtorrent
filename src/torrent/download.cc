@@ -35,7 +35,6 @@ namespace torrent {
 
 const int DownloadInfo::flag_open;
 const int DownloadInfo::flag_active;
-const int DownloadInfo::flag_compact;
 const int DownloadInfo::flag_accepting_new_peers;
 const int DownloadInfo::flag_accepting_seeders;
 const int DownloadInfo::flag_private;
@@ -234,7 +233,7 @@ Download::tracker_list() const {
   return m_ptr->main()->tracker_list();
 }
 
-TrackerControllerWrapper
+tracker::TrackerControllerWrapper
 Download::tracker_controller() {
   return m_ptr->main()->tracker_controller();
 }

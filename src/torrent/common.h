@@ -28,6 +28,7 @@ typedef priority_enum priority_t;
 
 // Just forward declare everything here so we can keep the actual
 // headers clean.
+class AddressList;
 class AvailableList;
 class Bitfield;
 class Block;
@@ -72,8 +73,13 @@ class Throttle;
 class Tracker;
 class TrackerController;
 class TrackerList;
-class TrackerManager;
 class TransferList;
+
+namespace tracker {
+
+class TrackerManager;
+
+}
 
 // This should only need to be set when compiling libtorrent.
 #ifdef SUPPORT_ATTRIBUTE_VISIBILITY

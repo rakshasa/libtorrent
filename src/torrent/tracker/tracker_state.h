@@ -12,6 +12,9 @@ class TrackerDht;
 class TrackerHttp;
 class TrackerList;
 class TrackerUdp;
+class TrackerWorker;
+
+namespace tracker {
 
 class TrackerState {
 public:
@@ -58,12 +61,12 @@ public:
 
 protected:
   // TODO: Cull this list.
-  friend class Tracker;
-  friend class TrackerDht;
-  friend class TrackerHttp;
-  friend class TrackerList;
-  friend class TrackerUdp;
-  friend class TrackerWorker;
+  friend class torrent::Tracker;
+  friend class torrent::TrackerDht;
+  friend class torrent::TrackerHttp;
+  friend class torrent::TrackerList;
+  friend class torrent::TrackerUdp;
+  friend class torrent::TrackerWorker;
   friend class ::TrackerTest;
 
   void                set_normal_interval(int v);
@@ -119,6 +122,7 @@ TrackerState::failed_time_next() const {
   return m_failed_time_last + std::min(5 << std::min(m_failed_counter - 1, (uint32_t)6), min_min_interval-1);
 }
 
+} // namespace tracker
 
 } // namespace torrent
 
