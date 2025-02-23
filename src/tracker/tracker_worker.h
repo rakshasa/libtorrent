@@ -5,6 +5,7 @@
 
 #include <iosfwd>
 #include <functional>
+#include <mutex>
 #include <string>
 
 #include "torrent/object.h"
