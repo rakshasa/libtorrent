@@ -72,7 +72,7 @@ DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) 
 #ifdef USE_OPENSSL
   BIGNUM* k = BN_bin2bn(pubkey, length, nullptr);
 
-  m_secret.reset(new char[DH_size(dh_get(m_dh))]);
+  m_secret = std::make_unique<char[]>(DH_size(dh_get(m_dh)));
   m_size = DH_compute_key(reinterpret_cast<unsigned char*>(m_secret.get()), k, dh_get(m_dh));
   
   BN_free(k);

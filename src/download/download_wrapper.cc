@@ -82,7 +82,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
   m_main->slot_hash_check_add([this](torrent::ChunkHandle handle) { return check_chunk_hash(handle); });
 
   // Info hash must be calculate from here on.
-  m_hash_checker.reset(new HashTorrent(m_main->chunk_list()));
+  m_hash_checker = std::make_unique<HashTorrent>(m_main->chunk_list());
 
   // Connect various signals and slots.
   m_hash_checker->slot_check_chunk() = std::bind(&DownloadWrapper::check_chunk_hash, this, std::placeholders::_1);

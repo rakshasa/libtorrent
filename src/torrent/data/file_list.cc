@@ -191,7 +191,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
   iterator itr = position;
 
   while (first != last) {
-    File* new_file = new File();
+    auto new_file = std::make_unique<File>();
 
     new_file->set_offset(offset);
     new_file->set_size_bytes(std::get<0>(*first));
@@ -200,7 +200,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
     new_file->set_flags(std::get<2>(*first));
 
     offset += std::get<0>(*first);
-    *itr = std::unique_ptr<File>(new_file);
+    *itr = std::move(new_file);
 
     itr++;
     first++;
@@ -214,7 +214,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
 
 FileList::iterator
 FileList::merge(iterator first, iterator last, const Path& path) {
-  File* new_file = new File;
+  auto new_file = new File;
 
   // Set the path before deleting any iterators in case it refers to
   // one of the objects getting deleted.
@@ -333,13 +333,13 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   m_data.mutable_normal_priority()->insert(0, size_chunks());
   m_data.set_wanted_chunks(size_chunks());
 
-  File* new_file = new File();
+  auto new_file = std::make_unique<File>();
 
   new_file->set_offset(0);
   new_file->set_size_bytes(torrentSize);
   new_file->set_range(m_chunk_size);
 
-  base_type::push_back(std::unique_ptr<File>(new_file));
+  base_type::push_back(std::move(new_file));
 }
 
 struct file_list_cstr_less {
@@ -573,9 +573,9 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
   if (offset + length > m_torrent_size)
     throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
-  std::unique_ptr<Chunk> chunk(new Chunk);
+  auto chunk = std::make_unique<Chunk>();
 
-  auto itr = std::find_if(begin(), end(), [offset](value_type& file) { return file->is_valid_position(offset); });
+  auto itr = std::find_if(begin(), end(), [offset](const value_type& file) { return file->is_valid_position(offset); });
 
   for (; length != 0; ++itr) {
     if (itr == end())
