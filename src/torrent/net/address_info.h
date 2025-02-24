@@ -54,7 +54,7 @@ ai_clear(addrinfo* ai) {
 
 inline std::unique_ptr<addrinfo>
 ai_make_hint(int flags, int family, int socktype) {
-  std::unique_ptr<addrinfo> aip(new addrinfo);
+  auto aip = std::make_unique<addrinfo>();
 
   ai_clear(aip.get());
   aip->ai_flags = flags;
