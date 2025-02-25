@@ -6,7 +6,7 @@
 
 #include "rak/string_manip.h"
 
-namespace torrent { namespace utils {
+namespace torrent::utils {
 
 inline bool
 is_unreserved_uri_char(char c) {
@@ -170,5 +170,29 @@ uri_generate_scrape_url(std::string uri) {
   return uri.replace(delim_slash, sizeof("/announce") - 1, "/scrape");
 }
 
+bool
+uri_can_scrape(const std::string& uri) {
+  // TODO: Replace with uri parsers above.
 
-}}
+  size_t delim_slash = uri.rfind('/');
+
+  if (delim_slash == std::string::npos)
+    return false;
+
+  // TODO: This should be more robust.
+  return uri.find("/announce", delim_slash) == delim_slash;
+}
+
+bool
+uri_has_query(const std::string& uri) {
+  // TODO: Replace with uri parsers above.
+
+  size_t delim_options = uri.rfind('?');
+
+  if (delim_options == std::string::npos)
+    return false;
+
+  return uri.find('/', delim_options) == std::string::npos;
+}
+
+} // namespace torrent::utils

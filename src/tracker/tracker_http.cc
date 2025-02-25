@@ -33,37 +33,18 @@
 namespace torrent {
 
 TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags) :
-  TrackerWorker(info, flags),
+  TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags),
 
   m_get(Http::slot_factory()()),
-  m_data(NULL) {
+  m_drop_deliminator(utils::uri_has_query(info.url)) {
 
   m_get->signal_done().emplace_back(std::bind(&TrackerHttp::receive_done, this));
   m_get->signal_failed().emplace_back(std::bind(&TrackerHttp::receive_signal_failed, this, std::placeholders::_1));
-
-  // Haven't considered if this needs any stronger error detection,
-  // can dropping the '?' be used for malicious purposes?
-  size_t delim_options = info.url.rfind('?');
-
-  m_dropDeliminator = delim_options != std::string::npos &&
-    info.url.find('/', delim_options) == std::string::npos;
-
-  // Check the info().url() if we can use scrape.
-  size_t delim_slash = info.url.rfind('/');
-
-  if (delim_slash != std::string::npos &&
-      info.url.find("/announce", delim_slash) == delim_slash)
-    m_flags |= flag_can_scrape;
-}
-
-TrackerHttp::~TrackerHttp() {
-  delete m_get;
-  delete m_data;
 }
 
 bool
 TrackerHttp::is_busy() const {
-  return m_data != NULL;
+  return m_data != nullptr;
 }
 
 void
@@ -73,7 +54,7 @@ TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
   *rak::copy_escape_html(info().info_hash.begin(),
                          info().info_hash.end(), hash) = '\0';
   *stream << url
-          << (m_dropDeliminator ? '&' : '?')
+          << (m_drop_deliminator ? '&' : '?')
           << "info_hash=" << hash;
 }
 
@@ -81,7 +62,7 @@ void
 TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   close_directly();
 
-  set_latest_event(new_state);
+  lock_and_set_latest_event(new_state);
 
   std::stringstream s;
   s.imbue(std::locale::classic());
@@ -143,7 +124,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
     break;
   }
 
-  m_data = new std::stringstream();
+  m_data = std::make_unique<std::stringstream>();
 
   std::string request_url = s.str();
 
@@ -153,7 +134,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
                       parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
 
   m_get->set_url(request_url);
-  m_get->set_stream(m_data);
+  m_get->set_stream(m_data.get());
   m_get->set_timeout(2 * 60);
 
   m_get->start();
@@ -164,21 +145,21 @@ TrackerHttp::send_scrape() {
   if (m_data != NULL)
     return;
 
-  set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
+  lock_and_set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
 
   std::stringstream s;
   s.imbue(std::locale::classic());
 
   request_prefix(&s, utils::uri_generate_scrape_url(info().url));
 
-  m_data = new std::stringstream();
+  m_data = std::make_unique<std::stringstream>();
 
   std::string request_url = s.str();
 
   LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(), "Tracker HTTP scrape.", 0);
 
   m_get->set_url(request_url);
-  m_get->set_stream(m_data);
+  m_get->set_stream(m_data.get());
   m_get->set_timeout(2 * 60);
 
   m_get->start();
@@ -209,8 +190,8 @@ TrackerHttp::disown() {
   m_get->signal_failed().clear();
 
   // Allocate this dynamically, so that we don't need to do this here.
-  m_get = Http::slot_factory()();
-  m_data = NULL;
+  m_get = std::unique_ptr<Http>(Http::slot_factory()());
+  m_data.reset();
 }
 
 tracker_enum
@@ -226,8 +207,7 @@ TrackerHttp::close_directly() {
   m_get->close();
   m_get->set_stream(NULL);
 
-  delete m_data;
-  m_data = NULL;
+  m_data.reset();
 }
 
 void
@@ -246,7 +226,7 @@ TrackerHttp::receive_done() {
   // Temporarily reset the interval
   //
   // TODO: This might be causing an issue with too frequent tracker requests.
-  clear_intervals();
+  lock_and_clear_intervals();
 
   if (m_data->fail()) {
     std::string dump = m_data->str();
@@ -277,7 +257,7 @@ TrackerHttp::receive_done() {
 
 void
 TrackerHttp::receive_signal_failed(std::string msg) {
-  clear_intervals();
+  lock_and_clear_intervals();
   return receive_failed(msg);
 }
 
@@ -298,56 +278,54 @@ TrackerHttp::receive_failed(std::string msg) {
 
 void
 TrackerHttp::process_failure(const Object& object) {
+  auto guard = lock_guard();
+
   if (object.has_key_string("tracker id"))
     update_tracker_id(object.get_key_string("tracker id"));
 
-  auto tracker_state = state();
-
   if (object.has_key_value("interval"))
-    tracker_state.set_normal_interval(object.get_key_value("interval"));
+    state().set_normal_interval(object.get_key_value("interval"));
 
   if (object.has_key_value("min interval"))
-    tracker_state.set_min_interval(object.get_key_value("min interval"));
+    state().set_min_interval(object.get_key_value("min interval"));
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
-    tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
-    tracker_state.m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-    tracker_state.m_scrape_time_last = cachedTime.seconds();
+    state().m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
+    state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
+    state().m_scrape_time_last = cachedTime.seconds();
   }
 
   if (object.has_key_value("downloaded"))
-    tracker_state.m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
-
-  set_state(tracker_state);
+    state().m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
 }
 
 void
 TrackerHttp::process_success(const Object& object) {
-  if (object.has_key_string("tracker id"))
-    update_tracker_id(object.get_key_string("tracker id"));
+  {
+    auto guard = lock_guard();
 
-  auto tracker_state = state();
+    if (object.has_key_string("tracker id"))
+      update_tracker_id(object.get_key_string("tracker id"));
 
-  if (object.has_key_value("interval"))
-    tracker_state.set_normal_interval(object.get_key_value("interval"));
-  else
-    tracker_state.set_normal_interval(tracker::TrackerState::default_normal_interval);
+    if (object.has_key_value("interval"))
+      state().set_normal_interval(object.get_key_value("interval"));
+    else
+      state().set_normal_interval(tracker::TrackerState::default_normal_interval);
 
-  if (object.has_key_value("min interval"))
-    tracker_state.set_min_interval(object.get_key_value("min interval"));
-  else
-    tracker_state.set_min_interval(tracker::TrackerState::default_min_interval);
+    if (object.has_key_value("min interval"))
+      state().set_min_interval(object.get_key_value("min interval"));
+    else
+      state().set_min_interval(tracker::TrackerState::default_min_interval);
 
-  if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
-    tracker_state.m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
-    tracker_state.m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-    tracker_state.m_scrape_time_last = cachedTime.seconds();
+    if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
+      state().m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
+      state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
+      state().m_scrape_time_last = cachedTime.seconds();
+    }
+
+    if (object.has_key_value("downloaded"))
+      state().m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
   }
-
-  if (object.has_key_value("downloaded"))
-    tracker_state.m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
-
-  set_state(tracker_state);
 
   if (!object.has_key("peers") && !object.has_key("peers6"))
     return receive_failed("No peers returned");
@@ -390,24 +368,35 @@ TrackerHttp::process_scrape(const Object& object) {
 
   const Object& stats = files.get_key(info().info_hash.str());
 
-  auto tracker_state = state();
+  {
+    auto guard = lock_guard();
 
-  if (stats.has_key_value("complete"))
-    tracker_state.m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
+    if (stats.has_key_value("complete"))
+      state().m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
 
-  if (stats.has_key_value("incomplete"))
-    tracker_state.m_scrape_incomplete = std::max<int64_t>(stats.get_key_value("incomplete"), 0);
+    if (stats.has_key_value("incomplete"))
+      state().m_scrape_incomplete = std::max<int64_t>(stats.get_key_value("incomplete"), 0);
 
-  if (stats.has_key_value("downloaded"))
-    tracker_state.m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
+    if (stats.has_key_value("downloaded"))
+      state().m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
 
-  set_state(tracker_state);
-
-  LT_LOG_TRACKER_REQUESTS("Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
-                          files.as_map().size(), tracker_state.m_scrape_complete, tracker_state.m_scrape_incomplete, tracker_state.m_scrape_downloaded);
+    LT_LOG_TRACKER_REQUESTS("Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
+                            files.as_map().size(), state().m_scrape_complete, state().m_scrape_incomplete, state().m_scrape_downloaded);
+  }
 
   close_directly();
   m_slot_scrape_success();
+}
+
+void
+TrackerHttp::update_tracker_id(const std::string& id) {
+  if (id.empty())
+    return;
+
+  if (m_current_tracker_id == id)
+    return;
+
+  set_tracker_id(id);
 }
 
 }

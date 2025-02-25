@@ -58,7 +58,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   if (!parse_udp_url(info().url, hostname, m_port))
     return receive_failed("could not parse hostname or port");
 
-  set_latest_event(new_state);
+  lock_and_set_latest_event(new_state);
 
   LT_LOG_TRACKER_REQUESTS("hostname lookup (address:%s)", hostname.data());
 
@@ -342,16 +342,16 @@ TrackerUdp::process_announce_output() {
       m_readBuffer->read_32() != m_transactionId)
     return false;
 
-  auto tracker_state = state();
+  {
+    auto guard = lock_guard();
 
-  tracker_state.set_normal_interval(m_readBuffer->read_32());
-  tracker_state.set_min_interval(tracker::TrackerState::default_min_interval);
+    state().set_normal_interval(m_readBuffer->read_32());
+    state().set_min_interval(tracker::TrackerState::default_min_interval);
 
-  tracker_state.m_scrape_incomplete = m_readBuffer->read_32(); // leechers
-  tracker_state.m_scrape_complete   = m_readBuffer->read_32(); // seeders
-  tracker_state.m_scrape_time_last  = rak::timer::current().seconds();
-
-  set_state(tracker_state);
+    state().m_scrape_incomplete = m_readBuffer->read_32(); // leechers
+    state().m_scrape_complete   = m_readBuffer->read_32(); // seeders
+    state().m_scrape_time_last  = rak::timer::current().seconds();
+  }
 
   AddressList l;
 

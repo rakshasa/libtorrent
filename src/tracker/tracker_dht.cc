@@ -31,7 +31,7 @@ TrackerDht::TrackerDht(const TrackerInfo& info, int flags) :
 }
 
 TrackerDht::~TrackerDht() {
-  if (is_busy())
+  if (m_dht_state != state_idle)
     manager->dht_manager()->router()->cancel_announce(NULL, this);
 }
 
@@ -42,19 +42,19 @@ TrackerDht::is_busy() const {
 
 bool
 TrackerDht::is_usable() const {
-  return is_enabled() && manager->dht_manager()->is_active();
+  return state().is_enabled() && manager->dht_manager()->is_active();
 }
 
 void
 TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
-  if (is_busy()) {
+  if (m_dht_state != state_idle) {
     manager->dht_manager()->router()->cancel_announce(&info().info_hash, this);
 
-    if (is_busy())
+    if (m_dht_state != state_idle)
       throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
   }
 
-  set_latest_event(new_state);
+  lock_and_set_latest_event(new_state);
 
   if (new_state == tracker::TrackerState::EVENT_STOPPED)
     return;
@@ -66,10 +66,8 @@ TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
 
   manager->dht_manager()->router()->announce(info().info_hash, this);
 
-  auto tracker_state = state();
-  tracker_state.set_normal_interval(20 * 60);
-  tracker_state.set_min_interval(0);
-  set_state(tracker_state);
+  state().set_normal_interval(20 * 60);
+  state().set_min_interval(0);
 }
 
 void
@@ -79,7 +77,7 @@ TrackerDht::send_scrape() {
 
 void
 TrackerDht::close() {
-  if (is_busy())
+  if (m_dht_state != state_idle)
     manager->dht_manager()->router()->cancel_announce(&info().info_hash, this);
 }
 
@@ -95,7 +93,7 @@ TrackerDht::type() const {
 
 void
 TrackerDht::receive_peers(raw_list peers) {
-  if (!is_busy())
+  if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_peers called while not busy.");
 
   m_peers.parse_address_bencode(peers);
@@ -103,7 +101,7 @@ TrackerDht::receive_peers(raw_list peers) {
 
 void
 TrackerDht::receive_success() {
-  if (!is_busy())
+  if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_success called while not busy.");
 
   m_dht_state = state_idle;
@@ -113,7 +111,7 @@ TrackerDht::receive_success() {
 
 void
 TrackerDht::receive_failed(const char* msg) {
-  if (!is_busy())
+  if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_failed called while not busy.");
 
   m_dht_state = state_idle;
@@ -124,7 +122,7 @@ TrackerDht::receive_failed(const char* msg) {
 
 void
 TrackerDht::receive_progress(int replied, int contacted) {
-  if (!is_busy())
+  if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_status called while not busy.");
 
   m_replied = replied;
@@ -133,7 +131,7 @@ TrackerDht::receive_progress(int replied, int contacted) {
 
 void
 TrackerDht::get_status(char* buffer, int length) {
-  if (!is_busy())
+  if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::get_status called while not busy.");
 
   snprintf(buffer, length, "[%s: %d/%d nodes replied]", states[m_dht_state], m_replied, m_contacted);

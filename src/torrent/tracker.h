@@ -15,6 +15,8 @@ class AddressList;
 class TrackerList;
 class TrackerWorker;
 
+// TODO: Move to torrent::tracker, make it a wrapper around TrackerWorker.
+
 class LIBTORRENT_EXPORT Tracker {
 public:
   virtual ~Tracker() = default;
@@ -22,16 +24,15 @@ public:
 
   Tracker& operator=(const Tracker&) = delete;
 
+  bool                is_busy() const;
+  bool                is_busy_not_scrape() const;
   bool                is_enabled() const;
   bool                is_extra_tracker() const;
   bool                is_in_use() const;
-
-  bool                is_busy() const;
-  bool                is_busy_not_scrape() const;
   bool                is_usable() const;
+  bool                is_scrapable() const;
 
   bool                can_request_state() const;
-  bool                can_scrape() const;
 
   void                enable();
   void                disable();
@@ -50,18 +51,21 @@ protected:
   friend class TrackerList;
   friend class ::TrackerTest;
 
-  Tracker(TrackerList* parent, std::shared_ptr<TrackerWorker>&& worker);
+  Tracker(std::shared_ptr<TrackerWorker>&& worker);
 
   // Rename get_worker
   TrackerWorker*      get() { return m_worker.get(); }
+
+  void                clear_stats();
 
   // Safeguard to catch bugs that lead to hammering of trackers.
   void                inc_request_counter();
 
   void                set_group(uint32_t v) { m_group = v; }
 
-  TrackerList*        m_parent;
   uint32_t            m_group{0};
+
+  // TODO: Move to TrackerWorker.
 
   // Timing of the last request, and a counter for how many requests
   // there's been in the recent past.

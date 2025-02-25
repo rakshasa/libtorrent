@@ -183,9 +183,9 @@ test_tracker_controller_features::test_scrape_basic() {
   auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
 
   CPPUNIT_ASSERT(!tracker_controller.is_scrape_queued());
-  tracker_0_1_worker->set_can_scrape();
-  tracker_0_2_worker->set_can_scrape();
-  tracker_2_0_worker->set_can_scrape();
+  tracker_0_1_worker->set_scrapable();
+  tracker_0_2_worker->set_scrapable();
+  tracker_2_0_worker->set_scrapable();
 
   tracker_controller.scrape_request(0);
 
@@ -227,7 +227,7 @@ test_tracker_controller_features::test_scrape_priority() {
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
   tracker_0_0_worker->trigger_success();
-  tracker_0_0_worker->set_can_scrape();
+  tracker_0_0_worker->set_scrapable();
 
   tracker_controller.scrape_request(0);
 
@@ -320,12 +320,12 @@ test_tracker_controller_features::test_groups_scrape() {
   auto tracker_1_1_worker = TrackerTest::test_worker(tracker_1_1);
   auto tracker_2_0_worker = TrackerTest::test_worker(tracker_2_0);
 
-  tracker_0_0_worker->set_can_scrape();
-  tracker_0_1_worker->set_can_scrape();
-  tracker_0_2_worker->set_can_scrape();
-  tracker_1_0_worker->set_can_scrape();
-  tracker_1_1_worker->set_can_scrape();
-  tracker_2_0_worker->set_can_scrape();
+  tracker_0_0_worker->set_scrapable();
+  tracker_0_1_worker->set_scrapable();
+  tracker_0_2_worker->set_scrapable();
+  tracker_1_0_worker->set_scrapable();
+  tracker_1_1_worker->set_scrapable();
+  tracker_2_0_worker->set_scrapable();
 
   CPPUNIT_ASSERT(!tracker_controller.is_scrape_queued());
 
