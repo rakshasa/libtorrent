@@ -78,6 +78,11 @@ protected:
   const tracker::TrackerState& state() const                { return m_state; }
 
   // Do not lock when calling these functions/slots:
+  //
+  // TODO: Review, these should be called locked? Yes.
+  //
+  // The slots should put a work order into the tracker controller thread, which will be correctly
+  // ordered as it pertains to a single tracker's slot calls.
 
   virtual void        close() = 0;
   virtual void        disown() = 0;
@@ -124,7 +129,7 @@ TrackerWorker::lock_and_set_latest_event(tracker::TrackerState::event_enum new_s
 
 inline bool
 TrackerWorker::is_busy_not_scrape() const {
-  return is_busy() && state().latest_event() == tracker::TrackerState::EVENT_SCRAPE;
+  return is_busy() && state().latest_event() != tracker::TrackerState::EVENT_SCRAPE;
 }
 
 } // namespace torrent
