@@ -72,6 +72,7 @@ TrackerTest::send_scrape() {
   m_busy = true;
   m_open = true;
   m_requesting_state = torrent::tracker::TrackerState::EVENT_SCRAPE;
+
   lock_and_set_latest_event(torrent::tracker::TrackerState::EVENT_SCRAPE);
 }
 

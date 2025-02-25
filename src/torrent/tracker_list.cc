@@ -203,6 +203,14 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     .key = m_key
   };
 
+  auto tracker_info = TrackerInfo{
+    .info_hash = m_info->hash(),
+    .obfuscated_hash = m_info->hash_obfuscated(),
+    .local_id = m_info->local_id(),
+    .url = url,
+    .key = m_key
+  };
+
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
     worker = new TrackerHttp(tracker_info, flags);
