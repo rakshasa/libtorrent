@@ -98,7 +98,7 @@ TrackerList::clear() {
 
 void
 TrackerList::clear_stats() {
-  std::for_each(begin(), end(), [](auto tracker) { tracker->get()->clear_stats(); });
+  std::for_each(begin(), end(), [](auto tracker) { tracker->clear_stats(); });
 }
 
 void
@@ -126,7 +126,7 @@ TrackerList::send_scrape(Tracker* tracker) {
   if (tracker->is_busy() || !tracker->is_usable())
     return;
 
-  if (!(tracker->get()->flags() & TrackerWorker::flag_can_scrape))
+  if (!tracker->is_scrapable())
     return;
 
   if (rak::timer::from_seconds(tracker->state().scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
@@ -148,25 +148,33 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
   // These slots are called from within the worker thread, so we need to
   // use proper signal passing to the main thread.
 
+  tracker->m_worker->m_slot_enabled = [this, tracker]() {
+      if (m_slot_tracker_enabled)
+        m_slot_tracker_enabled(tracker);
+    };
+  tracker->m_worker->m_slot_disabled = [this, tracker]() {
+      if (m_slot_tracker_disabled)
+        m_slot_tracker_disabled(tracker);
+    };
   tracker->m_worker->m_slot_success = [this, tracker](AddressList&& l) {
-    receive_success(tracker, &l);
-  };
+      receive_success(tracker, &l);
+    };
   tracker->m_worker->m_slot_failure = [this, tracker](const std::string& msg) {
-    receive_failed(tracker, msg);
-  };
+      receive_failed(tracker, msg);
+    };
   tracker->m_worker->m_slot_scrape_success = [this, tracker]() {
-    receive_scrape_success(tracker);
-  };
+      receive_scrape_success(tracker);
+    };
   tracker->m_worker->m_slot_scrape_failure = [this, tracker](const std::string& msg) {
-    receive_scrape_failed(tracker, msg);
-  };
+      receive_scrape_failed(tracker, msg);
+    };
   tracker->m_worker->m_slot_parameters = [this]() -> TrackerParameters {
-     return TrackerParameters{
-       .numwant = m_numwant,
-       .uploaded_adjusted = m_info->uploaded_adjusted(),
-       .completed_adjusted = m_info->completed_adjusted(),
-       .download_left = m_info->slot_left()()
-     };
+      return TrackerParameters{
+        .numwant = m_numwant,
+        .uploaded_adjusted = m_info->uploaded_adjusted(),
+        .completed_adjusted = m_info->completed_adjusted(),
+        .download_left = m_info->slot_left()()
+      };
     };
 
   LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, tracker->m_worker->info().url.c_str());
@@ -182,10 +190,10 @@ void
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
   TrackerWorker* worker;
 
-  int flags = TrackerWorker::flag_enabled;
+  int flags = tracker::TrackerState::flag_enabled;
 
   if (extra_tracker)
-    flags |= TrackerWorker::flag_extra_tracker;
+    flags |= tracker::TrackerState::flag_extra_tracker;
 
   auto tracker_info = TrackerInfo{
     .info_hash = m_info->hash(),
@@ -214,7 +222,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     return;
   }
 
-  insert(group, new Tracker(this, std::shared_ptr<TrackerWorker>(worker)));
+  insert(group, new Tracker(std::shared_ptr<TrackerWorker>(worker)));
 }
 
 TrackerList::iterator
@@ -342,22 +350,23 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
 
   // TODO: Update staate in TrackerWorker.
 
-  auto tracker_state = tracker->state();
-
-  tracker_state.m_success_time_last = cachedTime.seconds();
-  tracker_state.m_success_counter++;
-  tracker_state.m_failed_counter = 0;
-  tracker_state.m_latest_sum_peers = l->size();
-  tracker->get()->set_state(tracker_state);
+  {
+    auto guard = tracker->get()->lock_guard();
+    tracker->get()->state().m_success_time_last = cachedTime.seconds();
+    tracker->get()->state().m_success_counter++;
+    tracker->get()->state().m_failed_counter = 0;
+    tracker->get()->state().m_latest_sum_peers = l->size();
+  }
 
   if (!m_slot_success)
     return;
 
   auto new_peers = m_slot_success(tracker, l);
 
-  tracker_state = tracker->state();
-  tracker_state.m_latest_new_peers = new_peers;
-  tracker->get()->set_state(tracker_state);
+  {
+    auto guard = tracker->get()->lock_guard();
+    tracker->get()->state().m_latest_new_peers = new_peers;
+  }
 }
 
 void
@@ -369,11 +378,11 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
 
   LT_LOG_TRACKER(INFO, "failed to send request to tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
 
-  auto tracker_state = tracker->state();
-
-  tracker_state.m_failed_time_last = cachedTime.seconds();
-  tracker_state.m_failed_counter++;
-  tracker->get()->set_state(tracker_state);
+  {
+    auto guard = tracker->get()->lock_guard();
+    tracker->get()->state().m_failed_time_last = cachedTime.seconds();
+    tracker->get()->state().m_failed_counter++;
+  }
 
   if (m_slot_failed)
     m_slot_failed(tracker, msg);
@@ -388,11 +397,11 @@ TrackerList::receive_scrape_success(Tracker* tracker) {
 
   LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tracker->url().c_str());
 
-  auto tracker_state = tracker->state();
-
-  tracker_state.m_scrape_time_last = cachedTime.seconds();
-  tracker_state.m_scrape_counter++;
-  tracker->get()->set_state(tracker_state);
+  {
+    auto guard = tracker->get()->lock_guard();
+    tracker->get()->state().m_scrape_time_last = cachedTime.seconds();
+    tracker->get()->state().m_scrape_counter++;
+  }
 
   if (m_slot_scrape_success)
     m_slot_scrape_success(tracker);

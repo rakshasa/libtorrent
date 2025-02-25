@@ -32,7 +32,6 @@ public:
 
   const char*         type_name() const override { return "tracker_udp"; }
 
-  // TODO: Make sure TrackerWorker has all the virtual functions required.
   bool                is_busy() const override;
 
   void                send_event(tracker::TrackerState::event_enum new_state) override;

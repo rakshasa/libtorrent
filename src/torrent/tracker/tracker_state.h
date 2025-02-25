@@ -26,6 +26,14 @@ public:
     EVENT_SCRAPE
   };
 
+  static const int flag_enabled       = 0x1;
+  static const int flag_extra_tracker = 0x2;
+  static const int flag_scrapable     = 0x4;
+
+  // TODO: Remove these:
+  // static const int max_flag_size   = 0x10;
+  // static const int mask_base_flags = 0x10 - 1;
+
   static constexpr int default_min_interval = 600;
   static constexpr int min_min_interval     = 300;
   static constexpr int max_min_interval     = 4 * 3600;
@@ -34,33 +42,39 @@ public:
   static constexpr int min_normal_interval     = 600;
   static constexpr int max_normal_interval     = 8 * 3600;
 
-  uint32_t            normal_interval() const               { return m_normal_interval; }
-  uint32_t            min_interval() const                  { return m_min_interval; }
+  int                 flags() const              { return m_flags; }
 
-  int                 latest_event() const                  { return m_latest_event; }
-  uint32_t            latest_new_peers() const              { return m_latest_new_peers; }
-  uint32_t            latest_sum_peers() const              { return m_latest_sum_peers; }
+  bool                is_enabled() const         { return (m_flags & flag_enabled); }
+  bool                is_extra_tracker() const   { return (m_flags & flag_extra_tracker); }
+  bool                is_in_use() const          { return is_enabled() && m_success_counter != 0; }
+  bool                is_scrapable() const       { return (m_flags & flag_scrapable); }
+
+  uint32_t            normal_interval() const    { return m_normal_interval; }
+  uint32_t            min_interval() const       { return m_min_interval; }
+
+  int                 latest_event() const       { return m_latest_event; }
+  uint32_t            latest_new_peers() const   { return m_latest_new_peers; }
+  uint32_t            latest_sum_peers() const   { return m_latest_sum_peers; }
 
   uint32_t            success_time_next() const;
-  uint32_t            success_time_last() const             { return m_success_time_last; }
-  uint32_t            success_counter() const               { return m_success_counter; }
+  uint32_t            success_time_last() const  { return m_success_time_last; }
+  uint32_t            success_counter() const    { return m_success_counter; }
 
   uint32_t            failed_time_next() const;
-  uint32_t            failed_time_last() const              { return m_failed_time_last; }
-  uint32_t            failed_counter() const                { return m_failed_counter; }
+  uint32_t            failed_time_last() const   { return m_failed_time_last; }
+  uint32_t            failed_counter() const     { return m_failed_counter; }
 
-  uint32_t            activity_time_last() const            { return failed_counter() ? m_failed_time_last : m_success_time_last; }
-  uint32_t            activity_time_next() const            { return failed_counter() ? failed_time_next() : success_time_next(); }
+  uint32_t            activity_time_last() const { return failed_counter() ? m_failed_time_last : m_success_time_last; }
+  uint32_t            activity_time_next() const { return failed_counter() ? failed_time_next() : success_time_next(); }
 
-  uint32_t            scrape_time_last() const              { return m_scrape_time_last; }
-  uint32_t            scrape_counter() const                { return m_scrape_counter; }
+  uint32_t            scrape_time_last() const   { return m_scrape_time_last; }
+  uint32_t            scrape_counter() const     { return m_scrape_counter; }
 
-  uint32_t            scrape_complete() const               { return m_scrape_complete; }
-  uint32_t            scrape_incomplete() const             { return m_scrape_incomplete; }
-  uint32_t            scrape_downloaded() const             { return m_scrape_downloaded; }
+  uint32_t            scrape_complete() const    { return m_scrape_complete; }
+  uint32_t            scrape_incomplete() const  { return m_scrape_incomplete; }
+  uint32_t            scrape_downloaded() const  { return m_scrape_downloaded; }
 
 protected:
-  // TODO: Cull this list.
   friend class torrent::Tracker;
   friend class torrent::TrackerDht;
   friend class torrent::TrackerHttp;
@@ -69,8 +83,13 @@ protected:
   friend class torrent::TrackerWorker;
   friend class ::TrackerTest;
 
+  void                clear_intervals();
+  void                clear_stats();
+
   void                set_normal_interval(int v);
   void                set_min_interval(int v);
+
+  int                 m_flags;
 
   uint32_t            m_normal_interval{0};
   uint32_t            m_min_interval{0};
@@ -92,6 +111,21 @@ protected:
   uint32_t            m_scrape_incomplete{0};
   uint32_t            m_scrape_downloaded{0};
 };
+
+inline void
+TrackerState::clear_intervals() {
+  m_normal_interval = 0;
+  m_min_interval = 0;
+}
+
+inline void
+TrackerState::clear_stats() {
+  m_latest_new_peers = 0;
+  m_latest_sum_peers = 0;
+  m_success_counter = 0;
+  m_failed_counter = 0;
+  m_scrape_counter = 0;
+}
 
 inline void
 TrackerState::set_normal_interval(int v) {

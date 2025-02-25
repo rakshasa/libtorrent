@@ -2,6 +2,7 @@
 #define LIBTORRENT_TRACKER_TRACKER_HTTP_H
 
 #include <iosfwd>
+#include <memory>
 
 #include "torrent/object.h"
 #include "torrent/tracker/tracker_state.h"
@@ -16,7 +17,6 @@ public:
   static const uint32_t http_timeout = 60;
 
   TrackerHttp(const TrackerInfo& info, int flags = 0);
-  ~TrackerHttp();
 
   bool                is_busy() const override;
 
@@ -40,10 +40,13 @@ private:
   void                process_success(const Object& object);
   void                process_scrape(const Object& object);
 
-  Http*               m_get;
-  std::stringstream*  m_data;
+  void                update_tracker_id(const std::string& id);
 
-  bool                m_dropDeliminator;
+  std::unique_ptr<Http>              m_get;
+  std::unique_ptr<std::stringstream> m_data;
+
+  bool                m_drop_deliminator;
+  std::string         m_current_tracker_id;
 };
 
 }

@@ -142,20 +142,20 @@ test_tracker_controller_requesting::do_test_hammering_multi3(bool success1, bool
   TEST_MULTI3_IS_BUSY("00101", "00101");
 
   TrackerTest* next_tracker = tracker_0_0_worker;
-  unsigned int next_timeout = next_tracker->state().min_interval();
+  unsigned int next_timeout = next_tracker->test_state().min_interval();
   const char*  next_is_busy = "10111";
 
   if (tracker_0_0->state().min_interval() < tracker_2_0->state().min_interval()) {
-    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->state().min_interval() - 30));
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->test_state().min_interval() - 30));
     TEST_MULTI3_IS_BUSY("10101", "10101");
   } else if (tracker_0_0->state().min_interval() > tracker_2_0->state().min_interval()) {
     next_tracker = tracker_2_0_worker;
     next_timeout = tracker_0_0->state().min_interval() - tracker_2_0->state().min_interval();
     next_is_busy = "10101";
-    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->state().min_interval() - 30));
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->test_state().min_interval() - 30));
     TEST_MULTI3_IS_BUSY("00111", "00111");
   } else {
-    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->state().min_interval() - 30));
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, next_tracker->test_state().min_interval() - 30));
     TEST_MULTI3_IS_BUSY("10111", "10111");
   }
 

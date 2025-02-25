@@ -80,7 +80,7 @@ test_tracker_list_features::test_has_active() {
   tracker_0_0_worker->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_0_1_worker->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
-  tracker_1_0_worker->set_can_scrape();
+  tracker_1_0_worker->set_scrapable();
   tracker_list.send_scrape(tracker_1_0);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());

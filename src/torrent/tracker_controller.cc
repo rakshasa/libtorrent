@@ -490,7 +490,7 @@ TrackerController::do_scrape() {
     TrackerList::iterator group_end = m_tracker_list->end_group((*itr)->group());
 
     while (itr != group_end) {
-      if ((*itr)->can_scrape() && (*itr)->is_usable()) {
+      if ((*itr)->is_scrapable() && (*itr)->is_usable()) {
         m_tracker_list->send_scrape(*itr);
         break;
       }
@@ -537,7 +537,6 @@ TrackerController::receive_failure(Tracker* tracker, const std::string& msg) {
   }
 
   if (tracker == nullptr) {
-    LT_LOG_TRACKER_EVENTS("received failure : tracker_id:%s msg:'%s'", tracker->tracker_id().c_str(), msg.c_str());
     m_slot_failure(msg);
     return;
   }

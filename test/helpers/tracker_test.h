@@ -6,20 +6,16 @@
 
 class TrackerTest : public torrent::TrackerWorker {
 public:
-  static const int flag_close_on_done = max_flag_size << 0;
-  static const int flag_scrape_on_success = max_flag_size << 1;
+  static const int flag_close_on_done     = 0x10;
+  static const int flag_scrape_on_success = 0x20;
 
   // TODO: Clean up tracker related enums.
-  TrackerTest(const torrent::TrackerInfo& info, int flags = torrent::TrackerWorker::flag_enabled) :
-    torrent::TrackerWorker(info, flags),
-    m_busy(false),
-    m_open(false),
-    m_requesting_state(-1) { m_flags |= flag_close_on_done; }
+  TrackerTest(const torrent::TrackerInfo& info, int flags = torrent::tracker::TrackerState::flag_enabled);
 
-  virtual bool        is_busy() const { return m_busy; }
-  bool                is_open() const { return m_open; }
+  bool                is_busy() const override { return m_busy; }
+  bool                is_open() const          { return m_open; }
 
-  virtual torrent::tracker_enum type() const { return (torrent::tracker_enum)(torrent::TRACKER_DHT + 1); }
+  torrent::tracker_enum type() const override { return (torrent::tracker_enum)(torrent::TRACKER_DHT + 1); }
 
   int                 requesting_state() const { return m_requesting_state; }
 
@@ -28,9 +24,9 @@ public:
   bool                trigger_failure();
   bool                trigger_scrape();
 
-  void                set_close_on_done(bool state) { if (state) m_flags |= flag_close_on_done; else m_flags &= ~flag_close_on_done; }
-  void                set_scrape_on_success(bool state) { if (state) m_flags |= flag_scrape_on_success; else m_flags &= ~flag_scrape_on_success; }
-  void                set_can_scrape()              { m_flags |= flag_can_scrape; }
+  void                set_close_on_done(bool state);
+  void                set_scrape_on_success(bool state);
+  void                set_scrapable();
 
   void                set_success(uint32_t counter, uint32_t time_last);
   void                set_failed(uint32_t counter, uint32_t time_last);
@@ -40,23 +36,55 @@ public:
   void                set_new_normal_interval(uint32_t timeout);
   void                set_new_min_interval(uint32_t timeout);
 
-  virtual void        send_event(torrent::tracker::TrackerState::event_enum new_state);
-  virtual void        send_scrape();
-  virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
-  virtual void        disown()              { m_busy = false; m_open = false; m_requesting_state = -1; }
+  void                send_event(torrent::tracker::TrackerState::event_enum new_state) override;
+  void                send_scrape() override;
+  void                close() override  { m_busy = false; m_open = false; m_requesting_state = -1; }
+  virtual void        disown() override { m_busy = false; m_open = false; m_requesting_state = -1; }
 
-  static torrent::Tracker* new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::TrackerWorker::flag_enabled);
-  static TrackerTest*      test_worker(torrent::Tracker* tracker);
-  static int               test_flags(torrent::Tracker* tracker);
+  static torrent::Tracker* new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
+
+  torrent::tracker::TrackerState&        test_state() { return state(); }
+
+  static TrackerTest*                    test_worker(torrent::Tracker* tracker);
+  static int                             test_flags(torrent::Tracker* tracker);
+  static torrent::tracker::TrackerState& test_state(torrent::Tracker* tracker);
 
 private:
-  bool                m_busy;
-  bool                m_open;
-  int                 m_requesting_state;
+  bool                m_busy{false};
+  bool                m_open{false};
+  int                 m_requesting_state{-1};
 };
 
+inline
+TrackerTest::TrackerTest(const torrent::TrackerInfo& info, int flags) :
+  torrent::TrackerWorker(info, flags) {
+
+  state().m_flags |= flag_close_on_done;
+}
+
+inline void
+TrackerTest::set_close_on_done(bool s) {
+  if (s)
+    state().m_flags |= flag_close_on_done;
+  else
+    state().m_flags &= ~flag_close_on_done;
+}
+
+inline void
+TrackerTest::set_scrape_on_success(bool s) {
+  if (s)
+    state().m_flags |= flag_scrape_on_success;
+  else
+    state().m_flags &= ~flag_scrape_on_success;
+}
+
+inline void
+TrackerTest::set_scrapable() {
+  state().m_flags |= torrent::tracker::TrackerState::flag_scrapable;
+}
+
 inline torrent::Tracker*
-TrackerTest::new_tracker(torrent::TrackerList* parent, const std::string& url, int flags) {
+TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const std::string& url, int flags) {
   auto tracker_info = torrent::TrackerInfo{
     // .info_hash = m_info->hash(),
     // .obfuscated_hash = m_info->hash_obfuscated(),
@@ -65,7 +93,7 @@ TrackerTest::new_tracker(torrent::TrackerList* parent, const std::string& url, i
     // .key = m_key
   };
 
-  return new torrent::Tracker(parent, std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(tracker_info, flags)));
+  return new torrent::Tracker(std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(tracker_info, flags)));
 }
 
 inline TrackerTest*
@@ -75,7 +103,12 @@ TrackerTest::test_worker(torrent::Tracker* tracker) {
 
 inline int
 TrackerTest::test_flags(torrent::Tracker* tracker) {
-  return dynamic_cast<TrackerTest*>(tracker->get())->flags();
+  return dynamic_cast<TrackerTest*>(tracker->get())->state().flags();
+}
+
+inline torrent::tracker::TrackerState&
+TrackerTest::test_state(torrent::Tracker* tracker) {
+  return dynamic_cast<TrackerTest*>(tracker->get())->state();
 }
 
 extern uint32_t return_new_peers;
