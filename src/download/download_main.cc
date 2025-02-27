@@ -28,7 +28,7 @@
 #include "torrent/peer/peer_info.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
-#include "torrent/tracker/tracker_manager.h"
+#include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \

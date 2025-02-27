@@ -41,13 +41,13 @@ public:
   void                close() override  { m_busy = false; m_open = false; m_requesting_state = -1; }
   virtual void        disown() override { m_busy = false; m_open = false; m_requesting_state = -1; }
 
-  static torrent::Tracker* new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
+  static torrent::tracker::Tracker* new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
 
   torrent::tracker::TrackerState&        test_state() { return state(); }
 
-  static TrackerTest*                    test_worker(torrent::Tracker* tracker);
-  static int                             test_flags(torrent::Tracker* tracker);
-  static torrent::tracker::TrackerState& test_state(torrent::Tracker* tracker);
+  static TrackerTest*                    test_worker(torrent::tracker::Tracker* tracker);
+  static int                             test_flags(torrent::tracker::Tracker* tracker);
+  static torrent::tracker::TrackerState& test_state(torrent::tracker::Tracker* tracker);
 
 private:
   bool                m_busy{false};
@@ -83,7 +83,7 @@ TrackerTest::set_scrapable() {
   state().m_flags |= torrent::tracker::TrackerState::flag_scrapable;
 }
 
-inline torrent::Tracker*
+inline torrent::tracker::Tracker*
 TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const std::string& url, int flags) {
   auto tracker_info = torrent::TrackerInfo{
     // .info_hash = m_info->hash(),
@@ -93,22 +93,22 @@ TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const st
     // .key = m_key
   };
 
-  return new torrent::Tracker(std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(tracker_info, flags)));
+  return new torrent::tracker::Tracker(std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(tracker_info, flags)));
 }
 
 inline TrackerTest*
-TrackerTest::test_worker(torrent::Tracker* tracker) {
-  return dynamic_cast<TrackerTest*>(tracker->get());
+TrackerTest::test_worker(torrent::tracker::Tracker* tracker) {
+  return dynamic_cast<TrackerTest*>(tracker->get_worker());
 }
 
 inline int
-TrackerTest::test_flags(torrent::Tracker* tracker) {
-  return dynamic_cast<TrackerTest*>(tracker->get())->state().flags();
+TrackerTest::test_flags(torrent::tracker::Tracker* tracker) {
+  return dynamic_cast<TrackerTest*>(tracker->get_worker())->state().flags();
 }
 
 inline torrent::tracker::TrackerState&
-TrackerTest::test_state(torrent::Tracker* tracker) {
-  return dynamic_cast<TrackerTest*>(tracker->get())->state();
+TrackerTest::test_state(torrent::tracker::Tracker* tracker) {
+  return dynamic_cast<TrackerTest*>(tracker->get_worker())->state();
 }
 
 extern uint32_t return_new_peers;

@@ -1,17 +1,17 @@
 #include "config.h"
 
-#include <algorithm>
+#include "torrent/tracker/tracker.h"
 
 #include "torrent/exceptions.h"
-#include "torrent/tracker.h"
 #include "torrent/tracker_list.h"
 #include "tracker/tracker_worker.h"
 #include "globals.h"
 
-namespace torrent {
+#include <algorithm>
 
-Tracker::Tracker(std::shared_ptr<TrackerWorker>&& worker) :
-  m_request_time_last(torrent::cachedTime.seconds()),
+namespace torrent::tracker {
+
+Tracker::Tracker(std::shared_ptr<torrent::TrackerWorker>&& worker) :
   m_worker(std::move(worker)) {
 }
 
@@ -124,7 +124,6 @@ Tracker::tracker_id() const {
   return m_worker->tracker_id();
 }
 
-// locking and use &&
 tracker::TrackerState
 Tracker::state() const {
   auto lock_guard = m_worker->lock_guard();
@@ -132,19 +131,14 @@ Tracker::state() const {
   return m_worker->state();
 }
 
+std::string
+Tracker::status() const {
+  return m_worker->lock_and_status();
+}
+
 void
 Tracker::clear_stats() {
   m_worker->lock_and_clear_stats();
 }
 
-void
-Tracker::inc_request_counter() {
-  m_request_counter -= std::min(m_request_counter, (uint32_t)cachedTime.seconds() - m_request_time_last);
-  m_request_counter++;
-  m_request_time_last = cachedTime.seconds();
-
-  if (m_request_counter >= 10)
-    throw internal_error("Tracker request had more than 10 requests in 10 seconds.");
-}
-
-}
+} // namespace torrent::tracker

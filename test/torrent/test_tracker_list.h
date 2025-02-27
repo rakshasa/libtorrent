@@ -1,9 +1,5 @@
 #include "test/helpers/test_fixture.h"
 #include "test/helpers/tracker_test.h"
-#include "torrent/tracker.h"
-#include "torrent/tracker_list.h"
-#include "torrent/tracker/tracker_state.h"
-#include "rak/timer.h"
 
 class test_tracker_list : public test_fixture {
   CPPUNIT_TEST_SUITE(test_tracker_list);

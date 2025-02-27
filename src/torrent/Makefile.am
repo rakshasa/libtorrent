@@ -63,11 +63,13 @@ libtorrent_torrent_la_SOURCES = \
 	peer/peer_list.cc \
 	peer/peer_list.h \
 \
-	tracker/tracker_manager.cc \
-	tracker/tracker_manager.h \
+	tracker/manager.cc \
+	tracker/manager.h \
+	tracker/tracker.cc \
+	tracker/tracker.h \
 	tracker/tracker_state.h \
-	tracker/tracker_wrappers.cc \
-	tracker/tracker_wrappers.h \
+	tracker/wrappers.cc \
+	tracker/wrappers.h \
 \
 	utils/directory_events.cc \
 	utils/directory_events.h \
@@ -136,8 +138,6 @@ libtorrent_torrent_la_SOURCES = \
 	throttle.h \
 	torrent.cc \
 	torrent.h \
-	tracker.cc \
-	tracker.h \
 	tracker_controller.cc \
 	tracker_controller.h \
 	tracker_list.cc \
@@ -190,9 +190,10 @@ libtorrent_torrent_peer_include_HEADERS = \
 
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
 libtorrent_torrent_tracker_include_HEADERS = \
-	tracker/tracker_manager.h \
+	tracker/manager.h \
+	tracker/tracker.h \
 	tracker/tracker_state.h \
-	tracker/tracker_wrappers.h
+	tracker/wrappers.h
 
 libtorrent_torrent_utils_includedir = $(includedir)/torrent/utils
 libtorrent_torrent_utils_include_HEADERS = \
@@ -234,6 +235,5 @@ libtorrent_torrent_include_HEADERS = \
 	rate.h \
 	throttle.h \
 	torrent.h \
-	tracker.h \
 	tracker_controller.h \
 	tracker_list.h

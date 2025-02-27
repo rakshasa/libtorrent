@@ -5,6 +5,7 @@
 
 #include "peer/peer_info.h"
 #include "peer/peer_list.h"
+#include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 
 #include "data/file.h"
@@ -17,7 +18,6 @@
 #include "download.h"
 #include "download_info.h"
 #include "object.h"
-#include "tracker.h"
 #include "tracker_list.h"
 
 #include "globals.h"
