@@ -5,7 +5,6 @@
 #include "rak/priority_queue_default.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
-#include "torrent/tracker.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 
@@ -310,7 +309,7 @@ TrackerController::stop_requesting() {
 }
 
 uint32_t
-tracker_next_timeout(Tracker* tracker, int controller_flags) {
+tracker_next_timeout(tracker::Tracker* tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_requesting))
     return tracker_next_timeout_promiscuous(tracker);
 
@@ -338,7 +337,7 @@ tracker_next_timeout(Tracker* tracker, int controller_flags) {
 }
 
 uint32_t
-tracker_next_timeout_update(Tracker* tracker) {
+tracker_next_timeout_update(tracker::Tracker* tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
   auto tracker_state = tracker->state();
 
@@ -353,7 +352,7 @@ tracker_next_timeout_update(Tracker* tracker) {
 }
 
 uint32_t
-tracker_next_timeout_promiscuous(Tracker* tracker) {
+tracker_next_timeout_promiscuous(tracker::Tracker* tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
   auto tracker_state = tracker->state();
 
@@ -503,7 +502,7 @@ TrackerController::do_scrape() {
 }
 
 uint32_t
-TrackerController::receive_success(Tracker* tracker, TrackerController::address_list* l) {
+TrackerController::receive_success(tracker::Tracker* tracker, TrackerController::address_list* l) {
   if (!(m_flags & flag_active))
     return m_slot_success(l);
 
@@ -530,7 +529,7 @@ TrackerController::receive_success(Tracker* tracker, TrackerController::address_
 }
 
 void
-TrackerController::receive_failure(Tracker* tracker, const std::string& msg) {
+TrackerController::receive_failure(tracker::Tracker* tracker, const std::string& msg) {
   if (!(m_flags & flag_active)) {
     m_slot_failure(msg);
     return;
@@ -552,14 +551,14 @@ TrackerController::receive_failure(Tracker* tracker, const std::string& msg) {
 }
 
 void
-TrackerController::receive_scrape([[maybe_unused]] Tracker* tracker) {
+TrackerController::receive_scrape([[maybe_unused]] tracker::Tracker* tracker) {
   if (!(m_flags & flag_active)) {
     return;
   }
 }
 
 void
-TrackerController::receive_tracker_enabled(Tracker* tb) {
+TrackerController::receive_tracker_enabled(tracker::Tracker* tb) {
   // TODO: This won't be needed if we rely only on Tracker::m_enable,
   // rather than a virtual function.
   if (!m_tracker_list->has_usable())
@@ -578,7 +577,7 @@ TrackerController::receive_tracker_enabled(Tracker* tb) {
 }
 
 void
-TrackerController::receive_tracker_disabled(Tracker* tb) {
+TrackerController::receive_tracker_disabled(tracker::Tracker* tb) {
   if ((m_flags & flag_active) && !m_private->task_timeout.is_queued())
     update_timeout(0);
 

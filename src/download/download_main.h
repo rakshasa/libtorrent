@@ -13,7 +13,7 @@
 #include "torrent/download/group_entry.h"
 #include "torrent/data/file_list.h"
 #include "torrent/peer/peer_list.h"
-#include "torrent/tracker/tracker_wrappers.h"
+#include "torrent/tracker/wrappers.h"
 
 namespace torrent {
 

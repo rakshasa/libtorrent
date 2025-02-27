@@ -75,12 +75,12 @@ public:
   uint32_t            scrape_downloaded() const  { return m_scrape_downloaded; }
 
 protected:
-  friend class torrent::Tracker;
   friend class torrent::TrackerDht;
   friend class torrent::TrackerHttp;
   friend class torrent::TrackerList;
   friend class torrent::TrackerUdp;
   friend class torrent::TrackerWorker;
+  friend class torrent::tracker::Tracker;
   friend class ::TrackerTest;
 
   void                clear_intervals();
@@ -88,6 +88,8 @@ protected:
 
   void                set_normal_interval(int v);
   void                set_min_interval(int v);
+
+  void                inc_request_counter();
 
   int                 m_flags;
 
@@ -112,6 +114,25 @@ protected:
   uint32_t            m_scrape_downloaded{0};
 };
 
+inline uint32_t
+TrackerState::success_time_next() const {
+  if (m_success_counter == 0)
+    return 0;
+
+  return m_success_time_last + std::max(m_normal_interval, (uint32_t)min_normal_interval);
+}
+
+inline uint32_t
+TrackerState::failed_time_next() const {
+  if (m_failed_counter == 0)
+    return 0;
+
+  if (m_min_interval > min_min_interval)
+    return m_failed_time_last + m_min_interval;
+
+  return m_failed_time_last + std::min(5 << std::min(m_failed_counter - 1, (uint32_t)6), min_min_interval-1);
+}
+
 inline void
 TrackerState::clear_intervals() {
   m_normal_interval = 0;
@@ -135,25 +156,6 @@ TrackerState::set_normal_interval(int v) {
 inline void
 TrackerState::set_min_interval(int v) {
   m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval);
-}
-
-inline uint32_t
-TrackerState::success_time_next() const {
-  if (m_success_counter == 0)
-    return 0;
-
-  return m_success_time_last + std::max(m_normal_interval, (uint32_t)min_normal_interval);
-}
-
-inline uint32_t
-TrackerState::failed_time_next() const {
-  if (m_failed_counter == 0)
-    return 0;
-
-  if (m_min_interval > min_min_interval)
-    return m_failed_time_last + m_min_interval;
-
-  return m_failed_time_last + std::min(5 << std::min(m_failed_counter - 1, (uint32_t)6), min_min_interval-1);
 }
 
 } // namespace tracker

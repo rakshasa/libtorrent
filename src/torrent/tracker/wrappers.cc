@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "torrent/tracker/tracker_wrappers.h"
+#include "torrent/tracker/wrappers.h"
 
 #include "torrent/tracker_controller.h"
 #include "torrent/utils/log.h"

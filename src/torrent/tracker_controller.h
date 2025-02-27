@@ -5,7 +5,7 @@
 #include <string>
 
 #include <torrent/common.h>
-#include <torrent/tracker.h>
+#include <torrent/tracker/tracker.h>
 
 // TODO: Remove from export, rtorrent doesn't need this much api access.
 
@@ -17,8 +17,6 @@ namespace rak { class priority_item; }
 
 namespace torrent {
 
-class AddressList;
-class TrackerList;
 struct tracker_controller_private;
 
 class LIBTORRENT_EXPORT TrackerController {
@@ -28,7 +26,7 @@ public:
   typedef std::function<void (void)>               slot_void;
   typedef std::function<void (const std::string&)> slot_string;
   typedef std::function<uint32_t (AddressList*)>   slot_address_list;
-  typedef std::function<void (Tracker*)>           slot_tracker;
+  typedef std::function<void (tracker::Tracker*)>  slot_tracker;
 
   static const int flag_send_update      = 0x1;
   static const int flag_send_completed   = 0x2;
@@ -85,12 +83,12 @@ public:
   void                start_requesting();
   void                stop_requesting();
 
-  uint32_t            receive_success(Tracker* tracker, address_list* l);
-  void                receive_failure(Tracker* tracker, const std::string& msg);
-  void                receive_scrape(Tracker* tracker);
+  uint32_t            receive_success(tracker::Tracker* tracker, address_list* l);
+  void                receive_failure(tracker::Tracker* tracker, const std::string& msg);
+  void                receive_scrape(tracker::Tracker* tracker);
 
-  void                receive_tracker_enabled(Tracker* tb);
-  void                receive_tracker_disabled(Tracker* tb);
+  void                receive_tracker_enabled(tracker::Tracker* tb);
+  void                receive_tracker_disabled(tracker::Tracker* tb);
 
   slot_void&          slot_timeout()        { return m_slot_timeout; }
   slot_address_list&  slot_success()        { return m_slot_success; }
@@ -121,9 +119,9 @@ private:
   tracker_controller_private* m_private;
 };
 
-uint32_t tracker_next_timeout(Tracker* tracker, int controller_flags);
-uint32_t tracker_next_timeout_update(Tracker* tracker);
-uint32_t tracker_next_timeout_promiscuous(Tracker* tracker);
+uint32_t tracker_next_timeout(tracker::Tracker* tracker, int controller_flags);
+uint32_t tracker_next_timeout_update(tracker::Tracker* tracker);
+uint32_t tracker_next_timeout_promiscuous(tracker::Tracker* tracker);
 
 }
 

@@ -1,12 +1,12 @@
 #ifndef LIBTORRENT_TRACKER_LIST_H
 #define LIBTORRENT_TRACKER_LIST_H
 
+// TODO: Reduce includes, don't inline everything.
+
 #include <algorithm>
 #include <functional>
-#include <string>
 #include <vector>
-#include <torrent/common.h>
-#include <torrent/tracker/tracker_state.h>
+#include <torrent/tracker/tracker.h>
 
 class test_tracker_list;
 
@@ -19,13 +19,15 @@ namespace torrent {
 // tracker to the beginning of the subgroup and start from the
 // beginning of the whole list.
 
-class LIBTORRENT_EXPORT TrackerList : private std::vector<Tracker*> {
-public:
-  typedef std::vector<Tracker*> base_type;
+// TODO: Use tracker::Tracker non-pointer, change slots, etc into using TrackerWorker*.
 
-  typedef std::function<void (Tracker*)>                     slot_tracker;
-  typedef std::function<void (Tracker*, const std::string&)> slot_string;
-  typedef std::function<uint32_t (Tracker*, AddressList*)>   slot_address_list;
+class LIBTORRENT_EXPORT TrackerList : private std::vector<tracker::Tracker*> {
+public:
+  typedef std::vector<tracker::Tracker*> base_type;
+
+  typedef std::function<void (tracker::Tracker*)>                     slot_tracker;
+  typedef std::function<void (tracker::Tracker*, const std::string&)> slot_string;
+  typedef std::function<uint32_t (tracker::Tracker*, AddressList*)>   slot_address_list;
 
   using base_type::value_type;
 
@@ -69,15 +71,15 @@ public:
   void                clear();
   void                clear_stats();
 
-  iterator            insert(unsigned int group, Tracker* tracker);
+  iterator            insert(unsigned int group, tracker::Tracker* tracker);
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   // TODO: Move these to controller / tracker.
-  void                send_event(Tracker* tracker, tracker::TrackerState::event_enum new_event);
+  void                send_event(tracker::Tracker* tracker, tracker::TrackerState::event_enum new_event);
   void                send_event_idx(unsigned idx, tracker::TrackerState::event_enum new_event);
   void                send_event_itr(iterator itr, tracker::TrackerState::event_enum new_event);
 
-  void                send_scrape(Tracker* tracker);
+  void                send_scrape(tracker::Tracker* tracker);
 
   DownloadInfo*       info()                                  { return m_info; }
   int                 state()                                 { return m_state; }
@@ -86,7 +88,7 @@ public:
   int32_t             numwant() const                         { return m_numwant; }
   void                set_numwant(int32_t n)                  { m_numwant = n; }
 
-  iterator            find(Tracker* tb)                       { return std::find(begin(), end(), tb); }
+  iterator            find(tracker::Tracker* tb)                       { return std::find(begin(), end(), tb); }
   iterator            find_url(const std::string& url);
 
   iterator            find_usable(iterator itr);
@@ -105,11 +107,11 @@ public:
   iterator            promote(iterator itr);
   void                randomize_group_entries();
 
-  void                receive_success(Tracker* tracker, AddressList* l);
-  void                receive_failed(Tracker* tracker, const std::string& msg);
+  void                receive_success(tracker::Tracker* tracker, AddressList* l);
+  void                receive_failed(tracker::Tracker* tracker, const std::string& msg);
 
-  void                receive_scrape_success(Tracker* tracker);
-  void                receive_scrape_failed(Tracker* tracker, const std::string& msg);
+  void                receive_scrape_success(tracker::Tracker* tracker);
+  void                receive_scrape_failed(tracker::Tracker* tracker, const std::string& msg);
 
   // Used by libtorrent internally.
   slot_address_list&  slot_success()                          { return m_slot_success; }

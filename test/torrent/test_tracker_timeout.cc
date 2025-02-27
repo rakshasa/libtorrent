@@ -21,7 +21,7 @@ test_tracker_timeout::setUp() {
 
 void
 test_tracker_timeout::test_set_timeout() {
-  auto tracker = std::unique_ptr<torrent::Tracker>(TrackerTest::new_tracker(NULL, ""));
+  auto tracker = std::unique_ptr<torrent::tracker::Tracker>(TrackerTest::new_tracker(NULL, ""));
   auto tracker_worker = TrackerTest::test_worker(tracker.get());
 
   CPPUNIT_ASSERT(tracker->state().normal_interval() == 0);
@@ -39,7 +39,7 @@ test_tracker_timeout::test_set_timeout() {
 
 void
 test_tracker_timeout::test_timeout_tracker() {
-  auto tracker = std::unique_ptr<torrent::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
+  auto tracker = std::unique_ptr<torrent::tracker::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
   auto tracker_worker = TrackerTest::test_worker(tracker.get());
 
   int flags = 0;
@@ -86,7 +86,7 @@ test_tracker_timeout::test_timeout_tracker() {
 
 void
 test_tracker_timeout::test_timeout_update() {
-  auto tracker = std::unique_ptr<torrent::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
+  auto tracker = std::unique_ptr<torrent::tracker::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
   auto tracker_worker = TrackerTest::test_worker(tracker.get());
 
   int flags = 0;
@@ -110,7 +110,7 @@ test_tracker_timeout::test_timeout_update() {
 
 void
 test_tracker_timeout::test_timeout_requesting() {
-  auto tracker = std::unique_ptr<torrent::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
+  auto tracker = std::unique_ptr<torrent::tracker::Tracker>(TrackerTest::new_tracker(NULL, "http://tracker.com/announce"));
   auto tracker_worker = TrackerTest::test_worker(tracker.get());
 
   int flags = 0;

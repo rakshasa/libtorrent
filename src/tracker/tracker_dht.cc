@@ -45,6 +45,17 @@ TrackerDht::is_usable() const {
   return state().is_enabled() && manager->dht_manager()->is_active();
 }
 
+
+std::string
+TrackerDht::lock_and_status() const {
+  auto guard = lock_guard();
+
+  if (m_dht_state == state_idle)
+    return "[idle]";
+
+  return "[" + std::string(states[m_dht_state]) + ": " + std::to_string(m_replied) + "/" + std::to_string(m_contacted) + " nodes replied]";
+}
+
 void
 TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
   if (m_dht_state != state_idle) {
@@ -127,14 +138,6 @@ TrackerDht::receive_progress(int replied, int contacted) {
 
   m_replied = replied;
   m_contacted = contacted;
-}
-
-void
-TrackerDht::get_status(char* buffer, int length) {
-  if (m_dht_state == state_idle)
-    throw internal_error("TrackerDht::get_status called while not busy.");
-
-  snprintf(buffer, length, "[%s: %d/%d nodes replied]", states[m_dht_state], m_replied, m_contacted);
 }
 
 }

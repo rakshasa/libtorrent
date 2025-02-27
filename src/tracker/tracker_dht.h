@@ -25,6 +25,8 @@ public:
   bool                is_busy() const override;
   bool                is_usable() const override;
 
+  std::string         lock_and_status() const override;
+
   void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
 

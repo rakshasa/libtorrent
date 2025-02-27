@@ -3,20 +3,17 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_WORKER_H
 #define LIBTORRENT_TRACKER_TRACKER_WORKER_H
 
-#include <iosfwd>
 #include <functional>
+#include <iosfwd>
 #include <mutex>
-#include <string>
 
-#include "torrent/object.h"
-#include "torrent/tracker.h"
+#include "torrent/common.h"
+#include "torrent/hash_string.h"
+#include "torrent/tracker/tracker_state.h"
 
 class TrackerTest;
 
 namespace torrent {
-
-class Tracker;
-class TrackerList;
 
 struct TrackerInfo {
   HashString  info_hash{HashString::new_zero()};
@@ -48,12 +45,14 @@ public:
   const TrackerInfo&   info() const { return m_info; }
   virtual tracker_enum type() const = 0;
 
+  virtual std::string  lock_and_status() const { return ""; }
+
   virtual void        send_event(tracker::TrackerState::event_enum state) = 0;
   virtual void        send_scrape() = 0;
 
 protected:
-  friend class Tracker;
   friend class TrackerList;
+  friend class tracker::Tracker;
   friend class ::TrackerTest;
 
   void                lock_and_clear_intervals();
@@ -85,6 +84,7 @@ protected:
   // ordered as it pertains to a single tracker's slot calls.
 
   virtual void        close() = 0;
+  // TODO: Replace with shared pointer.
   virtual void        disown() = 0;
 
   std::function<void()>              m_slot_enabled;

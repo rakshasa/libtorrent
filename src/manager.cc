@@ -21,7 +21,7 @@
 #include "torrent/download/resource_manager.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/throttle.h"
-#include "torrent/tracker/tracker_manager.h"
+#include "torrent/tracker/manager.h"
 
 #include "manager.h"
 
@@ -37,7 +37,7 @@ Manager::Manager() :
   m_file_manager(new FileManager),
   m_handshake_manager(new HandshakeManager),
   m_resource_manager(new ResourceManager),
-  m_tracker_manager(new tracker::TrackerManager),
+  m_tracker_manager(new tracker::Manager),
 
   m_client_list(new ClientList),
 

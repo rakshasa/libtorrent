@@ -2,49 +2,17 @@
 //
 // These will be renamed after movimg the old torrent/tracker_* classes to src/tracker.
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_WRAPPER_H
-#define LIBTORRENT_TRACKER_TRACKER_WRAPPER_H
+#ifndef LIBTORRENT_TRACKER_WRAPPER_H
+#define LIBTORRENT_TRACKER_WRAPPER_H
 
 #include <functional>
 #include <memory>
 #include <torrent/common.h>
 #include <torrent/hash_string.h>
 
+// TODO: Rename to TrackerController when torrent::TrackerController is moved.
+
 namespace torrent::tracker {
-
-// TODO: This should be renamed to Tracker later.
-class LIBTORRENT_EXPORT TrackerWrapper {
-public:
-  typedef std::shared_ptr<Tracker> ptr_type;
-
-  TrackerWrapper(const HashString& info_hash, std::shared_ptr<Tracker>&& tracker);
-
-  const HashString&   info_hash() const { return m_info_hash; }
-
-  bool operator<(const TrackerWrapper& rhs) const;
-
-protected:
-  friend class TrackerManager;
-
-  Tracker*            get()        { return m_ptr.get(); }
-  const Tracker*      get() const  { return m_ptr.get(); }
-  ptr_type&           get_shared() { return m_ptr; }
-
-private:
-  ptr_type            m_ptr;
-  HashString          m_info_hash;
-};
-
-inline
-TrackerWrapper::TrackerWrapper(const HashString& info_hash, std::shared_ptr<Tracker>&& tracker) :
-  m_ptr(tracker),
-  m_info_hash(info_hash) {
-}
-
-inline bool
-TrackerWrapper::operator<(const TrackerWrapper& rhs) const {
-  return this->get() < rhs.get();
-}
 
 class LIBTORRENT_EXPORT TrackerControllerWrapper {
 public:

@@ -7,7 +7,7 @@
 
 #include <torrent/common.h>
 #include <torrent/peer/peer.h>
-#include <torrent/tracker/tracker_wrappers.h>
+#include <torrent/tracker/wrappers.h>
 
 namespace torrent {
 

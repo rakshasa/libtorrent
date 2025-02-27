@@ -2,10 +2,6 @@
 
 #include "download/download_wrapper.h"
 
-#include <iterator>
-#include <stdlib.h>
-#include <rak/file_stat.h>
-
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
@@ -13,9 +9,6 @@
 #include "download/chunk_selector.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
-#include "torrent/exceptions.h"
-#include "torrent/object.h"
-#include "torrent/tracker_list.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
@@ -23,7 +16,7 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
-#include "torrent/tracker/tracker_manager.h"
+#include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "utils/functional.h"
 

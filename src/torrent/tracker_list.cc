@@ -6,8 +6,8 @@
 #include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
-#include "torrent/tracker.h"
 #include "torrent/tracker_list.h"
+#include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "tracker/tracker_dht.h"
@@ -36,37 +36,37 @@ TrackerList::~TrackerList() {
 
 bool
 TrackerList::has_active() const {
-  return std::any_of(begin(), end(), std::mem_fn(&Tracker::is_busy));
+  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy));
 }
 
 bool
 TrackerList::has_active_not_scrape() const {
-  return std::any_of(begin(), end(), std::mem_fn(&Tracker::is_busy_not_scrape));
+  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
 }
 
 bool
 TrackerList::has_active_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&Tracker::is_busy));
+  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&tracker::Tracker::is_busy));
 }
 
 bool
 TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&Tracker::is_busy_not_scrape));
+  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
 }
 
 bool
 TrackerList::has_usable() const {
-  return std::any_of(begin(), end(), std::mem_fn(&Tracker::is_usable));
+  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_usable));
 }
 
 unsigned int
 TrackerList::count_active() const {
-  return std::count_if(begin(), end(), std::mem_fn(&Tracker::is_busy));
+  return std::count_if(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy));
 }
 
 unsigned int
 TrackerList::count_usable() const {
-  return std::count_if(begin(), end(), std::mem_fn(&Tracker::is_usable));
+  return std::count_if(begin(), end(), std::mem_fn(&tracker::Tracker::is_usable));
 }
 
 void
@@ -75,7 +75,7 @@ TrackerList::close_all_excluding(int event_bitmap) {
     if ((event_bitmap & (1 << tracker->state().latest_event())))
       continue;
 
-    tracker->get()->close();
+    tracker->get_worker()->close();
   }
 }
 
@@ -83,7 +83,7 @@ void
 TrackerList::disown_all_including(int event_bitmap) {
   for (auto& tracker : *this) {
     if ((event_bitmap & (1 << tracker->state().latest_event())))
-      tracker->get()->disown();
+      tracker->get_worker()->disown();
   }
 }
 
@@ -102,7 +102,7 @@ TrackerList::clear_stats() {
 }
 
 void
-TrackerList::send_event(Tracker* tracker, tracker::TrackerState::event_enum new_event) {
+TrackerList::send_event(tracker::Tracker* tracker, tracker::TrackerState::event_enum new_event) {
   if (!tracker->is_usable() || new_event == tracker::TrackerState::EVENT_SCRAPE)
     return;
 
@@ -110,11 +110,10 @@ TrackerList::send_event(Tracker* tracker, tracker::TrackerState::event_enum new_
     if (tracker->state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
       return;
 
-    tracker->get()->close();
+    tracker->get_worker()->close();
   }
 
-  tracker->get()->send_event(new_event);
-  tracker->inc_request_counter();
+  tracker->get_worker()->send_event(new_event);
 
   LT_LOG_TRACKER(INFO, "sending '%s (group:%u url:%s)",
                  option_as_string(OPTION_TRACKER_EVENT, new_event),
@@ -122,7 +121,7 @@ TrackerList::send_event(Tracker* tracker, tracker::TrackerState::event_enum new_
 }
 
 void
-TrackerList::send_scrape(Tracker* tracker) {
+TrackerList::send_scrape(tracker::Tracker* tracker) {
   if (tracker->is_busy() || !tracker->is_usable())
     return;
 
@@ -132,15 +131,14 @@ TrackerList::send_scrape(Tracker* tracker) {
   if (rak::timer::from_seconds(tracker->state().scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
     return;
 
-  tracker->get()->send_scrape();
-  tracker->inc_request_counter();
+  tracker->get_worker()->send_scrape();
 
   LT_LOG_TRACKER(INFO, "sending scrape (group:%u url:%s)",
                  tracker->group(), tracker->url().c_str());
 }
 
 TrackerList::iterator
-TrackerList::insert(unsigned int group, Tracker* tracker) {
+TrackerList::insert(unsigned int group, tracker::Tracker* tracker) {
   tracker->set_group(group);
 
   iterator itr = base_type::insert(end_group(group), tracker);
@@ -222,7 +220,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     return;
   }
 
-  insert(group, new Tracker(std::shared_ptr<TrackerWorker>(worker)));
+  insert(group, new tracker::Tracker(std::shared_ptr<TrackerWorker>(worker)));
 }
 
 TrackerList::iterator
@@ -232,17 +230,17 @@ TrackerList::find_url(const std::string& url) {
 
 TrackerList::iterator
 TrackerList::find_usable(iterator itr) {
-  return std::find_if(itr, end(), std::mem_fn(&Tracker::is_usable));
+  return std::find_if(itr, end(), std::mem_fn(&tracker::Tracker::is_usable));
 }
 
 TrackerList::const_iterator
 TrackerList::find_usable(const_iterator itr) const {
-  return std::find_if(itr, end(), std::mem_fn(&Tracker::is_usable));
+  return std::find_if(itr, end(), std::mem_fn(&tracker::Tracker::is_usable));
 }
 
 TrackerList::iterator
 TrackerList::find_next_to_request(iterator itr) {
-  auto preferred = itr = std::find_if(itr, end(), std::mem_fn(&Tracker::can_request_state));
+  auto preferred = itr = std::find_if(itr, end(), std::mem_fn(&tracker::Tracker::can_request_state));
 
   if (preferred == end())
     return end();
@@ -279,12 +277,12 @@ TrackerList::find_next_to_request(iterator itr) {
 
 TrackerList::iterator
 TrackerList::begin_group(unsigned int group) {
-  return std::find_if(begin(), end(), [group](Tracker* t) { return group <= t->group(); });
+  return std::find_if(begin(), end(), [group](tracker::Tracker* t) { return group <= t->group(); });
 }
 
 TrackerList::const_iterator
 TrackerList::begin_group(unsigned int group) const {
-  return std::find_if(begin(), end(), [group](Tracker* t) { return group <= t->group(); });
+  return std::find_if(begin(), end(), [group](tracker::Tracker* t) { return group <= t->group(); });
 }
 
 TrackerList::size_type
@@ -333,7 +331,7 @@ TrackerList::randomize_group_entries() {
 }
 
 void
-TrackerList::receive_success(Tracker* tracker, AddressList* l) {
+TrackerList::receive_success(tracker::Tracker* tracker, AddressList* l) {
   iterator itr = find(tracker);
 
   if (itr == end() || tracker->is_busy())
@@ -351,11 +349,11 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
   // TODO: Update staate in TrackerWorker.
 
   {
-    auto guard = tracker->get()->lock_guard();
-    tracker->get()->state().m_success_time_last = cachedTime.seconds();
-    tracker->get()->state().m_success_counter++;
-    tracker->get()->state().m_failed_counter = 0;
-    tracker->get()->state().m_latest_sum_peers = l->size();
+    auto guard = tracker->get_worker()->lock_guard();
+    tracker->get_worker()->state().m_success_time_last = cachedTime.seconds();
+    tracker->get_worker()->state().m_success_counter++;
+    tracker->get_worker()->state().m_failed_counter = 0;
+    tracker->get_worker()->state().m_latest_sum_peers = l->size();
   }
 
   if (!m_slot_success)
@@ -364,13 +362,13 @@ TrackerList::receive_success(Tracker* tracker, AddressList* l) {
   auto new_peers = m_slot_success(tracker, l);
 
   {
-    auto guard = tracker->get()->lock_guard();
-    tracker->get()->state().m_latest_new_peers = new_peers;
+    auto guard = tracker->get_worker()->lock_guard();
+    tracker->get_worker()->state().m_latest_new_peers = new_peers;
   }
 }
 
 void
-TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
+TrackerList::receive_failed(tracker::Tracker* tracker, const std::string& msg) {
   iterator itr = find(tracker);
 
   if (itr == end() || tracker->is_busy())
@@ -379,9 +377,9 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
   LT_LOG_TRACKER(INFO, "failed to send request to tracker (url:%s msg:%s)", tracker->url().c_str(), msg.c_str());
 
   {
-    auto guard = tracker->get()->lock_guard();
-    tracker->get()->state().m_failed_time_last = cachedTime.seconds();
-    tracker->get()->state().m_failed_counter++;
+    auto guard = tracker->get_worker()->lock_guard();
+    tracker->get_worker()->state().m_failed_time_last = cachedTime.seconds();
+    tracker->get_worker()->state().m_failed_counter++;
   }
 
   if (m_slot_failed)
@@ -389,7 +387,7 @@ TrackerList::receive_failed(Tracker* tracker, const std::string& msg) {
 }
 
 void
-TrackerList::receive_scrape_success(Tracker* tracker) {
+TrackerList::receive_scrape_success(tracker::Tracker* tracker) {
   iterator itr = find(tracker);
 
   if (itr == end() || tracker->is_busy())
@@ -398,9 +396,9 @@ TrackerList::receive_scrape_success(Tracker* tracker) {
   LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tracker->url().c_str());
 
   {
-    auto guard = tracker->get()->lock_guard();
-    tracker->get()->state().m_scrape_time_last = cachedTime.seconds();
-    tracker->get()->state().m_scrape_counter++;
+    auto guard = tracker->get_worker()->lock_guard();
+    tracker->get_worker()->state().m_scrape_time_last = cachedTime.seconds();
+    tracker->get_worker()->state().m_scrape_counter++;
   }
 
   if (m_slot_scrape_success)
@@ -408,7 +406,7 @@ TrackerList::receive_scrape_success(Tracker* tracker) {
 }
 
 void
-TrackerList::receive_scrape_failed(Tracker* tracker, const std::string& msg) {
+TrackerList::receive_scrape_failed(tracker::Tracker* tracker, const std::string& msg) {
   iterator itr = find(tracker);
 
   if (itr == end() || tracker->is_busy())

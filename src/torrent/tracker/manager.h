@@ -3,17 +3,13 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_MANAGER_H
 #define LIBTORRENT_TRACKER_TRACKER_MANAGER_H
 
-#include <memory>
 #include <mutex>
 #include <set>
-#include <torrent/common.h>
-#include <torrent/hash_string.h>
-#include <torrent/tracker.h>
-#include <torrent/tracker/tracker_wrappers.h>
+#include <torrent/tracker/wrappers.h>
 
 namespace torrent::tracker {
 
-class LIBTORRENT_EXPORT TrackerManager {
+class LIBTORRENT_EXPORT Manager {
 public:
   // TODO: Make protected.
 

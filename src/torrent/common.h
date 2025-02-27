@@ -17,12 +17,12 @@ enum priority_enum {
   PRIORITY_HIGH
 };
 
-typedef enum {
+enum tracker_enum {
   TRACKER_NONE,
   TRACKER_HTTP,
   TRACKER_UDP,
   TRACKER_DHT,
-} tracker_enum;
+};
 
 typedef priority_enum priority_t;
 
@@ -70,14 +70,14 @@ class ProtocolExtension;
 class Rate;
 class SocketSet;
 class Throttle;
-class Tracker;
 class TrackerController;
 class TrackerList;
 class TransferList;
 
 namespace tracker {
 
-class TrackerManager;
+class Tracker;
+class Manager;
 
 }
 
