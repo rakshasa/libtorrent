@@ -2,6 +2,7 @@
 #define LIBTORRENT_UTILS_THREAD_BASE_H
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <pthread.h>
@@ -85,6 +86,7 @@ public:
 protected:
   struct global_lock_type {
     std::atomic_int waiting{0};
+    std::condition_variable cv;
     std::mutex      mutex;
   };
 
