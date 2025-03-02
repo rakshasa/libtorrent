@@ -107,7 +107,7 @@ public:
                  torrent::TrackerController::flag_send_##event_name);   \
                                                                         \
   CPPUNIT_ASSERT(tracker_controller.is_active());                       \
-  CPPUNIT_ASSERT(tracker_controller.tracker_list()->count_active() == 1);
+  CPPUNIT_ASSERT(TrackerTest::count_active(&tracker_list) == 1);
 
 #define TEST_SEND_SINGLE_END(succeeded, failed)                         \
   TEST_SINGLE_END(succeeded, failed)                                    \

@@ -21,13 +21,13 @@ namespace torrent {
 
 // TODO: Use tracker::Tracker non-pointer, change slots, etc into using TrackerWorker*.
 
-class LIBTORRENT_EXPORT TrackerList : private std::vector<tracker::Tracker*> {
+class LIBTORRENT_EXPORT TrackerList : private std::vector<tracker::Tracker> {
 public:
-  typedef std::vector<tracker::Tracker*> base_type;
+  typedef std::vector<tracker::Tracker> base_type;
 
-  typedef std::function<void (tracker::Tracker*)>                     slot_tracker;
-  typedef std::function<void (tracker::Tracker*, const std::string&)> slot_string;
-  typedef std::function<uint32_t (tracker::Tracker*, AddressList*)>   slot_address_list;
+  typedef std::function<void (tracker::Tracker)>                     slot_tracker;
+  typedef std::function<void (tracker::Tracker, const std::string&)> slot_string;
+  typedef std::function<uint32_t (tracker::Tracker, AddressList*)>   slot_address_list;
 
   using base_type::value_type;
 
@@ -60,9 +60,6 @@ public:
   bool                has_active_not_scrape_in_group(uint32_t group) const;
   bool                has_usable() const;
 
-  unsigned int        count_active() const;
-  unsigned int        count_usable() const;
-
   void                close_all() { close_all_excluding(0); }
   void                close_all_excluding(int event_bitmap);
 
@@ -71,15 +68,13 @@ public:
   void                clear();
   void                clear_stats();
 
-  iterator            insert(unsigned int group, tracker::Tracker* tracker);
+  iterator            insert(unsigned int group, const tracker::Tracker& tracker);
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   // TODO: Move these to controller / tracker.
-  void                send_event(tracker::Tracker* tracker, tracker::TrackerState::event_enum new_event);
-  void                send_event_idx(unsigned idx, tracker::TrackerState::event_enum new_event);
-  void                send_event_itr(iterator itr, tracker::TrackerState::event_enum new_event);
+  void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
-  void                send_scrape(tracker::Tracker* tracker);
+  void                send_scrape(tracker::Tracker& tracker);
 
   DownloadInfo*       info()                                  { return m_info; }
   int                 state()                                 { return m_state; }
@@ -88,11 +83,8 @@ public:
   int32_t             numwant() const                         { return m_numwant; }
   void                set_numwant(int32_t n)                  { m_numwant = n; }
 
-  iterator            find(tracker::Tracker* tb)                       { return std::find(begin(), end(), tb); }
+  iterator            find(const tracker::Tracker& tb)        { return std::find(begin(), end(), tb); }
   iterator            find_url(const std::string& url);
-
-  iterator            find_usable(iterator itr);
-  const_iterator      find_usable(const_iterator itr) const;
 
   iterator            find_next_to_request(iterator itr);
 
@@ -107,11 +99,13 @@ public:
   iterator            promote(iterator itr);
   void                randomize_group_entries();
 
-  void                receive_success(tracker::Tracker* tracker, AddressList* l);
-  void                receive_failed(tracker::Tracker* tracker, const std::string& msg);
+  // TODO: Make protected.
+  // TODO: Replace with shared_ptr to TrackerWorker.
+  void                receive_success(tracker::Tracker&& tracker, AddressList* l);
+  void                receive_failed(tracker::Tracker&& tracker, const std::string& msg);
 
-  void                receive_scrape_success(tracker::Tracker* tracker);
-  void                receive_scrape_failed(tracker::Tracker* tracker, const std::string& msg);
+  void                receive_scrape_success(tracker::Tracker&& tracker);
+  void                receive_scrape_failed(tracker::Tracker&& tracker, const std::string& msg);
 
   // Used by libtorrent internally.
   slot_address_list&  slot_success()                          { return m_slot_success; }
@@ -148,19 +142,6 @@ private:
   slot_tracker        m_slot_tracker_enabled;
   slot_tracker        m_slot_tracker_disabled;
 };
-
-inline void
-TrackerList::send_event_idx(unsigned idx, tracker::TrackerState::event_enum new_event) {
-  send_event(at(idx), new_event);
-}
-
-inline void
-TrackerList::send_event_itr(iterator itr, tracker::TrackerState::event_enum new_event) {
-  if (itr == end())
-    return;
-
-  send_event(*itr, new_event);
-}
 
 }
 

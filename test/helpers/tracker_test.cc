@@ -154,3 +154,13 @@ TrackerTest::trigger_scrape() {
 
   return trigger_success();
 }
+
+int
+TrackerTest::count_active(torrent::TrackerList* parent) {
+  return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_busy));
+}
+
+int
+TrackerTest::count_usable(torrent::TrackerList* parent) {
+  return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_usable));
+}

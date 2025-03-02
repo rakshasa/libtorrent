@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_H
 #define LIBTORRENT_TRACKER_TRACKER_H
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <torrent/common.h>
@@ -12,6 +13,7 @@ namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT Tracker {
 public:
+  bool                is_valid() const { return m_worker != nullptr; }
 
   bool                is_busy() const;
   bool                is_busy_not_scrape() const;
@@ -35,6 +37,13 @@ public:
 
   // If the tracker group is changed, it not be updated for Tracker objects outside of TrackerList.
   uint32_t            group() const { return m_group; }
+
+  void                lock_and_call_state(std::function<void(const TrackerState&)> f) const;
+
+  bool                operator< (const Tracker& rhs) const { return m_worker < rhs.m_worker; }
+  bool                operator==(const Tracker& rhs) const { return m_worker == rhs.m_worker; }
+
+  static Tracker      create_empty() { return Tracker(nullptr); }
 
 protected:
   friend class torrent::TrackerList;
