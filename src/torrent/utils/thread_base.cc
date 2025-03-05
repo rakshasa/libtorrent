@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include <signal.h>
-#include <unistd.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
@@ -59,9 +58,10 @@ thread_base::stop_thread_wait() {
 
   release_global_lock();
 
-  while (!is_inactive()) {
-    usleep(1000);
-  }
+  pthread_join(m_thread, NULL);
+
+  // BUG_ON: thread died before updating state?
+  assert(!is_inactive());
 
   acquire_global_lock();
 }
