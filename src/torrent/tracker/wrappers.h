@@ -42,7 +42,7 @@ protected:
   friend class torrent::Download;
   friend class torrent::DownloadMain;
   friend class torrent::DownloadWrapper;
-  friend class TrackerManager;
+  friend class Manager;
 
   TrackerController*       get()        { return m_ptr.get(); }
   const TrackerController* get() const  { return m_ptr.get(); }

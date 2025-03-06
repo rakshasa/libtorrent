@@ -41,20 +41,26 @@ Manager::Manager() :
 
   m_client_list(new ClientList),
 
+  m_thread_tracker(m_tracker_manager.get()),
+
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle())
 
   {
 
-  m_hash_queue = std::make_unique<HashQueue>(&m_main_thread_disk);
+  m_hash_queue = std::make_unique<HashQueue>(&m_thread_disk);
 
-  auto hash_work_signal = m_main_thread_main.signal_bitfield()->add_signal([hash_queue = m_hash_queue.get()]() {
+  auto hash_work_signal = m_thread_main.signal_bitfield()->add_signal([hash_queue = m_hash_queue.get()]() {
       return hash_queue->work();
     });
-
-  m_hash_queue->slot_has_work() = [hash_work_signal, thread = &m_main_thread_main](bool is_done) {
+  m_hash_queue->slot_has_work() = [hash_work_signal, thread = &m_thread_main](bool is_done) {
       thread->send_event_signal(hash_work_signal, is_done);
     };
+
+  auto tracker_work_signal = m_thread_main.signal_bitfield()->add_signal([this]() {
+      return m_tracker_manager->process_events();
+    });
+  m_tracker_manager->set_main_thread_signal(tracker_work_signal);
 
   m_taskTick.slot() = std::bind(&Manager::receive_tick, this);
 

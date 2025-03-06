@@ -8,6 +8,7 @@
 
 #include "thread_disk.h"
 #include "thread_main.h"
+#include "thread_tracker.h"
 #include "net/socket_fd.h"
 #include "torrent/common.h"
 
@@ -37,10 +38,11 @@ public:
   ClientList*         client_list()                             { return m_client_list.get(); }
   HashQueue*          hash_queue()                              { return m_hash_queue.get(); }
 
-  Poll*               poll()                                    { return m_main_thread_main.poll(); }
+  Poll*               poll()                                    { return m_thread_main.poll(); }
 
-  thread_main*        main_thread_main()                        { return &m_main_thread_main; }
-  thread_disk*        main_thread_disk()                        { return &m_main_thread_disk; }
+  ThreadMain*         thread_main()                             { return &m_thread_main; }
+  ThreadDisk*         thread_disk()                             { return &m_thread_disk; }
+  ThreadTracker*      thread_tracker()                          { return &m_thread_tracker; }
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
 
@@ -65,8 +67,9 @@ private:
   std::unique_ptr<ClientList>        m_client_list;
   std::unique_ptr<HashQueue>         m_hash_queue;
 
-  thread_main         m_main_thread_main;
-  thread_disk         m_main_thread_disk;
+  ThreadMain          m_thread_main;
+  ThreadDisk          m_thread_disk;
+  ThreadTracker       m_thread_tracker;
 
   EncodingList        m_encodingList;
 

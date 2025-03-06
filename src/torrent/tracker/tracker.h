@@ -13,7 +13,6 @@ namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT Tracker {
 public:
-  bool                is_valid() const { return m_worker != nullptr; }
 
   bool                is_busy() const;
   bool                is_busy_not_scrape() const;
@@ -42,8 +41,6 @@ public:
 
   bool                operator< (const Tracker& rhs) const { return m_worker < rhs.m_worker; }
   bool                operator==(const Tracker& rhs) const { return m_worker == rhs.m_worker; }
-
-  static Tracker      create_empty() { return Tracker(nullptr); }
 
 protected:
   friend class torrent::TrackerList;

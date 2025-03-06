@@ -50,7 +50,7 @@
 namespace torrent {
 
 class HashChunk;
-class thread_disk;
+class ThreadDisk;
 
 // Calculating hash of incore memory is blindingly fast, it's always
 // the loading from swap/disk that takes time. So with the exception
@@ -76,7 +76,7 @@ public:
   using base_type::front;
   using base_type::back;
 
-  HashQueue(thread_disk* thread);
+  HashQueue(ThreadDisk* thread);
   ~HashQueue() { clear(); }
 
   void                push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d);
@@ -94,7 +94,7 @@ public:
 private:
   void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
 
-  thread_disk*        m_thread_disk;
+  ThreadDisk*         m_thread_disk;
 
   done_chunks_type    m_done_chunks;
   slot_bool           m_slot_has_work;

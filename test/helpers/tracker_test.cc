@@ -12,6 +12,51 @@
 
 uint32_t return_new_peers = 0xdeadbeef;
 
+torrent::tracker::Tracker
+TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const std::string& url, int flags) {
+  auto tracker_info = torrent::TrackerInfo{
+    // .info_hash = m_info->hash(),
+    // .obfuscated_hash = m_info->hash_obfuscated(),
+    // .local_id = m_info->local_id(),
+    .url = url,
+    // .key = m_key
+  };
+
+  return torrent::tracker::Tracker(std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(tracker_info, flags)));
+}
+
+void
+TrackerTest::insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker) {
+  // Insert into partent then override slots.
+
+  parent->insert(group, tracker);
+
+  tracker.get_worker()->m_slot_enabled = [parent, tracker]() {
+      if (parent->slot_tracker_enabled())
+        parent->slot_tracker_enabled()(tracker);
+    };
+  tracker.get_worker()->m_slot_disabled = [parent, tracker]() {
+      if (parent->slot_tracker_disabled())
+        parent->slot_tracker_disabled()(tracker);
+    };
+  tracker.get_worker()->m_slot_success = [parent, tracker](torrent::AddressList&& l) {
+      auto t = tracker;
+      parent->receive_success(std::move(t), &l);
+    };
+  tracker.get_worker()->m_slot_failure = [parent, tracker](const std::string& msg) {
+      auto t = tracker;
+      parent->receive_failed(std::move(t), msg);
+    };
+  tracker.get_worker()->m_slot_scrape_success = [parent, tracker]() {
+      auto t = tracker;
+      parent->receive_scrape_success(std::move(t));
+    };
+  tracker.get_worker()->m_slot_scrape_failure = [parent, tracker](const std::string& msg) {
+      auto t = tracker;
+      parent->receive_scrape_failed(std::move(t), msg);
+    };
+}
+
 void
 TrackerTest::set_success(uint32_t counter, uint32_t time_last) {
   auto guard = lock_guard();
@@ -93,6 +138,7 @@ TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
 bool
 TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_peers) {
   CPPUNIT_ASSERT(is_busy() && is_open());
+  CPPUNIT_ASSERT(address_list != nullptr);
 
   m_busy = false;
   m_open = !(state().flags() & flag_close_on_done);

@@ -6,7 +6,7 @@
 
 namespace torrent {
 
-class thread_main : public thread_base {
+class ThreadMain : public thread_base {
 public:
   const char*         name() const { return "rtorrent main"; }
 

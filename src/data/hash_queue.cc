@@ -42,7 +42,7 @@ struct HashQueueWillneed {
 // disk usage. But this may cause too much blocking as it will think
 // everything is in memory, thus we need to throttle.
 
-HashQueue::HashQueue(thread_disk* thread) :
+HashQueue::HashQueue(ThreadDisk* thread) :
     m_thread_disk(thread) {
   m_thread_disk->hash_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) { chunk_done(hc, hv); };
 }

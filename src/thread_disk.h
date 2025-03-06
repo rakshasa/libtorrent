@@ -6,7 +6,7 @@
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT thread_disk : public thread_base {
+class ThreadDisk : public thread_base {
 public:
   const char*     name() const { return "rtorrent disk"; }
   HashCheckQueue* hash_queue() { return &m_hash_queue; }

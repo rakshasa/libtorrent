@@ -74,7 +74,7 @@ test_hash_queue::test_single() {
 
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
   hash_queue->push_back(handle_0, NULL, std::bind(&chunk_done, chunk_list, &done_chunks, std::placeholders::_1, std::placeholders::_2));
-  
+
   CPPUNIT_ASSERT(hash_queue->size() == 1);
   CPPUNIT_ASSERT(hash_queue->front().handle().is_blocking());
   CPPUNIT_ASSERT(hash_queue->front().handle().object() == &((*chunk_list)[0]));
@@ -85,7 +85,7 @@ test_hash_queue::test_single() {
   CPPUNIT_ASSERT(done_chunks[0] == hash_for_index(0));
 
   // chunk_list->release(&handle_0);
-  
+
   CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
   delete hash_queue;
 

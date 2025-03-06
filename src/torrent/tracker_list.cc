@@ -7,6 +7,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/tracker_list.h"
+#include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
@@ -15,6 +16,7 @@
 #include "tracker/tracker_udp.h"
 
 #include "globals.h"
+#include "manager.h"
 
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, info(), "tracker_list", log_fmt, __VA_ARGS__);
@@ -149,41 +151,79 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
   auto weak_tracker = std::weak_ptr<TrackerWorker>(itr->m_worker);
 
   itr->m_worker->m_slot_enabled = [this, weak_tracker]() {
-      auto tracker_shared_ptr = weak_tracker.lock();
+      manager->tracker_manager()->add_event(this, [this, weak_tracker]() {
+          if (!m_slot_tracker_enabled)
+            return;
 
-      // TODO: Pass the tracker object to the slots within main thread.
+          auto tracker_shared_ptr = weak_tracker.lock();
 
-      if (m_slot_tracker_enabled)
-        m_slot_tracker_enabled(tracker::Tracker(std::move(tracker_shared_ptr)));
+          if (tracker_shared_ptr)
+            m_slot_tracker_enabled(tracker::Tracker(std::move(tracker_shared_ptr)));
+        });
     };
+
   itr->m_worker->m_slot_disabled = [this, weak_tracker]() {
-      auto tracker_shared_ptr = weak_tracker.lock();
+      manager->tracker_manager()->add_event(this, [this, weak_tracker]() {
+          if (!m_slot_tracker_disabled)
+            return;
 
-      if (m_slot_tracker_disabled)
-        m_slot_tracker_disabled(tracker::Tracker(std::move(tracker_shared_ptr)));
+          auto tracker_shared_ptr = weak_tracker.lock();
+
+          if (tracker_shared_ptr)
+            m_slot_tracker_disabled(tracker::Tracker(std::move(tracker_shared_ptr)));
+        });
     };
+
   itr->m_worker->m_slot_success = [this, weak_tracker](AddressList&& l) {
-      auto tracker_shared_ptr = weak_tracker.lock();
+      manager->tracker_manager()->add_event(this, [this, weak_tracker, l = std::move(l)]() {
+          if (!m_slot_success)
+            return;
 
-      receive_success(tracker::Tracker(std::move(tracker_shared_ptr)), &l);
+          auto tracker_shared_ptr = weak_tracker.lock();
+
+          if (tracker_shared_ptr)
+            receive_success(tracker::Tracker(std::move(tracker_shared_ptr)), (AddressList*)&l);
+        });
     };
+
   itr->m_worker->m_slot_failure = [this, weak_tracker](const std::string& msg) {
-      auto tracker_shared_ptr = weak_tracker.lock();
+      manager->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
+          if (!m_slot_failed)
+            return;
 
-      receive_failed(tracker::Tracker(std::move(tracker_shared_ptr)), msg);
+          auto tracker_shared_ptr = weak_tracker.lock();
+
+          if (tracker_shared_ptr)
+            receive_failed(tracker::Tracker(std::move(tracker_shared_ptr)), msg);
+        });
     };
+
   itr->m_worker->m_slot_scrape_success = [this, weak_tracker]() {
-      auto tracker_shared_ptr = weak_tracker.lock();
+      manager->tracker_manager()->add_event(this, [this, weak_tracker]() {
+          if (!m_slot_scrape_success)
+            return;
 
-      receive_scrape_success(tracker::Tracker(std::move(tracker_shared_ptr)));
+          auto tracker_shared_ptr = weak_tracker.lock();
+
+          if (tracker_shared_ptr)
+            receive_scrape_success(tracker::Tracker(std::move(tracker_shared_ptr)));
+        });
     };
+
   itr->m_worker->m_slot_scrape_failure = [this, weak_tracker](const std::string& msg) {
-      auto tracker_shared_ptr = weak_tracker.lock();
+      manager->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
+          if (!m_slot_scrape_failed)
+            return;
 
-      receive_scrape_failed(tracker::Tracker(std::move(tracker_shared_ptr)), msg);
+          auto tracker_shared_ptr = weak_tracker.lock();
+
+          if (tracker_shared_ptr)
+            receive_scrape_failed(tracker::Tracker(std::move(tracker_shared_ptr)), msg);
+        });
     };
+
   itr->m_worker->m_slot_parameters = [this]() -> TrackerParameters {
-      // TODO: Lock here.
+      // TODO: Lock here!
 
       return TrackerParameters{
         .numwant = m_numwant,

@@ -2,29 +2,30 @@
 
 #include <rak/timer.h>
 
-#include "thread_disk.h"
+#include "thread_tracker.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
+#include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
 
 void
-ThreadDisk::init_thread() {
+ThreadTracker::init_thread() {
   if (!Poll::slot_create_poll())
-    throw internal_error("ThreadDisk::init_thread(): Poll::slot_create_poll() not valid.");
+    throw internal_error("ThreadTracker::init_thread(): Poll::slot_create_poll() not valid.");
 
   m_poll = Poll::slot_create_poll()();
   m_state = STATE_INITIALIZED;
 
-  m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
+  m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
 }
 
 void
-ThreadDisk::call_events() {
-  // lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
+ThreadTracker::call_events() {
+  // lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got ThreadTracker tick.");
 
   // TODO: Consider moving this into timer events instead.
   if ((m_flags & flag_do_shutdown)) {
@@ -35,12 +36,13 @@ ThreadDisk::call_events() {
     throw shutdown_exception();
   }
 
-  m_hash_queue.perform();
+  // TODO: Add as signal.
+  // m_manager->process_events();
 }
 
 int64_t
-ThreadDisk::next_timeout_usec() {
-  return rak::timer::from_seconds(10).round_seconds().usec();
+ThreadTracker::next_timeout_usec() {
+  return rak::timer::from_minutes(60).round_seconds().usec();
 }
 
 }

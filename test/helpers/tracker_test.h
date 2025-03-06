@@ -41,7 +41,8 @@ public:
   void                close() override  { m_busy = false; m_open = false; m_requesting_state = -1; }
   virtual void        disown() override { m_busy = false; m_open = false; m_requesting_state = -1; }
 
-  static torrent::tracker::Tracker new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
+  static torrent::tracker::Tracker       new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
+  static void                            insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker);
 
   torrent::tracker::TrackerState&        test_state() { return state(); }
 
@@ -84,19 +85,6 @@ TrackerTest::set_scrape_on_success(bool s) {
 inline void
 TrackerTest::set_scrapable() {
   state().m_flags |= torrent::tracker::TrackerState::flag_scrapable;
-}
-
-inline torrent::tracker::Tracker
-TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const std::string& url, int flags) {
-  auto tracker_info = torrent::TrackerInfo{
-    // .info_hash = m_info->hash(),
-    // .obfuscated_hash = m_info->hash_obfuscated(),
-    // .local_id = m_info->local_id(),
-    .url = url,
-    // .key = m_key
-  };
-
-  return torrent::tracker::Tracker(std::shared_ptr<torrent::TrackerWorker>(new TrackerTest(tracker_info, flags)));
 }
 
 inline TrackerTest*

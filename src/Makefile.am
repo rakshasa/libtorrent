@@ -17,7 +17,9 @@ libtorrent_la_SOURCES = \
 	thread_disk.cc \
 	thread_disk.h \
 	thread_main.cc \
-	thread_main.h
+	thread_main.h \
+	thread_tracker.cc \
+	thread_tracker.h
 
 libtorrent_other_la_SOURCES = \
 	data/chunk.cc \

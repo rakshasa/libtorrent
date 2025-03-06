@@ -13,11 +13,11 @@
 namespace torrent {
 
 void
-thread_main::init_thread() {
+ThreadMain::init_thread() {
   acquire_global_lock();
 
   if (!Poll::slot_create_poll())
-    throw internal_error("thread_main::init_thread(): Poll::slot_create_poll() not valid.");
+    throw internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
 
   m_poll = Poll::slot_create_poll()();
   m_poll->set_flags(Poll::flag_waive_global_lock);
@@ -30,7 +30,7 @@ thread_main::init_thread() {
 }
 
 void
-thread_main::call_events() {
+ThreadMain::call_events() {
   cachedTime = rak::timer::current();
 
   // Ensure we don't call rak::timer::current() twice if there was no
@@ -52,7 +52,7 @@ thread_main::call_events() {
 }
 
 int64_t
-thread_main::next_timeout_usec() {
+ThreadMain::next_timeout_usec() {
   cachedTime = rak::timer::current();
 
   if (!taskScheduler.empty())

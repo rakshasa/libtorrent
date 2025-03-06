@@ -62,7 +62,7 @@ bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const c
 
 #define TRACKER_INSERT(group, name)                                     \
   auto name = TrackerTest::new_tracker(&tracker_list, "");              \
-  tracker_list.insert(group, name);
+  TrackerTest::insert_tracker(&tracker_list, group, name);
 
 #define TEST_TRACKER_IS_BUSY(tracker, state)            \
   CPPUNIT_ASSERT(state == '0' ||  tracker.is_busy());   \

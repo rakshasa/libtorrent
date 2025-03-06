@@ -65,15 +65,18 @@ initialize() {
   instrumentation_initialize();
 
   manager = new Manager;
-  manager->main_thread_main()->init_thread();
+  manager->thread_main()->init_thread();
 
   uint32_t maxFiles = calculate_max_open_files(manager->poll()->open_max());
 
   manager->connection_manager()->set_max_size(manager->poll()->open_max() - maxFiles - calculate_reserved(manager->poll()->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
 
-  manager->main_thread_disk()->init_thread();
-  manager->main_thread_disk()->start_thread();
+  manager->thread_disk()->init_thread();
+  manager->thread_tracker()->init_thread();
+
+  manager->thread_disk()->start_thread();
+  manager->thread_tracker()->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -83,7 +86,8 @@ cleanup() {
   if (manager == NULL)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
-  manager->main_thread_disk()->stop_thread_wait();
+  manager->thread_tracker()->stop_thread_wait();
+  manager->thread_disk()->stop_thread_wait();
 
   delete manager;
   manager = NULL;
@@ -101,7 +105,7 @@ is_inactive() {
 
 thread_base*
 main_thread() {
-  return manager->main_thread_main();
+  return manager->thread_main();
 }
 
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
