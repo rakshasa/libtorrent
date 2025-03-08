@@ -62,8 +62,8 @@ public:
   ThrottleList*       throttle_list()  { return m_throttleList; }
 
 protected:
-  Throttle() {}
-  ~Throttle() {}
+  Throttle()  = default;
+  ~Throttle() = default;
 
   ThrottleInternal*       m_ptr()       { return reinterpret_cast<ThrottleInternal*>(this); }
   const ThrottleInternal* c_ptr() const { return reinterpret_cast<const ThrottleInternal*>(this); }

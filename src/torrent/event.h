@@ -33,7 +33,7 @@ protected:
 };
 
 inline Event::Event() : m_fileDesc(-1), m_ipv6_socket(false) {}
-inline Event::~Event() {}
+inline Event::~Event() = default;
 inline bool Event::is_open() const { return file_descriptor() != -1; }
 inline int  Event::file_descriptor() const { return m_fileDesc; }
 inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }

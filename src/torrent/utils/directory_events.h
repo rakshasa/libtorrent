@@ -65,7 +65,7 @@ public:
   static const int flag_on_updated = 0x3;
 
   directory_events() { m_fileDesc = -1; }
-  ~directory_events() {}
+  ~directory_events() = default;
 
   bool                open();
   void                close();

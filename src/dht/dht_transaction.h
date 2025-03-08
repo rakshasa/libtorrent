@@ -108,7 +108,7 @@ public:
   // without having to modify much code using iterators.
   template <typename T>
   struct accessor_wrapper : public T {
-    accessor_wrapper() { }
+    accessor_wrapper() = default;
     accessor_wrapper(const T& itr) : T(itr) { }
 
     DhtNode*                        node() const     { return (**this).first; }

@@ -24,8 +24,7 @@
 
 namespace torrent {
 
-PeerConnectionMetadata::~PeerConnectionMetadata() {
-}
+PeerConnectionMetadata::~PeerConnectionMetadata() = default;
 
 void
 PeerConnectionMetadata::initialize_custom() {
