@@ -17,7 +17,7 @@ class ChunkListNode;
 
 class HashChunk {
 public:
-  HashChunk()         {}
+  HashChunk() = default;
   HashChunk(ChunkHandle h)  { set_chunk(h); }
 
   void                set_chunk(ChunkHandle h)                { m_position = 0; m_chunk = h; m_hash.init(); }

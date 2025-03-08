@@ -53,7 +53,7 @@ public:
   typedef File*              reference;
   typedef File**             pointer;
 
-  FileListIterator() {}
+  FileListIterator() = default;
   explicit FileListIterator(iterator pos, uint32_t depth = 0) : m_position(pos), m_depth(depth) {}
 
   bool                is_file() const;
@@ -130,7 +130,7 @@ public:
   using base_type::depth;
   using base_type::file;
 
-  file_list_collapsed_iterator() {}
+  file_list_collapsed_iterator() = default;
   file_list_collapsed_iterator(const FileListIterator& src) : FileListIterator(src) {}
   explicit file_list_collapsed_iterator(iterator pos, uint32_t depth = 0) : FileListIterator(pos, depth) {}
 

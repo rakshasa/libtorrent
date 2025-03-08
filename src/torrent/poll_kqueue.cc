@@ -398,8 +398,7 @@ PollKQueue::create([[maybe_unused]] int maxOpenSockets) {
   return NULL;
 }
 
-PollKQueue::~PollKQueue() {
-}
+PollKQueue::~PollKQueue() = default;
 
 int
 PollKQueue::poll([[maybe_unused]] int msec) {

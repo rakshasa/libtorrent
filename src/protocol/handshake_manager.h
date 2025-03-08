@@ -29,7 +29,7 @@ public:
 
   using base_type::empty;
 
-  HandshakeManager() { }
+  HandshakeManager() = default;
   ~HandshakeManager() { clear(); }
 
   size_type           size() const { return base_type::size(); }

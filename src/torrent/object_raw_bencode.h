@@ -120,7 +120,7 @@ public:
   typedef raw_string this_type;
   RAW_BENCODE_SET_USING
 
-  raw_string() {}
+  raw_string() = default;
   raw_string(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   std::string as_string() const { return std::string(m_data, m_size); }
@@ -134,7 +134,7 @@ public:
   typedef raw_list this_type;
   RAW_BENCODE_SET_USING
 
-  raw_list() {}
+  raw_list() = default;
   raw_list(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   static raw_list from_c_str(const char* str) { return raw_list(str, std::strlen(str)); }
@@ -145,7 +145,7 @@ public:
   typedef raw_map this_type;
   RAW_BENCODE_SET_USING
 
-  raw_map() {}
+  raw_map() = default;
   raw_map(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 };
 
