@@ -9,16 +9,16 @@ namespace torrent {
 class ThreadDisk : public thread_base {
 public:
   ThreadDisk() = default;
-  ~ThreadDisk() = default;
+  ~ThreadDisk() override = default;
 
-  const char*     name() const { return "rtorrent disk"; }
+  const char*     name() const override { return "rtorrent disk"; }
   HashCheckQueue* hash_queue() { return &m_hash_queue; }
 
-  virtual void    init_thread();
+  void            init_thread() override;
 
 protected:
-  virtual void    call_events();
-  virtual int64_t next_timeout_usec();
+  void            call_events() override;
+  int64_t         next_timeout_usec() override;
 
   HashCheckQueue  m_hash_queue;
 };

@@ -5,9 +5,9 @@
 #include <memory>
 #include <string>
 
-#include "rak/priority_queue_default.h"
-#include "thread_disk.h"
 #include "thread_main.h"
+#include "data/thread_disk.h"
+#include "rak/priority_queue_default.h"
 #include "torrent/common.h"
 
 namespace torrent {

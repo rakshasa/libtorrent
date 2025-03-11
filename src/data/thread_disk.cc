@@ -2,7 +2,7 @@
 
 #include <rak/timer.h>
 
-#include "thread_disk.h"
+#include "data/thread_disk.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"

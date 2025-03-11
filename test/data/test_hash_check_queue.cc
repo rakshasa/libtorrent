@@ -9,11 +9,11 @@
 #include <signal.h>
 
 #include "data/chunk_handle.h"
+#include "data/thread_disk.h"
 #include "utils/sha1.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll_select.h"
-#include "thread_disk.h"
 
 #include "test_chunk_list.h"
 
