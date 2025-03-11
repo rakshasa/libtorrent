@@ -6,6 +6,7 @@
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
+#include "data/thread_disk.h"
 #include "download/download_constructor.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
@@ -64,6 +65,7 @@ initialize() {
   instrumentation_initialize();
 
   manager = new Manager;
+  thread_disk = new ThreadDisk;
   thread_tracker = new ThreadTracker;
 
   manager->thread_main()->init_thread();
@@ -73,10 +75,10 @@ initialize() {
   manager->connection_manager()->set_max_size(manager->poll()->open_max() - maxFiles - calculate_reserved(manager->poll()->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
 
-  manager->thread_disk()->init_thread();
+  thread_disk->init_thread();
   thread_tracker->init_thread();
 
-  manager->thread_disk()->start_thread();
+  thread_disk->start_thread();
   thread_tracker->start_thread();
 }
 
@@ -88,7 +90,7 @@ cleanup() {
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
   thread_tracker->stop_thread_wait();
-  manager->thread_disk()->stop_thread_wait();
+  thread_disk->stop_thread_wait();
 
   delete manager;
   manager = NULL;

@@ -40,11 +40,10 @@ Manager::Manager() :
 
   m_client_list(new ClientList),
   m_dht_controller(new tracker::DhtController),
+  m_hash_queue(new HashQueue),
 
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle()) {
-
-  m_hash_queue = std::make_unique<HashQueue>(&m_thread_disk);
 
   auto hash_work_signal = m_thread_main.signal_bitfield()->add_signal([hash_queue = m_hash_queue.get()]() {
       return hash_queue->work();

@@ -6,7 +6,6 @@
 #include <string>
 
 #include "thread_main.h"
-#include "data/thread_disk.h"
 #include "rak/priority_queue_default.h"
 #include "torrent/common.h"
 
@@ -38,7 +37,6 @@ public:
   Poll*               poll()               { return m_thread_main.poll(); }
 
   ThreadMain*         thread_main()        { return &m_thread_main; }
-  ThreadDisk*         thread_disk()        { return &m_thread_disk; }
 
   EncodingList*       encoding_list()      { return &m_encodingList; }
 
@@ -63,7 +61,6 @@ private:
   std::unique_ptr<HashQueue>              m_hash_queue;
 
   ThreadMain          m_thread_main;
-  ThreadDisk          m_thread_disk;
 
   EncodingList        m_encodingList;
 

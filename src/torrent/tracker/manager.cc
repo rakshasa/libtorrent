@@ -45,11 +45,13 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
   {
     std::lock_guard<std::mutex> events_guard(m_events_lock);
 
-    m_tracker_list_events.erase(std::remove_if(m_tracker_list_events.begin(),
-                                       m_tracker_list_events.end(),
-                                       [tl = controller.get()->tracker_list()](const TrackerListEvent& event) {
-                                         return event.tracker_list == tl;
-                                       }));
+    auto itr = std::remove_if(m_tracker_list_events.begin(),
+                              m_tracker_list_events.end(),
+                              [tl = controller.get()->tracker_list()](const TrackerListEvent& event) {
+                                return event.tracker_list == tl;
+                              });
+
+    m_tracker_list_events.erase(itr);
   }
 
   LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", hash_string_to_hex_str(controller.info_hash()).c_str());
@@ -75,6 +77,12 @@ Manager::process_events() {
 
     events.swap(m_tracker_list_events);
   }
+
+  // TODO: Check if the tracker list is still valid.
+  //
+  // We need to add a list of tl's removed since the above lock guard, and check it.
+  //
+  // Rather, we verify that we're running in the main thread for add/remove_controller and process_events.
 
   for (auto& event : events) {
     event.event();

@@ -42,9 +42,8 @@ struct HashQueueWillneed {
 // disk usage. But this may cause too much blocking as it will think
 // everything is in memory, thus we need to throttle.
 
-HashQueue::HashQueue(ThreadDisk* thread) :
-    m_thread_disk(thread) {
-  m_thread_disk->hash_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) { chunk_done(hc, hv); };
+HashQueue::HashQueue() {
+  thread_disk->hash_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) { chunk_done(hc, hv); };
 }
 
 // If we're done immediately, move the chunk to the front of the list so
@@ -60,8 +59,8 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
 
   base_type::push_back(HashQueueNode(id, hash_chunk, d));
 
-  m_thread_disk->hash_queue()->push_back(hash_chunk);
-  m_thread_disk->interrupt();
+  thread_disk->hash_queue()->push_back(hash_chunk);
+  thread_disk->interrupt();
 }
 
 bool
@@ -85,7 +84,7 @@ HashQueue::remove(HashQueueNode::id_type id) {
     LT_LOG_DATA(id, DEBUG, "Removing index:%" PRIu32 " from queue.", hash_chunk->handle().index());
 
     thread_base::release_global_lock();
-    bool result = m_thread_disk->hash_queue()->remove(hash_chunk);
+    bool result = thread_disk->hash_queue()->remove(hash_chunk);
     thread_base::acquire_global_lock();
 
     // The hash chunk was not found, so we need to wait until the hash

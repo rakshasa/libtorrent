@@ -23,6 +23,8 @@ protected:
   HashCheckQueue  m_hash_queue;
 };
 
+extern ThreadDisk* thread_disk;
+
 }
 
 #endif

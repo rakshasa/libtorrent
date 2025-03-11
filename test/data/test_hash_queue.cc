@@ -54,6 +54,9 @@ test_hash_queue::setUp() {
 void
 test_hash_queue::tearDown() {
   torrent::taskScheduler.clear();
+  delete torrent::thread_disk;
+  torrent::thread_disk = nullptr;
+
   test_fixture::tearDown();
 }
 
@@ -64,11 +67,10 @@ fill_queue() {
 void
 test_hash_queue::test_single() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD();
-  thread_disk->start_thread();
+  SETUP_THREAD_DISK();
 
   done_chunks_type done_chunks;
-  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  auto hash_queue = new torrent::HashQueue();
   hash_queue->slot_has_work() = std::bind(&fill_queue);
 
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
@@ -85,22 +87,20 @@ test_hash_queue::test_single() {
 
   // chunk_list->release(&handle_0);
 
-  CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
+  CPPUNIT_ASSERT(torrent::thread_disk->hash_queue()->empty());
   delete hash_queue;
 
-  thread_disk->stop_thread();
-  CLEANUP_THREAD();
+  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 
 void
 test_hash_queue::test_multiple() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD();
-  thread_disk->start_thread();
+  SETUP_THREAD_DISK();
 
   done_chunks_type done_chunks;
-  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  auto hash_queue = new torrent::HashQueue();
   hash_queue->slot_has_work() = std::bind(&fill_queue);
 
   for (unsigned int i = 0; i < 20; i++) {
@@ -116,21 +116,20 @@ test_hash_queue::test_multiple() {
     CPPUNIT_ASSERT(wait_for_true(std::bind(&check_for_chunk_done, hash_queue, &done_chunks, i)));
     CPPUNIT_ASSERT(done_chunks[i] == hash_for_index(i));
   }
-  
-  CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
+
+  CPPUNIT_ASSERT(torrent::thread_disk->hash_queue()->empty());
   delete hash_queue;
 
-  thread_disk->stop_thread();
-  CLEANUP_THREAD();
+  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 
 void
 test_hash_queue::test_erase() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD();
+  SETUP_THREAD_DISK();
 
-  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  auto hash_queue = new torrent::HashQueue();
   hash_queue->slot_has_work() = std::bind(&fill_queue);
 
   done_chunks_type done_chunks;
@@ -145,20 +144,19 @@ test_hash_queue::test_erase() {
   hash_queue->remove(NULL);
   CPPUNIT_ASSERT(hash_queue->empty());
 
-  CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
+  CPPUNIT_ASSERT(torrent::thread_disk->hash_queue()->empty());
   delete hash_queue;
-  delete thread_disk;
 
+  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 
 void
 test_hash_queue::test_erase_stress() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD();
-  thread_disk->start_thread();
+  SETUP_THREAD_DISK();
 
-  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  auto hash_queue = new torrent::HashQueue();
   hash_queue->slot_has_work() = std::bind(&fill_queue);
 
   done_chunks_type done_chunks;
@@ -175,11 +173,10 @@ test_hash_queue::test_erase_stress() {
     CPPUNIT_ASSERT(hash_queue->empty());
   }
 
-  CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
+  CPPUNIT_ASSERT(torrent::thread_disk->hash_queue()->empty());
   delete hash_queue;
 
-  thread_disk->stop_thread();
-  CLEANUP_THREAD();
+  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 

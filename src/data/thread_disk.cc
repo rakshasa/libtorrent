@@ -11,6 +11,8 @@
 
 namespace torrent {
 
+ThreadDisk* thread_disk = nullptr;
+
 void
 ThreadDisk::init_thread() {
   if (!Poll::slot_create_poll())
