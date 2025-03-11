@@ -512,15 +512,15 @@ resume_load_tracker_settings(Download download, const Object& object) {
   }
 
   for (auto tracker : *tracker_list) {
-    if (!src.has_key_map(tracker->url()))
+    if (!src.has_key_map(tracker.url()))
       continue;
 
-    const Object& trackerObject = src.get_key(tracker->url());
+    const Object& trackerObject = src.get_key(tracker.url());
 
     if (trackerObject.has_key_value("enabled") && trackerObject.get_key_value("enabled") == 0)
-      tracker->disable();
+      tracker.disable();
     else
-      tracker->enable();
+      tracker.enable();
   }
 }
 
@@ -530,13 +530,13 @@ resume_save_tracker_settings(Download download, Object& object) {
   TrackerList* tracker_list = download.tracker_list();
 
   for (auto tracker : *tracker_list) {
-    Object& trackerObject = dest.insert_key(tracker->url(), Object::create_map());
+    Object& trackerObject = dest.insert_key(tracker.url(), Object::create_map());
 
-    trackerObject.insert_key("enabled", Object((int64_t)tracker->is_enabled()));
+    trackerObject.insert_key("enabled", Object((int64_t)tracker.is_enabled()));
 
-    if (tracker->is_extra_tracker()) {
+    if (tracker.is_extra_tracker()) {
       trackerObject.insert_key("extra_tracker", Object((int64_t)1));
-      trackerObject.insert_key("group", tracker->group());
+      trackerObject.insert_key("group", tracker.group());
     }
   }
 }

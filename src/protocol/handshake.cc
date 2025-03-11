@@ -1,16 +1,17 @@
 #include "config.h"
 
+#include <cassert>
 #include <stdio.h>
 
 #include "download/download_main.h"
 #include "net/throttle_list.h"
-#include "torrent/dht_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/error.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 #include "utils/diffie_hellman.h"
 
@@ -81,11 +82,8 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
 }
 
 Handshake::~Handshake() {
-  if (m_taskTimeout.is_queued())
-    throw internal_error("Handshake m_taskTimeout bork bork bork.");
-
-  if (get_fd().is_valid())
-    throw internal_error("Handshake dtor called but m_fd is still open.");
+  assert(!m_taskTimeout.is_queued() && "Handshake dtor called but m_taskTimeout is queued.");
+  assert(!get_fd().is_valid() && "Handshake dtor called but m_fd is still open.");
 
   m_encryption.cleanup();
 }
@@ -630,7 +628,7 @@ Handshake::read_port() {
   m_readBuffer.read_8();
 
   if (length == 2)
-    manager->dht_manager()->add_node(m_address.get(), m_readBuffer.peek_16());
+    manager->dht_controller()->add_node(m_address.get(), m_readBuffer.peek_16());
 
   m_readBuffer.consume(length);
   return true;
@@ -1046,7 +1044,7 @@ Handshake::prepare_handshake() {
 
   std::memset(m_writeBuffer.end(), 0, 8);
   *(m_writeBuffer.end()+5) |= 0x10;    // support extension protocol
-  if (manager->dht_manager()->is_active())
+  if (manager->dht_controller()->is_active())
     *(m_writeBuffer.end()+7) |= 0x01;  // DHT support, enable PORT message
   m_writeBuffer.move_end(8);
 
@@ -1112,11 +1110,15 @@ Handshake::prepare_post_handshake(bool must_write) {
   Buffer::iterator old_end = m_writeBuffer.end();
 
   // Send PORT message for DHT if enabled and peer supports it.
-  if (m_peerInfo->supports_dht() && manager->dht_manager()->is_active() && manager->dht_manager()->can_receive_queries()) {
+  if (m_peerInfo->supports_dht() &&
+      manager->dht_controller()->is_active() &&
+      manager->dht_controller()->is_receiving_requests()) {
+
     m_writeBuffer.write_32(3);
     m_writeBuffer.write_8(protocol_port);
-    m_writeBuffer.write_16(manager->dht_manager()->port());
-    manager->dht_manager()->port_sent();
+    m_writeBuffer.write_16(manager->dht_controller()->port());
+
+    // manager->dht_controller()->port_sent();
   }
 
   // Send a keep-alive if we still must send something.

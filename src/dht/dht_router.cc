@@ -3,9 +3,10 @@
 
 #include <sstream>
 
-#include "torrent/dht_manager.h"
+#include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
+#include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 
 #include "utils/sha1.h"
@@ -335,9 +336,9 @@ DhtRouter::store_cache(Object* container) const {
   return container;
 }
 
-DhtManager::statistics_type
+tracker::DhtController::statistics_type
 DhtRouter::get_statistics() const {
-  DhtManager::statistics_type stats(*m_server.upload_throttle_node()->rate(), *m_server.download_throttle_node()->rate());
+  tracker::DhtController::statistics_type stats(*m_server.upload_throttle_node()->rate(), *m_server.download_throttle_node()->rate());
 
   if (!m_server.is_active())
     stats.cycle = 0;

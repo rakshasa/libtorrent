@@ -52,7 +52,7 @@ public:
   uint32_t            normal_interval() const    { return m_normal_interval; }
   uint32_t            min_interval() const       { return m_min_interval; }
 
-  int                 latest_event() const       { return m_latest_event; }
+  event_enum          latest_event() const       { return m_latest_event; }
   uint32_t            latest_new_peers() const   { return m_latest_new_peers; }
   uint32_t            latest_sum_peers() const   { return m_latest_sum_peers; }
 

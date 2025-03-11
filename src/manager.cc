@@ -2,6 +2,7 @@
 
 #include "torrent/exceptions.h"
 
+#include "dht/dht_router.h"
 #include "download/download_wrapper.h"
 #include "download/download_main.h"
 #include "data/hash_torrent.h"
@@ -13,7 +14,6 @@
 
 #include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
-#include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
@@ -21,6 +21,7 @@
 #include "torrent/download/resource_manager.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/throttle.h"
+#include "torrent/tracker/dht_controller.h"
 #include "torrent/tracker/manager.h"
 
 #include "manager.h"
@@ -32,27 +33,23 @@ Manager* manager = NULL;
 Manager::Manager() :
   m_chunk_manager(new ChunkManager),
   m_connection_manager(new ConnectionManager),
-  m_dht_manager(new DhtManager),
   m_download_manager(new DownloadManager),
   m_file_manager(new FileManager),
   m_handshake_manager(new HandshakeManager),
   m_resource_manager(new ResourceManager),
-  m_tracker_manager(new tracker::Manager),
 
   m_client_list(new ClientList),
+  m_dht_controller(new tracker::DhtController),
 
   m_uploadThrottle(Throttle::create_throttle()),
-  m_downloadThrottle(Throttle::create_throttle())
+  m_downloadThrottle(Throttle::create_throttle()) {
 
-  {
+  m_hash_queue = std::make_unique<HashQueue>(&m_thread_disk);
 
-  m_hash_queue = std::make_unique<HashQueue>(&m_main_thread_disk);
-
-  auto hash_work_signal = m_main_thread_main.signal_bitfield()->add_signal([hash_queue = m_hash_queue.get()]() {
+  auto hash_work_signal = m_thread_main.signal_bitfield()->add_signal([hash_queue = m_hash_queue.get()]() {
       return hash_queue->work();
     });
-
-  m_hash_queue->slot_has_work() = [hash_work_signal, thread = &m_main_thread_main](bool is_done) {
+  m_hash_queue->slot_has_work() = [hash_work_signal, thread = &m_thread_main](bool is_done) {
       thread->send_event_signal(hash_work_signal, is_done);
     };
 

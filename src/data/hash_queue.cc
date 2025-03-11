@@ -1,19 +1,19 @@
 #include "config.h"
 
+#include "data/hash_queue.h"
+
 #include <functional>
 #include <unistd.h>
 
+#include "globals.h"
+#include "data/chunk.h"
+#include "data/chunk_list_node.h"
+#include "data/hash_chunk.h"
+#include "data/thread_disk.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/download_data.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread_base.h"
-
-#include "hash_queue.h"
-#include "hash_chunk.h"
-#include "chunk.h"
-#include "chunk_list_node.h"
-#include "globals.h"
-#include "thread_disk.h"
 
 #define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
   lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
@@ -42,7 +42,7 @@ struct HashQueueWillneed {
 // disk usage. But this may cause too much blocking as it will think
 // everything is in memory, thus we need to throttle.
 
-HashQueue::HashQueue(thread_disk* thread) :
+HashQueue::HashQueue(ThreadDisk* thread) :
     m_thread_disk(thread) {
   m_thread_disk->hash_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) { chunk_done(hc, hv); };
 }

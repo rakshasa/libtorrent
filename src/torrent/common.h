@@ -43,7 +43,6 @@ class ClientInfo;
 class ClientList;
 class ConnectionList;
 class ConnectionManager;
-class DhtManager;
 class DhtRouter;
 class Download;
 class DownloadInfo;
@@ -76,8 +75,9 @@ class TransferList;
 
 namespace tracker {
 
-class Tracker;
+class DhtController;
 class Manager;
+class Tracker;
 
 }
 

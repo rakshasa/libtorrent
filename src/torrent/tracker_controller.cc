@@ -150,11 +150,29 @@ TrackerController::send_start_event() {
   LT_LOG_TRACKER_EVENTS("sending start event : requesting", 0);
 
   close();
-  m_tracker_list->send_event_itr(m_tracker_list->find_usable(m_tracker_list->begin()), tracker::TrackerState::EVENT_STARTED);
 
-  if (m_tracker_list->count_usable() > 1) {
-    m_flags |= flag_promiscuous_mode;
-    update_timeout(3);
+  // std::any_of(m_tracker_list->begin(), m_tracker_list->end(), [&](tracker::Tracker& tracker) {
+  //   if (!tracker.is_usable())
+  //     return false;
+
+  //   m_tracker_list->send_event(tracker, tracker::TrackerState::EVENT_STARTED);
+  //   return true;
+  // });
+
+  bool found_usable = false;
+
+  for (auto tracker : *m_tracker_list) {
+    if (!tracker.is_usable())
+      continue;
+
+    if (found_usable) {
+      m_flags |= flag_promiscuous_mode;
+      update_timeout(3);
+      break;
+    }
+
+    m_tracker_list->send_event(tracker, tracker::TrackerState::EVENT_STARTED);
+    found_usable = true;
   }
 }
 
@@ -179,7 +197,7 @@ TrackerController::send_stop_event() {
   close();
 
   for (auto tracker : *m_tracker_list) {
-    if (!tracker->is_in_use())
+    if (!tracker.is_in_use())
       continue;
 
     m_tracker_list->send_event(tracker, tracker::TrackerState::EVENT_STOPPED);
@@ -208,7 +226,7 @@ TrackerController::send_completed_event() {
   close();
 
   for (auto tracker : *m_tracker_list) {
-    if (!tracker->is_in_use())
+    if (!tracker.is_in_use())
       continue;
 
     m_tracker_list->send_event(tracker, tracker::TrackerState::EVENT_COMPLETED);
@@ -231,10 +249,13 @@ TrackerController::send_update_event() {
 
   LT_LOG_TRACKER_EVENTS("sending update event : requesting", 0);
 
-  m_tracker_list->send_event_itr(m_tracker_list->find_usable(m_tracker_list->begin()), tracker::TrackerState::EVENT_NONE);
+  for (auto tracker : *m_tracker_list) {
+    if (!tracker.is_usable())
+      continue;
 
-  // if (m_tracker_list->has_active())
-  //   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+    m_tracker_list->send_event(tracker, tracker::TrackerState::EVENT_NONE);
+    break;
+  }
 }
 
 // Currently being used by send_event, fixme.
@@ -309,15 +330,22 @@ TrackerController::stop_requesting() {
 }
 
 uint32_t
-tracker_next_timeout(tracker::Tracker* tracker, int controller_flags) {
+tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_requesting))
     return tracker_next_timeout_promiscuous(tracker);
 
-  // TODO: Rewrite to be in tracker thread or atomic tracker state.
-  auto tracker_state = tracker->state();
+  int32_t                           activity_time_last;
+  tracker::TrackerState::event_enum latest_event;
+  int32_t                           normal_interval;
 
-  if ((tracker->is_busy() && tracker_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE) ||
-      !tracker->is_usable())
+  tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
+    activity_time_last = state.activity_time_last();
+    latest_event = state.latest_event();
+    normal_interval = state.normal_interval();
+  });
+
+  if ((tracker.is_busy() && latest_event != tracker::TrackerState::EVENT_SCRAPE) ||
+      !tracker.is_usable())
     return ~uint32_t();
 
   if ((controller_flags & TrackerController::flag_promiscuous_mode))
@@ -326,38 +354,38 @@ tracker_next_timeout(tracker::Tracker* tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_send_update))
     return tracker_next_timeout_update(tracker);
 
-  // if (tracker->success_counter() == 0 && tracker->failed_counter() == 0)
+  // if (tracker.success_counter() == 0 && tracker.failed_counter() == 0)
   //   return 0;
 
-  int32_t last_activity = cachedTime.seconds() - tracker_state.activity_time_last();
+  int32_t last_activity = cachedTime.seconds() - activity_time_last;
 
   // TODO: Use min interval if we're requesting manual update.
 
-  return tracker_state.normal_interval() - std::min(last_activity, (int32_t)tracker_state.normal_interval());
+  return normal_interval - std::min(last_activity, normal_interval);
 }
 
 uint32_t
-tracker_next_timeout_update(tracker::Tracker* tracker) {
+tracker_next_timeout_update(const tracker::Tracker& tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
-  auto tracker_state = tracker->state();
+  auto tracker_state = tracker.state();
 
-  if ((tracker->is_busy() && tracker_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE) ||
-      !tracker->is_usable())
+  if ((tracker.is_busy() && tracker_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE) ||
+      !tracker.is_usable())
     return ~uint32_t();
 
   // Make sure we don't request _too_ often, check last activity.
-  // int32_t last_activity = cachedTime.seconds() - tracker->activity_time_last();
+  // int32_t last_activity = cachedTime.seconds() - tracker.activity_time_last();
 
   return 0;
 }
 
 uint32_t
-tracker_next_timeout_promiscuous(tracker::Tracker* tracker) {
+tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
-  auto tracker_state = tracker->state();
+  auto tracker_state = tracker.state();
 
-  if ((tracker->is_busy() && tracker_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE) ||
-      !tracker->is_usable())
+  if ((tracker.is_busy() && tracker_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE) ||
+      !tracker.is_usable())
     return ~uint32_t();
 
   int32_t interval;
@@ -389,12 +417,15 @@ tracker_find_preferred(TrackerList::iterator first, TrackerList::iterator last, 
       continue;
     }
 
-    // TODO: Rewrite to be in tracker thread or atomic tracker state.
-    auto tracker_state = (*first)->state();
+    uint32_t activity_time_last;
 
-    if (tracker_state.activity_time_last() < preferred_time_last) {
+    first->lock_and_call_state([&](const tracker::TrackerState& state) {
+        activity_time_last = state.activity_time_last();
+      });
+
+    if (activity_time_last < preferred_time_last) {
       preferred = first;
-      preferred_time_last = tracker_state.activity_time_last();
+      preferred_time_last = activity_time_last;
     }
   }
 
@@ -416,20 +447,20 @@ TrackerController::do_timeout() {
     TrackerList::iterator itr = m_tracker_list->begin();
 
     while (itr != m_tracker_list->end()) {
-      uint32_t group = (*itr)->group();
+      uint32_t group = itr->group();
 
       if (m_tracker_list->has_active_not_scrape_in_group(group)) {
         itr = m_tracker_list->end_group(group);
         continue;
       }
 
-      TrackerList::iterator group_end = m_tracker_list->end_group((*itr)->group());
+      TrackerList::iterator group_end = m_tracker_list->end_group(itr->group());
       TrackerList::iterator preferred = itr;
 
       // TODO: Rewrite to be in tracker thread or atomic tracker state.
-      auto tracker_state = (*itr)->state();
+      auto tracker_state = itr->state();
 
-      if (!(*itr)->is_usable() || tracker_state.failed_counter()) {
+      if (!itr->is_usable() || tracker_state.failed_counter()) {
         // The selected tracker in the group is either disabled or not
         // reachable, try the others to find a new one to use.
         preferred = tracker_find_preferred(preferred, group_end, &next_timeout);
@@ -444,7 +475,7 @@ TrackerController::do_timeout() {
       }
 
       if (preferred != group_end)
-        m_tracker_list->send_event_itr(preferred, send_event);
+        m_tracker_list->send_event(*preferred, send_event);
 
       itr = group_end;
     }
@@ -460,12 +491,12 @@ TrackerController::do_timeout() {
       return;
 
     // TODO: Rewrite to be in tracker thread or atomic tracker state.
-    auto tracker_state = (*itr)->state();
+    auto tracker_state = itr->state();
 
     int32_t next_timeout = tracker_state.activity_time_next();
 
     if (next_timeout <= cachedTime.seconds())
-      m_tracker_list->send_event_itr(itr, send_event);
+      m_tracker_list->send_event(*itr, send_event);
     else
       update_timeout(next_timeout - cachedTime.seconds());
   }
@@ -479,17 +510,17 @@ TrackerController::do_scrape() {
   TrackerList::iterator itr = m_tracker_list->begin();
 
   while (itr != m_tracker_list->end()) {
-    uint32_t group = (*itr)->group();
+    uint32_t group = itr->group();
 
     if (m_tracker_list->has_active_in_group(group)) {
       itr = m_tracker_list->end_group(group);
       continue;
     }
 
-    TrackerList::iterator group_end = m_tracker_list->end_group((*itr)->group());
+    TrackerList::iterator group_end = m_tracker_list->end_group(itr->group());
 
     while (itr != group_end) {
-      if ((*itr)->is_scrapable() && (*itr)->is_usable()) {
+      if (itr->is_scrapable() && itr->is_usable()) {
         m_tracker_list->send_scrape(*itr);
         break;
       }
@@ -502,7 +533,7 @@ TrackerController::do_scrape() {
 }
 
 uint32_t
-TrackerController::receive_success(tracker::Tracker* tracker, TrackerController::address_list* l) {
+TrackerController::receive_success(const tracker::Tracker& tracker, TrackerController::address_list* l) {
   if (!(m_flags & flag_active))
     return m_slot_success(l);
 
@@ -518,32 +549,40 @@ TrackerController::receive_success(tracker::Tracker* tracker, TrackerController:
   if ((m_flags & flag_requesting))
     update_timeout(30);
   else if (!m_tracker_list->has_active()) {
-    // TODO: Rewrite to be in tracker thread or atomic tracker state.
-    auto tracker_state = tracker->state();
+    uint32_t normal_interval;
+
+    tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
+        normal_interval = state.normal_interval();
+      });
 
     // TODO: Instead find the lowest timeout, correct timeout?
-    update_timeout(tracker_state.normal_interval());
+    update_timeout(normal_interval);
   }
 
   return m_slot_success(l);
 }
 
 void
-TrackerController::receive_failure(tracker::Tracker* tracker, const std::string& msg) {
+TrackerController::receive_failure(const tracker::Tracker& tracker, const std::string& msg) {
   if (!(m_flags & flag_active)) {
     m_slot_failure(msg);
     return;
   }
 
-  if (tracker == nullptr) {
-    m_slot_failure(msg);
-    return;
-  }
+  // if (tracker == nullptr) {
+  //   m_slot_failure(msg);
+  //   return;
+  // }
 
-  // TODO: Rewrite to be in tracker thread or atomic tracker state.
-  auto tracker_state = tracker->state();
+  int32_t failed_counter;
+  int32_t success_counter;
 
-  if (tracker_state.failed_counter() == 1 && tracker_state.success_counter() > 0)
+  tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
+      failed_counter = state.failed_counter();
+      success_counter = state.success_counter();
+    });
+
+  if (failed_counter == 1 && success_counter > 0)
     m_flags |= flag_failure_mode;
 
   do_timeout();
@@ -551,14 +590,14 @@ TrackerController::receive_failure(tracker::Tracker* tracker, const std::string&
 }
 
 void
-TrackerController::receive_scrape([[maybe_unused]] tracker::Tracker* tracker) {
+TrackerController::receive_scrape([[maybe_unused]] const tracker::Tracker& tracker) {
   if (!(m_flags & flag_active)) {
     return;
   }
 }
 
 void
-TrackerController::receive_tracker_enabled(tracker::Tracker* tb) {
+TrackerController::receive_tracker_enabled(const tracker::Tracker& tb) {
   // TODO: This won't be needed if we rely only on Tracker::m_enable,
   // rather than a virtual function.
   if (!m_tracker_list->has_usable())
@@ -577,7 +616,7 @@ TrackerController::receive_tracker_enabled(tracker::Tracker* tb) {
 }
 
 void
-TrackerController::receive_tracker_disabled(tracker::Tracker* tb) {
+TrackerController::receive_tracker_disabled(const tracker::Tracker& tb) {
   if ((m_flags & flag_active) && !m_private->task_timeout.is_queued())
     update_timeout(0);
 

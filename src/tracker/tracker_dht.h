@@ -7,6 +7,11 @@
 
 namespace torrent {
 
+// Until we make throttle and rate thread-safe, we keep dht router in main thread.
+//
+// Both implemenation will require that interacting with dht router is thread safe, so we still need
+// to lock dht router.
+
 class TrackerDht : public TrackerWorker {
 public:
   TrackerDht(const TrackerInfo& info, int flags = 0);

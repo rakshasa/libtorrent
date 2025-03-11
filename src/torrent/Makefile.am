@@ -63,6 +63,8 @@ libtorrent_torrent_la_SOURCES = \
 	peer/peer_list.cc \
 	peer/peer_list.h \
 \
+	tracker/dht_controller.cc \
+	tracker/dht_controller.h \
 	tracker/manager.cc \
 	tracker/manager.h \
 	tracker/tracker.cc \
@@ -101,8 +103,6 @@ libtorrent_torrent_la_SOURCES = \
 	common.h \
 	connection_manager.cc \
 	connection_manager.h \
-	dht_manager.cc \
-	dht_manager.h \
 	download.cc \
 	download.h \
 	download_info.h \
@@ -190,6 +190,7 @@ libtorrent_torrent_peer_include_HEADERS = \
 
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
 libtorrent_torrent_tracker_include_HEADERS = \
+	tracker/dht_controller.h \
 	tracker/manager.h \
 	tracker/tracker.h \
 	tracker/tracker_state.h \
@@ -215,7 +216,6 @@ libtorrent_torrent_include_HEADERS = \
 	chunk_manager.h \
 	common.h \
 	connection_manager.h \
-	dht_manager.h \
 	download.h \
 	download_info.h \
 	error.h \

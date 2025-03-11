@@ -2,6 +2,9 @@
 
 #include "torrent/tracker/manager.h"
 
+#include <cassert>
+
+#include "src/manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/tracker_controller.h"
@@ -39,7 +42,44 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
   if (m_controllers.erase(controller) != 1)
     throw internal_error("tracker::Manager::remove_controller(...) controller not found or has multiple references.");
 
+  {
+    std::lock_guard<std::mutex> events_guard(m_events_lock);
+
+    m_tracker_list_events.erase(std::remove_if(m_tracker_list_events.begin(),
+                                       m_tracker_list_events.end(),
+                                       [tl = controller.get()->tracker_list()](const TrackerListEvent& event) {
+                                         return event.tracker_list == tl;
+                                       }));
+  }
+
   LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", hash_string_to_hex_str(controller.info_hash()).c_str());
 }
+
+void
+Manager::add_event(TrackerList* tracker_list, std::function<void()> event) {
+  assert(m_main_thread_signal != ~0u);
+
+  std::lock_guard<std::mutex> guard(m_events_lock);
+
+  m_tracker_list_events.push_back(TrackerListEvent{tracker_list, event});
+
+  torrent::manager->thread_main()->send_event_signal(m_main_thread_signal);
+}
+
+void
+Manager::process_events() {
+  std::vector<TrackerListEvent> events;
+
+  {
+    std::lock_guard<std::mutex> guard(m_events_lock);
+
+    events.swap(m_tracker_list_events);
+  }
+
+  for (auto& event : events) {
+    event.event();
+  }
+}
+
 
 } // namespace torrent

@@ -14,8 +14,6 @@ libtorrent_la_SOURCES = \
 	globals.h \
 	manager.cc \
 	manager.h \
-	thread_disk.cc \
-	thread_disk.h \
 	thread_main.cc \
 	thread_main.h
 
@@ -43,6 +41,8 @@ libtorrent_other_la_SOURCES = \
 	data/memory_chunk.h \
 	data/socket_file.cc \
 	data/socket_file.h \
+	data/thread_disk.cc \
+	data/thread_disk.h \
 	\
 	dht/dht_bucket.cc \
 	dht/dht_bucket.h \
@@ -121,6 +121,8 @@ libtorrent_other_la_SOURCES = \
 	protocol/request_list.cc \
 	protocol/request_list.h \
 	\
+	tracker/thread_tracker.cc \
+	tracker/thread_tracker.h \
 	tracker/tracker_dht.cc \
 	tracker/tracker_dht.h \
 	tracker/tracker_http.cc \

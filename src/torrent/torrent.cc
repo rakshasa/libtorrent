@@ -1,29 +1,28 @@
 #include "config.h"
 
-#include <rak/address_info.h>
-#include <rak/string_manip.h>
-
-#include "exceptions.h"
-#include "torrent.h"
-#include "object.h"
-#include "object_stream.h"
-#include "throttle.h"
-#include "connection_manager.h"
-#include "poll.h"
+#include "torrent/torrent.h"
 
 #include "manager.h"
-
-#include "protocol/handshake_manager.h"
-#include "protocol/peer_factory.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/download_constructor.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-#include "utils/instrumentation.h"
+#include "protocol/handshake_manager.h"
+#include "protocol/peer_factory.h"
+#include "rak/address_info.h"
+#include "rak/string_manip.h"
+#include "torrent/connection_manager.h"
+#include "torrent/exceptions.h"
+#include "torrent/object.h"
+#include "torrent/object_stream.h"
+#include "torrent/throttle.h"
+#include "torrent/poll.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/download/resource_manager.h"
+#include "tracker/thread_tracker.h"
+#include "utils/instrumentation.h"
 
 namespace torrent {
 
@@ -65,15 +64,20 @@ initialize() {
   instrumentation_initialize();
 
   manager = new Manager;
-  manager->main_thread_main()->init_thread();
+  thread_tracker = new ThreadTracker;
+
+  manager->thread_main()->init_thread();
 
   uint32_t maxFiles = calculate_max_open_files(manager->poll()->open_max());
 
   manager->connection_manager()->set_max_size(manager->poll()->open_max() - maxFiles - calculate_reserved(manager->poll()->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
 
-  manager->main_thread_disk()->init_thread();
-  manager->main_thread_disk()->start_thread();
+  manager->thread_disk()->init_thread();
+  thread_tracker->init_thread();
+
+  manager->thread_disk()->start_thread();
+  thread_tracker->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -83,7 +87,8 @@ cleanup() {
   if (manager == NULL)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
-  manager->main_thread_disk()->stop_thread_wait();
+  thread_tracker->stop_thread_wait();
+  manager->thread_disk()->stop_thread_wait();
 
   delete manager;
   manager = NULL;
@@ -101,15 +106,16 @@ is_inactive() {
 
 thread_base*
 main_thread() {
-  return manager->main_thread_main();
+  return manager->thread_main();
 }
 
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
 ClientList*        client_list() { return manager->client_list(); }
 ConnectionManager* connection_manager() { return manager->connection_manager(); }
 FileManager*       file_manager() { return manager->file_manager(); }
-DhtManager*        dht_manager() { return manager->dht_manager(); }
 ResourceManager*   resource_manager() { return manager->resource_manager(); }
+
+tracker::DhtController* dht_controller() { return manager->dht_controller(); }
 
 uint32_t
 total_handshakes() {

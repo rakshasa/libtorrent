@@ -1,24 +1,23 @@
-#import "config.h"
+#include "config.h"
 
-#import "test_hash_queue.h"
+#include "test_hash_queue.h"
 
-#import "helpers/test_thread.h"
-#import "helpers/test_utils.h"
+#include <functional>
+#include <signal.h>
 
-#import <functional>
-#import <signal.h>
+#include "globals.h"
+#include "data/hash_queue.h"
+#include "data/hash_queue_node.h"
+#include "torrent/chunk_manager.h"
+#include "torrent/exceptions.h"
+#include "torrent/hash_string.h"
+#include "torrent/poll_select.h"
+#include "data/thread_disk.h"
 
-#import "data/hash_queue.h"
-#import "data/hash_queue_node.h"
-#import "torrent/chunk_manager.h"
-#import "torrent/exceptions.h"
-#import "torrent/hash_string.h"
-#import "torrent/poll_select.h"
-#import "globals.h"
-#import "thread_disk.h"
-
-#import "test_chunk_list.h"
-#import "test_hash_check_queue.h"
+#include "test_chunk_list.h"
+#include "test_hash_check_queue.h"
+#include "helpers/test_thread.h"
+#include "helpers/test_utils.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_hash_queue, "data");
 
@@ -74,7 +73,7 @@ test_hash_queue::test_single() {
 
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
   hash_queue->push_back(handle_0, NULL, std::bind(&chunk_done, chunk_list, &done_chunks, std::placeholders::_1, std::placeholders::_2));
-  
+
   CPPUNIT_ASSERT(hash_queue->size() == 1);
   CPPUNIT_ASSERT(hash_queue->front().handle().is_blocking());
   CPPUNIT_ASSERT(hash_queue->front().handle().object() == &((*chunk_list)[0]));
@@ -85,7 +84,7 @@ test_hash_queue::test_single() {
   CPPUNIT_ASSERT(done_chunks[0] == hash_for_index(0));
 
   // chunk_list->release(&handle_0);
-  
+
   CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
   delete hash_queue;
 

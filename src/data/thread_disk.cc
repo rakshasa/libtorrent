@@ -2,7 +2,7 @@
 
 #include <rak/timer.h>
 
-#include "thread_disk.h"
+#include "data/thread_disk.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
@@ -12,9 +12,9 @@
 namespace torrent {
 
 void
-thread_disk::init_thread() {
+ThreadDisk::init_thread() {
   if (!Poll::slot_create_poll())
-    throw internal_error("thread_disk::init_thread(): Poll::slot_create_poll() not valid.");
+    throw internal_error("ThreadDisk::init_thread(): Poll::slot_create_poll() not valid.");
 
   m_poll = Poll::slot_create_poll()();
   m_state = STATE_INITIALIZED;
@@ -23,7 +23,7 @@ thread_disk::init_thread() {
 }
 
 void
-thread_disk::call_events() {
+ThreadDisk::call_events() {
   // lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
 
   // TODO: Consider moving this into timer events instead.
@@ -39,7 +39,7 @@ thread_disk::call_events() {
 }
 
 int64_t
-thread_disk::next_timeout_usec() {
+ThreadDisk::next_timeout_usec() {
   return rak::timer::from_seconds(10).round_seconds().usec();
 }
 

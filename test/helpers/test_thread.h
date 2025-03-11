@@ -52,7 +52,7 @@ struct thread_management_type {
 
 #define SETUP_THREAD()                                                  \
   thread_management_type thread_management;                             \
-  torrent::thread_disk* thread_disk = new torrent::thread_disk();       \
+  torrent::ThreadDisk* thread_disk = new torrent::ThreadDisk();         \
   thread_disk->init_thread();
 
 #define CLEANUP_THREAD()                                                \
