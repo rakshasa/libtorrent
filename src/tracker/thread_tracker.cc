@@ -4,6 +4,7 @@
 
 #include "thread_tracker.h"
 
+#include "manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/tracker/manager.h"
@@ -11,6 +12,12 @@
 #include "utils/instrumentation.h"
 
 namespace torrent {
+
+ThreadTracker* thread_tracker;
+
+ThreadTracker::ThreadTracker() :
+  m_tracker_manager(new tracker::Manager) {
+}
 
 void
 ThreadTracker::init_thread() {
@@ -21,6 +28,11 @@ ThreadTracker::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
+
+  auto tracker_work_signal = manager->thread_main()->signal_bitfield()->add_signal([this]() {
+      return m_tracker_manager->process_events();
+    });
+  m_tracker_manager->set_main_thread_signal(tracker_work_signal);
 }
 
 void
@@ -35,9 +47,6 @@ ThreadTracker::call_events() {
     m_flags |= flag_did_shutdown;
     throw shutdown_exception();
   }
-
-  // TODO: Add as signal.
-  // m_manager->process_events();
 }
 
 int64_t

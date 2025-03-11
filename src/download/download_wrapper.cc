@@ -18,6 +18,7 @@
 #include "torrent/tracker_list.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
+#include "tracker/thread_tracker.h"
 #include "utils/functional.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
@@ -57,7 +58,7 @@ DownloadWrapper::~DownloadWrapper() {
 
   // TODO: Check first, and return if zero. Need to make the below shared ptrs.
   if (info()->hash() != HashString::new_zero())
-    manager->tracker_manager()->remove_controller(m_main->tracker_controller());
+    thread_tracker->tracker_manager()->remove_controller(m_main->tracker_controller());
 
   delete m_hashChecker;
   delete m_bencode;

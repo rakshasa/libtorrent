@@ -30,6 +30,7 @@
 #include "torrent/tracker_list.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
+#include "tracker/thread_tracker.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
@@ -118,7 +119,7 @@ DownloadMain::post_initialize() {
   m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, tracker_controller, std::placeholders::_1);
 
   // TODO: Move tracker list to manager, and add the proper barrier for slots.
-  m_tracker_controller = manager->tracker_manager()->add_controller(info(), tracker_controller);
+  m_tracker_controller = thread_tracker->tracker_manager()->add_controller(info(), tracker_controller);
 }
 
 std::pair<ThrottleList*, ThrottleList*>

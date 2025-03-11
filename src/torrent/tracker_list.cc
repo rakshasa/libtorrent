@@ -11,12 +11,12 @@
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "tracker/thread_tracker.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_udp.h"
 
 #include "globals.h"
-#include "manager.h"
 
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, info(), "tracker_list", log_fmt, __VA_ARGS__);
@@ -151,7 +151,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
   auto weak_tracker = std::weak_ptr<TrackerWorker>(itr->m_worker);
 
   itr->m_worker->m_slot_enabled = [this, weak_tracker]() {
-      manager->tracker_manager()->add_event(this, [this, weak_tracker]() {
+      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker]() {
           if (!m_slot_tracker_enabled)
             return;
 
@@ -163,7 +163,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
     };
 
   itr->m_worker->m_slot_disabled = [this, weak_tracker]() {
-      manager->tracker_manager()->add_event(this, [this, weak_tracker]() {
+      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker]() {
           if (!m_slot_tracker_disabled)
             return;
 
@@ -175,7 +175,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
     };
 
   itr->m_worker->m_slot_success = [this, weak_tracker](AddressList&& l) {
-      manager->tracker_manager()->add_event(this, [this, weak_tracker, l = std::move(l)]() {
+      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker, l = std::move(l)]() {
           if (!m_slot_success)
             return;
 
@@ -187,7 +187,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
     };
 
   itr->m_worker->m_slot_failure = [this, weak_tracker](const std::string& msg) {
-      manager->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
+      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
           if (!m_slot_failed)
             return;
 
@@ -199,7 +199,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
     };
 
   itr->m_worker->m_slot_scrape_success = [this, weak_tracker]() {
-      manager->tracker_manager()->add_event(this, [this, weak_tracker]() {
+      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker]() {
           if (!m_slot_scrape_success)
             return;
 
@@ -211,7 +211,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
     };
 
   itr->m_worker->m_slot_scrape_failure = [this, weak_tracker](const std::string& msg) {
-      manager->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
+      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
           if (!m_slot_scrape_failed)
             return;
 

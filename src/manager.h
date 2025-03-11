@@ -4,12 +4,10 @@
 #include <list>
 #include <memory>
 #include <string>
-#include <rak/priority_queue_default.h>
 
+#include "rak/priority_queue_default.h"
 #include "thread_disk.h"
 #include "thread_main.h"
-#include "thread_tracker.h"
-#include "net/socket_fd.h"
 #include "torrent/common.h"
 
 namespace torrent {
@@ -26,28 +24,26 @@ public:
   Manager();
   ~Manager();
 
-  ChunkManager*       chunk_manager()                           { return m_chunk_manager.get(); }
-  ConnectionManager*  connection_manager()                      { return m_connection_manager.get(); }
-  DhtManager*         dht_manager()                             { return m_dht_manager.get(); }
-  DownloadManager*    download_manager()                        { return m_download_manager.get(); }
-  FileManager*        file_manager()                            { return m_file_manager.get(); }
-  HandshakeManager*   handshake_manager()                       { return m_handshake_manager.get(); }
-  ResourceManager*    resource_manager()                        { return m_resource_manager.get(); }
-  tracker::Manager*   tracker_manager()                         { return m_tracker_manager.get(); }
+  ChunkManager*       chunk_manager()      { return m_chunk_manager.get(); }
+  ConnectionManager*  connection_manager() { return m_connection_manager.get(); }
+  DownloadManager*    download_manager()   { return m_download_manager.get(); }
+  FileManager*        file_manager()       { return m_file_manager.get(); }
+  HandshakeManager*   handshake_manager()  { return m_handshake_manager.get(); }
+  ResourceManager*    resource_manager()   { return m_resource_manager.get(); }
 
-  ClientList*         client_list()                             { return m_client_list.get(); }
-  HashQueue*          hash_queue()                              { return m_hash_queue.get(); }
+  ClientList*             client_list()    { return m_client_list.get(); }
+  tracker::DhtController* dht_controller() { return m_dht_controller.get(); }
+  HashQueue*              hash_queue()     { return m_hash_queue.get(); }
 
-  Poll*               poll()                                    { return m_thread_main.poll(); }
+  Poll*               poll()               { return m_thread_main.poll(); }
 
-  ThreadMain*         thread_main()                             { return &m_thread_main; }
-  ThreadDisk*         thread_disk()                             { return &m_thread_disk; }
-  ThreadTracker*      thread_tracker()                          { return &m_thread_tracker; }
+  ThreadMain*         thread_main()        { return &m_thread_main; }
+  ThreadDisk*         thread_disk()        { return &m_thread_disk; }
 
-  EncodingList*       encoding_list()                           { return &m_encodingList; }
+  EncodingList*       encoding_list()      { return &m_encodingList; }
 
-  Throttle*           upload_throttle()                         { return m_uploadThrottle; }
-  Throttle*           download_throttle()                       { return m_downloadThrottle; }
+  Throttle*           upload_throttle()    { return m_uploadThrottle; }
+  Throttle*           download_throttle()  { return m_downloadThrottle; }
 
   void                initialize_download(DownloadWrapper* d);
   void                cleanup_download(DownloadWrapper* d);
@@ -57,19 +53,17 @@ public:
 private:
   std::unique_ptr<ChunkManager>      m_chunk_manager;
   std::unique_ptr<ConnectionManager> m_connection_manager;
-  std::unique_ptr<DhtManager>        m_dht_manager;
   std::unique_ptr<DownloadManager>   m_download_manager;
   std::unique_ptr<FileManager>       m_file_manager;
   std::unique_ptr<HandshakeManager>  m_handshake_manager;
   std::unique_ptr<ResourceManager>   m_resource_manager;
-  std::unique_ptr<tracker::Manager>  m_tracker_manager;
 
-  std::unique_ptr<ClientList>        m_client_list;
-  std::unique_ptr<HashQueue>         m_hash_queue;
+  std::unique_ptr<ClientList>             m_client_list;
+  std::unique_ptr<tracker::DhtController> m_dht_controller;
+  std::unique_ptr<HashQueue>              m_hash_queue;
 
   ThreadMain          m_thread_main;
   ThreadDisk          m_thread_disk;
-  ThreadTracker       m_thread_tracker;
 
   EncodingList        m_encodingList;
 

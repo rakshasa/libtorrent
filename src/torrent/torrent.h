@@ -29,8 +29,9 @@ ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
 ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
 FileManager*        file_manager() LIBTORRENT_EXPORT;
-DhtManager*         dht_manager() LIBTORRENT_EXPORT;
 ResourceManager*    resource_manager() LIBTORRENT_EXPORT;
+
+tracker::DhtController* dht_controller() LIBTORRENT_EXPORT;
 
 uint32_t            total_handshakes() LIBTORRENT_EXPORT;
 

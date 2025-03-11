@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "download_constructor.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -7,15 +9,12 @@
 #include <rak/string_manip.h>
 
 #include "download/download_wrapper.h"
-#include "torrent/dht_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/object.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
-
-#include "download_constructor.h"
+#include "torrent/tracker/dht_controller.h"
 
 #include "manager.h"
 
@@ -149,14 +148,14 @@ DownloadConstructor::parse_tracker(const Object& b) {
   } else if (b.has_key("announce")) {
     add_tracker_single(b.get_key("announce"), 0);
 
-  } else if (!manager->dht_manager()->is_valid() || m_download->info()->is_private()) {
+  } else if (!manager->dht_controller()->is_valid() || m_download->info()->is_private()) {
     throw bencode_error("Could not find any trackers");
   }
 
-  if (manager->dht_manager()->is_valid() && !m_download->info()->is_private())
+  if (manager->dht_controller()->is_valid() && !m_download->info()->is_private())
     m_download->main()->tracker_list()->insert_url(m_download->main()->tracker_list()->size_group(), "dht://");
 
-  if (manager->dht_manager()->is_valid() && b.has_key_list("nodes")) {
+  if (manager->dht_controller()->is_valid() && b.has_key_list("nodes")) {
     for (const auto& node : b.get_key_list("nodes")) {
       add_dht_node(node);
     }
@@ -200,7 +199,7 @@ DownloadConstructor::add_dht_node(const Object& b) {
   if (!(++el)->is_value())
     return;
 
-  manager->dht_manager()->add_node(host, el->as_value());
+  manager->dht_controller()->add_node(host, el->as_value());
 }
 
 bool

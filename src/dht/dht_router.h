@@ -1,16 +1,14 @@
 #ifndef LIBTORRENT_DHT_ROUTER_H
 #define LIBTORRENT_DHT_ROUTER_H
 
-#include <rak/priority_queue_default.h>
-#include <rak/socket_address.h>
-
-#include "torrent/dht_manager.h"
+#include "dht/dht_node.h"
+#include "dht/dht_hash_map.h"
+#include "dht/dht_server.h"
+#include "rak/priority_queue_default.h"
+#include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object.h"
-
-#include "dht_node.h"
-#include "dht_hash_map.h"
-#include "dht_server.h"
+#include "torrent/tracker/dht_controller.h"
 
 namespace torrent {
 
@@ -38,19 +36,15 @@ public:
   DhtRouter(const Object& cache, const rak::socket_address* sa);
   ~DhtRouter();
 
-  // Start and stop the router. This starts/stops the UDP server as well.
   void                start(int port);
   void                stop();
 
   bool                is_active()                        { return m_server.is_active(); }
 
-  // Find peers for given download and announce ourselves.
+  // Pass NULL to cancel_announce to cancel all announces for the tracker.
   void                announce(const HashString& info_hash, TrackerDht* tracker);
-
-  // Cancel any pending transactions related to the given download (or all if NULL).
   void                cancel_announce(const HashString* info_hash, const TrackerDht* tracker);
 
-  // Retrieve tracked torrent for the hash.
   // Returns NULL if not tracking the torrent unless create is true.
   DhtTracker*         get_tracker(const HashString& hash, bool create);
 
@@ -88,8 +82,8 @@ public:
   raw_string          make_token(const rak::socket_address* sa, char* buffer);
   bool                token_valid(raw_string token, const rak::socket_address* sa);
 
-  DhtManager::statistics_type get_statistics() const;
-  void                reset_statistics()                      { m_server.reset_statistics(); }
+  tracker::DhtController::statistics_type get_statistics() const;
+  void                                    reset_statistics()  { m_server.reset_statistics(); }
 
   void                set_upload_throttle(ThrottleList* t)    { m_server.set_upload_throttle(t); }
   void                set_download_throttle(ThrottleList* t)  { m_server.set_download_throttle(t); }
