@@ -8,6 +8,9 @@ namespace torrent {
 
 class ThreadDisk : public thread_base {
 public:
+  ThreadDisk() = default;
+  ~ThreadDisk() = default;
+
   const char*     name() const { return "rtorrent disk"; }
   HashCheckQueue* hash_queue() { return &m_hash_queue; }
 

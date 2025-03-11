@@ -12,7 +12,7 @@ class Manager;
 class ThreadTracker : public thread_base {
 public:
   ThreadTracker();
-  ~ThreadTracker();
+  ~ThreadTracker() = default;
 
   const char*         name() const      { return "rtorrent tracker"; }
 

@@ -19,9 +19,6 @@ ThreadTracker::ThreadTracker() :
   m_tracker_manager(new tracker::Manager) {
 }
 
-ThreadTracker::~ThreadTracker() {
-}
-
 void
 ThreadTracker::init_thread() {
   if (!Poll::slot_create_poll())
