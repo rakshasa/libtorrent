@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "src/manager.h"
+#include "tracker/tracker_worker.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/tracker_controller.h"
@@ -16,8 +17,16 @@
 
 namespace torrent::tracker {
 
+Manager::Manager() {
+  m_signal_process_events = manager->thread_main()->signal_bitfield()->add_signal([this]() {
+      return process_events();
+    });
+}
+
 TrackerControllerWrapper
 Manager::add_controller(DownloadInfo* download_info, TrackerController* controller) {
+  assert(std::this_thread::get_id() == torrent::manager->thread_main()->thread_id());
+
   if (download_info->hash() == HashString::new_zero())
     throw internal_error("tracker::Manager::add(...) invalid info_hash.");
 
@@ -36,6 +45,8 @@ Manager::add_controller(DownloadInfo* download_info, TrackerController* controll
 
 void
 Manager::remove_controller(TrackerControllerWrapper controller) {
+  assert(std::this_thread::get_id() == torrent::manager->thread_main()->thread_id());
+
   std::lock_guard<std::mutex> guard(m_lock);
 
   // We assume there are other references to the controller, so gracefully close it.
@@ -58,18 +69,28 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
 }
 
 void
+Manager::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event) {
+  assert(std::this_thread::get_id() == torrent::manager->thread_main()->thread_id());
+
+  // TODO: Currently executing in main thread, but should be in tracker thread.
+  tracker.get_worker()->send_event(new_event);
+}
+
+void
 Manager::add_event(TrackerList* tracker_list, std::function<void()> event) {
-  assert(m_main_thread_signal != ~0u);
+  assert(m_signal_process_events != ~0u);
 
   std::lock_guard<std::mutex> guard(m_events_lock);
 
   m_tracker_list_events.push_back(TrackerListEvent{tracker_list, event});
 
-  torrent::manager->thread_main()->send_event_signal(m_main_thread_signal);
+  torrent::manager->thread_main()->send_event_signal(m_signal_process_events);
 }
 
 void
 Manager::process_events() {
+  assert(std::this_thread::get_id() == torrent::manager->thread_main()->thread_id());
+
   std::vector<TrackerListEvent> events;
 
   {
@@ -77,12 +98,6 @@ Manager::process_events() {
 
     events.swap(m_tracker_list_events);
   }
-
-  // TODO: Check if the tracker list is still valid.
-  //
-  // We need to add a list of tl's removed since the above lock guard, and check it.
-  //
-  // Rather, we verify that we're running in the main thread for add/remove_controller and process_events.
 
   for (auto& event : events) {
     event.event();

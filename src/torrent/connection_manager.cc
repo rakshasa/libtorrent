@@ -18,14 +18,14 @@ namespace torrent {
 static ConnectionManager::slot_resolver_result_type*
 resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
   if (manager->thread_main()->is_current())
-    thread_base::release_global_lock();
+    ThreadBase::release_global_lock();
 
   rak::address_info* ai;
   int err;
 
   if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
     if (manager->thread_main()->is_current())
-      thread_base::acquire_global_lock();
+      ThreadBase::acquire_global_lock();
 
     slot(NULL, err);
     return NULL;
@@ -36,7 +36,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
   rak::address_info::free_address_info(ai);
 
   if (manager->thread_main()->is_current())
-    thread_base::acquire_global_lock();
+    ThreadBase::acquire_global_lock();
 
   slot(sa.c_sockaddr(), 0);
   return NULL;

@@ -177,7 +177,7 @@ test_hash_check_queue::test_thread() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD_DISK();
 
-  torrent::HashCheckQueue* hash_queue = torrent::thread_disk->hash_queue();
+  torrent::HashCheckQueue* hash_queue = torrent::thread_disk->hash_check_queue();
 
   done_chunks_type done_chunks;
   hash_queue->slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);

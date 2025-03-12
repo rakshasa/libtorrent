@@ -1,8 +1,8 @@
-#include "torrent/utils/thread_base.h"
+#include "torrent/utils/thread.h"
 
 #include <atomic>
 
-class test_thread : public torrent::thread_base {
+class test_thread : public torrent::ThreadBase {
 public:
   enum test_state {
     TEST_NONE,
@@ -59,6 +59,6 @@ struct thread_management_type {
 
 #define CLEANUP_THREAD_DISK()                                           \
   torrent::thread_disk->stop_thread();                                  \
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&torrent::thread_base::is_inactive, torrent::thread_disk))); \
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&torrent::ThreadBase::is_inactive, torrent::thread_disk))); \
   delete torrent::thread_disk;                                          \
   torrent::thread_disk = nullptr;

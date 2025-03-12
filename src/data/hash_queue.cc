@@ -13,7 +13,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/data/download_data.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread_base.h"
+#include "torrent/utils/thread.h"
 
 #define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
   lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
@@ -42,10 +42,6 @@ struct HashQueueWillneed {
 // disk usage. But this may cause too much blocking as it will think
 // everything is in memory, thus we need to throttle.
 
-HashQueue::HashQueue() {
-  thread_disk->hash_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) { chunk_done(hc, hv); };
-}
-
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
@@ -59,7 +55,7 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
 
   base_type::push_back(HashQueueNode(id, hash_chunk, d));
 
-  thread_disk->hash_queue()->push_back(hash_chunk);
+  thread_disk->hash_check_queue()->push_back(hash_chunk);
   thread_disk->interrupt();
 }
 
@@ -83,9 +79,9 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
     LT_LOG_DATA(id, DEBUG, "Removing index:%" PRIu32 " from queue.", hash_chunk->handle().index());
 
-    thread_base::release_global_lock();
-    bool result = thread_disk->hash_queue()->remove(hash_chunk);
-    thread_base::acquire_global_lock();
+    ThreadBase::release_global_lock();
+    bool result = thread_disk->hash_check_queue()->remove(hash_chunk);
+    ThreadBase::acquire_global_lock();
 
     // The hash chunk was not found, so we need to wait until the hash
     // check finishes.

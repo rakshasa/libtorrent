@@ -106,7 +106,7 @@ is_inactive() {
   return manager == nullptr || std::all_of(manager->download_manager()->begin(), manager->download_manager()->end(), std::mem_fn(&DownloadWrapper::is_stopped));
 }
 
-thread_base*
+ThreadBase*
 main_thread() {
   return manager->thread_main();
 }

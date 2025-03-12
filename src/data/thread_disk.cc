@@ -4,10 +4,14 @@
 
 #include "data/thread_disk.h"
 
+#include "data/hash_queue.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
+
+// TODO: Move HashQueue to thread_main.
+#include "manager.h"
 
 namespace torrent {
 
@@ -22,6 +26,10 @@ ThreadDisk::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
+
+  m_hash_check_queue.slot_chunk_done() = [](auto hc, const auto& hv) {
+      manager->hash_queue()->chunk_done(hc, hv);
+    };
 }
 
 void
@@ -37,7 +45,7 @@ ThreadDisk::call_events() {
     throw shutdown_exception();
   }
 
-  m_hash_queue.perform();
+  m_hash_check_queue.perform();
 }
 
 int64_t

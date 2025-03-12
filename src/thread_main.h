@@ -2,11 +2,11 @@
 #define LIBTORRENT_THREAD_MAIN_H
 
 #include "data/hash_check_queue.h"
-#include "torrent/utils/thread_base.h"
+#include "torrent/utils/thread.h"
 
 namespace torrent {
 
-class ThreadMain : public thread_base {
+class ThreadMain : public ThreadBase {
 public:
   const char*         name() const { return "rtorrent main"; }
 

@@ -6,16 +6,18 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
-#include "torrent/utils/thread_base.h"
+#include "torrent/utils/thread.h"
 #include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
 
-thread_base::global_lock_type thread_base::m_global;
+thread_local ThreadBase* thread_self;
 
-thread_base::thread_base() :
+ThreadBase::global_lock_type ThreadBase::m_global;
+
+ThreadBase::ThreadBase() :
   m_state(STATE_UNKNOWN),
   m_flags(0),
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
@@ -24,37 +26,37 @@ thread_base::thread_base() :
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
 
-// #ifdef USE_INTERRUPT_SOCKET
   thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
 
   m_interrupt_sender = std::move(interrupt_sockets.first);
   m_interrupt_receiver = std::move(interrupt_sockets.second);
-
-// #endif
 }
 
-thread_base::~thread_base() = default;
+ThreadBase::~ThreadBase() = default;
 
 void
-thread_base::start_thread() {
+ThreadBase::start_thread() {
   if (m_poll == nullptr)
     throw internal_error("No poll object for thread defined.");
 
   if (!is_initialized())
-    throw internal_error("Called thread_base::start_thread on an uninitialized object.");
+    throw internal_error("Called ThreadBase::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
+  if (pthread_create(&m_thread, NULL, (pthread_func)&ThreadBase::event_loop, this))
     throw internal_error("Failed to create thread.");
+
+  while (m_thread_id == std::thread::id())
+    usleep(1);
 }
 
 void
-thread_base::stop_thread() {
+ThreadBase::stop_thread() {
   m_flags |= flag_do_shutdown;
   interrupt();
 }
 
 void
-thread_base::stop_thread_wait() {
+ThreadBase::stop_thread_wait() {
   stop_thread();
 
   release_global_lock();
@@ -68,26 +70,29 @@ thread_base::stop_thread_wait() {
 
 // Fix interrupting when shutting down thread.
 void
-thread_base::interrupt() {
+ThreadBase::interrupt() {
   // Only poke when polling, set no_timeout
   if (is_polling())
     m_interrupt_sender->poke();
 }
 
 bool
-thread_base::should_handle_sigusr1() {
+ThreadBase::should_handle_sigusr1() {
   return false;
 }
 
 void*
-thread_base::event_loop(thread_base* thread) {
+ThreadBase::event_loop(ThreadBase* thread) {
   if (thread == nullptr)
-    throw internal_error("thread_base::event_loop called with a null pointer thread");
+    throw internal_error("ThreadBase::event_loop called with a null pointer thread");
+
+  thread_self = thread;
+  thread->m_thread_id = std::this_thread::get_id();
 
   auto previous_state = STATE_INITIALIZED;
 
   if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
-    throw internal_error("thread_base::event_loop called on an object that is not in the initialized state.");
+    throw internal_error("ThreadBase::event_loop called on an object that is not in the initialized state.");
 
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(thread->name());
@@ -102,9 +107,7 @@ thread_base::event_loop(thread_base* thread) {
 
   try {
 
-// #ifdef USE_INTERRUPT_SOCKET
     thread->m_poll->insert_read(thread->m_interrupt_receiver.get());
-// #endif
 
     while (true) {
       if (thread->m_slot_do_work)
@@ -151,9 +154,7 @@ thread_base::event_loop(thread_base* thread) {
       thread->m_flags &= ~(flag_polling | flag_no_timeout);
     }
 
-// #ifdef USE_INTERRUPT_SOCKET
     thread->m_poll->remove_write(thread->m_interrupt_receiver.get());
-// #endif
 
   } catch (torrent::shutdown_exception& e) {
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", thread->name());
@@ -162,7 +163,7 @@ thread_base::event_loop(thread_base* thread) {
   previous_state = STATE_ACTIVE;
 
   if (!thread->m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
-    throw internal_error("thread_base::event_loop called on an object that is not in the active state.");
+    throw internal_error("ThreadBase::event_loop called on an object that is not in the active state.");
 
   return NULL;
 }

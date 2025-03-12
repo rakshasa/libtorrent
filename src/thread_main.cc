@@ -5,6 +5,7 @@
 #include "thread_main.h"
 
 #include "globals.h"
+#include "data/hash_queue.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
@@ -19,11 +20,14 @@ ThreadMain::init_thread() {
   if (!Poll::slot_create_poll())
     throw internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
 
+  thread_self = this;
+
   m_poll = Poll::slot_create_poll()();
   m_poll->set_flags(Poll::flag_waive_global_lock);
 
   m_state = STATE_INITIALIZED;
   m_thread = pthread_self();
+  m_thread_id = std::this_thread::get_id();
   m_flags |= flag_main_thread;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;

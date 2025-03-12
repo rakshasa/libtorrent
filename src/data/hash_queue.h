@@ -14,6 +14,7 @@
 namespace torrent {
 
 class HashChunk;
+class ThreadDisk;
 
 // Calculating hash of incore memory is blindingly fast, it's always
 // the loading from swap/disk that takes time. So with the exception
@@ -21,7 +22,7 @@ class HashChunk;
 // helps us in getting as much done as possible while the pages are in
 // memory.
 
-class lt_cacheline_aligned HashQueue : private std::deque<HashQueueNode> {
+class HashQueue : private std::deque<HashQueueNode> {
 public:
   typedef std::deque<HashQueueNode>                 base_type;
   typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
@@ -39,7 +40,7 @@ public:
   using base_type::front;
   using base_type::back;
 
-  HashQueue();
+  HashQueue() = default;
   ~HashQueue() { clear(); }
 
   void                push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d);
@@ -54,9 +55,12 @@ public:
 
   slot_bool&          slot_has_work() { return m_slot_has_work; }
 
-private:
+protected:
+  friend class ThreadDisk;
+
   void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
 
+private:
   done_chunks_type    m_done_chunks;
   slot_bool           m_slot_has_work;
 

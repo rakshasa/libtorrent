@@ -63,9 +63,9 @@ test_thread::call_events() {
 }
 
 thread_management_type::thread_management_type() {
-  CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
+  CPPUNIT_ASSERT(torrent::ThreadBase::trylock_global_lock());
 }
 
 thread_management_type::~thread_management_type() {
-  torrent::thread_base::release_global_lock();
+  torrent::ThreadBase::release_global_lock();
 }

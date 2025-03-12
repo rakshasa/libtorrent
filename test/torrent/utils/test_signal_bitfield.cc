@@ -7,7 +7,7 @@
 
 #include <torrent/exceptions.h>
 #include <torrent/utils/signal_bitfield.h>
-#include <torrent/utils/thread_base.h>
+#include <torrent/utils/thread.h>
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_signal_bitfield, "torrent/utils");
 
@@ -23,8 +23,8 @@ check_index(std::atomic_uint32_t& bitfield, unsigned int index) {
 
 void
 test_signal_bitfield::tearDown() {
-  CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
-  torrent::thread_base::release_global_lock();
+  CPPUNIT_ASSERT(torrent::ThreadBase::trylock_global_lock());
+  torrent::ThreadBase::release_global_lock();
   test_fixture::tearDown();
 }
 

@@ -9,6 +9,7 @@
 #include "torrent/poll.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
+#include "tracker/tracker_worker.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
@@ -28,11 +29,22 @@ ThreadTracker::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
+}
 
-  auto tracker_work_signal = manager->thread_main()->signal_bitfield()->add_signal([this]() {
-      return m_tracker_manager->process_events();
-    });
-  m_tracker_manager->set_main_thread_signal(tracker_work_signal);
+void
+ThreadTracker::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum event) {
+  std::lock_guard<std::mutex> guard(m_send_events_lock);
+
+  m_send_events.erase(std::remove_if(m_send_events.begin(),
+                                     m_send_events.end(),
+                                     [&tracker](const TrackerSendEvent& e) {
+                                       return e.tracker == tracker;
+                                     }),
+                      m_send_events.end());
+
+  m_send_events.push_back(TrackerSendEvent{tracker, event});
+
+  send_event_signal(m_signal_send_event);
 }
 
 void
@@ -52,6 +64,24 @@ ThreadTracker::call_events() {
 int64_t
 ThreadTracker::next_timeout_usec() {
   return rak::timer::from_minutes(60).round_seconds().usec();
+}
+
+void
+ThreadTracker::process_send_events() {
+  std::vector<TrackerSendEvent> events;
+
+  {
+    std::lock_guard<std::mutex> guard(m_send_events_lock);
+
+    events.swap(m_send_events);
+  }
+
+  for (auto& event : events) {
+    if (event.event == tracker::TrackerState::EVENT_SCRAPE)
+      event.tracker.get_worker()->send_scrape();
+    else
+      event.tracker.get_worker()->send_event(event.event);
+  }
 }
 
 }
