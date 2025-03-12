@@ -206,9 +206,9 @@ extern log_group_list log_groups LIBTORRENT_EXPORT;
 void log_initialize() LIBTORRENT_EXPORT;
 void log_cleanup() LIBTORRENT_EXPORT;
 
-void log_open_output(const char* name, log_slot slot) LIBTORRENT_EXPORT;
+void log_open_output(const char* name, const log_slot& slot) LIBTORRENT_EXPORT;
 void log_close_output(const char* name) LIBTORRENT_EXPORT;
-void log_close_output_str(const std::string name) LIBTORRENT_EXPORT;
+void log_close_output_str(const std::string& name) LIBTORRENT_EXPORT;
 
 void log_add_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
@@ -223,7 +223,7 @@ void log_open_gz_file_output(const char* name, const char* filename, bool append
 // Implementation:
 //
 
-inline void log_close_output_str(const std::string name) { log_close_output(name.c_str()); }
+inline void log_close_output_str(const std::string& name) { log_close_output(name.c_str()); }
 
 }
 

@@ -2,6 +2,8 @@
 
 #include "torrent/tracker/wrappers.h"
 
+#include <utility>
+
 #include "torrent/tracker_controller.h"
 #include "torrent/utils/log.h"
 
@@ -104,8 +106,8 @@ TrackerControllerWrapper::scrape_request(uint32_t seconds_to_request) {
 
 void
 TrackerControllerWrapper::set_slots(slot_address_list success, slot_string failure) {
-  m_ptr->slot_success() = success;
-  m_ptr->slot_failure() = failure;
+  m_ptr->slot_success() = std::move(success);
+  m_ptr->slot_failure() = std::move(failure);
 }
 
 } // namespace torrent

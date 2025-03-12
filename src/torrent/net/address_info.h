@@ -30,7 +30,7 @@ int ai_get_addrinfo(const char* nodename, const char* servname, const addrinfo* 
 // TODO: ai_get_first_sa_err that returns a tuple?
 sa_unique_ptr ai_get_first_sa(const char* nodename, const char* servname = nullptr, const addrinfo* hints = nullptr) LIBTORRENT_EXPORT;
 
-int ai_each_inet_inet6_first(const char* nodename, ai_sockaddr_func lambda) LIBTORRENT_EXPORT;
+int ai_each_inet_inet6_first(const char* nodename, const ai_sockaddr_func& lambda) LIBTORRENT_EXPORT;
 
 // Get all addrinfo's, iterate, etc.
 

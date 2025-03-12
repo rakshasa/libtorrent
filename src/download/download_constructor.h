@@ -39,7 +39,7 @@ private:
   void                parse_single_file(const Object& b, uint32_t chunkSize);
   void                parse_multi_files(const Object& b, uint32_t chunkSize);
 
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
+  inline Path         create_path(const Object::list_type& plist, const std::string& enc);
   inline Path         choose_path(std::list<Path>* pathList);
 
   DownloadWrapper*    m_download;

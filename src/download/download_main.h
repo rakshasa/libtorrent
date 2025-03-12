@@ -2,6 +2,7 @@
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
 #include <deque>
+#include <utility>
 
 #include "globals.h"
 
@@ -101,10 +102,10 @@ public:
   typedef std::function<void(const rak::socket_address&, DownloadMain*)> slot_start_handshake_type;
   typedef std::function<void(DownloadMain*)>                             slot_stop_handshakes_type;
 
-  void                slot_start_handshake(slot_start_handshake_type s) { m_slotStartHandshake = s; }
-  void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slotStopHandshakes = s; }
-  void                slot_count_handshakes(slot_count_handshakes_type s) { m_slotCountHandshakes = s; }
-  void                slot_hash_check_add(slot_hash_check_add_type s)     { m_slotHashCheckAdd = s; }
+  void                slot_start_handshake(slot_start_handshake_type s) { m_slotStartHandshake = std::move(s); }
+  void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slotStopHandshakes = std::move(s); }
+  void                slot_count_handshakes(slot_count_handshakes_type s) { m_slotCountHandshakes = std::move(s); }
+  void                slot_hash_check_add(slot_hash_check_add_type s)     { m_slotHashCheckAdd = std::move(s); }
 
   void                add_peer(const rak::socket_address& sa);
 

@@ -283,7 +283,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
 
 TrackerList::iterator
 TrackerList::find_url(const std::string& url) {
-  return std::find_if(begin(), end(), [&url](auto tracker) { return tracker.url() == url; });
+  return std::find_if(begin(), end(), [&url](const auto& tracker) { return tracker.url() == url; });
 }
 
 TrackerList::iterator

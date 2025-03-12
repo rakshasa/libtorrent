@@ -27,7 +27,7 @@ ai_get_first_sa(const char* nodename, const char* servname, const addrinfo* hint
 }
 
 int
-ai_each_inet_inet6_first(const char* nodename, ai_sockaddr_func lambda) {
+ai_each_inet_inet6_first(const char* nodename, const ai_sockaddr_func& lambda) {
   int err;
   ai_unique_ptr ai;
 
@@ -39,5 +39,4 @@ ai_each_inet_inet6_first(const char* nodename, ai_sockaddr_func lambda) {
   lambda(ai->ai_addr);
   return 0;
 }
-
 }

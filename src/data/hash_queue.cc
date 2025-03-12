@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <unistd.h>
+#include <utility>
 
 #include "globals.h"
 #include "data/chunk.h"
@@ -58,7 +59,7 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
 
   HashChunk* hash_chunk = new HashChunk(handle);
 
-  base_type::push_back(HashQueueNode(id, hash_chunk, d));
+  base_type::push_back(HashQueueNode(id, hash_chunk, std::move(d)));
 
   m_thread_disk->hash_queue()->push_back(hash_chunk);
   m_thread_disk->interrupt();

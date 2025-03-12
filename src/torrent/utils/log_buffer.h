@@ -6,11 +6,13 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 
 namespace torrent {
 
 struct log_entry {
-  log_entry(int32_t t, int32_t grp, const std::string& msg) : timestamp(t), group(grp), message(msg) {}
+  log_entry(int32_t t, int32_t grp, std::string msg) :
+      timestamp(t), group(grp), message(std::move(msg)) {}
 
   bool        is_older_than(int32_t t) const { return timestamp < t; }
   bool        is_younger_than(int32_t t) const { return timestamp > t; }

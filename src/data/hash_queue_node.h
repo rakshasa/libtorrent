@@ -40,6 +40,7 @@
 #include <cinttypes>
 #include <functional>
 #include <string>
+#include <utility>
 
 #include "chunk_handle.h"
 #include "hash_chunk.h"
@@ -54,7 +55,7 @@ public:
   typedef download_data* id_type;
 
   HashQueueNode(id_type id, HashChunk* c, slot_done_type d) :
-    m_id(id), m_chunk(c), m_willneed(false), m_slot_done(d) {}
+      m_id(id), m_chunk(c), m_willneed(false), m_slot_done(std::move(d)) {}
 
   id_type             id() const                    { return m_id; }
   ChunkHandle&        handle()                      { return *m_chunk->chunk(); }

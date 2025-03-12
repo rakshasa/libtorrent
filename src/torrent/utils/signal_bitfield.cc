@@ -11,7 +11,7 @@ const unsigned int signal_bitfield::max_size;
 
 // Only the thread owning this signal bitfield should add signals.
 unsigned int
-signal_bitfield::add_signal(slot_type slot) {
+signal_bitfield::add_signal(const slot_type& slot) {
   if (m_thread_id != std::this_thread::get_id())
     throw internal_error("signal_bitfield::add_signal(...): Only the owning thread can add signals.");
 

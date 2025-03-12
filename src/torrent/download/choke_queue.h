@@ -42,6 +42,7 @@
 #include <cinttypes>
 #include <functional>
 #include <list>
+#include <utility>
 #include <vector>
 
 #include <torrent/download/group_entry.h>
@@ -144,9 +145,9 @@ public:
   heuristics_enum     heuristics() const                       { return m_heuristics; }
   void                set_heuristics(heuristics_enum hs)       { m_heuristics = hs; }
 
-  void                set_slot_unchoke(slot_unchoke s)         { m_slotUnchoke = s; }
-  void                set_slot_can_unchoke(slot_can_unchoke s) { m_slotCanUnchoke = s; }
-  void                set_slot_connection(slot_connection s)   { m_slotConnection = s; }
+  void                set_slot_unchoke(slot_unchoke s)         { m_slotUnchoke = std::move(s); }
+  void                set_slot_can_unchoke(slot_can_unchoke s) { m_slotCanUnchoke = std::move(s); }
+  void                set_slot_connection(slot_connection s)   { m_slotConnection = std::move(s); }
 
   // TODO: Consider putting this in queue_group.
   group_container_type& group_container()                      { return m_group_container; }

@@ -20,7 +20,7 @@ public:
 
   signal_bitfield() : m_thread_id(std::this_thread::get_id()), m_size(0), m_bitfield(0) {}
 
-  unsigned int  add_signal(slot_type slot);
+  unsigned int  add_signal(const slot_type& slot);
   bool          has_signal(unsigned int index) const { return m_bitfield & (1 << index); }
 
   void          signal(unsigned int index) { m_bitfield |= 1 << index; }
