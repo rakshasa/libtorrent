@@ -49,7 +49,7 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
                                        m_tracker_list_events.end(),
                                        [tl = controller.get()->tracker_list()](const TrackerListEvent& event) {
                                          return event.tracker_list == tl;
-                                       }));
+                                       }), m_tracker_list_events.end());
   }
 
   LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", hash_string_to_hex_str(controller.info_hash()).c_str());
