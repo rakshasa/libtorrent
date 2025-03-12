@@ -112,6 +112,7 @@ private:
   bool                parse_ut_pex();
   bool                parse_ut_metadata();
 
+  [[gnu::format(printf, 2, 3)]]
   static DataBuffer   build_bencode(size_t maxLength, const char* format, ...);
 
   void                peer_toggle_remote(int type, bool active);
