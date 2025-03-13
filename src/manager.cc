@@ -62,6 +62,7 @@ Manager::~Manager() {
 
   m_handshake_manager->clear();
   m_download_manager->clear();
+  m_dht_controller.reset();
 
   Throttle::destroy_throttle(m_uploadThrottle);
   Throttle::destroy_throttle(m_downloadThrottle);
