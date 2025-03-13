@@ -136,8 +136,8 @@ PollEPoll::perform() {
     if (itr->data.fd < 0 || (size_t)itr->data.fd >= m_table.size())
       continue;
 
-    if ((flags() & flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
-      ThreadBase::waive_global_lock();
+    if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
+      utils::Thread::waive_global_lock();
 
     Table::iterator evItr = m_table.begin() + itr->data.fd;
 
@@ -174,13 +174,13 @@ PollEPoll::do_poll(int64_t timeout_usec, int flags) {
   timeout += 10;
 
   if (!(flags & poll_worker_thread)) {
-    ThreadBase::release_global_lock();
+    utils::Thread::release_global_lock();
   }
 
   int status = poll((timeout.usec() + 999) / 1000);
 
   if (!(flags & poll_worker_thread)) {
-    ThreadBase::acquire_global_lock();
+    utils::Thread::acquire_global_lock();
   }
 
   if (status == -1) {

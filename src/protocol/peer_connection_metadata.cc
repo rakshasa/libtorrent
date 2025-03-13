@@ -1,21 +1,22 @@
 #include "config.h"
 
+#include "protocol/peer_connection_metadata.h"
+
 #include <cstring>
 #include <sstream>
 
+#include "manager.h"
 #include "data/chunk_list_node.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
+#include "protocol/extensions.h"
 #include "torrent/download_info.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
-
-#include "extensions.h"
-#include "peer_connection_metadata.h"
 
 #define LT_LOG_METADATA_EVENTS(log_fmt, ...)                            \
   lt_log_print_info(LOG_PROTOCOL_METADATA_EVENTS, this->download()->info(), "metadata_events", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
@@ -305,7 +306,7 @@ PeerConnectionMetadata::event_write() {
         fill_write_buffer();
 
         if (m_up->buffer()->remaining() == 0) {
-          manager->poll()->remove_write(this);
+          thread_main->poll()->remove_write(this);
           return;
         }
 

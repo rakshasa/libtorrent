@@ -79,9 +79,9 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
     LT_LOG_DATA(id, DEBUG, "Removing index:%" PRIu32 " from queue.", hash_chunk->handle().index());
 
-    ThreadBase::release_global_lock();
+    utils::Thread::release_global_lock();
     bool result = thread_disk->hash_check_queue()->remove(hash_chunk);
-    ThreadBase::acquire_global_lock();
+    utils::Thread::acquire_global_lock();
 
     // The hash chunk was not found, so we need to wait until the hash
     // check finishes.

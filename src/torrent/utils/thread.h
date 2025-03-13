@@ -11,14 +11,12 @@
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
+thread_local extern utils::Thread* thread_self;
+}
 
-class Poll;
-class thread_interrupt;
-class ThreadBase;
+namespace torrent::utils {
 
-thread_local extern ThreadBase* thread_self;
-
-class LIBTORRENT_EXPORT ThreadBase {
+class LIBTORRENT_EXPORT Thread {
 public:
   typedef void* (*pthread_func)(void*);
   typedef std::function<void ()>     slot_void;
@@ -39,8 +37,8 @@ public:
 
   static const int flag_main_thread  = 0x10;
 
-  ThreadBase();
-  virtual ~ThreadBase();
+  Thread();
+  virtual ~Thread();
 
   bool                is_initialized() const { return state() == STATE_INITIALIZED; }
   bool                is_active()      const { return state() == STATE_ACTIVE; }
@@ -84,7 +82,7 @@ public:
 
   static bool         should_handle_sigusr1();
 
-  static void*        event_loop(ThreadBase* thread);
+  static void*        event_loop(Thread* thread);
 
 protected:
   struct global_lock_type {
@@ -99,12 +97,12 @@ protected:
 
   pthread_t                    m_thread;
   std::atomic<std::thread::id> m_thread_id;
-  std::atomic<state_type>      m_state;
-  std::atomic_int              m_flags;
+  std::atomic<state_type>      m_state{STATE_UNKNOWN};
+  std::atomic_int              m_flags{0};
 
   int                 m_instrumentation_index;
 
-  Poll*               m_poll;
+  Poll*               m_poll{nullptr};
   signal_bitfield_t   m_signal_bitfield;
 
   slot_void           m_slot_do_work;
@@ -115,17 +113,17 @@ protected:
 };
 
 inline bool
-ThreadBase::is_polling() const {
+Thread::is_polling() const {
   return (flags() & flag_polling);
 }
 
 inline bool
-ThreadBase::is_current() const {
+Thread::is_current() const {
   return m_thread == pthread_self();
 }
 
 inline void
-ThreadBase::send_event_signal(unsigned int index, bool do_interrupt) {
+Thread::send_event_signal(unsigned int index, bool do_interrupt) {
   m_signal_bitfield.signal(index);
 
   if (do_interrupt)
@@ -133,24 +131,24 @@ ThreadBase::send_event_signal(unsigned int index, bool do_interrupt) {
 }
 
 inline void
-ThreadBase::acquire_global_lock() {
-  ThreadBase::m_global.waiting++;
-  ThreadBase::m_global.mutex.lock();
-  ThreadBase::m_global.waiting--;
+Thread::acquire_global_lock() {
+  Thread::m_global.waiting++;
+  Thread::m_global.mutex.lock();
+  Thread::m_global.waiting--;
 }
 
 inline bool
-ThreadBase::trylock_global_lock() {
-  return ThreadBase::m_global.mutex.try_lock();
+Thread::trylock_global_lock() {
+  return Thread::m_global.mutex.try_lock();
 }
 
 inline void
-ThreadBase::release_global_lock() {
-  ThreadBase::m_global.mutex.unlock();
+Thread::release_global_lock() {
+  Thread::m_global.mutex.unlock();
 }
 
 inline void
-ThreadBase::waive_global_lock() {
+Thread::waive_global_lock() {
   release_global_lock();
   acquire_global_lock();
 }

@@ -15,7 +15,7 @@ struct TrackerSendEvent {
   tracker::TrackerState::event_enum event;
 };
 
-class ThreadTracker : public ThreadBase {
+class ThreadTracker : public utils::Thread {
 public:
   ThreadTracker();
   ~ThreadTracker() = default;

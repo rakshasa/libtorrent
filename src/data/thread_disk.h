@@ -6,7 +6,7 @@
 
 namespace torrent {
 
-class ThreadDisk : public ThreadBase {
+class ThreadDisk : public utils::Thread {
 public:
   ThreadDisk() = default;
   ~ThreadDisk() override = default;

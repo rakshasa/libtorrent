@@ -55,9 +55,6 @@ public:
 
   slot_bool&          slot_has_work() { return m_slot_has_work; }
 
-protected:
-  friend class ThreadDisk;
-
   void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
 
 private:

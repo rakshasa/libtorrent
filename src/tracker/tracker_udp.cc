@@ -2,13 +2,14 @@
 
 #define __STDC_FORMAT_MACROS
 
-#include <sys/types.h>
+#include "tracker_udp.h"
 
 #include <cstdio>
+#include <sys/types.h>
 
-#include "rak/error_number.h"
-
+#include "manager.h"
 #include "net/address_list.h"
+#include "rak/error_number.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
@@ -16,10 +17,8 @@
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/thread.h"
 #include "torrent/utils/uri_parser.h"
-
-#include "tracker_udp.h"
-#include "manager.h"
 
 #define LT_LOG_TRACKER_REQUESTS(log_fmt, ...)                             \
   lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
@@ -133,10 +132,10 @@ TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
 
   prepare_connect_input();
 
-  manager->poll()->open(this);
-  manager->poll()->insert_read(this);
-  manager->poll()->insert_write(this);
-  manager->poll()->insert_error(this);
+  thread_self->poll()->open(this);
+  thread_self->poll()->insert_read(this);
+  thread_self->poll()->insert_write(this);
+  thread_self->poll()->insert_error(this);
 
   m_tries = udp_tries;
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
@@ -177,10 +176,10 @@ TrackerUdp::close_directly() {
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
-  manager->poll()->remove_read(this);
-  manager->poll()->remove_write(this);
-  manager->poll()->remove_error(this);
-  manager->poll()->close(this);
+  thread_self->poll()->remove_read(this);
+  thread_self->poll()->remove_write(this);
+  thread_self->poll()->remove_error(this);
+  thread_self->poll()->close(this);
 
   get_fd().close();
   get_fd().clear();
@@ -207,7 +206,7 @@ TrackerUdp::receive_timeout() {
   } else {
     priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 
-    manager->poll()->insert_write(this);
+    thread_self->poll()->insert_write(this);
   }
 }
 
@@ -241,7 +240,7 @@ TrackerUdp::event_read() {
     priority_queue_update(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 
     m_tries = udp_tries;
-    manager->poll()->insert_write(this);
+    thread_self->poll()->insert_write(this);
     return;
 
   case 1:
@@ -268,7 +267,7 @@ TrackerUdp::event_write() {
 
   [[maybe_unused]] int s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
 
-  manager->poll()->remove_write(this);
+  thread_self->poll()->remove_write(this);
 }
 
 void

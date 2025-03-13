@@ -13,6 +13,12 @@
 
 namespace torrent {
 
+ThreadMain* thread_main = nullptr;
+
+ThreadMain::ThreadMain() {
+  m_hash_queue = std::make_unique<HashQueue>();
+}
+
 void
 ThreadMain::init_thread() {
   acquire_global_lock();
@@ -31,6 +37,13 @@ ThreadMain::init_thread() {
   m_flags |= flag_main_thread;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
+
+  auto hash_work_signal = m_signal_bitfield.add_signal([this]() {
+      return m_hash_queue->work();
+    });
+  m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
+      send_event_signal(hash_work_signal, is_done);
+    };
 }
 
 void

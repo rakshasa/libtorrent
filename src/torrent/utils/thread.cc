@@ -1,28 +1,27 @@
 #include "config.h"
 
+#include "torrent/utils/thread.h"
+
 #include <cstring>
 #include <signal.h>
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
-#include "torrent/utils/thread.h"
 #include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
+thread_local utils::Thread* thread_self;
+}
 
-thread_local ThreadBase* thread_self;
+namespace torrent::utils {
 
-ThreadBase::global_lock_type ThreadBase::m_global;
+Thread::global_lock_type Thread::m_global;
 
-ThreadBase::ThreadBase() :
-  m_state(STATE_UNKNOWN),
-  m_flags(0),
-  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
-
-  m_poll(NULL)
+Thread::Thread() :
+  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL)
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
 
@@ -32,17 +31,17 @@ ThreadBase::ThreadBase() :
   m_interrupt_receiver = std::move(interrupt_sockets.second);
 }
 
-ThreadBase::~ThreadBase() = default;
+Thread::~Thread() = default;
 
 void
-ThreadBase::start_thread() {
+Thread::start_thread() {
   if (m_poll == nullptr)
     throw internal_error("No poll object for thread defined.");
 
   if (!is_initialized())
-    throw internal_error("Called ThreadBase::start_thread on an uninitialized object.");
+    throw internal_error("Called Thread::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, (pthread_func)&ThreadBase::event_loop, this))
+  if (pthread_create(&m_thread, NULL, (pthread_func)&Thread::event_loop, this))
     throw internal_error("Failed to create thread.");
 
   while (m_thread_id == std::thread::id())
@@ -50,13 +49,13 @@ ThreadBase::start_thread() {
 }
 
 void
-ThreadBase::stop_thread() {
+Thread::stop_thread() {
   m_flags |= flag_do_shutdown;
   interrupt();
 }
 
 void
-ThreadBase::stop_thread_wait() {
+Thread::stop_thread_wait() {
   stop_thread();
 
   release_global_lock();
@@ -70,21 +69,21 @@ ThreadBase::stop_thread_wait() {
 
 // Fix interrupting when shutting down thread.
 void
-ThreadBase::interrupt() {
+Thread::interrupt() {
   // Only poke when polling, set no_timeout
   if (is_polling())
     m_interrupt_sender->poke();
 }
 
 bool
-ThreadBase::should_handle_sigusr1() {
+Thread::should_handle_sigusr1() {
   return false;
 }
 
 void*
-ThreadBase::event_loop(ThreadBase* thread) {
+Thread::event_loop(Thread* thread) {
   if (thread == nullptr)
-    throw internal_error("ThreadBase::event_loop called with a null pointer thread");
+    throw internal_error("Thread::event_loop called with a null pointer thread");
 
   thread_self = thread;
   thread->m_thread_id = std::this_thread::get_id();
@@ -92,7 +91,7 @@ ThreadBase::event_loop(ThreadBase* thread) {
   auto previous_state = STATE_INITIALIZED;
 
   if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
-    throw internal_error("ThreadBase::event_loop called on an object that is not in the initialized state.");
+    throw internal_error("Thread::event_loop called on an object that is not in the initialized state.");
 
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(thread->name());
@@ -163,7 +162,7 @@ ThreadBase::event_loop(ThreadBase* thread) {
   previous_state = STATE_ACTIVE;
 
   if (!thread->m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
-    throw internal_error("ThreadBase::event_loop called on an object that is not in the active state.");
+    throw internal_error("Thread::event_loop called on an object that is not in the active state.");
 
   return NULL;
 }
