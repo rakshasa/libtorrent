@@ -6,6 +6,7 @@
 #include <functional>
 #include <iosfwd>
 #include <mutex>
+#include <utility>
 
 #include "torrent/common.h"
 #include "torrent/hash_string.h"
@@ -33,7 +34,7 @@ struct TrackerParameters {
 
 class TrackerWorker {
 public:
-  TrackerWorker(const TrackerInfo& info, int flags = 0);
+  TrackerWorker(TrackerInfo info, int flags = 0);
   virtual ~TrackerWorker() = default;
 
   TrackerWorker() = delete;
@@ -103,9 +104,8 @@ private:
   std::string           m_tracker_id;
 };
 
-inline
-TrackerWorker::TrackerWorker(const TrackerInfo& info, int flags) :
-  m_info(info) {
+inline TrackerWorker::TrackerWorker(TrackerInfo info, int flags) :
+    m_info(std::move(info)) {
   m_state.m_flags = flags;
 }
 

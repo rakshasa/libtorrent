@@ -15,7 +15,7 @@ namespace torrent {
 
 // Fix TrackerUdp, etc, if this is made async.
 static ConnectionManager::slot_resolver_result_type*
-resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
+resolve_host(const char* host, int family, int socktype, const ConnectionManager::slot_resolver_result_type& slot) {
   if (thread_main->is_current())
     utils::Thread::release_global_lock();
 

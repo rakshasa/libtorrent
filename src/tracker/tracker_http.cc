@@ -6,6 +6,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <utility>
 #include <rak/string_manip.h>
 
 #include "net/address_list.h"
@@ -257,13 +258,13 @@ TrackerHttp::receive_done() {
 }
 
 void
-TrackerHttp::receive_signal_failed(std::string msg) {
+TrackerHttp::receive_signal_failed(const std::string& msg) {
   lock_and_clear_intervals();
   return receive_failed(msg);
 }
 
 void
-TrackerHttp::receive_failed(std::string msg) {
+TrackerHttp::receive_failed(const std::string& msg) {
   if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
     std::string dump = m_data->str();
     LT_LOG_TRACKER_DUMP(DEBUG, dump.c_str(), dump.size(), "Tracker HTTP failed.", 0);

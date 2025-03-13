@@ -245,7 +245,7 @@ log_find_output_name(const char* name) {
 }
 
 void
-log_open_output(const char* name, log_slot slot) {
+log_open_output(const char* name, const log_slot& slot) {
   auto lock = std::scoped_lock(log_mutex);
 
   if (log_outputs.size() >= log_group::max_size_outputs()) {

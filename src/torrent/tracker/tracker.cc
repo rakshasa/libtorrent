@@ -137,7 +137,7 @@ Tracker::status() const {
 }
 
 void
-Tracker::lock_and_call_state(std::function<void(const TrackerState&)> f) const {
+Tracker::lock_and_call_state(const std::function<void(const TrackerState&)>& f) const {
   auto lock_guard = m_worker->lock_guard();
 
   f(m_worker->state());

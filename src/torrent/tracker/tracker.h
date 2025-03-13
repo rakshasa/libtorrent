@@ -34,14 +34,14 @@ public:
   torrent::tracker_enum type() const;
   const std::string&    url() const;
 
-  std::string         tracker_id() const;
-  TrackerState        state() const;;
-  std::string         status() const;
+  std::string           tracker_id() const;
+  TrackerState          state() const;
+  std::string           status() const;
 
   // If the tracker group is changed, it not be updated for Tracker objects outside of TrackerList.
   uint32_t            group() const { return m_group; }
 
-  void                lock_and_call_state(std::function<void(const TrackerState&)> f) const;
+  void                lock_and_call_state(const std::function<void(const TrackerState&)>& f) const;
 
   bool                operator< (const Tracker& rhs) const { return m_worker < rhs.m_worker; }
   bool                operator==(const Tracker& rhs) const { return m_worker == rhs.m_worker; }

@@ -3,6 +3,7 @@
 #include "torrent/tracker/manager.h"
 
 #include <cassert>
+#include <utility>
 
 #include "thread_main.h"
 #include "src/manager.h"
@@ -83,7 +84,7 @@ Manager::add_event(TrackerList* tracker_list, std::function<void()> event) {
 
   std::lock_guard<std::mutex> guard(m_events_lock);
 
-  m_tracker_list_events.push_back(TrackerListEvent{tracker_list, event});
+  m_tracker_list_events.push_back(TrackerListEvent{tracker_list, std::move(event)});
 
   torrent::thread_main->send_event_signal(m_signal_process_events);
 }
