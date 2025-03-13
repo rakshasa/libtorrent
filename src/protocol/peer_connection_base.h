@@ -154,7 +154,7 @@ protected:
   bool                send_pex_message();
   bool                send_ext_message();
 
-  DownloadMain*       m_download;
+  DownloadMain*       m_download{};
 
   ProtocolRead*       m_down;
   ProtocolWrite*      m_up;
@@ -163,7 +163,7 @@ protected:
 
   RequestList         m_request_list;
   ChunkHandle         m_downChunk;
-  uint32_t            m_downStall;
+  uint32_t            m_downStall{0};
 
   Piece               m_upPiece;
   ChunkHandle         m_upChunk;
@@ -181,25 +181,25 @@ protected:
   choke_status        m_upChoke;
   choke_status        m_downChoke;
 
-  bool                m_downInterested;
-  bool                m_downUnchoked;
+  bool                m_downInterested{false};
+  bool                m_downUnchoked{false};
 
-  bool                m_sendChoked;
-  bool                m_sendInterested;
-  bool                m_tryRequest;
+  bool                m_sendChoked{false};
+  bool                m_sendInterested{false};
+  bool                m_tryRequest{true};
 
-  int                 m_sendPEXMask;
+  int                 m_sendPEXMask{0};
 
   rak::timer          m_timeLastRead;
 
   DataBuffer          m_extensionMessage;
   uint32_t            m_extensionOffset;
 
-  EncryptBuffer*      m_encryptBuffer;
+  EncryptBuffer*      m_encryptBuffer{};
   EncryptionInfo      m_encryption;
-  ProtocolExtension*  m_extensions;
+  ProtocolExtension*  m_extensions{};
 
-  bool m_incoreContinous;
+  bool m_incoreContinous{false};
 };
 
 inline void

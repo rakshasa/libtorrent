@@ -29,8 +29,6 @@ HashString DhtRouter::zero_id;
 DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
   DhtNode(zero_id, sa),  // actual ID is set later
   m_server(this),
-  m_contacts(NULL),
-  m_numRefresh(0),
   m_curToken(random()),
   m_prevToken(random()) {
 

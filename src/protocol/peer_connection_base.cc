@@ -92,27 +92,10 @@ log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
 }
 
 PeerConnectionBase::PeerConnectionBase() :
-  m_download(NULL),
-  
   m_down(new ProtocolRead()),
-  m_up(new ProtocolWrite()),
+  m_up(new ProtocolWrite()) {
 
-  m_downStall(0),
-
-  m_downInterested(false),
-  m_downUnchoked(false),
-
-  m_sendChoked(false),
-  m_sendInterested(false),
-  m_tryRequest(true),
-  m_sendPEXMask(0),
-
-  m_encryptBuffer(NULL),
-  m_extensions(NULL),
-
-  m_incoreContinous(false) {
-
-  m_peerInfo = NULL;
+  m_peerInfo = nullptr;
 }
 
 PeerConnectionBase::~PeerConnectionBase() {

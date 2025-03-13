@@ -52,7 +52,6 @@ PeerInfo* const InitialSeeding::chunk_unknown = (PeerInfo*) 1;
 PeerInfo* const InitialSeeding::chunk_done    = (PeerInfo*) 2;
 
 InitialSeeding::InitialSeeding(DownloadMain* download) :
-    m_nextChunk(0),
     m_chunksLeft(download->file_list()->size_chunks()),
     m_download(download),
     m_peerChunks(std::make_unique<PeerInfo*[]>(m_chunksLeft)) {
