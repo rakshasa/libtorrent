@@ -51,7 +51,7 @@ class SocketFd {
 public:
   typedef uint8_t priority_type;
 
-  SocketFd() : m_fd(-1) {}
+  SocketFd() = default;
   explicit SocketFd(int fd) : m_fd(fd) {}
   SocketFd(int fd, bool ipv6_socket) : m_fd(fd), m_ipv6_socket(ipv6_socket) {}
 
@@ -98,7 +98,7 @@ public:
 private:
   inline void         check_valid() const;
 
-  int                 m_fd;
+  int                 m_fd{-1};
   bool                m_ipv6_socket;
 };
 
