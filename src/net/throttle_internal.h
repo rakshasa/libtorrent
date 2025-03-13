@@ -77,7 +77,7 @@ private:
   SlaveList           m_slaveList;
   SlaveList::iterator m_nextSlave;
 
-  uint32_t            m_unusedQuota;
+  uint32_t            m_unusedQuota{0};
 
   rak::timer          m_timeLastTick;
   rak::priority_item  m_taskTick;

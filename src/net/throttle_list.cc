@@ -46,13 +46,6 @@
 namespace torrent {
 
 ThrottleList::ThrottleList() :
-  m_enabled(false),
-  m_size(0),
-  m_outstandingQuota(0),
-  m_unallocatedQuota(0),
-  m_unusedUnthrottledQuota(0),
-  m_rateAdded(0),
-
   m_minChunkSize(2 << 10),
   m_maxChunkSize(16 << 10),
 

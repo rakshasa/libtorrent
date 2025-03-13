@@ -13,12 +13,6 @@ namespace torrent {
 
 DhtSearch::DhtSearch(const HashString& target, const DhtBucket& contacts)
   : base_type(dht_compare_closer(target)),
-    m_pending(0),
-    m_contacted(0),
-    m_replied(0),
-    m_concurrency(3),
-    m_restart(false),
-    m_started(false),
     m_next(end()),
     m_target(target) {
 
@@ -229,9 +223,7 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
     m_hasQuickTimeout(quick_timeout > 0),
     m_sa(*sa),
     m_timeout(cachedTime.seconds() + timeout),
-    m_quickTimeout(cachedTime.seconds() + quick_timeout),
-    m_packet(NULL) {
-
+    m_quickTimeout(cachedTime.seconds() + quick_timeout) {
 }
 
 DhtTransaction::~DhtTransaction() {
