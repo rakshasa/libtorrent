@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "torrent/peer/connection_list.h"
+
 #include <algorithm>
 #include <rak/socket_address.h>
 
@@ -10,11 +12,9 @@
 #include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
+#include "torrent/peer/peer.h"
+#include "torrent/peer/peer_info.h"
 #include "utils/functional.h"
-
-#include "connection_list.h"
-#include "peer.h"
-#include "peer_info.h"
 
 // When a peer is connected it should be removed from the list of
 // available peers.
@@ -44,7 +44,7 @@ ConnectionList::clear() {
 }
 
 bool
-ConnectionList::want_connection(PeerInfo* p, Bitfield* bitfield) {
+ConnectionList::want_connection([[maybe_unused]] PeerInfo* p, Bitfield* bitfield) {
   if (m_download->file_list()->is_done() || m_download->initial_seeding() != NULL)
     return !bitfield->is_all_set();
 
@@ -76,7 +76,8 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
   base_type::push_back(peerConnection);
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  utils::slot_list_call(m_signalConnected, peerConnection);
+
+  ::utils::slot_list_call(m_signalConnected, peerConnection);
 
   return peerConnection;
 }
@@ -102,7 +103,8 @@ ConnectionList::erase(iterator pos, int flags) {
   base_type::pop_back();
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  utils::slot_list_call(m_signalDisconnected, peerConnection);
+
+  ::utils::slot_list_call(m_signalDisconnected, peerConnection);
 
   // Before of after the signal?
   peerConnection->cleanup();

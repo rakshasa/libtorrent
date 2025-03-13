@@ -2,19 +2,20 @@
 
 #define __STDC_FORMAT_MACROS
 
+#include "listen.h"
+
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <rak/socket_address.h>
 #include <sys/socket.h>
 
+#include "manager.h"
+#include "rak/socket_address.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
-
-#include "listen.h"
-#include "manager.h"
+#include "torrent/utils/thread.h"
 
 namespace torrent {
 
@@ -55,9 +56,9 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
 
       manager->connection_manager()->inc_socket_count();
 
-      manager->poll()->open(this);
-      manager->poll()->insert_read(this);
-      manager->poll()->insert_error(this);
+      thread_self->poll()->open(this);
+      thread_self->poll()->insert_read(this);
+      thread_self->poll()->insert_error(this);
 
       lt_log_print(LOG_CONNECTION_LISTEN, "listen port %" PRIu16 " opened with backlog set to %i",
                    m_port, backlog);
@@ -80,18 +81,18 @@ void Listen::close() {
   if (!get_fd().is_valid())
     return;
 
-  manager->poll()->remove_read(this);
-  manager->poll()->remove_error(this);
-  manager->poll()->close(this);
+  thread_self->poll()->remove_read(this);
+  thread_self->poll()->remove_error(this);
+  thread_self->poll()->close(this);
 
   manager->connection_manager()->dec_socket_count();
 
   get_fd().close();
   get_fd().clear();
-  
+
   m_port = 0;
 }
-  
+
 void
 Listen::event_read() {
   rak::socket_address sa;

@@ -19,6 +19,34 @@ DhtController::~DhtController() {
   stop();
 }
 
+bool
+DhtController::is_valid() {
+  std::lock_guard<std::mutex> guard(m_lock);
+
+  return m_router != nullptr;
+}
+
+bool
+DhtController::is_active() {
+  std::lock_guard<std::mutex> guard(m_lock);
+
+  return m_router && m_router->is_active();
+}
+
+bool
+DhtController::is_receiving_requests() {
+  std::lock_guard<std::mutex> guard(m_lock);
+
+  return m_receive_requests;
+}
+
+uint16_t
+DhtController::port() {
+  std::lock_guard<std::mutex> guard(m_lock);
+
+  return m_port;
+}
+
 void
 DhtController::initialize(const Object& dhtCache) {
   auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
@@ -62,25 +90,6 @@ DhtController::stop() {
 
   LT_LOG_THIS("stopping", 0);
   m_router->stop();
-}
-
-bool
-DhtController::is_active() {
-  return m_router && m_router->is_active();
-}
-
-bool
-DhtController::is_receiving_requests() {
-  std::lock_guard<std::mutex> guard(m_lock);
-
-  return m_receive_requests;
-}
-
-uint16_t
-DhtController::port() {
-  std::lock_guard<std::mutex> guard(m_lock);
-
-  return m_port;
 }
 
 void

@@ -6,6 +6,7 @@
 #include <cstring>
 #include <limits>
 
+#include "manager.h"
 #include "data/chunk_list.h"
 #include "download/available_list.h"
 #include "download/chunk_selector.h"

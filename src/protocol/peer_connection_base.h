@@ -1,57 +1,19 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
+#include "globals.h"
+#include "thread_main.h"
 #include "data/chunk_handle.h"
 #include "net/socket_stream.h"
+#include "protocol/encryption_info.h"
+#include "protocol/extensions.h"
+#include "protocol/peer_chunks.h"
+#include "protocol/protocol_base.h"
+#include "protocol/request_list.h"
 #include "torrent/poll.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/choke_status.h"
 
-#include "encryption_info.h"
-#include "extensions.h"
-#include "peer_chunks.h"
-#include "protocol_base.h"
-#include "request_list.h"
-
-#include "globals.h"
-
-#include "manager.h"
 
 namespace torrent {
 
@@ -87,7 +49,7 @@ public:
 
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
-  
+
   const char*         type_name() const { return "pcb"; }
 
   void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
@@ -127,7 +89,7 @@ public:
 
   void                do_peer_exchange()              { m_sendPEXMask |= PEX_DO; }
   inline void         set_peer_exchange(bool state);
-  
+
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
   virtual void        update_interested() = 0;
@@ -265,7 +227,7 @@ PeerConnectionBase::read_insert_poll_safe() {
   if (m_down->get_state() != ProtocolRead::IDLE)
     return;
 
-  manager->poll()->insert_read(this);
+  thread_main->poll()->insert_read(this);
 }
 
 inline void
@@ -273,7 +235,7 @@ PeerConnectionBase::write_insert_poll_safe() {
   if (m_up->get_state() != ProtocolWrite::IDLE)
     return;
 
-  manager->poll()->insert_write(this);
+  thread_main->poll()->insert_write(this);
 }
 
 }
