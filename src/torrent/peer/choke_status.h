@@ -45,14 +45,6 @@ class group_entry;
 
 class choke_status {
 public:
-  choke_status() :
-    m_group_entry(NULL),
-
-    m_queued(false),
-    m_unchoked(false),
-    m_snubbed(false),
-    m_timeLastChoke(0) {}
-
   group_entry*        entry() const                           { return m_group_entry; }
   void                set_entry(group_entry* grp_ent)         { m_group_entry = grp_ent; }
 
@@ -71,13 +63,13 @@ public:
 
 private:
   // TODO: Use flags.
-  group_entry*        m_group_entry;
+  group_entry*        m_group_entry{};
 
-  bool                m_queued;
-  bool                m_unchoked;
-  bool                m_snubbed;
+  bool                m_queued{false};
+  bool                m_unchoked{false};
+  bool                m_snubbed{false};
 
-  int64_t             m_timeLastChoke;
+  int64_t             m_timeLastChoke{0};
 };
 
 }

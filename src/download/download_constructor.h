@@ -15,8 +15,6 @@ typedef std::list<std::string> EncodingList;
 
 class DownloadConstructor {
 public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
-
   void                initialize(Object& b);
 
   void                parse_tracker(const Object& b);
@@ -42,8 +40,8 @@ private:
   inline Path         create_path(const Object::list_type& plist, const std::string& enc);
   inline Path         choose_path(std::list<Path>* pathList);
 
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
+  DownloadWrapper*    m_download{};
+  const EncodingList* m_encodingList{};
 
   std::string         m_defaultEncoding;
 };

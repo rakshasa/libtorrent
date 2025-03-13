@@ -121,17 +121,19 @@ private:
 
   uint32_t            m_maxQueueLength;
 
-  int                 m_flags;
-  PeerInfo*           m_peerInfo;
-  DownloadMain*       m_download;
-  PeerConnectionBase* m_connection;
+  // Set HANDSHAKE as enabled and supported. Those bits should not be
+  // touched.
+  int                 m_flags{flag_local_enabled_base | flag_remote_supported_base | flag_initial_handshake};
+  PeerInfo*           m_peerInfo{};
+  DownloadMain*       m_download{};
+  PeerConnectionBase* m_connection{};
 
-  uint8_t             m_readType;
+  uint8_t             m_readType{FIRST_INVALID};
   uint32_t            m_readLeft;
-  char*               m_read;
+  char*               m_read{};
   char*               m_readPos;
 
-  MessageType         m_pendingType;
+  MessageType         m_pendingType{HANDSHAKE};
   DataBuffer          m_pending;
 };
 
@@ -167,17 +169,8 @@ typedef static_map_type<ext_metadata_keys, key_metadata_LAST> ExtMetadataMessage
 //
 
 inline
-ProtocolExtension::ProtocolExtension() :
-  // Set HANDSHAKE as enabled and supported. Those bits should not be
-  // touched.
-  m_flags(flag_local_enabled_base | flag_remote_supported_base | flag_initial_handshake),
-  m_peerInfo(NULL),
-  m_download(NULL),
-  m_connection(NULL),
-  m_readType(FIRST_INVALID),
-  m_read(NULL),
-  m_pendingType(HANDSHAKE) {
-
+ProtocolExtension::ProtocolExtension()
+{
   reset();
   set_local_enabled(UT_METADATA);
 }

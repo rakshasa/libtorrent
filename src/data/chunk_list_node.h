@@ -56,14 +56,6 @@ class lt_cacheline_aligned ChunkListNode {
 public:
   static const uint32_t invalid_index = ~uint32_t();
 
-  ChunkListNode() :
-    m_index(invalid_index),
-    m_chunk(NULL),
-    m_references(0),
-    m_writable(0),
-    m_blocking(0),
-    m_asyncTriggered(false) {}
-
   bool                is_valid() const               { return m_chunk != NULL; }
 
   uint32_t            index() const                  { return m_index; }
@@ -97,14 +89,14 @@ public:
   void                dec_rw()                       { dec_writable(); dec_references(); }
 
 private:
-  uint32_t            m_index;
-  Chunk*              m_chunk;
+  uint32_t            m_index{invalid_index};
+  Chunk*              m_chunk{};
 
-  int                 m_references;
-  int                 m_writable;
-  int                 m_blocking;
+  int                 m_references{0};
+  int                 m_writable{0};
+  int                 m_blocking{0};
 
-  bool                m_asyncTriggered;
+  bool                m_asyncTriggered{false};
 
   rak::timer          m_timeModified;
   rak::timer          m_timePreloaded;

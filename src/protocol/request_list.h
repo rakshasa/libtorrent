@@ -131,30 +131,26 @@ private:
   void                 prepare_process_unordered(queues_type::iterator itr);
   void                 delay_process_unordered();
 
-  Delegator*           m_delegator;
-  PeerChunks*          m_peerChunks;
+  Delegator*           m_delegator{};
+  PeerChunks*          m_peerChunks{};
 
-  BlockTransfer*       m_transfer;
+  BlockTransfer*       m_transfer{};
 
   queues_type          m_queues;
 
-  int32_t              m_affinity;
+  int32_t              m_affinity{-1};
 
   rak::timer           m_last_choke;
   rak::timer           m_last_unchoke;
-  size_t               m_last_unordered_position;
+  size_t               m_last_unordered_position{0};
 
   rak::priority_item   m_delay_remove_choked;
   rak::priority_item   m_delay_process_unordered;
 };
 
 inline
-RequestList::RequestList() :
-  m_delegator(NULL),
-  m_peerChunks(NULL),
-  m_transfer(NULL),
-  m_affinity(-1),
-  m_last_unordered_position(0) {
+RequestList::RequestList()
+{
   m_delay_remove_choked.slot() = std::bind(&RequestList::delay_remove_choked, this);
   m_delay_process_unordered.slot() = std::bind(&RequestList::delay_process_unordered, this);
 }

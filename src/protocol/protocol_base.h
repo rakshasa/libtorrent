@@ -81,11 +81,8 @@ public:
     INTERNAL_ERROR
   } State;
 
-  ProtocolBase() :
-    m_state(IDLE),
-    m_lastCommand(NONE),
-    m_throttle(NULL) {
-
+  ProtocolBase()
+  {
     m_buffer.reset();
   }
 
@@ -155,9 +152,9 @@ public:
 
 
 protected:
-  State               m_state;
-  Protocol            m_lastCommand;
-  ThrottleList*       m_throttle;
+  State               m_state{IDLE};
+  Protocol            m_lastCommand{NONE};
+  ThrottleList*       m_throttle{};
 
   Buffer              m_buffer;
 };

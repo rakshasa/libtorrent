@@ -50,7 +50,6 @@ class Listen : public SocketBase {
 public:
   typedef std::function<void (SocketFd, const rak::socket_address&)> slot_connection;
 
-  Listen() : m_port(0) {}
   ~Listen() { close(); }
 
   bool                open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress);
@@ -67,7 +66,7 @@ public:
   virtual void        event_error();
 
 private:
-  uint64_t            m_port;
+  uint64_t            m_port{0};
 
   slot_connection     m_slot_accepted;
 };

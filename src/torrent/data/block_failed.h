@@ -67,7 +67,7 @@ public:
 
   static const uint32_t invalid_index = ~uint32_t();
 
-  BlockFailed() : m_current(invalid_index) {}
+  BlockFailed() = default;
   ~BlockFailed();
   BlockFailed(const BlockFailed&) = delete;
   BlockFailed& operator=(const BlockFailed&) = delete;
@@ -87,7 +87,7 @@ private:
   static void         delete_entry(value_type e)                    { delete [] e.first; }
   static bool         compare_entries(value_type e1, value_type e2) { return e1.second < e2.second; }
 
-  size_type           m_current;
+  size_type           m_current{invalid_index};
 };
 
 inline
