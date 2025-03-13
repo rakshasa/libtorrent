@@ -102,9 +102,9 @@ private:
 
   rak::socket_address m_socketAddress;
   unsigned int        m_lastSeen;
-  bool                m_recentlyActive;
-  unsigned int        m_recentlyInactive;
-  DhtBucket*          m_bucket;
+  bool                m_recentlyActive{};
+  unsigned int        m_recentlyInactive{};
+  DhtBucket*          m_bucket{};
 };
 
 inline void

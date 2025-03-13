@@ -121,14 +121,14 @@ private:
 
   rak::priority_item  m_taskTimeout;
 
-  DhtServer           m_server;
+  DhtServer           m_server{nullptr};
   DhtNodeList         m_nodes;
   DhtBucketList       m_routingTable;
   DhtTrackerList      m_trackers;
 
-  std::deque<contact_t>* m_contacts;
+  std::deque<contact_t>* m_contacts{};
 
-  int                 m_numRefresh;
+  int                 m_numRefresh{0};
 
   bool                m_networkUp;
 

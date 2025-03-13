@@ -15,11 +15,8 @@
 namespace torrent {
 
 HashTorrent::HashTorrent(ChunkList* c) :
-  m_position(0),
-  m_outstanding(-1),
-  m_errno(0),
-
-  m_chunk_list(c) {
+  m_chunk_list(c)
+{
 }
 
 bool

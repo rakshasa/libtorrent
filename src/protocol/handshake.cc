@@ -55,18 +55,11 @@ public:
 };
 
 Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
-  m_state(INACTIVE),
-
   m_manager(m),
-  m_peerInfo(NULL),
-  m_download(NULL),
 
   // Use global throttles until we know which download it is.
   m_uploadThrottle(manager->upload_throttle()->throttle_list()),
   m_downloadThrottle(manager->download_throttle()->throttle_list()),
-
-  m_readDone(false),
-  m_writeDone(false),
 
   m_encryption(encryptionOptions),
   m_extensions(m->default_extensions()) {

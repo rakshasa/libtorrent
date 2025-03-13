@@ -23,8 +23,8 @@ const char* TrackerDht::states[] = { "Idle", "Searching", "Announcing" };
 bool TrackerDht::is_allowed() { return manager->dht_controller()->is_valid(); }
 
 TrackerDht::TrackerDht(const TrackerInfo& info, int flags) :
-  TrackerWorker(info, flags),
-  m_dht_state(state_idle) {
+  TrackerWorker(info, flags)
+  {
 
   if (!manager->dht_controller()->is_valid())
     throw internal_error("Trying to add DHT tracker with no DHT manager.");
