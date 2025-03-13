@@ -8,11 +8,6 @@
 
 namespace torrent {
 
-class FileManager;
-class ResourceManager;
-
-class thread_base;
-
 // Make sure you seed srandom and srand48 if available.
 void                initialize() LIBTORRENT_EXPORT;
 
@@ -23,7 +18,7 @@ void                cleanup() LIBTORRENT_EXPORT;
 bool                is_inactive() LIBTORRENT_EXPORT;
 bool                is_initialized() LIBTORRENT_EXPORT;
 
-thread_base*        main_thread() LIBTORRENT_EXPORT;
+utils::Thread*      main_thread() LIBTORRENT_EXPORT;
 
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;

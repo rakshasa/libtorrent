@@ -6,6 +6,7 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
 #include "torrent/bitfield.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
 #include "utils/sha1.h"
 
@@ -15,6 +16,7 @@ namespace torrent {
 
 class HandshakeManager;
 class DownloadMain;
+class ThrottleList;
 
 class Handshake : public SocketStream {
 public:

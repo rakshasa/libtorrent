@@ -16,7 +16,7 @@
 #include "rak/timer.h"
 #include "rak/error_number.h"
 #include "utils/log.h"
-#include "utils/thread_base.h"
+#include "utils/thread.h"
 
 #define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
   lt_log_print(LOG_SOCKET_##log_level, "select->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
@@ -45,8 +45,8 @@ struct poll_check_t {
       // We waive the global lock after an event has been processed in
       // order to ensure that 's' doesn't get removed before the op is
       // called.
-      if ((m_poll->flags() & Poll::flag_waive_global_lock) && thread_base::global_queue_size() != 0)
-        thread_base::waive_global_lock();
+      if ((m_poll->flags() & Poll::flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
+        utils::Thread::waive_global_lock();
 
       return true;
     } else {
@@ -204,13 +204,13 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
   timeval t = timeout.tval();
 
   if (!(flags & poll_worker_thread)) {
-    thread_base::release_global_lock();
+    utils::Thread::release_global_lock();
   }
 
   int status = select(maxFd + 1, read_set, write_set, error_set, &t);
 
   if (!(flags & poll_worker_thread)) {
-    thread_base::acquire_global_lock();
+    utils::Thread::acquire_global_lock();
   }
 
   if (status == -1) {

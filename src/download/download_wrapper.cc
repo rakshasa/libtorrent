@@ -239,13 +239,13 @@ DownloadWrapper::receive_tracker_success(AddressList* l) {
   m_main->receive_connect_peers();
   m_main->receive_tracker_success();
 
-  utils::slot_list_call(info()->signal_tracker_success());
+  ::utils::slot_list_call(info()->signal_tracker_success());
   return inserted;
 }
 
 void
 DownloadWrapper::receive_tracker_failed(const std::string& msg) {
-  utils::slot_list_call(info()->signal_tracker_failed(), msg);
+  ::utils::slot_list_call(info()->signal_tracker_failed(), msg);
 }
 
 void

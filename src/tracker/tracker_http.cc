@@ -36,6 +36,7 @@ namespace torrent {
 TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags) :
   TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags),
 
+  // TODO: Change slot_factory to use thread_self poll.
   m_get(Http::slot_factory()()),
   m_drop_deliminator(utils::uri_has_query(info.url)) {
 

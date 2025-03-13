@@ -91,21 +91,23 @@ TrackerList::clear_stats() {
 }
 
 void
-TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event) {
-  if (!tracker.is_usable() || new_event == tracker::TrackerState::EVENT_SCRAPE)
+TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum event) {
+  if (!tracker.is_usable() || event == tracker::TrackerState::EVENT_SCRAPE)
     return;
 
   if (tracker.is_busy()) {
     if (tracker.state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
       return;
 
+    // TODO: All these should go through tracker::Manager.
+    // TODO: Also don't have TrackerList as friend.
     tracker.get_worker()->close();
   }
 
-  tracker.get_worker()->send_event(new_event);
+  tracker.get_worker()->send_event(event);
 
   LT_LOG_TRACKER(INFO, "sending '%s (group:%u url:%s)",
-                 option_as_string(OPTION_TRACKER_EVENT, new_event),
+                 option_as_string(OPTION_TRACKER_EVENT, event),
                  tracker.group(), tracker.url().c_str());
 }
 

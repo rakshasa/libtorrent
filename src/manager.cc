@@ -44,15 +44,6 @@ Manager::Manager() :
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle()) {
 
-  m_hash_queue = std::make_unique<HashQueue>(&m_thread_disk);
-
-  auto hash_work_signal = m_thread_main.signal_bitfield()->add_signal([hash_queue = m_hash_queue.get()]() {
-      return hash_queue->work();
-    });
-  m_hash_queue->slot_has_work() = [hash_work_signal, thread = &m_thread_main](bool is_done) {
-      thread->send_event_signal(hash_work_signal, is_done);
-    };
-
   m_taskTick.slot() = std::bind(&Manager::receive_tick, this);
 
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
@@ -71,6 +62,7 @@ Manager::~Manager() {
 
   m_handshake_manager->clear();
   m_download_manager->clear();
+  m_dht_controller.reset();
 
   Throttle::destroy_throttle(m_uploadThrottle);
   Throttle::destroy_throttle(m_downloadThrottle);

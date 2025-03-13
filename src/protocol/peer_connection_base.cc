@@ -180,10 +180,10 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
     return;
   }
 
-  manager->poll()->open(this);
-  manager->poll()->insert_read(this);
-  manager->poll()->insert_write(this);
-  manager->poll()->insert_error(this);
+  thread_main->poll()->open(this);
+  thread_main->poll()->insert_read(this);
+  thread_main->poll()->insert_write(this);
+  thread_main->poll()->insert_error(this);
 
   m_timeLastRead = cachedTime;
 
@@ -224,10 +224,10 @@ PeerConnectionBase::cleanup() {
   if (!m_extensions->is_default())
     m_extensions->cleanup();
 
-  manager->poll()->remove_read(this);
-  manager->poll()->remove_write(this);
-  manager->poll()->remove_error(this);
-  manager->poll()->close(this);
+  thread_main->poll()->remove_read(this);
+  thread_main->poll()->remove_write(this);
+  thread_main->poll()->remove_error(this);
+  thread_main->poll()->close(this);
   
   manager->connection_manager()->dec_socket_count();
 
@@ -534,7 +534,7 @@ PeerConnectionBase::down_chunk() {
   uint32_t quota = m_down->throttle()->node_quota(m_peerChunks.download_throttle());
 
   if (quota == 0) {
-    manager->poll()->remove_read(this);
+    thread_main->poll()->remove_read(this);
     m_down->throttle()->node_deactivate(m_peerChunks.download_throttle());
     return false;
   }
@@ -589,7 +589,7 @@ PeerConnectionBase::down_chunk_skip() {
   uint32_t quota = throttle->node_quota(m_peerChunks.download_throttle());
 
   if (quota == 0) {
-    manager->poll()->remove_read(this);
+    thread_main->poll()->remove_read(this);
     throttle->node_deactivate(m_peerChunks.download_throttle());
     return false;
   }
@@ -720,7 +720,7 @@ PeerConnectionBase::down_extension() {
   // If extension can't be processed yet (due to a pending write),
   // disable reads until the pending message is completely sent.
   if (m_extensions->is_complete() && !m_extensions->is_invalid() && !m_extensions->read_done()) {
-    manager->poll()->remove_read(this);
+    thread_main->poll()->remove_read(this);
     return false;
   }
 
@@ -767,7 +767,7 @@ PeerConnectionBase::up_chunk() {
   uint32_t quota = m_up->throttle()->node_quota(m_peerChunks.upload_throttle());
 
   if (quota == 0) {
-    manager->poll()->remove_write(this);
+    thread_main->poll()->remove_write(this);
     m_up->throttle()->node_deactivate(m_peerChunks.upload_throttle());
     return false;
   }
@@ -841,7 +841,7 @@ PeerConnectionBase::up_extension() {
     if (!m_extensions->read_done())
       throw internal_error("PeerConnectionBase::up_extension could not process complete extension message.");
 
-    manager->poll()->insert_read(this);
+    thread_main->poll()->insert_read(this);
   }
 
   return true;
@@ -864,7 +864,7 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
   PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(),
                                                         m_peerChunks.upload_queue()->end(),
                                                         p);
-  
+
   if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17)) {
     LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());

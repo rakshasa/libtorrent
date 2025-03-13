@@ -4,6 +4,7 @@
 #include <sstream>
 #include <rak/string_manip.h>
 
+#include "manager.h"
 #include "data/chunk_list_node.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
@@ -558,7 +559,7 @@ PeerConnection<type>::event_write() {
         fill_write_buffer();
 
         if (m_up->buffer()->remaining() == 0) {
-          manager->poll()->remove_write(this);
+          thread_main->poll()->remove_write(this);
           return;
         }
 

@@ -49,6 +49,7 @@ class DownloadInfo;
 class DownloadMain;
 class DownloadWrapper;
 class FileList;
+class FileManager;
 class Event;
 class File;
 class FileList;
@@ -67,17 +68,26 @@ class Piece;
 class Poll;
 class ProtocolExtension;
 class Rate;
+class ResourceManager;
 class SocketSet;
 class Throttle;
 class TrackerController;
 class TrackerList;
 class TransferList;
 
+class thread_interrupt;
+
 namespace tracker {
 
 class DhtController;
 class Manager;
 class Tracker;
+
+}
+
+namespace utils {
+
+class Thread;
 
 }
 

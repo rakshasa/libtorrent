@@ -1,15 +1,16 @@
 #include "config.h"
 
-#include <rak/timer.h>
-
 #include "data/thread_disk.h"
 
+#include "rak/timer.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
+
+ThreadDisk* thread_disk = nullptr;
 
 void
 ThreadDisk::init_thread() {
@@ -35,7 +36,7 @@ ThreadDisk::call_events() {
     throw shutdown_exception();
   }
 
-  m_hash_queue.perform();
+  m_hash_check_queue.perform();
 }
 
 int64_t

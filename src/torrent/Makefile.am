@@ -89,8 +89,8 @@ libtorrent_torrent_la_SOURCES = \
 	utils/resume.h \
 	utils/signal_bitfield.cc \
 	utils/signal_bitfield.h \
-	utils/thread_base.cc \
-	utils/thread_base.h \
+	utils/thread.cc \
+	utils/thread.h \
 	utils/thread_interrupt.cc \
 	utils/thread_interrupt.h \
 	utils/uri_parser.cc \
@@ -206,7 +206,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/ranges.h \
 	utils/resume.h \
 	utils/signal_bitfield.h \
-	utils/thread_base.h \
+	utils/thread.h \
 	utils/thread_interrupt.h \
 	utils/uri_parser.h
 
