@@ -9,6 +9,10 @@
 
 class TrackerTest;
 
+namespace torrent {
+class ThreadTracker;
+}
+
 namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT Tracker {
@@ -43,6 +47,8 @@ public:
   bool                operator==(const Tracker& rhs) const { return m_worker == rhs.m_worker; }
 
 protected:
+  friend class Manager;
+  friend class torrent::ThreadTracker;
   friend class torrent::TrackerList;
   friend class ::TrackerTest;
 

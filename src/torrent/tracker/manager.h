@@ -5,11 +5,12 @@
 
 #include <mutex>
 #include <set>
+#include <torrent/tracker/tracker.h>
 #include <torrent/tracker/wrappers.h>
 
 namespace torrent {
 class Manager;
-class ThreadTracker;
+// class ThreadTracker;
 }
 
 namespace torrent::tracker {
@@ -20,11 +21,15 @@ struct TrackerListEvent {
 };
 
 class LIBTORRENT_EXPORT Manager {
+public:
+
+  Manager();
+
 protected:
   friend class torrent::DownloadMain;
   friend class torrent::DownloadWrapper;
   friend class torrent::Manager;
-  friend class torrent::ThreadTracker;
+  // friend class torrent::ThreadTracker;
   friend class torrent::TrackerList;
 
   // Main thread:
@@ -32,16 +37,16 @@ protected:
   TrackerControllerWrapper add_controller(DownloadInfo* download_info, TrackerController* controller);
   void                     remove_controller(TrackerControllerWrapper controller);
 
-  void                set_main_thread_signal(unsigned int idx) { m_main_thread_signal = idx; }
-
-  void                process_events();
+  void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
   // Any thread:
 
   void                add_event(TrackerList* tracker_list, std::function<void()> event);
 
 private:
-  unsigned int        m_main_thread_signal{~0u};
+  void                process_events();
+
+  unsigned int        m_signal_process_events{~0u};
 
   std::mutex                         m_lock;
   std::set<TrackerControllerWrapper> m_controllers;

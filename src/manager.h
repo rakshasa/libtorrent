@@ -5,8 +5,6 @@
 #include <memory>
 #include <string>
 
-#include "thread_main.h"
-#include "data/thread_disk.h"
 #include "rak/priority_queue_default.h"
 #include "torrent/common.h"
 
@@ -14,7 +12,6 @@ namespace torrent {
 
 class DownloadManager;
 class FileManager;
-class HashQueue;
 class ResourceManager;
 
 typedef std::list<std::string> EncodingList;
@@ -33,12 +30,6 @@ public:
 
   ClientList*             client_list()    { return m_client_list.get(); }
   tracker::DhtController* dht_controller() { return m_dht_controller.get(); }
-  HashQueue*              hash_queue()     { return m_hash_queue.get(); }
-
-  Poll*               poll()               { return m_thread_main.poll(); }
-
-  ThreadMain*         thread_main()        { return &m_thread_main; }
-  ThreadDisk*         thread_disk()        { return &m_thread_disk; }
 
   EncodingList*       encoding_list()      { return &m_encodingList; }
 
@@ -60,10 +51,6 @@ private:
 
   std::unique_ptr<ClientList>             m_client_list;
   std::unique_ptr<tracker::DhtController> m_dht_controller;
-  std::unique_ptr<HashQueue>              m_hash_queue;
-
-  ThreadMain          m_thread_main;
-  ThreadDisk          m_thread_disk;
 
   EncodingList        m_encodingList;
 

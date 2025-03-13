@@ -69,6 +69,7 @@ private:
 
   int                 m_send_state{0};
 
+  // TODO: Fix resolver to be thread safe.
   resolver_type*      m_slot_resolver{nullptr};
 
   uint32_t            m_action;

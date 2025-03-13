@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include "directory_events.h"
@@ -50,7 +14,7 @@
 #include "net/socket_fd.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
-#include "manager.h"
+#include "torrent/utils/thread.h"
 
 namespace torrent {
 
@@ -75,8 +39,8 @@ directory_events::open() {
   if (m_fileDesc == -1)
     return false;
 
-  manager->poll()->open(this);
-  manager->poll()->insert_read(this);
+  thread_self->poll()->open(this);
+  thread_self->poll()->insert_read(this);
 
   return true;
 }
@@ -86,8 +50,8 @@ directory_events::close() {
   if (m_fileDesc == -1)
     return;
 
-  manager->poll()->remove_read(this);
-  manager->poll()->close(this);
+  thread_self->poll()->remove_read(this);
+  thread_self->poll()->close(this);
 
   ::close(m_fileDesc);
   m_fileDesc = -1;
@@ -95,7 +59,7 @@ directory_events::close() {
 }
 
 void
-directory_events::notify_on(const std::string& path, int flags, const slot_string& slot) {
+directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags, [[maybe_unused]] const slot_string& slot) {
   if (path.empty())
     throw input_error("Cannot add notification event for empty paths.");
 
@@ -108,7 +72,7 @@ directory_events::notify_on(const std::string& path, int flags, const slot_strin
 
 #ifdef IN_ONLYDIR
   in_flags |= IN_ONLYDIR;
-#endif 
+#endif
 
   if ((flags & flag_on_added))
     in_flags |= (IN_CREATE | IN_MOVED_TO);
@@ -144,7 +108,7 @@ directory_events::event_read() {
     return;
 
   struct inotify_event* event = (struct inotify_event*)buffer;
-  
+
   while (event + 1 <= (struct inotify_event*)(buffer + result)) {
     char* next_event = (char*)event + sizeof(struct inotify_event) + event->len;
 

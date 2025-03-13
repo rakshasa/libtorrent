@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdio>
 
+#include "thread_main.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
@@ -141,9 +142,9 @@ DhtServer::start(int port) {
   m_downloadNode.set_list_iterator(m_downloadThrottle->end());
   m_downloadThrottle->insert(&m_downloadNode);
 
-  manager->poll()->open(this);
-  manager->poll()->insert_read(this);
-  manager->poll()->insert_error(this);
+  thread_main->poll()->open(this);
+  thread_main->poll()->insert_read(this);
+  thread_main->poll()->insert_error(this);
 }
 
 void
@@ -160,10 +161,10 @@ DhtServer::stop() {
   m_uploadThrottle->erase(&m_uploadNode);
   m_downloadThrottle->erase(&m_downloadNode);
 
-  manager->poll()->remove_read(this);
-  manager->poll()->remove_write(this);
-  manager->poll()->remove_error(this);
-  manager->poll()->close(this);
+  thread_main->poll()->remove_read(this);
+  thread_main->poll()->remove_write(this);
+  thread_main->poll()->remove_error(this);
+  thread_main->poll()->close(this);
 
   get_fd().close();
   get_fd().clear();
@@ -871,11 +872,11 @@ DhtServer::event_write() {
   uint32_t quota = m_uploadThrottle->node_quota(&m_uploadNode);
 
   if (quota == 0 || !process_queue(m_highQueue, &quota) || !process_queue(m_lowQueue, &quota)) {
-    manager->poll()->remove_write(this);
+    thread_main->poll()->remove_write(this);
     m_uploadThrottle->node_deactivate(&m_uploadNode);
 
   } else if (m_highQueue.empty() && m_lowQueue.empty()) {
-    manager->poll()->remove_write(this);
+    thread_main->poll()->remove_write(this);
     m_uploadThrottle->erase(&m_uploadNode);
   }
 }
@@ -888,7 +889,7 @@ void
 DhtServer::start_write() {
   if ((!m_highQueue.empty() || !m_lowQueue.empty()) && !m_uploadThrottle->is_throttled(&m_uploadNode)) {
     m_uploadThrottle->insert(&m_uploadNode);
-    manager->poll()->insert_write(this);
+    thread_main->poll()->insert_write(this);
   }
 
   if (!m_taskTimeout.is_queued() && !m_transactions.empty())

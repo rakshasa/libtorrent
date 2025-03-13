@@ -43,6 +43,18 @@ public:
   DhtController() = default;
   ~DhtController();
 
+  // Thread-safe:
+
+  bool                is_valid();
+  bool                is_active();
+  bool                is_receiving_requests();
+
+  void                set_receive_requests(bool state);
+
+  uint16_t            port();
+
+  // Main thread:
+
   void                initialize(const Object& dhtCache);
 
   bool                start(uint16_t port);
@@ -50,14 +62,6 @@ public:
 
   // Store DHT cache in the given container and return the container.
   Object*             store_cache(Object* container);
-
-  bool                is_valid() { return m_router != nullptr; }
-  bool                is_active();
-  bool                is_receiving_requests();
-
-  uint16_t            port();
-
-  void                set_receive_requests(bool state);
 
   // Add a node by host (from a torrent file), or by address from explicit add_node
   // command or the BT PORT message.
@@ -73,10 +77,10 @@ public:
 protected:
   friend class torrent::TrackerDht;
 
+  // Thread-safe:
+
   void                announce(const HashString& info_hash, TrackerDht* tracker);
   void                cancel_announce(const HashString* info_hash, const torrent::TrackerDht* tracker);
-
-  // DhtRouter*          router()                                { return m_router.get(); }
 
 private:
   std::mutex          m_lock;
