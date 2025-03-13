@@ -6,6 +6,7 @@
 
 #include "globals.h"
 #include "data/hash_queue.h"
+#include "data/thread_disk.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
@@ -43,6 +44,10 @@ ThreadMain::init_thread() {
     });
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
+    };
+
+  thread_disk->hash_check_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) {
+      m_hash_queue->chunk_done(hc, hv);
     };
 }
 
