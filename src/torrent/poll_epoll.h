@@ -85,6 +85,8 @@ public:
 
 private:
   PollEPoll(int fd, int maxEvents, int maxOpenSockets);
+  PollEPoll(const PollEPoll&) = delete;
+  PollEPoll& operator=(const PollEPoll&) = delete;
 
   inline uint32_t     event_mask(Event* e);
   inline void         set_event_mask(Event* e, uint32_t m);

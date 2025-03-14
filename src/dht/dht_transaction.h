@@ -100,8 +100,6 @@ public:
 
   DhtSearch(const HashString& target, const DhtBucket& contacts);
   virtual ~DhtSearch();
-  DhtSearch(const DhtSearch&) = delete;
-  DhtSearch& operator=(const DhtSearch&) = delete;
 
   // Wrapper for iterators, allowing more convenient access to the key
   // and element values, which also makes it easier to change the container
@@ -163,6 +161,9 @@ protected:
   const_accessor       m_next;
 
 private:
+  DhtSearch(const DhtSearch&) = delete;
+  DhtSearch& operator=(const DhtSearch&) = delete;
+
   bool                 node_uncontacted(const DhtNode* node) const;
 
   HashString           m_target;
@@ -263,6 +264,9 @@ public:
   DhtTransaction*             transaction()             { return m_transaction; }
 
 private:
+  DhtTransactionPacket(const DhtTransactionPacket&) = delete;
+  DhtTransactionPacket& operator=(const DhtTransactionPacket&) = delete;
+
   void                        build_buffer(const DhtMessage& data);
 
   rak::socket_address   m_sa;
@@ -278,8 +282,6 @@ private:
 class DhtTransaction {
 public:
   virtual ~DhtTransaction();
-  DhtTransaction(const DhtTransaction&) = delete;
-  DhtTransaction& operator=(const DhtTransaction&) = delete;
 
   typedef enum {
     DHT_PING,
@@ -325,6 +327,9 @@ protected:
   bool                   m_hasQuickTimeout;
 
 private:
+  DhtTransaction(const DhtTransaction&) = delete;
+  DhtTransaction& operator=(const DhtTransaction&) = delete;
+
   rak::socket_address    m_sa;
   int                    m_timeout;
   int                    m_quickTimeout;

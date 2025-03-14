@@ -37,8 +37,10 @@ class MemoryChunk {
   static const int sync_async             = MS_ASYNC;
   static const int sync_invalidate        = MS_INVALIDATE;
 
-  MemoryChunk() { clear(); }
+  MemoryChunk() = default;
   ~MemoryChunk() { clear(); }
+  MemoryChunk(const MemoryChunk&) = default;
+  MemoryChunk& operator=(const MemoryChunk&) = default;
 
   // Doesn't allow ptr == NULL, use the default ctor instead.
   MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags);
@@ -85,12 +87,12 @@ private:
 
   static uint32_t     m_pagesize;
 
-  char*               m_ptr;
-  char*               m_begin;
-  char*               m_end;
+  char*               m_ptr{};
+  char*               m_begin{};
+  char*               m_end{};
 
   int                 m_prot;
-  int                 m_flags;
+  int                 m_flags{PROT_NONE};
 };
 
 inline bool

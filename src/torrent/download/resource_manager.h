@@ -150,6 +150,9 @@ public:
   void                receive_tick();
 
 private:
+  ResourceManager(const ResourceManager&) = delete;
+  ResourceManager& operator=(const ResourceManager&) = delete;
+
   iterator            insert(const resource_manager_entry& entry);
 
   void                update_group_iterators();

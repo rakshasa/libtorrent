@@ -17,6 +17,8 @@ public:
 
   extents();
   ~extents();
+  extents(const extents&) = default;
+  extents& operator=(const extents&) = default;
 
   void              insert(key_type address_start, key_type address_end, mapped_value_type value);
   bool              defined(key_type address_start, key_type address_end);
