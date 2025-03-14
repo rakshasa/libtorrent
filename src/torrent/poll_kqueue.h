@@ -54,6 +54,8 @@ public:
 
   static PollKQueue*   create(int maxOpenSockets);
   virtual ~PollKQueue();
+  PollKQueue(const PollKQueue&) = delete;
+  PollKQueue& operator=(const PollKQueue&) = delete;
 
   int                 poll(int msec);
   unsigned int        perform();

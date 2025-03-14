@@ -59,7 +59,10 @@ template<> struct PeerConnectionData<Download::CONNECTION_INITIAL_SEED> {
 template<Download::ConnectionType type>
 class PeerConnection : public PeerConnectionBase {
 public:
+  PeerConnection() = default;
   ~PeerConnection();
+  PeerConnection(const PeerConnection&) = delete;
+  PeerConnection& operator=(const PeerConnection&) = delete;
 
   virtual void        initialize_custom();
   virtual void        update_interested();

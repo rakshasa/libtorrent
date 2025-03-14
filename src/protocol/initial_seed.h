@@ -45,6 +45,8 @@ class InitialSeeding {
 public:
   InitialSeeding(DownloadMain* download);
   ~InitialSeeding();
+  InitialSeeding(const InitialSeeding&) = delete;
+  InitialSeeding& operator=(const InitialSeeding&) = delete;
 
   static const uint32_t no_offer = ~uint32_t();
 

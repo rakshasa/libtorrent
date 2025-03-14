@@ -37,7 +37,6 @@ public:
   TrackerWorker(TrackerInfo info, int flags = 0);
   virtual ~TrackerWorker() = default;
 
-  TrackerWorker() = delete;
   TrackerWorker(const TrackerWorker&) = delete;
   TrackerWorker& operator=(const TrackerWorker&) = delete;
 

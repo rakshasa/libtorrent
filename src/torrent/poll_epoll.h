@@ -50,6 +50,8 @@ public:
 
   static PollEPoll*   create(int maxOpenSockets);
   virtual ~PollEPoll();
+  PollEPoll(const PollEPoll&) = delete;
+  PollEPoll& operator=(const PollEPoll&) = delete;
 
   int                 poll(int msec);
   unsigned int        perform();

@@ -31,6 +31,8 @@ public:
 
   HandshakeManager() = default;
   ~HandshakeManager() { clear(); }
+  HandshakeManager(const HandshakeManager&) = delete;
+  HandshakeManager& operator=(const HandshakeManager&) = delete;
 
   size_type           size() const { return base_type::size(); }
   size_type           size_info(DownloadMain* info) const;

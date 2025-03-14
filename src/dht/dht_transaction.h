@@ -246,6 +246,8 @@ public:
     : m_sa(*s), m_id(-cachedTime.seconds()) { build_buffer(d); };
 
   ~DhtTransactionPacket()                               { delete[] m_data; }
+  DhtTransactionPacket(const DhtTransactionPacket&) = delete;
+  DhtTransactionPacket& operator=(const DhtTransactionPacket&) = delete;
 
   bool                        has_transaction() const   { return m_id >= -1; }
   bool                        has_failed() const        { return m_id == -1; }
