@@ -159,7 +159,7 @@ class LIBTORRENT_EXPORT log_group {
 public:
   typedef std::bitset<64> outputs_type;
 
-  log_group() : m_first(NULL), m_last(NULL) {
+  log_group() {
     m_outputs.reset();
     m_cached_outputs.reset();
   }
@@ -195,8 +195,8 @@ private:
   outputs_type        m_outputs;
   outputs_type        m_cached_outputs;
 
-  log_slot*           m_first;
-  log_slot*           m_last;
+  log_slot*           m_first{};
+  log_slot*           m_last{};
 };
 
 typedef std::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;

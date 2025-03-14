@@ -23,7 +23,7 @@ public:
     STATE_NOT_LEADER
   } state_type;
 
-  BlockTransfer();
+  BlockTransfer() = default;
   ~BlockTransfer();
   BlockTransfer(const BlockTransfer&) = delete;
   BlockTransfer& operator=(const BlockTransfer&) = delete;
@@ -68,8 +68,8 @@ public:
   void                set_failed_index(uint32_t i)  { m_failedIndex = i; }
 
 private:
-  key_type            m_peer_info;
-  Block*              m_block;
+  key_type            m_peer_info{};
+  Block*              m_block{};
   Piece               m_piece;
 
   state_type          m_state;
@@ -79,13 +79,6 @@ private:
   uint32_t            m_stall;
   uint32_t            m_failedIndex;
 };
-
-inline
-BlockTransfer::BlockTransfer() :
-  m_peer_info(NULL),
-  m_block(NULL)
-{
-}
 
 inline
 BlockTransfer::~BlockTransfer() {

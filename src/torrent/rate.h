@@ -55,7 +55,7 @@ public:
   typedef std::pair<timer_type, rate_type> value_type;
   typedef std::deque<value_type>           queue_type;
 
-  Rate(timer_type span) : m_current(0), m_total(0), m_span(span) {}
+  Rate(timer_type span) :  m_span(span) {}
 
   // Bytes per second.
   rate_type           rate() const;
@@ -87,8 +87,8 @@ private:
 
   mutable queue_type  m_container;
 
-  mutable rate_type   m_current;
-  total_type          m_total;
+  mutable rate_type   m_current{0};
+  total_type          m_total{0};
   timer_type          m_span;
 };
 

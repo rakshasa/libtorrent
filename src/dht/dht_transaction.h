@@ -243,7 +243,7 @@ public:
 
   // non-transaction packet
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
-    : m_sa(*s), m_id(-cachedTime.seconds()), m_transaction(NULL) { build_buffer(d); };
+    : m_sa(*s), m_id(-cachedTime.seconds()) { build_buffer(d); };
 
   ~DhtTransactionPacket()                               { delete[] m_data; }
 
@@ -269,7 +269,7 @@ private:
   char*                 m_data;
   size_t                m_length;
   int                   m_id;
-  DhtTransaction*       m_transaction;
+  DhtTransaction*       m_transaction{};
 };
 
 // DHT Transaction classes. DhtTransaction and DhtTransactionSearch

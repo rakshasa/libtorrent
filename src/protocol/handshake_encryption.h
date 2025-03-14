@@ -66,12 +66,8 @@ public:
   static const unsigned int  vc_length = 8;
 
   HandshakeEncryption(int options) :
-    m_key(NULL),
-    m_options(options),
-    m_crypto(0),
-    m_retry(RETRY_NONE),
-    m_syncLength(0),
-    m_lengthIA(0) {}
+    m_options(options)
+    {}
 
   bool                has_crypto_plain() const                     { return m_crypto & crypto_plain; }
   bool                has_crypto_rc4() const                       { return m_crypto & crypto_rc4; }
@@ -113,20 +109,20 @@ public:
   static bool         compare_vc(const void* buf);
 
 private:
-  DiffieHellman*      m_key;
+  DiffieHellman*      m_key{};
 
   // A pointer instead?
   EncryptionInfo      m_info;
 
   int                 m_options;
-  int                 m_crypto;
+  int                 m_crypto{0};
 
-  Retry               m_retry;
+  Retry               m_retry{RETRY_NONE};
 
   char                m_sync[20];
-  unsigned int        m_syncLength;
+  unsigned int        m_syncLength{0};
 
-  unsigned int        m_lengthIA;
+  unsigned int        m_lengthIA{0};
 };
 
 }

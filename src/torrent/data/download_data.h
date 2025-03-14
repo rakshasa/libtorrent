@@ -25,7 +25,6 @@ public:
 
   typedef void (function_chunk_list_node_p)(ChunkListNode *); 
   typedef std::function<function_chunk_list_node_p> slot_chunk_list_node_p;
-  download_data() : m_wanted_chunks(0) {}
 
   const HashString&      hash() const                  { return m_hash; }
 
@@ -80,7 +79,7 @@ private:
   priority_ranges        m_high_priority;
   priority_ranges        m_normal_priority;
 
-  uint32_t               m_wanted_chunks;
+  uint32_t               m_wanted_chunks{0};
 
   mutable slot_void      m_slot_initial_hash;
   mutable slot_void      m_slot_download_done;
