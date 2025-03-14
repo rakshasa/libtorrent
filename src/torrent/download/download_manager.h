@@ -37,7 +37,9 @@
 #ifndef LIBTORRENT_DOWNLOAD_MANAGER_H
 #define LIBTORRENT_DOWNLOAD_MANAGER_H
 
+#include <string>
 #include <vector>
+
 #include <torrent/common.h>
 
 namespace torrent {
@@ -71,7 +73,10 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
+  DownloadManager() = default;
   ~DownloadManager() { clear(); }
+  DownloadManager(const DownloadManager&) = default;
+  DownloadManager& operator=(const DownloadManager&) = default;
 
   iterator            find(const std::string& hash);
   iterator            find(const HashString& hash);

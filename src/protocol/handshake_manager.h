@@ -59,6 +59,9 @@ public:
   ProtocolExtension*  default_extensions() const                        { return &DefaultExtensions; }
 
 private:
+  HandshakeManager(const HandshakeManager&) = delete;
+  HandshakeManager& operator=(const HandshakeManager&) = delete;
+
   void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryptionOptions);
   void                erase(Handshake* handshake);
 

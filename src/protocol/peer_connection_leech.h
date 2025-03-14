@@ -59,6 +59,7 @@ template<> struct PeerConnectionData<Download::CONNECTION_INITIAL_SEED> {
 template<Download::ConnectionType type>
 class PeerConnection : public PeerConnectionBase {
 public:
+  PeerConnection() = default;
   ~PeerConnection();
 
   virtual void        initialize_custom();
@@ -69,6 +70,9 @@ public:
   virtual void        event_write();
 
 private:
+  PeerConnection(const PeerConnection&) = delete;
+  PeerConnection& operator=(const PeerConnection&) = delete;
+
   inline bool         read_message();
   void                read_have_chunk(uint32_t index);
 

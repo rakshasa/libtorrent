@@ -55,6 +55,7 @@ public:
 
   static const int flag_active       = (1 << 0);
 
+  ChunkList() = default;
   ~ChunkList() { clear(); }
 
   int                 flags() const                       { return m_flags; }
@@ -96,6 +97,9 @@ public:
   chunk_address_result find_address(void* ptr);
 
 private:
+  ChunkList(const ChunkList&) = delete;
+  ChunkList& operator=(const ChunkList&) = delete;
+
   inline bool         is_queued(ChunkListNode* node);
 
   inline void         clear_chunk(ChunkListNode* node, int flags = 0);

@@ -153,6 +153,9 @@ public:
   void                modify_currently_unchoked(int value)     { m_currently_unchoked += value; }
 
 private:
+  choke_queue(const choke_queue&) = delete;
+  choke_queue& operator=(const choke_queue&) = delete;
+
   group_stats         prepare_weights(group_stats gs);
   group_stats         retrieve_connections(group_stats gs, container_type* queued, container_type* unchoked);
   void                rebuild_containers(container_type* queued, container_type* unchoked);
