@@ -157,7 +157,7 @@ PollSelect::fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 
   m_writeSet->prepare();
   std::for_each(m_writeSet->begin(), m_writeSet->end(), poll_mark(writeSet, &maxFd));
-  
+
   m_exceptSet->prepare();
   std::for_each(m_exceptSet->begin(), m_exceptSet->end(), poll_mark(exceptSet, &maxFd));
 

@@ -39,6 +39,8 @@ libtorrent_torrent_la_SOURCES = \
 	net/address_info.h \
 	net/fd.cc \
 	net/fd.h \
+	net/resolver.cc \
+	net/resolver.h \
 	net/socket_address.cc \
 	net/socket_address.h \
 	net/socket_address_key.cc \

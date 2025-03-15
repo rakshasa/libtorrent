@@ -9,6 +9,7 @@
 #include "data/thread_disk.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
+#include "torrent/net/resolver.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
@@ -29,8 +30,9 @@ ThreadMain::init_thread() {
 
   thread_self = this;
 
-  m_poll = Poll::slot_create_poll()();
+  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
   m_poll->set_flags(Poll::flag_waive_global_lock);
+  m_resolver = std::make_unique<net::Resolver>();
 
   m_state = STATE_INITIALIZED;
   m_thread = pthread_self();

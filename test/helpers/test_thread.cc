@@ -28,7 +28,7 @@ void
 test_thread::init_thread() {
   m_state = STATE_INITIALIZED;
   m_test_state = TEST_PRE_START;
-  m_poll = torrent::PollSelect::create(256);
+  m_poll = std::unique_ptr<torrent::PollSelect>(torrent::PollSelect::create(256));
 }
 
 void

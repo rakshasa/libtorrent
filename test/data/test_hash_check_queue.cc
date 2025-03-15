@@ -86,11 +86,11 @@ test_hash_check_queue::test_single() {
 
   done_chunks_type done_chunks;
   hash_queue.slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
-  
+
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
   hash_queue.push_back(new torrent::HashChunk(handle_0));
-  
+
   CPPUNIT_ASSERT(hash_queue.size() == 1);
   CPPUNIT_ASSERT(hash_queue.front()->handle().is_blocking());
   CPPUNIT_ASSERT(hash_queue.front()->handle().object() == &((*chunk_list)[0]));
@@ -102,7 +102,7 @@ test_hash_check_queue::test_single() {
 
   // Should not be needed... Also verify that HashChunk gets deleted.
   chunk_list->release(&handle_0);
-  
+
   CLEANUP_CHUNK_LIST();
 }
 
@@ -113,7 +113,7 @@ test_hash_check_queue::test_multiple() {
 
   done_chunks_type done_chunks;
   hash_queue.slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
-  
+
   handle_list handles;
 
   for (unsigned int i = 0; i < 20; i++) {
@@ -173,7 +173,7 @@ test_hash_check_queue::test_erase() {
 }
 
 void
-test_hash_check_queue::test_thread() {
+test_hash_check_queue::test_thread_interrupt() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD_DISK();
 

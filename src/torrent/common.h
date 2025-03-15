@@ -77,18 +77,18 @@ class TransferList;
 
 class thread_interrupt;
 
-namespace tracker {
+namespace net {
+class Resolver;
+}
 
+namespace tracker {
 class DhtController;
 class Manager;
 class Tracker;
-
 }
 
 namespace utils {
-
 class Thread;
-
 }
 
 // This should only need to be set when compiling libtorrent.

@@ -8,6 +8,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
+#include "torrent/net/resolver.h"
 #include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
@@ -31,7 +32,10 @@ Thread::Thread() :
   m_interrupt_receiver = std::move(interrupt_sockets.second);
 }
 
-Thread::~Thread() = default;
+Thread::~Thread() {
+  // Disown m_poll instead of deleting it as we don't properly clean up all the sockets.
+  m_poll.release();
+}
 
 void
 Thread::start_thread() {
@@ -44,8 +48,8 @@ Thread::start_thread() {
   if (pthread_create(&m_thread, NULL, (pthread_func)&Thread::event_loop, this))
     throw internal_error("Failed to create thread.");
 
-  while (m_thread_id == std::thread::id())
-    usleep(1);
+  while (m_state != STATE_ACTIVE)
+    usleep(100);
 }
 
 void
@@ -86,7 +90,12 @@ Thread::event_loop(Thread* thread) {
     throw internal_error("Thread::event_loop called with a null pointer thread");
 
   thread_self = thread;
+
   thread->m_thread_id = std::this_thread::get_id();
+  thread->m_signal_bitfield.handover(std::this_thread::get_id());
+
+  if (thread->m_resolver)
+    thread->m_resolver->init();
 
   auto previous_state = STATE_INITIALIZED;
 
@@ -101,8 +110,6 @@ Thread::event_loop(Thread* thread) {
 #endif
 
   lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
-
-  thread->m_signal_bitfield.handover(std::this_thread::get_id());
 
   try {
 

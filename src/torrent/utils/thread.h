@@ -21,7 +21,6 @@ public:
   typedef void* (*pthread_func)(void*);
   typedef std::function<void ()>     slot_void;
   typedef std::function<uint64_t ()> slot_timer;
-  typedef class signal_bitfield      signal_bitfield_t;
 
   enum state_type {
     STATE_UNKNOWN,
@@ -56,10 +55,12 @@ public:
 
   virtual const char* name() const = 0;
 
-  Poll*               poll()            { return m_poll; }
-  signal_bitfield_t*  signal_bitfield() { return &m_signal_bitfield; }
   pthread_t           pthread()         { return m_thread; }
   std::thread::id     thread_id()       { return m_thread_id; }
+
+  Poll*                  poll()            { return m_poll.get(); }
+  net::Resolver*         resolver()        { return m_resolver.get(); }
+  class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
 
   virtual void        init_thread() = 0;
 
@@ -93,20 +94,21 @@ protected:
   virtual void        call_events() = 0;
   virtual int64_t     next_timeout_usec() = 0;
 
-  static global_lock_type m_global;
+  static global_lock_type      m_global;
 
   pthread_t                    m_thread;
   std::atomic<std::thread::id> m_thread_id;
   std::atomic<state_type>      m_state{STATE_UNKNOWN};
   std::atomic_int              m_flags{0};
 
-  int                 m_instrumentation_index;
+  int                          m_instrumentation_index;
 
-  Poll*               m_poll{nullptr};
-  signal_bitfield_t   m_signal_bitfield;
+  std::unique_ptr<Poll>             m_poll{nullptr};
+  std::unique_ptr<net::Resolver>    m_resolver{nullptr};
+  class signal_bitfield             m_signal_bitfield;
 
-  slot_void           m_slot_do_work;
-  slot_timer          m_slot_next_timeout;
+  slot_void                         m_slot_do_work;
+  slot_timer                        m_slot_next_timeout;
 
   std::unique_ptr<thread_interrupt> m_interrupt_sender;
   std::unique_ptr<thread_interrupt> m_interrupt_receiver;

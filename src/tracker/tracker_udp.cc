@@ -15,6 +15,7 @@
 #include "torrent/download_info.h"
 #include "torrent/poll.h"
 #include "torrent/tracker_list.h"
+#include "torrent/net/resolver.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/utils/thread.h"
@@ -35,11 +36,6 @@ TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
 }
 
 TrackerUdp::~TrackerUdp() {
-  if (m_slot_resolver != NULL) {
-    *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
-  }
-
   close_directly();
 }
 
@@ -63,14 +59,12 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   m_send_state = new_state;
 
-  // Because we can only remember one slot, set any pending resolves blocked
-  // so that if this tracker is deleted, the member function won't be called.
-  if (m_slot_resolver != NULL) {
-    *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
-  }
-
-  m_slot_resolver = make_resolver_slot(hostname);
+  thread_self->resolver()->resolve(this,
+                                   hostname.data(), PF_UNSPEC, SOCK_DGRAM,
+                                   [this](const sockaddr* sa, int err) {
+                                     start_announce(sa, err);
+                                   });
+  m_resolver_requesting = true;
 }
 
 void
@@ -91,21 +85,9 @@ TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& 
   return false;
 }
 
-TrackerUdp::resolver_type*
-TrackerUdp::make_resolver_slot(const hostname_type& hostname) {
-  return manager->connection_manager()->resolver()(hostname.data(), PF_UNSPEC, SOCK_DGRAM,
-                                                   std::bind(&TrackerUdp::start_announce,
-                                                             this,
-                                                             std::placeholders::_1,
-                                                             std::placeholders::_2));
-}
-
 void
 TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
-  if (m_slot_resolver != NULL) {
-    *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
-  }
+  m_resolver_requesting = false;
 
   if (sa == NULL)
     return receive_failed("could not resolve hostname");
@@ -167,6 +149,11 @@ void
 TrackerUdp::close_directly() {
   if (!get_fd().is_valid())
     return;
+
+  if (m_resolver_requesting) {
+    thread_self->resolver()->cancel(this);
+    m_resolver_requesting = false;
+  }
 
   delete m_readBuffer;
   delete m_writeBuffer;
