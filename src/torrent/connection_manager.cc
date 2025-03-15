@@ -5,41 +5,12 @@
 #include "manager.h"
 #include "thread_main.h"
 #include "net/listen.h"
-#include "rak/address_info.h"
 #include "rak/socket_address.h"
 #include "torrent/connection_manager.h"
 #include "torrent/error.h"
 #include "torrent/exceptions.h"
 
 namespace torrent {
-
-// Fix TrackerUdp, etc, if this is made async.
-static ConnectionManager::slot_resolver_result_type*
-resolve_host(const char* host, int family, int socktype, const ConnectionManager::slot_resolver_result_type& slot) {
-  if (thread_main->is_current())
-    utils::Thread::release_global_lock();
-
-  rak::address_info* ai;
-  int err;
-
-  if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
-    if (thread_main->is_current())
-      utils::Thread::acquire_global_lock();
-
-    slot(NULL, err);
-    return NULL;
-  }
-
-  rak::socket_address sa;
-  sa.copy(*ai->address(), ai->length());
-  rak::address_info::free_address_info(ai);
-
-  if (thread_main->is_current())
-    utils::Thread::acquire_global_lock();
-
-  slot(sa.c_sockaddr(), 0);
-  return NULL;
-}
 
 ConnectionManager::ConnectionManager() :
   m_size(0),
@@ -65,12 +36,6 @@ ConnectionManager::ConnectionManager() :
   rak::socket_address::cast_from(m_bindAddress)->clear();
   rak::socket_address::cast_from(m_localAddress)->clear();
   rak::socket_address::cast_from(m_proxyAddress)->clear();
-
-  m_slot_resolver = std::bind(&resolve_host,
-                              std::placeholders::_1,
-                              std::placeholders::_2,
-                              std::placeholders::_3,
-                              std::placeholders::_4);
 }
 
 ConnectionManager::~ConnectionManager() {

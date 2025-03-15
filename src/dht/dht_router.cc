@@ -6,8 +6,10 @@
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/resolver.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/thread.h"
 
 #include "utils/sha1.h"
 #include "manager.h"
@@ -571,22 +573,16 @@ DhtRouter::delete_node(const DhtNodeList::accessor& itr) {
   m_nodes.erase(itr);
 }
 
-struct contact_node_t {
-  contact_node_t(DhtRouter* router, int port) : m_router(router), m_port(port) { }
-
-  void operator() (const sockaddr* sa, [[maybe_unused]] int err)
-    { if (sa != NULL) m_router->contact(rak::socket_address::cast_from(sa), m_port); }
-
-  DhtRouter* m_router;
-  int        m_port;
-};
-
 void
 DhtRouter::bootstrap() {
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
-    manager->connection_manager()->resolver()(m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet, SOCK_DGRAM,
-                                              contact_node_t(this, m_contacts->back().second));
+    thread_self->resolver()->resolve(this, m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet, SOCK_DGRAM,
+                                     [this](const sockaddr* sa, [[maybe_unused]] int err) {
+                                       if (sa != NULL)
+                                         contact(rak::socket_address::cast_from(sa), m_contacts->back().second);
+                                     });
+
     m_contacts->pop_back();
   }
 
