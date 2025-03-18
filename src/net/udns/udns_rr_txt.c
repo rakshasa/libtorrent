@@ -58,7 +58,7 @@ dns_parse_txt(dnscc_t *qdn, dnscc_t *pkt, dnscc_t *cur, dnscc_t *end,
 
   /* next, allocate and set up result */
   l +=  (sizeof(struct dns_txt) + 1) * p.dnsp_nrr + dns_stdrr_size(&p);
-  ret = malloc(sizeof(*ret) + l);
+  ret = (struct dns_rr_txt *)malloc(sizeof(*ret) + l);
   if (!ret)
     return DNS_E_NOMEM;
   ret->dnstxt_nrr = p.dnsp_nrr;

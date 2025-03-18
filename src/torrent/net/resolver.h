@@ -27,7 +27,7 @@ protected:
   friend class torrent::utils::Thread;
 
   void                init();
-  void                process_results();
+  void                process();
 
 private:
   struct Request {

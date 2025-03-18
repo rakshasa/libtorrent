@@ -91,11 +91,17 @@ libtorrent_other_la_SOURCES = \
 	net/socket_set.h \
 	net/socket_stream.cc \
 	net/socket_stream.h \
+	net/thread_net.cc \
+	net/thread_net.h \
 	net/throttle_internal.cc \
 	net/throttle_internal.h \
 	net/throttle_list.cc \
 	net/throttle_list.h \
 	net/throttle_node.h \
+	net/udns_event.cc \
+	net/udns_event.h \
+	net/udns_library.cc \
+	net/udns_library.h \
 	\
 	protocol/encryption_info.h \
 	protocol/extensions.cc \

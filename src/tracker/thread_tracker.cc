@@ -29,6 +29,10 @@ ThreadTracker::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
+
+  m_signal_send_event = thread_self->signal_bitfield()->add_signal([this]() {
+    process_send_events();
+  });
 }
 
 void

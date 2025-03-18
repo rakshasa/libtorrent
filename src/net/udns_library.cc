@@ -1,16 +1,19 @@
 #include "config.h"
 
+#define HAVE_INET_PTON_NTOP 1
+#define HAVE_IPv6 1
+#define HAVE_POLL 1
+
 #undef HAVE_CONFIG_H
 
-// TOOD: Add namespace torrent::net::udns.
+#define register
+
+// TODO: Check if we can remove extern "C" and put this in a namespace.
+
+extern "C" {
 
 #include "net/udns/udns.h"
 
-#include "net/udns/dnsget.c"
-#include "net/udns/ex-rdns.c"
-#include "net/udns/getopt.c"
-#include "net/udns/inet_XtoX.c"
-#include "net/udns/rblcheck.c"
 #include "net/udns/udns_XtoX.c"
 #include "net/udns/udns_bl.c"
 #include "net/udns/udns_codes.c"
@@ -27,3 +30,5 @@
 #include "net/udns/udns_rr_ptr.c"
 #include "net/udns/udns_rr_srv.c"
 #include "net/udns/udns_rr_txt.c"
+
+}

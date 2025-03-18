@@ -1,8 +1,9 @@
 #include "config.h"
 
-#include "data/thread_disk.h"
+#include "net/thread_net.h"
 
 #include "rak/timer.h"
+#include "net/udns_event.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
@@ -10,23 +11,34 @@
 
 namespace torrent {
 
-ThreadDisk* thread_disk = nullptr;
+ThreadNet* thread_net = nullptr;
 
-void
-ThreadDisk::init_thread() {
-  if (!Poll::slot_create_poll())
-    throw internal_error("ThreadDisk::init_thread(): Poll::slot_create_poll() not valid.");
-
-  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
-  m_resolver = std::make_unique<net::Resolver>();
-
-  m_state = STATE_INITIALIZED;
-
-  m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
+ThreadNet::ThreadNet() {
+  m_udns = std::make_unique<UdnsEvent>();
 }
 
 void
-ThreadDisk::call_events() {
+ThreadNet::init_thread() {
+  if (!Poll::slot_create_poll())
+    throw internal_error("ThreadNet::init_thread(): Poll::slot_create_poll() not valid.");
+
+  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
+
+  m_state = STATE_INITIALIZED;
+
+  m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_NET - INSTRUMENTATION_POLLING_DO_POLL;
+}
+
+void
+ThreadNet::request_resolve(void* requester, const char *name, int family, std::function<void (const sockaddr*, int)>&& callback) {
+}
+
+void
+ThreadNet::cancel_resolve(void* requester) {
+}
+
+void
+ThreadNet::call_events() {
   // lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
 
   // TODO: Consider moving this into timer events instead.
@@ -38,11 +50,11 @@ ThreadDisk::call_events() {
     throw shutdown_exception();
   }
 
-  m_hash_check_queue.perform();
+  m_udns->flush();
 }
 
 int64_t
-ThreadDisk::next_timeout_usec() {
+ThreadNet::next_timeout_usec() {
   return rak::timer::from_seconds(10).round_seconds().usec();
 }
 

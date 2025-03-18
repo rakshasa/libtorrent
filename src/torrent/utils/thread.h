@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <pthread.h>
 #include <sys/types.h>
@@ -68,6 +69,9 @@ public:
   virtual void        stop_thread();
   void                stop_thread_wait();
 
+  void                callback(void* target, std::function<void ()>&& fn);
+  void                cancel_callback(void* target);
+
   void                interrupt();
   void                send_event_signal(unsigned int index, bool interrupt = true);
 
@@ -112,6 +116,9 @@ protected:
 
   std::unique_ptr<thread_interrupt> m_interrupt_sender;
   std::unique_ptr<thread_interrupt> m_interrupt_receiver;
+
+  std::mutex                                         m_callback_lock;
+  std::multimap<const void*, std::function<void ()>> m_callbacks;
 };
 
 inline bool

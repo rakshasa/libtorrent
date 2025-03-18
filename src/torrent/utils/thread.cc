@@ -71,6 +71,21 @@ Thread::stop_thread_wait() {
   acquire_global_lock();
 }
 
+void
+Thread::callback(void* target, std::function<void ()>&& fn) {
+  std::lock_guard<std::mutex> guard(m_callback_lock);
+
+  m_callbacks.emplace(target, std::move(fn));
+  interrupt();
+}
+
+void
+Thread::cancel_callback(void* target) {
+  std::lock_guard<std::mutex> guard(m_callback_lock);
+
+  m_callbacks.erase(target);
+}
+
 // Fix interrupting when shutting down thread.
 void
 Thread::interrupt() {

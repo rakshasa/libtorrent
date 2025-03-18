@@ -2,8 +2,9 @@
 
 #include "torrent/net/resolver.h"
 
-#include "rak/address_info.h"
-
+#include "net/thread_net.h"
+#include "net/udns_event.h"
+// #include "rak/address_info.h"
 #include "torrent/utils/thread.h"
 
 namespace torrent::net {
@@ -13,7 +14,7 @@ Resolver::init() {
   m_thread_id = std::this_thread::get_id();
 
   m_signal_process_results = thread_self->signal_bitfield()->add_signal([this]() {
-      process_results();
+      process();
     });
 }
 
@@ -28,21 +29,21 @@ Resolver::resolve(void* requester, const char* host, int family, int socktype, r
 
   // TODO: Temporary implementation.
 
-  rak::address_info* ai;
-  int err;
+  // rak::address_info* ai;
+  // int err;
 
-  if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
-    m_results.push_back({ requester, NULL, err, slot });
+  // if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
+  //   m_results.push_back({ requester, NULL, err, slot });
 
-  } else {
-    rak::socket_address sa;
-    sa.copy(*ai->address(), ai->length());
-    rak::address_info::free_address_info(ai);
+  // } else {
+  //   rak::socket_address sa;
+  //   sa.copy(*ai->address(), ai->length());
+  //   rak::address_info::free_address_info(ai);
 
-    m_results.push_back({ requester, sa.c_sockaddr(), 0, slot });
-  }
+  //   m_results.push_back({ requester, sa.c_sockaddr(), 0, slot });
+  // }
 
-  torrent::thread_self->signal_bitfield()->signal(m_signal_process_results);
+  // torrent::thread_self->signal_bitfield()->signal(m_signal_process_results);
 }
 
 void
@@ -60,7 +61,7 @@ Resolver::cancel(void* requester) {
 }
 
 void
-Resolver::process_results() {
+Resolver::process() {
   if (std::this_thread::get_id() != m_thread_id)
     throw std::runtime_error("Resolver::process_results() called from wrong thread.");
 

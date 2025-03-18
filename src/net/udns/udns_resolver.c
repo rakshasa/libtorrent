@@ -456,7 +456,7 @@ struct dns_ctx *dns_new(const struct dns_ctx *copy) {
   struct dns_ctx *ctx;
   SETCTXINITED(copy);
   dns_assert_ctx(copy);
-  ctx = malloc(sizeof(*ctx));
+  ctx = (struct dns_ctx *)malloc(sizeof(*ctx));
   if (!ctx)
     return NULL;
   *ctx = *copy;
@@ -568,7 +568,7 @@ int dns_open(struct dns_ctx *ctx) {
   }
 #endif	/* WINDOWS */
   /* allocate the packet buffer */
-  if ((ctx->dnsc_pbuf = malloc(ctx->dnsc_udpbuf)) == NULL) {
+  if ((ctx->dnsc_pbuf = (dnsc_t*)malloc(ctx->dnsc_udpbuf)) == NULL) {
     closesocket(sock);
     ctx->dnsc_qstatus = DNS_E_NOMEM;
     errno = ENOMEM;
@@ -887,7 +887,7 @@ dns_submit_dn(struct dns_ctx *ctx,
   SETCTXOPEN(ctx);
   dns_assert_ctx(ctx);
 
-  q = calloc(sizeof(*q), 1);
+  q = (struct dns_query *)calloc(sizeof(*q), 1);
   if (!q) {
     ctx->dnsc_qstatus = DNS_E_NOMEM;
     return NULL;
@@ -1241,11 +1241,12 @@ struct dns_resolve_data {
   void *dnsrd_result;
 };
 
-static void dns_resolve_cb(struct dns_ctx *ctx, void *result, void *data) {
-  struct dns_resolve_data *d = data;
+static void dns_resolve_cb([[maybe_unused]] struct dns_ctx *ctx, void *result, void *data) {
+  struct dns_resolve_data *d = (struct dns_resolve_data *)data;
   d->dnsrd_result = result;
   d->dnsrd_done = 1;
-  ctx = ctx;
+  // Unused: ctx = ctx;
+  /* ctx = ctx; */
 }
 
 void *dns_resolve(struct dns_ctx *ctx, struct dns_query *q) {

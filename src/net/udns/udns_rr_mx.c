@@ -55,7 +55,7 @@ dns_parse_mx(dnscc_t *qdn, dnscc_t *pkt, dnscc_t *cur, dnscc_t *end,
 
   /* next, allocate and set up result */
   l += dns_stdrr_size(&p);
-  ret = malloc(sizeof(*ret) + sizeof(struct dns_mx) * p.dnsp_nrr + l);
+  ret = (struct dns_rr_mx *)malloc(sizeof(*ret) + sizeof(struct dns_mx) * p.dnsp_nrr + l);
   if (!ret)
     return DNS_E_NOMEM;
   ret->dnsmx_nrr = p.dnsp_nrr;

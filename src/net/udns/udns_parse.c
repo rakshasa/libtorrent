@@ -41,7 +41,7 @@ dnscc_t *dns_skipdn(dnscc_t *cur, dnscc_t *end) {
 
 int
 dns_getdn(dnscc_t *pkt, dnscc_t **cur, dnscc_t *end,
-          register dnsc_t *dn, unsigned dnsiz) {
+          dnsc_t *dn, unsigned dnsiz) {
   unsigned c;
   dnscc_t *pp = *cur;		/* current packet pointer */
   dnsc_t *dp = dn;		/* current dn pointer */
@@ -104,8 +104,8 @@ dns_initparse(struct dns_parse *p, dnscc_t *qdn,
   p->dnsp_rrl = dns_numan(pkt);
   p->dnsp_qdn = qdn;
   assert(cur + 4 <= end);
-  if ((p->dnsp_qtyp = dns_get16(cur+0)) == DNS_T_ANY) p->dnsp_qtyp = 0;
-  if ((p->dnsp_qcls = dns_get16(cur+2)) == DNS_C_ANY) p->dnsp_qcls = 0;
+  if ((p->dnsp_qtyp = (enum dns_type)dns_get16(cur+0)) == DNS_T_ANY) p->dnsp_qtyp = (enum dns_type)0;
+  if ((p->dnsp_qcls = (enum dns_class)dns_get16(cur+2)) == DNS_C_ANY) p->dnsp_qcls = (enum dns_class)0;
   p->dnsp_cur = p->dnsp_ans = cur + 4;
   p->dnsp_ttl = 0xffffffffu;
   p->dnsp_nrr = 0;
@@ -120,8 +120,8 @@ int dns_nextrr(struct dns_parse *p, struct dns_rr *rr) {
       return -1;
     if (cur + 10 > p->dnsp_end)
       return -1;
-    rr->dnsrr_typ = dns_get16(cur);
-    rr->dnsrr_cls = dns_get16(cur+2);
+    rr->dnsrr_typ = (enum dns_type)dns_get16(cur);
+    rr->dnsrr_cls = (enum dns_class)dns_get16(cur+2);
     rr->dnsrr_ttl = dns_get32(cur+4);
     rr->dnsrr_dsz = dns_get16(cur+8);
     rr->dnsrr_dptr = cur = cur + 10;

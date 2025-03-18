@@ -57,7 +57,7 @@ dns_parse_a(dnscc_t *qdn, dnscc_t *pkt, dnscc_t *cur, dnscc_t *end,
   else if (!p.dnsp_nrr)
     return DNS_E_NODATA;
 
-  ret = malloc(sizeof(*ret) + dsize * p.dnsp_nrr + dns_stdrr_size(&p));
+  ret = (struct dns_rr_a *)malloc(sizeof(*ret) + dsize * p.dnsp_nrr + dns_stdrr_size(&p));
   if (!ret)
     return DNS_E_NOMEM;
 
