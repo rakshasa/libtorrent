@@ -73,6 +73,8 @@ ThreadMain::call_events() {
   // Update the timer again to ensure we get accurate triggering of
   // msec timers.
   cachedTime = rak::timer::current();
+
+  process_callbacks();
 }
 
 int64_t

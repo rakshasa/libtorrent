@@ -66,16 +66,8 @@ UdnsEvent::~UdnsEvent() {
 }
 
 void
-UdnsEvent::enqueue_resolve(void* requester, const char *name, int family, resolver_callback&& callback) {
-  // TODO: Verify correct thread.
-
-  if (m_queries.find(requester) != m_queries.end())
-    throw internal_error("requester already exists in UdnsEvent::m_queries");
-
-  if (m_malformed_queries.find(requester) != m_malformed_queries.end())
-    throw internal_error("requester already exists in UdnsEvent::m_malformed_queries");
-
-  auto query = std::unique_ptr<Query>(new Query{requester, this, nullptr, nullptr, callback, 0});
+UdnsEvent::resolve(void* requester, const char *name, int family, resolver_callback&& callback) {
+  auto query = std::unique_ptr<Query>(new Query{requester, this, false, nullptr, nullptr, callback, 0});
 
   if (family == AF_INET || family == AF_UNSPEC) {
     query->a4_query = ::dns_submit_a4(m_ctx, name, 0, a4_callback_wrapper, query.get());
@@ -90,7 +82,8 @@ UdnsEvent::enqueue_resolve(void* requester, const char *name, int family, resolv
       // query internally so we can call the callback later with a failure code.
       query->error = EAI_NONAME;
 
-      m_malformed_queries[requester] = std::move(query);
+      std::lock_guard<std::mutex> lock(m_mutex);
+      m_malformed_queries.insert({requester, std::move(query)});
       return;
     }
   }
@@ -107,50 +100,41 @@ UdnsEvent::enqueue_resolve(void* requester, const char *name, int family, resolv
 
       query->error = EAI_NONAME;
 
-      m_malformed_queries[requester] = std::move(query);
+      std::lock_guard<std::mutex> lock(m_mutex);
+      m_malformed_queries.insert({requester, std::move(query)});
       return;
     }
   }
 
-  m_queries[requester] = std::move(query);
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_queries.insert({requester, std::move(query)});
 }
 
 void
 UdnsEvent::cancel(void* requester) {
-  auto fn = [this, requester](auto& query) {
-      if (query.second->requester != requester)
-        return false;
+  std::lock_guard<std::mutex> lock(m_mutex);
 
-      if (query.second->a4_query != nullptr)
-        ::dns_cancel(m_ctx, query.second->a4_query);
+  auto range = m_queries.equal_range(requester);
 
-      if (query.second->a6_query != nullptr)
-        ::dns_cancel(m_ctx, query.second->a6_query);
+  for (auto itr = range.first; itr != range.second; ++itr)
+    itr->second->cancelled = true;
 
-      return true;
-    };
+  range = m_malformed_queries.equal_range(requester);
 
-  auto itr = m_queries.find(requester);
-  if (itr != m_queries.end()) {
-    fn(*itr);
-    m_queries.erase(itr);
-  }
-
-  itr = m_malformed_queries.find(requester);
-  if (itr != m_malformed_queries.end()) {
-    fn(*itr);
-    m_malformed_queries.erase(itr);
-  }
+  for (auto itr = range.first; itr != range.second; ++itr)
+    itr->second->cancelled = true;
 }
 
 void
 UdnsEvent::flush() {
-  while (!m_malformed_queries.empty()) {
-    auto itr = m_malformed_queries.begin();
-    auto query = std::move(itr->second);
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto malformed_queries = std::move(m_malformed_queries);
 
-    m_malformed_queries.erase(itr);
-    query->callback(nullptr, query->error);
+    for (auto& query : malformed_queries) {
+      if (!query.second->cancelled)
+        query.second->callback(nullptr, query.second->error);
+    }
   }
 
   process_timeouts();
@@ -169,6 +153,30 @@ UdnsEvent::event_write() {
 void
 UdnsEvent::event_error() {
   // TODO: Handle error.
+}
+
+UdnsEvent::query_map::iterator
+UdnsEvent::find_query(Query* query) {
+  auto range = m_queries.equal_range(query->requester);
+
+  for (auto itr = range.first; itr != range.second; ++itr) {
+    if (itr->second.get() == query)
+      return itr;
+  }
+
+  return m_queries.end();
+}
+
+UdnsEvent::query_map::iterator
+UdnsEvent::find_malformed_query(Query* query) {
+  auto range = m_malformed_queries.equal_range(query->requester);
+
+  for (auto itr = range.first; itr != range.second; ++itr) {
+    if (itr->second.get() == query)
+      return itr;
+  }
+
+  return m_malformed_queries.end();
 }
 
 void
@@ -192,14 +200,21 @@ UdnsEvent::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void 
   struct sockaddr_in sa;
   auto query = static_cast<UdnsEvent::Query*>(data);
 
+  std::lock_guard<std::mutex> lock(query->parent->m_mutex);
+
+  auto itr = query->parent->find_query(query);
+  if (itr == query->parent->m_queries.end())
+    throw internal_error("UdnsEvent::a4_callback_wrapper called with invalid query");
+
   query->a4_query = nullptr;
 
   if (result == nullptr || result->dnsa4_nrr == 0) {
     if (query->a6_query == nullptr) {
       auto callback = query->callback;
+      query->parent->m_queries.erase(itr);
 
-      query->parent->m_queries.erase(query->requester);
-      query->callback(nullptr, udnserror_to_gaierror(::dns_status(ctx)));
+      if (!query->cancelled)
+        callback(nullptr, udnserror_to_gaierror(::dns_status(ctx)));
     }
 
     return;
@@ -210,46 +225,52 @@ UdnsEvent::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void 
   sa.sin_addr = result->dnsa4_addr[0];
 
   // TODO: Change this to wait for a6 response before the callback.
-  if (query->a6_query != nullptr) {
+  if (query->a6_query != nullptr)
     ::dns_cancel(ctx, query->a6_query);
-  }
 
   auto callback = query->callback;
+  query->parent->m_queries.erase(itr);
 
-  query->parent->m_queries.erase(query->requester);
-  query->callback(reinterpret_cast<sockaddr*>(&sa), 0);
+  if (!query->cancelled)
+    callback(reinterpret_cast<sockaddr*>(&sa), 0);
 }
 
 void
 UdnsEvent::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
   struct sockaddr_in6 sa;
   auto query = static_cast<UdnsEvent::Query*>(data);
-
   query->a6_query = nullptr;
+
+  std::lock_guard<std::mutex> lock(query->parent->m_mutex);
+
+  auto itr = query->parent->find_query(query);
+  if (itr == query->parent->m_queries.end())
+    throw internal_error("UdnsEvent::a6_callback_wrapper called with invalid query");
 
   if (result == nullptr || result->dnsa6_nrr == 0) {
     if (query->a4_query == nullptr) {
       auto callback = query->callback;
+      query->parent->m_queries.erase(itr);
 
-      query->parent->m_queries.erase(query->requester);
-      query->callback(nullptr, udnserror_to_gaierror(::dns_status(ctx)));
+      if (!query->cancelled)
+        callback(nullptr, udnserror_to_gaierror(::dns_status(ctx)));
     }
 
     return;
   }
 
+  if (query->a4_query != nullptr)
+    ::dns_cancel(ctx, query->a4_query);
+
   sa.sin6_family = AF_INET6;
   sa.sin6_port = 0;
   sa.sin6_addr = result->dnsa6_addr[0];
 
-  if (query->a4_query != nullptr) {
-    ::dns_cancel(ctx, query->a4_query);
-  }
-
   auto callback = query->callback;
+  query->parent->m_queries.erase(itr);
 
-  query->parent->m_queries.erase(query->requester);
-  query->callback(reinterpret_cast<sockaddr*>(&sa), 0);
+  if (!query->cancelled)
+    callback(reinterpret_cast<sockaddr*>(&sa), 0);
 }
 
 } // namespace torrent

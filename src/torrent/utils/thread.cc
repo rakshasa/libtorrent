@@ -76,11 +76,16 @@ Thread::callback(void* target, std::function<void ()>&& fn) {
   std::lock_guard<std::mutex> guard(m_callback_lock);
 
   m_callbacks.emplace(target, std::move(fn));
+
+  // TODO: Add process_callbacks to all threads.
   interrupt();
 }
 
 void
 Thread::cancel_callback(void* target) {
+  if (target == nullptr)
+    throw internal_error("Thread::cancel_callback called with a null pointer target.");
+
   std::lock_guard<std::mutex> guard(m_callback_lock);
 
   m_callbacks.erase(target);
@@ -187,6 +192,25 @@ Thread::event_loop(Thread* thread) {
     throw internal_error("Thread::event_loop called on an object that is not in the active state.");
 
   return NULL;
+}
+
+void
+Thread::process_callbacks() {
+  while (true) {
+    std::multimap<const void*, std::function<void ()>> callbacks;
+
+    {
+      std::lock_guard<std::mutex> guard(m_callback_lock);
+
+      callbacks.swap(m_callbacks);
+    }
+
+    if (callbacks.empty())
+      return;
+
+    for (const auto& callback : callbacks)
+      callback.second();
+  }
 }
 
 }

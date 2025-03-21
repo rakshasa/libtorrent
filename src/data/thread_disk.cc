@@ -39,6 +39,7 @@ ThreadDisk::call_events() {
   }
 
   m_hash_check_queue.perform();
+  process_callbacks();
 }
 
 int64_t

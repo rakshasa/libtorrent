@@ -174,6 +174,7 @@ libtorrent_torrent_net_includedir = $(includedir)/torrent/net
 libtorrent_torrent_net_include_HEADERS = \
 	net/address_info.h \
 	net/fd.h \
+	net/resolver.h \
 	net/socket_address.h \
 	net/socket_address_key.h \
 	net/socket_event.h \

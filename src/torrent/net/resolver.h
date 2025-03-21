@@ -13,43 +13,25 @@ namespace torrent::net {
 
 class Resolver {
 public:
-  typedef std::function<void (const sockaddr* addr, int err)> result_func;
+  typedef std::function<void (const sockaddr* addr, int err)> resolver_callback;
 
   Resolver() = default;
   ~Resolver() = default;
-  Resolver(const Resolver&) = delete;
-  Resolver& operator=(const Resolver&) = delete;
 
-  void                resolve(void* requester, const char* host, int family, int socktype, result_func slot);
+  void                resolve(void* requester, const char* host, int family, resolver_callback&& slot);
   void                cancel(void* requester);
 
 protected:
   friend class torrent::utils::Thread;
 
   void                init();
-  void                process();
+  void                process_callback(void* requester, const sockaddr* addr, int err, resolver_callback&& slot);
 
 private:
-  struct Request {
-    void*                requester;
-    const char*          host;
-    int                  family;
-    int                  socktype;
-    result_func          slot;
-  };
+  Resolver(const Resolver&) = delete;
+  Resolver& operator=(const Resolver&) = delete;
 
-  struct Result {
-    void*                requester;
-    const sockaddr*      addr;
-    int                  err;
-    result_func          slot;
-  };
-
-  std::thread::id      m_thread_id;
-  unsigned int         m_signal_process_results{~0u};
-
-  std::vector<Request> m_requests;
-  std::vector<Result>  m_results;
+  torrent::utils::Thread* m_thread{nullptr};
 };
 
 }

@@ -98,6 +98,8 @@ protected:
   virtual void        call_events() = 0;
   virtual int64_t     next_timeout_usec() = 0;
 
+  void                process_callbacks();
+
   static global_lock_type      m_global;
 
   pthread_t                    m_thread;

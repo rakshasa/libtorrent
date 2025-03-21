@@ -63,6 +63,8 @@ ThreadTracker::call_events() {
     m_flags |= flag_did_shutdown;
     throw shutdown_exception();
   }
+
+  process_callbacks();
 }
 
 int64_t

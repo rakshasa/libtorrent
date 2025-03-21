@@ -4,72 +4,37 @@
 
 #include "net/thread_net.h"
 #include "net/udns_event.h"
-// #include "rak/address_info.h"
 #include "torrent/utils/thread.h"
 
 namespace torrent::net {
 
 void
 Resolver::init() {
-  m_thread_id = std::this_thread::get_id();
+  m_thread = torrent::thread_self;
+}
 
-  m_signal_process_results = thread_self->signal_bitfield()->add_signal([this]() {
-      process();
+void
+Resolver::resolve(void* requester, const char* host, int family, resolver_callback&& slot) {
+  thread_net->callback(requester, [this, requester, host, family, slot = std::move(slot)]() {
+      thread_net->udns()->resolve(requester, host, family, [this, requester, slot = std::move(slot)](const sockaddr* addr, int err) {
+          this->process_callback(requester, addr, err, (resolver_callback)slot);
+        });
     });
 }
 
 void
-Resolver::resolve(void* requester, const char* host, int family, int socktype, result_func slot) {
-  if (std::this_thread::get_id() != m_thread_id)
-    throw std::runtime_error("Resolver::resolve() called from wrong thread.");
-
-  // Request request = { host, family, socktype, slot };
-
-  // m_requests.push_back(request);
-
-  // TODO: Temporary implementation.
-
-  // rak::address_info* ai;
-  // int err;
-
-  // if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
-  //   m_results.push_back({ requester, NULL, err, slot });
-
-  // } else {
-  //   rak::socket_address sa;
-  //   sa.copy(*ai->address(), ai->length());
-  //   rak::address_info::free_address_info(ai);
-
-  //   m_results.push_back({ requester, sa.c_sockaddr(), 0, slot });
-  // }
-
-  // torrent::thread_self->signal_bitfield()->signal(m_signal_process_results);
-}
-
-void
 Resolver::cancel(void* requester) {
-  if (std::this_thread::get_id() != m_thread_id)
-    throw std::runtime_error("Resolver::cancel() called from wrong thread.");
+  torrent::thread_net->udns()->cancel(requester);
 
-  m_requests.erase(std::remove_if(m_requests.begin(), m_requests.end(), [requester](const auto& request) {
-        return request.requester == requester;
-      }), m_requests.end());
-
-  m_results.erase(std::remove_if(m_results.begin(), m_results.end(), [requester](const auto& result) {
-        return result.requester == requester;
-      }), m_results.end());
+  m_thread->cancel_callback(requester);
+  thread_net->cancel_callback(requester);
 }
 
 void
-Resolver::process() {
-  if (std::this_thread::get_id() != m_thread_id)
-    throw std::runtime_error("Resolver::process_results() called from wrong thread.");
-
-  auto results = std::move(m_results);
-
-  for (auto& result : m_results) {
-    result.slot(result.addr, result.err);
-  }
+Resolver::process_callback(void *requester, const sockaddr* addr, int err, resolver_callback&& slot) {
+  m_thread->callback(requester, [addr, err, slot = std::move(slot)]() {
+      slot(addr, err);
+    });
 }
 
 } // namespace

@@ -12,19 +12,19 @@ public:
   ThreadNet();
   ~ThreadNet() override = default;
 
-  const char*     name() const override { return "rtorrent net"; }
+  const char*         name() const override { return "rtorrent net"; }
 
-  void            init_thread() override;
-
-  void            request_resolve(void* requester, const char *name, int family, std::function<void (const sockaddr*, int)>&& callback);
-  void            cancel_resolve(void* requester);
+  void                init_thread() override;
 
 protected:
   friend class torrent::net::Resolver;
 
-  void            call_events() override;
-  int64_t         next_timeout_usec() override;
+  void                call_events() override;
+  int64_t             next_timeout_usec() override;
 
+  UdnsEvent*          udns() const { return m_udns.get(); }
+
+private:
   std::unique_ptr<UdnsEvent> m_udns;
 };
 

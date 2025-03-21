@@ -105,6 +105,8 @@ DhtRouter::~DhtRouter() {
 
   for (auto& node : m_nodes)
     delete node.second;
+
+  thread_self->resolver()->cancel(this);
 }
 
 void
@@ -485,7 +487,7 @@ DhtRouter::token_valid(raw_string token, const rak::socket_address* sa) {
   //
   // Else if token recently changed, some clients may be using the older one.
   // That way a token is valid for 15-30 minutes, instead of 0-15.
-  return 
+  return
     token == raw_string(generate_token(sa, m_curToken, reference), size_token) ||
     token == raw_string(generate_token(sa, m_prevToken, reference), size_token);
 }
@@ -577,7 +579,8 @@ void
 DhtRouter::bootstrap() {
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
-    thread_self->resolver()->resolve(this, m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet, SOCK_DGRAM,
+    // Currently discarding SOCK_DGRAM.
+    thread_self->resolver()->resolve(this, m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet,
                                      [this](const sockaddr* sa, [[maybe_unused]] int err) {
                                        if (sa != NULL)
                                          contact(rak::socket_address::cast_from(sa), m_contacts->back().second);

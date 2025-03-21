@@ -30,14 +30,6 @@ ThreadNet::init_thread() {
 }
 
 void
-ThreadNet::request_resolve(void* requester, const char *name, int family, std::function<void (const sockaddr*, int)>&& callback) {
-}
-
-void
-ThreadNet::cancel_resolve(void* requester) {
-}
-
-void
 ThreadNet::call_events() {
   // lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
 
@@ -50,7 +42,9 @@ ThreadNet::call_events() {
     throw shutdown_exception();
   }
 
+  process_callbacks();
   m_udns->flush();
+  process_callbacks();
 }
 
 int64_t

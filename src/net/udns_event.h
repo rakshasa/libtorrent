@@ -20,20 +20,23 @@ public:
   struct Query {
     void*             requester;
     UdnsEvent*        parent;
+    bool              cancelled;
     ::dns_query*      a4_query;
     ::dns_query*      a6_query;
     resolver_callback callback;
     int               error;
   };
 
-  typedef std::map<void*, std::unique_ptr<Query>> query_map;
+  typedef std::multimap<void*, std::unique_ptr<Query>> query_map;
 
   UdnsEvent();
   ~UdnsEvent();
 
   const char*         type_name() const override { return "udns"; }
 
-  void                enqueue_resolve(void* requester, const char *name, int family, resolver_callback&& callback);
+  void                resolve(void* requester, const char *name, int family, resolver_callback&& callback);
+
+  // Cancel may block if the resolver received the response and is calling the callback.
   void                cancel(void* requester);
 
   void                flush();
@@ -43,6 +46,10 @@ public:
   void                event_error() override;
 
 protected:
+  query_map::iterator find_query(Query* query);
+  query_map::iterator find_malformed_query(Query* query);
+
+  void                process_cancelled();
   void                process_timeouts();
 
   static void         a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void *data);

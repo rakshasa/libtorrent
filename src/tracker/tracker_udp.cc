@@ -54,17 +54,16 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
     return receive_failed("could not parse hostname or port");
 
   lock_and_set_latest_event(new_state);
+  m_send_state = new_state;
+  m_resolver_requesting = true;
 
   LT_LOG_TRACKER_REQUESTS("hostname lookup (address:%s)", hostname.data());
 
-  m_send_state = new_state;
-
-  thread_self->resolver()->resolve(this,
-                                   hostname.data(), PF_UNSPEC, SOCK_DGRAM,
+  // Currently discarding SOCK_DGRAM.
+  thread_self->resolver()->resolve(this, hostname.data(), PF_UNSPEC,
                                    [this](const sockaddr* sa, int err) {
                                      start_announce(sa, err);
                                    });
-  m_resolver_requesting = true;
 }
 
 void
