@@ -46,6 +46,7 @@ TrackerUdp::is_busy() const {
 
 void
 TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
+  // TODO: Change this to only reopen if there's multiple failed requests.
   close_directly();
 
   hostname_type hostname;
@@ -56,13 +57,14 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   lock_and_set_latest_event(new_state);
   m_send_state = new_state;
   m_resolver_requesting = true;
+  m_sending_announce = true;
 
   LT_LOG_TRACKER_REQUESTS("hostname lookup (address:%s)", hostname.data());
 
   // Currently discarding SOCK_DGRAM.
   thread_self->resolver()->resolve(this, hostname.data(), PF_UNSPEC,
                                    [this](const sockaddr* sa, int err) {
-                                     start_announce(sa, err);
+                                     receive_resolved(sa, err);
                                    });
 }
 
@@ -82,44 +84,6 @@ TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& 
     return true;
 
   return false;
-}
-
-void
-TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
-  m_resolver_requesting = false;
-
-  if (sa == NULL)
-    return receive_failed("could not resolve hostname");
-
-  m_connectAddress = *rak::socket_address::cast_from(sa);
-  m_connectAddress.set_port(m_port);
-
-  LT_LOG_TRACKER_REQUESTS("address found (address:%s)", m_connectAddress.address_str().c_str());
-
-  if (!m_connectAddress.is_valid())
-    return receive_failed("invalid tracker address");
-
-  // TODO: Make each of these a separate error... at the very least separate open and bind.
-  if (!get_fd().open_datagram() || !get_fd().set_nonblock())
-    return receive_failed("could not open UDP socket");
-
-  auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
-
-  if (bind_address->is_bindable() && !get_fd().bind(*bind_address))
-    return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() + "' with error '" + rak::error_number::current().c_str() + "'");
-
-  m_readBuffer = new ReadBuffer;
-  m_writeBuffer = new WriteBuffer;
-
-  prepare_connect_input();
-
-  thread_self->poll()->open(this);
-  thread_self->poll()->insert_read(this);
-  thread_self->poll()->insert_write(this);
-  thread_self->poll()->insert_error(this);
-
-  m_tries = udp_tries;
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 }
 
 void
@@ -154,6 +118,8 @@ TrackerUdp::close_directly() {
     m_resolver_requesting = false;
   }
 
+  m_sending_announce = false;
+
   delete m_readBuffer;
   delete m_writeBuffer;
 
@@ -183,6 +149,16 @@ TrackerUdp::receive_failed(const std::string& msg) {
 }
 
 void
+TrackerUdp::receive_resolved(const sockaddr* sa, int err) {
+  if (!m_resolver_requesting)
+    throw internal_error("TrackerUdp::receive_resolved() called but m_resolver_requesting is false.");
+
+  start_announce(sa, err);
+
+  m_resolver_requesting = false;
+}
+
+void
 TrackerUdp::receive_timeout() {
   if (m_taskTimeout.is_queued())
     throw internal_error("TrackerUdp::receive_timeout() called but m_taskTimeout is still scheduled.");
@@ -194,6 +170,47 @@ TrackerUdp::receive_timeout() {
 
     thread_self->poll()->insert_write(this);
   }
+}
+
+void
+TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
+  if (!m_sending_announce)
+    throw internal_error("TrackerUdp::start_announce() called but m_sending_announce is false.");
+
+  m_sending_announce = false;
+
+  if (sa == NULL)
+    return receive_failed("could not resolve hostname");
+
+  m_connectAddress = *rak::socket_address::cast_from(sa);
+  m_connectAddress.set_port(m_port);
+
+  LT_LOG_TRACKER_REQUESTS("address found (address:%s)", m_connectAddress.address_str().c_str());
+
+  if (!m_connectAddress.is_valid())
+    return receive_failed("invalid tracker address");
+
+  // TODO: Make each of these a separate error... at the very least separate open and bind.
+  if (!get_fd().open_datagram() || !get_fd().set_nonblock())
+    return receive_failed("could not open UDP socket");
+
+  auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+
+  if (bind_address->is_bindable() && !get_fd().bind(*bind_address))
+    return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() + "' with error '" + rak::error_number::current().c_str() + "'");
+
+  m_readBuffer = new ReadBuffer;
+  m_writeBuffer = new WriteBuffer;
+
+  prepare_connect_input();
+
+  thread_self->poll()->open(this);
+  thread_self->poll()->insert_read(this);
+  thread_self->poll()->insert_write(this);
+  thread_self->poll()->insert_error(this);
+
+  m_tries = udp_tries;
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 }
 
 void

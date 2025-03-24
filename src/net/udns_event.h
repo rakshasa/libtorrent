@@ -19,6 +19,9 @@ public:
 
   struct Query {
     void*             requester;
+    std::string       name;
+    int               family;
+
     UdnsEvent*        parent;
     bool              cancelled;
     ::dns_query*      a4_query;

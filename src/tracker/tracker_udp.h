@@ -47,6 +47,7 @@ private:
   void                close_directly();
 
   void                receive_failed(const std::string& msg);
+  void                receive_resolved(const sockaddr* sa, int err);
   void                receive_timeout();
 
   void                start_announce(const sockaddr* sa, int err);
@@ -61,6 +62,7 @@ private:
   bool                parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const;
 
   bool                m_resolver_requesting{false};
+  bool                m_sending_announce{false};
 
   // TODO: Change to use sockaddr.
   rak::socket_address m_connectAddress;
