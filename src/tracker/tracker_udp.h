@@ -74,11 +74,11 @@ private:
   int                 m_send_state{0};
 
   uint32_t            m_action;
-  uint64_t            m_connectionId;
-  uint32_t            m_transactionId;
+  uint64_t            m_connection_id{0};
+  uint32_t            m_transaction_id{0};
 
-  std::unique_ptr<ReadBuffer>  m_readBuffer;
-  std::unique_ptr<WriteBuffer> m_writeBuffer;
+  std::unique_ptr<ReadBuffer>  m_read_buffer;
+  std::unique_ptr<WriteBuffer> m_write_buffer;
 
   uint32_t            m_tries;
 

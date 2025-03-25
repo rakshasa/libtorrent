@@ -132,8 +132,8 @@ TrackerUdp::close_directly() {
   m_resolver_requesting = false;
   m_sending_announce = false;
 
-  m_readBuffer = nullptr;
-  m_writeBuffer = nullptr;
+  m_read_buffer = nullptr;
+  m_write_buffer = nullptr;
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
@@ -240,8 +240,8 @@ TrackerUdp::start_announce() {
   }
 
   // TODO: Don't recreate buffers.
-  m_readBuffer = std::make_unique<ReadBuffer>();
-  m_writeBuffer = std::make_unique<WriteBuffer>();
+  m_read_buffer = std::make_unique<ReadBuffer>();
+  m_write_buffer = std::make_unique<WriteBuffer>();
 
   prepare_connect_input();
 
@@ -258,16 +258,16 @@ void
 TrackerUdp::event_read() {
   rak::socket_address sa;
 
-  int s = read_datagram(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
+  int s = read_datagram(m_read_buffer->begin(), m_read_buffer->reserved(), &sa);
 
   if (s < 0)
     return;
 
-  m_readBuffer->reset_position();
-  m_readBuffer->set_end(s);
+  m_read_buffer->reset_position();
+  m_read_buffer->set_end(s);
 
   LT_LOG("received reply (size:%d)", s);
-  LT_LOG_DUMP(DEBUG, (const char*)m_readBuffer->begin(), s, "received reply", 0);
+  LT_LOG_DUMP(DEBUG, (const char*)m_read_buffer->begin(), s, "received reply", 0);
 
   if (s < 4)
     return;
@@ -275,7 +275,7 @@ TrackerUdp::event_read() {
   // Make sure sa is from the source we expected?
 
   // Do something with the content here.
-  switch (m_readBuffer->read_32()) {
+  switch (m_read_buffer->read_32()) {
   case 0:
     if (m_action != 0 || !process_connect_output())
       return;
@@ -307,10 +307,10 @@ TrackerUdp::event_read() {
 
 void
 TrackerUdp::event_write() {
-  if (m_writeBuffer->size_end() == 0)
+  if (m_write_buffer->size_end() == 0)
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
-  [[maybe_unused]] int s = write_datagram_sa(m_writeBuffer->begin(), m_writeBuffer->size_end(), m_current_address);
+  [[maybe_unused]] int s = write_datagram_sa(m_write_buffer->begin(), m_write_buffer->size_end(), m_current_address);
 
   thread_self->poll()->remove_write(this);
 }
@@ -321,32 +321,32 @@ TrackerUdp::event_error() {
 
 void
 TrackerUdp::prepare_connect_input() {
-  m_writeBuffer->reset();
-  m_writeBuffer->write_64(m_connectionId = magic_connection_id);
-  m_writeBuffer->write_32(m_action = 0);
-  m_writeBuffer->write_32(m_transactionId = random());
+  m_write_buffer->reset();
+  m_write_buffer->write_64(m_connection_id = magic_connection_id);
+  m_write_buffer->write_32(m_action = 0);
+  m_write_buffer->write_32(m_transaction_id = random());
 
-  LT_LOG_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
-              "prepare connect (id:%" PRIx32 ")", m_transactionId);
+  LT_LOG_DUMP(DEBUG, m_write_buffer->begin(), m_write_buffer->size_end(),
+              "prepare connect (id:%" PRIx32 ")", m_transaction_id);
 }
 
 void
 TrackerUdp::prepare_announce_input() {
-  m_writeBuffer->reset();
+  m_write_buffer->reset();
 
-  m_writeBuffer->write_64(m_connectionId);
-  m_writeBuffer->write_32(m_action = 1);
-  m_writeBuffer->write_32(m_transactionId = random());
+  m_write_buffer->write_64(m_connection_id);
+  m_write_buffer->write_32(m_action = 1);
+  m_write_buffer->write_32(m_transaction_id = random());
 
-  m_writeBuffer->write_range(info().info_hash.begin(), info().info_hash.end());
-  m_writeBuffer->write_range(info().local_id.begin(), info().local_id.end());
+  m_write_buffer->write_range(info().info_hash.begin(), info().info_hash.end());
+  m_write_buffer->write_range(info().local_id.begin(), info().local_id.end());
 
   auto parameters = m_slot_parameters();
 
-  m_writeBuffer->write_64(parameters.completed_adjusted);
-  m_writeBuffer->write_64(parameters.download_left);
-  m_writeBuffer->write_64(parameters.uploaded_adjusted);
-  m_writeBuffer->write_32(m_send_state);
+  m_write_buffer->write_64(parameters.completed_adjusted);
+  m_write_buffer->write_64(parameters.download_left);
+  m_write_buffer->write_64(parameters.uploaded_adjusted);
+  m_write_buffer->write_32(m_send_state);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
@@ -355,53 +355,53 @@ TrackerUdp::prepare_announce_input() {
   if (localAddress->family() == rak::socket_address::af_inet)
     local_addr = localAddress->sa_inet()->address_n();
 
-  m_writeBuffer->write_32_n(local_addr);
-  m_writeBuffer->write_32(info().key);
-  m_writeBuffer->write_32(parameters.numwant);
-  m_writeBuffer->write_16(manager->connection_manager()->listen_port());
+  m_write_buffer->write_32_n(local_addr);
+  m_write_buffer->write_32(info().key);
+  m_write_buffer->write_32(parameters.numwant);
+  m_write_buffer->write_16(manager->connection_manager()->listen_port());
 
-  if (m_writeBuffer->size_end() != 98)
+  if (m_write_buffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
 
-  LT_LOG_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
+  LT_LOG_DUMP(DEBUG, m_write_buffer->begin(), m_write_buffer->size_end(),
               "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
               option_as_string(OPTION_TRACKER_EVENT, m_send_state),
-              m_transactionId, parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
+              m_transaction_id, parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
 }
 
 bool
 TrackerUdp::process_connect_output() {
-  if (m_readBuffer->size_end() < 16 ||
-      m_readBuffer->read_32() != m_transactionId)
+  if (m_read_buffer->size_end() < 16 ||
+      m_read_buffer->read_32() != m_transaction_id)
     return false;
 
-  m_connectionId = m_readBuffer->read_64();
+  m_connection_id = m_read_buffer->read_64();
 
   return true;
 }
 
 bool
 TrackerUdp::process_announce_output() {
-  if (m_readBuffer->size_end() < 20 ||
-      m_readBuffer->read_32() != m_transactionId)
+  if (m_read_buffer->size_end() < 20 ||
+      m_read_buffer->read_32() != m_transaction_id)
     return false;
 
   {
     auto guard = lock_guard();
 
-    state().set_normal_interval(m_readBuffer->read_32());
+    state().set_normal_interval(m_read_buffer->read_32());
     state().set_min_interval(tracker::TrackerState::default_min_interval);
 
-    state().m_scrape_incomplete = m_readBuffer->read_32(); // leechers
-    state().m_scrape_complete   = m_readBuffer->read_32(); // seeders
+    state().m_scrape_incomplete = m_read_buffer->read_32(); // leechers
+    state().m_scrape_complete   = m_read_buffer->read_32(); // seeders
     state().m_scrape_time_last  = rak::timer::current().seconds();
   }
 
   AddressList l;
 
-  std::copy(reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->position()),
-	    reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->end() - m_readBuffer->remaining() % sizeof(SocketAddressCompact)),
-	    std::back_inserter(l));
+  std::copy(reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->position()),
+            reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->end() - m_read_buffer->remaining() % sizeof(SocketAddressCompact)),
+            std::back_inserter(l));
 
   // Some logic here to decided on whetever we're going to close the
   // connection or not?
@@ -414,11 +414,11 @@ TrackerUdp::process_announce_output() {
 
 bool
 TrackerUdp::process_error_output() {
-  if (m_readBuffer->size_end() < 8 ||
-      m_readBuffer->read_32() != m_transactionId)
+  if (m_read_buffer->size_end() < 8 ||
+      m_read_buffer->read_32() != m_transaction_id)
     return false;
 
-  receive_failed("received error message: " + std::string(m_readBuffer->position(), m_readBuffer->end()));
+  receive_failed("received error message: " + std::string(m_read_buffer->position(), m_read_buffer->end()));
   return true;
 }
 
