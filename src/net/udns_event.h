@@ -2,6 +2,7 @@
 #define LIBTORRENT_NET_UDNSEVENT_H
 
 #include <map>
+#include <mutex>
 
 #include "rak/priority_queue_default.h"
 #include "torrent/event.h"

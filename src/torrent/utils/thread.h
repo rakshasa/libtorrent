@@ -69,6 +69,7 @@ public:
   virtual void        stop_thread();
   void                stop_thread_wait();
 
+  // You cannot cancel callbacks from within a callback on same thread.
   void                callback(void* target, std::function<void ()>&& fn);
   void                cancel_callback(void* target);
 

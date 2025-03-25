@@ -75,7 +75,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Only resolve again if we fail to connect several times in a row, or we get an event for
   // network connection/setting change. (not implemented yet)
 
-  thread_self->resolver()->resolve_both(this, hostname.data(), PF_UNSPEC,
+  thread_self->resolver()->resolve_both(this, hostname.data(), AF_UNSPEC,
                                         [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
                                           receive_resolved(sin, sin6, err);
                                         });
@@ -176,9 +176,7 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
 
   if (err != 0) {
     LT_LOG("could not resolve hostname : requester:%p error:'%s'", this, gai_strerror(err));
-
-    if (!m_resolver_requesting)
-      return receive_failed("could not resolve hostname : error:'" + std::string(gai_strerror(err)) + "'");
+    return receive_failed("could not resolve hostname : error:'" + std::string(gai_strerror(err)) + "'");
   }
 
   if (sin != nullptr) {
