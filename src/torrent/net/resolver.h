@@ -9,7 +9,7 @@
 
 namespace torrent::net {
 
-class Resolver {
+class LIBTORRENT_EXPORT Resolver {
 public:
   typedef std::function<void (c_sin_shared_ptr, c_sin6_shared_ptr, int)> both_callback;
   typedef std::function<void (c_sa_shared_ptr, int)>                     single_callback;
