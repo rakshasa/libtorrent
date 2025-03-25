@@ -3,29 +3,30 @@
 
 #include <functional>
 #include <thread>
-#include <vector>
 
-#include "torrent/common.h"
+#include <torrent/common.h>
+#include <torrent/net/types.h>
 
 namespace torrent::net {
 
-// TODO: Remove obsolete resolver in connection_manager.
-
 class Resolver {
 public:
-  typedef std::function<void (const sockaddr* addr, int err)> resolver_callback;
+  typedef std::function<void (c_sin_shared_ptr, c_sin6_shared_ptr, int)> both_callback;
+  typedef std::function<void (c_sa_shared_ptr, int)>                     single_callback;
 
   Resolver() = default;
   ~Resolver() = default;
 
-  void                resolve(void* requester, const char* host, int family, resolver_callback&& slot);
+  void                resolve_both(void* requester, const std::string& hostname, int family, both_callback&& callback);
+  void                resolve_preferred(void* requester, const std::string& hostname, int family, int preferred, single_callback&& callback);
+  void                resolve_specific(void* requester, const std::string& hostname, int family, single_callback&& callback);
+
   void                cancel(void* requester);
 
 protected:
   friend class torrent::utils::Thread;
 
   void                init();
-  void                process_callback(void* requester, const sockaddr* addr, int err, resolver_callback&& slot);
 
 private:
   Resolver(const Resolver&) = delete;

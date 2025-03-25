@@ -1,23 +1,23 @@
 #include "config.h"
-#include "globals.h"
+
+#include "dht_router.h"
 
 #include <sstream>
 
+#include "dht_bucket.h"
+#include "dht_tracker.h"
+#include "dht_transaction.h"
+#include "manager.h"
+#include "globals.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
-
 #include "utils/sha1.h"
-#include "manager.h"
-
-#include "dht_bucket.h"
-#include "dht_router.h"
-#include "dht_tracker.h"
-#include "dht_transaction.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_hash(torrent::LOG_DHT_ROUTER, this->id(), "dht_router", log_fmt, __VA_ARGS__);
@@ -212,12 +212,14 @@ DhtRouter::add_contact(const std::string& host, int port) {
 }
 
 void
-DhtRouter::contact(const rak::socket_address* sa, int port) {
-  if (is_active()) {
-    rak::socket_address sa_port = *sa;
-    sa_port.set_port(port);
-    m_server.ping(zero_id, &sa_port);
-  }
+DhtRouter::contact(const sockaddr* sa, int port) {
+  if (!is_active())
+    return;
+
+  auto sa_port = sa_copy(sa);
+  sap_set_port(sa_port, port);
+
+  m_server.ping(zero_id, rak::socket_address::cast_from(sa_port.get()));
 }
 
 // Received a query from the given node. If it has previously replied
@@ -580,11 +582,11 @@ DhtRouter::bootstrap() {
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
     // Currently discarding SOCK_DGRAM.
-    thread_self->resolver()->resolve(this, m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet,
-                                     [this](const sockaddr* sa, [[maybe_unused]] int err) {
-                                       if (sa != NULL)
-                                         contact(rak::socket_address::cast_from(sa), m_contacts->back().second);
-                                     });
+    thread_self->resolver()->resolve_specific(this, m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet,
+                                              [this](c_sa_shared_ptr sa, [[maybe_unused]] int err) {
+                                                if (sa != nullptr)
+                                                  contact(sa.get(), m_contacts->back().second);
+                                              });
 
     m_contacts->pop_back();
   }

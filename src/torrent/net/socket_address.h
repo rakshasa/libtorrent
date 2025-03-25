@@ -141,6 +141,11 @@ inline sa_unique_ptr sap_copy_in(const c_sin_unique_ptr& sinp) { return sa_copy_
 inline sa_unique_ptr sap_copy_in6(const sin6_unique_ptr& sin6p) { return sa_copy_in6(sin6p.get()); }
 inline sa_unique_ptr sap_copy_in6(const c_sin6_unique_ptr& sin6p) { return sa_copy_in6(sin6p.get()); }
 
+inline sin_unique_ptr  sinp_copy(const sin_unique_ptr& sinp) { return sin_copy(sinp.get()); }
+inline sin_unique_ptr  sinp_copy(const c_sin_unique_ptr& sinp) { return sin_copy(sinp.get()); }
+inline sin6_unique_ptr sin6p_copy(const sin6_unique_ptr& sin6p) { return sin6_copy(sin6p.get()); }
+inline sin6_unique_ptr sin6p_copy(const c_sin6_unique_ptr& sin6p) { return sin6_copy(sin6p.get()); }
+
 inline sa_unique_ptr   sap_from_v4mapped(const sa_unique_ptr& sap) { return sa_from_v4mapped(sap.get()); }
 inline sa_unique_ptr   sap_from_v4mapped(const c_sa_unique_ptr& sap) { return sa_from_v4mapped(sap.get()); }
 inline sa_unique_ptr   sap_to_v4mapped(const sa_unique_ptr& sap) { return sa_to_v4mapped(sap.get()); }
@@ -182,8 +187,13 @@ inline bool sin6p_equal_addr(const c_sin6_unique_ptr& lhs, const c_sin6_unique_p
 
 inline std::string sap_addr_str(const sa_unique_ptr& sap) { return sa_addr_str(sap.get()); }
 inline std::string sap_addr_str(const c_sa_unique_ptr& sap) { return sa_addr_str(sap.get()); }
+
 inline std::string sap_pretty_str(const sa_unique_ptr& sap) { return sa_pretty_str(sap.get()); }
 inline std::string sap_pretty_str(const c_sa_unique_ptr& sap) { return sa_pretty_str(sap.get()); }
+inline std::string sinp_pretty_str(const sin_unique_ptr& sinp) { return sin_pretty_str(sinp.get()); }
+inline std::string sinp_pretty_str(const c_sin_unique_ptr& sinp) { return sin_pretty_str(sinp.get()); }
+inline std::string sin6p_pretty_str(const sin6_unique_ptr& sin6p) { return sin6_pretty_str(sin6p.get()); }
+inline std::string sin6p_pretty_str(const c_sin6_unique_ptr& sin6p) { return sin6_pretty_str(sin6p.get()); }
 
 //
 // Implementations:

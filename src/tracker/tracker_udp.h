@@ -2,13 +2,14 @@
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
 #include <array>
-#include "rak/socket_address.h"
+#include <memory>
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
+#include "rak/priority_queue_default.h"
+#include "rak/socket_address.h"
+#include "torrent/net/types.h"
 #include "tracker/tracker_worker.h"
-
-#include "globals.h"
 
 namespace torrent {
 
@@ -47,10 +48,10 @@ private:
   void                close_directly();
 
   void                receive_failed(const std::string& msg);
-  void                receive_resolved(const sockaddr* sa, int err);
+  void                receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err);
   void                receive_timeout();
 
-  void                start_announce(const sockaddr* sa, int err);
+  void                start_announce();
 
   void                prepare_connect_input();
   void                prepare_announce_input();
@@ -64,8 +65,10 @@ private:
   bool                m_resolver_requesting{false};
   bool                m_sending_announce{false};
 
-  // TODO: Change to use sockaddr.
-  rak::socket_address m_connectAddress;
+  sockaddr*           m_current_address{nullptr};
+  sin_unique_ptr      m_inet_address;
+  sin6_unique_ptr     m_inet6_address;
+
   int                 m_port{0};
 
   int                 m_send_state{0};
@@ -74,8 +77,8 @@ private:
   uint64_t            m_connectionId;
   uint32_t            m_transactionId;
 
-  ReadBuffer*         m_readBuffer{nullptr};
-  WriteBuffer*        m_writeBuffer{nullptr};
+  std::unique_ptr<ReadBuffer>  m_readBuffer;
+  std::unique_ptr<WriteBuffer> m_writeBuffer;
 
   uint32_t            m_tries;
 

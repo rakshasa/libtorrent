@@ -5,8 +5,10 @@
 #include "tracker_udp.h"
 
 #include <cstdio>
+#include <netdb.h>
 #include <sys/types.h>
 
+#include "globals.h"
 #include "manager.h"
 #include "net/address_list.h"
 #include "rak/error_number.h"
@@ -15,16 +17,19 @@
 #include "torrent/download_info.h"
 #include "torrent/poll.h"
 #include "torrent/tracker_list.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/net/resolver.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/utils/thread.h"
 #include "torrent/utils/uri_parser.h"
 
-#define LT_LOG_TRACKER_REQUESTS(log_fmt, ...)                             \
+#include "thread_main.h"
+
+#define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
 
-#define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
+#define LT_LOG_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...) \
   lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
 
 namespace torrent {
@@ -54,18 +59,26 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   if (!parse_udp_url(info().url, hostname, m_port))
     return receive_failed("could not parse hostname or port");
 
+  LT_LOG("send event (state:%s url:%s)",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
   lock_and_set_latest_event(new_state);
+
   m_send_state = new_state;
   m_resolver_requesting = true;
   m_sending_announce = true;
 
-  LT_LOG_TRACKER_REQUESTS("hostname lookup (address:%s)", hostname.data());
+  LT_LOG("resolving hostname : requester:%p address:%s", this, hostname.data());
 
-  // Currently discarding SOCK_DGRAM.
-  thread_self->resolver()->resolve(this, hostname.data(), PF_UNSPEC,
-                                   [this](const sockaddr* sa, int err) {
-                                     receive_resolved(sa, err);
-                                   });
+  // Currently discarding SOCK_DGRAM filter.
+
+  // TODO: Only resolve again if we fail to connect several times in a row, or we get an event for
+  // network connection/setting change. (not implemented yet)
+
+  thread_self->resolver()->resolve_both(this, hostname.data(), PF_UNSPEC,
+                                        [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
+                                          receive_resolved(sin, sin6, err);
+                                        });
 }
 
 void
@@ -91,8 +104,8 @@ TrackerUdp::close() {
   if (!get_fd().is_valid())
     return;
 
-  LT_LOG_TRACKER_REQUESTS("request cancelled (state:%s url:%s)",
-                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("request cancelled : requester:%p state:%s url:%s",
+         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
@@ -102,31 +115,30 @@ TrackerUdp::disown() {
   if (!get_fd().is_valid())
     return;
 
-  LT_LOG_TRACKER_REQUESTS("request disowned (state:%s url:%s)",
-                          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("request disowned : requester:%p state:%s url:%s",
+         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
 
 void
 TrackerUdp::close_directly() {
-  if (!get_fd().is_valid())
-    return;
+  LT_LOG("closing : requester:%p state:%s url:%s",
+         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
-  if (m_resolver_requesting) {
+  if (m_resolver_requesting)
     thread_self->resolver()->cancel(this);
-    m_resolver_requesting = false;
-  }
 
+  m_resolver_requesting = false;
   m_sending_announce = false;
 
-  delete m_readBuffer;
-  delete m_writeBuffer;
-
-  m_readBuffer = NULL;
-  m_writeBuffer = NULL;
+  m_readBuffer = nullptr;
+  m_writeBuffer = nullptr;
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
+
+  if (!get_fd().is_valid())
+    return;
 
   thread_self->poll()->remove_read(this);
   thread_self->poll()->remove_write(this);
@@ -148,14 +160,38 @@ TrackerUdp::receive_failed(const std::string& msg) {
   m_slot_failure(msg);
 }
 
+// TODO: Only resolve when we don't have a valid address, failed too many times or network change
+// events.
 void
-TrackerUdp::receive_resolved(const sockaddr* sa, int err) {
+TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err) {
+  if (std::this_thread::get_id() != torrent::thread_main->thread_id())
+    LT_LOG("invalid thread : requester:%p", this);
+
+  LT_LOG("received resolved : requester:%p", this);
+
   if (!m_resolver_requesting)
     throw internal_error("TrackerUdp::receive_resolved() called but m_resolver_requesting is false.");
 
-  start_announce(sa, err);
-
   m_resolver_requesting = false;
+
+  if (err != 0) {
+    LT_LOG("could not resolve hostname : requester:%p error:'%s'", this, gai_strerror(err));
+
+    if (!m_resolver_requesting)
+      return receive_failed("could not resolve hostname : error:'" + std::string(gai_strerror(err)) + "'");
+  }
+
+  if (sin != nullptr) {
+    m_inet_address = sin_copy(sin.get());
+    sa_set_port((sockaddr*)m_inet_address.get(), m_port);
+  }
+
+  if (sin6 != nullptr) {
+    m_inet6_address = sin6_copy(sin6.get());
+    sa_set_port((sockaddr*)m_inet6_address.get(), m_port);
+  }
+
+  start_announce();
 }
 
 void
@@ -173,34 +209,41 @@ TrackerUdp::receive_timeout() {
 }
 
 void
-TrackerUdp::start_announce(const sockaddr* sa, [[maybe_unused]] int err) {
+TrackerUdp::start_announce() {
   if (!m_sending_announce)
     throw internal_error("TrackerUdp::start_announce() called but m_sending_announce is false.");
 
   m_sending_announce = false;
 
-  if (sa == NULL)
-    return receive_failed("could not resolve hostname");
+  // TODO: Properly select preferred protocol and on failure try the other one.
 
-  m_connectAddress = *rak::socket_address::cast_from(sa);
-  m_connectAddress.set_port(m_port);
+  if (m_inet_address != nullptr)
+    m_current_address = (sockaddr*)m_inet_address.get();
+  else if (m_inet6_address != nullptr)
+    m_current_address = (sockaddr*)m_inet6_address.get();
+  else
+    throw internal_error("TrackerUdp::start_announce() called but both m_inet_address and m_inet6_address are nullptr.");
 
-  LT_LOG_TRACKER_REQUESTS("address found (address:%s)", m_connectAddress.address_str().c_str());
-
-  if (!m_connectAddress.is_valid())
-    return receive_failed("invalid tracker address");
+  LT_LOG("starting announce : requester:%p address:%s", this, sa_pretty_str(m_current_address).c_str());
 
   // TODO: Make each of these a separate error... at the very least separate open and bind.
-  if (!get_fd().open_datagram() || !get_fd().set_nonblock())
+  if (!get_fd().open_datagram() || !get_fd().set_nonblock()) {
+    LT_LOG("could not open UDP socket : requester:%p", this);
     return receive_failed("could not open UDP socket");
+  }
 
   auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
 
-  if (bind_address->is_bindable() && !get_fd().bind(*bind_address))
-    return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() + "' with error '" + rak::error_number::current().c_str() + "'");
+  if (bind_address->is_bindable() && !get_fd().bind(*bind_address)) {
+    LT_LOG("failed to bind socket to udp address : requester:%p address:%s error:'%s'",
+           this, bind_address->pretty_address_str().c_str(), rak::error_number::current().c_str());
+    return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() +
+                          "' with error '" + rak::error_number::current().c_str() + "'");
+  }
 
-  m_readBuffer = new ReadBuffer;
-  m_writeBuffer = new WriteBuffer;
+  // TODO: Don't recreate buffers.
+  m_readBuffer = std::make_unique<ReadBuffer>();
+  m_writeBuffer = std::make_unique<WriteBuffer>();
 
   prepare_connect_input();
 
@@ -225,7 +268,8 @@ TrackerUdp::event_read() {
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
 
-  LT_LOG_TRACKER_DUMP(DEBUG, (const char*)m_readBuffer->begin(), s, "received reply", 0);
+  LT_LOG("received reply (size:%d)", s);
+  LT_LOG_DUMP(DEBUG, (const char*)m_readBuffer->begin(), s, "received reply", 0);
 
   if (s < 4)
     return;
@@ -268,7 +312,7 @@ TrackerUdp::event_write() {
   if (m_writeBuffer->size_end() == 0)
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
-  [[maybe_unused]] int s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
+  [[maybe_unused]] int s = write_datagram_sa(m_writeBuffer->begin(), m_writeBuffer->size_end(), m_current_address);
 
   thread_self->poll()->remove_write(this);
 }
@@ -284,8 +328,8 @@ TrackerUdp::prepare_connect_input() {
   m_writeBuffer->write_32(m_action = 0);
   m_writeBuffer->write_32(m_transactionId = random());
 
-  LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
-                      "prepare connect (id:%" PRIx32 ")", m_transactionId);
+  LT_LOG_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
+              "prepare connect (id:%" PRIx32 ")", m_transactionId);
 }
 
 void
@@ -321,10 +365,10 @@ TrackerUdp::prepare_announce_input() {
   if (m_writeBuffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
 
-  LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
-                      "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
-                      option_as_string(OPTION_TRACKER_EVENT, m_send_state),
-                      m_transactionId, parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
+  LT_LOG_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
+              "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
+              option_as_string(OPTION_TRACKER_EVENT, m_send_state),
+              m_transactionId, parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
 }
 
 bool

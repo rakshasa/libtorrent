@@ -11,26 +11,16 @@
 #include "net/udns/udns.h"
 #include "torrent/common.h"
 #include "torrent/poll.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
 
 #define LT_LOG(log_fmt, ...)                                \
   lt_log_print_subsystem(LOG_NET_DNS, "dns", log_fmt, __VA_ARGS__);
 
-// Assertion failed: (nactive == ctx->dnsc_nactive), function dns_assert_ctx, file udns_resolver.c, line 221.
-
-// Caught internal_error: priority_queue_insert(...) called on an already queued item.
-// 0   libtorrent.23.dylib                 0x0000000106a6bc9f _ZN7torrent14internal_error10initializeERKNSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE + 63
-// 1   libtorrent.23.dylib                 0x0000000106a2f0e8 _ZN7torrent14internal_errorC2EPKc + 184
-// 2   libtorrent.23.dylib                 0x0000000106a2e3c2 _ZN3rak21priority_queue_insertEPNS_14priority_queueIPNS_13priority_itemENS_16priority_compareENSt3__18equal_toIS2_EEEES2_NS_5timerE + 178
-// 3   libtorrent.23.dylib                 0x0000000106ad24bb _ZN7torrent10TrackerUdp14start_announceEPK8sockaddri + 1099
-// 4   libtorrent.23.dylib                 0x0000000106a46bcd _ZNSt3__110__function6__funcIZN7torrent3net8Resolver16process_callbackEPvPK8sockaddriONS_8functionIFvS8_iEEEE3$_0NS_9allocatorISD_EEFvvEEclEv + 45
-// 5   libtorrent.23.dylib                 0x0000000106a66a5b _ZN7torrent5utils6Thread17process_callbacksEv + 251
-// 6   libtorrent.23.dylib                 0x0000000106a665db _ZN7torrent5utils6Thread10event_loopEPS1_ + 283
-// 7   rtorrent                            0x0000000106361424 main + 11348
-// 8   dyld                                0x00007ff8003492cd start + 1805
-
 // Trackers request the same number of times their group #, with no delays.
+// Trackers are too aggressive at the start, only start requesting other groups after first fails after a few seconds.
+// TODO: Test with all hostnames being invalid. This should trigger tracker failures and instant retries bug.
 
 namespace torrent {
 
@@ -78,8 +68,6 @@ UdnsEvent::UdnsEvent() {
 UdnsEvent::~UdnsEvent() {
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
-  // TODO: Do we need to clean up the queries?
-
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
 
@@ -87,23 +75,20 @@ UdnsEvent::~UdnsEvent() {
 }
 
 void
-UdnsEvent::resolve(void* requester, const char *name, int family, resolver_callback&& callback) {
-  auto query = std::unique_ptr<Query>(new Query{
-      requester,
-      name,
-      family,
-      this,
-      false,
-      nullptr,
-      nullptr,
-      callback,
-      0});
+UdnsEvent::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
+  auto query = std::make_unique<Query>();
+
+  query->requester = requester;
+  query->hostname = hostname;
+  query->family = family;
+  query->callback = std::move(callback);
+  query->parent = this;
 
   if (family == AF_INET || family == AF_UNSPEC) {
-    query->a4_query = ::dns_submit_a4(m_ctx, name, 0, a4_callback_wrapper, query.get());
+    query->a4_query = ::dns_submit_a4(m_ctx, hostname.c_str(), 0, a4_callback_wrapper, query.get());
 
     if (query->a4_query == nullptr) {
-      LT_LOG("malformed A query : requester:%p name:'%s'", requester, name);
+      LT_LOG("malformed A query : requester:%p name:%s", requester, hostname.c_str());
 
       // Unrecoverable errors, like ENOMEM.
       if (::dns_status(m_ctx) != DNS_E_BADQUERY)
@@ -122,12 +107,12 @@ UdnsEvent::resolve(void* requester, const char *name, int family, resolver_callb
   }
 
   if (family == AF_INET6 || family == AF_UNSPEC) {
-    query->a6_query = ::dns_submit_a6(m_ctx, name, 0, a6_callback_wrapper, query.get());
+    query->a6_query = ::dns_submit_a6(m_ctx, hostname.c_str(), 0, a6_callback_wrapper, query.get());
 
     // It should be impossible for dns_submit_a6 to fail if dns_submit_a4
     // succeeded, but just in case, make it a hard failure.
     if (query->a6_query == nullptr) {
-      LT_LOG("malformed AAAA query : requester:%p name:'%s'", requester, name);
+      LT_LOG("malformed AAAA query : requester:%p name:%s", requester, hostname.c_str());
 
       if (::dns_status(m_ctx) != DNS_E_BADQUERY)
         throw new internal_error("dns_submit_a6 failed");
@@ -141,7 +126,7 @@ UdnsEvent::resolve(void* requester, const char *name, int family, resolver_callb
     }
   }
 
-  LT_LOG("resolving : requester:%p name:'%s' family:%d", requester, name, family);
+  LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
 
   std::lock_guard<std::mutex> lock(m_mutex);
   m_queries.insert({requester, std::move(query)});
@@ -155,15 +140,15 @@ UdnsEvent::cancel(void* requester) {
   unsigned int query_count = std::distance(range.first, range.second);
 
   for (auto itr = range.first; itr != range.second; ++itr)
-    itr->second->cancelled = true;
+    itr->second->canceled = true;
 
   range = m_malformed_queries.equal_range(requester);
   unsigned int malformed_count = std::distance(range.first, range.second);
 
   for (auto itr = range.first; itr != range.second; ++itr)
-    itr->second->cancelled = true;
+    itr->second->canceled = true;
 
-  LT_LOG("cancelled : requester:%p queries:%d malformed:%d", requester, query_count, malformed_count);
+  LT_LOG("canceled : requester:%p queries:%d malformed:%d", requester, query_count, malformed_count);
 }
 
 void
@@ -173,9 +158,9 @@ UdnsEvent::flush() {
     auto malformed_queries = std::move(m_malformed_queries);
 
     for (auto& query : malformed_queries) {
-      if (!query.second->cancelled) {
-        LT_LOG("flushing malformed query : requester:%p name:'%s'", query.first, query.second->name.c_str());
-        query.second->callback(nullptr, query.second->error);
+      if (!query.second->canceled) {
+        LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
+        query.second->callback(nullptr, nullptr, query.second->error);
       }
     }
   }
@@ -197,6 +182,19 @@ void
 UdnsEvent::event_error() {
   // TODO: Handle error.
 }
+
+std::unique_ptr<UdnsEvent::Query>
+UdnsEvent::erase_query(query_map::iterator itr) {
+  if (itr == m_queries.end())
+    throw internal_error("UdnsEvent::erase_query called with invalid iterator");
+
+  auto query = std::move(itr->second);
+  m_queries.erase(itr);
+
+  query->deleted = true;
+  return query;
+}
+
 
 UdnsEvent::query_map::iterator
 UdnsEvent::find_query(Query* query) {
@@ -244,7 +242,12 @@ UdnsEvent::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void 
 
   std::lock_guard<std::mutex> lock(query->parent->m_mutex);
 
-  auto itr = query->parent->find_query(query);
+  if (query->deleted) {
+    LT_LOG("A records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
+    throw internal_error("UdnsEvent::a4_callback_wrapper called with deleted query");
+  }
+
+  auto itr = query->parent->find_query(static_cast<UdnsEvent::Query*>(data));
   if (itr == query->parent->m_queries.end())
     throw internal_error("UdnsEvent::a4_callback_wrapper called with invalid query");
 
@@ -252,106 +255,98 @@ UdnsEvent::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void 
 
   if (result == nullptr || result->dnsa4_nrr == 0) {
     if (query->a6_query != nullptr) {
-      LT_LOG("no A records, waiting for AAAA : requester:%p name:'%s'", query->requester, query->name.c_str());
+      LT_LOG("no A records, waiting for AAAA : requester:%p name:%s", query->requester, query->hostname.c_str());
       return;
     }
 
-    auto callback = query->callback;
-    query->parent->m_queries.erase(itr);
+    auto current = query->parent->erase_query(itr);
+    auto error = udnserror_to_gaierror(::dns_status(ctx));
 
-    if (query->cancelled) {
-      LT_LOG("no A records, cancelled : requester:%p name:'%s'", query->requester, query->name.c_str());
+    if (current->canceled) {
+      LT_LOG("no A records, canceled : requester:%p name:%s error:'%s'",
+             current->requester, current->hostname.c_str(), gai_strerror(error));
       return;
     }
 
-    LT_LOG("no A records, calling back with error : requester:%p name:'%s' error:'%s'",
-           query->requester, query->name.c_str(), gai_strerror(udnserror_to_gaierror(::dns_status(ctx))));
+    LT_LOG("no A records, calling back with error : requester:%p name:%s error:'%s'",
+           current->requester, current->hostname.c_str(), gai_strerror(error));
 
-    callback(nullptr, udnserror_to_gaierror(::dns_status(ctx)));
+    current->callback(nullptr, nullptr, error);
     return;
   }
 
-  // TODO: Change this to wait for a6 response before the callback.
-  if (query->a6_query != nullptr) {
-    LT_LOG("A records received, skipping AAAA : requester:%p name:'%s'", query->requester, query->name.c_str());
-    ::dns_cancel(ctx, query->a6_query);
-  }
+  query->result_sin = sin_make();
+  query->result_sin->sin_addr = result->dnsa4_addr[0];
 
-  struct sockaddr_in sa{};
-  sa.sin_family = AF_INET;
-  sa.sin_port = 0;
-  sa.sin_addr = result->dnsa4_addr[0];
+  LT_LOG("A records received : requester:%p name:%s nrr:%d",
+         query->requester, query->hostname.c_str(), result->dnsa4_nrr);
 
-  auto callback = query->callback;
-  query->parent->m_queries.erase(itr);
-
-  if (query->cancelled) {
-    LT_LOG("A records received, cancelled : requester:%p name:'%s' nrr:%d",
-           query->requester, query->name.c_str(), result->dnsa4_nrr);
-    return;
-  }
-
-  LT_LOG("A records received, calling back : requester:%p name:'%s' nrr:%d",
-         query->requester, query->name.c_str(), result->dnsa4_nrr);
-
-  callback(reinterpret_cast<sockaddr*>(&sa), 0);
+  process_result(itr);
 }
 
 void
 UdnsEvent::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
   auto query = static_cast<UdnsEvent::Query*>(data);
-  query->a6_query = nullptr;
 
   std::lock_guard<std::mutex> lock(query->parent->m_mutex);
+
+  if (query->deleted) {
+    LT_LOG("AAAA records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
+    throw internal_error("UdnsEvent::a6_callback_wrapper called with deleted query");
+  }
 
   auto itr = query->parent->find_query(query);
   if (itr == query->parent->m_queries.end())
     throw internal_error("UdnsEvent::a6_callback_wrapper called with invalid query");
 
+  query->a6_query = nullptr;
+
   if (result == nullptr || result->dnsa6_nrr == 0) {
     if (query->a4_query != nullptr) {
-      LT_LOG("no AAAA records, waiting for A : requester:%p name:'%s'", query->requester, query->name.c_str());
+      LT_LOG("no AAAA records, waiting for A : requester:%p name:%s", query->requester, query->hostname.c_str());
       return;
     }
 
-    auto callback = query->callback;
-    query->parent->m_queries.erase(itr);
+    auto current = query->parent->erase_query(itr);
+    auto error = udnserror_to_gaierror(::dns_status(ctx));
 
-    if (query->cancelled) {
-      LT_LOG("no AAAA records, cancelled : requester:%p name:'%s'", query->requester, query->name.c_str());
+    if (current->canceled) {
+      LT_LOG("no AAAA records, canceled : requester:%p name:%s error:'%s'",
+             current->requester, current->hostname.c_str(), gai_strerror(error));
       return;
     }
 
-    LT_LOG("no AAAA records, calling back with error : requester:%p name:'%s' error:'%s'",
-           query->requester, query->name.c_str(), gai_strerror(udnserror_to_gaierror(::dns_status(ctx))));
+    LT_LOG("no AAAA records, calling back with error : requester:%p name:%s error:'%s'",
+           current->requester, current->hostname.c_str(), gai_strerror(error));
 
-    callback(nullptr, udnserror_to_gaierror(::dns_status(ctx)));
+    current->callback(nullptr, nullptr, error);
     return;
   }
 
-  if (query->a4_query != nullptr) {
-    LT_LOG("AAAA records received, skipping A : requester:%p name:'%s'", query->requester, query->name.c_str());
-    ::dns_cancel(ctx, query->a4_query);
-  }
+  query->result_sin6 = sin6_make();
+  query->result_sin6->sin6_addr = result->dnsa6_addr[0];
 
-  struct sockaddr_in6 sa{};
-  sa.sin6_family = AF_INET6;
-  sa.sin6_port = 0;
-  sa.sin6_addr = result->dnsa6_addr[0];
+  LT_LOG("AAAA records received : requester:%p name:%s nrr:%d",
+         query->requester, query->hostname.c_str(), result->dnsa6_nrr);
 
-  auto callback = query->callback;
-  query->parent->m_queries.erase(itr);
+  process_result(itr);
+}
 
-  if (query->cancelled) {
-    LT_LOG("AAAA records received, cancelled : requester:%p name:'%s' nrr:%d",
-           query->requester, query->name.c_str(), result->dnsa6_nrr);
+void
+UdnsEvent::process_result(query_map::iterator itr) {
+  if (itr->second->a4_query != nullptr ||itr->second->a6_query != nullptr)
+    return;
+
+  auto query = itr->second->parent->erase_query(itr);
+
+  if (query->canceled) {
+    LT_LOG("processing results, canceled : requester:%p name:%s", query->requester, query->hostname.c_str());
     return;
   }
 
-  LT_LOG("AAAA records received, calling back : requester:%p name:'%s' nrr:%d",
-         query->requester, query->name.c_str(), result->dnsa6_nrr);
+  LT_LOG("processing results, calling back : requester:%p name:%s", query->requester, query->hostname.c_str());
 
-  callback(reinterpret_cast<sockaddr*>(&sa), 0);
+  query->callback(query->result_sin, query->result_sin6, 0);
 }
 
 } // namespace torrent
