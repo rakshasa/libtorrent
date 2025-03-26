@@ -70,7 +70,6 @@ private:
   sin6_unique_ptr     m_inet6_address;
 
   int                 m_port{0};
-
   int                 m_send_state{0};
 
   uint32_t            m_action;
@@ -80,9 +79,12 @@ private:
   std::unique_ptr<ReadBuffer>  m_read_buffer;
   std::unique_ptr<WriteBuffer> m_write_buffer;
 
-  uint32_t            m_tries;
+  uint32_t            m_tries{0};
 
-  rak::priority_item  m_taskTimeout;
+  rak::timer          m_time_last_resolved;
+  uint32_t            m_failed_since_last_resolved{0};
+
+  rak::priority_item  m_task_timeout;
 };
 
 }

@@ -35,7 +35,8 @@ public:
 
     sin_shared_ptr    result_sin;
     sin6_shared_ptr   result_sin6;
-    int               error{0};
+    int               error_sin{0};
+    int               error_sin6{0};
   };
 
   typedef std::multimap<void*, std::unique_ptr<Query>> query_map;

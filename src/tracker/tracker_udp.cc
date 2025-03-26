@@ -37,7 +37,7 @@ namespace torrent {
 TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
   TrackerWorker(info, flags) {
 
-  m_taskTimeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
+  m_task_timeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
 }
 
 TrackerUdp::~TrackerUdp() {
@@ -70,15 +70,19 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   LT_LOG("resolving hostname : requester:%p address:%s", this, hostname.data());
 
-  // Currently discarding SOCK_DGRAM filter.
+  if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
+      (cachedTime - m_time_last_resolved) > rak::timer::from_minutes(24 * 60) ||
+      m_failed_since_last_resolved > 3) {
 
-  // TODO: Only resolve again if we fail to connect several times in a row, or we get an event for
-  // network connection/setting change. (not implemented yet)
+    // Currently discarding SOCK_DGRAM filter.
+    thread_self->resolver()->resolve_both(this, hostname.data(), AF_UNSPEC,
+                                          [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
+                                            receive_resolved(sin, sin6, err);
+                                          });
+    return;
+  }
 
-  thread_self->resolver()->resolve_both(this, hostname.data(), AF_UNSPEC,
-                                        [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
-                                          receive_resolved(sin, sin6, err);
-                                        });
+  start_announce();
 }
 
 void
@@ -131,7 +135,7 @@ TrackerUdp::close_directly() {
   m_read_buffer = nullptr;
   m_write_buffer = nullptr;
 
-  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+  priority_queue_erase(&taskScheduler, &m_task_timeout);
 
   if (!get_fd().is_valid())
     return;
@@ -152,6 +156,8 @@ TrackerUdp::type() const {
 
 void
 TrackerUdp::receive_failed(const std::string& msg) {
+  m_failed_since_last_resolved++;
+
   close_directly();
   m_slot_failure(msg);
 }
@@ -178,28 +184,35 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
   if (sin != nullptr) {
     m_inet_address = sin_copy(sin.get());
     sa_set_port((sockaddr*)m_inet_address.get(), m_port);
+  } else {
+    m_inet_address = nullptr;
   }
 
   if (sin6 != nullptr) {
     m_inet6_address = sin6_copy(sin6.get());
     sa_set_port((sockaddr*)m_inet6_address.get(), m_port);
+  } else {
+    m_inet6_address = nullptr;
   }
+
+  m_time_last_resolved = cachedTime;
+  m_failed_since_last_resolved = 0;
 
   start_announce();
 }
 
 void
 TrackerUdp::receive_timeout() {
-  if (m_taskTimeout.is_queued())
-    throw internal_error("TrackerUdp::receive_timeout() called but m_taskTimeout is still scheduled.");
+  if (m_task_timeout.is_queued())
+    throw internal_error("TrackerUdp::receive_timeout() called but m_task_timeout is still scheduled.");
 
   if (--m_tries == 0) {
     receive_failed("unable to connect to UDP tracker");
-  } else {
-    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
-
-    thread_self->poll()->insert_write(this);
+    return;
   }
+
+  priority_queue_insert(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
+  thread_self->poll()->insert_write(this);
 }
 
 void
@@ -247,7 +260,7 @@ TrackerUdp::start_announce() {
   thread_self->poll()->insert_error(this);
 
   m_tries = udp_tries;
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
+  priority_queue_insert(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 }
 
 void
@@ -278,7 +291,7 @@ TrackerUdp::event_read() {
 
     prepare_announce_input();
 
-    priority_queue_update(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
+    priority_queue_update(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 
     m_tries = udp_tries;
     thread_self->poll()->insert_write(this);

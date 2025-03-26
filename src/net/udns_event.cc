@@ -45,10 +45,9 @@ udnserror_to_gaierror(int udnserror) {
 
 UdnsEvent::UdnsEvent() {
   if (!m_initialized) {
+    LT_LOG("initializing udns", 0);
     ::dns_init(nullptr, 0);
     m_initialized = true;
-
-    // TODO: LOG initialization.
   }
 
   // Contexts are not thread-safe.
@@ -93,7 +92,7 @@ UdnsEvent::resolve(void* requester, const std::string& hostname, int family, res
       // UDNS will fail immediately during submission of malformed domain names,
       // e.g., `..`. In order to maintain a clean interface, keep track of this
       // query internally so we can call the callback later with a failure code.
-      query->error = EAI_NONAME;
+      query->error_sin = EAI_NONAME;
 
       std::lock_guard<std::mutex> lock(m_mutex);
       m_malformed_queries.insert({requester, std::move(query)});
@@ -113,7 +112,12 @@ UdnsEvent::resolve(void* requester, const std::string& hostname, int family, res
       if (::dns_status(m_ctx) != DNS_E_BADQUERY)
         throw new internal_error("dns_submit_a6 failed");
 
-      query->error = EAI_NONAME;
+      if (query->a4_query != nullptr) {
+        ::dns_cancel(m_ctx, query->a4_query);
+        query->a4_query = nullptr;
+      }
+
+      query->error_sin = EAI_NONAME;
 
       std::lock_guard<std::mutex> lock(m_mutex);
       m_malformed_queries.insert({requester, std::move(query)});
@@ -154,10 +158,16 @@ UdnsEvent::flush() {
     auto malformed_queries = std::move(m_malformed_queries);
 
     for (auto& query : malformed_queries) {
-      if (!query.second->canceled) {
-        LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
-        query.second->callback(nullptr, nullptr, query.second->error);
-      }
+      if (query.second->canceled)
+        continue;
+
+      LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
+
+      int error = query.second->error_sin != 0 ? query.second->error_sin : query.second->error_sin6;
+      if (error == 0)
+        throw internal_error("attempting to flush malformed query with no error");
+
+      query.second->callback(nullptr, nullptr, error);
     }
   }
 
@@ -250,24 +260,12 @@ UdnsEvent::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void 
   query->a4_query = nullptr;
 
   if (result == nullptr || result->dnsa4_nrr == 0) {
-    if (query->a6_query != nullptr) {
-      LT_LOG("no A records, waiting for AAAA : requester:%p name:%s", query->requester, query->hostname.c_str());
-      return;
-    }
+    query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
 
-    auto current = query->parent->erase_query(itr);
-    auto error = udnserror_to_gaierror(::dns_status(ctx));
+    LT_LOG("no A records received : requester:%p name:%s error:'%s'",
+           query->requester, query->hostname.c_str(), gai_strerror(query->error_sin));
 
-    if (current->canceled) {
-      LT_LOG("no A records, canceled : requester:%p name:%s error:'%s'",
-             current->requester, current->hostname.c_str(), gai_strerror(error));
-      return;
-    }
-
-    LT_LOG("no A records, calling back with error : requester:%p name:%s error:'%s'",
-           current->requester, current->hostname.c_str(), gai_strerror(error));
-
-    current->callback(nullptr, nullptr, error);
+    process_result(itr);
     return;
   }
 
@@ -298,24 +296,12 @@ UdnsEvent::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void 
   query->a6_query = nullptr;
 
   if (result == nullptr || result->dnsa6_nrr == 0) {
-    if (query->a4_query != nullptr) {
-      LT_LOG("no AAAA records, waiting for A : requester:%p name:%s", query->requester, query->hostname.c_str());
-      return;
-    }
+    query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
 
-    auto current = query->parent->erase_query(itr);
-    auto error = udnserror_to_gaierror(::dns_status(ctx));
+    LT_LOG("no AAAA records received, calling back with error : requester:%p name:%s error:'%s'",
+           query->requester, query->hostname.c_str(), gai_strerror(query->error_sin6));
 
-    if (current->canceled) {
-      LT_LOG("no AAAA records, canceled : requester:%p name:%s error:'%s'",
-             current->requester, current->hostname.c_str(), gai_strerror(error));
-      return;
-    }
-
-    LT_LOG("no AAAA records, calling back with error : requester:%p name:%s error:'%s'",
-           current->requester, current->hostname.c_str(), gai_strerror(error));
-
-    current->callback(nullptr, nullptr, error);
+    process_result(itr);
     return;
   }
 
@@ -330,7 +316,7 @@ UdnsEvent::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void 
 
 void
 UdnsEvent::process_result(query_map::iterator itr) {
-  if (itr->second->a4_query != nullptr ||itr->second->a6_query != nullptr)
+  if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr)
     return;
 
   auto query = itr->second->parent->erase_query(itr);
@@ -341,6 +327,11 @@ UdnsEvent::process_result(query_map::iterator itr) {
   }
 
   LT_LOG("processing results, calling back : requester:%p name:%s", query->requester, query->hostname.c_str());
+
+  if (query->result_sin == nullptr && query->result_sin6 == nullptr) {
+    query->callback(nullptr, nullptr, query->error_sin != 0 ? query->error_sin : query->error_sin6);
+    return;
+  }
 
   query->callback(query->result_sin, query->result_sin6, 0);
 }
