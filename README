@@ -1,27 +1,22 @@
-LibTorrent
-
-Copyright (C) 2005-2014, Jari Sundell
-
-LICENSE
-
- GNU GPL, see COPYING. "libtorrent/src/utils/sha_fast.{cc,h}" is
-originally from the Mozilla NSS and is under a triple license; MPL,
-LGPL and GPL. An exception to non-NSS code has been added for linking
-to OpenSSL as requested by Debian, though the author considers that
-library to be part of the Operative System and thus linking is allowed
-according to the GPL.
-
- Use whatever fits your purpose, the code required to compile with
-Mozilla's NSS implementation of SHA1 has been retained and can be
-compiled if the user wishes to avoid using OpenSSL.
-
-CONTACT
-
- Jari Sundell
-
- Skomakerveien 33
- 3185 Skoppum, NORWAY
-
- Send bug reports, suggestions and patches to
-<sundell.software@gmail.com> or to the mailinglist.
-
+#### When the people want to buil LibTorrent from the branch master :
+```
+git clone https://github.com/rakshasa/libtorrent.git RakShasa-LibTorrent;\
+cd RakShasa-LibTorrent;\
+git checkout master;\
+autoreconf -fi;\
+./configure;\
+make;\
+make install;\
+cd ../;
+```
+#### When the people want to buil LibTorrent from the latest release (2023/03/27 currently = v0.13.8) :
+```
+git clone https://github.com/rakshasa/libtorrent.git RakShasa-LibTorrent;\
+cd RakShasa-LibTorrent;\
+git checkout v0.13.8;\
+./autogen.sh;\
+./configure;\
+make;\
+make install;\
+cd ../;
+```
