@@ -66,8 +66,6 @@ public:
 
   static const uint32_t unlimited = ~uint32_t();
 
-  group_entry() : m_max_slots(unlimited), m_min_slots(0) {}
-
   uint32_t            size_connections() const  { return m_queued.size() + m_unchoked.size(); }
 
   uint32_t            max_slots() const         { return m_max_slots; }
@@ -93,8 +91,8 @@ protected:
   void                connection_unqueued(PeerConnectionBase* pcb);
 
 private:
-  uint32_t            m_max_slots;
-  uint32_t            m_min_slots;
+  uint32_t            m_max_slots{unlimited};
+  uint32_t            m_min_slots{0};
 
   // After a cycle the end of the vector should have the
   // highest-priority connections, and any new connections get put at

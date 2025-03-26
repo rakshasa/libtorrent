@@ -7,8 +7,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Event {
 public:
-  Event();
-  virtual ~Event();
+  virtual ~Event() = default;
 
   // TODO: Disable override.
   bool is_open() const;
@@ -26,14 +25,12 @@ protected:
   void close_file_descriptor();
   void set_file_descriptor(int fd);
 
-  int  m_fileDesc;
+  int  m_fileDesc{-1};
 
   // TODO: Deprecate.
-  bool m_ipv6_socket;
+  bool m_ipv6_socket{false};
 };
 
-inline Event::Event() : m_fileDesc(-1), m_ipv6_socket(false) {}
-inline Event::~Event() = default;
 inline bool Event::is_open() const { return file_descriptor() != -1; }
 inline int  Event::file_descriptor() const { return m_fileDesc; }
 inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }

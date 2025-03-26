@@ -55,7 +55,7 @@ public:
   typedef download_data* id_type;
 
   HashQueueNode(id_type id, HashChunk* c, slot_done_type d) :
-      m_id(id), m_chunk(c), m_willneed(false), m_slot_done(std::move(d)) {}
+      m_id(id), m_chunk(c),  m_slot_done(std::move(d)) {}
 
   id_type             id() const                    { return m_id; }
   ChunkHandle&        handle()                      { return *m_chunk->chunk(); }
@@ -78,7 +78,7 @@ public:
 private:
   id_type             m_id;
   HashChunk*          m_chunk;
-  bool                m_willneed;
+  bool                m_willneed{false};
 
   slot_done_type      m_slot_done;
 };
