@@ -69,9 +69,9 @@ public:
   virtual void        stop_thread();
   void                stop_thread_wait();
 
-  // You cannot cancel callbacks from within a callback on same thread.
   void                callback(void* target, std::function<void ()>&& fn);
   void                cancel_callback(void* target);
+  void                cancel_callback_and_wait(void* target);
 
   void                interrupt();
   void                send_event_signal(unsigned int index, bool interrupt = true);
@@ -120,8 +120,10 @@ protected:
   std::unique_ptr<thread_interrupt> m_interrupt_sender;
   std::unique_ptr<thread_interrupt> m_interrupt_receiver;
 
-  std::mutex                                         m_callback_lock;
+  std::mutex                                         m_callbacks_lock;
   std::multimap<const void*, std::function<void ()>> m_callbacks;
+  std::mutex                                         m_callbacks_processing_lock;
+  std::atomic<bool>                                  m_callbacks_processing{false};
 };
 
 inline bool

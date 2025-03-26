@@ -18,10 +18,6 @@
 #define LT_LOG(log_fmt, ...)                                \
   lt_log_print_subsystem(LOG_NET_DNS, "dns", log_fmt, __VA_ARGS__);
 
-// Trackers request the same number of times their group #, with no delays.
-// Trackers are too aggressive at the start, only start requesting other groups after first fails after a few seconds.
-// TODO: Test with all hostnames being invalid. This should trigger tracker failures and instant retries bug.
-
 namespace torrent {
 
 bool UdnsEvent::m_initialized = false;

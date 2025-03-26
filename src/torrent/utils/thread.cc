@@ -73,11 +73,9 @@ Thread::stop_thread_wait() {
 
 void
 Thread::callback(void* target, std::function<void ()>&& fn) {
-  std::lock_guard<std::mutex> guard(m_callback_lock);
+  std::lock_guard<std::mutex> guard(m_callbacks_lock);
 
   m_callbacks.emplace(target, std::move(fn));
-
-  // TODO: Add process_callbacks to all threads.
   interrupt();
 }
 
@@ -86,9 +84,17 @@ Thread::cancel_callback(void* target) {
   if (target == nullptr)
     throw internal_error("Thread::cancel_callback called with a null pointer target.");
 
-  std::lock_guard<std::mutex> guard(m_callback_lock);
+  std::lock_guard<std::mutex> guard(m_callbacks_lock);
 
   m_callbacks.erase(target);
+}
+
+void
+Thread::cancel_callback_and_wait(void* target) {
+  cancel_callback(target);
+
+  if (m_callbacks_processing)
+    std::unique_lock<std::mutex> lock(m_callbacks_processing_lock);
 }
 
 // Fix interrupting when shutting down thread.
@@ -197,19 +203,25 @@ Thread::event_loop(Thread* thread) {
 void
 Thread::process_callbacks() {
   while (true) {
-    std::multimap<const void*, std::function<void ()>> callbacks;
+    std::function<void ()> callback;
 
     {
-      std::lock_guard<std::mutex> guard(m_callback_lock);
+      std::lock_guard<std::mutex> guard(m_callbacks_lock);
 
-      callbacks.swap(m_callbacks);
+      if (m_callbacks.empty())
+        break;
+
+      callback = m_callbacks.extract(m_callbacks.begin()).mapped();
+
+      // The 'm_callbacks_processing_lock' is used by 'cancel_callback_and_wait' as a way to wait
+      // for the processing of the callbacks to finish.
+      m_callbacks_processing_lock.lock();
+      m_callbacks_processing = true;
     }
 
-    if (callbacks.empty())
-      return;
-
-    for (const auto& callback : callbacks)
-      callback.second();
+    callback();
+    m_callbacks_processing = false;
+    m_callbacks_processing_lock.unlock();
   }
 }
 

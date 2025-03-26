@@ -51,16 +51,16 @@ TrackerUdp::is_busy() const {
 
 void
 TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
-  // TODO: Change this to only reopen if there's multiple failed requests.
+  LT_LOG("sending event : requester:%p state:%s url:%s",
+         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
+  // TODO: Don't close fd for every new request.
   close_directly();
 
   hostname_type hostname;
 
   if (!parse_udp_url(info().url, hostname, m_port))
     return receive_failed("could not parse hostname or port");
-
-  LT_LOG("send event (state:%s url:%s)",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   lock_and_set_latest_event(new_state);
 
@@ -99,12 +99,11 @@ TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& 
   return false;
 }
 
+// TODO: Controller should not need to close the tracker when starting a new request.
+
 void
 TrackerUdp::close() {
-  if (!get_fd().is_valid())
-    return;
-
-  LT_LOG("request cancelled : requester:%p state:%s url:%s",
+  LT_LOG("closing event : requester:%p state:%s url:%s",
          this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
@@ -112,10 +111,7 @@ TrackerUdp::close() {
 
 void
 TrackerUdp::disown() {
-  if (!get_fd().is_valid())
-    return;
-
-  LT_LOG("request disowned : requester:%p state:%s url:%s",
+  LT_LOG("disowning tracker : requester:%p state:%s url:%s",
          this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
@@ -123,7 +119,7 @@ TrackerUdp::disown() {
 
 void
 TrackerUdp::close_directly() {
-  LT_LOG("closing : requester:%p state:%s url:%s",
+  LT_LOG("closing directly : requester:%p state:%s url:%s",
          this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   if (m_resolver_requesting)

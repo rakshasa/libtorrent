@@ -79,10 +79,15 @@ Resolver::resolve_specific(void* requester, const std::string& hostname, int fam
 
 void
 Resolver::cancel(void* requester) {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
+  // While processing results, udns is locked so we only need to cancel the callback before
+  // canceling the request.
+  thread_net->cancel_callback_and_wait(requester);
+
   torrent::thread_net->udns()->cancel(requester);
 
-  m_thread->cancel_callback(requester);
-  thread_net->cancel_callback(requester);
+  m_thread->cancel_callback_and_wait(requester);
 }
 
 } // namespace
