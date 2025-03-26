@@ -119,15 +119,15 @@ Thread::event_loop(Thread* thread) {
 
   auto previous_state = STATE_INITIALIZED;
 
-  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
-    throw internal_error("Thread::event_loop called on an object that is not in the initialized state.");
-
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(thread->name());
 #elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
   // Cannot use thread->m_thread here as it may not be set before pthread_create returns.
   pthread_setname_np(pthread_self(), thread->name());
 #endif
+
+  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
+    throw internal_error("Thread::event_loop called on an object that is not in the initialized state.");
 
   lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
 
