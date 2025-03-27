@@ -8,6 +8,7 @@
 #include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object.h"
+#include "torrent/net/types.h"
 #include "torrent/tracker/dht_controller.h"
 
 namespace torrent {
@@ -55,7 +56,7 @@ public:
   // Add the given host to the list of potential contacts if we haven't
   // completed the bootstrap process, or contact the given address directly.
   void                add_contact(const std::string& host, int port);
-  void                contact(const rak::socket_address* sa, int port);
+  void                contact(const sockaddr* sa, int port);
 
   // Retrieve node of given ID in constant time. Return NULL if not found, unless
   // it's our own ID in which case it returns the DhtRouter object.

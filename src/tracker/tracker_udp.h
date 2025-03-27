@@ -2,14 +2,14 @@
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
 #include <array>
-#include <rak/socket_address.h>
+#include <memory>
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
-#include "torrent/connection_manager.h"
+#include "rak/priority_queue_default.h"
+#include "rak/socket_address.h"
+#include "torrent/net/types.h"
 #include "tracker/tracker_worker.h"
-
-#include "globals.h"
 
 namespace torrent {
 
@@ -19,8 +19,6 @@ public:
 
   typedef ProtocolBuffer<512> ReadBuffer;
   typedef ProtocolBuffer<512> WriteBuffer;
-
-  typedef ConnectionManager::slot_resolver_result_type resolver_type;
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 
@@ -50,9 +48,10 @@ private:
   void                close_directly();
 
   void                receive_failed(const std::string& msg);
+  void                receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err);
   void                receive_timeout();
 
-  void                start_announce(const sockaddr* sa, int err);
+  void                start_announce();
 
   void                prepare_connect_input();
   void                prepare_announce_input();
@@ -62,26 +61,30 @@ private:
   bool                process_error_output();
 
   bool                parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const;
-  resolver_type*      make_resolver_slot(const hostname_type& hostname);
 
-  rak::socket_address m_connectAddress;
+  bool                m_resolver_requesting{false};
+  bool                m_sending_announce{false};
+
+  sockaddr*           m_current_address{nullptr};
+  sin_unique_ptr      m_inet_address;
+  sin6_unique_ptr     m_inet6_address;
+
   int                 m_port{0};
-
   int                 m_send_state{0};
 
-  // TODO: Fix resolver to be thread safe.
-  resolver_type*      m_slot_resolver{nullptr};
-
   uint32_t            m_action;
-  uint64_t            m_connectionId;
-  uint32_t            m_transactionId;
+  uint64_t            m_connection_id{0};
+  uint32_t            m_transaction_id{0};
 
-  ReadBuffer*         m_readBuffer{nullptr};
-  WriteBuffer*        m_writeBuffer{nullptr};
+  std::unique_ptr<ReadBuffer>  m_read_buffer;
+  std::unique_ptr<WriteBuffer> m_write_buffer;
 
-  uint32_t            m_tries;
+  uint32_t            m_tries{0};
 
-  rak::priority_item  m_taskTimeout;
+  rak::timer          m_time_last_resolved;
+  uint32_t            m_failed_since_last_resolved{0};
+
+  rak::priority_item  m_task_timeout;
 };
 
 }

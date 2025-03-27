@@ -62,10 +62,6 @@ public:
   typedef std::function<uint32_t (const sockaddr*)>     slot_filter_type;
   typedef std::function<ThrottlePair (const sockaddr*)> slot_throttle_type;
 
-  // The sockaddr argument in the result slot call is NULL if the resolve failed, and the int holds the errno.
-  typedef std::function<void (const sockaddr*, int)> slot_resolver_result_type;
-  typedef std::function<slot_resolver_result_type* (const char*, int, int, slot_resolver_result_type)> slot_resolver_type;
-
   ConnectionManager();
   ~ConnectionManager();
   ConnectionManager(const ConnectionManager&) = delete;
@@ -118,12 +114,6 @@ public:
   void                set_listen_port(port_type p)            { m_listen_port = p; }
   void                set_listen_backlog(int v);
 
-  // The resolver returns a pointer to its copy of the result slot
-  // which the caller may set blocked to prevent the slot from being
-  // called. The pointer must be NULL if the result slot was already
-  // called because the resolve was synchronous.
-  slot_resolver_type& resolver()          { return m_slot_resolver; }
-
   // The slot returns a ThrottlePair to use for the given address, or
   // NULLs to use the default throttle.
   slot_throttle_type& address_throttle()  { return m_slot_address_throttle; }
@@ -158,7 +148,6 @@ private:
   uint32_t            m_listen_backlog;
 
   slot_filter_type    m_slot_filter;
-  slot_resolver_type  m_slot_resolver;
   slot_throttle_type  m_slot_address_throttle;
 
   bool                m_block_ipv4;

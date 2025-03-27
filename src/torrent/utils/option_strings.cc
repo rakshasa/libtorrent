@@ -180,6 +180,8 @@ const char* option_list_log_group[] = {
 
   "mock_calls",
 
+  "net_dns",
+
   "peer_list_events",
   "peer_list_address",
 

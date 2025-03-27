@@ -25,10 +25,14 @@ ThreadTracker::init_thread() {
   if (!Poll::slot_create_poll())
     throw internal_error("ThreadTracker::init_thread(): Poll::slot_create_poll() not valid.");
 
-  m_poll = Poll::slot_create_poll()();
+  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
+
+  m_signal_send_event = thread_self->signal_bitfield()->add_signal([this]() {
+    process_send_events();
+  });
 }
 
 void
@@ -59,6 +63,8 @@ ThreadTracker::call_events() {
     m_flags |= flag_did_shutdown;
     throw shutdown_exception();
   }
+
+  process_callbacks();
 }
 
 int64_t

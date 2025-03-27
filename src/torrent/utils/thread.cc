@@ -8,6 +8,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
+#include "torrent/net/resolver.h"
 #include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
@@ -31,7 +32,10 @@ Thread::Thread() :
   m_interrupt_receiver = std::move(interrupt_sockets.second);
 }
 
-Thread::~Thread() = default;
+Thread::~Thread() {
+  // Disown m_poll instead of deleting it as we don't properly clean up all the sockets.
+  m_poll.release();
+}
 
 void
 Thread::start_thread() {
@@ -44,8 +48,8 @@ Thread::start_thread() {
   if (pthread_create(&m_thread, NULL, (pthread_func)&Thread::event_loop, this))
     throw internal_error("Failed to create thread.");
 
-  while (m_thread_id == std::thread::id())
-    usleep(1);
+  while (m_state != STATE_ACTIVE)
+    usleep(100);
 }
 
 void
@@ -67,6 +71,32 @@ Thread::stop_thread_wait() {
   acquire_global_lock();
 }
 
+void
+Thread::callback(void* target, std::function<void ()>&& fn) {
+  std::lock_guard<std::mutex> guard(m_callbacks_lock);
+
+  m_callbacks.emplace(target, std::move(fn));
+  interrupt();
+}
+
+void
+Thread::cancel_callback(void* target) {
+  if (target == nullptr)
+    throw internal_error("Thread::cancel_callback called with a null pointer target.");
+
+  std::lock_guard<std::mutex> guard(m_callbacks_lock);
+
+  m_callbacks.erase(target);
+}
+
+void
+Thread::cancel_callback_and_wait(void* target) {
+  cancel_callback(target);
+
+  if (m_callbacks_processing)
+    std::unique_lock<std::mutex> lock(m_callbacks_processing_lock);
+}
+
 // Fix interrupting when shutting down thread.
 void
 Thread::interrupt() {
@@ -86,12 +116,14 @@ Thread::event_loop(Thread* thread) {
     throw internal_error("Thread::event_loop called with a null pointer thread");
 
   thread_self = thread;
+
   thread->m_thread_id = std::this_thread::get_id();
+  thread->m_signal_bitfield.handover(std::this_thread::get_id());
+
+  if (thread->m_resolver)
+    thread->m_resolver->init();
 
   auto previous_state = STATE_INITIALIZED;
-
-  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
-    throw internal_error("Thread::event_loop called on an object that is not in the initialized state.");
 
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(thread->name());
@@ -100,9 +132,10 @@ Thread::event_loop(Thread* thread) {
   pthread_setname_np(pthread_self(), thread->name());
 #endif
 
-  lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
+  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
+    throw internal_error("Thread::event_loop called on an object that is not in the initialized state.");
 
-  thread->m_signal_bitfield.handover(std::this_thread::get_id());
+  lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
 
   try {
 
@@ -165,6 +198,31 @@ Thread::event_loop(Thread* thread) {
     throw internal_error("Thread::event_loop called on an object that is not in the active state.");
 
   return NULL;
+}
+
+void
+Thread::process_callbacks() {
+  while (true) {
+    std::function<void ()> callback;
+
+    {
+      std::lock_guard<std::mutex> guard(m_callbacks_lock);
+
+      if (m_callbacks.empty())
+        break;
+
+      callback = m_callbacks.extract(m_callbacks.begin()).mapped();
+
+      // The 'm_callbacks_processing_lock' is used by 'cancel_callback_and_wait' as a way to wait
+      // for the processing of the callbacks to finish.
+      m_callbacks_processing_lock.lock();
+      m_callbacks_processing = true;
+    }
+
+    callback();
+    m_callbacks_processing = false;
+    m_callbacks_processing_lock.unlock();
+  }
 }
 
 }

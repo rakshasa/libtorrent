@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_THREAD_DISK_H
-#define LIBTORRENT_THREAD_DISK_H
+#ifndef LIBTORRENT_DATA_THREAD_DISK_H
+#define LIBTORRENT_DATA_THREAD_DISK_H
 
 #include "data/hash_check_queue.h"
 #include "torrent/utils/thread.h"
@@ -25,6 +25,6 @@ protected:
 
 extern ThreadDisk* thread_disk;
 
-}
+} // namespace torrent
 
-#endif
+#endif // LIBTORRENT_DATA_THREAD_DISK_H

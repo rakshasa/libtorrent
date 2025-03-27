@@ -52,13 +52,15 @@ struct thread_management_type {
 
 #define SETUP_THREAD_DISK()                                             \
   thread_management_type thread_management;                             \
+  torrent::thread_self = new test_thread();                             \
   torrent::thread_disk = new torrent::ThreadDisk();                     \
   torrent::thread_disk->init_thread();                                  \
   torrent::thread_disk->start_thread();
-
 
 #define CLEANUP_THREAD_DISK()                                           \
   torrent::thread_disk->stop_thread();                                  \
   CPPUNIT_ASSERT(wait_for_true(std::bind(&torrent::utils::Thread::is_inactive, torrent::thread_disk))); \
   delete torrent::thread_disk;                                          \
+  delete torrent::thread_self;                                          \
+  torrent::thread_self = nullptr;                                       \
   torrent::thread_disk = nullptr;

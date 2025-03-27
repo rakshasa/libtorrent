@@ -7,7 +7,7 @@ class test_hash_check_queue : public test_fixture {
   CPPUNIT_TEST(test_multiple);
   CPPUNIT_TEST(test_erase);
 
-  CPPUNIT_TEST(test_thread);
+  CPPUNIT_TEST(test_thread_interrupt);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -18,7 +18,7 @@ public:
   void test_multiple();
   void test_erase();
 
-  void test_thread();
+  void test_thread_interrupt();
 };
 
 #import <map>

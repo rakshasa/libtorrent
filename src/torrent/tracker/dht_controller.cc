@@ -100,9 +100,9 @@ DhtController::set_receive_requests(bool state) {
 }
 
 void
-DhtController::add_node(const sockaddr* addr, int port) {
+DhtController::add_node(const sockaddr* sa, int port) {
   if (!m_router)
-    m_router->contact(rak::socket_address::cast_from(addr), port);
+    m_router->contact(sa, port);
 }
 
 void
