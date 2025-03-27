@@ -54,7 +54,7 @@ FileManager::open(value_type file, int prot, int flags) {
 
 #ifdef USE_POSIX_FADVISE
   if (m_advise_random)
-    posix_fadvise(fd, 0, 0, POSIX_FADV_RANDOM);
+    posix_fadvise(fd.get_fd(), 0, 0, POSIX_FADV_RANDOM);
 #endif
 
   base_type::push_back(file);
