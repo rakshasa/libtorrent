@@ -15,9 +15,7 @@ struct dns_rr_a6;
 
 namespace torrent {
 
-// TODO: Rename to UdnsResolver.
-
-class UdnsEvent : public Event {
+class UdnsResolver : public Event {
 public:
   typedef std::function<void (sin_shared_ptr, sin6_shared_ptr, int)> resolver_callback;
 
@@ -27,7 +25,7 @@ public:
     int               family;
     resolver_callback callback;
 
-    UdnsEvent*        parent;
+    UdnsResolver*     parent;
     bool              canceled{false};
     bool              deleted{false};
     ::dns_query*      a4_query{nullptr};
@@ -41,8 +39,8 @@ public:
 
   typedef std::multimap<void*, std::unique_ptr<Query>> query_map;
 
-  UdnsEvent();
-  ~UdnsEvent();
+  UdnsResolver();
+  ~UdnsResolver();
 
   const char*         type_name() const override { return "udns"; }
 

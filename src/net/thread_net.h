@@ -5,7 +5,7 @@
 
 namespace torrent {
 
-class UdnsEvent;
+class UdnsResolver;
 
 class ThreadNet : public utils::Thread {
 public:
@@ -22,10 +22,10 @@ protected:
   void                call_events() override;
   int64_t             next_timeout_usec() override;
 
-  UdnsEvent*          udns() const { return m_udns.get(); }
+  UdnsResolver*       udns() const { return m_udns.get(); }
 
 private:
-  std::unique_ptr<UdnsEvent> m_udns;
+  std::unique_ptr<UdnsResolver> m_udns;
 };
 
 extern ThreadNet* thread_net;

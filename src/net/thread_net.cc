@@ -14,7 +14,7 @@ namespace torrent {
 ThreadNet* thread_net = nullptr;
 
 ThreadNet::ThreadNet() {
-  m_udns = std::make_unique<UdnsEvent>();
+  m_udns = std::make_unique<UdnsResolver>();
 }
 
 void
