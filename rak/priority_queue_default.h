@@ -8,8 +8,6 @@
 
 #include "torrent/exceptions.h"
 
-// TODO: Make aliases in torrent/utils and add to Thread.
-
 namespace rak {
 
 class priority_item {

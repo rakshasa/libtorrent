@@ -36,14 +36,12 @@ enum instrumentation_enum {
   INSTRUMENTATION_POLLING_DO_POLL,
   INSTRUMENTATION_POLLING_DO_POLL_MAIN,
   INSTRUMENTATION_POLLING_DO_POLL_DISK,
-  INSTRUMENTATION_POLLING_DO_POLL_NET,
   INSTRUMENTATION_POLLING_DO_POLL_OTHERS,
   INSTRUMENTATION_POLLING_DO_POLL_TRACKER,
 
   INSTRUMENTATION_POLLING_EVENTS,
   INSTRUMENTATION_POLLING_EVENTS_MAIN,
   INSTRUMENTATION_POLLING_EVENTS_DISK,
-  INSTRUMENTATION_POLLING_EVENTS_NET,
   INSTRUMENTATION_POLLING_EVENTS_OTHERS,
   INSTRUMENTATION_POLLING_EVENTS_TRACKER,
 
@@ -92,7 +90,7 @@ instrumentation_initialize() {
 }
 
 inline void
-instrumentation_update([[maybe_unused]] instrumentation_enum type, [[maybe_unused]] int64_t change) {
+instrumentation_update(instrumentation_enum type, int64_t change) {
 #ifdef LT_INSTRUMENTATION
   instrumentation_values[type] += change;
 #endif

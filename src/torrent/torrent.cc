@@ -11,7 +11,6 @@
 #include "download/download_constructor.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-#include "net/thread_net.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
 #include "rak/address_info.h"
@@ -69,7 +68,6 @@ initialize() {
   manager = new Manager;
   thread_main = new ThreadMain;
   thread_disk = new ThreadDisk;
-  thread_net = new ThreadNet;
   thread_tracker = new ThreadTracker;
 
   thread_main->init_thread();
@@ -80,11 +78,9 @@ initialize() {
   manager->file_manager()->set_max_open_files(maxFiles);
 
   thread_disk->init_thread();
-  thread_net->init_thread();
   thread_tracker->init_thread();
 
   thread_disk->start_thread();
-  thread_net->start_thread();
   thread_tracker->start_thread();
 }
 

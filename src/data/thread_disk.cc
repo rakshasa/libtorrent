@@ -5,7 +5,7 @@
 #include "rak/timer.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
-#include "torrent/net/resolver.h"
+#include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
@@ -17,9 +17,7 @@ ThreadDisk::init_thread() {
   if (!Poll::slot_create_poll())
     throw internal_error("ThreadDisk::init_thread(): Poll::slot_create_poll() not valid.");
 
-  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
-  m_resolver = std::make_unique<net::Resolver>();
-
+  m_poll = Poll::slot_create_poll()();
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
@@ -39,7 +37,6 @@ ThreadDisk::call_events() {
   }
 
   m_hash_check_queue.perform();
-  process_callbacks();
 }
 
 int64_t
