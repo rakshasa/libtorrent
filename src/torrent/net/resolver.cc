@@ -3,7 +3,7 @@
 #include "torrent/net/resolver.h"
 
 #include "net/thread_net.h"
-#include "net/udns_event.h"
+#include "net/udns_resolver.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/thread.h"
 

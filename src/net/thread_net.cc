@@ -3,7 +3,7 @@
 #include "net/thread_net.h"
 
 #include "rak/timer.h"
-#include "net/udns_event.h"
+#include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"

@@ -98,8 +98,8 @@ libtorrent_other_la_SOURCES = \
 	net/throttle_list.cc \
 	net/throttle_list.h \
 	net/throttle_node.h \
-	net/udns_event.cc \
-	net/udns_event.h \
+	net/udns_resolver.cc \
+	net/udns_resolver.h \
 	net/udns_library.cc \
 	net/udns_library.h \
 	\
