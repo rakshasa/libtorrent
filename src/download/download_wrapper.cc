@@ -298,7 +298,7 @@ DownloadWrapper::receive_update_priorities() {
   data()->mutable_high_priority()->clear();
   data()->mutable_normal_priority()->clear();
 
-  for (auto file : *m_main->file_list()) {
+  for (auto& file : *m_main->file_list()) {
     switch (file->priority()) {
     case PRIORITY_NORMAL:
     {

@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "torrent/data/file_list.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -11,19 +13,16 @@
 #include <rak/file_stat.h>
 #include <rak/fs_stat.h>
 
+#include "manager.h"
+#include "piece.h"
 #include "data/chunk.h"
 #include "data/memory_chunk.h"
 #include "data/socket_file.h"
-
 #include "torrent/exceptions.h"
 #include "torrent/path.h"
+#include "torrent/data/file.h"
+#include "torrent/data/file_manager.h"
 #include "torrent/utils/log.h"
-
-#include "file.h"
-#include "file_list.h"
-#include "file_manager.h"
-#include "manager.h"
-#include "piece.h"
 
 #define LT_LOG_FL(log_level, log_fmt, ...)                              \
   lt_log_print_data(LOG_STORAGE_##log_level, (&m_data), "file_list", log_fmt, __VA_ARGS__);
@@ -44,22 +43,12 @@ verify_file_list(const FileList* fl) {
       throw internal_error("verify_file_list() 3.", fl->data()->hash());
 }
 
-FileList::FileList() :
-  m_isOpen(false),
-
-  m_torrentSize(0),
-  m_chunkSize(0),
-  m_maxFileSize(~uint64_t()) {
-}
-
 FileList::~FileList() {
   // Can we skip close()?
   close();
 
-  std::for_each(begin(), end(), [](File* file) { delete file; });
-
   base_type::clear();
-  m_torrentSize = 0;
+  m_torrent_size = 0;
 }
 
 bool
@@ -77,7 +66,7 @@ bool
 FileList::is_root_dir_created() const {
   rak::file_stat fs;
 
-  if (!fs.update(m_rootDir))
+  if (!fs.update(m_root_dir))
 //     return rak::error_number::current() == rak::error_number::e_access;
     return false;
 
@@ -89,7 +78,7 @@ FileList::is_multi_file() const {
   // Currently only check if we got just one file. In the future this
   // should be a bool, which will be set based on what flags are
   // passed when the torrent was loaded.
-  return m_isMultiFile;
+  return m_multi_file;
 }
 
 uint64_t
@@ -142,9 +131,9 @@ FileList::set_root_dir(const std::string& path) {
   std::string::size_type last = path.find_last_not_of('/');
 
   if (last == std::string::npos)
-    m_rootDir = ".";
+    m_root_dir = ".";
   else
-    m_rootDir = path.substr(0, last + 1);
+    m_root_dir = path.substr(0, last + 1);
 }
 
 void
@@ -152,7 +141,7 @@ FileList::set_max_file_size(uint64_t size) {
   if (is_open())
     throw input_error("Tried to change the max file size for an open download.");
 
-  m_maxFileSize = size;
+  m_max_file_size = size;
 }
 
 // This function should really ensure that we arn't dealing files
@@ -161,7 +150,7 @@ uint64_t
 FileList::free_diskspace() const {
   uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
 
-  for (const auto& link : m_indirectLinks) {
+  for (const auto& link : m_indirect_links) {
     rak::fs_stat stat;
 
     if (!stat.update(link))
@@ -187,79 +176,79 @@ FileList::split(iterator position, split_type* first, split_type* last) {
   if (position + 1 != end())
     (*(position + 1))->set_match_depth_prev(0);
 
-  File* oldFile = *position;
+  auto old_file = std::move(*position);
 
-  uint64_t offset = oldFile->offset();
+  uint64_t offset = old_file->offset();
   size_type index = std::distance(begin(), position);
   size_type length = std::distance(first, last);
 
-  base_type::insert(position, length - 1, NULL);
+  // This is inefficient, but the simplest way to do it with unique_ptr vector i could find.
+  for (size_type i = 0; i < length - 1; i++)
+    base_type::insert(begin() + index, nullptr);
+
   position = begin() + index;
 
   iterator itr = position;
 
   while (first != last) {
-    File* newFile = new File();
+    File* new_file = new File();
 
-    newFile->set_offset(offset);
-    newFile->set_size_bytes(std::get<0>(*first));
-    newFile->set_range(m_chunkSize);
-    *newFile->mutable_path() = std::get<1>(*first);
-    newFile->set_flags(std::get<2>(*first));
+    new_file->set_offset(offset);
+    new_file->set_size_bytes(std::get<0>(*first));
+    new_file->set_range(m_chunk_size);
+    *new_file->mutable_path() = std::get<1>(*first);
+    new_file->set_flags(std::get<2>(*first));
 
     offset += std::get<0>(*first);
-    *itr = newFile;
+    *itr = std::unique_ptr<File>(new_file);
 
     itr++;
     first++;
   }
 
-  if (offset != oldFile->offset() + oldFile->size_bytes())
+  if (offset != old_file->offset() + old_file->size_bytes())
     throw internal_error("FileList::split(...) split size does not match the old size.", data()->hash());
 
-  delete oldFile;
   return iterator_range(position, itr);
 }
 
 FileList::iterator
 FileList::merge(iterator first, iterator last, const Path& path) {
-  File* newFile = new File;
+  File* new_file = new File;
 
   // Set the path before deleting any iterators in case it refers to
   // one of the objects getting deleted.
-  *newFile->mutable_path() = path;
+  *(new_file->mutable_path()) = path;
 
   if (first == last) {
     if (first == end())
-      newFile->set_offset(m_torrentSize);
+      new_file->set_offset(m_torrent_size);
     else
-      newFile->set_offset((*first)->offset());
+      new_file->set_offset((*first)->offset());
 
-    first = base_type::insert(first, newFile);
+    first = base_type::insert(first, std::unique_ptr<File>(new_file));
 
   } else {
-    newFile->set_offset((*first)->offset());
+    new_file->set_offset((*first)->offset());
 
-    for (iterator itr = first; itr != last; ++itr) {
-      newFile->set_size_bytes(newFile->size_bytes() + (*itr)->size_bytes());
-      delete *itr;
-    }
+    for (iterator itr = first; itr != last; ++itr)
+      new_file->set_size_bytes(new_file->size_bytes() + (*itr)->size_bytes());
 
     first = base_type::erase(first + 1, last) - 1;
-    *first = newFile;
+    *first = std::unique_ptr<File>(new_file);
   }
 
-  newFile->set_range(m_chunkSize);
+  new_file->set_range(m_chunk_size);
 
   if (first == begin())
-    newFile->set_match_depth_prev(0);
+    new_file->set_match_depth_prev(0);
   else
-    File::set_match_depth(*(first - 1), newFile);
+    File::set_match_depth((first - 1)->get(), new_file);
 
   if (first + 1 == end())
-    newFile->set_match_depth_next(0);
+    new_file->set_match_depth_next(0);
   else
-    File::set_match_depth(newFile, *(first + 1));
+    File::set_match_depth(new_file, (first + 1)->get());
 
   return first;
 }
@@ -273,10 +262,10 @@ FileList::update_paths(iterator first, iterator last) {
     return;
 
   if (first != begin())
-    File::set_match_depth(*(first - 1), *first);
+    File::set_match_depth((first - 1)->get(), first->get());
 
   while (first != last && ++first != end())
-    File::set_match_depth(*(first - 1), *first);
+    File::set_match_depth((first - 1)->get(), first->get());
 
   verify_file_list(this);
 }
@@ -286,7 +275,7 @@ FileList::make_root_path() {
   if (!is_open())
     return false;
 
-  return ::mkdir(m_rootDir.c_str(), 0777) == 0 || errno == EEXIST;
+  return ::mkdir(m_root_dir.c_str(), 0777) == 0 || errno == EEXIST;
 }
 
 bool
@@ -335,22 +324,22 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   if (chunkSize == 0)
     throw internal_error("FileList::initialize() chunk_size() == 0.", data()->hash());
 
-  m_chunkSize = chunkSize;
-  m_torrentSize = torrentSize;
-  m_rootDir = ".";
+  m_chunk_size = chunkSize;
+  m_torrent_size = torrentSize;
+  m_root_dir = ".";
 
   m_data.mutable_completed_bitfield()->set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
 
   m_data.mutable_normal_priority()->insert(0, size_chunks());
   m_data.set_wanted_chunks(size_chunks());
 
-  File* newFile = new File();
+  File* new_file = new File();
 
-  newFile->set_offset(0);
-  newFile->set_size_bytes(torrentSize);
-  newFile->set_range(m_chunkSize);
+  new_file->set_offset(0);
+  new_file->set_size_bytes(torrentSize);
+  new_file->set_range(m_chunk_size);
 
-  base_type::push_back(newFile);
+  base_type::push_back(std::unique_ptr<File>(new_file));
 }
 
 struct file_list_cstr_less {
@@ -365,10 +354,10 @@ FileList::open(int flags) {
 
   LT_LOG_FL(INFO, "Opening.", 0);
 
-  if (m_rootDir.empty())
-    throw internal_error("FileList::open() m_rootDir.empty().", data()->hash());
+  if (m_root_dir.empty())
+    throw internal_error("FileList::open() m_root_dir.empty().", data()->hash());
 
-  m_indirectLinks.push_back(m_rootDir);
+  m_indirect_links.push_back(m_root_dir);
 
   Path lastPath;
   path_set pathSet;
@@ -377,16 +366,14 @@ FileList::open(int flags) {
 
   try {
     if (!(flags & open_no_create) && !make_root_path())
-      throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
+      throw storage_error("Could not create directory '" + m_root_dir + "': " + std::strerror(errno));
 
-    for (itr = begin(); itr != end(); ++itr) {
-      File* entry = *itr;
-
+    for (auto& entry : *this) {
       // We no longer consider it an error to open a previously opened
       // FileList as we now use the same function to create
       // non-existent files.
       //
-      // Since m_isOpen is set, we know root dir wasn't changed, thus
+      // Since m_is_open is set, we know root dir wasn't changed, thus
       // we can keep the previously opened file.
       if (entry->is_open())
         continue;
@@ -399,12 +386,12 @@ FileList::open(int flags) {
       if (entry->path()->back().empty())
         entry->set_frozen_path(std::string());
       else
-        entry->set_frozen_path(m_rootDir + entry->path()->as_string());
+        entry->set_frozen_path(m_root_dir + entry->path()->as_string());
 
       if (!pathSet.insert(entry->frozen_path().c_str()).second)
         throw storage_error("Duplicate filename found.");
 
-      if (entry->size_bytes() > m_maxFileSize)
+      if (entry->size_bytes() > m_max_file_size)
         throw storage_error("File exceedes the configured max file size.");
 
       if (entry->path()->empty())
@@ -430,9 +417,9 @@ FileList::open(int flags) {
     }
 
   } catch (local_error& e) {
-    for (auto& itr2 : *this) {
-      itr2->unset_flags_protected(File::flag_active);
-      manager->file_manager()->close(itr2);
+    for (auto& entry : *this) {
+      entry->unset_flags_protected(File::flag_active);
+      manager->file_manager()->close(entry.get());
     }
 
     if (itr == end()) {
@@ -443,12 +430,12 @@ FileList::open(int flags) {
 
     // Set to false here in case we tried to open the FileList for the
     // second time.
-    m_isOpen = false;
+    m_is_open = false;
     throw;
   }
 
-  m_isOpen = true;
-  m_frozenRootDir = m_rootDir;
+  m_is_open = true;
+  m_frozen_root_dir = m_root_dir;
 
   // For meta-downloads, if the file exists, we have to assume that
   // it is either 0 or 1 length or the correct size. If the size
@@ -472,23 +459,23 @@ FileList::close() {
 
   LT_LOG_FL(INFO, "Closing.", 0);
 
-  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-    if ((*itr)->is_padding())
+  for (auto& entry : *this) {
+    if (entry->is_padding())
       continue;
 
-    (*itr)->unset_flags_protected(File::flag_active);
-    manager->file_manager()->close(*itr);
+    entry->unset_flags_protected(File::flag_active);
+    manager->file_manager()->close(entry.get());
   }
 
-  m_isOpen = false;
-  m_indirectLinks.clear();
+  m_is_open = false;
+  m_indirect_links.clear();
 
   m_data.mutable_completed_bitfield()->unallocate();
 }
 
 void
 FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) {
-  std::string path = m_rootDir;
+  std::string path = m_root_dir;
 
   while (pathBegin != pathEnd) {
     path += "/" + *pathBegin;
@@ -502,8 +489,8 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 
     if (fileStat.update_link(path) &&
         fileStat.is_link() &&
-        std::find(m_indirectLinks.begin(), m_indirectLinks.end(), path) == m_indirectLinks.end())
-      m_indirectLinks.push_back(path);
+        std::find(m_indirect_links.begin(), m_indirect_links.end(), path) == m_indirect_links.end())
+      m_indirect_links.push_back(path);
 
     if (pathBegin == pathEnd)
       break;
@@ -537,10 +524,10 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
   if (node->path()->back().empty())
     return node->size_bytes() == 0;
 
-  rak::file_stat fileStat;
+  rak::file_stat file_stat;
 
-  if (fileStat.update(node->frozen_path()) &&
-      !fileStat.is_regular() && !fileStat.is_link()) {
+  if (file_stat.update(node->frozen_path()) &&
+      !file_stat.is_regular() && !file_stat.is_link()) {
     // Might also bork on other kinds of file types, but there's no
     // suitable errno for all cases.
     rak::error_number::set_global(rak::error_number::e_isdir);
@@ -567,17 +554,28 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
     return MemoryChunk();
 
 
-  return SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
+  auto chunk = SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
+
+  if (!chunk.is_valid())
+    return MemoryChunk();
+
+#ifdef USE_MADVISE
+  // TODO: Update all uses of madvise to posix_madvise.
+  if (manager->file_manager()->advise_random())
+    madvise(chunk.ptr(), chunk.size(), MADV_RANDOM);
+#endif
+
+  return chunk;
 }
 
 Chunk*
 FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
-  if (offset + length > m_torrentSize)
+  if (offset + length > m_torrent_size)
     throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
   std::unique_ptr<Chunk> chunk(new Chunk);
 
-  auto itr = std::find_if(begin(), end(), [offset](File* file) { return file->is_valid_position(offset); });
+  auto itr = std::find_if(begin(), end(), [offset](value_type& file) { return file->is_valid_position(offset); });
 
   for (; length != 0; ++itr) {
     if (itr == end())
@@ -598,7 +596,7 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
       throw internal_error("FileList::create_chunk(...) mc.size() > length.", data()->hash());
 
     chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
-    chunk->back().set_file(*itr, offset - (*itr)->offset());
+    chunk->back().set_file(itr->get(), offset - (*itr)->offset());
 
     offset += mc.size();
     length -= mc.size();
@@ -648,8 +646,8 @@ FileList::mark_completed(uint32_t index) {
 
 FileList::iterator
 FileList::inc_completed(iterator firstItr, uint32_t index) {
-  firstItr     = std::find_if(firstItr, end(), [index](File* file) { return index < file->range_second(); });
-  auto lastItr = std::find_if(firstItr, end(), [index](File* file) { return index+1 < file->range_second(); });
+  firstItr     = std::find_if(firstItr, end(), [index](value_type& file) { return index < file->range_second(); });
+  auto lastItr = std::find_if(firstItr, end(), [index](value_type& file) { return index+1 < file->range_second(); });
 
   if (firstItr == end())
     throw internal_error("FileList::inc_completed() first == m_entryList->end().", data()->hash());
@@ -657,7 +655,7 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
   // TODO: Check if this works right for zero-length files.
   std::for_each(firstItr,
                 lastItr == end() ? end() : (lastItr + 1),
-                [](File* file) { file->inc_completed_protected(); });
+                [](value_type& file) { file->inc_completed_protected(); });
 
   return lastItr;
 }
@@ -670,14 +668,14 @@ FileList::update_completed() {
   m_data.update_wanted_chunks();
 
   if (bitfield()->is_all_set()) {
-    for (auto file : *this)
-      file->set_completed_protected(file->size_chunks());
+    for (auto& entry : *this)
+      entry->set_completed_protected(entry->size_chunks());
 
   } else {
     // Clear any old progress data from the entries as we don't clear
     // this on close, etc.
-    for (auto file : *this)
-      file->set_completed_protected(0);
+    for (auto& entry : *this)
+      entry->set_completed_protected(0);
 
     if (bitfield()->is_all_unset())
       return;
@@ -695,14 +693,14 @@ FileList::reset_filesize(int64_t size) {
   LT_LOG_FL(INFO, "Resetting torrent size: size:%" PRIi64 ".", size);
 
   close();
-  m_chunkSize = size;
-  m_torrentSize = size;
+  m_chunk_size = size;
+  m_torrent_size = size;
   (*begin())->set_size_bytes(size);
-  (*begin())->set_range(m_chunkSize);
+  (*begin())->set_range(m_chunk_size);
 
   m_data.mutable_completed_bitfield()->allocate();
   m_data.mutable_completed_bitfield()->unset_all();
-  
+
   open(open_no_create);
 }
 

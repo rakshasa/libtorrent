@@ -10,8 +10,6 @@
 
 namespace torrent {
 
-// Inherit from SocketBase?
-
 class SocketFile {
 public:
   typedef int fd_type;

@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #ifndef LIBTORRENT_FILE_H
 #define LIBTORRENT_FILE_H
 
@@ -42,7 +6,7 @@
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT lt_cacheline_aligned File {
+class LIBTORRENT_EXPORT File {
 public:
   friend class FileList;
 
@@ -59,10 +23,8 @@ public:
 
   static const int flag_attr_padding       = (1 << 7);
 
-  File();
+  File() =default;
   ~File();
-  File(const File&) = delete;
-  File& operator=(const File&) = delete;
 
   bool                is_created() const;
   bool                is_open() const                          { return m_fd != -1; }
@@ -100,10 +62,10 @@ public:
   const Path*         path() const                             { return &m_path; }
   Path*               mutable_path()                           { return &m_path; }
 
-  const std::string&  frozen_path() const                      { return m_frozenPath; }
+  const std::string&  frozen_path() const                      { return m_frozen_path; }
 
-  uint32_t            match_depth_prev() const                 { return m_matchDepthPrev; }
-  uint32_t            match_depth_next() const                 { return m_matchDepthNext; }
+  uint32_t            match_depth_prev() const                 { return m_match_depth_prev; }
+  uint32_t            match_depth_next() const                 { return m_match_depth_next; }
 
   // This should only be changed by libtorrent.
   int                 file_descriptor() const                  { return m_fd; }
@@ -117,14 +79,14 @@ public:
   int                 protection() const                       { return m_protection; }
   void                set_protection(int prot)                 { m_protection = prot; }
 
-  uint64_t            last_touched() const                     { return m_lastTouched; }
-  void                set_last_touched(uint64_t t)             { m_lastTouched = t; }
+  uint64_t            last_touched() const                     { return m_last_touched; }
+  void                set_last_touched(uint64_t t)             { m_last_touched = t; }
 
 protected:
   void                set_flags_protected(int flags)           { m_flags |= flags; }
   void                unset_flags_protected(int flags)         { m_flags &= ~flags; }
 
-  void                set_frozen_path(const std::string& path) { m_frozenPath = path; }
+  void                set_frozen_path(const std::string& path) { m_frozen_path = path; }
 
   void                set_offset(uint64_t off)                 { m_offset = off; }
   void                set_size_bytes(uint64_t size)            { m_size = size; }
@@ -135,30 +97,33 @@ protected:
 
   static void         set_match_depth(File* left, File* right);
 
-  void                set_match_depth_prev(uint32_t l)         { m_matchDepthPrev = l; }
-  void                set_match_depth_next(uint32_t l)         { m_matchDepthNext = l; }
+  void                set_match_depth_prev(uint32_t l)         { m_match_depth_prev = l; }
+  void                set_match_depth_next(uint32_t l)         { m_match_depth_next = l; }
 
 private:
+  File(const File&) = delete;
+  File& operator=(const File&) = delete;
+
   bool                resize_file();
 
-  int                 m_fd;
-  int                 m_protection;
-  int                 m_flags;
+  int                 m_fd{-1};
+  int                 m_protection{0};
+  int                 m_flags{0};
 
   Path                m_path;
-  std::string         m_frozenPath;
+  std::string         m_frozen_path;
 
-  uint64_t            m_offset;
-  uint64_t            m_size;
-  uint64_t            m_lastTouched;
+  uint64_t            m_offset{0};
+  uint64_t            m_size{0};
+  uint64_t            m_last_touched{0};
 
   range_type          m_range;
 
-  uint32_t            m_completed;
-  priority_t          m_priority;
+  uint32_t            m_completed{0};
+  priority_t          m_priority{PRIORITY_NORMAL};
 
-  uint32_t            m_matchDepthPrev;
-  uint32_t            m_matchDepthNext;
+  uint32_t            m_match_depth_prev{0};
+  uint32_t            m_match_depth_next{0};
 };
 
 inline bool

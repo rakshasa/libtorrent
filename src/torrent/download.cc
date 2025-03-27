@@ -70,7 +70,7 @@ Download::open(int flags) {
   if (flags & open_enable_fallocate)
     fileFlags |= File::flag_fallocate;
 
-  for (auto file : *m_ptr->main()->file_list())
+  for (auto& file : *m_ptr->main()->file_list())
     file->set_flags(fileFlags);
 }
 
