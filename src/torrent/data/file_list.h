@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <memory>
 #include <vector>
 #include <torrent/common.h>
 #include <torrent/path.h>
@@ -18,7 +19,7 @@ class DownloadMain;
 class DownloadWrapper;
 class Handshake;
 
-class LIBTORRENT_EXPORT FileList : private std::vector<File*> {
+class LIBTORRENT_EXPORT FileList : private std::vector<std::unique_ptr<File>> {
 public:
   friend class Content;
   friend class Download;
@@ -27,9 +28,9 @@ public:
   friend class DownloadWrapper;
   friend class Handshake;
 
-  typedef std::vector<File*>              base_type;
-  typedef std::vector<std::string>        path_list;
-  typedef std::tuple<uint64_t, Path, int> split_type;
+  typedef std::vector<std::unique_ptr<File>> base_type;
+  typedef std::vector<std::string>           path_list;
+  typedef std::tuple<uint64_t, Path, int>    split_type;
 
   // The below are using-directives that make visible functions and
   // typedefs in the parent std::vector, only those listed below are
@@ -56,10 +57,10 @@ public:
   using base_type::at;
   using base_type::operator[];
 
-  FileList() LIBTORRENT_NO_EXPORT;
-  ~FileList() LIBTORRENT_NO_EXPORT;
+  FileList() = default;
+  ~FileList();
 
-  bool                is_open() const                                 { return m_isOpen; }
+  bool                is_open() const                                 { return m_is_open; }
   bool                is_done() const                                 { return completed_chunks() == size_chunks(); }
   bool                is_valid_piece(const Piece& piece) const;
   bool                is_root_dir_created() const;
@@ -67,17 +68,17 @@ public:
   // Check if the torrent is loaded as a multi-file torrent. This may
   // return true even for a torrent with just one file.
   bool                is_multi_file() const;
-  void                set_multi_file(bool state)                      { m_isMultiFile = state; }
+  void                set_multi_file(bool state)                      { m_multi_file = state; }
 
   size_t              size_files() const                              { return base_type::size(); }
-  uint64_t            size_bytes() const                              { return m_torrentSize; }
+  uint64_t            size_bytes() const                              { return m_torrent_size; }
   uint32_t            size_chunks() const                             { return bitfield()->size_bits(); }
 
   uint32_t            completed_chunks() const                        { return bitfield()->size_set(); }
   uint64_t            completed_bytes() const;
   uint64_t            left_bytes() const;
 
-  uint32_t            chunk_size() const                              { return m_chunkSize; }
+  uint32_t            chunk_size() const                              { return m_chunk_size; }
   uint32_t            chunk_index_size(uint32_t index) const;
   uint64_t            chunk_index_position(uint32_t index) const      { return index * chunk_size(); }
 
@@ -85,11 +86,11 @@ public:
   const Bitfield*      bitfield() const                               { return m_data.completed_bitfield(); }
 
   // You may only call set_root_dir after all nodes have been added.
-  const std::string&  root_dir() const                                { return m_rootDir; }
-  const std::string&  frozen_root_dir() const                         { return m_frozenRootDir; }
+  const std::string&  root_dir() const                                { return m_root_dir; }
+  const std::string&  frozen_root_dir() const                         { return m_frozen_root_dir; }
   void                set_root_dir(const std::string& path);
 
-  uint64_t            max_file_size() const                           { return m_maxFileSize; }
+  uint64_t            max_file_size() const                           { return m_max_file_size; }
   void                set_max_file_size(uint64_t size);
 
   // If the files span multiple disks, the one with the least amount
@@ -99,7 +100,7 @@ public:
   // List of directories in the torrent that might be on different
   // volumes as they are links, including the root directory. Used by
   // 'free_diskspace()'.
-  const path_list*    indirect_links() const                          { return &m_indirectLinks; }
+  const path_list*    indirect_links() const                          { return &m_indirect_links; }
 
   // The sum of the sizes in the range [first,last> must be equal to
   // the size of 'position'. Do not use the old pointer in 'position'
@@ -146,27 +147,20 @@ private:
 
   download_data       m_data;
 
-  bool                m_isOpen;
+  bool                m_is_open{false};
 
-  uint64_t            m_torrentSize;
-  uint32_t            m_chunkSize;
-  uint64_t            m_maxFileSize;
+  uint64_t            m_torrent_size{0};
+  uint32_t            m_chunk_size{0};
+  uint64_t            m_max_file_size{~uint64_t()};
 
-  std::string         m_rootDir;
+  std::string         m_root_dir;
 
-  path_list           m_indirectLinks;
+  path_list           m_indirect_links;
 
   // Reorder next minor version bump:
-  bool                m_isMultiFile;
-  std::string         m_frozenRootDir;
+  bool                m_multi_file{false};
+  std::string         m_frozen_root_dir;
 };
-
-inline FileList::iterator
-file_list_contains_position(FileList* file_list, uint64_t pos) {
-  return std::find_if(file_list->begin(), file_list->end(), [pos] (File* file) {
-    return file->is_valid_position(pos);
-  });
-}
 
 }
 

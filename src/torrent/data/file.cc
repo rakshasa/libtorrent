@@ -26,22 +26,6 @@ const int File::flag_prioritize_last;
 
 const int File::flag_attr_padding;
 
-File::File() :
-  m_fd(-1),
-  m_protection(0),
-  m_flags(0),
-
-  m_offset(0),
-  m_size(0),
-  m_lastTouched(cachedTime.usec()),
-
-  m_completed(0),
-  m_priority(PRIORITY_NORMAL),
-
-  m_matchDepthPrev(0),
-  m_matchDepthNext(0) {
-}
-
 File::~File() {
   assert((is_padding() || !is_open()) && "File::~File() called on an open file.");
 }
@@ -86,7 +70,7 @@ File::prepare(int prot, int flags) {
   if (is_padding())
     return true;
 
-  m_lastTouched = cachedTime.usec();
+  m_last_touched = cachedTime.usec();
 
   // Check if we got write protection and flag_resize_queued is
   // set. If so don't quit as we need to try re-sizing, instead call
@@ -139,8 +123,8 @@ File::set_match_depth(File* left, File* right) {
     level++;
   }
 
-  left->m_matchDepthNext = level;
-  right->m_matchDepthPrev = level;
+  left->m_match_depth_next = level;
+  right->m_match_depth_prev = level;
 }
 
 bool
