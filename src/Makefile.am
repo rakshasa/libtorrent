@@ -103,6 +103,30 @@ libtorrent_other_la_SOURCES = \
 	net/udns_library.cc \
 	net/udns_library.h \
 	\
+	net/udns/config.h \
+	net/udns/dnsget.c \
+	net/udns/ex-rdns.c \
+	net/udns/getopt.c \
+	net/udns/inet_XtoX.c \
+	net/udns/rblcheck.c \
+	net/udns/udns.h \
+	net/udns/udns_XtoX.c \
+	net/udns/udns_bl.c \
+	net/udns/udns_codes.c \
+	net/udns/udns_dn.c \
+	net/udns/udns_dntosp.c \
+	net/udns/udns_init.c \
+	net/udns/udns_jran.c \
+	net/udns/udns_misc.c \
+	net/udns/udns_parse.c \
+	net/udns/udns_resolver.c \
+	net/udns/udns_rr_a.c \
+	net/udns/udns_rr_mx.c \
+	net/udns/udns_rr_naptr.c \
+	net/udns/udns_rr_ptr.c \
+	net/udns/udns_rr_srv.c \
+	net/udns/udns_rr_txt.c	 \
+	\
 	protocol/encryption_info.h \
 	protocol/extensions.cc \
 	protocol/extensions.h \
