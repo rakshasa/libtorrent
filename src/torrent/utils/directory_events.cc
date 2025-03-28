@@ -5,6 +5,7 @@
 #include <string>
 #include <errno.h>
 #include <unistd.h>
+#include <algorithm>
 
 #ifdef HAVE_INOTIFY
 #include <sys/inotify.h>
