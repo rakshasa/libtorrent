@@ -20,7 +20,7 @@ Makefile
 aclocal.m4
 autom4te.cache
 compile
-config.h
+/config.h
 config.guess
 config.status
 confdefs.h
