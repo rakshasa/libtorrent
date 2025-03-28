@@ -123,9 +123,7 @@ HashQueue::work() {
     // TODO: This is not optimal as we jump around... Check for front
     // of HashQueue in done_chunks instead.
 
-    iterator itr = std::find_if(begin(), end(), std::bind(std::equal_to<HashChunk*>(),
-                                                          hash_chunk,
-                                                          std::bind(&HashQueueNode::get_chunk, std::placeholders::_1)));
+    auto itr = std::find_if(begin(), end(), [hash_chunk](auto& node) { return node.get_chunk() == hash_chunk; });
 
     // TODO: Fix this...
     if (itr == end())
