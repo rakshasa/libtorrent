@@ -105,10 +105,9 @@ log_rebuild_cache() {
       continue;
     }
 
-    log_cache_list::iterator cache_itr =
-      std::find_if(log_cache.begin(), log_cache.end(),
-                   std::bind(&log_cache_entry::equal_outputs, std::placeholders::_1, use_outputs));
-
+    auto cache_itr = std::find_if(log_cache.begin(), log_cache.end(), [&use_outputs](const auto& entry) {
+      return entry.equal_outputs(use_outputs);
+    });
     if (cache_itr == log_cache.end()) {
       cache_itr = log_cache.insert(log_cache.end(), log_cache_entry());
       cache_itr->outputs = use_outputs;

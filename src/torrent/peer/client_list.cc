@@ -302,8 +302,9 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     return false;
   }
 
-  const_iterator itr = std::find_if(begin() + 1, end(), std::bind(&ClientInfo::intersects, *dest, std::placeholders::_1));
-
+  auto itr = std::find_if(std::next(begin()), end(), [dest](const auto& client) {
+    return ClientInfo::intersects(*dest, client);
+  });
   if (itr == end())
     dest->set_info(begin()->info());
   else
