@@ -10,6 +10,8 @@
 #include "torrent/utils/log.h"
 #include "torrent/utils/log_buffer.h"
 
+#include <iostream>
+
 static std::string
 get_test_path(const test_list_type& tl) {
   if (tl.size() < 2)

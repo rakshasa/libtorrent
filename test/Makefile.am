@@ -9,6 +9,9 @@ TESTS = \
 
 check_PROGRAMS = $(TESTS)
 
+# This can cause duplicate symbols, so export anything that causes issues.
+
+# LibTorrent_Test_LDADD = ../src/libtorrent.la
 LibTorrent_Test_LDADD = \
 	../src/libtorrent.la \
 	../src/libtorrent_other.la \

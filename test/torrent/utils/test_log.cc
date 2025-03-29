@@ -9,8 +9,8 @@
 #include <functional>
 #include <iostream>
 
-#include <torrent/exceptions.h>
-#include <torrent/utils/log.h>
+#include "torrent/exceptions.h"
+#include "torrent/utils/log.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_log, "torrent/utils");
 
@@ -97,12 +97,12 @@ test_log::test_print() {
   open_output("test_print_1", 0x1);
   open_output("test_print_2", 0x2);
   torrent::log_add_group_output(0, "test_print_1");
-  
+
   LTUNIT_ASSERT_OUTPUT(0, 0x1, "foo_bar", "foo_bar");
   LTUNIT_ASSERT_OUTPUT(0, 0x1, "foo 123 bar", "foo %i %s", 123, "bar");
 
   torrent::log_add_group_output(0, "test_print_2");
-  
+
   LTUNIT_ASSERT_OUTPUT(0, 0x1|0x2, "test_multiple", "test_multiple");
 }
 
@@ -144,7 +144,7 @@ test_log::test_file_output() {
 
   torrent::log_open_file_output("test_file", filename.c_str());
   torrent::log_add_group_output(GROUP_PARENT_1, "test_file");
-  
+
   lt_log_print(GROUP_PARENT_1, "test_file");
 
   torrent::log_cleanup(); // To ensure we flush the buffers.
@@ -152,7 +152,7 @@ test_log::test_file_output() {
   std::ifstream temp_file(filename.c_str());
 
   CPPUNIT_ASSERT(temp_file.good());
-  
+
   char buffer[256];
   temp_file.getline(buffer, 256);
 
