@@ -45,12 +45,12 @@ struct log_gz_output {
   gzFile gz_file;
 };
 
-typedef std::vector<log_cache_entry>                   log_cache_list;
-typedef std::vector<std::pair<int, int> >              log_child_list;
-typedef std::vector<log_slot>                          log_slot_list;
-typedef std::vector<std::pair<std::string, log_slot> > log_output_list;
+typedef std::vector<log_cache_entry>                  log_cache_list;
+typedef std::vector<std::pair<int, int>>              log_child_list;
+typedef std::vector<log_slot>                         log_slot_list;
+typedef std::vector<std::pair<std::string, log_slot>> log_output_list;
 
-log_output_list log_outputs;
+log_output_list log_outputs LIBTORRENT_EXPORT;
 log_child_list  log_children;
 log_cache_list  log_cache;
 log_group_list  log_groups;
@@ -105,10 +105,10 @@ log_rebuild_cache() {
       continue;
     }
 
-    log_cache_list::iterator cache_itr = 
+    log_cache_list::iterator cache_itr =
       std::find_if(log_cache.begin(), log_cache.end(),
                    std::bind(&log_cache_entry::equal_outputs, std::placeholders::_1, use_outputs));
-    
+
     if (cache_itr == log_cache.end()) {
       cache_itr = log_cache.insert(log_cache.end(), log_cache_entry());
       cache_itr->outputs = use_outputs;
@@ -282,13 +282,11 @@ log_add_group_output(int group, const char* name) {
   log_output_list::iterator itr = log_find_output_name(name);
   size_t index = std::distance(log_outputs.begin(), itr);
 
-  if (itr == log_outputs.end()) {
-    throw input_error("Log name not found.");
-  }
+  if (itr == log_outputs.end())
+    throw input_error("Log name not found: '" + std::string(name) + "'");
 
-  if (index >= log_group::max_size_outputs()) {
+  if (index >= log_group::max_size_outputs())
     throw input_error("Cannot add more log group outputs.");
-  }
 
   log_groups[group].set_output_at(index, true);
   log_rebuild_cache();
@@ -346,7 +344,7 @@ log_gz_file_write(std::shared_ptr<log_gz_output>& outfile, const char* data, siz
     int buffer_length = snprintf(buffer, 64, GROUPFMT,
                                  cachedTime.seconds(),
                                  log_level_char[group % 6]);
-    
+
     if (buffer_length > 0)
       gzwrite(outfile->gz_file, buffer, buffer_length);
 
@@ -355,7 +353,7 @@ log_gz_file_write(std::shared_ptr<log_gz_output>& outfile, const char* data, siz
 
   } else if (group == -1) {
     gzwrite(outfile->gz_file, "---DUMP---\n", sizeof("---DUMP---\n") - 1);
-    
+
     if (length != 0)
       gzwrite(outfile->gz_file, data, length);
 

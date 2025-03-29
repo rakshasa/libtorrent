@@ -101,13 +101,13 @@ DhtController::set_receive_requests(bool state) {
 
 void
 DhtController::add_node(const sockaddr* sa, int port) {
-  if (!m_router)
+  if (m_router)
     m_router->contact(sa, port);
 }
 
 void
 DhtController::add_node(const std::string& host, int port) {
-  if (!m_router)
+  if (m_router)
     m_router->add_contact(host, port);
 }
 
@@ -121,11 +121,17 @@ DhtController::store_cache(Object* container) {
 
 DhtController::statistics_type
 DhtController::get_statistics() const {
+  if (!m_router)
+    throw internal_error("DhtController::get_statistics called but DHT not initialized.");
+
   return m_router->get_statistics();
 }
 
 void
 DhtController::reset_statistics() {
+  if (!m_router)
+    throw internal_error("DhtController::reset_statistics called but DHT not initialized.");
+
   m_router->reset_statistics();
 }
 
@@ -133,6 +139,9 @@ DhtController::reset_statistics() {
 
 void
 DhtController::set_upload_throttle(Throttle* t) {
+  if (!m_router)
+    throw internal_error("DhtController::set_upload_throttle() called but DHT not initialized.");
+
   if (m_router->is_active())
     throw internal_error("DhtController::set_upload_throttle() called while DHT server active.");
 
@@ -141,6 +150,9 @@ DhtController::set_upload_throttle(Throttle* t) {
 
 void
 DhtController::set_download_throttle(Throttle* t) {
+  if (!m_router)
+    throw internal_error("DhtController::set_download_throttle() called but DHT not initialized.");
+
   if (m_router->is_active())
     throw internal_error("DhtController::set_download_throttle() called while DHT server active.");
 

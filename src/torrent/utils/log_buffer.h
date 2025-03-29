@@ -8,6 +8,8 @@
 #include <string>
 #include <utility>
 
+#include <torrent/common.h>
+
 namespace torrent {
 
 struct log_entry {
@@ -23,7 +25,7 @@ struct log_entry {
   std::string message;
 };
 
-class [[gnu::visibility("default")]] log_buffer : private std::deque<log_entry> {
+class LIBTORRENT_EXPORT log_buffer : private std::deque<log_entry> {
 public:
   typedef std::deque<log_entry>  base_type;
   typedef std::function<void ()> slot_void;
@@ -47,7 +49,7 @@ public:
       m_max_size(200) {}
 
   unsigned int        max_size() const { return m_max_size; }
-  
+
   // Always lock before calling any function.
   void                lock()   { m_lock.lock(); }
   void                unlock() { m_lock.unlock(); }
@@ -66,7 +68,7 @@ private:
 
 typedef std::unique_ptr<log_buffer, std::function<void (log_buffer*)>> log_buffer_ptr;
 
-[[gnu::visibility("default")]] log_buffer_ptr log_open_log_buffer(const char* name);
+log_buffer_ptr log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
 
 }
 

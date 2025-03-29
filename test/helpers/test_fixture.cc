@@ -4,6 +4,8 @@
 
 #include "torrent/utils/log.h"
 
+#include <iostream>
+
 void
 test_fixture::setUp() {
   mock_init();
