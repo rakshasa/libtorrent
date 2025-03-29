@@ -29,7 +29,7 @@ AC_DEFUN([TORRENT_REMOVE_UNWANTED],
     $1="$2"
   else
     result=`echo "${values_to_check}" | $GREP -Fvx -- "${unwanted_values}" | $GREP -v '^$'`
-    $1=${result//$'\n'/ }
+    $1=$(echo "$result" | tr -d '\n')
   fi
 ])
 
