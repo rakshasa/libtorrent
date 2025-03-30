@@ -12,12 +12,12 @@
 namespace torrent {
 
 struct ai_deleter {
-  void operator()(addrinfo* ai) const { freeaddrinfo(ai); }
+  void operator()(addrinfo* ai) const { if (ai != nullptr) ::freeaddrinfo(ai); }
 };
 
-typedef std::unique_ptr<addrinfo, ai_deleter> ai_unique_ptr;
+typedef std::unique_ptr<addrinfo, ai_deleter>       ai_unique_ptr;
 typedef std::unique_ptr<const addrinfo, ai_deleter> c_ai_unique_ptr;
-typedef std::function<void (const sockaddr*)> ai_sockaddr_func;
+typedef std::function<void (const sockaddr*)>       ai_sockaddr_func;
 
 inline void                      ai_clear(addrinfo* ai);
 inline std::unique_ptr<addrinfo> ai_make_hint(int flags, int family, int socktype);
@@ -49,7 +49,7 @@ inline int aip_get_addrinfo(const char* nodename, const char* servname, const c_
 
 inline void
 ai_clear(addrinfo* ai) {
-  std::memset(ai, 0, sizeof(addrinfo));  
+  std::memset(ai, 0, sizeof(addrinfo));
 }
 
 inline std::unique_ptr<addrinfo>

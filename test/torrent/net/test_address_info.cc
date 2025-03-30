@@ -51,7 +51,7 @@ test_address_info::test_helpers() {
   CPPUNIT_ASSERT(sin6_zero != nullptr);
   CPPUNIT_ASSERT(sin6_zero->sin6_family == AF_INET6);
   CPPUNIT_ASSERT(sin6_zero->sin6_port == 0);
-  CPPUNIT_ASSERT(compare_sin6_addr(sin6_zero->sin6_addr, in6_addr{0}));
+  CPPUNIT_ASSERT(compare_sin6_addr(sin6_zero->sin6_addr, in6_addr{}));
 
   torrent::sin6_unique_ptr sin6_1 = torrent::sin6_from_sa(wrap_ai_get_first_sa("ff01::1"));
   CPPUNIT_ASSERT(sin6_1 != nullptr);
