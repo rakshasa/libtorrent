@@ -295,9 +295,13 @@ ResourceManager::receive_tick() {
   m_currentlyUploadUnchoked   += balance_unchoked(choke_base_type::size(), m_maxUploadUnchoked, true);
   m_currentlyDownloadUnchoked += balance_unchoked(choke_base_type::size(), m_maxDownloadUnchoked, false);
 
-  auto up_unchoked = std::transform_reduce(choke_base_type::begin(), choke_base_type::end(), 0U, std::plus<>(), std::mem_fn(&choke_group::up_unchoked));
+  auto up_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0U, [](auto sum, auto group) {
+    return sum + group->up_unchoked();
+  });
 
-  auto down_unchoked = std::transform_reduce(choke_base_type::begin(), choke_base_type::end(), 0U, std::plus<>(), std::mem_fn(&choke_group::down_unchoked));
+  auto down_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0U, [](auto sum, auto group) {
+    return sum + group->down_unchoked();
+  });
 
   if (m_currentlyUploadUnchoked != up_unchoked)
     throw torrent::internal_error("m_currentlyUploadUnchoked != choke_base_type::back()->up_queue()->size_unchoked()");
@@ -309,7 +313,10 @@ ResourceManager::receive_tick() {
 unsigned int
 ResourceManager::total_weight() const {
   // TODO: This doesn't take into account inactive downloads.
-  return std::transform_reduce(begin(), end(), 0U, std::plus<>(), std::mem_fn(&resource_manager_entry::priority));
+  unsigned int total = 0;
+  for (const auto& resource : *this)
+    total += resource.priority();
+  return total;
 }
 
 int
