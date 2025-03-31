@@ -12,7 +12,7 @@
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
-thread_local extern utils::Thread* thread_self;
+thread_local extern utils::Thread* thread_self LIBTORRENT_EXPORT;
 }
 
 namespace torrent::utils {

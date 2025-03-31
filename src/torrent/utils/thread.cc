@@ -14,7 +14,7 @@
 #include "utils/instrumentation.h"
 
 namespace torrent {
-thread_local utils::Thread* thread_self;
+thread_local utils::Thread* thread_self LIBTORRENT_EXPORT;
 }
 
 namespace torrent::utils {
