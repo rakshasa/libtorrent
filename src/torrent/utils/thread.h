@@ -110,8 +110,8 @@ protected:
 
   int                          m_instrumentation_index;
 
-  std::unique_ptr<Poll>             m_poll{nullptr};
-  std::unique_ptr<net::Resolver>    m_resolver{nullptr};
+  std::unique_ptr<Poll>             m_poll;
+  std::unique_ptr<net::Resolver>    m_resolver;
   class signal_bitfield             m_signal_bitfield;
 
   slot_void                         m_slot_do_work;

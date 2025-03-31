@@ -1241,7 +1241,7 @@ struct dns_resolve_data {
   void *dnsrd_result;
 };
 
-static void dns_resolve_cb([[maybe_unused]] struct dns_ctx *ctx, void *result, void *data) {
+static void dns_resolve_cb(__attribute__((unused)) struct dns_ctx *ctx, void *result, void *data) {
   struct dns_resolve_data *d = (struct dns_resolve_data *)data;
   d->dnsrd_result = result;
   d->dnsrd_done = 1;
