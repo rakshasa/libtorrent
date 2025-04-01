@@ -385,8 +385,11 @@ void
 TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
   iterator itr = find(tracker);
 
-  if (itr == end() || tracker.is_busy())
+  if (itr == end())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
+
+  if (tracker.is_busy())
+    throw internal_error("TrackerList::receive_success(...) called but the tracker is still busy.");
 
   // Promote the tracker to the front of the group since it was
   // successfull.
@@ -422,8 +425,11 @@ void
 TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) {
   iterator itr = find(tracker);
 
-  if (itr == end() || tracker.is_busy())
+  if (itr == end())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
+
+  if (tracker.is_busy())
+    throw internal_error("TrackerList::receive_failed(...) called but the tracker is still busy.");
 
   LT_LOG_TRACKER(INFO, "failed to send request to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
 
@@ -441,8 +447,11 @@ void
 TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
   iterator itr = find(tracker);
 
-  if (itr == end() || tracker.is_busy())
-    throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
+  if (itr == end())
+    throw internal_error("TrackerList::receive_scrape_success(...) called but the iterator is invalid.");
+
+  if (tracker.is_busy())
+    throw internal_error("TrackerList::receive_scrape_success(...) called but the tracker is still busy.");
 
   LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tracker.url().c_str());
 
@@ -460,8 +469,11 @@ void
 TrackerList::receive_scrape_failed(tracker::Tracker&& tracker, const std::string& msg) {
   iterator itr = find(tracker);
 
-  if (itr == end() || tracker.is_busy())
-    throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
+  if (itr == end())
+    throw internal_error("TrackerList::receive_scrape_failed(...) called but the iterator is invalid.");
+
+  if (tracker.is_busy())
+    throw internal_error("TrackerList::receive_scrape_failed(...) called but the tracker is still busy.");
 
   LT_LOG_TRACKER(INFO, "failed to send scrape to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
 

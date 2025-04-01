@@ -52,7 +52,7 @@ TrackerUdp::is_busy() const {
 void
 TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   LT_LOG("sending event : requester:%p state:%s url:%s",
-         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+         this, option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
 
   // TODO: Don't close fd for every new request.
   close_directly();
