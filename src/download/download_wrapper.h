@@ -36,15 +36,15 @@ public:
 
   bool                is_stopped() const;
 
-  DownloadMain*       main()                                  { return m_main; }
-  const DownloadMain* main() const                            { return m_main; }
-  HashTorrent*        hash_checker()                          { return m_hashChecker; }
+  DownloadMain*       main()                                  { return m_main.get(); }
+  const DownloadMain* main() const                            { return m_main.get(); }
+  HashTorrent*        hash_checker()                          { return m_hash_checker.get(); }
 
-  Object*             bencode()                               { return m_bencode; }
-  void                set_bencode(Object* o)                  { m_bencode = o; }
+  Object*             bencode()                               { return m_bencode.get(); }
+  void                set_bencode(Object* o)                  { m_bencode.reset(o); }
 
-  HashQueue*          hash_queue()                            { return m_hashQueue; }
-  void                set_hash_queue(HashQueue* q)            { m_hashQueue = q; }
+  HashQueue*          hash_queue()                            { return m_hash_queue; }
+  void                set_hash_queue(HashQueue* q)            { m_hash_queue = q; }
 
   const std::string&  complete_hash()                            { return m_hash; }
   const char*         chunk_hash(unsigned int index)             { return m_hash.c_str() + 20 * index; }
@@ -73,10 +73,10 @@ public:
 private:
   void                finished_download();
 
-  DownloadMain*       m_main;
-  Object*             m_bencode{};
-  HashTorrent*        m_hashChecker{};
-  HashQueue*          m_hashQueue;
+  std::unique_ptr<DownloadMain> m_main;
+  std::unique_ptr<Object>       m_bencode;
+  std::unique_ptr<HashTorrent>  m_hash_checker;
+  HashQueue*                    m_hash_queue;
 
   std::string         m_hash;
 
