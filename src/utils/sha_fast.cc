@@ -102,8 +102,8 @@ SHA1_Begin(SHA1Context *ctx)
 void 
 SHA1_Update(SHA1Context *ctx, const unsigned char *dataIn, unsigned int len) 
 {
-  register unsigned int lenB = ctx->sizeLo & 63;
-  register unsigned int togo;
+  unsigned int lenB = ctx->sizeLo & 63;
+  unsigned int togo;
 
   if (!len)
     return;
@@ -146,7 +146,7 @@ void
 SHA1_End(SHA1Context *ctx, unsigned char *hashout,
          unsigned int *pDigestLen, unsigned int maxDigestLen)
 {
-  register uint32_t sizeHi, sizeLo, lenB;
+  uint32_t sizeHi, sizeLo, lenB;
   static const unsigned char bulk_pad[64] = { 0x80,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  };
@@ -198,7 +198,7 @@ SHA1_End(SHA1Context *ctx, unsigned char *hashout,
 static void 
 shaCompress(SHA1Context *ctx) 
 {
-  register uint32_t A, B, C, D, E;
+  uint32_t A, B, C, D, E;
 
 #if defined(IS_LITTLE_ENDIAN)
   SHA_BYTESWAP(ctx->W[0]);
