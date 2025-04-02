@@ -2,6 +2,7 @@
 
 #include "torrent/utils/thread.h"
 
+#include <cassert>
 #include <cstring>
 #include <signal.h>
 #include <unistd.h>
@@ -93,7 +94,7 @@ void
 Thread::cancel_callback_and_wait(void* target) {
   cancel_callback(target);
 
-  if (m_callbacks_processing)
+  if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing)
     std::unique_lock<std::mutex> lock(m_callbacks_processing_lock);
 }
 

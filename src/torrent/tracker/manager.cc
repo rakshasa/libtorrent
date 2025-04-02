@@ -11,6 +11,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/tracker_controller.h"
+#include "torrent/tracker_list.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 
@@ -18,12 +19,6 @@
   lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker::manager", log_fmt, __VA_ARGS__);
 
 namespace torrent::tracker {
-
-Manager::Manager() {
-  m_signal_process_events = thread_main->signal_bitfield()->add_signal([this]() {
-      return process_events();
-    });
-}
 
 TrackerControllerWrapper
 Manager::add_controller(DownloadInfo* download_info, TrackerController* controller) {
@@ -55,17 +50,8 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
   if (m_controllers.erase(controller) != 1)
     throw internal_error("tracker::Manager::remove_controller(...) controller not found or has multiple references.");
 
-  {
-    std::lock_guard<std::mutex> events_guard(m_events_lock);
-
-    auto itr = std::remove_if(m_tracker_list_events.begin(),
-                              m_tracker_list_events.end(),
-                              [tl = controller.get()->tracker_list()](const TrackerListEvent& event) {
-                                return event.tracker_list == tl;
-                              });
-
-    m_tracker_list_events.erase(itr, m_tracker_list_events.end());
-  }
+  for (auto& tracker : *controller.get()->tracker_list())
+    remove_events(tracker.get_worker());
 
   LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", hash_string_to_hex_str(controller.info_hash()).c_str());
 }
@@ -79,32 +65,13 @@ Manager::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum
 }
 
 void
-Manager::add_event(TrackerList* tracker_list, std::function<void()> event) {
-  assert(m_signal_process_events != ~0u);
-
-  std::lock_guard<std::mutex> guard(m_events_lock);
-
-  m_tracker_list_events.push_back(TrackerListEvent{tracker_list, std::move(event)});
-
-  torrent::thread_main->send_event_signal(m_signal_process_events);
+Manager::add_event(torrent::TrackerWorker* tracker_worker, std::function<void()> event) {
+  torrent::thread_main->callback(tracker_worker, std::move(event));
 }
 
 void
-Manager::process_events() {
-  assert(std::this_thread::get_id() == torrent::thread_main->thread_id());
-
-  std::vector<TrackerListEvent> events;
-
-  {
-    std::lock_guard<std::mutex> guard(m_events_lock);
-
-    events.swap(m_tracker_list_events);
-  }
-
-  for (auto& event : events) {
-    event.event();
-  }
+Manager::remove_events(torrent::TrackerWorker* tracker_worker) {
+  torrent::thread_main->cancel_callback_and_wait(tracker_worker);
 }
-
 
 } // namespace torrent

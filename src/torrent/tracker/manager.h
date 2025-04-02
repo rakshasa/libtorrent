@@ -23,13 +23,13 @@ struct TrackerListEvent {
 class LIBTORRENT_EXPORT Manager {
 public:
 
-  Manager();
+  Manager() = default;
+  ~Manager() = default;
 
 protected:
   friend class torrent::DownloadMain;
   friend class torrent::DownloadWrapper;
   friend class torrent::Manager;
-  // friend class torrent::ThreadTracker;
   friend class torrent::TrackerList;
 
   // Main thread:
@@ -41,19 +41,17 @@ protected:
 
   // Any thread:
 
-  void                add_event(TrackerList* tracker_list, std::function<void()> event);
+  void                add_event(torrent::TrackerWorker* tracker_worker, std::function<void()> event);
+  void                remove_events(torrent::TrackerWorker* tracker_worker);
 
 private:
-  void                process_events();
+  Manager(const Manager&) = delete;
+  Manager& operator=(const Manager&) = delete;
 
   unsigned int        m_signal_process_events{~0u};
 
   std::mutex                         m_lock;
   std::set<TrackerControllerWrapper> m_controllers;
-
-  // Events should not depend on the TrackerWorker still existing.
-  std::mutex                         m_events_lock;
-  std::vector<TrackerListEvent>      m_tracker_list_events;
 };
 
 }
