@@ -126,6 +126,8 @@ TrackerUdp::close_directly() {
   LT_LOG("closing directly : requester:%p state:%s url:%s",
          this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
+  m_slot_close();
+
   if (m_resolver_requesting)
     thread_self->resolver()->cancel(this);
 

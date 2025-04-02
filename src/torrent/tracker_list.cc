@@ -95,14 +95,10 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
   if (!tracker.is_usable() || event == tracker::TrackerState::EVENT_SCRAPE)
     return;
 
-  if (tracker.is_busy()) {
-    if (tracker.state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
-      return;
+  // TODO: Should always send if we are trying to send a started/completed event.
 
-    // TODO: All these should go through tracker::Manager.
-    // TODO: Also don't have TrackerList as friend.
-    tracker.get_worker()->close();
-  }
+  if (tracker.is_busy() && tracker.state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
+    return;
 
   tracker.get_worker()->send_event(event);
 
@@ -137,7 +133,6 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
   // These slots are called from within the worker thread, so we need to
   // use proper signal passing to the main thread.
 
-  // TODO: Pass the tracker object to the slots. Use weak ptrs.
   // TODO: When a tracker is sent to tracker thread to do a request, it needs to hold the shared_ptr
   // for the duration of the request.
 
@@ -152,8 +147,8 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
 
   auto weak_tracker = std::weak_ptr<TrackerWorker>(itr->m_worker);
 
-  itr->m_worker->m_slot_enabled = [this, weak_tracker]() {
-      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker]() {
+  itr->m_worker->m_slot_enabled = [this, weak_tracker, worker = itr->m_worker.get()]() {
+      thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker]() {
           if (!m_slot_tracker_enabled)
             return;
 
@@ -164,8 +159,8 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_disabled = [this, weak_tracker]() {
-      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker]() {
+  itr->m_worker->m_slot_disabled = [this, weak_tracker, worker = itr->m_worker.get()]() {
+      thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker]() {
           if (!m_slot_tracker_disabled)
             return;
 
@@ -176,8 +171,12 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_success = [this, weak_tracker](AddressList&& l) {
-      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker, l = std::move(l)]() {
+  itr->m_worker->m_slot_close = [worker = itr->m_worker.get()]() {
+      thread_tracker->tracker_manager()->remove_events(worker);
+    };
+
+  itr->m_worker->m_slot_success = [this, weak_tracker, worker = itr->m_worker.get()](AddressList&& l) {
+      thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker, l = std::move(l)]() {
           if (!m_slot_success)
             return;
 
@@ -188,8 +187,8 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_failure = [this, weak_tracker](const std::string& msg) {
-      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
+  itr->m_worker->m_slot_failure = [this, weak_tracker, worker = itr->m_worker.get()](const std::string& msg) {
+      thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker, msg]() {
           if (!m_slot_failed)
             return;
 
@@ -200,8 +199,8 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_scrape_success = [this, weak_tracker]() {
-      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker]() {
+  itr->m_worker->m_slot_scrape_success = [this, weak_tracker, worker = itr->m_worker.get()]() {
+      thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker]() {
           if (!m_slot_scrape_success)
             return;
 
@@ -212,8 +211,8 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_scrape_failure = [this, weak_tracker](const std::string& msg) {
-      thread_tracker->tracker_manager()->add_event(this, [this, weak_tracker, msg]() {
+  itr->m_worker->m_slot_scrape_failure = [this, weak_tracker, worker = itr->m_worker.get()](const std::string& msg) {
+      thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker, msg]() {
           if (!m_slot_scrape_failed)
             return;
 

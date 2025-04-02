@@ -90,6 +90,7 @@ protected:
 
   std::function<void()>              m_slot_enabled;
   std::function<void()>              m_slot_disabled;
+  std::function<void()>              m_slot_close;
   std::function<void(AddressList&&)> m_slot_success;
   std::function<void(std::string)>   m_slot_failure;
   std::function<void()>              m_slot_scrape_success;

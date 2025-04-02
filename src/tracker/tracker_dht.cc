@@ -58,6 +58,8 @@ TrackerDht::lock_and_status() const {
 
 void
 TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
+  close();
+
   if (m_dht_state != state_idle) {
     manager->dht_controller()->cancel_announce(&info().info_hash, this);
 
@@ -88,6 +90,8 @@ TrackerDht::send_scrape() {
 
 void
 TrackerDht::close() {
+  m_slot_close();
+
   if (m_dht_state != state_idle)
     manager->dht_controller()->cancel_announce(&info().info_hash, this);
 }

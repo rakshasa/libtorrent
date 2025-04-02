@@ -147,7 +147,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
 
 void
 TrackerHttp::send_scrape() {
-  if (m_data != NULL)
+  if (m_data != nullptr)
     return;
 
   LT_LOG("sending scrape : requester:%p url:%s", this, info().url.c_str());
@@ -182,7 +182,7 @@ TrackerHttp::close() {
 
 void
 TrackerHttp::disown() {
-  if (m_data == NULL) {
+  if (m_data == nullptr) {
     LT_LOG("disowning tracker (already closed) : requester:%p state:%s url:%s",
            this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
     return;
@@ -208,25 +208,28 @@ TrackerHttp::type() const {
 
 void
 TrackerHttp::close_directly() {
-  if (m_data == NULL) {
+  if (m_data == nullptr) {
     LT_LOG("closing directly (already closed) : requester:%p state:%s url:%s",
            this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
+    m_slot_close();
     return;
   }
 
   LT_LOG("closing directly : requester:%p state:%s url:%s",
          this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
+  m_slot_close();
+
   m_get->close();
-  m_get->set_stream(NULL);
+  m_get->set_stream(nullptr);
 
   m_data.reset();
 }
 
 void
 TrackerHttp::receive_done() {
-  if (m_data == NULL)
+  if (m_data == nullptr)
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
   LT_LOG("received reply : requester:%p", this);
@@ -369,7 +372,6 @@ TrackerHttp::process_success(const Object& object) {
     l.parse_address_compact_ipv6(object.get_key_string("peers6"));
 
   close_directly();
-
   m_slot_success(std::move(l));
 }
 
