@@ -65,9 +65,8 @@ Thread::stop_thread_wait() {
 
   release_global_lock();
 
-  while (!is_inactive()) {
-    usleep(1000);
-  }
+  pthread_join(m_thread, NULL);
+  assert(is_inactive());
 
   acquire_global_lock();
 }
