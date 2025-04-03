@@ -146,7 +146,7 @@ encoding_list() {
 
 Download
 download_add(Object* object, uint32_t tracker_key) {
-  auto                download = std::make_unique<DownloadWrapper>();
+  auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
   ctor.set_download(download.get());

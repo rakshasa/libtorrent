@@ -25,6 +25,8 @@ public:
 
   const HashString&   info_hash() const { return m_info_hash; }
 
+  bool                is_valid() const  { return m_ptr != nullptr; }
+
   bool                is_active() const;
   bool                is_requesting() const;
   bool                is_failure_mode() const;
