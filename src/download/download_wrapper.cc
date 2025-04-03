@@ -48,15 +48,15 @@ DownloadWrapper::~DownloadWrapper() {
   if (info()->is_open())
     close();
 
-  // If the client wants to do a quick cleanup after calling close, it
-  // will need to manually cancel the tracker requests.
-  m_main->tracker_controller().close();
-
   // Check if needed.
   m_main->connection_list()->clear();
   m_main->tracker_list()->clear();
 
-  if (m_main->tracker_controller().get() != nullptr) {
+  if (m_main->tracker_controller().is_valid()) {
+    // If the client wants to do a quick cleanup after calling close, it
+    // will need to manually cancel the tracker requests.
+    m_main->tracker_controller().close();
+
     thread_tracker->tracker_manager()->remove_controller(m_main->tracker_controller());
     m_main->tracker_controller().get_shared().reset();
   }
