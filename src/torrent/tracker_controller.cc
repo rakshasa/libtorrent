@@ -261,15 +261,6 @@ TrackerController::send_update_event() {
 // Currently being used by send_event, fixme.
 void
 TrackerController::close(int flags) {
-  if (this == nullptr)
-    throw internal_error("TrackerController::close() called on nullptr.");
-  if ((void*)this < (void*)0x10000)
-    throw internal_error("TrackerController::close() called on invalid object.");
-  if (m_tracker_list == nullptr)
-    throw internal_error("TrackerController::close() m_tracker_list is nullptr.");
-  if (m_private == nullptr)
-    throw internal_error("TrackerController::close() m_private is nullptr.");
-
   m_flags &= ~(flag_requesting | flag_promiscuous_mode);
 
   if ((flags & (close_disown_stop | close_disown_completed)))
