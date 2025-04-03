@@ -63,6 +63,8 @@ TrackerList::has_usable() const {
 
 void
 TrackerList::close_all_excluding(int event_bitmap) {
+  LT_LOG("closing all trackers with event bitmap: %x", event_bitmap);
+
   for (auto tracker : *this) {
     if ((event_bitmap & (1 << tracker.state().latest_event())))
       continue;
@@ -73,6 +75,8 @@ TrackerList::close_all_excluding(int event_bitmap) {
 
 void
 TrackerList::disown_all_including(int event_bitmap) {
+  LT_LOG("disowning all trackers with event bitmap: %x", event_bitmap);
+
   for (auto& tracker : *this) {
     if ((event_bitmap & (1 << tracker.state().latest_event())))
       tracker.get_worker()->disown();

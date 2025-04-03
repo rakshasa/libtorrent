@@ -180,16 +180,22 @@ TrackerHttp::close() {
   close_directly();
 }
 
+// TODO: Remove 'disown' mechanic when we rewrite http request handling.
+
 void
 TrackerHttp::disown() {
   if (m_data == nullptr) {
     LT_LOG("disowning tracker (already closed) : requester:%p state:%s url:%s",
            this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
+    m_slot_close();
     return;
   }
 
   LT_LOG("disowning tracker : requester:%p state:%s url:%s",
          this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
+  m_slot_close();
 
   m_get->set_delete_self();
   m_get->set_delete_stream();
