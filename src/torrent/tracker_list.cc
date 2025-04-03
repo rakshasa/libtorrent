@@ -18,8 +18,8 @@
 
 #include "globals.h"
 
-#define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
-  lt_log_print_info(LOG_TRACKER_##log_level, info(), "tracker_list", log_fmt, __VA_ARGS__);
+#define LT_LOG(log_fmt, ...)                                            \
+  lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -102,9 +102,8 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
 
   tracker.get_worker()->send_event(event);
 
-  LT_LOG_TRACKER(INFO, "sending '%s (group:%u url:%s)",
-                 option_as_string(OPTION_TRACKER_EVENT, event),
-                 tracker.group(), tracker.url().c_str());
+  LT_LOG("sending %s : requester:%p group:%u url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, event), tracker.get_worker(), tracker.url().c_str());
 }
 
 void
@@ -120,8 +119,8 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
 
   tracker.get_worker()->send_scrape();
 
-  LT_LOG_TRACKER(INFO, "sending scrape (group:%u url:%s)",
-                 tracker.group(), tracker.url().c_str());
+  LT_LOG("sending scrape : requester:%p group:%u url:%s",
+         tracker.get_worker(), tracker.url().c_str());
 }
 
 TrackerList::iterator
@@ -234,7 +233,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
       };
     };
 
-  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, itr->m_worker->info().url.c_str());
+  LT_LOG("added tracker : requester:%p group:%u url:%s", itr->m_worker.get(), group, itr->m_worker->info().url.c_str());
 
   if (m_slot_tracker_enabled)
     m_slot_tracker_enabled(tracker);
@@ -271,7 +270,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     worker = new TrackerDht(tracker_info, flags);
 
   } else {
-    LT_LOG_TRACKER(WARN, "could find matching tracker protocol (url:%s)", url.c_str());
+    LT_LOG("could find matching tracker protocol : url:%s", url.c_str());
 
     if (extra_tracker)
       throw torrent::input_error("could find matching tracker protocol (url:" + url + ")");
@@ -382,7 +381,8 @@ TrackerList::randomize_group_entries() {
 
 void
 TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
-  LT_LOG_TRACKER(INFO, "received %u peers (url:%s)", l->size(), tracker.url().c_str());
+  LT_LOG("received %u peers : requester:%p group:%u url:%s",
+         l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
   iterator itr = find(tracker);
 
@@ -422,7 +422,8 @@ TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
 
 void
 TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) {
-  LT_LOG_TRACKER(INFO, "failed to send request to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
+  LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
+         tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
   iterator itr = find(tracker);
 
@@ -444,7 +445,8 @@ TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) 
 
 void
 TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
-  LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tracker.url().c_str());
+  LT_LOG("received scrape success : requester:%p group:%u url:%s",
+         tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
   iterator itr = find(tracker);
 
@@ -466,7 +468,8 @@ TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
 
 void
 TrackerList::receive_scrape_failed(tracker::Tracker&& tracker, const std::string& msg) {
-  LT_LOG_TRACKER(INFO, "failed to send scrape to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
+  LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
+         tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
   iterator itr = find(tracker);
 
