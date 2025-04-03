@@ -382,6 +382,8 @@ TrackerList::randomize_group_entries() {
 
 void
 TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
+  LT_LOG_TRACKER(INFO, "received %u peers (url:%s)", l->size(), tracker.url().c_str());
+
   iterator itr = find(tracker);
 
   if (itr == end())
@@ -396,8 +398,6 @@ TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
-
-  LT_LOG_TRACKER(INFO, "received %u peers (url:%s)", l->size(), tracker.url().c_str());
 
   // TODO: Update staate in TrackerWorker.
 
@@ -422,6 +422,8 @@ TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
 
 void
 TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) {
+  LT_LOG_TRACKER(INFO, "failed to send request to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
+
   iterator itr = find(tracker);
 
   if (itr == end())
@@ -429,8 +431,6 @@ TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) 
 
   if (tracker.is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the tracker is still busy.");
-
-  LT_LOG_TRACKER(INFO, "failed to send request to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
 
   {
     auto guard = tracker.get_worker()->lock_guard();
@@ -444,6 +444,8 @@ TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) 
 
 void
 TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
+  LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tracker.url().c_str());
+
   iterator itr = find(tracker);
 
   if (itr == end())
@@ -451,8 +453,6 @@ TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
 
   if (tracker.is_busy())
     throw internal_error("TrackerList::receive_scrape_success(...) called but the tracker is still busy.");
-
-  LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tracker.url().c_str());
 
   {
     auto guard = tracker.get_worker()->lock_guard();
@@ -466,6 +466,8 @@ TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
 
 void
 TrackerList::receive_scrape_failed(tracker::Tracker&& tracker, const std::string& msg) {
+  LT_LOG_TRACKER(INFO, "failed to send scrape to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
+
   iterator itr = find(tracker);
 
   if (itr == end())
@@ -473,8 +475,6 @@ TrackerList::receive_scrape_failed(tracker::Tracker&& tracker, const std::string
 
   if (tracker.is_busy())
     throw internal_error("TrackerList::receive_scrape_failed(...) called but the tracker is still busy.");
-
-  LT_LOG_TRACKER(INFO, "failed to send scrape to tracker (url:%s msg:%s)", tracker.url().c_str(), msg.c_str());
 
   if (m_slot_scrape_failed)
     m_slot_scrape_failed(tracker, msg);
