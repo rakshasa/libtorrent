@@ -38,6 +38,7 @@
 #define LIBTORRENT_DHT_TRANSACTION_H
 
 #include <map>
+#include <memory>
 #include <rak/socket_address.h>
 
 #include "dht/dht_node.h"
@@ -246,7 +247,7 @@ public:
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
     : m_sa(*s), m_id(-cachedTime.seconds()) { build_buffer(d); };
 
-  ~DhtTransactionPacket()                               { delete[] m_data; }
+  ~DhtTransactionPacket() = default;
 
   bool                        has_transaction() const   { return m_id >= -1; }
   bool                        has_failed() const        { return m_id == -1; }
@@ -255,7 +256,7 @@ public:
   const rak::socket_address*  address() const           { return &m_sa; }
   rak::socket_address*        address()                 { return &m_sa; }
 
-  const char*                 c_str() const             { return m_data; }
+  const char*                 c_str() const             { return m_data.get(); }
   size_t                      length() const            { return m_length; }
 
   int                         id() const                { return m_id; }
@@ -269,11 +270,11 @@ private:
 
   void                        build_buffer(const DhtMessage& data);
 
-  rak::socket_address   m_sa;
-  char*                 m_data;
-  size_t                m_length;
-  int                   m_id;
-  DhtTransaction*       m_transaction{};
+  rak::socket_address         m_sa;
+  std::unique_ptr<char[]>     m_data;
+  size_t                      m_length;
+  int                         m_id;
+  DhtTransaction*             m_transaction{};
 };
 
 // DHT Transaction classes. DhtTransaction and DhtTransactionSearch
