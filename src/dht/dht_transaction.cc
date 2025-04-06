@@ -220,8 +220,8 @@ DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
   object_buffer_t result = static_map_write_bencode_c(object_write_to_buffer, NULL, std::make_pair(buffer, buffer + sizeof(buffer)), msg);
 
   m_length = result.second - buffer;
-  m_data = new char[m_length];
-  memcpy(m_data, buffer, m_length);
+  m_data   = std::make_unique<char[]>(m_length);
+  memcpy(m_data.get(), buffer, m_length);
 }
 
 DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString& id, const rak::socket_address* sa)

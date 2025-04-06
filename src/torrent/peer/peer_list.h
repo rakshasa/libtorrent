@@ -2,6 +2,7 @@
 #define LIBTORRENT_PEER_LIST_H
 
 #include <map>
+#include <memory>
 #include <torrent/common.h>
 #include <torrent/net/socket_address_key.h>
 #include <torrent/utils/extents.h>
@@ -61,7 +62,7 @@ public:
 
   static ipv4_table*  ipv4_filter() { return &m_ipv4_table; }
 
-  AvailableList*      available_list()  { return m_available_list; }
+  const std::unique_ptr<AvailableList>& available_list() { return m_available_list; }
   uint32_t            available_list_size() const;
 
   uint32_t            cull_peers(int flags);
@@ -85,7 +86,7 @@ private:
   static ipv4_table   m_ipv4_table;
 
   DownloadInfo*       m_info;
-  AvailableList*      m_available_list;
+  std::unique_ptr<AvailableList> m_available_list;
 };
 
 }

@@ -55,7 +55,7 @@ socket_address_less(const sockaddr* s1, const sockaddr* s2) {
 //
 
 PeerList::PeerList() :
-  m_available_list(new AvailableList) {
+    m_available_list(std::make_unique<AvailableList>()) {
 }
 
 PeerList::~PeerList() {
@@ -68,7 +68,6 @@ PeerList::~PeerList() {
   base_type::clear();
 
   m_info = NULL;
-  delete m_available_list;
 }
 
 void
