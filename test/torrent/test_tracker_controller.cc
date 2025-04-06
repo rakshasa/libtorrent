@@ -7,6 +7,8 @@
 #include "rak/priority_queue_default.h"
 #include "test/torrent/test_tracker_controller.h"
 #include "test/torrent/test_tracker_list.h"
+#include "test/helpers/test_main_thread.h"
+#include "src/tracker/thread_tracker.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller);
 
@@ -316,6 +318,8 @@ test_tracker_controller::test_send_close_on_enable() {
   CPPUNIT_ASSERT(!tracker_1.is_busy());
   CPPUNIT_ASSERT(!tracker_2.is_busy());
   CPPUNIT_ASSERT(tracker_3.is_busy());
+
+  TRACKER_CONTROLLER_CLEANUP();
 }
 
 void
@@ -593,6 +597,8 @@ test_tracker_controller::test_new_peers() {
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success(20));
   CPPUNIT_ASSERT(tracker_0_0.state().latest_new_peers() == 20);
+
+  TRACKER_CONTROLLER_CLEANUP();
 }
 
 // Add new function for finding the first tracker that will time out,

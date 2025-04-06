@@ -1,4 +1,5 @@
 #include "test/helpers/test_fixture.h"
+#include "test/helpers/test_main_thread.h"
 #include "torrent/tracker_controller.h"
 
 class test_tracker_controller : public test_fixture {
@@ -68,6 +69,8 @@ public:
 };
 
 #define TRACKER_CONTROLLER_SETUP()                                      \
+  SETUP_THREAD_TRACKER();                                               \
+                                                                        \
   torrent::TrackerList tracker_list;                                    \
   torrent::TrackerController tracker_controller(&tracker_list);         \
                                                                         \
@@ -88,6 +91,9 @@ public:
   tracker_list.slot_tracker_enabled()  = std::bind(&torrent::TrackerController::receive_tracker_enabled, &tracker_controller, std::placeholders::_1); \
   tracker_list.slot_tracker_disabled() = std::bind(&torrent::TrackerController::receive_tracker_disabled, &tracker_controller, std::placeholders::_1);
 
+#define TRACKER_CONTROLLER_CLEANUP()            \
+  CLEANUP_THREAD_TRACKER();
+
 #define TEST_SINGLE_BEGIN()                                             \
   TRACKER_CONTROLLER_SETUP();                                           \
   TRACKER_INSERT(0, tracker_0_0);                                       \
@@ -99,7 +105,8 @@ public:
   tracker_controller.disable();                                         \
   CPPUNIT_ASSERT(!tracker_list.has_active());                           \
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
-                 failure_counter == failure_counter);
+                 failure_counter == failure_counter);                   \
+  TRACKER_CONTROLLER_CLEANUP();
 
 #define TEST_SEND_SINGLE_BEGIN(event_name)                              \
   tracker_controller.send_##event_name##_event();                       \
@@ -135,13 +142,14 @@ public:
   TRACKER_INSERT(2, tracker_2_0);                                       \
                                                                         \
   tracker_controller.enable();                                          \
-  CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::mask_send)); \
+  CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::mask_send));
 
 #define TEST_MULTIPLE_END(succeeded, failed)                            \
   tracker_controller.disable();                                         \
   CPPUNIT_ASSERT(!tracker_list.has_active());                           \
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
-                 failure_counter == failed);
+                 failure_counter == failed);                            \
+  TRACKER_CONTROLLER_CLEANUP();
 
 #define TEST_GOTO_NEXT_SCRAPE(assumed_scrape)                           \
   CPPUNIT_ASSERT(tracker_controller.is_scrape_queued());                \

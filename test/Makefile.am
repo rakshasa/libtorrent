@@ -38,6 +38,8 @@ LibTorrent_Test_Common = \
 	helpers/protectors.h \
 	helpers/test_fixture.cc \
 	helpers/test_fixture.h \
+	helpers/test_main_thread.cc \
+	helpers/test_main_thread.h \
 	helpers/test_thread.cc \
 	helpers/test_thread.h \
 	helpers/test_utils.h \

@@ -96,6 +96,12 @@ TrackerList::clear_stats() {
 
 void
 TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum event) {
+  if (!tracker.is_valid())
+    throw internal_error("TrackerList::send_event(...) tracker is invalid.");
+
+  if (find(tracker) == end())
+    throw internal_error("TrackerList::send_event(...) tracker not found.");
+
   if (!tracker.is_usable() || event == tracker::TrackerState::EVENT_SCRAPE)
     return;
 
@@ -104,14 +110,20 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
   if (tracker.is_busy() && tracker.state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
     return;
 
-  tracker.get_worker()->send_event(event);
-
   LT_LOG("sending %s : requester:%p group:%u url:%s",
          option_as_string(OPTION_TRACKER_EVENT, event), tracker.get_worker(), tracker.url().c_str());
+
+  thread_tracker->tracker_manager()->send_event(tracker, event);
 }
 
 void
 TrackerList::send_scrape(tracker::Tracker& tracker) {
+  if (!tracker.is_valid())
+    throw internal_error("TrackerList::send_scrape(...) tracker is invalid.");
+
+  if (find(tracker) == end())
+    throw internal_error("TrackerList::send_scrape(...) tracker not found.");
+
   if (tracker.is_busy() || !tracker.is_usable())
     return;
 
@@ -121,17 +133,14 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
   if (rak::timer::from_seconds(tracker.state().scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
     return;
 
-  tracker.get_worker()->send_scrape();
+  LT_LOG("sending scrape : requester:%p group:%u url:%s", tracker.get_worker(), tracker.url().c_str());
 
-  LT_LOG("sending scrape : requester:%p group:%u url:%s",
-         tracker.get_worker(), tracker.url().c_str());
+  thread_tracker->tracker_manager()->send_scrape(tracker);
 }
 
 TrackerList::iterator
 TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
   iterator itr = base_type::insert(end_group(group), tracker);
-
-  itr->set_group(group);
 
   // These slots are called from within the worker thread, so we need to
   // use proper signal passing to the main thread.
@@ -149,8 +158,11 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
   // shared_ptr.
 
   auto weak_tracker = std::weak_ptr<TrackerWorker>(itr->m_worker);
+  auto worker = itr->get_worker();
 
-  itr->m_worker->m_slot_enabled = [this, weak_tracker, worker = itr->m_worker.get()]() {
+  worker->set_group(group);
+
+  worker->m_slot_enabled = [this, weak_tracker, worker]() {
       thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker]() {
           if (!m_slot_tracker_enabled)
             return;
@@ -162,7 +174,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_disabled = [this, weak_tracker, worker = itr->m_worker.get()]() {
+  worker->m_slot_disabled = [this, weak_tracker, worker]() {
       thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker]() {
           if (!m_slot_tracker_disabled)
             return;
@@ -174,11 +186,11 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_close = [worker = itr->m_worker.get()]() {
+  worker->m_slot_close = [worker]() {
       thread_tracker->tracker_manager()->remove_events(worker);
     };
 
-  itr->m_worker->m_slot_success = [this, weak_tracker, worker = itr->m_worker.get()](AddressList&& l) {
+  worker->m_slot_success = [this, weak_tracker, worker](AddressList&& l) {
       thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker, l = std::move(l)]() {
           if (!m_slot_success)
             return;
@@ -190,7 +202,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_failure = [this, weak_tracker, worker = itr->m_worker.get()](const std::string& msg) {
+  worker->m_slot_failure = [this, weak_tracker, worker](const std::string& msg) {
       thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker, msg]() {
           if (!m_slot_failed)
             return;
@@ -202,7 +214,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_scrape_success = [this, weak_tracker, worker = itr->m_worker.get()]() {
+  worker->m_slot_scrape_success = [this, weak_tracker, worker]() {
       thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker]() {
           if (!m_slot_scrape_success)
             return;
@@ -214,7 +226,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_scrape_failure = [this, weak_tracker, worker = itr->m_worker.get()](const std::string& msg) {
+  worker->m_slot_scrape_failure = [this, weak_tracker, worker](const std::string& msg) {
       thread_tracker->tracker_manager()->add_event(worker, [this, weak_tracker, msg]() {
           if (!m_slot_scrape_failed)
             return;
@@ -226,7 +238,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  itr->m_worker->m_slot_parameters = [this]() -> TrackerParameters {
+  worker->m_slot_parameters = [this]() -> TrackerParameters {
       // TODO: Lock here!
 
       return TrackerParameters{
@@ -237,7 +249,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
       };
     };
 
-  LT_LOG("added tracker : requester:%p group:%u url:%s", itr->m_worker.get(), group, itr->m_worker->info().url.c_str());
+  LT_LOG("added tracker : requester:%p group:%u url:%s", worker, itr->group(), itr->url().c_str());
 
   if (m_slot_tracker_enabled)
     m_slot_tracker_enabled(tracker);

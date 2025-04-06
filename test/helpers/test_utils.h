@@ -1,3 +1,6 @@
+#ifndef LIBTORRENT_TEST_UTILS_H
+#define LIBTORRENT_TEST_UTILS_H
+
 #include <functional>
 #include <unistd.h>
 
@@ -14,3 +17,5 @@ wait_for_true(std::function<bool ()> test_function) {
 
   return false;
 }
+
+#endif // LIBTORRENT_TEST_UTILS_H

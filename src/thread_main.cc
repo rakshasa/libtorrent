@@ -15,7 +15,7 @@
 
 namespace torrent {
 
-ThreadMain* thread_main = nullptr;
+ThreadMain* thread_main LIBTORRENT_EXPORT = nullptr;
 
 ThreadMain::ThreadMain() {
   m_hash_queue = std::make_unique<HashQueue>();

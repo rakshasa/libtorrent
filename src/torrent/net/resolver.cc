@@ -2,6 +2,7 @@
 
 #include "torrent/net/resolver.h"
 
+#include "globals.h"
 #include "net/thread_net.h"
 #include "net/udns_resolver.h"
 #include "torrent/net/socket_address.h"

@@ -28,6 +28,8 @@ void
 test_thread::init_thread() {
   m_state = STATE_INITIALIZED;
   m_test_state = TEST_PRE_START;
+  // m_thread_id = std::this_thread::get_id();
+
   m_poll = std::unique_ptr<torrent::PollSelect>(torrent::PollSelect::create(256));
 }
 
@@ -60,6 +62,16 @@ test_thread::call_events() {
 
   if ((m_test_flags & test_flag_post_poke)) {
   }
+
+  // while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
+  //   rak::priority_item* v = taskScheduler.top();
+  //   taskScheduler.pop();
+
+  //   v->clear_time();
+  //   v->slot()();
+  // }
+
+  process_callbacks();
 }
 
 thread_management_type::thread_management_type() {
@@ -68,4 +80,11 @@ thread_management_type::thread_management_type() {
 
 thread_management_type::~thread_management_type() {
   torrent::utils::Thread::release_global_lock();
+}
+
+void
+set_create_poll() {
+  torrent::Poll::slot_create_poll() = [] {
+      return torrent::PollSelect::create(256);
+    };
 }

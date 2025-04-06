@@ -17,8 +17,8 @@ struct TrackerSendEvent {
 
 class ThreadTracker : public utils::Thread {
 public:
-  ThreadTracker();
-  ~ThreadTracker() = default;
+  ThreadTracker(utils::Thread* main_thread);
+  ~ThreadTracker();
 
   const char*         name() const      { return "rtorrent tracker"; }
 
@@ -45,8 +45,6 @@ private:
   std::vector<TrackerSendEvent> m_send_events;
 };
 
-extern ThreadTracker* thread_tracker;
+} // namespace torrent
 
-}
-
-#endif
+#endif // LIBTORRENT_THREAD_TRACKER_H

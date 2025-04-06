@@ -5,8 +5,10 @@
 
 #include "globals.h"
 #include "rak/priority_queue_default.h"
+#include "test/helpers/test_thread.h"
 #include "test/torrent/test_tracker_controller_features.h"
 #include "test/torrent/test_tracker_list.h"
+#include "src/tracker/thread_tracker.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller_features);
 

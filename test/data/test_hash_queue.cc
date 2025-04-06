@@ -37,8 +37,6 @@ check_for_chunk_done(torrent::HashQueue* hash_queue, done_chunks_type* done_chun
   return done_chunks->find(index) != done_chunks->end();
 }
 
-static torrent::Poll* create_select_poll() { return torrent::PollSelect::create(256); }
-
 static void do_nothing() {}
 
 void
@@ -47,7 +45,8 @@ test_hash_queue::setUp() {
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
-  torrent::Poll::slot_create_poll() = std::bind(&create_select_poll);
+  torrent::Poll::slot_create_poll() = [] { return torrent::PollSelect::create(256); };
+
   signal(SIGUSR1, (sig_t)&do_nothing);
 }
 

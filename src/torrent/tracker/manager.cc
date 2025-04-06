@@ -5,7 +5,6 @@
 #include <cassert>
 #include <utility>
 
-#include "thread_main.h"
 #include "src/manager.h"
 #include "tracker/tracker_worker.h"
 #include "torrent/exceptions.h"
@@ -14,15 +13,19 @@
 #include "torrent/tracker_list.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/thread.h"
 
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
   lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker::manager", log_fmt, __VA_ARGS__);
 
 namespace torrent::tracker {
 
+Manager::Manager(utils::Thread* main_thread) :
+  m_main_thread(main_thread) {}
+
 TrackerControllerWrapper
 Manager::add_controller(DownloadInfo* download_info, TrackerController* controller) {
-  assert(std::this_thread::get_id() == torrent::thread_main->thread_id());
+  assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
   if (download_info->hash() == HashString::new_zero())
     throw internal_error("tracker::Manager::add(...) invalid info_hash.");
@@ -42,7 +45,7 @@ Manager::add_controller(DownloadInfo* download_info, TrackerController* controll
 
 void
 Manager::remove_controller(TrackerControllerWrapper controller) {
-  assert(std::this_thread::get_id() == torrent::thread_main->thread_id());
+  assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
   std::lock_guard<std::mutex> guard(m_lock);
 
@@ -58,20 +61,30 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
 
 void
 Manager::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event) {
-  assert(std::this_thread::get_id() == torrent::thread_main->thread_id());
+  assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
   // TODO: Currently executing in main thread, but should be in tracker thread.
   tracker.get_worker()->send_event(new_event);
 }
 
 void
+Manager::send_scrape(tracker::Tracker& tracker) {
+  assert(std::this_thread::get_id() == m_main_thread->thread_id());
+
+  // TODO: Currently executing in main thread, but should be in tracker thread.
+  tracker.get_worker()->send_scrape();
+}
+
+
+// Events are queued by the trackers and run in the main thread.
+void
 Manager::add_event(torrent::TrackerWorker* tracker_worker, std::function<void()> event) {
-  torrent::thread_main->callback(tracker_worker, std::move(event));
+  m_main_thread->callback(tracker_worker, std::move(event));
 }
 
 void
 Manager::remove_events(torrent::TrackerWorker* tracker_worker) {
-  torrent::thread_main->cancel_callback_and_wait(tracker_worker);
+  m_main_thread->cancel_callback_and_wait(tracker_worker);
 }
 
 } // namespace torrent
