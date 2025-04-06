@@ -28,8 +28,6 @@ private:
   std::unique_ptr<UdnsResolver> m_udns;
 };
 
-extern ThreadNet* thread_net;
-
 } // namespace torrent
 
 #endif // LIBTORRENT_NET_THREAD_NET_H

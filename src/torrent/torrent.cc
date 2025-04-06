@@ -67,10 +67,11 @@ initialize() {
   instrumentation_initialize();
 
   manager = new Manager;
+
   thread_main = new ThreadMain;
   thread_disk = new ThreadDisk;
   thread_net = new ThreadNet;
-  thread_tracker = new ThreadTracker;
+  thread_tracker = new ThreadTracker(thread_main);
 
   thread_main->init_thread();
 
@@ -146,7 +147,7 @@ encoding_list() {
 
 Download
 download_add(Object* object, uint32_t tracker_key) {
-  auto                download = std::make_unique<DownloadWrapper>();
+  auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
   ctor.set_download(download.get());

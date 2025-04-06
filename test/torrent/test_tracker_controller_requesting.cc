@@ -4,8 +4,10 @@
 #include <iostream>
 
 #include "rak/priority_queue_default.h"
+#include "test/helpers/test_thread.h"
 #include "test/torrent/test_tracker_controller_requesting.h"
 #include "test/torrent/test_tracker_list.h"
+#include "src/tracker/thread_tracker.h"
 
 #include "globals.h"
 

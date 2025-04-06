@@ -10,7 +10,7 @@
 
 namespace torrent {
 class Manager;
-// class ThreadTracker;
+class ThreadTracker;
 }
 
 namespace torrent::tracker {
@@ -23,14 +23,14 @@ struct TrackerListEvent {
 class LIBTORRENT_EXPORT Manager {
 public:
 
-  Manager() = default;
+  Manager(utils::Thread* main_thread);
   ~Manager() = default;
 
 protected:
   friend class torrent::DownloadMain;
   friend class torrent::DownloadWrapper;
-  friend class torrent::Manager;
   friend class torrent::TrackerList;
+  friend class torrent::ThreadTracker;
 
   // Main thread:
 
@@ -38,6 +38,7 @@ protected:
   void                     remove_controller(TrackerControllerWrapper controller);
 
   void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
+  void                send_scrape(tracker::Tracker& tracker);
 
   // Any thread:
 
@@ -48,6 +49,7 @@ private:
   Manager(const Manager&) = delete;
   Manager& operator=(const Manager&) = delete;
 
+  utils::Thread*      m_main_thread{nullptr};
   unsigned int        m_signal_process_events{~0u};
 
   std::mutex                         m_lock;

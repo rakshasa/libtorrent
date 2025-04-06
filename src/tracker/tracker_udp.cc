@@ -27,10 +27,11 @@
 #include "thread_main.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
-#define LT_LOG_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...) \
-  lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
+#define LT_LOG_DUMP(log_dump_data, log_dump_size, log_fmt, ...)         \
+  lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, \
+                         "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
 namespace torrent {
 
@@ -51,8 +52,7 @@ TrackerUdp::is_busy() const {
 
 void
 TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
-  LT_LOG("sending event : requester:%p state:%s url:%s",
-         this, option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
+  LT_LOG("sending event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
 
   // TODO: Don't close fd for every new request.
   close_directly();
@@ -68,7 +68,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   m_resolver_requesting = true;
   m_sending_announce = true;
 
-  LT_LOG("resolving hostname : requester:%p address:%s", this, hostname.data());
+  LT_LOG("resolving hostname : address:%s", hostname.data());
 
   if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
       (cachedTime - m_time_last_resolved) > rak::timer::from_minutes(24 * 60) ||
@@ -107,29 +107,28 @@ TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& 
 
 void
 TrackerUdp::close() {
-  LT_LOG("closing event : requester:%p state:%s url:%s",
-         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("closing event : state:%s url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
 
 void
 TrackerUdp::disown() {
-  LT_LOG("disowning tracker : requester:%p state:%s url:%s",
-         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("disowning tracker : state:%s url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
 
 void
 TrackerUdp::close_directly() {
-  LT_LOG("closing directly : requester:%p state:%s url:%s",
-         this, option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("closing directly : state:%s url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   m_slot_close();
 
-  if (m_resolver_requesting)
-    thread_self->resolver()->cancel(this);
+  thread_self->resolver()->cancel(this);
 
   m_resolver_requesting = false;
   m_sending_announce = false;
@@ -169,9 +168,9 @@ TrackerUdp::receive_failed(const std::string& msg) {
 void
 TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err) {
   if (std::this_thread::get_id() != torrent::thread_main->thread_id())
-    LT_LOG("invalid thread : requester:%p", this);
+    throw internal_error("TrackerUdp::receive_resolved() called from a different thread.");
 
-  LT_LOG("received resolved : requester:%p", this);
+  LT_LOG("received resolved", 0);
 
   if (!m_resolver_requesting)
     throw internal_error("TrackerUdp::receive_resolved() called but m_resolver_requesting is false.");
@@ -179,7 +178,7 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
   m_resolver_requesting = false;
 
   if (err != 0) {
-    LT_LOG("could not resolve hostname : requester:%p error:'%s'", this, gai_strerror(err));
+    LT_LOG("could not resolve hostname : error:'%s'", gai_strerror(err));
     return receive_failed("could not resolve hostname : error:'" + std::string(gai_strerror(err)) + "'");
   }
 
@@ -233,19 +232,20 @@ TrackerUdp::start_announce() {
   else
     throw internal_error("TrackerUdp::start_announce() called but both m_inet_address and m_inet6_address are nullptr.");
 
-  LT_LOG("starting announce : requester:%p address:%s", this, sa_pretty_str(m_current_address).c_str());
+  LT_LOG("starting announce : address:%s", sa_pretty_str(m_current_address).c_str());
 
   // TODO: Make each of these a separate error... at the very least separate open and bind.
   if (!get_fd().open_datagram() || !get_fd().set_nonblock()) {
-    LT_LOG("could not open UDP socket : requester:%p", this);
+    LT_LOG("could not open UDP socket", 0);
     return receive_failed("could not open UDP socket");
   }
 
   auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
 
   if (bind_address->is_bindable() && !get_fd().bind(*bind_address)) {
-    LT_LOG("failed to bind socket to udp address : requester:%p address:%s error:'%s'",
-           this, bind_address->pretty_address_str().c_str(), rak::error_number::current().c_str());
+    LT_LOG("failed to bind socket to udp address : address:%s error:'%s'",
+           bind_address->pretty_address_str().c_str(), rak::error_number::current().c_str());
+
     return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() +
                           "' with error '" + rak::error_number::current().c_str() + "'");
   }
@@ -277,8 +277,8 @@ TrackerUdp::event_read() {
   m_read_buffer->reset_position();
   m_read_buffer->set_end(s);
 
-  LT_LOG("received reply (size:%d)", s);
-  LT_LOG_DUMP(DEBUG, (const char*)m_read_buffer->begin(), s, "received reply", 0);
+  LT_LOG("received reply : size:%d", s);
+  LT_LOG_DUMP((const char*)m_read_buffer->begin(), s, "received reply", 0);
 
   if (s < 4)
     return;
@@ -337,8 +337,7 @@ TrackerUdp::prepare_connect_input() {
   m_write_buffer->write_32(m_action = 0);
   m_write_buffer->write_32(m_transaction_id = random());
 
-  LT_LOG_DUMP(DEBUG, m_write_buffer->begin(), m_write_buffer->size_end(),
-              "prepare connect (id:%" PRIx32 ")", m_transaction_id);
+  LT_LOG_DUMP(m_write_buffer->begin(), m_write_buffer->size_end(), "prepare connect (id:%" PRIx32 ")", m_transaction_id);
 }
 
 void
@@ -374,7 +373,7 @@ TrackerUdp::prepare_announce_input() {
   if (m_write_buffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
 
-  LT_LOG_DUMP(DEBUG, m_write_buffer->begin(), m_write_buffer->size_end(),
+  LT_LOG_DUMP(m_write_buffer->begin(), m_write_buffer->size_end(),
               "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
               option_as_string(OPTION_TRACKER_EVENT, m_send_state),
               m_transaction_id, parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);

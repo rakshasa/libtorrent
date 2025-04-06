@@ -15,6 +15,7 @@ class test_tracker_controller_requesting : public test_fixture {
   CPPUNIT_TEST(test_hammering_multi_success_long_timeout);
   CPPUNIT_TEST(test_hammering_multi_success_short_timeout);
   CPPUNIT_TEST(test_hammering_multi_failure);
+
   // CPPUNIT_TEST(test_hammering_multi_failure_long_timeout);
   // CPPUNIT_TEST(test_hammering_multi_failure_short_timeout);
 

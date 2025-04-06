@@ -1,5 +1,10 @@
+#ifndef TEST_HELPERS_TEST_THREAD_H
+#define TEST_HELPERS_TEST_THREAD_H
+
 #include <atomic>
 
+#include "test/helpers/test_utils.h"
+#include "torrent/common.h"
 #include "torrent/utils/thread.h"
 
 class test_thread : public torrent::utils::Thread {
@@ -50,6 +55,8 @@ struct thread_management_type {
   ~thread_management_type();
 };
 
+void set_create_poll();
+
 #define SETUP_THREAD_DISK()                                             \
   thread_management_type thread_management;                             \
   torrent::thread_self = new test_thread();                             \
@@ -64,3 +71,5 @@ struct thread_management_type {
   delete torrent::thread_self;                                          \
   torrent::thread_self = nullptr;                                       \
   torrent::thread_disk = nullptr;
+
+#endif

@@ -52,9 +52,11 @@ public:
   void                set_name(const std::string& s)               { m_name = s; }
 
   const HashString&   hash() const                                 { return m_hash; }
+  const HashString&   info_hash() const                            { return m_hash; }
   HashString&         mutable_hash()                               { return m_hash; }
 
   const HashString&   hash_obfuscated() const                      { return m_hashObfuscated; }
+  const HashString&   info_hash_obfuscated() const                 { return m_hashObfuscated; }
   HashString&         mutable_hash_obfuscated()                    { return m_hashObfuscated; }
 
   const HashString&   local_id() const                             { return m_localId; }

@@ -11,8 +11,6 @@
 
 namespace torrent {
 
-ThreadNet* thread_net = nullptr;
-
 ThreadNet::ThreadNet() {
   m_udns = std::make_unique<UdnsResolver>();
 }
@@ -23,7 +21,6 @@ ThreadNet::init_thread() {
     throw internal_error("ThreadNet::init_thread(): Poll::slot_create_poll() not valid.");
 
   m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
-
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_NET - INSTRUMENTATION_POLLING_DO_POLL;

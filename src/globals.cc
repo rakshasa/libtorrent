@@ -12,6 +12,10 @@ namespace torrent {
 LIBTORRENT_EXPORT rak::priority_queue_default taskScheduler;
 LIBTORRENT_EXPORT rak::timer                  cachedTime;
 
+LIBTORRENT_EXPORT ThreadTracker* thread_tracker = nullptr;
+LIBTORRENT_EXPORT ThreadNet*     thread_net = nullptr;
+
+// TODO: Delete.
 void poll_event_open(Event* event) { thread_main->poll()->open(event); manager->connection_manager()->inc_socket_count(); }
 void poll_event_close(Event* event) { thread_main->poll()->close(event); manager->connection_manager()->dec_socket_count(); }
 void poll_event_closed(Event* event) { thread_main->poll()->closed(event); manager->connection_manager()->dec_socket_count(); }

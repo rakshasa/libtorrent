@@ -1,8 +1,10 @@
 #include "test/helpers/test_fixture.h"
+#include "test/helpers/test_main_thread.h"
 #include "test/helpers/tracker_test.h"
 
 class test_tracker_list : public test_fixture {
   CPPUNIT_TEST_SUITE(test_tracker_list);
+
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
   CPPUNIT_TEST(test_close);
@@ -21,6 +23,7 @@ class test_tracker_list : public test_fixture {
   CPPUNIT_TEST(test_scrape_failure);
 
   CPPUNIT_TEST(test_has_active);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -49,16 +52,22 @@ public:
 
 bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* states, bool scrape);
 
-#define TRACKER_SETUP()                                                 \
+#define TRACKER_LIST_SETUP()                                            \
+  SETUP_THREAD_TRACKER();                                               \
+                                                                        \
   torrent::TrackerList tracker_list;                                    \
   int success_counter = 0;                                              \
   int failure_counter = 0;                                              \
   int scrape_success_counter = 0;                                       \
   int scrape_failure_counter = 0;                                       \
+                                                                        \
   tracker_list.slot_success() = std::bind(&increment_value_uint, &success_counter); \
   tracker_list.slot_failure() = std::bind(&increment_value_void, &failure_counter); \
   tracker_list.slot_scrape_success() = std::bind(&increment_value_void, &scrape_success_counter); \
   tracker_list.slot_scrape_failure() = std::bind(&increment_value_void, &scrape_failure_counter);
+
+#define TRACKER_LIST_CLEANUP()                  \
+  CLEANUP_THREAD_TRACKER();
 
 #define TRACKER_INSERT(group, name)                                     \
   auto name = TrackerTest::new_tracker(&tracker_list, "");              \

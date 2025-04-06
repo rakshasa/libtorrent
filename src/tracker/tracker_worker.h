@@ -60,9 +60,9 @@ protected:
   void                lock_and_clear_stats();
   void                lock_and_set_latest_event(tracker::TrackerState::event_enum new_state);
 
-  void                lock() const                          { m_state_mutex.lock(); }
-  auto                lock_guard() const                    { return std::lock_guard<std::mutex>(m_state_mutex); }
-  void                unlock() const                        { m_state_mutex.unlock(); }
+  void                lock() const                          { m_mutex.lock(); }
+  auto                lock_guard() const                    { return std::lock_guard<std::mutex>(m_mutex); }
+  void                unlock() const                        { m_mutex.unlock(); }
 
   // Protected members that require locking:
 
@@ -73,6 +73,9 @@ protected:
 
   std::string         tracker_id() const                    { return m_tracker_id; }
   void                set_tracker_id(const std::string& id) { m_tracker_id = id; }
+
+  uint32_t            group() const                         { return m_group; }
+  void                set_group(uint32_t v)                 { m_group = v; }
 
   tracker::TrackerState&       state()                      { return m_state; }
   const tracker::TrackerState& state() const                { return m_state; }
@@ -98,11 +101,13 @@ protected:
   std::function<TrackerParameters()> m_slot_parameters;
 
 private:
+  mutable std::mutex    m_mutex;
+
   TrackerInfo           m_info;
 
-  mutable std::mutex    m_state_mutex;
   tracker::TrackerState m_state;
   std::string           m_tracker_id;
+  uint32_t              m_group{0};
 };
 
 inline TrackerWorker::TrackerWorker(TrackerInfo info, int flags) :

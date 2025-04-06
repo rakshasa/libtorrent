@@ -18,6 +18,8 @@ namespace torrent::tracker {
 class LIBTORRENT_EXPORT Tracker {
 public:
 
+  bool                is_valid() const { return m_worker != nullptr; }
+
   bool                is_busy() const;
   bool                is_busy_not_scrape() const;
   bool                is_enabled() const;
@@ -35,11 +37,9 @@ public:
   const std::string&    url() const;
 
   std::string           tracker_id() const;
+  uint32_t              group() const;
   TrackerState          state() const;
   std::string           status() const;
-
-  // If the tracker group is changed, it not be updated for Tracker objects outside of TrackerList.
-  uint32_t            group() const { return m_group; }
 
   void                lock_and_call_state(const std::function<void(const TrackerState&)>& f) const;
 
@@ -57,10 +57,8 @@ protected:
   TrackerWorker*      get_worker() { return m_worker.get(); }
 
   void                clear_stats();
-  void                set_group(uint32_t v) { m_group = v; }
 
 private:
-  uint32_t                                m_group{0};
   std::shared_ptr<torrent::TrackerWorker> m_worker;
 };
 

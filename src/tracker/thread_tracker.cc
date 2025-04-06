@@ -14,11 +14,11 @@
 
 namespace torrent {
 
-ThreadTracker* thread_tracker;
-
-ThreadTracker::ThreadTracker() :
-  m_tracker_manager(new tracker::Manager) {
+ThreadTracker::ThreadTracker(utils::Thread* main_thread) :
+  m_tracker_manager(new tracker::Manager(main_thread)) {
 }
+
+ThreadTracker::~ThreadTracker() = default;
 
 void
 ThreadTracker::init_thread() {
@@ -63,6 +63,8 @@ ThreadTracker::call_events() {
     m_flags |= flag_did_shutdown;
     throw shutdown_exception();
   }
+
+  // TODO: Do we need to process scheduled events here?
 
   process_callbacks();
 }

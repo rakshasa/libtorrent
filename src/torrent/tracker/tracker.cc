@@ -124,6 +124,13 @@ Tracker::tracker_id() const {
   return m_worker->tracker_id();
 }
 
+uint32_t
+Tracker::group() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  return m_worker->group();
+}
+
 tracker::TrackerState
 Tracker::state() const {
   auto lock_guard = m_worker->lock_guard();
