@@ -136,10 +136,10 @@ ResourceManager::push_group(const std::string& name) {
   choke_base_type::back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
   choke_base_type::back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 
-  choke_base_type::back()->up_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_upload_unchoke, this, std::placeholders::_1));
-  choke_base_type::back()->down_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_download_unchoke, this, std::placeholders::_1));
-  choke_base_type::back()->up_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_upload_can_unchoke, this));
-  choke_base_type::back()->down_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_download_can_unchoke, this));
+  choke_base_type::back()->up_queue()->set_slot_unchoke([this](int n) { receive_upload_unchoke(n); });
+  choke_base_type::back()->down_queue()->set_slot_unchoke([this](int n) { receive_download_unchoke(n); });
+  choke_base_type::back()->up_queue()->set_slot_can_unchoke([this] { return retrieve_upload_can_unchoke(); });
+  choke_base_type::back()->down_queue()->set_slot_can_unchoke([this] { return retrieve_download_can_unchoke(); });
   choke_base_type::back()->up_queue()->set_slot_connection(&PeerConnectionBase::receive_upload_choke);
   choke_base_type::back()->down_queue()->set_slot_connection(&PeerConnectionBase::receive_download_choke);
 }

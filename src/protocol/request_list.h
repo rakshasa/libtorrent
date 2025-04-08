@@ -151,8 +151,8 @@ private:
 inline
 RequestList::RequestList()
 {
-  m_delay_remove_choked.slot() = std::bind(&RequestList::delay_remove_choked, this);
-  m_delay_process_unordered.slot() = std::bind(&RequestList::delay_process_unordered, this);
+  m_delay_remove_choked.slot()     = [this] { delay_remove_choked(); };
+  m_delay_process_unordered.slot() = [this] { delay_process_unordered(); };
 }
 
 // TODO: Make sure queued_size is never too small.

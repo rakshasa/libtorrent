@@ -116,8 +116,9 @@ directory_events::event_read() {
     if (event->len == 0 || next_event > buffer + 2048)
       return;
 
-    wd_list::const_iterator itr = std::find_if(m_wd_list.begin(), m_wd_list.end(),
-                                               std::bind(&watch_descriptor::compare_desc, std::placeholders::_1, event->wd));
+    auto itr = std::find_if(m_wd_list.begin(), m_wd_list.end(), [event](const auto& w) {
+      return w.compare_desc(event->wd);
+    });
 
     if (itr != m_wd_list.end()) {
       std::string sname(event->name);

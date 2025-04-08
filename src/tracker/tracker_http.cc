@@ -41,8 +41,8 @@ TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags) :
   m_get(Http::slot_factory()()),
   m_drop_deliminator(utils::uri_has_query(info.url)) {
 
-  m_get->signal_done().emplace_back(std::bind(&TrackerHttp::receive_done, this));
-  m_get->signal_failed().emplace_back(std::bind(&TrackerHttp::receive_signal_failed, this, std::placeholders::_1));
+  m_get->signal_done().emplace_back([this] { receive_done(); });
+  m_get->signal_failed().emplace_back([this](const auto& str) { receive_signal_failed(str); });
 }
 
 bool
