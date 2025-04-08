@@ -16,6 +16,8 @@ public:
 
   Resolver() = default;
   ~Resolver() = default;
+  Resolver(const Resolver&) = delete;
+  Resolver& operator=(const Resolver&) = delete;
 
   // May be called from any thread.
   void                resolve_both(void* requester, const std::string& hostname, int family, both_callback&& callback);
@@ -31,9 +33,6 @@ protected:
   void                init();
 
 private:
-  Resolver(const Resolver&) = delete;
-  Resolver& operator=(const Resolver&) = delete;
-
   torrent::utils::Thread* m_thread{nullptr};
 };
 
