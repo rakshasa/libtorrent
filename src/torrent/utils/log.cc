@@ -312,7 +312,7 @@ log_remove_child(int group, int child) {
 }
 
 void
-log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
+log_file_write(const std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
 
   // Normal groups are nul-terminated strings.
@@ -331,7 +331,7 @@ log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t
 }
 
 void
-log_gz_file_write(std::shared_ptr<log_gz_output>& outfile, const char* data, size_t length, int group) {
+log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* data, size_t length, int group) {
   char buffer[64];
 
   // Normal groups are nul-terminated strings.
@@ -366,10 +366,7 @@ log_open_file_output(const char* name, const char* filename, bool append) {
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
-  log_open_output(name, std::bind(&log_file_write, outfile,
-                                  std::placeholders::_1,
-                                  std::placeholders::_2,
-                                  std::placeholders::_3));
+  log_open_output(name, [outfile](auto d, auto l, auto g) { log_file_write(outfile, d, l, g); });
 }
 
 void
@@ -382,10 +379,7 @@ log_open_gz_file_output(const char* name, const char* filename, bool append) {
   // if (!outfile->set_buffer(1 << 14))
   //   throw input_error("Could not set gzip log file buffer size.");
 
-  log_open_output(name, std::bind(&log_gz_file_write, outfile,
-                                  std::placeholders::_1,
-                                  std::placeholders::_2,
-                                  std::placeholders::_3));
+  log_open_output(name, [outfile](auto d, auto l, auto g) { log_gz_file_write(outfile, d, l, g); });
 }
 
 }
