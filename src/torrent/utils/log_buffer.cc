@@ -13,7 +13,7 @@ log_buffer::find_older(int32_t older_than) {
   if (empty() || !back().is_younger_than(older_than))
     return end();
 
-  return std::find_if(begin(), end(), std::bind(&log_entry::is_younger_or_same, std::placeholders::_1, older_than));
+  return std::find_if(begin(), end(), [older_than](const auto& entry) { return entry.is_younger_or_same(older_than); });
 }
 
 void
@@ -44,8 +44,7 @@ log_open_log_buffer(const char* name) {
   // TODO: Deregister when deleting.
   auto buffer = log_buffer_ptr(new log_buffer, std::bind(&log_buffer_deleter, std::placeholders::_1));
 
-  log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer.get(),
-                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  log_open_output(name, [b = buffer.get()](auto d, auto l, auto g) { b->lock_and_push_log(d, l, g); });
   return buffer;
 }
 

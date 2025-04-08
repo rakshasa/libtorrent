@@ -134,10 +134,10 @@ DhtServer::start(int port) {
     throw;
   }
 
-  m_taskTimeout.slot() = std::bind(&DhtServer::receive_timeout, this);
+  m_taskTimeout.slot() = [this] { receive_timeout(); };
 
   m_uploadNode.set_list_iterator(m_uploadThrottle->end());
-  m_uploadNode.slot_activate() = std::bind(&SocketBase::receive_throttle_up_activate, static_cast<SocketBase*>(this));
+  m_uploadNode.slot_activate() = [this] { receive_throttle_up_activate(); };
 
   m_downloadNode.set_list_iterator(m_downloadThrottle->end());
   m_downloadThrottle->insert(&m_downloadNode);

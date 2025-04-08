@@ -38,7 +38,7 @@ namespace torrent {
 TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
   TrackerWorker(info, flags) {
 
-  m_task_timeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
+  m_task_timeout.slot() = [this] { receive_timeout(); };
 }
 
 TrackerUdp::~TrackerUdp() {

@@ -31,14 +31,14 @@ namespace torrent {
 DownloadWrapper::DownloadWrapper() :
   m_main(new DownloadMain) {
 
-  m_main->delay_download_done().slot()       = std::bind(&download_data::call_download_done, data());
-  m_main->delay_partially_done().slot()      = std::bind(&download_data::call_partially_done, data());
-  m_main->delay_partially_restarted().slot() = std::bind(&download_data::call_partially_restarted, data());
+  m_main->delay_download_done().slot()       = [this] { data()->call_download_done(); };
+  m_main->delay_partially_done().slot()      = [this] { data()->call_partially_done(); };
+  m_main->delay_partially_restarted().slot() = [this] { data()->call_partially_restarted(); };
 
   m_main->peer_list()->set_info(info());
   m_main->tracker_list()->set_info(info());
 
-  m_main->chunk_list()->slot_storage_error() = std::bind(&DownloadWrapper::receive_storage_error, this, std::placeholders::_1);
+  m_main->chunk_list()->slot_storage_error() = [this](const auto& str) { receive_storage_error(str); };
 }
 
 DownloadWrapper::~DownloadWrapper() {
@@ -72,8 +72,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
 
   info()->mutable_local_id().assign(id.c_str());
 
-  info()->slot_left()      = std::bind(&FileList::left_bytes, m_main->file_list());
-  info()->slot_completed() = std::bind(&FileList::completed_bytes, m_main->file_list());
+  info()->slot_left()      = [this] { return m_main->file_list()->left_bytes(); };
+  info()->slot_completed() = [this] { return m_main->file_list()->completed_bytes(); };
 
   file_list()->mutable_data()->mutable_hash().assign(hash.c_str());
 
@@ -85,8 +85,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
   m_hash_checker = std::make_unique<HashTorrent>(m_main->chunk_list());
 
   // Connect various signals and slots.
-  m_hash_checker->slot_check_chunk() = std::bind(&DownloadWrapper::check_chunk_hash, this, std::placeholders::_1);
-  m_hash_checker->delay_checked().slot() = std::bind(&DownloadWrapper::receive_initial_hash, this);
+  m_hash_checker->slot_check_chunk()     = [this](auto h) { check_chunk_hash(h); };
+  m_hash_checker->delay_checked().slot() = [this] { receive_initial_hash(); };
 
   m_main->post_initialize();
 
@@ -216,7 +216,7 @@ DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
   ChunkHandle new_handle = m_main->chunk_list()->get(handle.index(), ChunkList::get_blocking);
   m_main->chunk_list()->release(&handle);
 
-  hash_queue()->push_back(new_handle, data(), std::bind(&DownloadWrapper::receive_hash_done, this, std::placeholders::_1, std::placeholders::_2));
+  hash_queue()->push_back(new_handle, data(), [this](auto c, auto h) { receive_hash_done(c, h); });
 }
 
 void

@@ -159,10 +159,10 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   m_down->set_throttle(throttles.second);
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
-  m_peerChunks.upload_throttle()->slot_activate() = std::bind(&SocketBase::receive_throttle_up_activate, static_cast<SocketBase*>(this));
+  m_peerChunks.upload_throttle()->slot_activate() = [this] { receive_throttle_up_activate(); };
 
   m_peerChunks.download_throttle()->set_list_iterator(m_down->throttle()->end());
-  m_peerChunks.download_throttle()->slot_activate() = std::bind(&SocketBase::receive_throttle_down_activate, static_cast<SocketBase*>(this));
+  m_peerChunks.download_throttle()->slot_activate() = [this] { receive_throttle_down_activate(); };
 
   request_list()->set_delegator(m_download->delegator());
   request_list()->set_peer_chunks(&m_peerChunks);

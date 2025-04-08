@@ -44,7 +44,7 @@ Manager::Manager() :
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle()) {
 
-  m_taskTick.slot() = std::bind(&Manager::receive_tick, this);
+  m_taskTick.slot() = [this] { receive_tick(); };
 
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 

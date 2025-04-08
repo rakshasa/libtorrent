@@ -76,20 +76,20 @@ DownloadMain::DownloadMain() :
 
   m_connectionList = new ConnectionList(this);
 
-  m_delegator.slot_chunk_find() = std::bind(&ChunkSelector::find, m_chunkSelector, std::placeholders::_1, std::placeholders::_2);
-  m_delegator.slot_chunk_size() = std::bind(&FileList::chunk_index_size, file_list(), std::placeholders::_1);
+  m_delegator.slot_chunk_find() = [this](auto pc, auto prio) { return m_chunkSelector->find(pc, prio); };
+  m_delegator.slot_chunk_size() = [this](auto i) { return file_list()->chunk_index_size(i); };
 
-  m_delegator.transfer_list()->slot_canceled()  = std::bind(&ChunkSelector::not_using_index, m_chunkSelector, std::placeholders::_1);
-  m_delegator.transfer_list()->slot_queued()    = std::bind(&ChunkSelector::using_index, m_chunkSelector, std::placeholders::_1);
-  m_delegator.transfer_list()->slot_completed() = std::bind(&DownloadMain::receive_chunk_done, this, std::placeholders::_1);
-  m_delegator.transfer_list()->slot_corrupt()   = std::bind(&DownloadMain::receive_corrupt_chunk, this, std::placeholders::_1);
+  m_delegator.transfer_list()->slot_canceled()  = [this](auto i) { m_chunkSelector->not_using_index(i); };
+  m_delegator.transfer_list()->slot_queued()    = [this](auto i) { m_chunkSelector->using_index(i); };
+  m_delegator.transfer_list()->slot_completed() = [this](auto i) { receive_chunk_done(i); };
+  m_delegator.transfer_list()->slot_corrupt()   = [this](auto i) { receive_corrupt_chunk(i); };
 
-  m_delayDisconnectPeers.slot() = std::bind(&ConnectionList::disconnect_queued, m_connectionList);
-  m_taskTrackerRequest.slot() = std::bind(&DownloadMain::receive_tracker_request, this);
+  m_delayDisconnectPeers.slot() = [this] { m_connectionList->disconnect_queued(); };
+  m_taskTrackerRequest.slot()   = [this] { receive_tracker_request(); };
 
   m_chunkList->set_data(file_list()->mutable_data());
-  m_chunkList->slot_create_chunk() = std::bind(&FileList::create_chunk_index, file_list(), std::placeholders::_1, std::placeholders::_2);
-  m_chunkList->slot_free_diskspace() = std::bind(&FileList::free_diskspace, file_list());
+  m_chunkList->slot_create_chunk()   = [this](auto i, auto p) { return file_list()->create_chunk_index(i, p); };
+  m_chunkList->slot_free_diskspace() = [this] { return file_list()->free_diskspace(); };
 }
 
 DownloadMain::~DownloadMain() {
@@ -113,11 +113,11 @@ void
 DownloadMain::post_initialize() {
   auto tracker_controller = new TrackerController(m_tracker_list);
 
-  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_scrape_success() = std::bind(&TrackerController::receive_scrape, tracker_controller, std::placeholders::_1);
-  m_tracker_list->slot_tracker_enabled()  = std::bind(&TrackerController::receive_tracker_enabled, tracker_controller, std::placeholders::_1);
-  m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, tracker_controller, std::placeholders::_1);
+  m_tracker_list->slot_success()          = [tracker_controller](const auto& t, auto al) { return tracker_controller->receive_success(t, al); };
+  m_tracker_list->slot_failure()          = [tracker_controller](const auto& t, const auto& str) { tracker_controller->receive_failure(t, str); };
+  m_tracker_list->slot_scrape_success()   = [tracker_controller](const auto& t) { tracker_controller->receive_scrape(t); };
+  m_tracker_list->slot_tracker_enabled()  = [tracker_controller](const auto& t) { tracker_controller->receive_tracker_enabled(t); };
+  m_tracker_list->slot_tracker_disabled() = [tracker_controller](const auto& t) { tracker_controller->receive_tracker_disabled(t); };
 
   // TODO: Move tracker list to manager, and add the proper barrier for slots.
   m_tracker_controller = thread_tracker->tracker_manager()->add_controller(info(), tracker_controller);

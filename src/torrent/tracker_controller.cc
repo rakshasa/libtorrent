@@ -52,8 +52,8 @@ TrackerController::TrackerController(TrackerList* trackers) :
   m_tracker_list(trackers),
   m_private(new tracker_controller_private) {
 
-  m_private->task_timeout.slot() = std::bind(&TrackerController::do_timeout, this);
-  m_private->task_scrape.slot() = std::bind(&TrackerController::do_scrape, this);
+  m_private->task_timeout.slot() = [this] { do_timeout(); };
+  m_private->task_scrape.slot()  = [this] { do_scrape(); };
 }
 
 TrackerController::~TrackerController() {
