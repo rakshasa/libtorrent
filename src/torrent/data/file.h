@@ -56,8 +56,8 @@ public:
   uint32_t            range_first() const                      { return m_range.first; }
   uint32_t            range_second() const                     { return m_range.second; }
 
-  priority_t          priority() const                         { return m_priority; }
-  void                set_priority(priority_t t)               { m_priority = t; }
+  priority_enum       priority() const                         { return m_priority; }
+  void                set_priority(priority_enum t)            { m_priority = t; }
 
   const Path*         path() const                             { return &m_path; }
   Path*               mutable_path()                           { return &m_path; }
@@ -120,7 +120,7 @@ private:
   range_type          m_range;
 
   uint32_t            m_completed{0};
-  priority_t          m_priority{PRIORITY_NORMAL};
+  priority_enum       m_priority{PRIORITY_NORMAL};
 
   uint32_t            m_match_depth_prev{0};
   uint32_t            m_match_depth_next{0};

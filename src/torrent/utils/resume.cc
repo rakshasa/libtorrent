@@ -412,7 +412,7 @@ resume_load_file_priorities(Download download, const Object& object) {
     // Update the priority from the fast resume data.
     if (filesItr->has_key_value("priority") &&
         filesItr->get_key_value("priority") >= 0 && filesItr->get_key_value("priority") <= PRIORITY_HIGH)
-      (*listItr)->set_priority((priority_t)filesItr->get_key_value("priority"));
+      (*listItr)->set_priority((priority_enum)filesItr->get_key_value("priority"));
 
     if (filesItr->has_key_value("completed"))
       (*listItr)->set_completed_chunks(filesItr->get_key_value("completed"));
