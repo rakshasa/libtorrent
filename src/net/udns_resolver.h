@@ -17,7 +17,7 @@ namespace torrent {
 
 class UdnsResolver : public Event {
 public:
-  typedef std::function<void (sin_shared_ptr, sin6_shared_ptr, int)> resolver_callback;
+  using resolver_callback = std::function<void(sin_shared_ptr, sin6_shared_ptr, int)>;
 
   struct Query {
     void*             requester;
@@ -37,7 +37,7 @@ public:
     int               error_sin6{0};
   };
 
-  typedef std::multimap<void*, std::unique_ptr<Query>> query_map;
+  using query_map = std::multimap<void*, std::unique_ptr<Query>>;
 
   UdnsResolver();
   ~UdnsResolver();

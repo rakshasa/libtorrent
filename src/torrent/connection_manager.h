@@ -14,13 +14,13 @@ namespace torrent {
 
 // Standard pair of up/down throttles.
 // First element is upload throttle, second element is download throttle.
-typedef std::pair<Throttle*, Throttle*> ThrottlePair;
+using ThrottlePair = std::pair<Throttle*, Throttle*>;
 
 class LIBTORRENT_EXPORT ConnectionManager {
 public:
-  typedef uint32_t size_type;
-  typedef uint16_t port_type;
-  typedef uint8_t  priority_type;
+  using size_type     = uint32_t;
+  using port_type     = uint16_t;
+  using priority_type = uint8_t;
 
   static const priority_type iptos_default     = 0;
   static const priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
@@ -59,8 +59,8 @@ public:
     handshake_retry_encrypted    = 9
   };
 
-  typedef std::function<uint32_t (const sockaddr*)>     slot_filter_type;
-  typedef std::function<ThrottlePair (const sockaddr*)> slot_throttle_type;
+  using slot_filter_type   = std::function<uint32_t(const sockaddr*)>;
+  using slot_throttle_type = std::function<ThrottlePair(const sockaddr*)>;
 
   ConnectionManager();
   ~ConnectionManager();

@@ -45,10 +45,10 @@ class File;
 
 class lt_cacheline_aligned ChunkPart {
 public:
-  typedef enum {
+  enum mapped_type {
     MAPPED_MMAP,
     MAPPED_STATIC
-  } mapped_type;
+  };
 
   ChunkPart(mapped_type mapped, const MemoryChunk& c, uint32_t pos) :
     m_mapped(mapped), m_chunk(c), m_position(pos) {}

@@ -10,8 +10,8 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT BlockList : private std::vector<Block> {
 public:
-  typedef uint32_t           size_type;
-  typedef std::vector<Block> base_type;
+  using size_type = uint32_t;
+  using base_type = std::vector<Block>;
 
   using base_type::value_type;
   using base_type::reference;

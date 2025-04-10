@@ -10,7 +10,7 @@ namespace torrent {
 
 class DownloadInfo;
 
-typedef extents<uint32_t, int> ipv4_table;
+using ipv4_table = extents<uint32_t, int>;
 
 class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, PeerInfo*> {
 public:
@@ -19,8 +19,8 @@ public:
   friend class HandshakeManager;
   friend class ConnectionList;
 
-  typedef std::multimap<socket_address_key, PeerInfo*>        base_type;
-  typedef std::pair<base_type::iterator, base_type::iterator> range_type;
+  using base_type  = std::multimap<socket_address_key, PeerInfo*>;
+  using range_type = std::pair<base_type::iterator, base_type::iterator>;
 
   using base_type::value_type;
   using base_type::reference;

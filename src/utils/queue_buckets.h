@@ -47,17 +47,17 @@ namespace torrent {
 template <typename Type, typename Constants>
 class queue_buckets : private std::array<std::deque<Type>, Constants::bucket_count> {
 public:
-  typedef std::deque<Type>                                queue_type;
-  typedef std::array<queue_type, Constants::bucket_count> base_type;
+  using queue_type = std::deque<Type>;
+  using base_type  = std::array<queue_type, Constants::bucket_count>;
 
-  typedef Constants constants;
+  using constants = Constants;
 
-  typedef typename queue_type::value_type value_type;
-  typedef typename queue_type::size_type size_type;
-  typedef typename queue_type::difference_type difference_type;
+  using value_type      = typename queue_type::value_type;
+  using size_type       = typename queue_type::size_type;
+  using difference_type = typename queue_type::difference_type;
 
-  typedef typename queue_type::iterator iterator;
-  typedef typename queue_type::const_iterator const_iterator;
+  using iterator       = typename queue_type::iterator;
+  using const_iterator = typename queue_type::const_iterator;
 
   size_type queue_size(int idx)  const { return queue_at(idx).size(); }
   bool      queue_empty(int idx) const { return queue_at(idx).empty(); }

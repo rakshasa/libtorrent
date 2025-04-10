@@ -29,14 +29,14 @@ class DownloadMain;
 
 class PeerConnectionBase : public Peer, public SocketStream {
 public:
-  typedef ProtocolBase           ProtocolRead;
-  typedef ProtocolBase           ProtocolWrite;
+  using ProtocolRead  = ProtocolBase;
+  using ProtocolWrite = ProtocolBase;
 
 #if USE_EXTRA_DEBUG == 666
   // For testing, use a really small buffer.
   typedef ProtocolBuffer<256>  EncryptBuffer;
 #else
-  typedef ProtocolBuffer<16384>  EncryptBuffer;
+  using EncryptBuffer = ProtocolBuffer<16384>;
 #endif
 
   // Find an optimal number for this.

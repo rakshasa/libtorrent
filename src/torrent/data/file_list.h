@@ -28,9 +28,9 @@ public:
   friend class DownloadWrapper;
   friend class Handshake;
 
-  typedef std::vector<std::unique_ptr<File>> base_type;
-  typedef std::vector<std::string>           path_list;
-  typedef std::tuple<uint64_t, Path, int>    split_type;
+  using base_type  = std::vector<std::unique_ptr<File>>;
+  using path_list  = std::vector<std::string>;
+  using split_type = std::tuple<uint64_t, Path, int>;
 
   // The below are using-directives that make visible functions and
   // typedefs in the parent std::vector, only those listed below are
@@ -42,7 +42,7 @@ public:
   using base_type::reverse_iterator;
   using base_type::const_reverse_iterator;
 
-  typedef std::pair<iterator, iterator> iterator_range;
+  using iterator_range = std::pair<iterator, iterator>;
 
   using base_type::begin;
   using base_type::end;

@@ -8,8 +8,8 @@
 
 namespace torrent::utils {
 
-typedef std::vector<std::string> uri_resource_list;
-typedef std::vector<std::string> uri_query_list;
+using uri_resource_list = std::vector<std::string>;
+using uri_query_list    = std::vector<std::string>;
 
 struct uri_base_state {
   static const int state_empty = 0;

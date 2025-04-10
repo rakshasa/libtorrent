@@ -91,7 +91,7 @@ public:
 
 private:
   // Hostname and port of potential bootstrap nodes.
-  typedef std::pair<std::string, int> contact_t;
+  using contact_t = std::pair<std::string, int>;
 
   // Number of nodes we need to consider the bootstrap process complete.
   static const unsigned int num_bootstrap_complete = 32;
@@ -99,7 +99,7 @@ private:
   // Maximum number of potential contacts to keep until bootstrap complete.
   static const unsigned int num_bootstrap_contacts = 64;
 
-  typedef std::map<const HashString, DhtBucket*> DhtBucketList;
+  using DhtBucketList = std::map<const HashString, DhtBucket*>;
 
   DhtBucketList::iterator find_bucket(const HashString& id);
 

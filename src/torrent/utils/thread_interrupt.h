@@ -12,7 +12,7 @@ class SocketFd;
 
 class LIBTORRENT_EXPORT thread_interrupt : public Event {
 public:
-  typedef std::pair<std::unique_ptr<thread_interrupt>, std::unique_ptr<thread_interrupt>> pair_type;
+  using pair_type = std::pair<std::unique_ptr<thread_interrupt>, std::unique_ptr<thread_interrupt>>;
 
   ~thread_interrupt();
 

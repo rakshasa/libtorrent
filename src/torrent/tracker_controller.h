@@ -21,12 +21,12 @@ struct tracker_controller_private;
 
 class LIBTORRENT_EXPORT TrackerController {
 public:
-  typedef AddressList address_list;
+  using address_list = AddressList;
 
-  typedef std::function<void (void)>                    slot_void;
-  typedef std::function<void (const std::string&)>      slot_string;
-  typedef std::function<uint32_t (AddressList*)>        slot_address_list;
-  typedef std::function<void (const tracker::Tracker&)> slot_tracker;
+  using slot_void         = std::function<void(void)>;
+  using slot_string       = std::function<void(const std::string&)>;
+  using slot_address_list = std::function<uint32_t(AddressList*)>;
+  using slot_tracker      = std::function<void(const tracker::Tracker&)>;
 
   static const int flag_send_update      = 0x1;
   static const int flag_send_completed   = 0x2;

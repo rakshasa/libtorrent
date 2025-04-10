@@ -22,7 +22,7 @@
 namespace torrent {
 
 struct log_cache_entry {
-  typedef log_group::outputs_type outputs_type;
+  using outputs_type = log_group::outputs_type;
 
   bool equal_outputs(const outputs_type& out) const { return out == outputs; }
 
@@ -47,10 +47,10 @@ struct log_gz_output {
   gzFile gz_file;
 };
 
-typedef std::vector<log_cache_entry>                  log_cache_list;
-typedef std::vector<std::pair<int, int>>              log_child_list;
-typedef std::vector<log_slot>                         log_slot_list;
-typedef std::vector<std::pair<std::string, log_slot>> log_output_list;
+using log_cache_list  = std::vector<log_cache_entry>;
+using log_child_list  = std::vector<std::pair<int, int>>;
+using log_slot_list   = std::vector<log_slot>;
+using log_output_list = std::vector<std::pair<std::string, log_slot>>;
 
 log_output_list log_outputs LIBTORRENT_EXPORT;
 log_child_list  log_children;

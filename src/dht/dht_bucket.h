@@ -55,7 +55,7 @@ class DhtBucket : private std::vector<DhtNode*> {
 public:
   static const unsigned int num_nodes = 8;
 
-  typedef std::vector<DhtNode*>      base_type;
+  using base_type = std::vector<DhtNode*>;
 
   using base_type::const_iterator;
   using base_type::iterator;

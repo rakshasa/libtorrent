@@ -10,10 +10,10 @@ namespace torrent {
 template <class Address, class Value, class Compare=std::less<Address> >
 class extents {
 public:
-  typedef Address                                  key_type;           // start address
-  typedef Value                                    mapped_value_type;  // The value mapped to the ip range
-  typedef std::pair<Address, Value>                mapped_type;        // End address, value mapped to ip range
-  typedef std::map<key_type, mapped_type, Compare> range_map_type;     // The map itself 
+  using key_type          = Address;                                  // start address
+  using mapped_value_type = Value;                                    // The value mapped to the ip range
+  using mapped_type       = std::pair<Address, Value>;                // End address, value mapped to ip range
+  using range_map_type    = std::map<key_type, mapped_type, Compare>; // The map itself
 
   void              insert(key_type address_start, key_type address_end, mapped_value_type value);
   bool              defined(key_type address_start, key_type address_end);

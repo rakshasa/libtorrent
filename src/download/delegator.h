@@ -54,8 +54,8 @@ class PeerInfo;
 
 class Delegator {
 public:
-  typedef std::function<uint32_t (PeerChunks*, bool)> slot_peer_chunk;
-  typedef std::function<uint32_t (uint32_t)>          slot_size;
+  using slot_peer_chunk = std::function<uint32_t(PeerChunks*, bool)>;
+  using slot_size       = std::function<uint32_t(uint32_t)>;
 
   static const unsigned int block_size = 1 << 14;
 

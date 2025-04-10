@@ -24,11 +24,11 @@ class ThreadDisk;
 
 class HashQueue : private std::deque<HashQueueNode> {
 public:
-  typedef std::deque<HashQueueNode>                 base_type;
-  typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
+  using base_type        = std::deque<HashQueueNode>;
+  using done_chunks_type = std::map<HashChunk*, torrent::HashString>;
 
-  typedef HashQueueNode::slot_done_type   slot_done_type;
-  typedef std::function<void (bool)> slot_bool;
+  using slot_done_type = HashQueueNode::slot_done_type;
+  using slot_bool      = std::function<void(bool)>;
 
   using base_type::iterator;
 

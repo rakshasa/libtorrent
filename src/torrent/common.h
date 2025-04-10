@@ -24,7 +24,7 @@ enum tracker_enum {
   TRACKER_DHT,
 };
 
-typedef priority_enum priority_t;
+using priority_t = priority_enum;
 
 // Just forward declare everything here so we can keep the actual
 // headers clean.

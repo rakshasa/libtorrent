@@ -155,11 +155,11 @@ enum {
   { if (torrent::log_groups[log_group].valid())                         \
       torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__); }
 
-typedef std::function<void (const char*, size_t, int)> log_slot;
+using log_slot = std::function<void(const char*, size_t, int)>;
 
 class LIBTORRENT_EXPORT log_group {
 public:
-  typedef std::bitset<64> outputs_type;
+  using outputs_type = std::bitset<64>;
 
   log_group() {
     m_outputs.reset();
@@ -201,7 +201,7 @@ private:
   log_slot*           m_last{};
 };
 
-typedef std::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
+using log_group_list = std::array<log_group, LOG_GROUP_MAX_SIZE>;
 
 extern log_group_list log_groups LIBTORRENT_EXPORT;
 

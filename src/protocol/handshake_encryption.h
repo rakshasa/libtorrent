@@ -47,11 +47,11 @@ class DiffieHellman;
 
 class HandshakeEncryption {
 public:
-  typedef enum {
+  enum Retry {
     RETRY_NONE,
     RETRY_PLAIN,
     RETRY_ENCRYPTED,
-  } Retry;
+  };
 
   static const int           crypto_plain = 1;
   static const int           crypto_rc4   = 2;

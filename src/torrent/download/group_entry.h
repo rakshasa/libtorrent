@@ -62,7 +62,7 @@ struct weighted_connection {
 // TODO: Rename to choke_entry, create an new class called group entry?
 class group_entry {
 public:
-  typedef std::vector<weighted_connection> container_type;
+  using container_type = std::vector<weighted_connection>;
 
   static const uint32_t unlimited = ~uint32_t();
 

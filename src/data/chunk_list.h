@@ -19,13 +19,13 @@ class FileList;
 
 class ChunkList : private std::vector<ChunkListNode> {
 public:
-  typedef uint32_t                            size_type;
-  typedef std::vector<ChunkListNode>          base_type;
-  typedef std::vector<ChunkListNode*>         Queue;
+  using size_type = uint32_t;
+  using base_type = std::vector<ChunkListNode>;
+  using Queue     = std::vector<ChunkListNode*>;
 
-  typedef std::function<Chunk* (uint32_t, int)>    slot_chunk_index;
-  typedef std::function<uint64_t ()>               slot_value;
-  typedef std::function<void (const std::string&)> slot_string;
+  using slot_chunk_index = std::function<Chunk*(uint32_t, int)>;
+  using slot_value       = std::function<uint64_t()>;
+  using slot_string      = std::function<void(const std::string&)>;
 
   using base_type::value_type;
   using base_type::reference;
@@ -92,7 +92,7 @@ public:
   slot_chunk_index&   slot_create_chunk()   { return m_slot_create_chunk; }
   slot_value&         slot_free_diskspace() { return m_slot_free_diskspace; }
 
-  typedef std::pair<iterator, Chunk::iterator> chunk_address_result;
+  using chunk_address_result = std::pair<iterator, Chunk::iterator>;
 
   chunk_address_result find_address(void* ptr);
 

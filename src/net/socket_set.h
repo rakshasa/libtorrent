@@ -55,10 +55,10 @@ namespace torrent {
 
 class SocketSet : private std::vector<Event*, rak::cacheline_allocator<Event*> > {
 public:
-  typedef uint32_t    size_type;
+  using size_type = uint32_t;
 
-  typedef std::vector<Event*, rak::cacheline_allocator<Event*> > base_type;
-  typedef std::vector<size_type, rak::cacheline_allocator<size_type> > Table;
+  using base_type = std::vector<Event*, rak::cacheline_allocator<Event*>>;
+  using Table     = std::vector<size_type, rak::cacheline_allocator<size_type>>;
 
   static const size_type npos = static_cast<size_type>(-1);
 

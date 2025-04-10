@@ -27,8 +27,8 @@ struct log_entry {
 
 class LIBTORRENT_EXPORT log_buffer : private std::deque<log_entry> {
 public:
-  typedef std::deque<log_entry>  base_type;
-  typedef std::function<void ()> slot_void;
+  using base_type = std::deque<log_entry>;
+  using slot_void = std::function<void()>;
 
   using base_type::iterator;
   using base_type::const_iterator;

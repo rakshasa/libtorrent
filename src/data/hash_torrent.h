@@ -15,9 +15,9 @@ class ChunkList;
 
 class HashTorrent {
 public:
-  typedef ranges<uint32_t> Ranges;
+  using Ranges = ranges<uint32_t>;
 
-  typedef std::function<void (ChunkHandle)> slot_chunk_handle;
+  using slot_chunk_handle = std::function<void(ChunkHandle)>;
 
   HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }

@@ -9,15 +9,15 @@ namespace torrent {
 template <typename RangesType>
 class ranges : private std::vector<std::pair<RangesType, RangesType> > {
 public:
-  typedef std::vector<std::pair<RangesType, RangesType> > base_type;
+  using base_type = std::vector<std::pair<RangesType, RangesType>>;
 
-  typedef RangesType                           bound_type;
+  using bound_type = RangesType;
 
-  typedef typename base_type::value_type       value_type;
-  typedef typename base_type::reference        reference;
-  typedef typename base_type::iterator         iterator;
-  typedef typename base_type::const_iterator   const_iterator;
-  typedef typename base_type::reverse_iterator reverse_iterator;
+  using value_type       = typename base_type::value_type;
+  using reference        = typename base_type::reference;
+  using iterator         = typename base_type::iterator;
+  using const_iterator   = typename base_type::const_iterator;
+  using reverse_iterator = typename base_type::reverse_iterator;
 
   using base_type::clear;
   using base_type::empty;

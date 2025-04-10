@@ -10,7 +10,7 @@ class LIBTORRENT_EXPORT File {
 public:
   friend class FileList;
 
-  typedef std::pair<uint32_t, uint32_t> range_type;
+  using range_type = std::pair<uint32_t, uint32_t>;
 
   static const int flag_active             = (1 << 0);
   static const int flag_create_queued      = (1 << 1);

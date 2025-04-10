@@ -16,17 +16,17 @@ namespace torrent {
 
 class ProtocolExtension {
 public:
-  typedef enum {
+  enum MessageType {
     HANDSHAKE = 0,
     UT_PEX,
     UT_METADATA,
 
-    FIRST_INVALID,    // first invalid message ID
+    FIRST_INVALID, // first invalid message ID
 
     SKIP_EXTENSION,
-  } MessageType;
+  };
 
-  typedef std::vector<SocketAddressCompact> PEXList;
+  using PEXList = std::vector<SocketAddressCompact>;
 
   static const int    flag_default           = 1<<0;
   static const int    flag_initial_handshake = 1<<1;
@@ -162,9 +162,9 @@ enum ext_metadata_keys {
   key_metadata_LAST
 };
 
-typedef static_map_type<ext_handshake_keys, key_handshake_LAST> ExtHandshakeMessage;
-typedef static_map_type<ext_pex_keys, key_pex_LAST> ExtPEXMessage;
-typedef static_map_type<ext_metadata_keys, key_metadata_LAST> ExtMetadataMessage;
+using ExtHandshakeMessage = static_map_type<ext_handshake_keys, key_handshake_LAST>;
+using ExtPEXMessage       = static_map_type<ext_pex_keys, key_pex_LAST>;
+using ExtMetadataMessage  = static_map_type<ext_metadata_keys, key_metadata_LAST>;
 
 //
 //

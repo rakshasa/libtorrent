@@ -19,10 +19,10 @@ class PeerConnectionBase;
 
 class HandshakeManager : private rak::unordered_vector<Handshake*> {
 public:
-  typedef rak::unordered_vector<Handshake*> base_type;
-  typedef uint32_t                          size_type;
+  using base_type = rak::unordered_vector<Handshake*>;
+  using size_type = uint32_t;
 
-  typedef std::function<DownloadMain* (const char*)> slot_download;
+  using slot_download = std::function<DownloadMain*(const char*)>;
 
   // Do not connect to peers with this many or more failed chunks.
   static const unsigned int max_failed = 3;

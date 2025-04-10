@@ -11,7 +11,7 @@ class Content;
 class DownloadWrapper;
 class Path;
 
-typedef std::list<std::string> EncodingList;
+using EncodingList = std::list<std::string>;
 
 class DownloadConstructor {
 public:

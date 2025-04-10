@@ -47,21 +47,21 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Path : private std::vector<std::string> {
 public:
-  typedef std::vector<std::string>          base_type;
+  using base_type = std::vector<std::string>;
 
-  typedef base_type::value_type             value_type;
-  typedef base_type::pointer                pointer;
-  typedef base_type::const_pointer          const_pointer;
-  typedef base_type::reference              reference;
-  typedef base_type::const_reference        const_reference;
-  typedef base_type::size_type              size_type;
-  typedef base_type::difference_type        difference_type;
-  typedef base_type::allocator_type         allocator_type;
+  using value_type      = base_type::value_type;
+  using pointer         = base_type::pointer;
+  using const_pointer   = base_type::const_pointer;
+  using reference       = base_type::reference;
+  using const_reference = base_type::const_reference;
+  using size_type       = base_type::size_type;
+  using difference_type = base_type::difference_type;
+  using allocator_type  = base_type::allocator_type;
 
-  typedef base_type::iterator               iterator;
-  typedef base_type::reverse_iterator       reverse_iterator;
-  typedef base_type::const_iterator         const_iterator;
-  typedef base_type::const_reverse_iterator const_reverse_iterator;
+  using iterator               = base_type::iterator;
+  using reverse_iterator       = base_type::reverse_iterator;
+  using const_iterator         = base_type::const_iterator;
+  using const_reverse_iterator = base_type::const_reverse_iterator;
 
   using base_type::clear;
   using base_type::empty;

@@ -9,8 +9,8 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT TransferList : public std::vector<BlockList*> {
 public:
-  typedef std::vector<BlockList*>                    base_type;
-  typedef std::vector<std::pair<int64_t, uint32_t> > completed_list_type;
+  using base_type           = std::vector<BlockList*>;
+  using completed_list_type = std::vector<std::pair<int64_t, uint32_t>>;
 
   using base_type::value_type;
   using base_type::reference;
@@ -55,8 +55,8 @@ public:
   void                hash_succeeded(uint32_t index, Chunk* chunk);
   void                hash_failed(uint32_t index, Chunk* chunk);
 
-  typedef std::function<void (uint32_t)>  slot_chunk_index;
-  typedef std::function<void (PeerInfo*)> slot_peer_info;
+  using slot_chunk_index = std::function<void(uint32_t)>;
+  using slot_peer_info   = std::function<void(PeerInfo*)>;
 
   slot_chunk_index&   slot_canceled()  { return m_slot_canceled; }
   slot_chunk_index&   slot_completed() { return m_slot_completed; }

@@ -49,25 +49,25 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Object {
 public:
-  typedef int64_t                           value_type;
-  typedef std::string                       string_type;
-  typedef std::vector<Object>               list_type;
-  typedef std::map<std::string, Object>     map_type;
-  typedef map_type*                         map_ptr_type;
-  typedef map_type::key_type                key_type;
-  typedef std::pair<std::string, Object*>   dict_key_type;
+  using value_type    = int64_t;
+  using string_type   = std::string;
+  using list_type     = std::vector<Object>;
+  using map_type      = std::map<std::string, Object>;
+  using map_ptr_type  = map_type*;
+  using key_type      = map_type::key_type;
+  using dict_key_type = std::pair<std::string, Object*>;
 
-  typedef list_type::iterator               list_iterator;
-  typedef list_type::const_iterator         list_const_iterator;
-  typedef list_type::reverse_iterator       list_reverse_iterator;
-  typedef list_type::const_reverse_iterator list_const_reverse_iterator;
+  using list_iterator               = list_type::iterator;
+  using list_const_iterator         = list_type::const_iterator;
+  using list_reverse_iterator       = list_type::reverse_iterator;
+  using list_const_reverse_iterator = list_type::const_reverse_iterator;
 
-  typedef map_type::iterator                map_iterator;
-  typedef map_type::const_iterator          map_const_iterator;
-  typedef map_type::reverse_iterator        map_reverse_iterator;
-  typedef map_type::const_reverse_iterator  map_const_reverse_iterator;
+  using map_iterator               = map_type::iterator;
+  using map_const_iterator         = map_type::const_iterator;
+  using map_reverse_iterator       = map_type::reverse_iterator;
+  using map_const_reverse_iterator = map_type::const_reverse_iterator;
 
-  typedef std::pair<map_iterator, bool>     map_insert_type;
+  using map_insert_type = std::pair<map_iterator, bool>;
 
   // Flags in the range of 0xffff0000 may be set by the user, however
   // 0x00ff0000 are reserved for keywords defined by libtorrent.

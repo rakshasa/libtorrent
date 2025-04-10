@@ -85,7 +85,7 @@ private:
     bool         empty() const   { return !peer.port; }
   };
 
-  typedef std::vector<BencodeAddress> PeerList;
+  using PeerList = std::vector<BencodeAddress>;
 
   PeerList               m_peers;
   std::vector<uint32_t>  m_lastSeen;
