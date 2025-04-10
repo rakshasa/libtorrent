@@ -30,7 +30,7 @@ const int ConnectionList::disconnect_unwanted;
 const int ConnectionList::disconnect_delayed;
 
 ConnectionList::ConnectionList(DownloadMain* download) :
-  m_download(download), m_minSize(50), m_maxSize(100) {
+    m_download(download) {
 }
 
 void

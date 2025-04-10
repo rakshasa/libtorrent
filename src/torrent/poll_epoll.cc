@@ -90,10 +90,9 @@ PollEPoll::create(int maxOpenSockets) {
 }
 
 PollEPoll::PollEPoll(int fd, int max_events, int max_open_sockets) :
-  m_fd(fd),
-  m_maxEvents(max_events),
-  m_waitingEvents(0),
-  m_events(new epoll_event[m_maxEvents]) {
+    m_fd(fd),
+    m_maxEvents(max_events),
+    m_events(new epoll_event[m_maxEvents]) {
 
   try {
     m_table.resize(max_open_sockets);

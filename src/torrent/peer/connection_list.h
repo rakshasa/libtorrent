@@ -147,8 +147,8 @@ protected:
 private:
   DownloadMain*       m_download;
 
-  size_type           m_minSize;
-  size_type           m_maxSize;
+  size_type           m_minSize{50};
+  size_type           m_maxSize{100};
 
   signal_peer_type    m_signalConnected;
   signal_peer_type    m_signalDisconnected;

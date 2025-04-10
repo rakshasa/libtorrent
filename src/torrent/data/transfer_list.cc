@@ -54,10 +54,6 @@
 
 namespace torrent {
 
-TransferList::TransferList() :
-  m_succeededCount(0),
-  m_failedCount(0) { }
-
 // TODO: Derp if transfer list isn't cleared...
 
 TransferList::~TransferList() {

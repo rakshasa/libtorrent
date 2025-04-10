@@ -48,9 +48,9 @@ TrackerController::current_send_event() const {
 }
 
 TrackerController::TrackerController(TrackerList* trackers) :
-  m_flags(0),
-  m_tracker_list(trackers),
-  m_private(new tracker_controller_private) {
+
+    m_tracker_list(trackers),
+    m_private(new tracker_controller_private) {
 
   m_private->task_timeout.slot() = [this] { do_timeout(); };
   m_private->task_scrape.slot()  = [this] { do_scrape(); };

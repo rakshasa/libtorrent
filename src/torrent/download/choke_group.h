@@ -58,8 +58,6 @@ public:
     TRACKER_MODE_AGGRESSIVE
   };
 
-  choke_group();
-  
   const std::string&  name() const { return m_name; }
   void                set_name(const std::string& name) { m_name = name; }
 
@@ -97,13 +95,13 @@ public:
 
 private:
   std::string             m_name;
-  tracker_mode_enum       m_tracker_mode;
+  tracker_mode_enum       m_tracker_mode{TRACKER_MODE_NORMAL};
 
   choke_queue             m_up_queue;
-  choke_queue             m_down_queue;
+  choke_queue             m_down_queue{choke_queue::flag_unchoke_all_new};
 
-  resource_manager_entry* m_first;
-  resource_manager_entry* m_last;
+  resource_manager_entry* m_first{};
+  resource_manager_entry* m_last{};
 };
 
 }

@@ -49,23 +49,7 @@
 
 namespace torrent {
 
-ChunkManager::ChunkManager() :
-  m_memoryUsage(0),
-  m_memoryBlockCount(0),
-
-  m_safeSync(false),
-  m_timeoutSync(600),
-  m_timeoutSafeSync(900),
-
-  m_preloadType(0),
-  m_preloadMinSize(256 << 10),
-  m_preloadRequiredRate(5 << 10),
-
-  m_statsPreloaded(0),
-  m_statsNotPreloaded(0),
-
-  m_timerStarved(0),
-  m_lastFreed(0) {
+ChunkManager::ChunkManager() {
 
   // 1/5 of the available memory should be enough for the client. If
   // the client really requires alot more memory it should call this

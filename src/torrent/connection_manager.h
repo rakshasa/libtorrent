@@ -131,28 +131,28 @@ public:
   void                set_prefer_ipv6(bool v) { m_prefer_ipv6 = v; }
 
 private:
-  size_type           m_size;
-  size_type           m_maxSize;
+  size_type           m_size{0};
+  size_type           m_maxSize{0};
 
-  priority_type       m_priority;
-  uint32_t            m_sendBufferSize;
-  uint32_t            m_receiveBufferSize;
-  int                 m_encryptionOptions;
+  priority_type       m_priority{iptos_throughput};
+  uint32_t            m_sendBufferSize{0};
+  uint32_t            m_receiveBufferSize{0};
+  int                 m_encryptionOptions{encryption_none};
 
   sockaddr*           m_bindAddress;
   sockaddr*           m_localAddress;
   sockaddr*           m_proxyAddress;
 
   Listen*             m_listen;
-  port_type           m_listen_port;
-  uint32_t            m_listen_backlog;
+  port_type           m_listen_port{0};
+  uint32_t            m_listen_backlog{SOMAXCONN};
 
   slot_filter_type    m_slot_filter;
   slot_throttle_type  m_slot_address_throttle;
 
-  bool                m_block_ipv4;
-  bool                m_block_ipv6;
-  bool                m_prefer_ipv6;
+  bool                m_block_ipv4{false};
+  bool                m_block_ipv6{false};
+  bool                m_prefer_ipv6{false};
 };
 
 }
