@@ -65,7 +65,7 @@ private:
   static const uint32_t fraction_bits = 16;
   static const uint32_t fraction_base = (1 << fraction_bits);
 
-  typedef std::vector<ThrottleInternal*>  SlaveList;
+  using SlaveList = std::vector<ThrottleInternal*>;
 
   void                receive_tick();
 

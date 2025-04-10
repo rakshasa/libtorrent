@@ -137,18 +137,18 @@ public:
   void                manual_request(bool force);
   void                manual_cancel();
 
-  typedef enum {
+  enum ConnectionType {
     CONNECTION_LEECH,
     CONNECTION_SEED,
     CONNECTION_INITIAL_SEED,
     CONNECTION_METADATA,
-  } ConnectionType;
+  };
 
   ConnectionType      connection_type() const;
   void                set_connection_type(ConnectionType t);
 
-  typedef enum {
-  } HeuristicType;
+  enum HeuristicType {
+  };
 
   HeuristicType       upload_choke_heuristic() const;
   void                set_upload_choke_heuristic(HeuristicType t);

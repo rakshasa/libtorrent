@@ -100,7 +100,7 @@ struct hashstring_ptr_equal {
 
 class DhtNodeList : public std::unordered_map<const HashString*, DhtNode*, hashstring_ptr_hash, hashstring_ptr_equal> {
 public:
-  typedef std::unordered_map<const HashString*, DhtNode*, hashstring_ptr_hash, hashstring_ptr_equal> base_type;
+  using base_type = std::unordered_map<const HashString*, DhtNode*, hashstring_ptr_hash, hashstring_ptr_equal>;
 
   // Define accessor iterator with more convenient access to the key and
   // element values.  Allows changing the map definition more easily if needed.
@@ -112,8 +112,8 @@ public:
     DhtNode*             node() const  { return (**this).second; }
   };
 
-  typedef accessor_wrapper<const_iterator>  const_accessor;
-  typedef accessor_wrapper<iterator>        accessor;
+  using const_accessor = accessor_wrapper<const_iterator>;
+  using accessor       = accessor_wrapper<iterator>;
 
   DhtNode*            add_node(DhtNode* n);
 
@@ -121,7 +121,7 @@ public:
 
 class DhtTrackerList : public std::unordered_map<HashString, DhtTracker*, hashstring_hash> {
 public:
-  typedef std::unordered_map<HashString, DhtTracker*, hashstring_hash> base_type;
+  using base_type = std::unordered_map<HashString, DhtTracker*, hashstring_hash>;
 
   template<typename T>
   struct accessor_wrapper : public T {
@@ -131,9 +131,8 @@ public:
     DhtTracker*          tracker() const  { return (**this).second; }
   };
 
-  typedef accessor_wrapper<const_iterator>  const_accessor;
-  typedef accessor_wrapper<iterator>        accessor;
-
+  using const_accessor = accessor_wrapper<const_iterator>;
+  using accessor       = accessor_wrapper<iterator>;
 };
 
 inline

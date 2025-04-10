@@ -11,27 +11,27 @@ struct sockaddr_un;
 
 namespace torrent {
 
-typedef std::unique_ptr<sockaddr>     sa_unique_ptr;
-typedef std::unique_ptr<sockaddr_in>  sin_unique_ptr;
-typedef std::unique_ptr<sockaddr_in6> sin6_unique_ptr;
-typedef std::unique_ptr<sockaddr_un>  sun_unique_ptr;
+using sa_unique_ptr   = std::unique_ptr<sockaddr>;
+using sin_unique_ptr  = std::unique_ptr<sockaddr_in>;
+using sin6_unique_ptr = std::unique_ptr<sockaddr_in6>;
+using sun_unique_ptr  = std::unique_ptr<sockaddr_un>;
 
-typedef std::unique_ptr<const sockaddr>     c_sa_unique_ptr;
-typedef std::unique_ptr<const sockaddr_in>  c_sin_unique_ptr;
-typedef std::unique_ptr<const sockaddr_in6> c_sin6_unique_ptr;
-typedef std::unique_ptr<const sockaddr_un>  c_sun_unique_ptr;
+using c_sa_unique_ptr   = std::unique_ptr<const sockaddr>;
+using c_sin_unique_ptr  = std::unique_ptr<const sockaddr_in>;
+using c_sin6_unique_ptr = std::unique_ptr<const sockaddr_in6>;
+using c_sun_unique_ptr  = std::unique_ptr<const sockaddr_un>;
 
-typedef std::shared_ptr<sockaddr>     sa_shared_ptr;
-typedef std::shared_ptr<sockaddr_in>  sin_shared_ptr;
-typedef std::shared_ptr<sockaddr_in6> sin6_shared_ptr;
-typedef std::shared_ptr<sockaddr_un>  sun_shared_ptr;
+using sa_shared_ptr   = std::shared_ptr<sockaddr>;
+using sin_shared_ptr  = std::shared_ptr<sockaddr_in>;
+using sin6_shared_ptr = std::shared_ptr<sockaddr_in6>;
+using sun_shared_ptr  = std::shared_ptr<sockaddr_un>;
 
-typedef std::shared_ptr<const sockaddr>     c_sa_shared_ptr;
-typedef std::shared_ptr<const sockaddr_in>  c_sin_shared_ptr;
-typedef std::shared_ptr<const sockaddr_in6> c_sin6_shared_ptr;
-typedef std::shared_ptr<const sockaddr_un>  c_sun_shared_ptr;
+using c_sa_shared_ptr   = std::shared_ptr<const sockaddr>;
+using c_sin_shared_ptr  = std::shared_ptr<const sockaddr_in>;
+using c_sin6_shared_ptr = std::shared_ptr<const sockaddr_in6>;
+using c_sun_shared_ptr  = std::shared_ptr<const sockaddr_un>;
 
-typedef std::tuple<int, std::unique_ptr<sockaddr>> fd_sap_tuple;
+using fd_sap_tuple = std::tuple<int, std::unique_ptr<sockaddr>>;
 
 struct listen_result_type {
   int fd;

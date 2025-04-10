@@ -16,9 +16,9 @@ namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT TrackerControllerWrapper {
 public:
-  typedef std::shared_ptr<TrackerController>       ptr_type;
-  typedef std::function<void (const std::string&)> slot_string;
-  typedef std::function<uint32_t (AddressList*)>   slot_address_list;
+  using ptr_type          = std::shared_ptr<TrackerController>;
+  using slot_string       = std::function<void(const std::string&)>;
+  using slot_address_list = std::function<uint32_t(AddressList*)>;
 
   TrackerControllerWrapper() = default;
   TrackerControllerWrapper(const HashString& info_hash, std::shared_ptr<TrackerController>&& controller);

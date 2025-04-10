@@ -23,11 +23,11 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT TrackerList : private std::vector<tracker::Tracker> {
 public:
-  typedef std::vector<tracker::Tracker> base_type;
+  using base_type = std::vector<tracker::Tracker>;
 
-  typedef std::function<void (tracker::Tracker)>                     slot_tracker;
-  typedef std::function<void (tracker::Tracker, const std::string&)> slot_string;
-  typedef std::function<uint32_t (tracker::Tracker, AddressList*)>   slot_address_list;
+  using slot_tracker      = std::function<void(tracker::Tracker)>;
+  using slot_string       = std::function<void(tracker::Tracker, const std::string&)>;
+  using slot_address_list = std::function<uint32_t(tracker::Tracker, AddressList*)>;
 
   using base_type::value_type;
 

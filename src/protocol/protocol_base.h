@@ -47,12 +47,12 @@ class Piece;
 
 class ProtocolBase {
 public:
-  typedef ProtocolBuffer<512> Buffer;
-  typedef uint32_t            size_type;
+  using Buffer    = ProtocolBuffer<512>;
+  using size_type = uint32_t;
 
   static const size_type buffer_size = 512;
 
-  typedef enum {
+  enum Protocol {
     CHOKE = 0,
     UNCHOKE,
     INTERESTED,
@@ -66,11 +66,11 @@ public:
 
     EXTENSION_PROTOCOL = 20,
 
-    NONE,           // These are not part of the protocol
-    KEEP_ALIVE      // Last command was a keep alive
-  } Protocol;
+    NONE,      // These are not part of the protocol
+    KEEP_ALIVE // Last command was a keep alive
+  };
 
-  typedef enum {
+  enum State {
     IDLE,
     MSG,
     READ_PIECE,
@@ -79,7 +79,7 @@ public:
     WRITE_PIECE,
     WRITE_EXTENSION,
     INTERNAL_ERROR
-  } State;
+  };
 
   ProtocolBase()
   {

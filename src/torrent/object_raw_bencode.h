@@ -53,10 +53,10 @@ class raw_map;
 // should never be used directly.
 class raw_object {
 public:
-  typedef const char  value_type;
-  typedef const char* iterator;
-  typedef const char* const_iterator;
-  typedef uint32_t    size_type;
+  using value_type     = const char;
+  using iterator       = const char*;
+  using const_iterator = const char*;
+  using size_type      = uint32_t;
 
   raw_object() : m_data(), m_size() {}
   raw_object(value_type* src_data, size_type src_size) : m_data(src_data), m_size(src_size) {}
@@ -95,7 +95,7 @@ protected:
 // empty.
 class raw_bencode : protected raw_object {
 public:
-  typedef raw_bencode this_type;
+  using this_type = raw_bencode;
   RAW_BENCODE_SET_USING
 
   raw_bencode() : raw_object() {}
@@ -117,7 +117,7 @@ public:
 
 class raw_string : protected raw_object {
 public:
-  typedef raw_string this_type;
+  using this_type = raw_string;
   RAW_BENCODE_SET_USING
 
   raw_string() = default;
@@ -131,7 +131,7 @@ public:
 
 class raw_list : protected raw_object {
 public:
-  typedef raw_list this_type;
+  using this_type = raw_list;
   RAW_BENCODE_SET_USING
 
   raw_list() = default;
@@ -142,7 +142,7 @@ public:
 
 class raw_map : protected raw_object {
 public:
-  typedef raw_map this_type;
+  using this_type = raw_map;
   RAW_BENCODE_SET_USING
 
   raw_map() = default;

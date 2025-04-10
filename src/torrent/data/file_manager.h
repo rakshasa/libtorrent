@@ -10,8 +10,8 @@ class File;
 
 class LIBTORRENT_EXPORT FileManager : private std::vector<File*> {
 public:
-  typedef std::vector<File*> base_type;
-  typedef uint32_t           size_type;
+  using base_type = std::vector<File*>;
+  using size_type = uint32_t;
 
   using base_type::value_type;
   using base_type::iterator;

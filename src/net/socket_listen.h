@@ -12,7 +12,7 @@ namespace torrent {
 
 class socket_listen : public socket_event {
 public:
-  typedef std::function<void (int, sa_unique_ptr)> accepted_ftor;
+  using accepted_ftor = std::function<void(int, sa_unique_ptr)>;
 
   socket_listen();
 

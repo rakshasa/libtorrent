@@ -46,7 +46,7 @@ class Event;
 
 class LIBTORRENT_EXPORT Poll {
 public:
-  typedef std::function<Poll* ()> slot_poll;
+  using slot_poll = std::function<Poll*()>;
 
   static const int      poll_worker_thread     = 0x1;
   static const uint32_t flag_waive_global_lock = 0x1;

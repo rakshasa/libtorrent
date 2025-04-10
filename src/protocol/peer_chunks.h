@@ -52,7 +52,7 @@ class PeerInfo;
 
 class PeerChunks {
 public:
-  typedef std::list<Piece>    piece_list_type;
+  using piece_list_type = std::list<Piece>;
 
   bool                is_seeder() const             { return m_bitfield.is_all_set(); }
 

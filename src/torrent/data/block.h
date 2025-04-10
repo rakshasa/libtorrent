@@ -16,14 +16,14 @@ public:
   // Using vectors as they will remain small, thus the cost of erase
   // should be small. Later we can do faster erase by ignoring the
   // ordering.
-  typedef std::vector<BlockTransfer*> transfer_list_type;
-  typedef uint32_t                    size_type;
+  using transfer_list_type = std::vector<BlockTransfer*>;
+  using size_type          = uint32_t;
 
-  typedef enum {
+  enum state_type {
     STATE_INCOMPLETE,
     STATE_COMPLETED,
     STATE_INVALID
-  } state_type;
+  };
 
   Block() = default;
   ~Block();

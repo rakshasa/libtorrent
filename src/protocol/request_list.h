@@ -65,7 +65,7 @@ struct request_list_constants {
 
 class RequestList {
 public:
-  typedef torrent::queue_buckets<BlockTransfer*, request_list_constants> queues_type;
+  using queues_type = torrent::queue_buckets<BlockTransfer*, request_list_constants>;
 
   static const int bucket_queued    = 0;
   static const int bucket_unordered = 1;

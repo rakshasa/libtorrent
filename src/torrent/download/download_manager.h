@@ -51,19 +51,19 @@ class DownloadMain;
 
 class LIBTORRENT_EXPORT DownloadManager : private std::vector<DownloadWrapper*> {
 public:
-  typedef std::vector<DownloadWrapper*> base_type;
+  using base_type = std::vector<DownloadWrapper*>;
 
-  typedef base_type::value_type value_type;
-  typedef base_type::pointer pointer;
-  typedef base_type::const_pointer const_pointer;
-  typedef base_type::reference reference;
-  typedef base_type::const_reference const_reference;
-  typedef base_type::size_type size_type;
+  using value_type      = base_type::value_type;
+  using pointer         = base_type::pointer;
+  using const_pointer   = base_type::const_pointer;
+  using reference       = base_type::reference;
+  using const_reference = base_type::const_reference;
+  using size_type       = base_type::size_type;
 
-  typedef base_type::iterator iterator;
-  typedef base_type::reverse_iterator reverse_iterator;
-  typedef base_type::const_iterator const_iterator;
-  typedef base_type::const_reverse_iterator const_reverse_iterator;
+  using iterator               = base_type::iterator;
+  using reverse_iterator       = base_type::reverse_iterator;
+  using const_iterator         = base_type::const_iterator;
+  using const_reverse_iterator = base_type::const_reverse_iterator;
 
   using base_type::empty;
   using base_type::size;

@@ -14,14 +14,14 @@ class LIBTORRENT_EXPORT BlockTransfer {
 public:
   static const uint32_t invalid_index = ~uint32_t();
 
-  typedef PeerInfo* key_type;
+  using key_type = PeerInfo*;
 
-  typedef enum {
+  enum state_type {
     STATE_ERASED,
     STATE_QUEUED,
     STATE_LEADER,
     STATE_NOT_LEADER
-  } state_type;
+  };
 
   BlockTransfer() = default;
   ~BlockTransfer();

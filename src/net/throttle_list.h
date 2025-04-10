@@ -50,7 +50,7 @@ class ThrottleNode;
 
 class ThrottleList : private std::list<ThrottleNode*> {
 public:
-  typedef std::list<ThrottleNode*> base_type;
+  using base_type = std::list<ThrottleNode*>;
 
   using base_type::iterator;
   using base_type::const_iterator;

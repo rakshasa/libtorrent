@@ -350,7 +350,7 @@ struct file_list_cstr_less {
 
 void
 FileList::open(int flags) {
-  typedef std::set<const char*, file_list_cstr_less> path_set;
+  using path_set = std::set<const char*, file_list_cstr_less>;
 
   LT_LOG_FL(INFO, "Opening.", 0);
 

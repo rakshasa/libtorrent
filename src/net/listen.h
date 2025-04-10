@@ -48,7 +48,7 @@ namespace torrent {
 
 class Listen : public SocketBase {
 public:
-  typedef std::function<void (SocketFd, const rak::socket_address&)> slot_connection;
+  using slot_connection = std::function<void(SocketFd, const rak::socket_address&)>;
 
   ~Listen() { close(); }
 

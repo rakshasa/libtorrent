@@ -90,7 +90,7 @@ class DhtSearch : protected std::map<DhtNode*, DhtSearch*, dht_compare_closer> {
   friend class DhtTransactionSearch;
 
 public:
-  typedef std::map<DhtNode*, DhtSearch*, dht_compare_closer> base_type;
+  using base_type = std::map<DhtNode*, DhtSearch*, dht_compare_closer>;
 
   // Number of closest potential contact nodes to keep.
   static const unsigned int max_contacts = 18;
@@ -113,8 +113,8 @@ public:
     DhtSearch*                      search() const   { return (**this).second; }
   };
 
-  typedef accessor_wrapper<base_type::const_iterator>  const_accessor;
-  typedef accessor_wrapper<base_type::iterator>        accessor;
+  using const_accessor = accessor_wrapper<base_type::const_iterator>;
+  using accessor       = accessor_wrapper<base_type::iterator>;
 
   // Add a potential node to contact for the search.
   bool                 add_contact(const HashString& id, const rak::socket_address* sa);
@@ -219,7 +219,7 @@ enum dht_keys {
 
 class DhtMessage : public static_map_type<dht_keys, key_LAST> {
 public:
-  typedef static_map_type<dht_keys, key_LAST> base_type;
+  using base_type = static_map_type<dht_keys, key_LAST>;
 
   DhtMessage() : data_end(data) {};
 
@@ -283,18 +283,18 @@ class DhtTransaction {
 public:
   virtual ~DhtTransaction();
 
-  typedef enum {
+  enum transaction_type {
     DHT_PING,
     DHT_FIND_NODE,
     DHT_GET_PEERS,
     DHT_ANNOUNCE_PEER,
-  } transaction_type;
+  };
 
   virtual transaction_type    type() = 0;
   virtual bool                is_search()          { return false; }
 
   // Key to uniquely identify a transaction with given per-node transaction id.
-  typedef uint64_t key_type;
+  using key_type = uint64_t;
 
   key_type                    key(int id) const    { return key(&m_sa, id); }
   static key_type             key(const rak::socket_address* sa, int id);

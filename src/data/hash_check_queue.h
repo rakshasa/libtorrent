@@ -14,8 +14,8 @@ class HashChunk;
 
 class HashCheckQueue : private std::deque<HashChunk*> {
 public:
-  typedef std::deque<HashChunk*>                              base_type;
-  typedef std::function<void (HashChunk*, const HashString&)> slot_chunk_handle;
+  using base_type         = std::deque<HashChunk*>;
+  using slot_chunk_handle = std::function<void(HashChunk*, const HashString&)>;
 
   using base_type::iterator;
 

@@ -35,9 +35,9 @@ public:
 
   static const uint32_t buffer_size = enc_pad_read_size + 20 + enc_negotiation_size + enc_pad_size + 2 + handshake_size + read_message_size;
 
-  typedef ProtocolBuffer<buffer_size> Buffer;
+  using Buffer = ProtocolBuffer<buffer_size>;
 
-  typedef enum {
+  enum State {
     INACTIVE,
     CONNECTING,
     POST_HANDSHAKE,
@@ -58,7 +58,7 @@ public:
     READ_BITFIELD,
     READ_EXT,
     READ_PORT
-  } State;
+  };
 
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
   ~Handshake();

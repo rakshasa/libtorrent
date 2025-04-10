@@ -44,11 +44,11 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Bitfield {
 public:
-  typedef uint32_t              size_type;
-  typedef uint8_t               value_type;
-  typedef const uint8_t         const_value_type;
-  typedef value_type*           iterator;
-  typedef const value_type*     const_iterator;
+  using size_type        = uint32_t;
+  using value_type       = uint8_t;
+  using const_value_type = const uint8_t;
+  using iterator         = value_type*;
+  using const_iterator   = const value_type*;
 
   Bitfield() = default;
   ~Bitfield()                                       { clear(); }

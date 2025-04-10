@@ -14,7 +14,7 @@ class DownloadManager;
 class FileManager;
 class ResourceManager;
 
-typedef std::list<std::string> EncodingList;
+using EncodingList = std::list<std::string>;
 
 class Manager {
 public:

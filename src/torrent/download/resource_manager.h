@@ -90,12 +90,12 @@ class LIBTORRENT_EXPORT ResourceManager :
     private std::vector<resource_manager_entry>,
     private std::vector<choke_group*> {
 public:
-  typedef std::vector<resource_manager_entry> base_type;
-  typedef std::vector<choke_group*>           choke_base_type;
-  typedef base_type::value_type               value_type;
-  typedef base_type::iterator                 iterator;
+  using base_type       = std::vector<resource_manager_entry>;
+  using choke_base_type = std::vector<choke_group*>;
+  using value_type      = base_type::value_type;
+  using iterator        = base_type::iterator;
 
-  typedef choke_base_type::iterator           group_iterator;
+  using group_iterator = choke_base_type::iterator;
 
   using base_type::begin;
   using base_type::end;

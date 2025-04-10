@@ -64,13 +64,13 @@ public:
   friend class DownloadWrapper;
   friend class HandshakeManager;
 
-  typedef std::vector<Peer*>         base_type;
-  typedef std::vector<HashString>    queue_type;
-  typedef uint32_t                   size_type;
-  typedef std::function<void (Peer*)> slot_peer_type;
-  typedef std::list<slot_peer_type>        signal_peer_type;
+  using base_type        = std::vector<Peer*>;
+  using queue_type       = std::vector<HashString>;
+  using size_type        = uint32_t;
+  using slot_peer_type   = std::function<void(Peer*)>;
+  using signal_peer_type = std::list<slot_peer_type>;
 
-  typedef PeerConnectionBase* (*slot_new_conn_type)(bool encrypted);
+  using slot_new_conn_type = PeerConnectionBase* (*)(bool encrypted);
 
   using base_type::value_type;
   using base_type::reference;

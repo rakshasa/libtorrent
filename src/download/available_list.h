@@ -48,8 +48,8 @@ namespace torrent {
 
 class AvailableList : private std::vector<rak::socket_address> {
 public:
-  typedef std::vector<rak::socket_address> base_type;
-  typedef uint32_t                         size_type;
+  using base_type = std::vector<rak::socket_address>;
+  using size_type = uint32_t;
 
   using base_type::value_type;
   using base_type::reference;

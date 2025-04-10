@@ -32,8 +32,8 @@ class InitialSeeding;
 
 class DownloadMain {
 public:
-  typedef std::deque<std::pair<rak::timer, uint32_t> > have_queue_type;
-  typedef std::vector<SocketAddressCompact>            pex_list;
+  using have_queue_type = std::deque<std::pair<rak::timer, uint32_t>>;
+  using pex_list        = std::vector<SocketAddressCompact>;
 
   DownloadMain();
   ~DownloadMain();
@@ -96,11 +96,11 @@ public:
   void                setup_delegator();
   void                setup_tracker();
 
-  typedef std::function<uint32_t(DownloadMain*)>                         slot_count_handshakes_type;
-  typedef std::function<void(ChunkHandle)>                               slot_hash_check_add_type;
+  using slot_count_handshakes_type = std::function<uint32_t(DownloadMain*)>;
+  using slot_hash_check_add_type   = std::function<void(ChunkHandle)>;
 
-  typedef std::function<void(const rak::socket_address&, DownloadMain*)> slot_start_handshake_type;
-  typedef std::function<void(DownloadMain*)>                             slot_stop_handshakes_type;
+  using slot_start_handshake_type = std::function<void(const rak::socket_address&, DownloadMain*)>;
+  using slot_stop_handshakes_type = std::function<void(DownloadMain*)>;
 
   void                slot_start_handshake(slot_start_handshake_type s) { m_slotStartHandshake = std::move(s); }
   void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slotStopHandshakes = std::move(s); }

@@ -13,8 +13,8 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT signal_bitfield {
 public:
-  typedef uint32_t               bitfield_type;
-  typedef std::function<void ()> slot_type;
+  using bitfield_type = uint32_t;
+  using slot_type     = std::function<void()>;
 
   static const unsigned int max_size = 32;
 

@@ -12,7 +12,7 @@ namespace torrent {
 
 class SocketFile {
 public:
-  typedef int fd_type;
+  using fd_type = int;
 
   static const fd_type invalid_fd         = -1;
 

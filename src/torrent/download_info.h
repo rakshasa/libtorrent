@@ -21,10 +21,10 @@ class DownloadMain;
 
 class LIBTORRENT_EXPORT DownloadInfo {
 public:
-  typedef std::function<uint64_t ()>                              slot_stat_type;
+  using slot_stat_type = std::function<uint64_t()>;
 
-  typedef std::list<std::function<void ()> >                      signal_void_type;
-  typedef std::list<std::function<void (const std::string&)> >    signal_string_type;
+  using signal_void_type   = std::list<std::function<void()>>;
+  using signal_string_type = std::list<std::function<void(const std::string&)>>;
 
   enum State {
     NONE,

@@ -15,10 +15,10 @@ namespace torrent {
 
 class TrackerUdp : public SocketDatagram, public TrackerWorker {
 public:
-  typedef std::array<char, 1024> hostname_type;
+  using hostname_type = std::array<char, 1024>;
 
-  typedef ProtocolBuffer<512> ReadBuffer;
-  typedef ProtocolBuffer<512> WriteBuffer;
+  using ReadBuffer  = ProtocolBuffer<512>;
+  using WriteBuffer = ProtocolBuffer<512>;
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 

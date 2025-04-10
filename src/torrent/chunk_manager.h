@@ -11,8 +11,8 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT ChunkManager : private std::vector<ChunkList*> {
 public:
-  typedef std::vector<ChunkList*> base_type;
-  typedef uint32_t                size_type;
+  using base_type = std::vector<ChunkList*>;
+  using size_type = uint32_t;
 
   using base_type::iterator;
   using base_type::reverse_iterator;

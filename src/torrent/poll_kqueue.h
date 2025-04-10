@@ -46,7 +46,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT PollKQueue : public torrent::Poll {
 public:
-  typedef std::vector<std::pair<uint32_t, Event*> > Table;
+  using Table = std::vector<std::pair<uint32_t, Event*>>;
 
   static const uint32_t flag_read  = (1 << 0);
   static const uint32_t flag_write = (1 << 1);

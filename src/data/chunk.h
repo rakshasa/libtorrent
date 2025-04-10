@@ -11,8 +11,8 @@ namespace torrent {
 
 class lt_cacheline_aligned Chunk : private std::vector<ChunkPart> {
 public:
-  typedef std::vector<ChunkPart>    base_type;
-  typedef std::pair<void*,uint32_t> data_type;
+  using base_type = std::vector<ChunkPart>;
+  using data_type = std::pair<void*, uint32_t>;
 
   using base_type::value_type;
 

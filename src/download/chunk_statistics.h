@@ -46,15 +46,15 @@ class PeerChunks;
 
 class ChunkStatistics : public std::vector<uint8_t> {
 public:
-  typedef std::vector<uint8_t>            base_type;
-  typedef uint32_t                        size_type;
+  using base_type = std::vector<uint8_t>;
+  using size_type = uint32_t;
 
-  typedef base_type::value_type           value_type;
-  typedef base_type::reference            reference;
-  typedef base_type::const_reference      const_reference;
-  typedef base_type::iterator             iterator;
-  typedef base_type::const_iterator       const_iterator;
-  typedef base_type::reverse_iterator     reverse_iterator;
+  using value_type       = base_type::value_type;
+  using reference        = base_type::reference;
+  using const_reference  = base_type::const_reference;
+  using iterator         = base_type::iterator;
+  using const_iterator   = base_type::const_iterator;
+  using reverse_iterator = base_type::reverse_iterator;
 
   using base_type::empty;
   using base_type::size;

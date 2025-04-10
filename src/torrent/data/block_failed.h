@@ -46,7 +46,7 @@ namespace torrent {
 
 class BlockFailed : public std::vector<std::pair<char*, uint32_t> > {
 public:
-  typedef std::vector<std::pair<char*, uint32_t> > base_type;
+  using base_type = std::vector<std::pair<char*, uint32_t>>;
 
   using base_type::value_type;
   using base_type::reference;

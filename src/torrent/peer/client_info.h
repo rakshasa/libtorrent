@@ -45,13 +45,13 @@ class LIBTORRENT_EXPORT ClientInfo {
 public:
   friend class ClientList;
 
-  typedef enum {
+  enum id_type {
     TYPE_UNKNOWN,
     TYPE_AZUREUS,
     TYPE_COMPACT,
     TYPE_MAINLINE,
     TYPE_MAX_SIZE
-  } id_type;
+  };
 
   struct info_type {
     const char*         m_shortDescription;

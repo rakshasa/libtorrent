@@ -17,7 +17,7 @@ class FileList;
 
 class download_data {
 public:
-  typedef ranges<uint32_t> priority_ranges;
+  using priority_ranges = ranges<uint32_t>;
 
   using slot_void = std::function<void()>;
 

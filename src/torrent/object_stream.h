@@ -60,8 +60,8 @@ std::istream& operator >> (std::istream& input, Object& object) LIBTORRENT_EXPOR
 std::ostream& operator << (std::ostream& output, const Object& object) LIBTORRENT_EXPORT;
 
 // object_buffer_t contains the start and end of the buffer.
-typedef std::pair<char*, char*> object_buffer_t;
-typedef object_buffer_t (*object_write_t)(void* data, object_buffer_t buffer);
+using object_buffer_t = std::pair<char*, char*>;
+using object_write_t  = object_buffer_t (*)(void* data, object_buffer_t buffer);
 
 // Assumes the stream's locale has been set to POSIX or C.
 void            object_write_bencode(std::ostream* output, const Object* object, uint32_t skip_mask = 0) LIBTORRENT_EXPORT;

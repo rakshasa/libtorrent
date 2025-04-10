@@ -48,12 +48,12 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Rate {
 public:
-  typedef int32_t                          timer_type;
-  typedef uint64_t                         rate_type;
-  typedef uint64_t                         total_type;
+  using timer_type = int32_t;
+  using rate_type  = uint64_t;
+  using total_type = uint64_t;
 
-  typedef std::pair<timer_type, rate_type> value_type;
-  typedef std::deque<value_type>           queue_type;
+  using value_type = std::pair<timer_type, rate_type>;
+  using queue_type = std::deque<value_type>;
 
   Rate(timer_type span) :  m_span(span) {}
 

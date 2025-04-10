@@ -1,6 +1,8 @@
 #ifndef LIBTORRENT_NET_SOCKET_FD_H
 #define LIBTORRENT_NET_SOCKET_FD_H
 
+#include <cstdint>
+
 #include <unistd.h>
 
 struct sockaddr;
@@ -13,7 +15,7 @@ namespace torrent {
 
 class SocketFd {
 public:
-  typedef uint8_t priority_type;
+  using priority_type = uint8_t;
 
   SocketFd() = default;
   explicit SocketFd(int fd) : m_fd(fd) {}

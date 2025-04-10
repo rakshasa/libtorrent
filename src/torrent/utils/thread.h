@@ -18,9 +18,9 @@ namespace torrent::utils {
 
 class LIBTORRENT_EXPORT Thread {
 public:
-  typedef void* (*pthread_func)(void*);
-  typedef std::function<void ()>     slot_void;
-  typedef std::function<uint64_t ()> slot_timer;
+  using pthread_func = void* (*)(void*);
+  using slot_void    = std::function<void()>;
+  using slot_timer   = std::function<uint64_t()>;
 
   enum state_type {
     STATE_UNKNOWN,
