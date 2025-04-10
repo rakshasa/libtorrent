@@ -28,7 +28,7 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
-  TransferList();
+  TransferList() = default;
   ~TransferList();
   TransferList(const TransferList&) = delete;
   TransferList& operator=(const TransferList&) = delete;
@@ -76,8 +76,8 @@ private:
 
   completed_list_type m_completedList;
 
-  uint32_t            m_succeededCount;
-  uint32_t            m_failedCount;
+  uint32_t            m_succeededCount{0};
+  uint32_t            m_failedCount{0};
 };
 
 }

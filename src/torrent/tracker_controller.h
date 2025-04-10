@@ -106,7 +106,7 @@ private:
 
   inline tracker::TrackerState::event_enum current_send_event() const;
 
-  int                 m_flags;
+  int                 m_flags{0};
   TrackerList*        m_tracker_list;
 
   slot_void           m_slot_timeout;

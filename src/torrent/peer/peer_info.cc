@@ -51,17 +51,7 @@ namespace torrent {
 // Move this to peer_info.cc when these are made into the public API.
 //
 // TODO: Use a safer socket address parameter.
-PeerInfo::PeerInfo(const sockaddr* address) : 
-  m_flags(0),
-
-  m_failedCounter(0),
-  m_transferCounter(0),
-  m_lastConnection(0),
-  m_lastHandshake(0),
-  m_listenPort(0),
-
-  m_connection(NULL)
-{
+PeerInfo::PeerInfo(const sockaddr* address) {
   rak::socket_address* sa = new rak::socket_address();
   *sa = *rak::socket_address::cast_from(address);
 

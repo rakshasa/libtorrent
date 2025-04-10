@@ -94,7 +94,7 @@ private:
   int                 m_fd;
 
   int                 m_maxEvents;
-  int                 m_waitingEvents;
+  int                 m_waitingEvents{0};
 
   Table               m_table;
   epoll_event*        m_events;

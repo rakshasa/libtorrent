@@ -64,13 +64,13 @@ public:
 
 private:
   Piece               m_piece;
-  priority_t          m_priority;
+  priority_t          m_priority{PRIORITY_OFF};
 
-  size_type           m_finished;
-  uint32_t            m_failed;
-  uint32_t            m_attempt;
+  size_type           m_finished{0};
+  uint32_t            m_failed{0};
+  uint32_t            m_attempt{0};
 
-  bool                m_bySeeder;
+  bool                m_bySeeder{false};
 };
 
 }
