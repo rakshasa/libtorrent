@@ -19,12 +19,9 @@ class download_data {
 public:
   typedef ranges<uint32_t> priority_ranges;
 
-  typedef void (function_void)(void);
+  using slot_void = std::function<void()>;
 
-  typedef std::function<function_void> slot_void;
-
-  typedef void (function_chunk_list_node_p)(ChunkListNode *); 
-  typedef std::function<function_chunk_list_node_p> slot_chunk_list_node_p;
+  using slot_chunk_list_node_p = std::function<void(ChunkListNode*)>;
 
   const HashString&      hash() const                  { return m_hash; }
 
