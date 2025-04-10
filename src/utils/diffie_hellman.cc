@@ -14,6 +14,7 @@
 namespace torrent {
 
 #ifdef USE_OPENSSL
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 static void      dh_free(void* dh) { DH_free(reinterpret_cast<DH*>(dh)); }
 static DiffieHellman::dh_ptr dh_new() { return DiffieHellman::dh_ptr(reinterpret_cast<void*>(DH_new()), &dh_free); }
@@ -42,11 +43,9 @@ static const BIGNUM* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) {
 
 #else
 static DiffieHellman::dh_ptr dh_new() { throw internal_error("Compiled without encryption support."); }
-static void  dh_free(void* dh) {}
 static void* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) { return nullptr; }
 #endif
 
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
                              const unsigned char *generator, int generatorLength) :
   m_dh(dh_new()), m_size(0) {
