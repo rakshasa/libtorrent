@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <new>
 #include <vector>
 
 #include "chunk_part.h"
