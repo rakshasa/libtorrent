@@ -104,6 +104,8 @@ public:
 
   ResourceManager() = default;
   ~ResourceManager();
+  ResourceManager(const ResourceManager&) = delete;
+  ResourceManager& operator=(const ResourceManager&) = delete;
 
   void                insert(DownloadMain* d, uint16_t priority) { insert(value_type(d, priority)); }
   void                erase(DownloadMain* d);

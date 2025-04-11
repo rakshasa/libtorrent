@@ -24,6 +24,8 @@ public:
 
   FileManager() = default;
   ~FileManager();
+  FileManager(const FileManager&) = delete;
+  FileManager& operator=(const FileManager&) = delete;
 
   size_type           open_files() const              { return base_type::size(); }
 
@@ -44,9 +46,6 @@ public:
   uint64_t            files_failed_counter() const { return m_files_failed_counter; }
 
 private:
-  FileManager(const FileManager&) = delete;
-  FileManager& operator=(const FileManager&) = delete;
-
   size_type           m_max_open_files{0};
   bool                m_advise_random{false};
 

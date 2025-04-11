@@ -24,6 +24,7 @@ public:
   static const int flag_fallocate_blocking = (1 << 1);
 
   SocketFile() = default;
+  ~SocketFile() = default;
   SocketFile(fd_type fd) : m_fd(fd) {}
   SocketFile(const SocketFile&) = delete;
   SocketFile& operator=(const SocketFile&) = delete;

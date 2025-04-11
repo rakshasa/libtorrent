@@ -37,6 +37,8 @@ struct log_cache_entry {
 struct log_gz_output {
   log_gz_output(const char* filename, bool append) { gz_file = gzopen(filename, append ? "a" : "w"); }
   ~log_gz_output() { if (gz_file != NULL) gzclose(gz_file); }
+  log_gz_output(const log_gz_output&) = delete;
+  log_gz_output& operator=(const log_gz_output&) = delete;
 
   bool is_valid() { return gz_file != Z_NULL; }
 

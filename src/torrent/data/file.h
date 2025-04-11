@@ -25,6 +25,8 @@ public:
 
   File() =default;
   ~File();
+  File(const File&) = delete;
+  File& operator=(const File&) = delete;
 
   bool                is_created() const;
   bool                is_open() const                          { return m_fd != -1; }
@@ -101,9 +103,6 @@ protected:
   void                set_match_depth_next(uint32_t l)         { m_match_depth_next = l; }
 
 private:
-  File(const File&) = delete;
-  File& operator=(const File&) = delete;
-
   bool                resize_file();
 
   int                 m_fd{-1};

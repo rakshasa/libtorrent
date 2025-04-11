@@ -25,6 +25,8 @@ public:
 
   Manager(utils::Thread* main_thread);
   ~Manager() = default;
+  Manager(const Manager&) = delete;
+  Manager& operator=(const Manager&) = delete;
 
 protected:
   friend class torrent::DownloadMain;
@@ -46,9 +48,6 @@ protected:
   void                remove_events(torrent::TrackerWorker* tracker_worker);
 
 private:
-  Manager(const Manager&) = delete;
-  Manager& operator=(const Manager&) = delete;
-
   utils::Thread*      m_main_thread{nullptr};
   unsigned int        m_signal_process_events{~0u};
 

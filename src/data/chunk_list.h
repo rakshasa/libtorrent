@@ -55,7 +55,10 @@ public:
 
   static const int flag_active       = (1 << 0);
 
+  ChunkList() = default;
   ~ChunkList() { clear(); }
+  ChunkList(const ChunkList&) = delete;
+  ChunkList& operator=(const ChunkList&) = delete;
 
   int                 flags() const                       { return m_flags; }
 
