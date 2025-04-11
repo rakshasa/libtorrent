@@ -1,6 +1,8 @@
 #ifndef LIBTORRENT_THREAD_TRACKER_H
 #define LIBTORRENT_THREAD_TRACKER_H
 
+#include <vector>
+
 #include "torrent/common.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/thread.h"
