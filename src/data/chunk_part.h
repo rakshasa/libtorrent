@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
 #define LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
 
+#include <new>
+
 #include "memory_chunk.h"
 
 namespace torrent {
