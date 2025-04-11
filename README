@@ -4,12 +4,7 @@ Copyright (C) 2005-2014, Jari Sundell
 
 LICENSE
 
- GNU GPL, see COPYING. "libtorrent/src/utils/sha_fast.{cc,h}" is
-originally from the Mozilla NSS and is under a triple license; MPL,
-LGPL and GPL. An exception to non-NSS code has been added for linking
-to OpenSSL as requested by Debian, though the author considers that
-library to be part of the Operative System and thus linking is allowed
-according to the GPL.
+ GNU GPL, see COPYING.
 
  Use whatever fits your purpose, the code required to compile with
 Mozilla's NSS implementation of SHA1 has been retained and can be
