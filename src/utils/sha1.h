@@ -39,13 +39,7 @@
 
 #include <cstring>
 
-#if defined USE_NSS_SHA
-#include "sha_fast.h"
-#elif defined USE_OPENSSL_SHA
 #include <openssl/sha.h>
-#else
-#error "No SHA1 implementation selected, choose between Mozilla's NSS and OpenSSL."
-#endif
 
 namespace torrent {
 
@@ -55,31 +49,6 @@ public:
   void                update(const void* data, unsigned int length);
 
   void                final_c(char* buffer);
-
-#if defined USE_NSS_SHA
-
-private:
-  SHA1Context m_ctx;
-};
-
-inline void
-Sha1::init() {
-  SHA1_Begin(&m_ctx);
-}
-
-inline void
-Sha1::update(const void* data, unsigned int length) {
-  SHA1_Update(&m_ctx, (unsigned char*)data, length);
-}
-
-inline void
-Sha1::final_c(char* buffer) {
-  unsigned int len;
-  
-  SHA1_End(&m_ctx, (unsigned char*)buffer, &len, 20);
-}
-
-#elif defined USE_OPENSSL_SHA
 
 private:
   SHA_CTX m_ctx;
@@ -100,10 +69,6 @@ inline void
 Sha1::final_c(char* buffer) {
   SHA1_Final((unsigned char*)buffer, &m_ctx);
 }
-
-#else
-};
-#endif
 
 inline void
 sha1_salt(const char* salt, unsigned int saltLength,
