@@ -35,7 +35,7 @@
 # include <fcntl.h>
 # include <sys/time.h>
 # ifdef HAVE_POLL
-#  include <sys/poll.h>
+#  include <poll.h>
 # else
 #  ifdef HAVE_SYS_SELECT_H
 #   include <sys/select.h>

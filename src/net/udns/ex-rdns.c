@@ -25,7 +25,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <time.h>
