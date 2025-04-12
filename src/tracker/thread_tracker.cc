@@ -15,7 +15,7 @@
 namespace torrent {
 
 ThreadTracker::ThreadTracker(utils::Thread* main_thread) :
-    m_tracker_manager(std::make_unique<tracker::Manager>(main_thread)) {
+  m_tracker_manager(std::make_unique<tracker::Manager>(main_thread)) {
 }
 
 ThreadTracker::~ThreadTracker() = default;
