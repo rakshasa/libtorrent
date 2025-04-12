@@ -15,11 +15,6 @@ public:
   typedef std::pair<Address, Value>                mapped_type;        // End address, value mapped to ip range
   typedef std::map<key_type, mapped_type, Compare> range_map_type;     // The map itself 
 
-  extents();
-  ~extents();
-  extents(const extents&) = default;
-  extents& operator=(const extents&) = default;
-
   void              insert(key_type address_start, key_type address_end, mapped_value_type value);
   bool              defined(key_type address_start, key_type address_end);
   bool              defined(key_type address);
@@ -30,24 +25,6 @@ public:
 
   range_map_type    range_map;
 };
-
-///////////////////////////////////////
-// CONSTRUCTOR [PLACEHOLDER]
-///////////////////////////////////////
-template <class Address, class Value, class Compare >
-extents<Address, Value, Compare>::extents() {
-  //nothing to do
-  return;
-}
-
-///////////////////////////////////////
-// DESTRUCTOR [PLACEHOLDER]
-///////////////////////////////////////
-template <class Address, class Value, class Compare >
-extents<Address, Value, Compare>::~extents() {
-  //nothing to do. map destructor can handle cleanup. 
-  return;
-}
 
 //////////////////////////////////////////////////////////////////////////////////
 // INSERT O(log N) assuming no overlapping ranges
