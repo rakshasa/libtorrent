@@ -231,13 +231,13 @@ UdnsResolver::process_timeouts() {
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
 
   if (timeout == -1) {
-    thread_self->poll()->remove_read(this);
-    thread_self->poll()->remove_error(this);
+    thread_self()->poll()->remove_read(this);
+    thread_self()->poll()->remove_error(this);
     return;
   }
 
-  thread_self->poll()->insert_read(this);
-  thread_self->poll()->insert_error(this);
+  thread_self()->poll()->insert_read(this);
+  thread_self()->poll()->insert_error(this);
 
   priority_queue_update(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(timeout)).round_seconds());
 }

@@ -24,6 +24,10 @@ test_thread::test_thread() :
   m_test_flags(0) {
 }
 
+test_thread::~test_thread() {
+  m_self = nullptr;
+}
+
 void
 test_thread::init_thread() {
   m_state = STATE_INITIALIZED;

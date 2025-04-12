@@ -15,8 +15,6 @@
 
 namespace torrent {
 
-ThreadMain* thread_main LIBTORRENT_EXPORT = nullptr;
-
 ThreadMain::ThreadMain() {
   m_hash_queue = std::make_unique<HashQueue>();
 }
@@ -28,7 +26,7 @@ ThreadMain::init_thread() {
   if (!Poll::slot_create_poll())
     throw internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
 
-  thread_self = this;
+  m_self = this;
 
   m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
   m_poll->set_flags(Poll::flag_waive_global_lock);

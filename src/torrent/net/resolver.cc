@@ -12,7 +12,7 @@ namespace torrent::net {
 
 void
 Resolver::init() {
-  m_thread = torrent::thread_self;
+  m_thread = torrent::thread_self();
 }
 
 void

@@ -7,12 +7,11 @@
 #include <mutex>
 #include <pthread.h>
 #include <sys/types.h>
-
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
-thread_local extern utils::Thread* thread_self LIBTORRENT_EXPORT;
+inline utils::Thread* thread_self();
 }
 
 namespace torrent::utils {
@@ -39,6 +38,9 @@ public:
 
   Thread();
   virtual ~Thread();
+
+  // TODO: Should we clear m_self after event_loop ends?
+  static Thread*      self();
 
   bool                is_initialized() const { return state() == STATE_INITIALIZED; }
   bool                is_active()      const { return state() == STATE_ACTIVE; }
@@ -108,6 +110,7 @@ protected:
 
   void                process_callbacks();
 
+  static thread_local Thread*  m_self;
   static global_lock_type      m_global;
 
   pthread_t                    m_thread;
@@ -174,6 +177,10 @@ Thread::waive_global_lock() {
   acquire_global_lock();
 }
 
+}
+
+namespace torrent {
+inline utils::Thread* thread_self() { return utils::Thread::self(); }
 }
 
 #endif
