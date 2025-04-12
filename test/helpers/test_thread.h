@@ -2,6 +2,7 @@
 #define TEST_HELPERS_TEST_THREAD_H
 
 #include <atomic>
+#include <memory>
 
 #include "test/helpers/test_utils.h"
 #include "torrent/common.h"
@@ -27,6 +28,7 @@ public:
   static const int test_flag_post_poke = 0x400;
 
   test_thread();
+  ~test_thread() override;
 
   int     test_state() const { return m_test_state; }
   bool    is_state(int state) const { return m_state == state; }
@@ -34,17 +36,17 @@ public:
   bool    is_test_flags(int flags) const { return (m_test_flags & flags) == flags; }
   bool    is_not_test_flags(int flags) const { return !(m_test_flags & flags); }
 
-  auto    name() const -> const char* { return "test_thread"; }
+  auto    name() const -> const char* override { return "test_thread"; }
 
-  void    init_thread();
+  void    init_thread() override;
 
   void    set_pre_stop() { m_test_flags |= test_flag_pre_stop; }
   void    set_acquire_global() { m_test_flags |= test_flag_acquire_global; }
   void    set_test_flag(int flags) { m_test_flags |= flags; }
 
 private:
-  void    call_events();
-  int64_t next_timeout_usec() { return (m_test_flags & test_flag_long_timeout) ? (10000 * 1000) : (100 * 1000); }
+  void    call_events() override;
+  int64_t next_timeout_usec() override { return (m_test_flags & test_flag_long_timeout) ? (10000 * 1000) : (100 * 1000); }
 
   std::atomic_int m_test_state;
   std::atomic_int m_test_flags;
@@ -59,7 +61,8 @@ void set_create_poll();
 
 #define SETUP_THREAD_DISK()                                             \
   thread_management_type thread_management;                             \
-  torrent::thread_self = new test_thread();                             \
+  auto thread_test = std::make_unique<test_thread>();                   \
+  thread_test->init_thread();                                           \
   torrent::thread_disk = new torrent::ThreadDisk();                     \
   torrent::thread_disk->init_thread();                                  \
   torrent::thread_disk->start_thread();
@@ -68,8 +71,6 @@ void set_create_poll();
   torrent::thread_disk->stop_thread();                                  \
   CPPUNIT_ASSERT(wait_for_true(std::bind(&torrent::utils::Thread::is_inactive, torrent::thread_disk))); \
   delete torrent::thread_disk;                                          \
-  delete torrent::thread_self;                                          \
-  torrent::thread_self = nullptr;                                       \
   torrent::thread_disk = nullptr;
 
 #endif

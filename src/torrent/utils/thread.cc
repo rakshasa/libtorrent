@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include "globals.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
@@ -14,12 +15,9 @@
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
-namespace torrent {
-thread_local utils::Thread* thread_self LIBTORRENT_EXPORT;
-}
-
 namespace torrent::utils {
 
+thread_local Thread*     Thread::m_self{nullptr};
 Thread::global_lock_type Thread::m_global;
 
 Thread::Thread() :
@@ -36,6 +34,11 @@ Thread::Thread() :
 Thread::~Thread() {
   // Disown m_poll instead of deleting it as we don't properly clean up all the sockets.
   m_poll.release();
+}
+
+Thread*
+Thread::self() {
+  return m_self;
 }
 
 void
@@ -118,7 +121,7 @@ Thread::event_loop(Thread* thread) {
   if (thread == nullptr)
     throw internal_error("Thread::event_loop called with a null pointer thread");
 
-  thread_self = thread;
+  m_self = thread;
 
   thread->m_thread_id = std::this_thread::get_id();
   thread->m_signal_bitfield.handover(std::this_thread::get_id());

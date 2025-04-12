@@ -3,18 +3,21 @@
 
 #include "rak/timer.h"
 #include "rak/priority_queue_default.h"
+#include "torrent/common.h"
 
 namespace torrent {
 
 // TODO: Move to Thread.
-extern rak::priority_queue_default taskScheduler;
-extern rak::timer                  cachedTime;
+LIBTORRENT_EXPORT extern rak::priority_queue_default taskScheduler;
+LIBTORRENT_EXPORT extern rak::timer                  cachedTime;
 
-class ThreadTracker;
+class ThreadMain;
 class ThreadNet;
+class ThreadTracker;
 
-extern ThreadTracker* thread_tracker;
-extern ThreadNet*     thread_net;
+LIBTORRENT_EXPORT extern ThreadMain*    thread_main;
+LIBTORRENT_EXPORT extern ThreadNet*     thread_net;
+LIBTORRENT_EXPORT extern ThreadTracker* thread_tracker;
 
 }
 

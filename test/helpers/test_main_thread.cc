@@ -10,6 +10,10 @@
 
 TestMainThread::TestMainThread() {}
 
+TestMainThread::~TestMainThread() {
+  m_self = nullptr;
+}
+
 void
 TestMainThread::init_thread() {
   // acquire_global_lock();
@@ -17,7 +21,7 @@ TestMainThread::init_thread() {
   if (!torrent::Poll::slot_create_poll())
     throw torrent::internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
 
-  torrent::thread_self = this;
+  m_self = this;
 
   m_poll = std::unique_ptr<torrent::Poll>(torrent::Poll::slot_create_poll()());
   m_poll->set_flags(torrent::Poll::flag_waive_global_lock);

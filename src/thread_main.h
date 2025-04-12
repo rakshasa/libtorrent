@@ -26,8 +26,6 @@ protected:
   std::unique_ptr<HashQueue> m_hash_queue;
 };
 
-extern ThreadMain* thread_main LIBTORRENT_EXPORT;
-
 } // namespace torrent
 
 #endif // LIBTORRENT_THREAD_MAIN_H
