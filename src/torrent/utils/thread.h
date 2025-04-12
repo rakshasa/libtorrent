@@ -81,6 +81,13 @@ public:
 
   static inline int   global_queue_size() { return m_global.waiting; }
 
+  // Regarding try_lock used by acquire_global_lock:
+  //
+  // This function is allowed to fail spuriously and return false even if the mutex is not currently
+  // locked by any other thread.
+  //
+  // If try_lock is called by a thread that already owns the mutex, the behavior is undefined.
+
   static inline void  acquire_global_lock();
   static inline bool  trylock_global_lock();
   static inline void  release_global_lock();
