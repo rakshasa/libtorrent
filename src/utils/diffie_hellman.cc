@@ -11,6 +11,8 @@
 
 namespace torrent {
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 static void      dh_free(void* dh) { DH_free(reinterpret_cast<DH*>(dh)); }
 static DiffieHellman::dh_ptr dh_new() { return DiffieHellman::dh_ptr(reinterpret_cast<void*>(DH_new()), &dh_free); }
 static DH*       dh_get(DiffieHellman::dh_ptr& dh) { return reinterpret_cast<DH*>(dh.get()); }
@@ -36,7 +38,6 @@ static const BIGNUM* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) {
 #endif
 }
 
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
                              const unsigned char *generator, int generatorLength) :
   m_dh(dh_new()), m_size(0) {

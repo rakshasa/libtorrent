@@ -2,12 +2,13 @@
 
 #include "test_thread_base.h"
 
-#include "helpers/test_thread.h"
-#include "helpers/test_utils.h"
-
 #include <functional>
+#include <future>
+#include <thread>
 #include <unistd.h>
 
+#include "helpers/test_thread.h"
+#include "helpers/test_utils.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll_select.h"
 #include "torrent/utils/log.h"
@@ -94,15 +95,31 @@ test_thread_base::test_global_lock_basic() {
   torrent::utils::Thread::release_global_lock();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_test_flags, thread, test_thread::test_flag_has_global)));
 
-  CPPUNIT_ASSERT(!torrent::utils::Thread::trylock_global_lock());
+  auto try_global_lock_1 = std::async([&]() {
+      return torrent::utils::Thread::trylock_global_lock();
+    });
+
+  CPPUNIT_ASSERT(!try_global_lock_1.get());
+
   torrent::utils::Thread::release_global_lock();
-  CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
+
+  auto try_global_lock_2 = std::async([&]() {
+      bool result = torrent::utils::Thread::trylock_global_lock();
+
+      if (!result)
+        return false;
+
+      if (torrent::utils::Thread::global_queue_size() != 0)
+        return false;
+
+      torrent::utils::Thread::release_global_lock();
+      return true;
+    });
+
+  CPPUNIT_ASSERT(try_global_lock_2.get());
 
   // Test waive (loop).
 
-  CPPUNIT_ASSERT(torrent::utils::Thread::global_queue_size() == 0);
-
-  torrent::utils::Thread::release_global_lock();
   thread->stop_thread();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread, test_thread::STATE_INACTIVE)));
 

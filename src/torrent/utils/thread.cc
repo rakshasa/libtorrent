@@ -73,9 +73,12 @@ Thread::stop_thread_wait() {
 
 void
 Thread::callback(void* target, std::function<void ()>&& fn) {
-  std::lock_guard<std::mutex> guard(m_callbacks_lock);
+  {
+    std::lock_guard<std::mutex> guard(m_callbacks_lock);
 
-  m_callbacks.emplace(target, std::move(fn));
+    m_callbacks.emplace(target, std::move(fn));
+  }
+
   interrupt();
 }
 
@@ -186,7 +189,7 @@ Thread::event_loop(Thread* thread) {
       thread->m_flags &= ~(flag_polling | flag_no_timeout);
     }
 
-    thread->m_poll->remove_write(thread->m_interrupt_receiver.get());
+    thread->m_poll->remove_read(thread->m_interrupt_receiver.get());
 
   } catch (torrent::shutdown_exception& e) {
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", thread->name());
@@ -220,6 +223,7 @@ Thread::process_callbacks() {
     }
 
     callback();
+
     m_callbacks_processing = false;
     m_callbacks_processing_lock.unlock();
   }

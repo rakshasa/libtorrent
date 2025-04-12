@@ -22,8 +22,15 @@ test_address_info::test_basic() {
 
   CPPUNIT_ASSERT(test_valid_ai_ref<aif_none> (std::bind(torrent::ai_get_addrinfo, "localhost", nullptr, nullptr, std::placeholders::_1)));
 
-  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "1.1.1.300", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
-  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::22123", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
+  // Glibc 2.28+ returns EAI_NONAME for invalid IPv4 addresses, which likely should only happen when
+  // using AI_NUMERICHOST.
+  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "1.1.1.300", nullptr, nullptr, std::placeholders::_1), EAI_NONAME) ||
+                 test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "1.1.1.300", nullptr, nullptr, std::placeholders::_1), EAI_NODATA) ||
+                 test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "1.1.1.300", nullptr, nullptr, std::placeholders::_1), EAI_AGAIN));
+
+  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::22123", nullptr, nullptr, std::placeholders::_1), EAI_NONAME) ||
+                 test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::22123", nullptr, nullptr, std::placeholders::_1), EAI_NODATA) ||
+                 test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::22123", nullptr, nullptr, std::placeholders::_1), EAI_AGAIN));
 }
 
 void
