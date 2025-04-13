@@ -28,7 +28,7 @@ class test_tracker_list : public test_fixture {
 
 public:
   void setUp() {}
-  void tearDown() {}
+  void tearDown();
 
   void test_basic();
   void test_enable();

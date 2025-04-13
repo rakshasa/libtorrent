@@ -120,7 +120,7 @@ DownloadMain::post_initialize() {
   m_tracker_list->slot_tracker_disabled() = [tracker_controller](const auto& t) { tracker_controller->receive_tracker_disabled(t); };
 
   // TODO: Move tracker list to manager, and add the proper barrier for slots.
-  m_tracker_controller = thread_tracker->tracker_manager()->add_controller(info(), tracker_controller);
+  m_tracker_controller = thread_tracker()->tracker_manager()->add_controller(info(), tracker_controller);
 }
 
 std::pair<ThrottleList*, ThrottleList*>

@@ -11,8 +11,22 @@
 
 namespace torrent {
 
-ThreadNet::ThreadNet() {
-  m_udns = std::make_unique<UdnsResolver>();
+ThreadNet* ThreadNet::m_thread_net{nullptr};
+
+ThreadNet::~ThreadNet() {
+  m_thread_net = nullptr;
+}
+
+void
+ThreadNet::create_thread() {
+  m_thread_net = new ThreadNet;
+
+  m_thread_net->m_udns = std::make_unique<UdnsResolver>();
+}
+
+ThreadNet*
+ThreadNet::thread_net() {
+  return m_thread_net;
 }
 
 void

@@ -14,11 +14,34 @@
 
 namespace torrent {
 
-ThreadTracker::ThreadTracker(utils::Thread* main_thread) :
-  m_tracker_manager(std::make_unique<tracker::Manager>(main_thread)) {
+ThreadTracker* ThreadTracker::m_thread_tracker{nullptr};
+
+ThreadTracker::~ThreadTracker() {
+    m_thread_tracker = nullptr;
 }
 
-ThreadTracker::~ThreadTracker() = default;
+void
+ThreadTracker::create_thread(utils::Thread* main_thread) {
+  m_thread_tracker = new ThreadTracker();
+
+  m_thread_tracker->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread);
+}
+
+void
+ThreadTracker::destroy_thread() {
+  if (m_thread_tracker == nullptr)
+    return;
+
+  m_thread_tracker->stop_thread_wait();
+
+  delete m_thread_tracker;
+  m_thread_tracker = nullptr;
+}
+
+ThreadTracker*
+ThreadTracker::thread_tracker() {
+  return m_thread_tracker;
+}
 
 void
 ThreadTracker::init_thread() {
@@ -77,6 +100,13 @@ ThreadTracker::next_timeout_usec() {
 void
 ThreadTracker::process_send_events() {
   std::vector<TrackerSendEvent> events;
+
+  // TODO: Do we properly handle if the tracker is deleted?
+  //
+  // Should be, as we use weak_ptrs to the tracker objects, and check them before calling.
+  //
+  // However this should be possible to implement as a straight up callback, no need for special
+  // event handling.
 
   {
     std::lock_guard<std::mutex> guard(m_send_events_lock);

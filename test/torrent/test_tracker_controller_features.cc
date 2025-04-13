@@ -23,6 +23,7 @@ test_tracker_controller_features::setUp() {
 
 void
 test_tracker_controller_features::tearDown() {
+  torrent::ThreadTracker::destroy_thread();
   torrent::taskScheduler.clear();
 
   test_fixture::tearDown();

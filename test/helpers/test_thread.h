@@ -63,14 +63,11 @@ void set_create_poll();
   thread_management_type thread_management;                             \
   auto thread_test = std::make_unique<test_thread>();                   \
   thread_test->init_thread();                                           \
-  torrent::thread_disk = new torrent::ThreadDisk();                     \
-  torrent::thread_disk->init_thread();                                  \
-  torrent::thread_disk->start_thread();
+  torrent::ThreadDisk::create_thread();                                 \
+  torrent::thread_disk()->init_thread();                                \
+  torrent::thread_disk()->start_thread();
 
-#define CLEANUP_THREAD_DISK()                                           \
-  torrent::thread_disk->stop_thread();                                  \
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&torrent::utils::Thread::is_inactive, torrent::thread_disk))); \
-  delete torrent::thread_disk;                                          \
-  torrent::thread_disk = nullptr;
+#define CLEANUP_THREAD_DISK()                   \
+  torrent::ThreadDisk::destroy_thread();
 
 #endif

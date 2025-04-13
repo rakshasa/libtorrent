@@ -227,7 +227,7 @@ PeerConnectionBase::read_insert_poll_safe() {
   if (m_down->get_state() != ProtocolRead::IDLE)
     return;
 
-  thread_main->poll()->insert_read(this);
+  thread_main()->poll()->insert_read(this);
 }
 
 inline void
@@ -235,7 +235,7 @@ PeerConnectionBase::write_insert_poll_safe() {
   if (m_up->get_state() != ProtocolWrite::IDLE)
     return;
 
-  thread_main->poll()->insert_write(this);
+  thread_main()->poll()->insert_write(this);
 }
 
 }

@@ -15,8 +15,24 @@
 
 namespace torrent {
 
-ThreadMain::ThreadMain() {
-  m_hash_queue = std::make_unique<HashQueue>();
+ThreadMain* ThreadMain::m_thread_main{nullptr};
+
+ThreadMain::~ThreadMain() {
+  m_thread_main = nullptr;
+
+  m_hash_queue.reset();
+}
+
+void
+ThreadMain::create_thread() {
+  m_thread_main = new ThreadMain;
+
+  m_thread_main->m_hash_queue = std::make_unique<HashQueue>();
+}
+
+ThreadMain*
+ThreadMain::thread_main() {
+  return m_thread_main;
 }
 
 void
@@ -46,7 +62,7 @@ ThreadMain::init_thread() {
       send_event_signal(hash_work_signal, is_done);
     };
 
-  thread_disk->hash_check_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) {
+  thread_disk()->hash_check_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) {
       m_hash_queue->chunk_done(hc, hv);
     };
 }

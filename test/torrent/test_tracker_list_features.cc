@@ -20,6 +20,13 @@ test_tracker_list_features::setUp() {
 }
 
 void
+test_tracker_list_features::tearDown() {
+  torrent::ThreadTracker::destroy_thread();
+
+  test_fixture::tearDown();
+}
+
+void
 test_tracker_list_features::test_new_peers() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
