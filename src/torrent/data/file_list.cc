@@ -553,23 +553,16 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   if (!(*itr)->prepare(prot))
     return MemoryChunk();
 
-
   auto chunk = SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
 
   if (!chunk.is_valid())
     return MemoryChunk();
 
-#ifdef USE_MADVISE
-  // TODO: Update all uses of madvise to posix_madvise.
-  if (manager->file_manager()->advise_random())
-    madvise(chunk.ptr(), chunk.size(), MADV_RANDOM);
-#endif
-
   return chunk;
 }
 
 Chunk*
-FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
+FileList::create_chunk(uint64_t offset, uint32_t length, int prot, bool advise_random) {
   if (offset + length > m_torrent_size)
     throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
@@ -595,6 +588,12 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
     if (mc.size() > length)
       throw internal_error("FileList::create_chunk(...) mc.size() > length.", data()->hash());
 
+#ifdef USE_MADVISE
+    // TODO: Update all uses of madvise to posix_madvise.
+    if (advise_random)
+      madvise(mc.ptr(), mc.size(), MADV_RANDOM);
+#endif
+
     chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
     chunk->back().set_file(itr->get(), offset - (*itr)->offset());
 
@@ -610,7 +609,12 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
 
 Chunk*
 FileList::create_chunk_index(uint32_t index, int prot) {
-  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), prot);
+  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), prot, manager->file_manager()->advise_random());
+}
+
+Chunk*
+FileList::create_hashing_chunk_index(uint32_t index, int prot) {
+  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), prot, manager->file_manager()->advise_random_hashing());
 }
 
 void

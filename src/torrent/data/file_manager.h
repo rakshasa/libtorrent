@@ -25,13 +25,16 @@ public:
   FileManager() = default;
   ~FileManager();
 
-  size_type           open_files() const              { return base_type::size(); }
+  size_type           open_files() const                    { return base_type::size(); }
 
-  size_type           max_open_files() const          { return m_max_open_files; }
+  size_type           max_open_files() const                { return m_max_open_files; }
   void                set_max_open_files(size_type s);
 
-  bool                advise_random() const           { return m_advise_random; }
-  void                set_advise_random(bool state)   { m_advise_random = state; }
+  bool                advise_random() const                 { return m_advise_random; }
+  void                set_advise_random(bool state)         { m_advise_random = state; }
+
+  bool                advise_random_hashing() const         { return m_advise_random_hashing; }
+  void                set_advise_random_hashing(bool state) { m_advise_random_hashing = state; }
 
   bool                open(value_type file, int prot, int flags);
   void                close(value_type file);
@@ -49,6 +52,7 @@ private:
 
   size_type           m_max_open_files{0};
   bool                m_advise_random{false};
+  bool                m_advise_random_hashing{false};
 
   uint64_t            m_files_opened_counter{0};
   uint64_t            m_files_closed_counter{0};

@@ -88,8 +88,16 @@ DownloadMain::DownloadMain() :
   m_taskTrackerRequest.slot()   = [this] { receive_tracker_request(); };
 
   m_chunkList->set_data(file_list()->mutable_data());
-  m_chunkList->slot_create_chunk()   = [this](auto i, auto p) { return file_list()->create_chunk_index(i, p); };
-  m_chunkList->slot_free_diskspace() = [this] { return file_list()->free_diskspace(); };
+
+  m_chunkList->slot_create_chunk() = [this](uint32_t index, int prot) {
+      return file_list()->create_chunk_index(index, prot);
+    };
+  m_chunkList->slot_create_hashing_chunk() = [this](uint32_t index, int prot) {
+      return file_list()->create_hashing_chunk_index(index, prot);
+    };
+  m_chunkList->slot_free_diskspace() = [this]() {
+      return file_list()->free_diskspace();
+    };
 }
 
 DownloadMain::~DownloadMain() {
