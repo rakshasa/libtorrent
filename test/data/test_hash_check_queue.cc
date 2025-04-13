@@ -78,6 +78,13 @@ test_hash_check_queue::setUp() {
 }
 
 void
+test_hash_check_queue::tearDown() {
+  torrent::ThreadDisk::destroy_thread();
+
+  test_fixture::tearDown();
+}
+
+void
 test_hash_check_queue::test_single() {
   SETUP_CHUNK_LIST();
   torrent::HashCheckQueue hash_queue;
@@ -175,7 +182,7 @@ test_hash_check_queue::test_thread_interrupt() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD_DISK();
 
-  torrent::HashCheckQueue* hash_queue = torrent::thread_disk->hash_check_queue();
+  torrent::HashCheckQueue* hash_queue = torrent::thread_disk()->hash_check_queue();
 
   done_chunks_type done_chunks;
   hash_queue->slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
@@ -188,7 +195,7 @@ test_hash_check_queue::test_thread_interrupt() {
     torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
     hash_queue->push_back(new torrent::HashChunk(handle_0));
-    torrent::thread_disk->interrupt();
+    torrent::thread_disk()->interrupt();
 
     CPPUNIT_ASSERT(wait_for_true(std::bind(&verify_hash, &done_chunks, 0, hash_for_index(0))));
     chunk_list->release(&handle_0);

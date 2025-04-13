@@ -15,6 +15,7 @@ class test_tracker_list_features : public test_fixture {
 
 public:
   void setUp();
+  void tearDown();
 
   void test_new_peers();
   void test_has_active();

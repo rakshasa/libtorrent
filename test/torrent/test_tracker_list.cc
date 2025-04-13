@@ -23,6 +23,13 @@ public:
 torrent::Http* http_factory() { return new http_get; }
 
 void
+test_tracker_list::tearDown() {
+  torrent::ThreadTracker::destroy_thread();
+
+  test_fixture::tearDown();
+}
+
+void
 test_tracker_list::test_basic() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);

@@ -68,25 +68,25 @@ initialize() {
 
   manager = new Manager;
 
-  thread_main = new ThreadMain;
-  thread_disk = new ThreadDisk;
-  thread_net = new ThreadNet;
-  thread_tracker = new ThreadTracker(thread_main);
+  ThreadMain::create_thread();
+  ThreadDisk::create_thread();
+  ThreadNet::create_thread();
+  ThreadTracker::create_thread(thread_main());
 
-  thread_main->init_thread();
+  thread_main()->init_thread();
 
-  uint32_t maxFiles = calculate_max_open_files(thread_main->poll()->open_max());
+  uint32_t maxFiles = calculate_max_open_files(thread_main()->poll()->open_max());
 
-  manager->connection_manager()->set_max_size(thread_main->poll()->open_max() - maxFiles - calculate_reserved(thread_main->poll()->open_max()));
+  manager->connection_manager()->set_max_size(thread_main()->poll()->open_max() - maxFiles - calculate_reserved(thread_main()->poll()->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
 
-  thread_disk->init_thread();
-  thread_net->init_thread();
-  thread_tracker->init_thread();
+  thread_disk()->init_thread();
+  thread_net()->init_thread();
+  thread_tracker()->init_thread();
 
-  thread_disk->start_thread();
-  thread_net->start_thread();
-  thread_tracker->start_thread();
+  thread_disk()->start_thread();
+  thread_net()->start_thread();
+  thread_tracker()->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -96,8 +96,8 @@ cleanup() {
   if (manager == NULL)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
-  thread_tracker->stop_thread_wait();
-  thread_disk->stop_thread_wait();
+  thread_tracker()->stop_thread_wait();
+  thread_disk()->stop_thread_wait();
 
   delete manager;
   manager = NULL;
@@ -115,7 +115,7 @@ is_inactive() {
 
 utils::Thread*
 main_thread() {
-  return thread_main;
+  return thread_main();
 }
 
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
@@ -138,7 +138,7 @@ const Rate* down_rate() { return manager->download_throttle()->rate(); }
 const Rate* up_rate() { return manager->upload_throttle()->rate(); }
 const char* version() { return VERSION; }
 
-uint32_t hash_queue_size() { return thread_main->hash_queue()->size(); }
+uint32_t hash_queue_size() { return thread_main()->hash_queue()->size(); }
 
 EncodingList*
 encoding_list() {
@@ -173,7 +173,7 @@ download_add(Object* object, uint32_t tracker_key) {
 
   std::string local_id = PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size());
 
-  download->set_hash_queue(thread_main->hash_queue());
+  download->set_hash_queue(thread_main()->hash_queue());
   download->initialize(infoHash, local_id, tracker_key);
 
   // Add trackers, etc, after setting the info hash so that log

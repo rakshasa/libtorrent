@@ -10,7 +10,32 @@
 
 namespace torrent {
 
-ThreadDisk* thread_disk = nullptr;
+ThreadDisk* ThreadDisk::m_thread_disk{nullptr};
+
+ThreadDisk::~ThreadDisk() {
+  m_thread_disk = nullptr;
+}
+
+void
+ThreadDisk::create_thread() {
+  m_thread_disk = new ThreadDisk;
+}
+
+void
+ThreadDisk::destroy_thread() {
+  if (m_thread_disk == nullptr)
+    return;
+
+  m_thread_disk->stop_thread_wait();
+
+  delete m_thread_disk;
+  m_thread_disk = nullptr;
+}
+
+ThreadDisk*
+ThreadDisk::thread_disk() {
+  return m_thread_disk;
+}
 
 void
 ThreadDisk::init_thread() {

@@ -12,19 +12,15 @@ namespace torrent {
 LIBTORRENT_EXPORT rak::priority_queue_default taskScheduler;
 LIBTORRENT_EXPORT rak::timer                  cachedTime;
 
-LIBTORRENT_EXPORT ThreadMain*    thread_main{nullptr};
-LIBTORRENT_EXPORT ThreadNet*     thread_net{nullptr};
-LIBTORRENT_EXPORT ThreadTracker* thread_tracker{nullptr};
-
 // TODO: Delete.
-void poll_event_open(Event* event) { thread_main->poll()->open(event); manager->connection_manager()->inc_socket_count(); }
-void poll_event_close(Event* event) { thread_main->poll()->close(event); manager->connection_manager()->dec_socket_count(); }
-void poll_event_closed(Event* event) { thread_main->poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
-void poll_event_insert_read(Event* event) { thread_main->poll()->insert_read(event); }
-void poll_event_insert_write(Event* event) { thread_main->poll()->insert_write(event); }
-void poll_event_insert_error(Event* event) { thread_main->poll()->insert_error(event); }
-void poll_event_remove_read(Event* event) { thread_main->poll()->remove_read(event); }
-void poll_event_remove_write(Event* event) { thread_main->poll()->remove_write(event); }
-void poll_event_remove_error(Event* event) { thread_main->poll()->remove_error(event); }
+void poll_event_open(Event* event) { thread_main()->poll()->open(event); manager->connection_manager()->inc_socket_count(); }
+void poll_event_close(Event* event) { thread_main()->poll()->close(event); manager->connection_manager()->dec_socket_count(); }
+void poll_event_closed(Event* event) { thread_main()->poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
+void poll_event_insert_read(Event* event) { thread_main()->poll()->insert_read(event); }
+void poll_event_insert_write(Event* event) { thread_main()->poll()->insert_write(event); }
+void poll_event_insert_error(Event* event) { thread_main()->poll()->insert_error(event); }
+void poll_event_remove_read(Event* event) { thread_main()->poll()->remove_read(event); }
+void poll_event_remove_write(Event* event) { thread_main()->poll()->remove_write(event); }
+void poll_event_remove_error(Event* event) { thread_main()->poll()->remove_error(event); }
 
 }

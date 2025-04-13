@@ -167,7 +167,7 @@ TrackerUdp::receive_failed(const std::string& msg) {
 // events.
 void
 TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err) {
-  if (std::this_thread::get_id() != torrent::thread_main->thread_id())
+  if (std::this_thread::get_id() != torrent::thread_main()->thread_id())
     throw internal_error("TrackerUdp::receive_resolved() called from a different thread.");
 
   LT_LOG("received resolved", 0);

@@ -57,7 +57,7 @@ DownloadWrapper::~DownloadWrapper() {
     // will need to manually cancel the tracker requests.
     m_main->tracker_controller().close();
 
-    thread_tracker->tracker_manager()->remove_controller(m_main->tracker_controller());
+    thread_tracker()->tracker_manager()->remove_controller(m_main->tracker_controller());
     m_main->tracker_controller().get_shared().reset();
   }
 }
