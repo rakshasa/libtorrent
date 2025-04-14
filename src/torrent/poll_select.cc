@@ -188,7 +188,7 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
 
   timeout += 10;
 
-  uint32_t set_size = open_max();
+  const uint32_t set_size = open_max();
 
   char read_set_buffer[set_size];
   char write_set_buffer[set_size];

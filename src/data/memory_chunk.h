@@ -121,7 +121,7 @@ MemoryChunk::size_aligned() const {
 
 inline bool
 MemoryChunk::is_incore(uint32_t offset, uint32_t length) {
-  uint32_t size = pages_touched(offset, length);
+  const uint32_t size = pages_touched(offset, length);
   char buf[size];
 
   incore(buf, offset, length);
