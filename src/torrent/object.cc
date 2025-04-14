@@ -103,7 +103,7 @@ Object::insert_preserve_type(const key_type& k, Object& b) {
 }
 
 Object&
-Object::move(Object& src) {
+Object::move(Object& src) noexcept {
   if (this == &src)
     return *this;
 
@@ -114,7 +114,7 @@ Object::move(Object& src) {
 }
 
 Object&
-Object::swap(Object& src) {
+Object::swap(Object& src) noexcept {
   if (this == &src)
     return *this;
 

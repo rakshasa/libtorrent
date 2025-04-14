@@ -232,9 +232,9 @@ public:
   Object&             insert_back(const Object& b)                   { check_throw(TYPE_LIST); return *_list().insert(_list().end(), b); }
 
   // Copy and merge operations:
-  Object&             move(Object& b);
-  Object&             swap(Object& b);
-  Object&             swap_same_type(Object& b);
+  Object&             move(Object& b) noexcept;
+  Object&             swap(Object& b) noexcept;
+  Object&             swap_same_type(Object& b) noexcept;
 
   // Only map entries are merged.
   Object&             merge_move(Object& object, uint32_t maxDepth = ~uint32_t());
@@ -243,7 +243,7 @@ public:
                                  uint32_t maxDepth = ~uint32_t());
 
   // Internal:
-  void                swap_same_type(Object& left, Object& right);
+  void                swap_same_type(Object& left, Object& right) noexcept;
 
  private:
   bool                check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
@@ -461,7 +461,7 @@ Object::clear() {
 }
 
 inline void
-Object::swap_same_type(Object& left, Object& right) {
+Object::swap_same_type(Object& left, Object& right) noexcept {
   std::swap(left.m_flags, right.m_flags);
 
   switch (left.type()) {
@@ -474,7 +474,7 @@ Object::swap_same_type(Object& left, Object& right) {
   }
 }
 
-inline void swap(Object& left, Object& right) { left.swap(right); }
+inline void swap(Object& left, Object& right) noexcept { left.swap(right); }
 
 inline bool
 object_equal(const Object& left, const Object& right) {

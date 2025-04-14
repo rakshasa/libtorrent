@@ -119,7 +119,7 @@ Bitfield::copy(const Bitfield& bf) {
 }
 
 void
-Bitfield::swap(Bitfield& bf) {
+Bitfield::swap(Bitfield& bf) noexcept {
   std::swap(m_size, bf.m_size);
   std::swap(m_set, bf.m_set);
   std::swap(m_data, bf.m_data);
