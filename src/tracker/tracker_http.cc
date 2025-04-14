@@ -225,6 +225,7 @@ TrackerHttp::close_directly() {
   LT_LOG("closing directly : state:%s url:%s",
          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
+  // TODO: Replace m_slot_close with a ThreadWorker method.
   m_slot_close();
 
   m_get->close();

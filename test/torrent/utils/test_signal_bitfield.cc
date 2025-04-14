@@ -113,9 +113,6 @@ test_signal_bitfield::test_threaded() {
   for (unsigned int i = 0; i < torrent::signal_bitfield::max_size; i++)
     CPPUNIT_ASSERT(thread->signal_bitfield()->add_signal([i, &marked_bitfield] () { bitfield_mark_index(marked_bitfield, i); }) == i);
 
-// std::bind(&bitfield_mark_index, marked_bitfield, i)) == i);
-
-
   thread->init_thread();
   thread->start_thread();
 

@@ -125,18 +125,18 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	protocol/test_request_list.h
 
 LibTorrent_Test_Torrent_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Torrent_Utils_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrent_Test_Torrent_Utils_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Torrent_Utils_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Torrent_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrent_Test_Torrent_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Torrent_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Data_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrent_Test_Data_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Data_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrent_Test_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Net_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Tracker_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrent_Test_Tracker_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Tracker_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrent_Test_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_LDFLAGS = $(CPPUNIT_LIBS)
 
 AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/src

@@ -66,6 +66,7 @@ public:
   class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
 
   virtual void        init_thread() = 0;
+  void                init_thread_local();
 
   virtual void        start_thread();
   virtual void        stop_thread();
@@ -97,13 +98,15 @@ public:
 
   static bool         should_handle_sigusr1();
 
-  static void*        event_loop(Thread* thread);
+  void                event_loop();
 
 protected:
   struct global_lock_type {
     std::atomic_int waiting{0};
     std::mutex      mutex;
   };
+
+  static void*        enter_event_loop(Thread* thread);
 
   virtual void        call_events() = 0;
   virtual int64_t     next_timeout_usec() = 0;
@@ -113,6 +116,7 @@ protected:
   static thread_local Thread*  m_self;
   static global_lock_type      m_global;
 
+  // TODO: Remove m_thread.
   pthread_t                    m_thread;
   std::atomic<std::thread::id> m_thread_id;
   std::atomic<state_type>      m_state{STATE_UNKNOWN};
