@@ -17,7 +17,7 @@ namespace torrent {
 ThreadTracker* ThreadTracker::m_thread_tracker{nullptr};
 
 ThreadTracker::~ThreadTracker() {
-    m_thread_tracker = nullptr;
+  m_thread_tracker = nullptr;
 }
 
 void

@@ -13,6 +13,8 @@ namespace torrent::net {
 void
 Resolver::init() {
   m_thread = torrent::thread_self();
+
+  assert(m_thread != nullptr);
 }
 
 void
@@ -80,7 +82,7 @@ Resolver::resolve_specific(void* requester, const std::string& hostname, int fam
 
 void
 Resolver::cancel(void* requester) {
-  assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(m_thread != nullptr && std::this_thread::get_id() == m_thread->thread_id());
 
   // While processing results, udns is locked so we only need to cancel the callback before
   // canceling the request.
