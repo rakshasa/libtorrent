@@ -136,9 +136,6 @@ DownloadWrapper::receive_initial_hash() {
     if (hash_queue()->has(data()))
       throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
 
-    m_main->file_list()->close();
-    m_main->chunk_list()->clear();
-
     // Initialize the ChunkSelector here so that no chunks will be
     // marked by HashTorrent that are not accounted for.
     m_main->chunk_selector()->initialize(m_main->chunk_statistics());

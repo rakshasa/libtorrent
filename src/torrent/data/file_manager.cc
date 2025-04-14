@@ -29,7 +29,7 @@ FileManager::set_max_open_files(size_type s) {
 }
 
 bool
-FileManager::open(value_type file, int prot, [[maybe_unused]] bool hashing, int flags) {
+FileManager::open(value_type file, [[maybe_unused]] bool hashing, int prot, int flags) {
   if (file->is_padding())
     return true;
 

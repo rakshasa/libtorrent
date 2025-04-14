@@ -147,7 +147,8 @@ DownloadMain::open(int flags) {
   if (info()->is_open())
     throw internal_error("Tried to open a download that is already open");
 
-  file_list()->open(flags & FileList::open_no_create);
+  // TODO: Move file_list open calls to DownloadMain.
+  file_list()->open(true, (flags & FileList::open_no_create));
 
   m_chunkList->resize(file_list()->size_chunks());
   m_chunkStatistics->initialize(file_list()->size_chunks());
@@ -180,12 +181,21 @@ DownloadMain::close() {
   m_chunkSelector->cleanup();
 }
 
-void DownloadMain::start() {
+void DownloadMain::start(int flags) {
   if (!info()->is_open())
     throw internal_error("Tried to start a closed download");
 
   if (info()->is_active())
     throw internal_error("Tried to start an active download");
+
+  // Close and clear open files and chunks to ensure hashing file/mmap advise is cleared.
+  file_list()->close();
+  chunk_list()->clear();
+
+  // If the FileList::open_no_create flag was not set, our new
+  // behavior is to create all zero-length files with
+  // flag_queued_create set.
+  file_list()->open(false, (flags & ~FileList::open_no_create));
 
   info()->set_flags(DownloadInfo::flag_active);
   chunk_list()->set_flags(ChunkList::flag_active);

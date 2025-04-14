@@ -349,7 +349,7 @@ struct file_list_cstr_less {
 };
 
 void
-FileList::open(int flags) {
+FileList::open(bool hashing, int flags) {
   using path_set = std::set<const char*, file_list_cstr_less>;
 
   LT_LOG_FL(INFO, "Opening.", 0);
@@ -402,7 +402,7 @@ FileList::open(int flags) {
 
       entry->set_flags_protected(File::flag_active);
 
-      if (!open_file(&*entry, lastPath, flags)) {
+      if (!open_file(&*entry, lastPath, hashing, flags)) {
         // This needs to check if the error was due to open_no_create
         // being set or not.
         if (!(flags & open_no_create))
@@ -501,11 +501,11 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 }
 
 bool
-FileList::open_file(File* node, const Path& lastPath, int flags) {
+FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int flags) {
   rak::error_number::clear_global();
 
   if (!(flags & open_no_create)) {
-    const Path* path = node->path();
+    const Path* path = file_node->path();
 
     Path::const_iterator lastItr = lastPath.begin();
     Path::const_iterator firstMismatch = path->begin();
@@ -521,12 +521,12 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
-  if (node->path()->back().empty())
-    return node->size_bytes() == 0;
+  if (file_node->path()->back().empty())
+    return file_node->size_bytes() == 0;
 
   rak::file_stat file_stat;
 
-  if (file_stat.update(node->frozen_path()) &&
+  if (file_stat.update(file_node->frozen_path()) &&
       !file_stat.is_regular() && !file_stat.is_link()) {
     // Might also bork on other kinds of file types, but there's no
     // suitable errno for all cases.
@@ -534,7 +534,7 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
     return false;
   }
 
-  return node->prepare(MemoryChunk::prot_read, 0);
+  return file_node->prepare(hashing, MemoryChunk::prot_read, 0);
 }
 
 MemoryChunk
@@ -550,7 +550,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
 
   // Check that offset != length of file.
 
-  if (!(*itr)->prepare(hashing, prot))
+  if (!(*itr)->prepare(hashing, prot, 0))
     return MemoryChunk();
 
   auto mc = SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
@@ -699,6 +699,7 @@ FileList::update_completed() {
   }
 }
 
+// Used for metadata downloads.
 void
 FileList::reset_filesize(int64_t size) {
   LT_LOG_FL(INFO, "Resetting torrent size: size:%" PRIi64 ".", size);
@@ -712,7 +713,7 @@ FileList::reset_filesize(int64_t size) {
   m_data.mutable_completed_bitfield()->allocate();
   m_data.mutable_completed_bitfield()->unset_all();
 
-  open(open_no_create);
+  open(false, open_no_create);
 }
 
 }

@@ -103,19 +103,12 @@ Download::start(int flags) {
 
   m_ptr->data()->verify_wanted_chunks("Download::start(...)");
 
-//   file_list()->open(flags);
-
-  // If the FileList::open_no_create flag was not set, our new
-  // behavior is to create all zero-length files with
-  // flag_queued_create set.
-  file_list()->open(flags & ~FileList::open_no_create);
-
   if (m_ptr->connection_type() == CONNECTION_INITIAL_SEED) {
     if (!m_ptr->main()->start_initial_seeding())
       set_connection_type(CONNECTION_SEED);
   }
 
-  m_ptr->main()->start();
+  m_ptr->main()->start(flags);
 
   if ((flags & start_skip_tracker))
     m_ptr->main()->tracker_controller().enable_dont_reset_stats();

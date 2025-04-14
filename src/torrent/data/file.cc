@@ -85,7 +85,7 @@ File::prepare(bool hashing, int prot, int flags) {
   else
     flags &= ~SocketFile::o_create;
 
-  if (!manager->file_manager()->open(this, prot, hashing, flags))
+  if (!manager->file_manager()->open(this, hashing, prot, flags))
     return false;
 
   m_flags |= flag_previously_created;

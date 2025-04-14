@@ -74,7 +74,7 @@ public:
   // This might actually be wanted, as it would be nice to allow the
   // File to decide if it needs to try creating the underlying file or
   // not.
-  bool                prepare(bool hashing, int prot, int flags = 0);
+  bool                prepare(bool hashing, int prot, int flags);
 
   int                 protection() const                       { return m_protection; }
   void                set_protection(int prot)                 { m_protection = prot; }
