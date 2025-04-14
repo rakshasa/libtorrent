@@ -60,7 +60,7 @@ ThreadTracker::init_thread() {
 
 void
 ThreadTracker::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum event) {
-  std::lock_guard<std::mutex> guard(m_send_events_lock);
+  auto lock = std::scoped_lock(m_send_events_lock);
 
   m_send_events.erase(std::remove_if(m_send_events.begin(),
                                      m_send_events.end(),
@@ -109,7 +109,7 @@ ThreadTracker::process_send_events() {
   // event handling.
 
   {
-    std::lock_guard<std::mutex> guard(m_send_events_lock);
+    auto lock = std::scoped_lock(m_send_events_lock);
 
     events.swap(m_send_events);
   }

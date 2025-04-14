@@ -94,7 +94,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       // query internally so we can call the callback later with a failure code.
       query->error_sin = EAI_NONAME;
 
-      std::lock_guard<std::mutex> lock(m_mutex);
+      auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.insert({requester, std::move(query)});
 
       return;
@@ -119,7 +119,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
       query->error_sin = EAI_NONAME;
 
-      std::lock_guard<std::mutex> lock(m_mutex);
+      auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.insert({requester, std::move(query)});
 
       return;
@@ -128,13 +128,13 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
   LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
 
-  std::lock_guard<std::mutex> lock(m_mutex);
+  auto lock = std::scoped_lock(m_mutex);
   m_queries.insert({requester, std::move(query)});
 }
 
 void
 UdnsResolver::cancel(void* requester) {
-  std::lock_guard<std::mutex> lock(m_mutex);
+  auto lock = std::scoped_lock(m_mutex);
 
   auto range = m_queries.equal_range(requester);
   unsigned int query_count = std::distance(range.first, range.second);
@@ -154,7 +154,7 @@ UdnsResolver::cancel(void* requester) {
 void
 UdnsResolver::flush() {
   {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    auto lock = std::scoped_lock(m_mutex);
     auto malformed_queries = std::move(m_malformed_queries);
 
     for (auto& query : malformed_queries) {
@@ -246,7 +246,7 @@ void
 UdnsResolver::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void *data) {
   auto query = static_cast<UdnsResolver::Query*>(data);
 
-  std::lock_guard<std::mutex> lock(query->parent->m_mutex);
+  auto lock = std::scoped_lock(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("A records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
@@ -282,7 +282,7 @@ void
 UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
   auto query = static_cast<UdnsResolver::Query*>(data);
 
-  std::lock_guard<std::mutex> lock(query->parent->m_mutex);
+  auto lock = std::scoped_lock(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("AAAA records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());

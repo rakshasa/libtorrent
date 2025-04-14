@@ -21,28 +21,28 @@ DhtController::~DhtController() {
 
 bool
 DhtController::is_valid() {
-  std::lock_guard<std::mutex> guard(m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   return m_router != nullptr;
 }
 
 bool
 DhtController::is_active() {
-  std::lock_guard<std::mutex> guard(m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   return m_router && m_router->is_active();
 }
 
 bool
 DhtController::is_receiving_requests() {
-  std::lock_guard<std::mutex> guard(m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   return m_receive_requests;
 }
 
 uint16_t
 DhtController::port() {
-  std::lock_guard<std::mutex> guard(m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   return m_port;
 }
@@ -94,7 +94,7 @@ DhtController::stop() {
 
 void
 DhtController::set_receive_requests(bool state) {
-  std::lock_guard<std::mutex> guard(m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   m_receive_requests = state;
 }
