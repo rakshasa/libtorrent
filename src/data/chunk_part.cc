@@ -84,7 +84,7 @@ ChunkPart::incore_length(uint32_t pos, uint32_t length) {
   if (pos >= size())
     throw internal_error("ChunkPart::incore_length(...) got invalid position");
 
-  uint32_t touched = m_chunk.pages_touched(pos, length);
+  const uint32_t touched = m_chunk.pages_touched(pos, length);
   char buf[touched];
 
   m_chunk.incore(buf, pos, length);

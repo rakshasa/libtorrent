@@ -130,7 +130,7 @@ log_rebuild_cache() {
 void
 log_group::internal_print(const HashString* hash, const char* subsystem, const void* dump_data, size_t dump_size, const char* fmt, ...) {
   va_list ap;
-  unsigned int buffer_size = 4096;
+  const unsigned int buffer_size = 4096;
   char buffer[buffer_size];
   char* first = buffer;
 

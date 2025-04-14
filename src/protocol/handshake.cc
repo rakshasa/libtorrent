@@ -993,7 +993,7 @@ Handshake::prepare_key_plus_pad() {
   m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
   m_writeBuffer.move_end(96);
 
-  int length = random() % enc_pad_size;
+  const int length = random() % enc_pad_size;
   char pad[length];
 
   std::generate_n(pad, length, &::random);
