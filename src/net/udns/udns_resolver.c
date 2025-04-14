@@ -887,7 +887,7 @@ dns_submit_dn(struct dns_ctx *ctx,
   SETCTXOPEN(ctx);
   dns_assert_ctx(ctx);
 
-  q = (struct dns_query *)calloc(sizeof(*q), 1);
+  q = (struct dns_query *)calloc(1, sizeof(*q));
   if (!q) {
     ctx->dnsc_qstatus = DNS_E_NOMEM;
     return NULL;
