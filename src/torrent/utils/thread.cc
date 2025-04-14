@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <mutex>
 #include <signal.h>
 #include <unistd.h>
 
@@ -77,7 +78,7 @@ Thread::stop_thread_wait() {
 void
 Thread::callback(void* target, std::function<void ()>&& fn) {
   {
-    std::lock_guard<std::mutex> guard(m_callbacks_lock);
+    auto lock = std::scoped_lock(m_callbacks_lock);
 
     m_callbacks.emplace(target, std::move(fn));
   }
@@ -90,7 +91,7 @@ Thread::cancel_callback(void* target) {
   if (target == nullptr)
     throw internal_error("Thread::cancel_callback called with a null pointer target.");
 
-  std::lock_guard<std::mutex> guard(m_callbacks_lock);
+  auto lock = std::scoped_lock(m_callbacks_lock);
 
   m_callbacks.erase(target);
 }
@@ -100,7 +101,7 @@ Thread::cancel_callback_and_wait(void* target) {
   cancel_callback(target);
 
   if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing)
-    std::unique_lock<std::mutex> lock(m_callbacks_processing_lock);
+    auto lock = std::scoped_lock(m_callbacks_processing_lock);
 }
 
 // Fix interrupting when shutting down thread.
@@ -222,7 +223,7 @@ Thread::process_callbacks() {
     std::function<void ()> callback;
 
     {
-      std::lock_guard<std::mutex> guard(m_callbacks_lock);
+      auto lock = std::scoped_lock(m_callbacks_lock);
 
       if (m_callbacks.empty())
         break;

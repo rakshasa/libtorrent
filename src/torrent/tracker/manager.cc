@@ -34,7 +34,7 @@ Manager::add_controller(DownloadInfo* download_info, TrackerController* controll
   if (download_info->hash() == HashString::new_zero())
     throw internal_error("tracker::Manager::add(...) invalid info_hash.");
 
-  std::lock_guard<std::mutex> guard(m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   auto wrapper = TrackerControllerWrapper(download_info->hash(), std::shared_ptr<TrackerController>(controller));
   auto result  = m_controllers.insert(wrapper);
@@ -51,7 +51,7 @@ void
 Manager::remove_controller(TrackerControllerWrapper controller) {
   assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
-  std::lock_guard<std::mutex> guard(m_lock);
+  auto lock = std::scoped_lock(m_lock);
 
   // We assume there are other references to the controller, so gracefully close it.
   if (m_controllers.erase(controller) != 1)
