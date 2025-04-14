@@ -157,7 +157,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
     return elem(buffer, std::distance(buffer, first), std::distance(log_groups.begin(), this));
   });
   if (dump_data != NULL) {
-    std::for_each(m_first, m_last, [this, dump_data, dump_size](const auto& log) {
+    std::for_each(m_first, m_last, [dump_data, dump_size](const auto& log) {
       return log(static_cast<const char*>(dump_data), dump_size, -1);
     });
   }
