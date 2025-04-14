@@ -79,7 +79,7 @@ public:
   void                resize(size_type to_size);
   void                clear();
 
-  ChunkHandle         get(size_type index, int flags = 0);
+  ChunkHandle         get_chunk(size_type index, int flags = 0);
   void                release(ChunkHandle* handle, int flags = 0);
 
   // Replace use_timeout with something like performance related

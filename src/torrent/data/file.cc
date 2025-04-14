@@ -66,7 +66,7 @@ File::is_correct_size() const {
 // is necessary, etc.
 
 bool
-File::prepare(int prot, int flags) {
+File::prepare(bool hashing, int prot, int flags) {
   if (is_padding())
     return true;
 
@@ -85,7 +85,7 @@ File::prepare(int prot, int flags) {
   else
     flags &= ~SocketFile::o_create;
 
-  if (!manager->file_manager()->open(this, prot, flags))
+  if (!manager->file_manager()->open(this, prot, hashing, flags))
     return false;
 
   m_flags |= flag_previously_created;

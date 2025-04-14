@@ -29,7 +29,7 @@ FileManager::set_max_open_files(size_type s) {
 }
 
 bool
-FileManager::open(value_type file, int prot, int flags) {
+FileManager::open(value_type file, int prot, [[maybe_unused]] bool hashing, int flags) {
   if (file->is_padding())
     return true;
 
@@ -53,8 +53,13 @@ FileManager::open(value_type file, int prot, int flags) {
   file->set_file_descriptor(fd.fd());
 
 #ifdef USE_POSIX_FADVISE
-  if (m_advise_random)
-    posix_fadvise(fd.fd(), 0, 0, POSIX_FADV_RANDOM);
+  if (hashing) {
+    if (m_advise_random_hashing)
+      posix_fadvise(fd.fd(), 0, 0, POSIX_FADV_RANDOM);
+  } else {
+    if (m_advise_random)
+      posix_fadvise(fd.fd(), 0, 0, POSIX_FADV_RANDOM);
+  }
 #endif
 
   base_type::push_back(file);

@@ -129,7 +129,7 @@ HashTorrent::queue(bool quick) {
 
     // Need to do increment later if we're going to support resume
     // hashing a quick hashed torrent.
-    ChunkHandle handle = m_chunk_list->get(m_position, ChunkList::get_dont_log);
+    ChunkHandle handle = m_chunk_list->get_chunk(m_position, ChunkList::get_dont_log | ChunkList::get_hashing);
 
     if (quick) {
       // We're not actually interested in doing any hashing, so just

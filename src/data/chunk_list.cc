@@ -87,7 +87,7 @@ ChunkList::clear() {
 }
 
 ChunkHandle
-ChunkList::get(size_type index, int flags) {
+ChunkList::get_chunk(size_type index, int flags) {
   LT_LOG_THIS(DEBUG, "Get: index:%" PRIu32 " flags:%#x.", index, flags);
 
   rak::error_number::clear_global();

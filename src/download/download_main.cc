@@ -191,10 +191,10 @@ void DownloadMain::start() {
   chunk_list()->set_flags(ChunkList::flag_active);
 
   m_delegator.set_aggressive(false);
-  update_endgame();  
+  update_endgame();
 
   receive_connect_peers();
-}  
+}
 
 void
 DownloadMain::stop() {
@@ -270,7 +270,8 @@ DownloadMain::update_endgame() {
 
 void
 DownloadMain::receive_chunk_done(unsigned int index) {
-  ChunkHandle handle = m_chunkList->get(index);
+  // TODO: Should we unmap the chunk here if we want sequential access?
+  ChunkHandle handle = m_chunkList->get_chunk(index, ChunkList::get_hashing);
 
   if (!handle.is_valid())
     throw storage_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");

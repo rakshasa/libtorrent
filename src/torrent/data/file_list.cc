@@ -538,7 +538,7 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
 }
 
 MemoryChunk
-FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, int prot) {
+FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) {
   offset -= (*itr)->offset();
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
@@ -550,25 +550,44 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
 
   // Check that offset != length of file.
 
-  if (!(*itr)->prepare(prot))
+  if (!(*itr)->prepare(hashing, prot))
     return MemoryChunk();
 
-  auto chunk = SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
+  auto mc = SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
 
-  if (!chunk.is_valid())
+  if (!mc.is_valid())
     return MemoryChunk();
 
-  return chunk;
+  if (mc.size() == 0)
+    throw internal_error("FileList::create_chunk(...) mc.size() == 0.", data()->hash());
+
+  if (mc.size() > length)
+    throw internal_error("FileList::create_chunk(...) mc.size() > length.", data()->hash());
+
+#ifdef USE_MADVISE
+  // TODO: Update all uses of madvise to posix_madvise.
+  if (hashing) {
+    if (manager->file_manager()->advise_random_hashing())
+      madvise(mc.ptr(), mc.size(), MADV_RANDOM);
+  } else {
+    if (manager->file_manager()->advise_random())
+      madvise(mc.ptr(), mc.size(), MADV_RANDOM);
+  }
+#endif
+
+  return mc;
 }
 
 Chunk*
-FileList::create_chunk(uint64_t offset, uint32_t length, int prot, bool advise_random) {
+FileList::create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot) {
   if (offset + length > m_torrent_size)
     throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
   auto chunk = std::make_unique<Chunk>();
 
-  auto itr = std::find_if(begin(), end(), [offset](const value_type& file) { return file->is_valid_position(offset); });
+  auto itr = std::find_if(begin(), end(), [offset](const value_type& file) {
+      return file->is_valid_position(offset);
+    });
 
   for (; length != 0; ++itr) {
     if (itr == end())
@@ -577,22 +596,10 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot, bool advise_r
     if ((*itr)->size_bytes() == 0)
       continue;
 
-    MemoryChunk mc = create_chunk_part(itr, offset, length, prot);
+    MemoryChunk mc = create_chunk_part(itr, offset, length, hashing, prot);
 
     if (!mc.is_valid())
-      return NULL;
-
-    if (mc.size() == 0)
-      throw internal_error("FileList::create_chunk(...) mc.size() == 0.", data()->hash());
-
-    if (mc.size() > length)
-      throw internal_error("FileList::create_chunk(...) mc.size() > length.", data()->hash());
-
-#ifdef USE_MADVISE
-    // TODO: Update all uses of madvise to posix_madvise.
-    if (advise_random)
-      madvise(mc.ptr(), mc.size(), MADV_RANDOM);
-#endif
+      return nullptr;
 
     chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
     chunk->back().set_file(itr->get(), offset - (*itr)->offset());
@@ -609,12 +616,12 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot, bool advise_r
 
 Chunk*
 FileList::create_chunk_index(uint32_t index, int prot) {
-  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), prot, manager->file_manager()->advise_random());
+  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), false, prot);
 }
 
 Chunk*
 FileList::create_hashing_chunk_index(uint32_t index, int prot) {
-  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), prot, manager->file_manager()->advise_random_hashing());
+  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), true, prot);
 }
 
 void

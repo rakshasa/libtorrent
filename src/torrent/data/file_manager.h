@@ -36,8 +36,10 @@ public:
   bool                advise_random_hashing() const         { return m_advise_random_hashing; }
   void                set_advise_random_hashing(bool state) { m_advise_random_hashing = state; }
 
-  bool                open(value_type file, int prot, int flags);
+  bool                open(value_type file, int prot, bool hashing, int flags);
   void                close(value_type file);
+
+  // TODO: Close all files held by a download after hashing. Also flush all memory chunks.
 
   void                close_least_active();
 

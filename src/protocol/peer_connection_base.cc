@@ -376,9 +376,9 @@ PeerConnectionBase::load_up_chunk() {
   }
 
   up_chunk_release();
-  
-  m_upChunk = m_download->chunk_list()->get(m_upPiece.index());
-  
+
+  m_upChunk = m_download->chunk_list()->get_chunk(m_upPiece.index());
+
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
 
@@ -464,11 +464,11 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
   if (!m_download->file_list()->is_valid_piece(piece))
     throw internal_error("Incoming pieces list contains a bad piece.");
-  
+
   if (!m_downChunk.is_valid() || piece.index() != m_downChunk.index()) {
     down_chunk_release();
-    m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_writable);
-  
+    m_downChunk = m_download->chunk_list()->get_chunk(piece.index(), ChunkList::get_writable);
+
     if (!m_downChunk.is_valid())
       throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
   }
@@ -486,7 +486,7 @@ PeerConnectionBase::down_chunk_finished() {
     throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
 
   BlockTransfer* transfer = request_list()->transfer();
-  
+
   LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,
                       transfer->is_leader() ? "completed " : "skipped  ",
                       transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
@@ -501,10 +501,10 @@ PeerConnectionBase::down_chunk_finished() {
   } else {
     request_list()->skipped();
   }
-        
+
   if (m_downStall > 0)
     m_downStall--;
-        
+
   // We need to release chunks when we're not sure if they will be
   // used in the near future so as to avoid hitting the address space
   // limit in high-bandwidth situations.
@@ -574,7 +574,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
     throw internal_error("PeerConnectionBase::down_chunk_from_buffer() !transfer->is_finished() && m_down->buffer()->remaining() != 0.");
 
   return m_request_list.transfer()->is_finished();
-}  
+}
 
 // When this transfer again becomes the leader, we just return false
 // and wait for the next polling. It is an exceptional case so we
@@ -609,7 +609,7 @@ PeerConnectionBase::down_chunk_skip() {
 bool
 PeerConnectionBase::down_chunk_skip_from_buffer() {
   m_down->buffer()->consume(down_chunk_skip_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
-  
+
   return m_request_list.transfer()->is_finished();
 }
 
@@ -674,7 +674,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   if (!m_downChunk.chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
     LT_LOG_PIECE_EVENTS("(down) download_data_mismatch %" PRIu32 " %" PRIu32 " %" PRIu32,
                         transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
-    
+
     m_request_list.transfer_dissimilar();
     m_request_list.transfer()->adjust_position(length);
 
@@ -693,7 +693,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 
   if (down_chunk_process(static_cast<const char*>(buffer) + compareLength, length - compareLength) != length - compareLength)
     throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) down_chunk_process(...) returned wrong value.");
-  
+
   return length;
 }
 
@@ -710,7 +710,7 @@ PeerConnectionBase::down_extension() {
   if (!m_extensions->is_complete()) {
     uint32_t bytes = read_stream_throws(m_extensions->read_position(), m_extensions->read_need());
     m_down->throttle()->node_used_unthrottled(bytes);
-    
+
     if (is_encrypted())
       m_encryption.decrypt(m_extensions->read_position(), bytes);
 
@@ -883,7 +883,7 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
   PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(),
                                                         m_peerChunks.upload_queue()->end(),
                                                         p);
-  
+
   if (itr != m_peerChunks.upload_queue()->end()) {
     m_peerChunks.upload_queue()->erase(itr);
 
@@ -893,7 +893,7 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
     LT_LOG_PIECE_EVENTS("(up)   cancel_ignored   %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
   }
-}  
+}
 
 void
 PeerConnectionBase::write_prepare_piece() {
@@ -913,7 +913,7 @@ PeerConnectionBase::write_prepare_piece() {
 
     throw communication_error(buffer);
   }
-  
+
   m_up->write_piece(m_upPiece);
 
   LT_LOG_PIECE_EVENTS("(up)   prepared         %" PRIu32 " %" PRIu32 " %" PRIu32,
@@ -971,7 +971,7 @@ PeerConnectionBase::try_request_pieces() {
     int maxRequests = m_up->max_write_request();
     int maxQueued = pipeSize - request_list()->queued_size();
     int maxPieces = std::max(std::min(maxRequests, maxQueued), 1);
-    
+
     std::vector<const Piece*> pieces = request_list()->delegate(maxPieces);
     if (pieces.empty()) {
       return false;
@@ -1014,7 +1014,7 @@ PeerConnectionBase::send_pex_message() {
   } else if (m_sendPEXMask & PEX_DO && m_extensions->id(ProtocolExtension::UT_PEX)) {
     const DataBuffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
     m_extensions->clear_initial_pex();
- 
+
     m_sendPEXMask &= ~PEX_DO;
 
     if (pexMessage.empty())
@@ -1038,7 +1038,7 @@ PeerConnectionBase::send_ext_message() {
 }
 
 void
-PeerConnectionBase::receive_metadata_piece(uint32_t piece, const char* data, uint32_t length) {
+PeerConnectionBase::receive_metadata_piece([[maybe_unused]] uint32_t piece, [[maybe_unused]] const char* data, [[maybe_unused]] uint32_t length) {
 }
 
 }

@@ -79,13 +79,13 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
 
   m_main->tracker_list()->set_key(tracker_key);
 
-  m_main->slot_hash_check_add([this](torrent::ChunkHandle handle) { return check_chunk_hash(handle); });
+  m_main->slot_hash_check_add([this](torrent::ChunkHandle handle) { return check_chunk_hash(handle, false); });
 
   // Info hash must be calculate from here on.
   m_hash_checker = std::make_unique<HashTorrent>(m_main->chunk_list());
 
   // Connect various signals and slots.
-  m_hash_checker->slot_check_chunk()     = [this](auto h) { check_chunk_hash(h); };
+  m_hash_checker->slot_check_chunk()     = [this](auto h) { check_chunk_hash(h, true); };
   m_hash_checker->delay_checked().slot() = [this] { receive_initial_hash(); };
 
   m_main->post_initialize();
@@ -136,9 +136,13 @@ DownloadWrapper::receive_initial_hash() {
     if (hash_queue()->has(data()))
       throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
 
+    m_main->file_list()->close();
+    m_main->chunk_list()->clear();
+
     // Initialize the ChunkSelector here so that no chunks will be
     // marked by HashTorrent that are not accounted for.
     m_main->chunk_selector()->initialize(m_main->chunk_statistics());
+
     receive_update_priorities();
   }
 
@@ -206,14 +210,20 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
     }
   }
 
-    data()->call_chunk_done(handle.object());
-    m_main->chunk_list()->release(&handle);
+  data()->call_chunk_done(handle.object());
+  m_main->chunk_list()->release(&handle);
 }
 
 void
-DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
+DownloadWrapper::check_chunk_hash(ChunkHandle handle, bool hashing) {
   // TODO: Hack...
-  ChunkHandle new_handle = m_main->chunk_list()->get(handle.index(), ChunkList::get_blocking);
+  auto flags = ChunkList::get_blocking;
+
+  if (hashing)
+    flags |= ChunkList::get_hashing;
+
+  ChunkHandle new_handle = m_main->chunk_list()->get_chunk(handle.index(), flags);
+
   m_main->chunk_list()->release(&handle);
 
   hash_queue()->push_back(new_handle, data(), [this](auto c, auto h) { receive_hash_done(c, h); });
