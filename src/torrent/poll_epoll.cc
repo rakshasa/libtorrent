@@ -96,7 +96,7 @@ PollEPoll::PollEPoll(int fd, int max_events, int max_open_sockets) :
 
   try {
     m_table.resize(max_open_sockets);
-  } catch (std::bad_alloc) {
+  } catch (const std::bad_alloc&) {
     char errmsg[1024];
     snprintf(errmsg, sizeof(errmsg),
              "PollEPoll::PollEPoll(...): Error allocating m_table array: too much space requested: max_open_sockets:%d", max_open_sockets);
