@@ -42,18 +42,17 @@ ThreadMain::init_thread() {
   if (!Poll::slot_create_poll())
     throw internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
 
-  m_self = this;
+  m_resolver = std::make_unique<net::Resolver>();
 
   m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
   m_poll->set_flags(Poll::flag_waive_global_lock);
-  m_resolver = std::make_unique<net::Resolver>();
 
   m_state = STATE_INITIALIZED;
-  m_thread = pthread_self();
-  m_thread_id = std::this_thread::get_id();
   m_flags |= flag_main_thread;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
+
+  init_thread_local();
 
   auto hash_work_signal = m_signal_bitfield.add_signal([this]() {
       return m_hash_queue->work();

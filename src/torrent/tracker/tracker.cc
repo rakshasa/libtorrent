@@ -100,7 +100,8 @@ Tracker::disable() {
     m_worker->m_state.m_flags &= ~tracker::TrackerState::flag_enabled;
   }
 
-  // TODO: Should this lock?
+  // TODO: This should be called through manager? It works atm as the trackers are all running on main
+  // thread.
   m_worker->close();
 
   if (m_worker->m_slot_disabled)

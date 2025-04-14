@@ -21,7 +21,11 @@
 namespace torrent::tracker {
 
 Manager::Manager(utils::Thread* main_thread) :
-  m_main_thread(main_thread) {}
+  m_main_thread(main_thread) {
+
+  if (m_main_thread == nullptr)
+    throw internal_error("tracker::Manager::Manager(...) main_thread is null.");
+}
 
 TrackerControllerWrapper
 Manager::add_controller(DownloadInfo* download_info, TrackerController* controller) {

@@ -49,7 +49,7 @@ Thread::start_thread() {
   if (!is_initialized())
     throw internal_error("Called Thread::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, (pthread_func)&Thread::event_loop, this))
+  if (pthread_create(&m_thread, NULL, (pthread_func)&Thread::enter_event_loop, this))
     throw internal_error("Failed to create thread.");
 
   while (m_state != STATE_ACTIVE)
@@ -117,60 +117,48 @@ Thread::should_handle_sigusr1() {
 }
 
 void*
-Thread::event_loop(Thread* thread) {
+Thread::enter_event_loop(Thread* thread) {
   if (thread == nullptr)
-    throw internal_error("Thread::event_loop called with a null pointer thread");
+    throw internal_error("Thread::enter_event_loop called with a null pointer thread");
 
-  m_self = thread;
+  thread->init_thread_local();
+  thread->event_loop();
 
-  thread->m_thread_id = std::this_thread::get_id();
-  thread->m_signal_bitfield.handover(std::this_thread::get_id());
+  return nullptr;
+}
 
-  if (thread->m_resolver)
-    thread->m_resolver->init();
-
-  auto previous_state = STATE_INITIALIZED;
-
-#if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
-  pthread_setname_np(thread->name());
-#elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
-  // Cannot use thread->m_thread here as it may not be set before pthread_create returns.
-  pthread_setname_np(pthread_self(), thread->name());
-#endif
-
-  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
-    throw internal_error("Thread::event_loop called on an object that is not in the initialized state.");
-
-  lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
+void
+Thread::event_loop() {
+  lt_log_print(torrent::LOG_THREAD_NOTICE, "%s : starting thread event loop", name());
 
   try {
 
-    thread->m_poll->insert_read(thread->m_interrupt_receiver.get());
+    m_poll->insert_read(m_interrupt_receiver.get());
 
     while (true) {
-      if (thread->m_slot_do_work)
-        thread->m_slot_do_work();
+      if (m_slot_do_work)
+        m_slot_do_work();
 
-      thread->call_events();
-      thread->signal_bitfield()->work();
+      call_events();
+      signal_bitfield()->work();
 
-      thread->m_flags |= flag_polling;
+      m_flags |= flag_polling;
 
       // Call again after setting flag_polling to ensure we process
       // any events set while it was working.
-      if (thread->m_slot_do_work)
-        thread->m_slot_do_work();
+      if (m_slot_do_work)
+        m_slot_do_work();
 
-      thread->call_events();
-      thread->signal_bitfield()->work();
+      call_events();
+      signal_bitfield()->work();
 
       uint64_t next_timeout = 0;
 
-      if (!thread->has_no_timeout()) {
-        next_timeout = thread->next_timeout_usec();
+      if (!has_no_timeout()) {
+        next_timeout = next_timeout_usec();
 
-        if (thread->m_slot_next_timeout)
-          next_timeout = std::min(next_timeout, thread->m_slot_next_timeout());
+        if (m_slot_next_timeout)
+          next_timeout = std::min(next_timeout, m_slot_next_timeout());
       }
 
       // Add the sleep call when testing interrupts, etc.
@@ -178,32 +166,54 @@ Thread::event_loop(Thread* thread) {
 
       int poll_flags = 0;
 
-      if (!(thread->flags() & flag_main_thread))
+      if (!(flags() & flag_main_thread))
         poll_flags = torrent::Poll::poll_worker_thread;
 
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
-      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + thread->m_instrumentation_index), 1);
+      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
 
-      int event_count = thread->m_poll->do_poll(next_timeout, poll_flags);
+      int event_count = m_poll->do_poll(next_timeout, poll_flags);
 
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
-      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + thread->m_instrumentation_index), event_count);
+      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
 
-      thread->m_flags &= ~(flag_polling | flag_no_timeout);
+      m_flags &= ~(flag_polling | flag_no_timeout);
     }
 
-    thread->m_poll->remove_read(thread->m_interrupt_receiver.get());
+    m_poll->remove_read(m_interrupt_receiver.get());
 
   } catch (torrent::shutdown_exception& e) {
-    lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", thread->name());
+    lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
 
-  previous_state = STATE_ACTIVE;
+  auto previous_state = STATE_ACTIVE;
 
-  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
+  if (!m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
     throw internal_error("Thread::event_loop called on an object that is not in the active state.");
+}
 
-  return NULL;
+void
+Thread::init_thread_local() {
+  m_self = this;
+  m_thread = pthread_self();
+  m_thread_id = std::this_thread::get_id();
+
+#if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
+  pthread_setname_np(name());
+#elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
+  // Cannot use thread->m_thread here as it may not be set before pthread_create returns.
+  pthread_setname_np(pthread_self(), name());
+#endif
+
+  m_signal_bitfield.handover(std::this_thread::get_id());
+
+  if (m_resolver)
+    m_resolver->init();
+
+  auto previous_state = STATE_INITIALIZED;
+
+  if (!m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
+    throw internal_error("Thread::init_thread_local() : " + std::string(name()) + " : called on an object that is not in the initialized state.");
 }
 
 void
