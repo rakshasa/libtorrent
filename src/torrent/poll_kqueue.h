@@ -103,15 +103,15 @@ private:
   int                 m_fd;
 
   unsigned int        m_maxEvents;
-  unsigned int        m_waitingEvents;
-  unsigned int        m_changedEvents;
+  unsigned int        m_waitingEvents{};
+  unsigned int        m_changedEvents{};
 
   Table               m_table;
   struct kevent*      m_events;
   struct kevent*      m_changes;
 
   // Work-around the stdin bug in MacOSX's kqueue implementation.
-  Event*              m_stdinEvent;
+  Event* m_stdinEvent{};
 };
 
 }
