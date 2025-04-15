@@ -75,6 +75,7 @@ libtorrent_torrent_la_SOURCES = \
 	tracker/wrappers.cc \
 	tracker/wrappers.h \
 \
+	utils/chrono.h \
 	utils/directory_events.cc \
 	utils/directory_events.h \
 	utils/extents.h \
@@ -201,6 +202,7 @@ libtorrent_torrent_tracker_include_HEADERS = \
 
 libtorrent_torrent_utils_includedir = $(includedir)/torrent/utils
 libtorrent_torrent_utils_include_HEADERS = \
+	utils/chrono.h \
 	utils/directory_events.h \
 	utils/extents.h \
 	utils/log.h \

@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <torrent/common.h>
+#include <torrent/utils/chrono.h>
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
@@ -19,8 +20,6 @@ namespace torrent::utils {
 class LIBTORRENT_EXPORT Thread {
 public:
   using pthread_func = void* (*)(void*);
-  using slot_void    = std::function<void()>;
-  using slot_timer   = std::function<uint64_t()>;
 
   enum state_type {
     STATE_UNKNOWN,
@@ -31,8 +30,7 @@ public:
 
   static const int flag_do_shutdown  = 0x1;
   static const int flag_did_shutdown = 0x2;
-  static const int flag_no_timeout   = 0x4;
-  static const int flag_polling      = 0x8;
+  static const int flag_polling      = 0x4;
 
   static const int flag_main_thread  = 0x10;
 
@@ -49,7 +47,6 @@ public:
   bool                is_polling() const;
   bool                is_current() const;
 
-  bool                has_no_timeout()   const { return (flags() & flag_no_timeout); }
   bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
   bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
 
@@ -79,9 +76,6 @@ public:
   void                interrupt();
   void                send_event_signal(unsigned int index, bool interrupt = true);
 
-  slot_void&          slot_do_work()      { return m_slot_do_work; }
-  slot_timer&         slot_next_timeout() { return m_slot_next_timeout; }
-
   static int          global_queue_size() { return m_global.waiting; }
 
   // Regarding try_lock used by acquire_global_lock:
@@ -108,8 +102,8 @@ protected:
 
   static void*        enter_event_loop(Thread* thread);
 
-  virtual void        call_events() = 0;
-  virtual int64_t     next_timeout_usec() = 0;
+  virtual void                      call_events() = 0;
+  virtual std::chrono::microseconds next_timeout() = 0;
 
   void                process_callbacks();
 
@@ -127,9 +121,6 @@ protected:
   std::unique_ptr<Poll>             m_poll;
   std::unique_ptr<net::Resolver>    m_resolver;
   class signal_bitfield             m_signal_bitfield;
-
-  slot_void                         m_slot_do_work;
-  slot_timer                        m_slot_next_timeout;
 
   std::unique_ptr<thread_interrupt> m_interrupt_sender;
   std::unique_ptr<thread_interrupt> m_interrupt_receiver;
