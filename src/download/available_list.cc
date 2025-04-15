@@ -83,7 +83,7 @@ AvailableList::insert(AddressList* l) {
   AddressList difference;
   std::set_difference(l->begin(), l->end(), begin(), end(), std::back_inserter(difference));
 
-  std::copy(difference.begin(), difference.end(), std::back_inserter(*static_cast<base_type*>(this)));
+  static_cast<base_type*>(this)->insert(end(), difference.begin(), difference.end());
 }
 
 void
