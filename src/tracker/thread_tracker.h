@@ -36,8 +36,8 @@ public:
 protected:
   friend class Manager;
 
-  virtual void        call_events() override;
-  virtual int64_t     next_timeout_usec() override;
+  void                      call_events() override;
+  std::chrono::microseconds next_timeout() override;
 
 private:
   ThreadTracker() = default;

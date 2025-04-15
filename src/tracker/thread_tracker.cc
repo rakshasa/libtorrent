@@ -92,9 +92,9 @@ ThreadTracker::call_events() {
   process_callbacks();
 }
 
-int64_t
-ThreadTracker::next_timeout_usec() {
-  return rak::timer::from_minutes(60).round_seconds().usec();
+std::chrono::microseconds
+ThreadTracker::next_timeout() {
+  return std::chrono::microseconds(10s);
 }
 
 void

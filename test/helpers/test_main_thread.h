@@ -16,8 +16,8 @@ public:
   void                init_thread() override;
 
 private:
-  void                call_events() override;
-  int64_t             next_timeout_usec() override;
+  void                      call_events() override;
+  std::chrono::microseconds next_timeout() override;
 };
 
 #define SETUP_THREAD_TRACKER()                                          \

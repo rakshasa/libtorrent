@@ -2,10 +2,10 @@
 
 #include "data/thread_disk.h"
 
-#include "rak/timer.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
+#include "torrent/utils/chrono.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
@@ -67,9 +67,9 @@ ThreadDisk::call_events() {
   process_callbacks();
 }
 
-int64_t
-ThreadDisk::next_timeout_usec() {
-  return rak::timer::from_seconds(10).round_seconds().usec();
+std::chrono::microseconds
+ThreadDisk::next_timeout() {
+  return std::chrono::microseconds(10s);
 }
 
 }

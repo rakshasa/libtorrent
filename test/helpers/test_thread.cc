@@ -77,6 +77,15 @@ test_thread::call_events() {
   process_callbacks();
 }
 
+std::chrono::microseconds
+test_thread::next_timeout() {
+  if ((m_test_flags & test_flag_long_timeout))
+    return std::chrono::microseconds(10s);
+  else
+    return std::chrono::microseconds(100ms);
+}
+
+
 thread_management_type::thread_management_type() {
   CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
 }

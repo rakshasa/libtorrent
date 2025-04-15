@@ -2,12 +2,15 @@
 
 #include "net/thread_net.h"
 
-#include "rak/timer.h"
+#include <chrono>
+
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
 #include "utils/instrumentation.h"
+
+using namespace std::chrono_literals;
 
 namespace torrent {
 
@@ -58,9 +61,9 @@ ThreadNet::call_events() {
   process_callbacks();
 }
 
-int64_t
-ThreadNet::next_timeout_usec() {
-  return rak::timer::from_seconds(10).round_seconds().usec();
+std::chrono::microseconds
+ThreadNet::next_timeout() {
+  return std::chrono::microseconds(10s);
 }
 
 }

@@ -45,8 +45,9 @@ public:
   void    set_test_flag(int flags) { m_test_flags |= flags; }
 
 private:
-  void    call_events() override;
-  int64_t next_timeout_usec() override { return (m_test_flags & test_flag_long_timeout) ? (10000 * 1000) : (100 * 1000); }
+
+  void                      call_events() override;
+  std::chrono::microseconds next_timeout() override;
 
   std::atomic_int m_test_state;
   std::atomic_int m_test_flags;

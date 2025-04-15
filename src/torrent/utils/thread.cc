@@ -137,9 +137,6 @@ Thread::event_loop() {
     m_poll->insert_read(m_interrupt_receiver.get());
 
     while (true) {
-      if (m_slot_do_work)
-        m_slot_do_work();
-
       call_events();
       signal_bitfield()->work();
 
@@ -147,38 +144,25 @@ Thread::event_loop() {
 
       // Call again after setting flag_polling to ensure we process
       // any events set while it was working.
-      if (m_slot_do_work)
-        m_slot_do_work();
-
       call_events();
       signal_bitfield()->work();
 
-      uint64_t next_timeout = 0;
+      auto timeout = next_timeout();
 
-      if (!has_no_timeout()) {
-        next_timeout = next_timeout_usec();
-
-        if (m_slot_next_timeout)
-          next_timeout = std::min(next_timeout, m_slot_next_timeout());
-      }
-
-      // Add the sleep call when testing interrupts, etc.
-      // usleep(50);
+      instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
+      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
 
       int poll_flags = 0;
 
       if (!(flags() & flag_main_thread))
         poll_flags = torrent::Poll::poll_worker_thread;
 
-      instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
-      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
-
-      int event_count = m_poll->do_poll(next_timeout, poll_flags);
+      int event_count = m_poll->do_poll(timeout.count(), poll_flags);
 
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
 
-      m_flags &= ~(flag_polling | flag_no_timeout);
+      m_flags &= ~flag_polling;
     }
 
     m_poll->remove_read(m_interrupt_receiver.get());

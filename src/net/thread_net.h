@@ -24,8 +24,8 @@ protected:
   ThreadNet() = default;
   ~ThreadNet() override;
 
-  void                call_events() override;
-  int64_t             next_timeout_usec() override;
+  void                      call_events() override;
+  std::chrono::microseconds next_timeout() override;
 
   UdnsResolver*       udns() const { return m_udns.get(); }
 

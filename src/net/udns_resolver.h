@@ -71,7 +71,7 @@ protected:
   static bool         m_initialized;
 
   ::dns_ctx*          m_ctx{nullptr};
-  rak::priority_item  m_taskTimeout;
+  rak::priority_item  m_task_timeout;
 
   std::mutex          m_mutex;
   query_map           m_queries;

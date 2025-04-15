@@ -118,6 +118,12 @@ main_thread() {
   return thread_main();
 }
 
+void
+set_main_thread_slots(std::function<void()> do_work, std::function<uint64_t()> next_timeout) {
+  thread_main()->slot_do_work() = std::move(do_work);
+  thread_main()->slot_next_timeout() = std::move(next_timeout);
+}
+
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
 ClientList*        client_list() { return manager->client_list(); }
 ConnectionManager* connection_manager() { return manager->connection_manager(); }

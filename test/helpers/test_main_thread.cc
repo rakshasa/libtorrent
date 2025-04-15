@@ -58,12 +58,12 @@ TestMainThread::call_events() {
   process_callbacks();
 }
 
-int64_t
-TestMainThread::next_timeout_usec() {
+std::chrono::microseconds
+TestMainThread::next_timeout() {
   torrent::cachedTime = rak::timer::current();
 
   if (!torrent::taskScheduler.empty())
-    return std::max(torrent::taskScheduler.top()->time() - torrent::cachedTime, rak::timer()).usec();
+    return std::chrono::microseconds(std::max(torrent::taskScheduler.top()->time() - torrent::cachedTime, rak::timer()).usec());
   else
-    return rak::timer::from_seconds(60).usec();
+    return std::chrono::microseconds(10min);
 }

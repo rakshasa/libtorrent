@@ -1,15 +1,15 @@
 #include "config.h"
 
-#include <rak/timer.h>
-
 #include "thread_main.h"
 
 #include "globals.h"
 #include "data/hash_queue.h"
 #include "data/thread_disk.h"
+#include "rak/timer.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
+#include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
@@ -87,17 +87,31 @@ ThreadMain::call_events() {
   // msec timers.
   cachedTime = rak::timer::current();
 
+  if (m_slot_do_work)
+    m_slot_do_work();
+
   process_callbacks();
 }
 
-int64_t
-ThreadMain::next_timeout_usec() {
+std::chrono::microseconds
+ThreadMain::next_timeout() {
   cachedTime = rak::timer::current();
 
-  if (!taskScheduler.empty())
-    return std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
-  else
-    return rak::timer::from_seconds(60).usec();
+  auto timeout = std::chrono::microseconds(10s);
+
+  if (!taskScheduler.empty()) {
+    auto task_timeout = std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
+
+    timeout = std::min(timeout, std::chrono::microseconds(task_timeout));
+  }
+
+  if (m_slot_next_timeout) {
+    auto slot_timeout = std::max(m_slot_next_timeout(), uint64_t(0));
+
+    timeout = std::min(timeout, std::chrono::microseconds(slot_timeout));
+  }
+
+  return timeout;
 }
 
 }
