@@ -206,8 +206,7 @@ download_remove(Download d) {
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
-  for (auto download : *manager->download_manager())
-    dlist.emplace_back(download);
+  dlist.insert(dlist.end(), manager->download_manager()->begin(), manager->download_manager()->end());
 }
 
 // Make sure you check that it's valid.
