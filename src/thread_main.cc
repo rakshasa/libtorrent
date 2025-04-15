@@ -70,6 +70,10 @@ void
 ThreadMain::call_events() {
   cachedTime = rak::timer::current();
 
+  // Putting this after task scheduler causes client input lag.
+  if (m_slot_do_work)
+    m_slot_do_work();
+
   // Ensure we don't call rak::timer::current() twice if there was no
   // scheduled tasks called.
   if (taskScheduler.empty() || taskScheduler.top()->time() > cachedTime)
@@ -86,9 +90,6 @@ ThreadMain::call_events() {
   // Update the timer again to ensure we get accurate triggering of
   // msec timers.
   cachedTime = rak::timer::current();
-
-  if (m_slot_do_work)
-    m_slot_do_work();
 
   process_callbacks();
 }
