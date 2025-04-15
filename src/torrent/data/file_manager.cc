@@ -90,8 +90,6 @@ FileManager::close(value_type file) {
 }
 
 struct FileManagerActivity {
-  FileManagerActivity() : m_last(rak::timer::max().usec()), m_file(NULL) {}
-
   void operator ()(File* f) {
     if (f->is_open() && f->last_touched() <= m_last) {
       m_last = f->last_touched();
@@ -99,8 +97,8 @@ struct FileManagerActivity {
     }
   }
 
-  uint64_t   m_last;
-  File*      m_file;
+  uint64_t m_last{static_cast<uint64_t>(rak::timer::max().usec())};
+  File*    m_file{};
 };
 
 void

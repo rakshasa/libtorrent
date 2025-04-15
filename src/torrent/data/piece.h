@@ -45,7 +45,8 @@ class LIBTORRENT_EXPORT Piece {
 public:
   static const uint32_t invalid_index = ~uint32_t();
 
-  Piece() : m_index(invalid_index), m_offset(0), m_length(0) {}
+  Piece()  = default;
+  ~Piece() = default;
 
   Piece(uint32_t index, uint32_t offset, uint32_t length) :
     m_index(index), m_offset(offset), m_length(length) {}
@@ -65,9 +66,9 @@ public:
   bool operator != (const Piece& p) const { return m_index != p.m_index || m_offset != p.m_offset || m_length != p.m_length; }
 
 private:
-  uint32_t            m_index;
-  uint32_t            m_offset;
-  uint32_t            m_length;
+  uint32_t m_index{invalid_index};
+  uint32_t m_offset{};
+  uint32_t m_length{};
 };
 
 }
