@@ -62,6 +62,17 @@ File::is_correct_size() const {
   return fs.is_regular() && (uint64_t)fs.size() == m_size;
 }
 
+void
+File::set_completed_chunks(uint32_t v) {
+  if (has_flags(flag_active))
+    throw internal_error("File::set_completed_chunks(...) called on an active file.");
+
+  if (v > size_chunks())
+    throw internal_error("File::set_completed_chunks(...) called with a value larger than the chunk size.");
+
+  m_completed = v;
+}
+
 // At some point we should pass flags for deciding if the correct size
 // is necessary, etc.
 

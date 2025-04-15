@@ -189,11 +189,8 @@ void DownloadMain::start(int flags) {
     throw internal_error("Tried to start an active download");
 
   // Close and clear open files and chunks to ensure hashing file/mmap advise is cleared.
-
-  // TODO: Add a method to just close the files, not the whole file list.
-
-  // file_list()->close();
-  // chunk_list()->clear();
+  file_list()->close_all_files();
+  chunk_list()->clear();
 
   // If the FileList::open_no_create flag was not set, our new
   // behavior is to create all zero-length files with

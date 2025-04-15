@@ -124,6 +124,7 @@ protected:
 
   void                open(bool hashing, int flags) LIBTORRENT_NO_EXPORT;
   void                close() LIBTORRENT_NO_EXPORT;
+  void                close_all_files() LIBTORRENT_NO_EXPORT;
 
   download_data*      mutable_data()                                   { return &m_data; }
 

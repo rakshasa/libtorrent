@@ -2,6 +2,7 @@
 #define LIBTORRENT_FILE_H
 
 #include <torrent/common.h>
+#include <torrent/exceptions.h>
 #include <torrent/path.h>
 
 namespace torrent {
@@ -139,12 +140,6 @@ File::set_flags(int flags) {
 inline void
 File::unset_flags(int flags) {
   unset_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last| flag_attr_padding));
-}
-
-inline void
-File::set_completed_chunks(uint32_t v) {
-  if (!has_flags(flag_active) && v <= size_chunks())
-    m_completed = v;
 }
 
 }

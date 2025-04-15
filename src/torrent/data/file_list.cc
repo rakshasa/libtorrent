@@ -460,9 +460,6 @@ FileList::close() {
   LT_LOG_FL(INFO, "Closing.", 0);
 
   for (auto& entry : *this) {
-    if (entry->is_padding())
-      continue;
-
     entry->unset_flags_protected(File::flag_active);
     manager->file_manager()->close(entry.get());
   }
@@ -471,6 +468,17 @@ FileList::close() {
   m_indirect_links.clear();
 
   m_data.mutable_completed_bitfield()->unallocate();
+}
+
+void
+FileList::close_all_files() {
+  if (!is_open())
+    return;
+
+  LT_LOG_FL(INFO, "Closing all files.", 0);
+
+  for (auto& entry : *this)
+    manager->file_manager()->close(entry.get());
 }
 
 void
