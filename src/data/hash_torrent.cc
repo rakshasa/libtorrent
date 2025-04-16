@@ -24,7 +24,7 @@ HashTorrent::HashTorrent(ChunkList* c) :
 
 bool
 HashTorrent::start(bool try_quick) {
-  LT_LOG_THIS(INFO, "Start: position:%u size:%" PRIu64 " try_quick:%u.",
+  LT_LOG_THIS(INFO, "Start: position:%u size:%zu try_quick:%u.",
               m_position, m_chunk_list->size(), try_quick);
 
   if (m_position == m_chunk_list->size())

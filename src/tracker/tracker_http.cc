@@ -407,7 +407,7 @@ TrackerHttp::process_scrape(const Object& object) {
     if (stats.has_key_value("downloaded"))
       state().m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
 
-    LT_LOG("tracker scrape for %u torrents : complete:%u incomplete:%u downloaded:%u",
+    LT_LOG("tracker scrape for %zu torrents : complete:%u incomplete:%u downloaded:%u",
            files.as_map().size(), state().m_scrape_complete, state().m_scrape_incomplete, state().m_scrape_downloaded);
   }
 

@@ -110,7 +110,7 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
   if (tracker.is_busy() && tracker.state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
     return;
 
-  LT_LOG("sending %s : requester:%p group:%u url:%s",
+  LT_LOG("sending %s : requester:%p url:%s",
          option_as_string(OPTION_TRACKER_EVENT, event), tracker.get_worker(), tracker.url().c_str());
 
   thread_tracker()->tracker_manager()->send_event(tracker, event);
@@ -133,7 +133,7 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
   if (rak::timer::from_seconds(tracker.state().scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
     return;
 
-  LT_LOG("sending scrape : requester:%p group:%u url:%s", tracker.get_worker(), tracker.url().c_str());
+  LT_LOG("sending scrape : requester:%p url:%s", tracker.get_worker(), tracker.url().c_str());
 
   thread_tracker()->tracker_manager()->send_scrape(tracker);
 }
@@ -397,7 +397,7 @@ TrackerList::randomize_group_entries() {
 
 void
 TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
-  LT_LOG("received %u peers : requester:%p group:%u url:%s",
+  LT_LOG("received %zu peers : requester:%p group:%u url:%s",
          l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
   iterator itr = find(tracker);
