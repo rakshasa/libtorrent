@@ -88,8 +88,8 @@ TransferList::insert(const Piece& piece, uint32_t blockSize) {
   if (find(piece.index()) != end())
     throw internal_error("Delegator::new_chunk(...) received an index that is already delegated.");
 
-  BlockList* blockList = new BlockList(piece, blockSize);
-  
+  auto blockList = new BlockList(piece, blockSize);
+
   m_slot_queued(piece.index());
 
   return base_type::insert(end(), blockList);
@@ -121,7 +121,7 @@ TransferList::finished(BlockTransfer* transfer) {
 
 void
 TransferList::hash_succeeded(uint32_t index, Chunk* chunk) {
-  iterator blockListItr = find(index);
+  auto blockListItr = find(index);
 
   if (!std::all_of((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fn(&Block::is_finished)))
     throw internal_error("TransferList::hash_succeeded(...) Finished blocks does not match size.");
@@ -168,7 +168,7 @@ struct transfer_list_compare_data {
 
 void
 TransferList::hash_failed(uint32_t index, Chunk* chunk) {
-  iterator blockListItr = find(index);
+  auto blockListItr = find(index);
 
   if (blockListItr == end())
     throw internal_error("TransferList::hash_failed(...) Could not find index.");
@@ -216,11 +216,11 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
     if (transfer.failed_list() == NULL)
       transfer.set_failed_list(new BlockFailed());
 
-    BlockFailed::iterator failedItr = std::find_if(transfer.failed_list()->begin(), transfer.failed_list()->end(), transfer_list_compare_data(chunk, transfer.piece()));
+    auto failedItr = std::find_if(transfer.failed_list()->begin(), transfer.failed_list()->end(), transfer_list_compare_data(chunk, transfer.piece()));
 
     if (failedItr == transfer.failed_list()->end()) {
       // We've never encountered this data before, make a new entry.
-      char* buffer = new char[transfer.piece().length()];
+      auto buffer = new char[transfer.piece().length()];
 
       chunk->to_buffer(buffer, transfer.piece().offset(), transfer.piece().length());
 
@@ -233,7 +233,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
       // Increment promoted when the entry's reference count becomes
       // larger than others, but not if it previously was the largest.
 
-      BlockFailed::iterator maxItr = transfer.failed_list()->max_element();
+      auto maxItr = transfer.failed_list()->max_element();
 
       if (maxItr->second == failedItr->second && maxItr != (transfer.failed_list()->reverse_max_element().base() - 1))
         promoted++;
@@ -271,7 +271,7 @@ void
 TransferList::retry_most_popular(BlockList* blockList, Chunk* chunk) {
   for (auto& block : *blockList) {
 
-    BlockFailed::reverse_iterator failedItr = block.failed_list()->reverse_max_element();
+    auto failedItr = block.failed_list()->reverse_max_element();
 
     if (failedItr == block.failed_list()->rend())
       throw internal_error("TransferList::retry_most_popular(...) No failed list entry found.");

@@ -272,7 +272,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
       }
     }
 
-    for (ConnectionList::iterator itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end(); )
+    for (auto itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end();)
       if (!(*itr)->m_ptr()->receive_keepalive())
         itr = m_main->connection_list()->erase(itr, ConnectionList::disconnect_available);
       else

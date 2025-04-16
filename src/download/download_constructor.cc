@@ -189,7 +189,7 @@ DownloadConstructor::add_dht_node(const Object& b) {
   if (!b.is_list() || b.as_list().size() < 2)
     return;
 
-  Object::list_type::const_iterator el = b.as_list().begin();
+  auto el = b.as_list().begin();
 
   if (!el->is_string())
     return;

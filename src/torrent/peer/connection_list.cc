@@ -125,7 +125,7 @@ ConnectionList::erase(Peer* p, int flags) {
 
 void
 ConnectionList::erase(PeerInfo* peerInfo, int flags) {
-  iterator itr = std::find(begin(), end(), peerInfo->connection());
+  auto itr = std::find(begin(), end(), peerInfo->connection());
 
   if (itr == end())
     return;

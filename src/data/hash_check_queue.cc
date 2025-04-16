@@ -49,7 +49,7 @@ HashCheckQueue::remove(HashChunk* hash_chunk) {
   auto lock = std::scoped_lock(m_lock);
 
   bool result;
-  iterator itr = std::find(begin(), end(), hash_chunk);
+  auto itr = std::find(begin(), end(), hash_chunk);
 
   if (itr != end()) {
     base_type::erase(itr);

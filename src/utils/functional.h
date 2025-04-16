@@ -12,8 +12,8 @@ slot_list_call(const Container& slot_list, Args&&... args) {
   if (slot_list.empty())
     return;
 
-  typename Container::const_iterator first = slot_list.begin();
-  typename Container::const_iterator next  = slot_list.begin();
+  auto first = slot_list.begin();
+  auto next  = slot_list.begin();
 
   while (++next != slot_list.end()) {
     (*first)(std::forward<Args>(args)...);

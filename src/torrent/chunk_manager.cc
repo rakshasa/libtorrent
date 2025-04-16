@@ -113,7 +113,7 @@ ChunkManager::erase(ChunkList* chunkList) {
   if (chunkList->queue_size() != 0)
     throw internal_error("ChunkManager::erase(...) chunkList->queue_size() != 0.");
 
-  iterator itr = std::find(base_type::begin(), base_type::end(), chunkList);
+  auto itr = std::find(base_type::begin(), base_type::end(), chunkList);
 
   if (itr == base_type::end())
     throw internal_error("ChunkManager::erase(...) itr == base_type::end().");
@@ -200,7 +200,7 @@ ChunkManager::sync_all(int flags, uint64_t target) {
   // syncing the same torrent.
   m_lastFreed = m_lastFreed % base_type::size() + 1;
 
-  iterator itr = base_type::begin() + m_lastFreed;
+  auto itr = base_type::begin() + m_lastFreed;
 
   do {
     if (itr == base_type::end())

@@ -38,7 +38,7 @@ DhtSearch::~DhtSearch() {
 
 bool
 DhtSearch::add_contact(const HashString& id, const rak::socket_address* sa) {
-  DhtNode* n = new DhtNode(id, sa);
+  auto n = new DhtNode(id, sa);
   bool added = emplace(n, this).second;
 
   if (!added)

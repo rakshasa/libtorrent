@@ -128,7 +128,7 @@ template<typename QueueBucket, typename Ftor>
 inline std::pair<int, typename QueueBucket::iterator>
 queue_bucket_find_if_in_any(QueueBucket& queues, Ftor ftor) {
   for (int i = 0; i < QueueBucket::constants::bucket_count; i++) {
-    typename QueueBucket::iterator itr = std::find_if(queues.begin(i), queues.end(i), ftor);
+    auto itr = std::find_if(queues.begin(i), queues.end(i), ftor);
 
     if (itr != queues.end(i))
       return std::make_pair(i, itr);

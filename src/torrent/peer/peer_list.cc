@@ -103,7 +103,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
     return NULL;
   }
 
-  PeerInfo* peerInfo = new PeerInfo(sa);
+  auto peerInfo = new PeerInfo(sa);
   peerInfo->set_listen_port(address->port());
   uint32_t host_byte_order_ipv4_addr = address->sa_inet()->address_h();
 
@@ -134,7 +134,7 @@ socket_address_less_rak(const rak::socket_address& s1, const rak::socket_address
 
 uint32_t
 PeerList::insert_available(const void* al) {
-  const AddressList* addressList = static_cast<const AddressList*>(al);
+  auto addressList = static_cast<const AddressList*>(al);
 
   uint32_t inserted = 0;
   uint32_t invalid = 0;
@@ -147,8 +147,8 @@ PeerList::insert_available(const void* al) {
   // Optimize this so that we don't traverse the tree for every
   // insert, since we know 'al' is sorted.
 
-  AvailableList::const_iterator availItr  = m_available_list->begin();
-  AvailableList::const_iterator availLast = m_available_list->end();
+  auto availItr  = m_available_list->begin();
+  auto availLast = m_available_list->end();
 
   for (const auto& addr : *addressList) {
     if (!socket_address_key::is_comparable_sockaddr(addr.c_sockaddr()) || addr.port() == 0) {
@@ -314,7 +314,7 @@ PeerList::disconnected(PeerInfo* p, int flags) {
 
   range_type range = base_type::equal_range(sock_key);
   
-  iterator itr = std::find_if(range.first, range.second, [p](auto& v) { return p == v.second; });
+  auto itr = std::find_if(range.first, range.second, [p](auto& v) { return p == v.second; });
 
   if (itr == range.second) {
     if (std::none_of(base_type::begin(), base_type::end(), [p](auto& v){ return p == v.second; }))
@@ -367,7 +367,7 @@ PeerList::cull_peers(int flags) {
   else
     timer = 0;
 
-  for (iterator itr = base_type::begin(); itr != base_type::end(); ) {
+  for (auto itr = base_type::begin(); itr != base_type::end(); ) {
     if (itr->second->is_connected() ||
         itr->second->transfer_counter() != 0 || // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         itr->second->last_connection() >= timer ||
@@ -384,7 +384,7 @@ PeerList::cull_peers(int flags) {
     // The key is a pointer to a member in the value, although the key
     // shouldn't actually be used in erase (I think), just ot be safe
     // we delete it after erase.
-    iterator tmp = itr++;
+    auto tmp = itr++;
     PeerInfo* peerInfo = tmp->second;
 
     base_type::erase(tmp);

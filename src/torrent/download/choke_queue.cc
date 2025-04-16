@@ -127,8 +127,8 @@ choke_queue::retrieve_connections(group_stats gs, container_type* queued, contai
 
     } else {
       // TODO: This only handles a single weight group, fixme.
-      group_entry::container_type::const_iterator first = entry->unchoked()->begin() + min_slots;
-      group_entry::container_type::const_iterator last  = entry->unchoked()->end();
+      auto first = entry->unchoked()->begin() + min_slots;
+      auto last  = entry->unchoked()->end();
 
       unchoked->insert(unchoked->end(), first, last);
       gs.now_unchoked += min_slots;
@@ -398,7 +398,7 @@ choke_queue::disconnected(PeerConnectionBase* pc, choke_status* base) {
 void
 choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain* download, group_entry* base) {
   if (src != NULL) {
-    group_container_type::iterator itr = std::find(src->m_group_container.begin(), src->m_group_container.end(), base);
+    auto itr = std::find(src->m_group_container.begin(), src->m_group_container.end(), base);
 
     if (itr == src->m_group_container.end()) throw internal_error("choke_queue::move_connections(...) could not find group.");
 
@@ -550,8 +550,8 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
     (itr - 1)->first += std::min(skipped, order_remaining);
     skipped          -= std::min(skipped, order_remaining);
 
-    iterator first_adjust = itr->second - (itr - 1)->first;
-    iterator last_adjust = itr->second;
+    auto first_adjust = itr->second - (itr - 1)->first;
+    auto last_adjust  = itr->second;
 
     if (!range_is_contained(first_adjust, last_adjust, src_container->begin(), src_container->end()))
       throw internal_error("choke_queue::adjust_choke_range(...) bad iterator range.");
@@ -559,7 +559,7 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
     // We start by unchoking the highest priority in this group, and
     // if we find any peers we can't choke/unchoke we'll move them to
     // the last spot in the container and decrement 'last_adjust'.
-    iterator itr_adjust = last_adjust;
+    auto itr_adjust = last_adjust;
 
     while (itr_adjust != first_adjust) {
       itr_adjust--;

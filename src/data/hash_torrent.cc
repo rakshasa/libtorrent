@@ -118,7 +118,7 @@ HashTorrent::queue(bool quick) {
       return;
 
     // Not very efficient, but this is seldomly done.
-    Ranges::iterator itr = m_ranges.find(m_position);
+    auto itr = m_ranges.find(m_position);
 
     if (itr == m_ranges.end()) {
       m_position = m_chunk_list->size();

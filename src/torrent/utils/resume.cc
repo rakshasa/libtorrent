@@ -56,11 +56,11 @@ resume_load_progress(Download download, const Object& object) {
   if (!resume_load_bitfield(download, object))
     return;
 
-  Object::list_const_iterator filesItr  = files.begin();
+  auto filesItr  = files.begin();
 
   FileList* fileList = download.file_list();
 
-  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
+  for (auto listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if ( (*listItr)->is_padding())
       continue;
 
@@ -188,11 +188,11 @@ resume_save_progress(Download download, Object& object) {
   resume_save_bitfield(download, object);
   
   Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
-  Object::list_iterator filesItr = files.begin();
+  auto filesItr = files.begin();
 
   FileList* fileList = download.file_list();
 
-  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
+  for (auto listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     unsigned int file_index = std::distance(fileList->begin(), listItr);
 
     if (filesItr == files.end())
@@ -400,12 +400,12 @@ resume_load_file_priorities(Download download, const Object& object) {
 
   const Object::list_type& files = object.get_key_list("files");
 
-  Object::list_const_iterator filesItr  = files.begin();
-  Object::list_const_iterator filesLast = files.end();
+  auto filesItr  = files.begin();
+  auto filesLast = files.end();
 
   FileList* fileList = download.file_list();
 
-  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
+  for (auto listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if (filesItr == filesLast)
       return;
 
@@ -422,11 +422,11 @@ resume_load_file_priorities(Download download, const Object& object) {
 void
 resume_save_file_priorities(Download download, Object& object) {
   Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
-  Object::list_iterator filesItr = files.begin();
+  auto filesItr = files.begin();
 
   FileList* fileList = download.file_list();
 
-  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
+  for (auto listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if (filesItr == files.end())
       filesItr = files.insert(filesItr, Object::create_map());
     else if (!filesItr->is_map())

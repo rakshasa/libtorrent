@@ -97,7 +97,7 @@ ThrottleInternal::disable() {
 
 ThrottleInternal*
 ThrottleInternal::create_slave() {
-  ThrottleInternal* slave = new ThrottleInternal(flag_none);
+  auto slave = new ThrottleInternal(flag_none);
 
   slave->m_maxRate = m_maxRate;
   slave->m_throttleList = new ThrottleList();

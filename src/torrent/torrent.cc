@@ -217,7 +217,7 @@ download_find(const std::string& infohash) {
 
 uint32_t
 download_priority(Download d) {
-  ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr()->main());
+  auto itr = manager->resource_manager()->find(d.ptr()->main());
 
   if (itr == manager->resource_manager()->end())
     throw internal_error("torrent::download_priority(...) could not find the download in the resource manager.");
@@ -228,7 +228,7 @@ download_priority(Download d) {
 // TODO: Remove this.
 void
 download_set_priority(Download d, uint32_t pri) {
-  ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr()->main());
+  auto itr = manager->resource_manager()->find(d.ptr()->main());
 
   if (itr == manager->resource_manager()->end())
     throw internal_error("torrent::download_set_priority(...) could not find the download in the resource manager.");

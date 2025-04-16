@@ -37,7 +37,7 @@ verify_file_list(const FileList* fl) {
   if ((*fl->begin())->match_depth_prev() != 0 || (*fl->rbegin())->match_depth_next() != 0)
     throw internal_error("verify_file_list() 2.", fl->data()->hash());
 
-  for (FileList::const_iterator itr = fl->begin(), last = fl->end() - 1; itr != last; itr++)
+  for (auto itr = fl->begin(), last = fl->end() - 1; itr != last; itr++)
     if ((*itr)->match_depth_next() != (*(itr + 1))->match_depth_prev() ||
         (*itr)->match_depth_next() >= (*itr)->path()->size())
       throw internal_error("verify_file_list() 3.", fl->data()->hash());
@@ -188,7 +188,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
 
   position = begin() + index;
 
-  iterator itr = position;
+  auto itr = position;
 
   while (first != last) {
     auto new_file = std::make_unique<File>();
@@ -231,7 +231,7 @@ FileList::merge(iterator first, iterator last, const Path& path) {
   } else {
     new_file->set_offset((*first)->offset());
 
-    for (iterator itr = first; itr != last; ++itr)
+    for (auto itr = first; itr != last; ++itr)
       new_file->set_size_bytes(new_file->size_bytes() + (*itr)->size_bytes());
 
     first = base_type::erase(first + 1, last) - 1;
@@ -295,8 +295,8 @@ FileList::make_all_paths() {
     if (entry->path()->empty())
       throw storage_error("Found an empty filename.");
 
-    Path::const_iterator lastPathItr   = lastPath->begin();
-    Path::const_iterator firstMismatch = entry->path()->begin();
+    auto lastPathItr   = lastPath->begin();
+    auto firstMismatch = entry->path()->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
     while (firstMismatch != entry->path()->end() && lastPathItr != lastPath->end() && *firstMismatch == *lastPathItr) {
@@ -362,7 +362,7 @@ FileList::open(int flags) {
   Path lastPath;
   path_set pathSet;
 
-  iterator itr = end();
+  auto itr = end();
 
   try {
     if (!(flags & open_no_create) && !make_root_path())
@@ -507,8 +507,8 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
   if (!(flags & open_no_create)) {
     const Path* path = node->path();
 
-    Path::const_iterator lastItr = lastPath.begin();
-    Path::const_iterator firstMismatch = path->begin();
+    auto lastItr = lastPath.begin();
+    auto firstMismatch = path->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
     while (firstMismatch != path->end() && lastItr != lastPath.end() && *firstMismatch == *lastItr) {
@@ -680,7 +680,7 @@ FileList::update_completed() {
     if (bitfield()->is_all_unset())
       return;
 
-    iterator entryItr = begin();
+    auto entryItr = begin();
 
     for (Bitfield::size_type index = 0; index < bitfield()->size_bits(); ++index)
       if (bitfield()->get(index))

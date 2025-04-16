@@ -107,10 +107,10 @@ DhtBucket::update() {
 
 DhtBucket::iterator
 DhtBucket::find_replacement_candidate(bool onlyOldest) {
-  iterator oldest = end();
-  unsigned int oldestTime = std::numeric_limits<unsigned int>::max();
+  auto oldest     = end();
+  auto oldestTime = std::numeric_limits<unsigned int>::max();
 
-  for (iterator itr = begin(); itr != end(); ++itr) {
+  for (auto itr = begin(); itr != end(); ++itr) {
     if ((*itr)->is_bad() && !onlyOldest)
       return itr;
 
@@ -153,7 +153,7 @@ DhtBucket::split(const HashString& id) {
   HashString mid_range;
   get_mid_point(&mid_range);
 
-  DhtBucket* other = new DhtBucket(m_begin, mid_range);
+  auto other = new DhtBucket(m_begin, mid_range);
 
   // Set m_begin = mid_range + 1
   int carry = 1;
@@ -205,7 +205,7 @@ DhtBucket::build_full_cache() {
   char* pos = m_fullCache;
 
   do {
-    for (const_iterator itr = chain.bucket()->begin(); itr != chain.bucket()->end() && pos < m_fullCache + sizeof(m_fullCache); ++itr) {
+    for (auto itr = chain.bucket()->begin(); itr != chain.bucket()->end() && pos < m_fullCache + sizeof(m_fullCache); ++itr) {
       if (!(*itr)->is_bad()) {
         pos = (*itr)->store_compact(pos);
 

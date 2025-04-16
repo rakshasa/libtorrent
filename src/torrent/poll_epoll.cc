@@ -138,7 +138,7 @@ PollEPoll::perform() {
     if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
       utils::Thread::waive_global_lock();
 
-    Table::iterator evItr = m_table.begin() + itr->data.fd;
+    auto evItr = m_table.begin() + itr->data.fd;
 
     // Each branch must check for data.ptr != NULL to allow the socket
     // to remove itself between the calls.
@@ -168,7 +168,7 @@ PollEPoll::perform() {
 
 unsigned int
 PollEPoll::do_poll(int64_t timeout_usec, int flags) {
-  rak::timer timeout = rak::timer(timeout_usec);
+  auto timeout = rak::timer(timeout_usec);
 
   timeout += 10;
 

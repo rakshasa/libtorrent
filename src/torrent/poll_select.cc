@@ -102,9 +102,9 @@ PollSelect::create(int maxOpenSockets) {
   };
 
   rak::cacheline_allocator<Block*> cl_alloc;
-  block_type* block = new (cl_alloc) block_type;
+  auto block = new (cl_alloc) block_type;
 
-  PollSelect* p = new (&block->t1) PollSelect;
+  auto p = new (&block->t1) PollSelect;
 
   p->m_readSet = new (&block->t2) SocketSet;
   p->m_writeSet = new (&block->t3) SocketSet;
@@ -184,7 +184,7 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 
 unsigned int
 PollSelect::do_poll(int64_t timeout_usec, int flags) {
-  rak::timer timeout = rak::timer(timeout_usec);
+  auto timeout = rak::timer(timeout_usec);
 
   timeout += 10;
 
@@ -193,9 +193,9 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
   char read_set_buffer[set_size];
   char write_set_buffer[set_size];
   char error_set_buffer[set_size];
-  fd_set* read_set = (fd_set*)read_set_buffer;
-  fd_set* write_set = (fd_set*)write_set_buffer;
-  fd_set* error_set = (fd_set*)error_set_buffer;
+  auto read_set = (fd_set*)read_set_buffer;
+  auto write_set = (fd_set*)write_set_buffer;
+  auto error_set = (fd_set*)error_set_buffer;
   std::memset(read_set_buffer, 0, set_size);
   std::memset(write_set_buffer, 0, set_size);
   std::memset(error_set_buffer, 0, set_size);

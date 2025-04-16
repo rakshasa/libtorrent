@@ -39,7 +39,7 @@ ResourceManager::iterator
 ResourceManager::insert(const resource_manager_entry& entry) {
   bool will_realloc = true; //size() == capacity();
 
-  iterator itr = base_type::insert(find_group_end(entry.group()), entry);
+  auto itr = base_type::insert(find_group_end(entry.group()), entry);
 
   DownloadMain* download = itr->download();
 
@@ -48,7 +48,7 @@ ResourceManager::insert(const resource_manager_entry& entry) {
   if (will_realloc) {
     update_group_iterators();
   } else {
-    choke_base_type::iterator group_itr = choke_base_type::begin() + itr->group();
+    auto group_itr = choke_base_type::begin() + itr->group();
     (*group_itr)->set_last((*group_itr)->last() + 1);
 
     std::for_each(++group_itr, choke_base_type::end(), std::mem_fn(&choke_group::inc_iterators));
@@ -62,8 +62,8 @@ ResourceManager::insert(const resource_manager_entry& entry) {
 
 void
 ResourceManager::update_group_iterators() {
-  base_type::iterator       entry_itr = base_type::begin();
-  choke_base_type::iterator group_itr = choke_base_type::begin();
+  auto       entry_itr = base_type::begin();
+  auto group_itr = choke_base_type::begin();
 
   while (group_itr != choke_base_type::end()) {
     (*group_itr)->set_first(&*entry_itr);
@@ -77,8 +77,8 @@ ResourceManager::update_group_iterators() {
 
 void
 ResourceManager::validate_group_iterators() {
-  base_type::iterator       entry_itr = base_type::begin();
-  choke_base_type::iterator group_itr = choke_base_type::begin();
+  auto       entry_itr = base_type::begin();
+  auto group_itr = choke_base_type::begin();
 
   while (group_itr != choke_base_type::end()) {
     if ((*group_itr)->first() != &*entry_itr)
@@ -104,7 +104,7 @@ ResourceManager::erase(DownloadMain* d) {
   choke_queue::move_connections(group_at(itr->group())->up_queue(), NULL, d, d->up_group_entry());
   choke_queue::move_connections(group_at(itr->group())->down_queue(), NULL, d, d->down_group_entry());
 
-  choke_base_type::iterator group_itr = choke_base_type::begin() + itr->group();
+  auto group_itr = choke_base_type::begin() + itr->group();
   (*group_itr)->set_last((*group_itr)->last() - 1);
 
   std::for_each(++group_itr, choke_base_type::end(), std::mem_fn(&choke_group::dec_iterators));
@@ -203,8 +203,8 @@ ResourceManager::set_group(iterator itr, uint16_t grp) {
   choke_queue::move_connections(itr->download()->choke_group()->up_queue(), choke_base_type::at(grp)->up_queue(), itr->download(), itr->download()->up_group_entry());
   choke_queue::move_connections(itr->download()->choke_group()->down_queue(), choke_base_type::at(grp)->down_queue(), itr->download(), itr->download()->down_group_entry());
 
-  choke_base_type::iterator group_src = choke_base_type::begin() + itr->group();
-  choke_base_type::iterator group_dest = choke_base_type::begin() + grp;
+  auto group_src = choke_base_type::begin() + itr->group();
+  auto group_dest = choke_base_type::begin() + grp;
 
   resource_manager_entry entry = *itr;
   entry.set_group(grp);
@@ -316,7 +316,7 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
   int change = 0;
 
   if (max_unchoked == 0) {
-    choke_base_type::iterator group_itr = choke_base_type::begin();
+    auto group_itr = choke_base_type::begin();
 
     while (group_itr != choke_base_type::end()) {
       choke_queue* cm = is_up ? (*group_itr)->up_queue() : (*group_itr)->down_queue();
