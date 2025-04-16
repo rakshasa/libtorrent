@@ -243,19 +243,13 @@ AC_DEFUN([TORRENT_CHECK_STATVFS], [
 ])
 
 AC_DEFUN([TORRENT_CHECK_STATFS], [
-  AC_CHECK_HEADERS(sys/statfs.h sys/param.h sys/mount.h)
+  AC_CHECK_HEADERS(sys/statfs.h)
 
   AC_MSG_CHECKING(for statfs)
 
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[
       #if HAVE_SYS_STATFS_H
       #include <sys/statfs.h>
-      #endif
-      #if HAVE_SYS_PARAM_H
-      #include <sys/param.h>
-      #endif
-      #if HAVE_SYS_MOUNT_H
-      #include <sys/mount.h>
       #endif
     ]], [[
       struct statfs s;
