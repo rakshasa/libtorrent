@@ -248,7 +248,7 @@ void
 ResourceManager::receive_upload_unchoke(int num) {
   LT_LOG_THIS("adjusting upload unchoked slots; current:%u adjusted:%i", m_currentlyUploadUnchoked, num);
 
-  if ((int)m_currentlyUploadUnchoked + num < 0)
+  if (static_cast<int>(m_currentlyUploadUnchoked) + num < 0)
     throw internal_error("ResourceManager::receive_upload_unchoke(...) received an invalid value.");
 
   m_currentlyUploadUnchoked += num;
@@ -258,7 +258,7 @@ void
 ResourceManager::receive_download_unchoke(int num) {
   LT_LOG_THIS("adjusting download unchoked slots; current:%u adjusted:%i", m_currentlyDownloadUnchoked, num);
 
-  if ((int)m_currentlyDownloadUnchoked + num < 0)
+  if (static_cast<int>(m_currentlyDownloadUnchoked) + num < 0)
     throw internal_error("ResourceManager::receive_download_unchoke(...) received an invalid value.");
 
   m_currentlyDownloadUnchoked += num;
@@ -269,7 +269,7 @@ ResourceManager::retrieve_upload_can_unchoke() {
   if (m_maxUploadUnchoked == 0)
     return std::numeric_limits<int>::max();
 
-  return (int)m_maxUploadUnchoked - (int)m_currentlyUploadUnchoked;
+  return static_cast<int>(m_maxUploadUnchoked) - static_cast<int>(m_currentlyUploadUnchoked);
 }
 
 int
@@ -277,7 +277,7 @@ ResourceManager::retrieve_download_can_unchoke() {
   if (m_maxDownloadUnchoked == 0)
     return std::numeric_limits<int>::max();
 
-  return (int)m_maxDownloadUnchoked - (int)m_currentlyDownloadUnchoked;
+  return static_cast<int>(m_maxDownloadUnchoked) - static_cast<int>(m_currentlyDownloadUnchoked);
 }
 
 void

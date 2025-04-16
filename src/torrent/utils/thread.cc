@@ -50,7 +50,7 @@ Thread::start_thread() {
   if (!is_initialized())
     throw internal_error("Called Thread::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, (pthread_func)&Thread::enter_event_loop, this))
+  if (pthread_create(&m_thread, NULL, reinterpret_cast<pthread_func>(&Thread::enter_event_loop), this))
     throw internal_error("Failed to create thread.");
 
   while (m_state != STATE_ACTIVE)

@@ -224,7 +224,7 @@ Block::completed(BlockTransfer* transfer) {
 
   m_parent->inc_finished();
 
-  if ((Block::size_type)std::count_if(m_parent->begin(), m_parent->end(), std::mem_fn(&Block::is_finished)) < m_parent->finished())
+  if (static_cast<Block::size_type>(std::count_if(m_parent->begin(), m_parent->end(), std::mem_fn(&Block::is_finished))) < m_parent->finished())
     throw internal_error("Block::completed(...) Finished blocks too large.");
 
   m_notStalled -= transfer->stall() == 0;

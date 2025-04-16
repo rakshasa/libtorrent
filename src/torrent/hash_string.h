@@ -60,10 +60,10 @@ public:
 
   // It is the users responsibility to ensure src.length() >=
   // size_data.
-  static const HashString* cast_from(const char* src)        { return (const HashString*)src; }
-  static const HashString* cast_from(const std::string& src) { return (const HashString*)src.c_str(); }
+  static const HashString* cast_from(const char* src)        { return reinterpret_cast<const HashString*>(src); }
+  static const HashString* cast_from(const std::string& src) { return reinterpret_cast<const HashString*>(src.c_str()); }
 
-  static HashString*  cast_from(char* src)                   { return (HashString*)src; }
+  static HashString*  cast_from(char* src)                   { return reinterpret_cast<HashString*>(src); }
 
 private:
   char                m_data[size_data];

@@ -88,8 +88,8 @@ PeerConnectionMetadata::read_message() {
   } else if (length > (1 << 20)) {
     throw communication_error("PeerConnection::read_message() got an invalid message length.");
   }
-    
-  m_down->set_last_command((ProtocolBase::Protocol)buf->peek_8());
+
+  m_down->set_last_command(static_cast<ProtocolBase::Protocol>(buf->peek_8()));
 
   // Ignore most messages, they aren't relevant for a metadata download.
   switch (buf->read_8()) {
@@ -363,13 +363,13 @@ PeerConnectionMetadata::event_write() {
 bool
 PeerConnectionMetadata::read_skip_bitfield() {
   if (m_down->buffer()->remaining()) {
-    uint32_t length = std::min(m_skipLength, (uint32_t)m_down->buffer()->remaining());
+    uint32_t length = std::min(m_skipLength, static_cast<uint32_t>(m_down->buffer()->remaining()));
     m_down->buffer()->consume(length);
     m_skipLength -= length;
   }
 
   if (m_skipLength) {
-    uint32_t length = std::min(m_skipLength, (uint32_t)null_buffer_size);
+    uint32_t length = std::min(m_skipLength, static_cast<uint32_t>(null_buffer_size));
     length = read_stream_throws(m_nullBuffer, length);
     if (!length)
       return false;

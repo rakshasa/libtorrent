@@ -322,7 +322,7 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw input_error("Download::set_bitfield(...) Download in invalid state.");
 
-  if (std::distance(first, last) != (ptrdiff_t)m_ptr->main()->file_list()->bitfield()->size_bytes())
+  if (std::distance(first, last) != static_cast<ptrdiff_t>(m_ptr->main()->file_list()->bitfield()->size_bytes()))
     throw input_error("Download::set_bitfield(...) Invalid length.");
 
   Bitfield* bitfield = m_ptr->data()->mutable_completed_bitfield();
@@ -500,7 +500,7 @@ Download::set_downloads_min(uint32_t v) {
 
 Download::ConnectionType
 Download::connection_type() const {
-  return (ConnectionType)m_ptr->connection_type();
+  return static_cast<ConnectionType>(m_ptr->connection_type());
 }
 
 void
@@ -531,28 +531,28 @@ Download::set_connection_type(ConnectionType t) {
 
 Download::HeuristicType
 Download::upload_choke_heuristic() const {
-  return (Download::HeuristicType)m_ptr->main()->choke_group()->up_queue()->heuristics();
+  return static_cast<Download::HeuristicType>(m_ptr->main()->choke_group()->up_queue()->heuristics());
 }
 
 void
 Download::set_upload_choke_heuristic(HeuristicType t) {
-  if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
+  if (static_cast<choke_queue::heuristics_enum>(t) >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
 
-  m_ptr->main()->choke_group()->up_queue()->set_heuristics((choke_queue::heuristics_enum)t);
+  m_ptr->main()->choke_group()->up_queue()->set_heuristics(static_cast<choke_queue::heuristics_enum>(t));
 }
 
 Download::HeuristicType
 Download::download_choke_heuristic() const {
-  return (Download::HeuristicType)m_ptr->main()->choke_group()->down_queue()->heuristics();
+  return static_cast<Download::HeuristicType>(m_ptr->main()->choke_group()->down_queue()->heuristics());
 }
 
 void
 Download::set_download_choke_heuristic(HeuristicType t) {
-  if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
+  if (static_cast<choke_queue::heuristics_enum>(t) >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
 
-   m_ptr->main()->choke_group()->down_queue()->set_heuristics((choke_queue::heuristics_enum)t);
+  m_ptr->main()->choke_group()->down_queue()->set_heuristics(static_cast<choke_queue::heuristics_enum>(t));
 }
 
 void

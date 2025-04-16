@@ -59,7 +59,7 @@ File::is_correct_size() const {
   if (!fs.update(frozen_path()))
     return false;
 
-  return fs.is_regular() && (uint64_t)fs.size() == m_size;
+  return fs.is_regular() && static_cast<uint64_t>(fs.size()) == m_size;
 }
 
 // At some point we should pass flags for deciding if the correct size

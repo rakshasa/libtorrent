@@ -108,10 +108,10 @@ directory_events::event_read() {
   if (result < sizeof(struct inotify_event))
     return;
 
-  auto event = (struct inotify_event*)buffer;
+  auto event = reinterpret_cast<struct inotify_event*>(buffer);
 
-  while (event + 1 <= (struct inotify_event*)(buffer + result)) {
-    auto next_event = (char*)event + sizeof(struct inotify_event) + event->len;
+  while (event + 1 <= reinterpret_cast<struct inotify_event*>(buffer + result)) {
+    auto next_event = reinterpret_cast<char*>(event) + sizeof(struct inotify_event) + event->len;
 
     if (event->len == 0 || next_event > buffer + 2048)
       return;
@@ -126,7 +126,7 @@ directory_events::event_read() {
         itr->slot(itr->path + event->name);
     }
 
-    event = (struct inotify_event*)(next_event);
+    event = reinterpret_cast<struct inotify_event*>(next_event);
   }
 #endif
 }

@@ -119,7 +119,7 @@ TrackerState::success_time_next() const {
   if (m_success_counter == 0)
     return 0;
 
-  return m_success_time_last + std::max(m_normal_interval, (uint32_t)min_normal_interval);
+  return m_success_time_last + std::max(m_normal_interval, static_cast<uint32_t>(min_normal_interval));
 }
 
 inline uint32_t
@@ -130,7 +130,7 @@ TrackerState::failed_time_next() const {
   if (m_min_interval > min_min_interval)
     return m_failed_time_last + m_min_interval;
 
-  return m_failed_time_last + std::min(5 << std::min(m_failed_counter - 1, (uint32_t)6), min_min_interval-1);
+  return m_failed_time_last + std::min(5 << std::min<uint32_t>(m_failed_counter - 1, 6), min_min_interval - 1);
 }
 
 inline void

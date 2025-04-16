@@ -106,7 +106,7 @@ uint64_t
 FileList::left_bytes() const {
   uint64_t left = size_bytes() - completed_bytes();
 
-  if (left > ((uint64_t)1 << 60))
+  if (left > (uint64_t{1} << 60))
     throw internal_error("FileList::bytes_left() is too large.", data()->hash());
 
   if (completed_chunks() == size_chunks() && left != 0)
@@ -545,7 +545,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   if ((*itr)->is_padding())
     return SocketFile().create_padding_chunk(length, prot, MemoryChunk::map_shared);
 
-  if ((int64_t)offset < 0)
+  if (static_cast<int64_t>(offset) < 0)
     throw internal_error("FileList::chunk_part(...) caught a negative offset", data()->hash());
 
   // Check that offset != length of file.
@@ -610,7 +610,7 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
 
 Chunk*
 FileList::create_chunk_index(uint32_t index, int prot) {
-  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), prot);
+  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), prot);
 }
 
 void

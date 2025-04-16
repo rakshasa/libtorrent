@@ -86,7 +86,7 @@ TrackerList::disown_all_including(int event_bitmap) {
 void
 TrackerList::clear() {
   // Make sure the tracker_list is cleared before the trackers are deleted.
-  auto list = std::move(*(base_type*)this);
+  auto list = std::move(*static_cast<base_type*>(this));
 }
 
 void
@@ -198,7 +198,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
           auto tracker_shared_ptr = weak_tracker.lock();
 
           if (tracker_shared_ptr)
-            receive_success(tracker::Tracker(std::move(tracker_shared_ptr)), (AddressList*)&l);
+            receive_success(tracker::Tracker(std::move(tracker_shared_ptr)), const_cast<AddressList*>(&l));
         });
     };
 

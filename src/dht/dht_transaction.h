@@ -410,7 +410,7 @@ inline bool
 DhtSearch::is_closer(const HashString& one, const HashString& two, const HashString& target) {
   for (unsigned int i=0; i<one.size(); i++)
     if (one[i] != two[i])
-      return (uint8_t)(one[i] ^ target[i]) < (uint8_t)(two[i] ^ target[i]);
+      return static_cast<uint8_t>(one[i] ^ target[i]) < static_cast<uint8_t>(two[i] ^ target[i]);
 
   return false;
 }
@@ -427,7 +427,7 @@ dht_compare_closer::operator () (const DhtNode* one, const DhtNode* two) const {
 
 inline DhtTransaction::key_type
 DhtTransaction::key(const rak::socket_address* sa, int id) {
-  return ((uint64_t)sa->sa_inet()->address_n() << 32) + id;
+  return (static_cast<uint64_t>(sa->sa_inet()->address_n()) << 32) + id;
 }
 
 inline bool

@@ -93,12 +93,12 @@ ChunkManager::estimate_max_memory_usage() {
 #endif
     return rlp.rlim_cur;
 
-  return (uint64_t)DEFAULT_ADDRESS_SPACE_SIZE << 20;
+  return uint64_t{DEFAULT_ADDRESS_SPACE_SIZE} << 20;
 }
 
 uint64_t
 ChunkManager::safe_free_diskspace() const {
-  return m_memoryUsage + ((uint64_t)512 << 20);
+  return m_memoryUsage + (uint64_t{512} << 20);
 }
 
 void
@@ -164,7 +164,7 @@ ChunkManager::deallocate(uint32_t size, int flags) {
   m_memoryBlockCount--;
 
   instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_COUNT, -1);
-  instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_USAGE, -(int64_t)size);
+  instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_USAGE, -static_cast<int64_t>(size));
 }
 
 void

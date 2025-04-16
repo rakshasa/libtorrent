@@ -333,7 +333,7 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const rak::socke
 
 void
 DhtServer::process_response(const HashString& id, const rak::socket_address* sa, const DhtMessage& response) {
-  int transactionId = (unsigned char)response[key_t].as_raw_string().data()[0];
+  int  transactionId = static_cast<unsigned char>(response[key_t].as_raw_string().data()[0]);
   auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
   // Response to a transaction we don't have in our table. At this point it's
@@ -393,7 +393,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
 
 void
 DhtServer::process_error(const rak::socket_address* sa, const DhtMessage& error) {
-  int transactionId = (unsigned char)error[key_t].as_raw_string().data()[0];
+  int  transactionId = static_cast<unsigned char>(error[key_t].as_raw_string().data()[0]);
   auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
   if (itr == m_transactions.end())
@@ -591,7 +591,7 @@ DhtServer::add_transaction(DhtTransaction* transaction, int priority) {
   // unused one. Since normally only one or two transactions will be active per
   // node, a collision is extremely unlikely, and a linear search for the first
   // open one is the most efficient.
-  unsigned int rnd = (uint8_t)random();
+  unsigned int rnd = static_cast<uint8_t>(random());
   unsigned int id = rnd;
 
   auto insertItr = m_transactions.lower_bound(transaction->key(rnd));
@@ -599,7 +599,7 @@ DhtServer::add_transaction(DhtTransaction* transaction, int priority) {
   // If key matches, keep trying successive IDs.
   while (insertItr != m_transactions.end() && insertItr->first == transaction->key(id)) {
     ++insertItr;
-    id = (uint8_t)(id + 1);
+    id = static_cast<uint8_t>(id + 1);
 
     // Give up after trying all possible IDs. This should never happen.
     if (id == rnd) {
@@ -833,7 +833,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
       used += written;
       *quota -= written;
 
-      if ((unsigned int)written != packet->length())
+      if (static_cast<unsigned int>(written) != packet->length())
         throw network_error();
 
     } catch (network_error& e) {

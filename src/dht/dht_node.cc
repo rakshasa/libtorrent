@@ -104,7 +104,7 @@ DhtNode::store_cache(Object* container) const {
     // which is effectively equivalent to this. Note that we need to specify
     // int64_t explicitly here because a zero constant is special in C++ and
     // thus we need an explicit match.
-    container->insert_key("i", int64_t(0));
+    container->insert_key("i", int64_t{0});
     container->insert_key("p", m_socketAddress.sa_inet6()->port());
 
   } else {

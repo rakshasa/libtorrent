@@ -198,11 +198,11 @@ Chunk::preload(uint32_t position, uint32_t length, bool useAdvise) {
       itr.memory_chunk()->advise(itr.memory_chunk_first(), data.second, MemoryChunk::advice_willneed);
 
     } else {
-      for (char* first = (char*)data.first, *last = (char*)data.first + data.second; first < last; first += 4096)
-        [[maybe_unused]] volatile char touchChunk = *(char*)data.first;
+      for (char* first = static_cast<char*>(data.first), *last = static_cast<char*>(data.first) + data.second; first < last; first += 4096)
+        [[maybe_unused]] volatile char touchChunk = *static_cast<char*>(data.first);
 
       // Make sure we touch the last page in the range.
-      [[maybe_unused]] volatile char ouchChunk = *((char*)data.first + data.second - 1);
+      [[maybe_unused]] volatile char ouchChunk = *(static_cast<char*>(data.first) + data.second - 1);
     }
 
   } while (itr.next());

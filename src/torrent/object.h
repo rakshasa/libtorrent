@@ -135,7 +135,7 @@ public:
   // cases where we pass constant rvalues.
   void                clear();
 
-  type_type           type() const                            { return (type_type)(m_flags & mask_type); }
+  type_type           type() const                            { return static_cast<type_type>(m_flags & mask_type); }
   uint32_t            flags() const                           { return m_flags & mask_flags; }
 
   void                set_flags(uint32_t f)                   { m_flags |= f & mask_public; }
