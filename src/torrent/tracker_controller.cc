@@ -285,7 +285,7 @@ TrackerController::enable(int enable_flags) {
   if (!(enable_flags & enable_dont_reset_stats))
     m_tracker_list->clear_stats();
 
-  LT_LOG_TRACKER_EVENTS("enabled : trackers:%u", m_tracker_list->size());
+  LT_LOG_TRACKER_EVENTS("enabled : trackers:%zu", m_tracker_list->size());
 
   // Adding of the tracker requests gets done after the caller has had
   // a chance to override the default behavior.
@@ -303,7 +303,7 @@ TrackerController::disable() {
   m_tracker_list->close_all_excluding((1 << tracker::TrackerState::EVENT_STOPPED) | (1 << tracker::TrackerState::EVENT_COMPLETED));
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
-  LT_LOG_TRACKER_EVENTS("disabled : trackers:%u", m_tracker_list->size());
+  LT_LOG_TRACKER_EVENTS("disabled : trackers:%zu", m_tracker_list->size());
 }
 
 void

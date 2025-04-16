@@ -213,7 +213,7 @@ choke_queue::balance() {
   if (result != 0)
     m_slotUnchoke(result);
 
-  LT_LOG_THIS("balanced queue: adjust:%i can_unchoke:%i queued:%" PRIu32 " unchoked:%" PRIu32 " result:%i",
+  LT_LOG_THIS("balanced queue: adjust:%i can_unchoke:%i queued:%zu unchoked:%zu result:%i",
                adjust, can_unchoke, queued.size(), unchoked.size(), result);
 }
 
@@ -527,7 +527,7 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
   if (lt_log_is_valid(LOG_INSTRUMENTATION_CHOKE)) {
     for (uint32_t i = 0; i < choke_queue::order_max_size; i++)
       lt_log_print(LOG_INSTRUMENTATION_CHOKE,
-                   "%p %i %s %u %u %i",
+                   "%p %i %s %u %u %zd",
                    this,
                    0, //lf->last_update(),
                    (const char*)"unchoke" + 2*is_choke,

@@ -60,7 +60,7 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
       thread_self()->poll()->insert_read(this);
       thread_self()->poll()->insert_error(this);
 
-      lt_log_print(LOG_CONNECTION_LISTEN, "listen port %" PRIu16 " opened with backlog set to %i",
+      lt_log_print(LOG_CONNECTION_LISTEN, "listen port %" PRIu64 " opened with backlog set to %i",
                    m_port, backlog);
 
       return true;
