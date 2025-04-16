@@ -232,7 +232,7 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
   // the connection list, so don't treat it as an error. Make sure to
   // catch close_connection() at the caller of new_peer(...) and just
   // close the filedesc before proceeding as normal.
-  ConnectionList::iterator pcb_itr = std::find(m_connectionList->begin(), m_connectionList->end(), pcb);
+  auto pcb_itr = std::find(m_connectionList->begin(), m_connectionList->end(), pcb);
 
   if (pcb_itr != m_connectionList->end()) {
     std::iter_swap(m_connectionList->begin(), pcb_itr);
@@ -242,7 +242,7 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
   }
 
   // Switch to normal seeding.
-  DownloadManager::iterator itr = manager->download_manager()->find(m_info);
+  auto itr = manager->download_manager()->find(m_info);
   (*itr)->set_connection_type(Download::CONNECTION_SEED);
   m_connectionList->slot_new_connection(&createPeerConnectionSeed);
 
@@ -397,7 +397,7 @@ DownloadMain::do_peer_exchange() {
     DataBuffer* message = pcb->extension_message();
 
     if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
-      char* buffer = new char[message->length()];
+      auto buffer = new char[message->length()];
       memcpy(buffer, message->data(), message->length());
       message->set(buffer, buffer + message->length(), true);
     }

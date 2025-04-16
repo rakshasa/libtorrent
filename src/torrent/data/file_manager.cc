@@ -78,7 +78,7 @@ FileManager::close(value_type file) {
   file->set_protection(0);
   file->set_file_descriptor(-1);
 
-  iterator itr = std::find(begin(), end(), file);
+  auto itr = std::find(begin(), end(), file);
 
   if (itr == end())
     throw internal_error("FileManager::close_file(...) itr == end().");

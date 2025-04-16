@@ -60,11 +60,11 @@ BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
 //   uint32_t offset = m_piece.offset();
   uint32_t offset = 0;
 
-  for (iterator itr = begin(), last = end() - 1; itr != last; ++itr, offset += blockLength) {
+  for (auto itr = begin(), last = end() - 1; itr != last; ++itr, offset += blockLength) {
     itr->set_parent(this);
     itr->set_piece(Piece(m_piece.index(), offset, blockLength));
   }
-  
+
   base_type::back().set_parent(this);
   base_type::back().set_piece(Piece(m_piece.index(), offset, (m_piece.length() % blockLength) ? m_piece.length() % blockLength : blockLength));
 }

@@ -159,7 +159,7 @@ ProtocolExtension::generate_handshake_message() {
                                                       message);
 
   int length = result.second - buffer;
-  char* copy = new char[length];
+  auto copy = new char[length];
   memcpy(copy, buffer, length);
 
   return DataBuffer(copy, copy + length);
@@ -167,7 +167,7 @@ ProtocolExtension::generate_handshake_message() {
 
 inline DataBuffer
 ProtocolExtension::build_bencode(size_t maxLength, const char* format, ...) {
-  char* b = new char[maxLength];
+  auto b = new char[maxLength];
 
   va_list args;
   va_start(args, format);
@@ -197,8 +197,8 @@ ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& 
   int removed_len = removed.size() * 6;
 
   // Manually create bencoded map { "added" => added, "dropped" => dropped }
-  char* buffer = new char[32 + added_len + removed_len];
-  char* end = buffer;
+  auto buffer = new char[32 + added_len + removed_len];
+  auto end = buffer;
 
   end += sprintf(end, "d5:added%d:", added_len);
   memcpy(end, added.begin()->c_str(), added_len);
@@ -400,7 +400,7 @@ ProtocolExtension::send_metadata_piece(size_t piece) {
 
   // These messages will be rare, so we'll just build the
   // metadata here instead of caching it uselessly.
-  char* buffer = new char[metadataSize];
+  auto buffer = new char[metadataSize];
   object_write_bencode_c(object_write_to_buffer, NULL, object_buffer_t(buffer, buffer + metadataSize), 
                          &(*manager->download_manager()->find(m_download->info()))->bencode()->get_key("info"));
 

@@ -58,7 +58,7 @@ namespace torrent {
 
 Throttle*
 Throttle::create_throttle() {
-  ThrottleInternal* throttle = new ThrottleInternal(ThrottleInternal::flag_root);
+  auto throttle = new ThrottleInternal(ThrottleInternal::flag_root);
 
   throttle->m_maxRate = 0;
   throttle->m_throttleList = new ThrottleList();

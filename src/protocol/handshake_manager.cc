@@ -49,7 +49,7 @@ HandshakeManager::clear() {
 
 void
 HandshakeManager::erase(Handshake* handshake) {
-  iterator itr = std::find(base_type::begin(), base_type::end(), handshake);
+  auto itr = std::find(base_type::begin(), base_type::end(), handshake);
 
   if (itr == base_type::end())
     throw internal_error("HandshakeManager::erase(...) could not find handshake.");
@@ -92,7 +92,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
 
   manager->connection_manager()->inc_socket_count();
 
-  Handshake* h = new Handshake(fd, this, manager->connection_manager()->encryption_options());
+  auto h = new Handshake(fd, this, manager->connection_manager()->encryption_options());
   h->initialize_incoming(sa.c_sockaddr());
 
   base_type::push_back(h);
@@ -152,7 +152,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   LT_LOG_SA(&sa, "created outgoing connection: fd:%i encryption:%x message:%x", fd.get_fd(), encryption_options, message);
   manager->connection_manager()->inc_socket_count();
 
-  Handshake* handshake = new Handshake(fd, this, encryption_options);
+  auto handshake = new Handshake(fd, this, encryption_options);
   handshake->initialize_outgoing(sa.c_sockaddr(), download, peerInfo);
 
   base_type::push_back(handshake);

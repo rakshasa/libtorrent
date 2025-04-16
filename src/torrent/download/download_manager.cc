@@ -54,7 +54,7 @@ DownloadManager::insert(DownloadWrapper* d) {
 
 DownloadManager::iterator
 DownloadManager::erase(DownloadWrapper* d) {
-  iterator itr = std::find(begin(), end(), d);
+  auto itr = std::find(begin(), end(), d);
 
   if (itr == end())
     throw internal_error("Tried to remove a torrent that doesn't exist");

@@ -105,7 +105,7 @@ FileListIterator::operator --() {
       m_depth = -(m_depth + 1);
 
   } else {
-    int32_t size = (int32_t)(*m_position)->path()->size();
+    auto size = (int32_t)(*m_position)->path()->size();
     m_depth--;
 
     if (m_depth < -size)

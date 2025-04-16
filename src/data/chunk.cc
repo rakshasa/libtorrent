@@ -123,7 +123,7 @@ Chunk::at_memory(uint32_t offset, iterator part) {
 
 bool
 Chunk::is_incore(uint32_t pos, uint32_t length) {
-  iterator itr = at_position(pos);
+  auto itr = at_position(pos);
 
   if (itr == end())
     throw internal_error("Chunk::incore_length(...) at end()");
@@ -145,7 +145,7 @@ Chunk::is_incore(uint32_t pos, uint32_t length) {
 uint32_t
 Chunk::incore_length(uint32_t pos, uint32_t length) {
   uint32_t result = 0;
-  iterator itr = at_position(pos);
+  auto itr = at_position(pos);
 
   if (itr == end())
     throw internal_error("Chunk::incore_length(...) at end()");

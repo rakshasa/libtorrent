@@ -57,8 +57,8 @@ file_split(FileList* fileList, FileList::iterator position, uint64_t maxSize, co
     throw input_error("Tried to split a file into more than 1000 parts.");
 
   // Also replace dwnlctor's vector.
-  FileList::split_type* splitList = new FileList::split_type[splitSize];
-  FileList::split_type* splitItr = splitList;
+  auto splitList = new FileList::split_type[splitSize];
+  auto splitItr = splitList;
 
   const unsigned int nameSize = srcPath->back().size() + suffix.size();
   char         name[nameSize + 4];
@@ -89,7 +89,7 @@ file_split_all(FileList* fileList, uint64_t maxSize, const std::string& suffix) 
   if (maxSize == 0)
     throw input_error("Tried to split torrent files into zero sized chunks.");
 
-  FileList::iterator itr = fileList->begin();
+  auto itr = fileList->begin();
 
   while (itr != fileList->end())
     if ((*itr)->size_bytes() > maxSize && !(*itr)->path()->empty())

@@ -319,7 +319,7 @@ RequestList::transfer_dissimilar() {
   if (!is_downloading())
     throw internal_error("RequestList::transfer_dissimilar() called but no transfer is in progress.");
 
-  BlockTransfer* dummy = new BlockTransfer();
+  auto dummy = new BlockTransfer();
   Block::create_dummy(dummy, m_peerChunks->peer_info(), m_transfer->piece());
   dummy->set_position(m_transfer->position());
 

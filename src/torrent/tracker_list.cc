@@ -140,7 +140,7 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
 
 TrackerList::iterator
 TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
-  iterator itr = base_type::insert(end_group(group), tracker);
+  auto itr = base_type::insert(end_group(group), tracker);
 
   // These slots are called from within the worker thread, so we need to
   // use proper signal passing to the main thread.
@@ -357,8 +357,8 @@ TrackerList::size_group() const {
 
 void
 TrackerList::cycle_group(unsigned int group) {
-  iterator itr = begin_group(group);
-  iterator prev = itr;
+  auto itr = begin_group(group);
+  auto prev = itr;
 
   if (itr == end() || (*itr).group() != group)
     return;
@@ -371,7 +371,7 @@ TrackerList::cycle_group(unsigned int group) {
 
 TrackerList::iterator
 TrackerList::promote(iterator itr) {
-  iterator first = begin_group((*itr).group());
+  auto first = begin_group((*itr).group());
 
   if (first == end())
     throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group.");
@@ -385,10 +385,10 @@ TrackerList::randomize_group_entries() {
   static std::random_device rd;
   static std::mt19937       rng(rd());
 
-  iterator itr = begin();
+  auto itr = begin();
 
   while (itr != end()) {
-    iterator tmp = end_group((*itr).group());
+    auto tmp = end_group((*itr).group());
     std::shuffle(itr, tmp, rng);
 
     itr = tmp;
@@ -400,7 +400,7 @@ TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
   LT_LOG("received %u peers : requester:%p group:%u url:%s",
          l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
-  iterator itr = find(tracker);
+  auto itr = find(tracker);
 
   if (itr == end())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
@@ -441,7 +441,7 @@ TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) 
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
-  iterator itr = find(tracker);
+  auto itr = find(tracker);
 
   if (itr == end())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
@@ -464,7 +464,7 @@ TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
   LT_LOG("received scrape success : requester:%p group:%u url:%s",
          tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
-  iterator itr = find(tracker);
+  auto itr = find(tracker);
 
   if (itr == end())
     throw internal_error("TrackerList::receive_scrape_success(...) called but the iterator is invalid.");
@@ -487,7 +487,7 @@ TrackerList::receive_scrape_failed(tracker::Tracker&& tracker, const std::string
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
-  iterator itr = find(tracker);
+  auto itr = find(tracker);
 
   if (itr == end())
     throw internal_error("TrackerList::receive_scrape_failed(...) called but the iterator is invalid.");

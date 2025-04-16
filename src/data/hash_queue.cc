@@ -52,7 +52,7 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
   if (!handle.is_loaded())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
-  HashChunk* hash_chunk = new HashChunk(handle);
+  auto hash_chunk = new HashChunk(handle);
 
   base_type::push_back(HashQueueNode(id, hash_chunk, std::move(d)));
 
