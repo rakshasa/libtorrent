@@ -129,7 +129,7 @@ DhtBucket::get_mid_point(HashString* middle) const {
 
   for (unsigned int i=0; i<m_begin.size(); i++)
     if (m_begin[i] != m_end[i]) {
-      (*middle)[i] = ((uint8_t)m_begin[i] + (uint8_t)m_end[i]) / 2;
+      (*middle)[i] = (static_cast<uint8_t>(m_begin[i]) + static_cast<uint8_t>(m_end[i])) / 2;
       break;
     }
 }
@@ -158,8 +158,8 @@ DhtBucket::split(const HashString& id) {
   // Set m_begin = mid_range + 1
   int carry = 1;
   for (unsigned int i = mid_range.size(); i>0; i--) {
-    unsigned int sum = (uint8_t)mid_range[i-1] + carry;
-    m_begin[i-1] = (uint8_t)sum;
+    unsigned int sum = static_cast<uint8_t>(mid_range[i - 1]) + carry;
+    m_begin[i - 1]   = static_cast<uint8_t>(sum);
     carry = sum >> 8;
   }
 

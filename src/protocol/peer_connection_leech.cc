@@ -172,7 +172,7 @@ PeerConnection<type>::read_message() {
   // peer. Those cases should be caught elsewhere in the code.
 
   // Temporary.
-  m_down->set_last_command((ProtocolBase::Protocol)buf->peek_8());
+  m_down->set_last_command(static_cast<ProtocolBase::Protocol>(buf->peek_8()));
 
   switch (buf->read_8()) {
   case ProtocolBase::CHOKE:

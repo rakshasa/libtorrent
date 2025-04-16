@@ -445,7 +445,7 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
   Object& info = b.insert_key("info", Object::create_map());
   info.insert_key("pieces", hash.str());
   info.insert_key("name", rak::transform_hex(hash.str()) + ".meta");
-  info.insert_key("meta_download", (int64_t)1);
+  info.insert_key("meta_download", static_cast<int64_t>(1));
 
   if (!trackers.as_list().empty()) {
     b.insert_preserve_copy("announce", trackers.as_list().begin()->as_list().begin()->as_string());

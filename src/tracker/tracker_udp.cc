@@ -184,14 +184,14 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
 
   if (sin != nullptr) {
     m_inet_address = sin_copy(sin.get());
-    sa_set_port((sockaddr*)m_inet_address.get(), m_port);
+    sa_set_port(reinterpret_cast<sockaddr*>(m_inet_address.get()), m_port);
   } else {
     m_inet_address = nullptr;
   }
 
   if (sin6 != nullptr) {
     m_inet6_address = sin6_copy(sin6.get());
-    sa_set_port((sockaddr*)m_inet6_address.get(), m_port);
+    sa_set_port(reinterpret_cast<sockaddr*>(m_inet6_address.get()), m_port);
   } else {
     m_inet6_address = nullptr;
   }
@@ -226,9 +226,9 @@ TrackerUdp::start_announce() {
   // TODO: Properly select preferred protocol and on failure try the other one.
 
   if (m_inet_address != nullptr)
-    m_current_address = (sockaddr*)m_inet_address.get();
+    m_current_address = reinterpret_cast<sockaddr*>(m_inet_address.get());
   else if (m_inet6_address != nullptr)
-    m_current_address = (sockaddr*)m_inet6_address.get();
+    m_current_address = reinterpret_cast<sockaddr*>(m_inet6_address.get());
   else
     throw internal_error("TrackerUdp::start_announce() called but both m_inet_address and m_inet6_address are nullptr.");
 

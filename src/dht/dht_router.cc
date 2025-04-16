@@ -582,11 +582,10 @@ DhtRouter::bootstrap() {
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
     // Currently discarding SOCK_DGRAM.
-    thread_self()->resolver()->resolve_specific(this, m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet,
-                                                [this](c_sa_shared_ptr sa, [[maybe_unused]] int err) {
-                                                  if (sa != nullptr)
-                                                    contact(sa.get(), m_contacts->back().second);
-                                                });
+    thread_self()->resolver()->resolve_specific(this, m_contacts->back().first.c_str(), rak::socket_address::pf_inet, [this](auto sa, int) {
+      if (sa != nullptr)
+        contact(sa.get(), m_contacts->back().second);
+    });
 
     m_contacts->pop_back();
   }

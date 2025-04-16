@@ -132,7 +132,7 @@ PollEPoll::perform() {
   unsigned int count = 0;
 
   for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->data.fd < 0 || (size_t)itr->data.fd >= m_table.size())
+    if (itr->data.fd < 0 || static_cast<size_t>(itr->data.fd) >= m_table.size())
       continue;
 
     if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)

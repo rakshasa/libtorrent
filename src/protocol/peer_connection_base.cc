@@ -700,7 +700,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 bool
 PeerConnectionBase::down_extension() {
   if (m_down->buffer()->remaining()) {
-    uint32_t need = std::min(m_extensions->read_need(), (uint32_t)m_down->buffer()->remaining());
+    uint32_t need = std::min(m_extensions->read_need(), static_cast<uint32_t>(m_down->buffer()->remaining()));
     std::memcpy(m_extensions->read_position(), m_down->buffer()->position(), need);
 
     m_extensions->read_move(need);

@@ -62,12 +62,12 @@ Sha1::init() {
 
 inline void
 Sha1::update(const void* data, unsigned int length) {
-  SHA1_Update(&m_ctx, (const void*)data, length);
+  SHA1_Update(&m_ctx, data, length);
 }
 
 inline void
 Sha1::final_c(char* buffer) {
-  SHA1_Final((unsigned char*)buffer, &m_ctx);
+  SHA1_Final(reinterpret_cast<unsigned char*>(buffer), &m_ctx);
 }
 
 inline void
@@ -79,7 +79,7 @@ sha1_salt(const char* salt, unsigned int saltLength,
   sha1.init();
   sha1.update(salt, saltLength);
   sha1.update(key, keyLength);
-  sha1.final_c((char*)out);
+  sha1.final_c(static_cast<char*>(out));
 }
 
 inline void
@@ -93,7 +93,7 @@ sha1_salt(const char* salt, unsigned int saltLength,
   sha1.update(salt, saltLength);
   sha1.update(key1, key1Length);
   sha1.update(key2, key2Length);
-  sha1.final_c((char*)out);
+  sha1.final_c(static_cast<char*>(out));
 }
 
 }

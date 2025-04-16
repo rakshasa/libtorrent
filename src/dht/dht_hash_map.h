@@ -70,7 +70,7 @@ struct hashstring_ptr_hash {
     
     return result;
 #else
-    return *(size_t*)(n->data() + hashstring_hash_ofs);
+    return *reinterpret_cast<const size_t*>(n->data() + hashstring_hash_ofs);
 #endif
   }
 };
@@ -87,7 +87,7 @@ struct hashstring_hash {
     
     return result;
 #else
-    return *(size_t*)(n.data() + hashstring_hash_ofs);
+    return *reinterpret_cast<const size_t*>(n.data() + hashstring_hash_ofs);
 #endif
   }
 };
@@ -137,7 +137,7 @@ public:
 
 inline
 DhtNode* DhtNodeList::add_node(DhtNode* n) {
-  emplace((const HashString*)n, (DhtNode*)n);
+  emplace(reinterpret_cast<const HashString*>(n), n);
   return n;
 }
 

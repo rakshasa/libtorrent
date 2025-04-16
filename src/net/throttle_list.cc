@@ -62,12 +62,12 @@ ThrottleList::ThrottleList() :
 
 bool
 ThrottleList::is_active(const ThrottleNode* node) const {
-  return std::find(begin(), (const_iterator)m_splitActive, node) != m_splitActive;
+  return std::find(begin(), const_iterator(m_splitActive), node) != m_splitActive;
 }
 
 bool
 ThrottleList::is_inactive(const ThrottleNode* node) const {
-  return std::find((const_iterator)m_splitActive, end(), node) != end();
+  return std::find(const_iterator(m_splitActive), end(), node) != end();
 }
 
 bool

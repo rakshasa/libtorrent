@@ -93,7 +93,7 @@ MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags)
   if (page_align() >= m_pagesize)
     throw internal_error("MemoryChunk::MemoryChunk(...) received an page alignment >= page size");
 
-  if ((std::ptrdiff_t)ptr % m_pagesize)
+  if (reinterpret_cast<std::ptrdiff_t>(ptr) % m_pagesize)
     throw internal_error("MemoryChunk::MemoryChunk(...) is not aligned to a page");
 }
 
@@ -119,9 +119,9 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
 #if USE_MINCORE
 
 #if USE_MINCORE_UNSIGNED
-  if (mincore(m_ptr + offset, length, (unsigned char*)buf))
+  if (mincore(m_ptr + offset, length, reinterpret_cast<unsigned char*>(buf)))
 #else
-  if (mincore(m_ptr + offset, length, (char*)buf))
+  if (mincore(m_ptr + offset, length, reinterpret_cast<char*>(buf)))
 #endif
     throw storage_error("System call mincore failed: " + std::string(rak::error_number::current().c_str()));
 

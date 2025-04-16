@@ -88,7 +88,7 @@ resume_load_progress(Download download, const Object& object) {
     // resize the file.
     (*listItr)->unset_flags(File::flag_create_queued | File::flag_resize_queued);
 
-    if (mtimeValue == ~int64_t(0) || mtimeValue == ~int64_t(1)) {
+    if (mtimeValue == ~int64_t{0} || mtimeValue == ~int64_t{1}) {
       // If 'mtime' is ~0 it means we haven't gotten around to
       // creating the file.
       //
@@ -99,7 +99,7 @@ resume_load_progress(Download download, const Object& object) {
       // creating the file. It will just fail on the mtime check
       // later, so we don't need to handle it explicitly.
 
-      if (mtimeValue == ~int64_t(0)) {
+      if (mtimeValue == ~int64_t{0}) {
         LT_LOG_LOAD_FILE("file not created by client, file:create|resize range:clear|(recheck)", 0);
         (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
       } else {
@@ -115,7 +115,7 @@ resume_load_progress(Download download, const Object& object) {
 
     // If the file is the wrong size, queue resize and clear resume
     // data for that file.
-    if ((uint64_t)fs.size() != (*listItr)->size_bytes()) {
+    if (static_cast<uint64_t>(fs.size()) != (*listItr)->size_bytes()) {
       if (fs.size() == 0) {
         LT_LOG_LOAD_FILE("zero-length file found, file:resize range:clear|recheck", 0);
       } else {
@@ -133,7 +133,7 @@ resume_load_progress(Download download, const Object& object) {
     // chunks that might not have been completely written to disk.
     //
     // This gets handled below, so just skip to the next file.
-    if (mtimeValue == ~int64_t(3)) {
+    if (mtimeValue == ~int64_t{3}) {
       LT_LOG_LOAD_FILE("file was downloading", 0);
       continue;
     }
@@ -146,7 +146,7 @@ resume_load_progress(Download download, const Object& object) {
     // the file, else clear the range. This should be set only for
     // files that have completed and got no indices in
     // TransferList::completed_list().
-    if (mtimeValue == ~int64_t(2) || mtimeValue != fs.modified_time()) {
+    if (mtimeValue == ~int64_t{2} || mtimeValue != fs.modified_time()) {
       LT_LOG_LOAD_FILE("resume data doesn't include uncertain pieces, range:clear|recheck", 0);
       download.update_range(Download::update_range_clear | Download::update_range_recheck,
                             (*listItr)->range().first, (*listItr)->range().second);
@@ -180,7 +180,7 @@ resume_save_progress(Download download, Object& object) {
     Object::list_type& files = object.get_key_list("files");
 
     for (auto& file : files)
-      file.insert_key("mtime", ~int64_t(2));
+      file.insert_key("mtime", ~int64_t{2});
 
     return;
   }
@@ -200,7 +200,7 @@ resume_save_progress(Download download, Object& object) {
     else if (!filesItr->is_map())
       *filesItr = Object::create_map();
 
-    filesItr->insert_key("completed", (int64_t)(*listItr)->completed_chunks());
+    filesItr->insert_key("completed", static_cast<int64_t>((*listItr)->completed_chunks()));
 
     rak::file_stat fs;
     bool fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
@@ -209,11 +209,11 @@ resume_save_progress(Download download, Object& object) {
       
       if ((*listItr)->is_create_queued()) {
         // ~0 means the file still needs to be created.
-        filesItr->insert_key("mtime", ~int64_t(0));
+        filesItr->insert_key("mtime", ~int64_t{0});
         LT_LOG_SAVE_FILE("file not created, create queued", 0);
       } else {
         // ~1 means the file shouldn't be created.
-        filesItr->insert_key("mtime", ~int64_t(1));
+        filesItr->insert_key("mtime", ~int64_t{1});
         LT_LOG_SAVE_FILE("file not created, create not queued", 0);
       }
 
@@ -225,20 +225,20 @@ resume_save_progress(Download download, Object& object) {
 
       // This assumes the syncs are properly called before
       // resume_save_progress gets called after finishing a torrent.
-      filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+      filesItr->insert_key("mtime", static_cast<int64_t>(fs.modified_time()));
       LT_LOG_SAVE_FILE("file completed, mtime:%" PRIi64, (int64_t)fs.modified_time());
 
     } else if (!download.info()->is_active()) {
       // When stopped, all chunks should have received sync, thus the
       // file's mtime will be correct. (We hope)
-      filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+      filesItr->insert_key("mtime", static_cast<int64_t>(fs.modified_time()));
       LT_LOG_SAVE_FILE("file inactive and assumed sync'ed, mtime:%" PRIi64, (int64_t)fs.modified_time());
 
     } else {
       // If the torrent isn't done and we've not shut down, then set
       // 'mtime' to ~3 so as to indicate that the 'mtime' is not to be
       // trusted, yet we have a partial bitfield for the file.
-      filesItr->insert_key("mtime", ~int64_t(3));
+      filesItr->insert_key("mtime", ~int64_t{3});
       LT_LOG_SAVE_FILE("file actively downloading", 0);
     }
   }
@@ -306,8 +306,8 @@ resume_load_uncertain_pieces(Download download, const Object& object) {
     return;
   }
 
-  if(!object.has_key_value("uncertain_pieces.timestamp") ||
-     object.get_key_value("uncertain_pieces.timestamp") >= (int64_t)download.info()->load_date()) {
+  if (!object.has_key_value("uncertain_pieces.timestamp") ||
+      object.get_key_value("uncertain_pieces.timestamp") >= static_cast<int64_t>(download.info()->load_date())) {
     LT_LOG_LOAD_INVALID("invalid information on uncertain pieces", 0);
     return;
   }
@@ -352,7 +352,7 @@ resume_save_uncertain_pieces(Download download, Object& object) {
 
   object.insert_key("uncertain_pieces.timestamp", rak::timer::current_seconds());
   Object::string_type& completed = object.insert_key("uncertain_pieces", std::string()).as_string();
-  completed.append((const char*)&buffer.front(), buffer.size() * sizeof(uint32_t));
+  completed.append(reinterpret_cast<const char*>(&buffer.front()), buffer.size() * sizeof(uint32_t));
 }
 
 bool
@@ -412,7 +412,7 @@ resume_load_file_priorities(Download download, const Object& object) {
     // Update the priority from the fast resume data.
     if (filesItr->has_key_value("priority") &&
         filesItr->get_key_value("priority") >= 0 && filesItr->get_key_value("priority") <= PRIORITY_HIGH)
-      (*listItr)->set_priority((priority_enum)filesItr->get_key_value("priority"));
+      (*listItr)->set_priority(static_cast<priority_enum>(filesItr->get_key_value("priority")));
 
     if (filesItr->has_key_value("completed"))
       (*listItr)->set_completed_chunks(filesItr->get_key_value("completed"));
@@ -432,7 +432,7 @@ resume_save_file_priorities(Download download, Object& object) {
     else if (!filesItr->is_map())
       *filesItr = Object::create_map();
 
-    filesItr->insert_key("priority", (int64_t)(*listItr)->priority());
+    filesItr->insert_key("priority", static_cast<int64_t>((*listItr)->priority()));
   }
 }
 
@@ -532,10 +532,10 @@ resume_save_tracker_settings(Download download, Object& object) {
   for (auto tracker : *tracker_list) {
     Object& trackerObject = dest.insert_key(tracker.url(), Object::create_map());
 
-    trackerObject.insert_key("enabled", Object((int64_t)tracker.is_enabled()));
+    trackerObject.insert_key("enabled", Object(static_cast<int64_t>(tracker.is_enabled())));
 
     if (tracker.is_extra_tracker()) {
-      trackerObject.insert_key("extra_tracker", Object((int64_t)1));
+      trackerObject.insert_key("extra_tracker", Object(int64_t{1}));
       trackerObject.insert_key("group", tracker.group());
     }
   }

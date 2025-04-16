@@ -190,9 +190,9 @@ choke_queue::balance() {
   // Throws std::bad_function_call if 'set_slot_can_unchoke' is not
   // set.
   int can_unchoke = m_slotCanUnchoke();
-  int max_unchoked = std::min(m_maxUnchoked, (uint32_t)(1 << 20));
+  int max_unchoked = std::min(m_maxUnchoked, uint32_t{1} << 20);
 
-  int adjust = max_unchoked - (int)(unchoked.size() + gs.now_unchoked);
+  int adjust = max_unchoked - static_cast<int>(unchoked.size() + gs.now_unchoked);
   adjust = std::min(adjust, can_unchoke);
 
   log_choke_changes_func_new(this, "balance", m_maxUnchoked, adjust);
@@ -284,7 +284,7 @@ choke_queue::cycle(uint32_t quota) {
   lt_log_print(LOG_PEER_DEBUG, "After cycle; queued:%u unchoked:%u unchoked_count:%i old_size:%i.",
                (unsigned)queued.size(), (unsigned)unchoked.size(), unchoked_count, oldSize);
 
-  return ((int)unchoked.size() - (int)oldSize); // + gs.changed_unchoke
+  return (static_cast<int>(unchoked.size()) - oldSize); // + gs.changed_unchoke
 }
 
 void

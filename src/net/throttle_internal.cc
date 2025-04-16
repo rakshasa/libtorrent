@@ -116,8 +116,8 @@ ThrottleInternal::receive_tick() {
   if (cachedTime <= m_timeLastTick + rak::timer::from_milliseconds(90))
     throw internal_error("ThrottleInternal::receive_tick() called at a to short interval.");
 
-  uint32_t quota = ((uint64_t)(cachedTime.usec() - m_ptr()->m_timeLastTick.usec())) * m_maxRate / 1000000;
-  uint32_t fraction = ((uint64_t)(cachedTime.usec() - m_ptr()->m_timeLastTick.usec())) * fraction_base / 1000000;
+  uint32_t quota    = (static_cast<uint64_t>(cachedTime.usec() - m_ptr()->m_timeLastTick.usec())) * m_maxRate / 1000000;
+  uint32_t fraction = (static_cast<uint64_t>(cachedTime.usec() - m_ptr()->m_timeLastTick.usec())) * fraction_base / 1000000;
 
   receive_quota(quota, fraction);
 
@@ -132,7 +132,7 @@ ThrottleInternal::receive_quota(uint32_t quota, uint32_t fraction) {
   m_unusedQuota += quota;
 
   while (m_nextSlave != m_slaveList.end()) {
-    need = std::min<uint32_t>(quota, (uint64_t)fraction * (*m_nextSlave)->max_rate() >> fraction_bits);
+    need = std::min<uint32_t>(quota, static_cast<uint64_t>(fraction) * (*m_nextSlave)->max_rate() >> fraction_bits);
     if (m_unusedQuota < need)
       break;
 
@@ -141,7 +141,7 @@ ThrottleInternal::receive_quota(uint32_t quota, uint32_t fraction) {
     ++m_nextSlave;
   }
 
-  need = std::min<uint32_t>(quota, (uint64_t)fraction * m_maxRate >> fraction_bits);
+  need = std::min<uint32_t>(quota, static_cast<uint64_t>(fraction) * m_maxRate >> fraction_bits);
   if (m_nextSlave == m_slaveList.end() && m_unusedQuota >= need) {
     m_unusedQuota -= m_throttleList->update_quota(need);
     m_nextSlave = m_slaveList.begin();

@@ -58,7 +58,7 @@ public:
   bool                is_valid() const                      { return m_chunk.is_valid(); }
   bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }
 
-  bool                has_address(void* p) const            { return (char*)p >= m_chunk.begin() && p < m_chunk.end(); }
+  bool                has_address(void* p) const            { return static_cast<char*>(p) >= m_chunk.begin() && p < m_chunk.end(); }
 
   void                clear();
 
