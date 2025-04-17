@@ -55,6 +55,7 @@ class Handshake;
 class HandshakeManager;
 class HashString;
 class Listen;
+class Manager;
 class MemoryChunk;
 class Object;
 class Path;
@@ -81,7 +82,6 @@ class Resolver;
 
 namespace tracker {
 class DhtController;
-class Manager;
 class Tracker;
 }
 
