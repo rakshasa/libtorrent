@@ -118,9 +118,7 @@ private:
 
 inline BlockTransfer*
 Block::find(const PeerInfo* p) {
-  BlockTransfer* transfer;
-
-  if ((transfer = find_queued(p)) != NULL)
+  if (auto transfer = find_queued(p))
     return transfer;
   else
     return find_transfer(p);
@@ -128,9 +126,7 @@ Block::find(const PeerInfo* p) {
 
 inline const BlockTransfer*
 Block::find(const PeerInfo* p) const {
-  const BlockTransfer* transfer;
-
-  if ((transfer = find_queued(p)) != NULL)
+  if (auto transfer = find_queued(p))
     return transfer;
   else
     return find_transfer(p);
