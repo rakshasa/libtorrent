@@ -439,11 +439,11 @@ DhtRouter::receive_timeout() {
 
   // If bucket isn't full yet or hasn't received replies/queries from
   // its nodes for a while, try to find new nodes now.
-  for (auto itr = m_routingTable.begin(); itr != m_routingTable.end(); ++itr) {
-    itr->second->update();
+  for (const auto& route : m_routingTable) {
+    route.second->update();
 
-    if (!itr->second->is_full() || itr->second == bucket() || itr->second->age() > timeout_bucket_bootstrap)
-      bootstrap_bucket(itr->second);
+    if (!route.second->is_full() || route.second == bucket() || route.second->age() > timeout_bucket_bootstrap)
+      bootstrap_bucket(route.second);
   }
 
   // Remove old peers and empty torrents from the tracker.
