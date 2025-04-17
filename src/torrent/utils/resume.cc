@@ -64,7 +64,6 @@ resume_load_progress(Download download, const Object& object) {
     if ( (*listItr)->is_padding())
       continue;
 
-    std::string file_path = (*listItr)->path()->as_string();
     unsigned int file_index = std::distance(fileList->begin(), listItr);
 
     rak::file_stat fs;
