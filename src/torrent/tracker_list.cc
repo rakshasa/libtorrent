@@ -357,16 +357,16 @@ TrackerList::size_group() const {
 
 void
 TrackerList::cycle_group(unsigned int group) {
-  auto itr = begin_group(group);
-  auto prev = itr;
+  auto first = begin_group(group);
 
-  if (itr == end() || (*itr).group() != group)
+  if (first == end() || first->group() != group)
     return;
 
-  while (++itr != end() && (*itr).group() == group) {
-    std::iter_swap(itr, prev);
-    prev = itr;
-  }
+  auto last = first;
+  while (last != end() && last->group() == group)
+    ++last;
+
+  std::rotate(first, std::next(first), last);
 }
 
 TrackerList::iterator
@@ -376,7 +376,7 @@ TrackerList::promote(iterator itr) {
   if (first == end())
     throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group.");
 
-  std::swap(*first, *itr);
+  std::iter_swap(first, itr);
   return first;
 }
 
