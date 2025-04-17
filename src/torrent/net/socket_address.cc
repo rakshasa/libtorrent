@@ -128,7 +128,7 @@ sa_length(const sockaddr* sa) {
   case AF_INET6:
     return sizeof(sockaddr_in6);
   default:
-    return sizeof(sa);
+    return sizeof(sockaddr);
   }
 }
 
