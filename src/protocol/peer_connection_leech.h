@@ -60,14 +60,14 @@ template<Download::ConnectionType type>
 class PeerConnection : public PeerConnectionBase {
 public:
   PeerConnection() = default;
-  ~PeerConnection();
+  ~PeerConnection() override;
 
-  virtual void        initialize_custom();
-  virtual void        update_interested();
-  virtual bool        receive_keepalive();
+  void                initialize_custom() override;
+  void                update_interested() override;
+  bool                receive_keepalive() override;
 
-  virtual void        event_read();
-  virtual void        event_write();
+  void                event_read() override;
+  void                event_write() override;
 
 private:
   PeerConnection(const PeerConnection&) = delete;

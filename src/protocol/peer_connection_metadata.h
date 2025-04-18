@@ -45,16 +45,16 @@ namespace torrent {
 
 class PeerConnectionMetadata : public PeerConnectionBase {
 public:
-  ~PeerConnectionMetadata();
+  ~PeerConnectionMetadata() override;
 
-  virtual void        initialize_custom();
-  virtual void        update_interested();
-  virtual bool        receive_keepalive();
+  void                initialize_custom() override;
+  void                update_interested() override;
+  bool                receive_keepalive() override;
 
-  virtual void        event_read();
-  virtual void        event_write();
+  void                event_read() override;
+  void                event_write() override;
 
-  virtual void        receive_metadata_piece(uint32_t piece, const char* data, uint32_t length);
+  void                receive_metadata_piece(uint32_t piece, const char* data, uint32_t length) override;
 
 private:
   inline bool         read_message();

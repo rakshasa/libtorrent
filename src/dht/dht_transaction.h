@@ -175,9 +175,9 @@ public:
   DhtAnnounce(const HashString& infoHash, TrackerDht* tracker, const DhtBucket& contacts)
     : DhtSearch(infoHash, contacts),
       m_tracker(tracker) { }
-  ~DhtAnnounce();
+  ~DhtAnnounce() override;
 
-  virtual bool         is_announce() const               { return true; }
+  bool                 is_announce() const override      { return true; }
 
   const TrackerDht*    tracker() const                   { return m_tracker; }
 
@@ -339,9 +339,9 @@ private:
 
 class DhtTransactionSearch : public DhtTransaction {
 public:
-  virtual ~DhtTransactionSearch();
+  ~DhtTransactionSearch() override;
 
-  virtual bool               is_search()                  { return true; }
+  bool                       is_search() override         { return true; }
 
   DhtSearch::const_accessor  node()                       { return m_node; }
   DhtSearch*                 search()                     { return m_search; }
@@ -367,7 +367,7 @@ public:
   DhtTransactionPing(const HashString& id, const rak::socket_address* sa) 
     : DhtTransaction(-1, 30, id, sa) { }
 
-  virtual transaction_type    type()                     { return DHT_PING; }
+  transaction_type            type() override              { return DHT_PING; }
 };
 
 class DhtTransactionFindNode : public DhtTransactionSearch {
@@ -375,7 +375,7 @@ public:
   DhtTransactionFindNode(DhtSearch::const_accessor& node)
     : DhtTransactionSearch(4, 30, node) { }
 
-  virtual transaction_type    type()                     { return DHT_FIND_NODE; }
+  transaction_type           type() override               { return DHT_FIND_NODE; }
 };
 
 class DhtTransactionGetPeers : public DhtTransactionSearch {
@@ -383,7 +383,7 @@ public:
   DhtTransactionGetPeers(DhtSearch::const_accessor& node)
     : DhtTransactionSearch(-1, 30, node) { }
 
-  virtual transaction_type    type()                     { return DHT_GET_PEERS; }
+  transaction_type           type() override               { return DHT_GET_PEERS; }
 };
 
 class DhtTransactionAnnouncePeer : public DhtTransaction {
@@ -396,7 +396,7 @@ public:
       m_infoHash(infoHash),
       m_token(token) { }
 
-  virtual transaction_type type()      { return DHT_ANNOUNCE_PEER; }
+  transaction_type type() override     { return DHT_ANNOUNCE_PEER; }
 
   const HashString&        info_hash() { return m_infoHash; }
   raw_string               info_hash_raw_string() const { return raw_string(m_infoHash.data(), HashString::size_data); }
