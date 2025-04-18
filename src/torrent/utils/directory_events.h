@@ -29,18 +29,18 @@ public:
   static constexpr int flag_on_updated = 0x3;
 
   directory_events() { m_fileDesc = -1; }
-  ~directory_events() = default;
+  ~directory_events() override = default;
 
   bool                open();
   void                close();
 
   void                notify_on(const std::string& path, int flags, const slot_string& slot);
 
-  virtual void        event_read();
-  virtual void        event_write();
-  virtual void        event_error();
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
 
-  virtual const char* type_name() const { return "directory_events"; }
+  const char*         type_name() const override { return "directory_events"; }
 
 private:
   wd_list             m_wd_list;

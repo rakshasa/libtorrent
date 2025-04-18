@@ -48,9 +48,9 @@ public:
   static constexpr int PEX_DISABLE = (1 << 2);
 
   PeerConnectionBase();
-  virtual ~PeerConnectionBase();
+  ~PeerConnectionBase() override;
 
-  const char*         type_name() const { return "pcb"; }
+  const char*         type_name() const override      { return "pcb"; }
 
   void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
@@ -98,7 +98,7 @@ public:
   bool                receive_upload_choke(bool choke);
   bool                receive_download_choke(bool choke);
 
-  virtual void        event_error();
+  void                event_error() override;
 
   void                push_unread(const void* data, uint32_t size);
 

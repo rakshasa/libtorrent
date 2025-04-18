@@ -53,39 +53,39 @@ public:
   static constexpr uint32_t flag_error = (1 << 2);
 
   static PollKQueue*   create(int maxOpenSockets);
-  virtual ~PollKQueue();
+  ~PollKQueue() override;
 
   int                 poll(int msec);
   unsigned int        perform();
 
-  unsigned int        do_poll(int64_t timeout_usec, int flags = 0);
+  unsigned int        do_poll(int64_t timeout_usec, int flags = 0) override;
 
   int                 file_descriptor() { return m_fd; }
 
-  virtual uint32_t    open_max() const;
+  uint32_t            open_max() const override;
 
   // torrent::Event::get_fd() is guaranteed to be valid and remain constant
   // from open(...) is called to close(...) returns.
-  virtual void        open(torrent::Event* event);
-  virtual void        close(torrent::Event* event);
+  void                open(torrent::Event* event) override;
+  void                close(torrent::Event* event) override;
 
   // torrent::Event::get_fd() was closed outside of our control.
-  virtual void        closed(torrent::Event* event);
+  void                closed(torrent::Event* event) override;
 
   // Functions for checking whetever the torrent::Event is listening to r/w/e?
-  virtual bool        in_read(torrent::Event* event);
-  virtual bool        in_write(torrent::Event* event);
-  virtual bool        in_error(torrent::Event* event);
+  bool                in_read(torrent::Event* event) override;
+  bool                in_write(torrent::Event* event) override;
+  bool                in_error(torrent::Event* event) override;
 
   // These functions may be called on 'event's that might, or might
   // not, already be in the set.
-  virtual void        insert_read(torrent::Event* event);
-  virtual void        insert_write(torrent::Event* event);
-  virtual void        insert_error(torrent::Event* event);
+  void                insert_read(torrent::Event* event) override;
+  void                insert_write(torrent::Event* event) override;
+  void                insert_error(torrent::Event* event) override;
 
-  virtual void        remove_read(torrent::Event* event);
-  virtual void        remove_write(torrent::Event* event);
-  virtual void        remove_error(torrent::Event* event);
+  void                remove_read(torrent::Event* event) override;
+  void                remove_write(torrent::Event* event) override;
+  void                remove_error(torrent::Event* event) override;
 
 private:
   PollKQueue(int fd, int maxEvents, int maxOpenSockets) LIBTORRENT_NO_EXPORT;
