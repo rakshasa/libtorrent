@@ -40,7 +40,7 @@ public:
   using query_map = std::multimap<void*, std::unique_ptr<Query>>;
 
   UdnsResolver();
-  ~UdnsResolver();
+  ~UdnsResolver() override;
 
   const char*         type_name() const override { return "udns"; }
 

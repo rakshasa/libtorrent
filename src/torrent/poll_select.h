@@ -52,34 +52,34 @@ namespace torrent {
 class LIBTORRENT_EXPORT PollSelect : public Poll {
 public:
   static PollSelect*  create(int maxOpenSockets);
-  virtual ~PollSelect();
+  ~PollSelect() override;
   PollSelect(const PollSelect&) = delete;
   PollSelect& operator=(const PollSelect&) = delete;
 
-  virtual uint32_t    open_max() const;
+  uint32_t            open_max() const override;
 
   // Returns the largest fd marked.
   unsigned int        fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
   unsigned int        perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
 
-  unsigned int        do_poll(int64_t timeout_usec, int flags = 0);
+  unsigned int        do_poll(int64_t timeout_usec, int flags = 0) override;
 
-  virtual void        open(Event* event);
-  virtual void        close(Event* event);
+  void                open(Event* event) override;
+  void                close(Event* event) override;
 
-  virtual void        closed(Event* event);
+  void                closed(Event* event) override;
 
-  virtual bool        in_read(Event* event);
-  virtual bool        in_write(Event* event);
-  virtual bool        in_error(Event* event);
+  bool                in_read(Event* event) override;
+  bool                in_write(Event* event) override;
+  bool                in_error(Event* event) override;
 
-  virtual void        insert_read(Event* event);
-  virtual void        insert_write(Event* event);
-  virtual void        insert_error(Event* event);
+  void                insert_read(Event* event) override;
+  void                insert_write(Event* event) override;
+  void                insert_error(Event* event) override;
 
-  virtual void        remove_read(Event* event);
-  virtual void        remove_write(Event* event);
-  virtual void        remove_error(Event* event);
+  void                remove_read(Event* event) override;
+  void                remove_write(Event* event) override;
+  void                remove_error(Event* event) override;
 
 private:
   PollSelect() = default;

@@ -12,7 +12,7 @@ namespace torrent {
 class SocketBase : public Event {
 public:
   SocketBase() { set_fd(SocketFd()); }
-  virtual ~SocketBase();
+  ~SocketBase() override;
   SocketBase(const SocketBase&) = delete;
   SocketBase& operator=(const SocketBase&) = delete;
 

@@ -61,11 +61,11 @@ public:
   };
 
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
-  ~Handshake();
+  ~Handshake() override;
   Handshake(const Handshake&) = delete;
   Handshake& operator=(const Handshake&) = delete;
 
-  const char*         type_name() const { return "handshake"; }
+  const char*         type_name() const override    { return "handshake"; }
 
   bool                is_active() const             { return m_state != INACTIVE; }
 
@@ -93,9 +93,9 @@ public:
 
   rak::timer          initialized_time() const      { return m_initializedTime; }
 
-  virtual void        event_read();
-  virtual void        event_write();
-  virtual void        event_error();
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
 
   HandshakeEncryption* encryption()                 { return &m_encryption; }
   ProtocolExtension*   extensions()                  { return m_extensions; }

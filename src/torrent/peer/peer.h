@@ -108,7 +108,7 @@ public:
 
 protected:
   Peer() = default;
-  virtual ~Peer() = default;
+  ~Peer() = default;
 
   bool                 operator == (const Peer& p) const;
 

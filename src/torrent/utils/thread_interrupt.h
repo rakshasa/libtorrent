@@ -14,15 +14,15 @@ class LIBTORRENT_EXPORT thread_interrupt : public Event {
 public:
   using pair_type = std::pair<std::unique_ptr<thread_interrupt>, std::unique_ptr<thread_interrupt>>;
 
-  ~thread_interrupt();
+  ~thread_interrupt() override;
 
   static pair_type    create_pair();
 
   bool                poke();
 
-  void                event_read();
-  void                event_write() {}
-  void                event_error() {}
+  void                event_read() override;
+  void                event_write() override {}
+  void                event_error() override {}
 
 private:
   thread_interrupt(int fd);
