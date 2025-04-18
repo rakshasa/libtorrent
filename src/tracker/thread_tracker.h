@@ -20,6 +20,7 @@ struct TrackerSendEvent {
 
 class LIBTORRENT_EXPORT ThreadTracker : public utils::Thread {
 public:
+  ~ThreadTracker() override;
 
   static void           create_thread(utils::Thread* main_thread);
   static void           destroy_thread();
@@ -41,7 +42,6 @@ protected:
 
 private:
   ThreadTracker() = default;
-  ~ThreadTracker() override;
 
   // void                process_send_events();
 
