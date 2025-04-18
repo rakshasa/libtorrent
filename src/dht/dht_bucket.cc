@@ -44,16 +44,6 @@
 namespace torrent {
 
 DhtBucket::DhtBucket(const HashString& begin, const HashString& end) :
-  m_parent(NULL),
-  m_child(NULL),
-
-  m_lastChanged(cachedTime.seconds()),
-
-  m_good(0),
-  m_bad(0),
-
-  m_fullCacheLength(0),
-
   m_begin(begin),
   m_end(end) {
 

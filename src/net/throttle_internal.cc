@@ -57,7 +57,6 @@ namespace torrent {
 ThrottleInternal::ThrottleInternal(int flags) :
   m_flags(flags),
   m_nextSlave(m_slaveList.end()),
-  m_unusedQuota(0),
   m_timeLastTick(cachedTime) {
 
   if (is_root())

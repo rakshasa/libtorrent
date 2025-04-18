@@ -150,13 +150,13 @@ protected:
   void                 set_node_active(const_accessor& n, bool active);
 
   // Statistics about contacted nodes.
-  unsigned int         m_pending;
-  unsigned int         m_contacted;
-  unsigned int         m_replied;
-  unsigned int         m_concurrency;
+  unsigned int         m_pending{0};
+  unsigned int         m_contacted{0};
+  unsigned int         m_replied{0};
+  unsigned int         m_concurrency{3};
 
-  bool                 m_restart;  // If true, trim nodes and reset m_next on the following get_contact call.
-  bool                 m_started;
+  bool                 m_restart{false};  // If true, trim nodes and reset m_next on the following get_contact call.
+  bool                 m_started{false};
 
   // Next node to return in get_contact, is end() if we have no more contactable nodes.
   const_accessor       m_next;
@@ -334,7 +334,7 @@ private:
   rak::socket_address    m_sa;
   int                    m_timeout;
   int                    m_quickTimeout;
-  DhtTransactionPacket*  m_packet;
+  DhtTransactionPacket*  m_packet{};
 };
 
 class DhtTransactionSearch : public DhtTransaction {

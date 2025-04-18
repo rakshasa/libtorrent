@@ -9,6 +9,8 @@
 #include <torrent/rate.h>
 #include <torrent/hash_string.h>
 
+#include <rak/timer.h>
+
 namespace torrent {
 
 class FileList;
@@ -45,8 +47,6 @@ public:
   static const int public_flags = flag_accepting_seeders;
 
   static const uint32_t unlimited = ~uint32_t();
-
-  DownloadInfo();
 
   const std::string&  name() const                                 { return m_name; }
   void                set_name(const std::string& s)               { m_name = s; }
@@ -140,23 +140,23 @@ private:
   HashString          m_hashObfuscated{HashString::new_zero()};
   HashString          m_localId{HashString::new_zero()};
 
-  mutable int         m_flags;
+  mutable int         m_flags{flag_accepting_new_peers | flag_accepting_seeders | flag_pex_enabled | flag_pex_active};
 
-  mutable Rate        m_upRate;
-  mutable Rate        m_downRate;
-  mutable Rate        m_skipRate;
+  mutable Rate        m_upRate{60};
+  mutable Rate        m_downRate{60};
+  mutable Rate        m_skipRate{60};
 
-  uint64_t            m_uploadedBaseline;
-  uint64_t            m_completedBaseline;
-  uint32_t            m_sizePex;
-  uint32_t            m_maxSizePex;
-  size_t              m_metadataSize;
+  uint64_t            m_uploadedBaseline{0};
+  uint64_t            m_completedBaseline{0};
+  uint32_t            m_sizePex{0};
+  uint32_t            m_maxSizePex{8};
+  size_t              m_metadataSize{0};
 
-  uint32_t            m_creationDate;
-  uint32_t            m_loadDate;
+  uint32_t            m_creationDate{0};
+  uint32_t            m_loadDate = rak::timer::current_seconds();
 
-  uint32_t            m_upload_unchoked;
-  uint32_t            m_download_unchoked;
+  uint32_t            m_upload_unchoked{0};
+  uint32_t            m_download_unchoked{0};
 
   slot_stat_type      m_slotStatLeft;
   slot_stat_type      m_slotStatCompleted;

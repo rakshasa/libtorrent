@@ -137,7 +137,7 @@ private:
   tracker::TrackerControllerWrapper m_tracker_controller;
   TrackerList*                      m_tracker_list;
 
-  class choke_group*  m_choke_group;
+  class choke_group*  m_choke_group{};
 
   group_entry         m_up_group_entry;
   group_entry         m_down_group_entry;
@@ -148,7 +148,7 @@ private:
 
   Delegator           m_delegator;
   have_queue_type     m_haveQueue;
-  InitialSeeding*     m_initialSeeding;
+  InitialSeeding*     m_initialSeeding{};
 
   ConnectionList*     m_connectionList;
   FileList            m_fileList;
@@ -158,8 +158,8 @@ private:
   DataBuffer          m_ut_pex_initial;
   pex_list            m_ut_pex_list;
 
-  ThrottleList*       m_uploadThrottle;
-  ThrottleList*       m_downloadThrottle;
+  ThrottleList*       m_uploadThrottle{};
+  ThrottleList*       m_downloadThrottle{};
 
   slot_start_handshake_type m_slotStartHandshake;
   slot_stop_handshakes_type m_slotStopHandshakes;
