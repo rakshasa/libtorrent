@@ -26,11 +26,11 @@ public:
   static void           destroy_thread();
   static ThreadTracker* thread_tracker();
 
-  const char*         name() const override { return "rtorrent tracker"; }
+  const char*           name() const override { return "rtorrent tracker"; }
 
-  virtual void        init_thread() override;
+  void                  init_thread() override;
 
-  tracker::Manager*   tracker_manager() { return m_tracker_manager.get(); }
+  tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
 
   // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
