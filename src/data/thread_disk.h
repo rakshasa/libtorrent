@@ -9,6 +9,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT ThreadDisk : public utils::Thread {
 public:
+  ~ThreadDisk() override;
 
   static void        create_thread();
   static void        destroy_thread();
@@ -22,7 +23,6 @@ public:
 
 private:
   ThreadDisk() = default;
-  ~ThreadDisk() override;
 
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
