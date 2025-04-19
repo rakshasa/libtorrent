@@ -30,7 +30,7 @@ public:
   void                receive_throttle_up_activate();
 
 protected:
-  static const size_t null_buffer_size = 1 << 17;
+  static constexpr size_t null_buffer_size = 1 << 17;
 
   static char*        m_nullBuffer;
 };
