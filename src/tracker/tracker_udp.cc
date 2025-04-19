@@ -279,7 +279,7 @@ TrackerUdp::event_read() {
   m_read_buffer->set_end(s);
 
   LT_LOG("received reply : size:%d", s);
-  LT_LOG_DUMP((const char*)m_read_buffer->begin(), s, "received reply", 0);
+  LT_LOG_DUMP(reinterpret_cast<const char*>(m_read_buffer->begin()), s, "received reply", 0);
 
   if (s < 4)
     return;
