@@ -15,27 +15,27 @@ class LIBTORRENT_EXPORT DhtController {
 public:
   struct statistics_type {
     // Cycle; 0=inactive, 1=initial bootstrapping, 2 and up=normal operation
-    unsigned int       cycle;
+    unsigned int       cycle{};
 
     // UDP transfer rates.
     const Rate&        up_rate;
     const Rate&        down_rate;
 
     // DHT query statistics.
-    unsigned int       queries_received;
-    unsigned int       queries_sent;
-    unsigned int       replies_received;
-    unsigned int       errors_received;
-    unsigned int       errors_caught;
+    unsigned int       queries_received{};
+    unsigned int       queries_sent{};
+    unsigned int       replies_received{};
+    unsigned int       errors_received{};
+    unsigned int       errors_caught{};
 
     // DHT node info.
-    unsigned int       num_nodes;
-    unsigned int       num_buckets;
+    unsigned int       num_nodes{};
+    unsigned int       num_buckets{};
 
     // DHT tracker info.
-    unsigned int       num_peers;
-    unsigned int       max_peers;
-    unsigned int       num_trackers;
+    unsigned int       num_peers{};
+    unsigned int       max_peers{};
+    unsigned int       num_trackers{};
 
     statistics_type(const Rate& up, const Rate& down) : up_rate(up), down_rate(down) { }
   };
