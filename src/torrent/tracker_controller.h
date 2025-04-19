@@ -96,7 +96,7 @@ public:
   slot_tracker&       slot_tracker_disabled() { return m_slot_tracker_disabled; }
 
 private:
-  TrackerController() = delete;
+  TrackerController(const TrackerController&) = delete;
   TrackerController& operator=(const TrackerController&) = delete;
 
   void                do_timeout();
