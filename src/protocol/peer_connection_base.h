@@ -40,12 +40,12 @@ public:
 #endif
 
   // Find an optimal number for this.
-  static const uint32_t read_size = 64;
+  static constexpr uint32_t read_size = 64;
 
   // Bitmasks for peer exchange messages to send.
-  static const int PEX_DO      = (1 << 0);
-  static const int PEX_ENABLE  = (1 << 1);
-  static const int PEX_DISABLE = (1 << 2);
+  static constexpr int PEX_DO      = (1 << 0);
+  static constexpr int PEX_ENABLE  = (1 << 1);
+  static constexpr int PEX_DISABLE = (1 << 2);
 
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
@@ -114,7 +114,7 @@ public:
   bool                should_connection_unchoke(choke_queue* cq) const;
 
 protected:
-  static const uint32_t extension_must_encrypt = ~uint32_t();
+  static constexpr uint32_t extension_must_encrypt = ~uint32_t();
 
   inline bool         read_remaining();
   inline bool         write_remaining();

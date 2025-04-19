@@ -40,7 +40,7 @@
 
 namespace torrent {
 
-static const char* errorStrings[e_last + 1] = {
+static const char* const errorStrings[e_last + 1] = {
   "unknown error",                      // e_none
 
   "not BitTorrent protocol",            // eh_not_bittorrent

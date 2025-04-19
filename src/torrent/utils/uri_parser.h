@@ -12,13 +12,11 @@ using uri_resource_list = std::vector<std::string>;
 using uri_query_list    = std::vector<std::string>;
 
 struct uri_base_state {
-  static const int state_empty = 0;
-  static const int state_valid = 1;
-  static const int state_invalid = 2;
+  static constexpr int state_empty = 0;
+  static constexpr int state_valid = 1;
+  static constexpr int state_invalid = 2;
 
-  uri_base_state() : state(state_empty) {}
-
-  int state;
+  int state{state_empty};
 };
 
 struct uri_state : uri_base_state {

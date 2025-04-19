@@ -16,7 +16,7 @@ public:
   using bitfield_type = uint32_t;
   using slot_type     = std::function<void()>;
 
-  static const unsigned int max_size = 32;
+  static constexpr unsigned int max_size = 32;
 
   signal_bitfield() = default;
 

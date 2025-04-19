@@ -25,7 +25,7 @@ public:
   using slot_download = std::function<DownloadMain*(const char*)>;
 
   // Do not connect to peers with this many or more failed chunks.
-  static const unsigned int max_failed = 3;
+  static constexpr unsigned int max_failed = 3;
 
   using base_type::empty;
 

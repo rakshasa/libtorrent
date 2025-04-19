@@ -57,8 +57,8 @@ public:
     const char*         m_shortDescription;
   };    
 
-  static const uint32_t max_key_size = 2;
-  static const uint32_t max_version_size = 4;
+  static constexpr uint32_t max_key_size = 2;
+  static constexpr uint32_t max_version_size = 4;
 
   id_type             type() const                            { return m_type; }
 

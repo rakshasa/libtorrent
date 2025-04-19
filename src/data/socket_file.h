@@ -14,14 +14,14 @@ class SocketFile {
 public:
   using fd_type = int;
 
-  static const fd_type invalid_fd         = -1;
+  static constexpr fd_type invalid_fd         = -1;
 
-  static const int o_create               = O_CREAT;
-  static const int o_truncate             = O_TRUNC;
-  static const int o_nonblock             = O_NONBLOCK;
+  static constexpr int o_create               = O_CREAT;
+  static constexpr int o_truncate             = O_TRUNC;
+  static constexpr int o_nonblock             = O_NONBLOCK;
 
-  static const int flag_fallocate          = (1 << 0);
-  static const int flag_fallocate_blocking = (1 << 1);
+  static constexpr int flag_fallocate          = (1 << 0);
+  static constexpr int flag_fallocate_blocking = (1 << 1);
 
   SocketFile() = default;
   ~SocketFile() = default;

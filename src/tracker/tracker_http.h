@@ -14,7 +14,7 @@ class Http;
 
 class TrackerHttp : public TrackerWorker {
 public:
-  static const uint32_t http_timeout = 60;
+  static constexpr uint32_t http_timeout = 60;
 
   TrackerHttp(const TrackerInfo& info, int flags = 0);
 

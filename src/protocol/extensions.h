@@ -28,22 +28,22 @@ public:
 
   using PEXList = std::vector<SocketAddressCompact>;
 
-  static const int    flag_default           = 1<<0;
-  static const int    flag_initial_handshake = 1<<1;
-  static const int    flag_initial_pex       = 1<<2;
-  static const int    flag_received_ext      = 1<<3;
+  static constexpr int    flag_default           = 1<<0;
+  static constexpr int    flag_initial_handshake = 1<<1;
+  static constexpr int    flag_initial_pex       = 1<<2;
+  static constexpr int    flag_received_ext      = 1<<3;
 
   // The base bit to shift by MessageType to check if the extension is
   // enabled locally or supported by the peer.
-  static const int    flag_local_enabled_base    = 1<<8;
-  static const int    flag_remote_supported_base = 1<<16;
+  static constexpr int    flag_local_enabled_base    = 1<<8;
+  static constexpr int    flag_remote_supported_base = 1<<16;
 
   // Number of extensions we support, not counting handshake.
-  static const int    extension_count = FIRST_INVALID - HANDSHAKE - 1;
+  static constexpr int    extension_count = FIRST_INVALID - HANDSHAKE - 1;
 
   // Fixed size of a metadata piece (16 KB).
-  static const size_t metadata_piece_shift = 14;
-  static const size_t metadata_piece_size  = 1 << metadata_piece_shift;
+  static constexpr size_t metadata_piece_shift = 14;
+  static constexpr size_t metadata_piece_size  = 1 << metadata_piece_shift;
 
   ProtocolExtension();
   ~ProtocolExtension() { delete [] m_read; }

@@ -23,7 +23,7 @@ public:
   using reverse_iterator       = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-  static const size_type size_data = 20;
+  static constexpr size_type size_data = 20;
 
   size_type           size() const                      { return size_data; }
 

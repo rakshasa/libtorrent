@@ -20,10 +20,10 @@ public:
   using ReadBuffer  = ProtocolBuffer<512>;
   using WriteBuffer = ProtocolBuffer<512>;
 
-  static const uint64_t magic_connection_id = 0x0000041727101980ll;
+  static constexpr uint64_t magic_connection_id = 0x0000041727101980ll;
 
-  static const uint32_t udp_timeout = 30;
-  static const uint32_t udp_tries = 2;
+  static constexpr uint32_t udp_timeout = 30;
+  static constexpr uint32_t udp_tries = 2;
 
   TrackerUdp(const TrackerInfo& info, int flags = 0);
   ~TrackerUdp();

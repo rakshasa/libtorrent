@@ -23,13 +23,13 @@ class TrackerDht;
 class DhtRouter : public DhtNode {
 public:
   // How many bytes to return and verify from the 20-byte SHA token.
-  static const unsigned int size_token = 8;
+  static constexpr unsigned int size_token = 8;
 
-  static const unsigned int timeout_bootstrap_retry  =          60;  // Retry initial bootstrapping every minute.
-  static const unsigned int timeout_update           =     15 * 60;  // Regular housekeeping updates every 15 minutes.
-  static const unsigned int timeout_bucket_bootstrap =     15 * 60;  // Bootstrap idle buckets after 15 minutes.
-  static const unsigned int timeout_remove_node      = 4 * 60 * 60;  // Remove unresponsive nodes after 4 hours.
-  static const unsigned int timeout_peer_announce    =     30 * 60;  // Remove peers which haven't reannounced for 30 minutes.
+  static constexpr unsigned int timeout_bootstrap_retry  =          60;  // Retry initial bootstrapping every minute.
+  static constexpr unsigned int timeout_update           =     15 * 60;  // Regular housekeeping updates every 15 minutes.
+  static constexpr unsigned int timeout_bucket_bootstrap =     15 * 60;  // Bootstrap idle buckets after 15 minutes.
+  static constexpr unsigned int timeout_remove_node      = 4 * 60 * 60;  // Remove unresponsive nodes after 4 hours.
+  static constexpr unsigned int timeout_peer_announce    =     30 * 60;  // Remove peers which haven't reannounced for 30 minutes.
 
   // A node ID of all zero.
   static HashString zero_id;
@@ -94,10 +94,10 @@ private:
   using contact_t = std::pair<std::string, int>;
 
   // Number of nodes we need to consider the bootstrap process complete.
-  static const unsigned int num_bootstrap_complete = 32;
+  static constexpr unsigned int num_bootstrap_complete = 32;
 
   // Maximum number of potential contacts to keep until bootstrap complete.
-  static const unsigned int num_bootstrap_contacts = 64;
+  static constexpr unsigned int num_bootstrap_contacts = 64;
 
   using DhtBucketList = std::map<const HashString, DhtBucket*>;
 

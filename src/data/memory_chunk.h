@@ -13,29 +13,29 @@ class MemoryChunk {
   // Consider information about whetever the memory maps to a file or
   // not, since mincore etc can only be called on files.
 
-  static const int prot_exec              = PROT_EXEC;
-  static const int prot_read              = PROT_READ;
-  static const int prot_write             = PROT_WRITE;
-  static const int prot_none              = PROT_NONE;
-  static const int map_shared             = MAP_SHARED;
-  static const int map_anon               = MAP_ANON;
+  static constexpr int prot_exec              = PROT_EXEC;
+  static constexpr int prot_read              = PROT_READ;
+  static constexpr int prot_write             = PROT_WRITE;
+  static constexpr int prot_none              = PROT_NONE;
+  static constexpr int map_shared             = MAP_SHARED;
+  static constexpr int map_anon               = MAP_ANON;
 
 #ifdef USE_MADVISE
-  static const int advice_normal          = MADV_NORMAL;
-  static const int advice_random          = MADV_RANDOM;
-  static const int advice_sequential      = MADV_SEQUENTIAL;
-  static const int advice_willneed        = MADV_WILLNEED;
-  static const int advice_dontneed        = MADV_DONTNEED;
+  static constexpr int advice_normal          = MADV_NORMAL;
+  static constexpr int advice_random          = MADV_RANDOM;
+  static constexpr int advice_sequential      = MADV_SEQUENTIAL;
+  static constexpr int advice_willneed        = MADV_WILLNEED;
+  static constexpr int advice_dontneed        = MADV_DONTNEED;
 #else
-  static const int advice_normal          = 0;
-  static const int advice_random          = 1;
-  static const int advice_sequential      = 2;
-  static const int advice_willneed        = 3;
-  static const int advice_dontneed        = 4;
+  static constexpr int advice_normal          = 0;
+  static constexpr int advice_random          = 1;
+  static constexpr int advice_sequential      = 2;
+  static constexpr int advice_willneed        = 3;
+  static constexpr int advice_dontneed        = 4;
 #endif
-  static const int sync_sync              = MS_SYNC;
-  static const int sync_async             = MS_ASYNC;
-  static const int sync_invalidate        = MS_INVALIDATE;
+  static constexpr int sync_sync              = MS_SYNC;
+  static constexpr int sync_async             = MS_ASYNC;
+  static constexpr int sync_invalidate        = MS_INVALIDATE;
 
   MemoryChunk() = default;
   ~MemoryChunk() { clear(); }

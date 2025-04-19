@@ -82,13 +82,13 @@ public:
 
   using slot_weight = void (*)(iterator first, iterator last);
 
-  static const int flag_unchoke_all_new = 0x1;
+  static constexpr int flag_unchoke_all_new = 0x1;
 
-  static const uint32_t order_base = (1 << 30);
-  static const uint32_t order_max_size = 4;
-  static const uint32_t weight_size_bytes = order_max_size * sizeof(uint32_t);
+  static constexpr uint32_t order_base = (1 << 30);
+  static constexpr uint32_t order_max_size = 4;
+  static constexpr uint32_t weight_size_bytes = order_max_size * sizeof(uint32_t);
 
-  static const uint32_t unlimited = ~uint32_t();
+  static constexpr uint32_t unlimited = ~uint32_t();
 
   struct heuristics_type {
     slot_weight         slot_choke_weight;

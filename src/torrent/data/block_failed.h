@@ -65,7 +65,7 @@ public:
 
   using base_type::operator[];
 
-  static const uint32_t invalid_index = ~uint32_t();
+  static constexpr uint32_t invalid_index = ~uint32_t();
 
   BlockFailed() = default;
   ~BlockFailed();

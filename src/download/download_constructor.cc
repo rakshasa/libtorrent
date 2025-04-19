@@ -328,7 +328,7 @@ static const char*
 parse_base32_sha1(const char* pos, HashString& hash) {
   HashString::iterator hashItr = hash.begin();
 
-  static const int base_shift = 8+8-5;
+  static constexpr int base_shift = 8+8-5;
   int shift = base_shift;
   uint16_t decoded = 0;
 

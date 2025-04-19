@@ -28,22 +28,22 @@ public:
   using slot_address_list = std::function<uint32_t(AddressList*)>;
   using slot_tracker      = std::function<void(const tracker::Tracker&)>;
 
-  static const int flag_send_update      = 0x1;
-  static const int flag_send_completed   = 0x2;
-  static const int flag_send_start       = 0x4;
-  static const int flag_send_stop        = 0x8;
+  static constexpr int flag_send_update      = 0x1;
+  static constexpr int flag_send_completed   = 0x2;
+  static constexpr int flag_send_start       = 0x4;
+  static constexpr int flag_send_stop        = 0x8;
 
-  static const int flag_active           = 0x10;
-  static const int flag_requesting       = 0x20;
-  static const int flag_failure_mode     = 0x40;
-  static const int flag_promiscuous_mode = 0x80;
+  static constexpr int flag_active           = 0x10;
+  static constexpr int flag_requesting       = 0x20;
+  static constexpr int flag_failure_mode     = 0x40;
+  static constexpr int flag_promiscuous_mode = 0x80;
 
-  static const int mask_send = flag_send_update | flag_send_start | flag_send_stop | flag_send_completed;
+  static constexpr int mask_send = flag_send_update | flag_send_start | flag_send_stop | flag_send_completed;
 
-  static const int enable_dont_reset_stats = 0x1;
+  static constexpr int enable_dont_reset_stats = 0x1;
 
-  static const int close_disown_stop       = 0x1 << tracker::TrackerState::EVENT_STOPPED;
-  static const int close_disown_completed  = 0x1 << tracker::TrackerState::EVENT_COMPLETED;
+  static constexpr int close_disown_stop       = 0x1 << tracker::TrackerState::EVENT_STOPPED;
+  static constexpr int close_disown_completed  = 0x1 << tracker::TrackerState::EVENT_COMPLETED;
 
   TrackerController(TrackerList* trackers);
   ~TrackerController();

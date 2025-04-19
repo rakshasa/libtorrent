@@ -55,7 +55,7 @@ class DhtNode : public HashString {
 
 public:
   // A node is considered bad if it failed to reply to this many queries.
-  static const unsigned int max_failed_replies = 5;
+  static constexpr unsigned int max_failed_replies = 5;
 
   DhtNode(const HashString& id, const rak::socket_address* sa);
   DhtNode(const std::string& id, const Object& cache);

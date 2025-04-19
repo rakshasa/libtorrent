@@ -53,7 +53,7 @@ class DhtNode;
 // a power of 2.)
 class DhtBucket : private std::vector<DhtNode*> {
 public:
-  static const unsigned int num_nodes = 8;
+  static constexpr unsigned int num_nodes = 8;
 
   using base_type = std::vector<DhtNode*>;
 
