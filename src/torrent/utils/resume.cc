@@ -260,7 +260,7 @@ resume_load_bitfield(Download download, const Object& object) {
 
     LT_LOG_LOAD("restoring partial bitfield", 0);
 
-    download.set_bitfield((uint8_t*)bitfield.c_str(), (uint8_t*)(bitfield.c_str() + bitfield.size()));
+    download.set_bitfield((uint8_t*)(bitfield.c_str()), (uint8_t*)((bitfield.c_str() + bitfield.size())));
 
   } else if (object.has_key_value("bitfield")) {
     Object::value_type chunksDone = object.get_key_value("bitfield");
@@ -293,7 +293,7 @@ resume_save_bitfield(Download download, Object& object) {
     object.insert_key("bitfield", bitfield->size_set());
   } else {
     LT_LOG_SAVE("saving bitfield", 0);
-    object.insert_key("bitfield", std::string((char*)bitfield->begin(), bitfield->size_bytes()));
+    object.insert_key("bitfield", std::string(bitfield->begin(), bitfield->end()));
   }
 }
 
@@ -319,7 +319,7 @@ resume_load_uncertain_pieces(Download download, const Object& object) {
        itr + sizeof(uint32_t) <= last; itr += sizeof(uint32_t)) {
     // Fix this so it does full ranges.
     download.update_range(Download::update_range_recheck | Download::update_range_clear,
-                          ntohl(*(uint32_t*)itr), ntohl(*(uint32_t*)itr) + 1);
+                          ntohl(*reinterpret_cast<const uint32_t*>(itr)), ntohl(*reinterpret_cast<const uint32_t*>(itr)) + 1);
   }
 }
 
