@@ -44,7 +44,7 @@
 namespace torrent {
 
 struct static_map_mapping_type {
-  static const size_t max_key_size = 16;
+  static constexpr size_t max_key_size = 16;
 
   bool        is_end() const { return key[0] == '\0'; }
   static bool is_not_key_char(char c) { return c == '\0' || c == ':' || c == '[' || c == '*'; }
@@ -70,7 +70,7 @@ public:
   typedef mapping_type    key_list_type[tmpl_length];
   typedef entry_type      value_list_type[tmpl_length];
 
-  static const size_t size = tmpl_length;
+  static constexpr size_t size = tmpl_length;
   static const key_list_type keys;
 
   entry_type*         values() { return m_values; }

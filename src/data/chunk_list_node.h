@@ -54,7 +54,7 @@ class Chunk;
 
 class lt_cacheline_aligned ChunkListNode {
 public:
-  static const uint32_t invalid_index = ~uint32_t();
+  static constexpr uint32_t invalid_index = ~uint32_t();
 
   bool                is_valid() const               { return m_chunk != NULL; }
 

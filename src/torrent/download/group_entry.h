@@ -64,7 +64,7 @@ class group_entry {
 public:
   using container_type = std::vector<weighted_connection>;
 
-  static const uint32_t unlimited = ~uint32_t();
+  static constexpr uint32_t unlimited = ~uint32_t();
 
   uint32_t            size_connections() const  { return m_queued.size() + m_unchoked.size(); }
 

@@ -56,7 +56,7 @@ namespace torrent {
 // An offset of 64 bits provides 96 significant bits which is fine as long as
 // the size of size_t does not exceed 12 bytes, while still having correctly
 // aligned 64-bit access.
-static const unsigned int hashstring_hash_ofs = 8;
+static constexpr unsigned int hashstring_hash_ofs = 8;
 
 struct hashstring_ptr_hash {
   size_t operator () (const HashString* n) const {

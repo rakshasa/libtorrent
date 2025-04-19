@@ -71,19 +71,19 @@ public:
 
   // Flags in the range of 0xffff0000 may be set by the user, however
   // 0x00ff0000 are reserved for keywords defined by libtorrent.
-  static const uint32_t mask_type     = 0xff;
-  static const uint32_t mask_flags    = ~mask_type;
-  static const uint32_t mask_internal = 0xffff;
-  static const uint32_t mask_public   = ~mask_internal;
+  static constexpr uint32_t mask_type     = 0xff;
+  static constexpr uint32_t mask_flags    = ~mask_type;
+  static constexpr uint32_t mask_internal = 0xffff;
+  static constexpr uint32_t mask_public   = ~mask_internal;
 
-  static const uint32_t flag_unordered    = 0x100;    // bencode dictionary was not sorted
-  static const uint32_t flag_static_data  = 0x010000;  // Object does not change across sessions.
-  static const uint32_t flag_session_data = 0x020000;  // Object changes between sessions.
-  static const uint32_t flag_function     = 0x040000;  // A function object.
-  static const uint32_t flag_function_q1  = 0x080000;  // A quoted function object.
-  static const uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object.
+  static constexpr uint32_t flag_unordered    = 0x100;    // bencode dictionary was not sorted
+  static constexpr uint32_t flag_static_data  = 0x010000;  // Object does not change across sessions.
+  static constexpr uint32_t flag_session_data = 0x020000;  // Object changes between sessions.
+  static constexpr uint32_t flag_function     = 0x040000;  // A function object.
+  static constexpr uint32_t flag_function_q1  = 0x080000;  // A quoted function object.
+  static constexpr uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object.
 
-  static const uint32_t mask_function     = 0x1C0000;  // Mask for function objects.
+  static constexpr uint32_t mask_function     = 0x1C0000;  // Mask for function objects.
 
   enum type_type {
     TYPE_NONE,

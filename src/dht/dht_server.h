@@ -73,10 +73,10 @@ public:
 
 private:
   // DHT error codes.
-  static const int dht_error_generic    = 201;
-  static const int dht_error_server     = 202;
-  static const int dht_error_protocol   = 203;
-  static const int dht_error_bad_method = 204;
+  static constexpr int dht_error_generic    = 201;
+  static constexpr int dht_error_server     = 202;
+  static constexpr int dht_error_protocol   = 203;
+  static constexpr int dht_error_bad_method = 204;
 
   struct [[gnu::packed]] compact_node_info {
     char                 _id[20];
@@ -97,9 +97,9 @@ private:
   static const char* queries[];
 
   // Priorities for the outgoing packets.
-  static const int packet_prio_high  = 2;  // For important queries we send (announces).
-  static const int packet_prio_low   = 1;  // For (relatively) unimportant queries we send.
-  static const int packet_prio_reply = 0;  // For replies to peer queries.
+  static constexpr int packet_prio_high  = 2;  // For important queries we send (announces).
+  static constexpr int packet_prio_low   = 1;  // For (relatively) unimportant queries we send.
+  static constexpr int packet_prio_reply = 0;  // For replies to peer queries.
 
   void                start_write();
 

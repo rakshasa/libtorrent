@@ -50,7 +50,7 @@ public:
   using Buffer    = ProtocolBuffer<512>;
   using size_type = uint32_t;
 
-  static const size_type buffer_size = 512;
+  static constexpr size_type buffer_size = 512;
 
   enum Protocol {
     CHOKE = 0,
@@ -113,22 +113,22 @@ public:
   void                write_port(uint16_t port);
   void                write_extension(uint8_t id, uint32_t length);
 
-  static const size_type sizeof_keepalive    = 4;
-  static const size_type sizeof_choke        = 5;
-  static const size_type sizeof_interested   = 5;
-  static const size_type sizeof_have         = 9;
-  static const size_type sizeof_have_body    = 4;
-  static const size_type sizeof_bitfield     = 5;
-  static const size_type sizeof_request      = 17;
-  static const size_type sizeof_request_body = 12;
-  static const size_type sizeof_cancel       = 17;
-  static const size_type sizeof_cancel_body  = 12;
-  static const size_type sizeof_piece        = 13;
-  static const size_type sizeof_piece_body   = 8;
-  static const size_type sizeof_port         = 7;
-  static const size_type sizeof_port_body    = 2;
-  static const size_type sizeof_extension    = 6;
-  static const size_type sizeof_extension_body=1;
+  static constexpr size_type sizeof_keepalive    = 4;
+  static constexpr size_type sizeof_choke        = 5;
+  static constexpr size_type sizeof_interested   = 5;
+  static constexpr size_type sizeof_have         = 9;
+  static constexpr size_type sizeof_have_body    = 4;
+  static constexpr size_type sizeof_bitfield     = 5;
+  static constexpr size_type sizeof_request      = 17;
+  static constexpr size_type sizeof_request_body = 12;
+  static constexpr size_type sizeof_cancel       = 17;
+  static constexpr size_type sizeof_cancel_body  = 12;
+  static constexpr size_type sizeof_piece        = 13;
+  static constexpr size_type sizeof_piece_body   = 8;
+  static constexpr size_type sizeof_port         = 7;
+  static constexpr size_type sizeof_port_body    = 2;
+  static constexpr size_type sizeof_extension    = 6;
+  static constexpr size_type sizeof_extension_body=1;
 
   bool                can_write_keepalive() const             { return m_buffer.reserved_left() >= sizeof_keepalive; }
   bool                can_write_choke() const                 { return m_buffer.reserved_left() >= sizeof_choke; }

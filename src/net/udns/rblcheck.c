@@ -44,7 +44,7 @@
 # include "getopt.c"
 #endif
 
-static const char *version = "udns-rblcheck " UDNS_VERSION;
+static constexpr auto version = "udns-rblcheck " UDNS_VERSION;
 static char *progname;
 
 static void error(int die, const char *fmt, ...) {

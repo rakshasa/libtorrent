@@ -46,7 +46,7 @@ public:
   InitialSeeding(DownloadMain* download);
   ~InitialSeeding();
 
-  static const uint32_t no_offer = ~uint32_t();
+  static constexpr uint32_t no_offer = ~uint32_t();
 
   void                new_peer(PeerConnectionBase* pcb);
 

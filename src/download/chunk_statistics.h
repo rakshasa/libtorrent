@@ -59,7 +59,7 @@ public:
   using base_type::empty;
   using base_type::size;
 
-  static const size_type max_accounted = 255;
+  static constexpr size_type max_accounted = 255;
 
   ChunkStatistics() = default;
   ~ChunkStatistics() = default;

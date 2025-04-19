@@ -42,11 +42,11 @@ public:
     STATE_INACTIVE
   };
 
-  static const int flag_do_shutdown  = 0x1;
-  static const int flag_did_shutdown = 0x2;
-  static const int flag_polling      = 0x4;
+  static constexpr int flag_do_shutdown  = 0x1;
+  static constexpr int flag_did_shutdown = 0x2;
+  static constexpr int flag_polling      = 0x4;
 
-  static const int flag_main_thread  = 0x10;
+  static constexpr int flag_main_thread  = 0x10;
 
   Thread();
   virtual ~Thread();

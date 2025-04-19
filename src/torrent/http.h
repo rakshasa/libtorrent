@@ -22,8 +22,8 @@ class LIBTORRENT_EXPORT Http {
    using signal_void   = std::list<slot_void>;
    using signal_string = std::list<slot_string>;
 
-   static const int flag_delete_self   = 0x1;
-   static const int flag_delete_stream = 0x2;
+   static constexpr int flag_delete_self   = 0x1;
+   static constexpr int flag_delete_stream = 0x2;
 
    Http() = default;
    virtual ~Http();

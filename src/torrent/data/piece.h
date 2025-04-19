@@ -43,7 +43,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Piece {
 public:
-  static const uint32_t invalid_index = ~uint32_t();
+  static constexpr uint32_t invalid_index = ~uint32_t();
 
   Piece()  = default;
   ~Piece() = default;
