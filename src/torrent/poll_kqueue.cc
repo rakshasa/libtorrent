@@ -89,10 +89,9 @@ PollKQueue::create(int maxOpenSockets) {
 
 PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) :
     m_fd(fd),
-    m_maxEvents(maxEvents) {
-
-  m_events = new struct kevent[m_maxEvents];
-  m_changes = new struct kevent[maxOpenSockets];
+    m_maxEvents(maxEvents),
+    m_events(new struct kevent[m_maxEvents]),
+    m_changes(new struct kevent[maxOpenSockets]) {
 
   m_table.resize(maxOpenSockets);
 }
