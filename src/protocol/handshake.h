@@ -137,7 +137,7 @@ protected:
   uint32_t            read_unthrottled(void* buf, uint32_t length);
   uint32_t            write_unthrottled(const void* buf, uint32_t length);
 
-  static const char*  m_protocol;
+  static constexpr auto m_protocol = "BitTorrent protocol";
 
   State               m_state{INACTIVE};
 

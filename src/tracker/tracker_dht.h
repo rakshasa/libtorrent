@@ -1,6 +1,8 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_DHT_H
 #define LIBTORRENT_TRACKER_TRACKER_DHT_H
 
+#include <array>
+
 #include "net/address_list.h"
 #include "torrent/object.h"
 #include "tracker/tracker_worker.h"
@@ -23,7 +25,7 @@ public:
     state_announcing,
   };
 
-  static const char* states[];
+  static constexpr std::array states{ "Idle", "Searching", "Announcing" };
 
   static bool         is_allowed();
 

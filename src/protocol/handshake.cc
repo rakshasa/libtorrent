@@ -34,8 +34,6 @@
 
 namespace torrent {
 
-const char* Handshake::m_protocol = "BitTorrent protocol";
-
 class handshake_error : public network_error {
 public:
   handshake_error(int type, int error) : m_type(type), m_error(error) {}

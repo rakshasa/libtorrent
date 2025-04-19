@@ -1,8 +1,10 @@
 #ifndef LIBTORRENT_DHT_SERVER_H
 #define LIBTORRENT_DHT_SERVER_H
 
-#include <map>
+#include <array>
 #include <deque>
+#include <map>
+
 #include <rak/priority_queue_default.h>
 #include <rak/socket_address.h>
 
@@ -94,7 +96,12 @@ private:
   using transaction_itr = transaction_map::iterator;
 
   // DHT transaction names for given transaction type.
-  static const char* queries[];
+  static constexpr std::array queries{
+    "ping",
+    "find_node",
+    "get_peers",
+    "announce_peer",
+  };
 
   // Priorities for the outgoing packets.
   static constexpr int packet_prio_high  = 2;  // For important queries we send (announces).

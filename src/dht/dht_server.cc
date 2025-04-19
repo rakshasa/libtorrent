@@ -27,13 +27,6 @@
 
 namespace torrent {
 
-const char* DhtServer::queries[] = {
-  "ping",
-  "find_node",
-  "get_peers",
-  "announce_peer",
-};
-
 // List of all possible keys we need/support in a DHT message.
 // Unsupported keys we receive are dropped (ignored) while decoding.
 // See torrent/object_static_map.h for how this works.
