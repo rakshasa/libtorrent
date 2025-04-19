@@ -343,8 +343,8 @@ public:
 };
 
 inline
-Object::Object(const Object& b) {
-  m_flags = b.m_flags & (mask_type | mask_public);
+Object::Object(const Object& b) :
+    m_flags(b.m_flags & (mask_type | mask_public)) {
 
   switch (type()) {
   case TYPE_NONE:
