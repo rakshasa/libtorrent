@@ -52,15 +52,15 @@ public:
   friend class PeerList;
   friend class ProtocolExtension;
 
-  static const int flag_connected = (1 << 0);
-  static const int flag_incoming  = (1 << 1);
-  static const int flag_handshake = (1 << 2);
-  static const int flag_blocked   = (1 << 3);   // For initial seeding.
-  static const int flag_restart   = (1 << 4);
-  static const int flag_unwanted  = (1 << 5);
-  static const int flag_preferred = (1 << 6);
+  static constexpr int flag_connected = (1 << 0);
+  static constexpr int flag_incoming  = (1 << 1);
+  static constexpr int flag_handshake = (1 << 2);
+  static constexpr int flag_blocked   = (1 << 3);   // For initial seeding.
+  static constexpr int flag_restart   = (1 << 4);
+  static constexpr int flag_unwanted  = (1 << 5);
+  static constexpr int flag_preferred = (1 << 6);
 
-  static const int mask_ip_table = flag_unwanted | flag_preferred;
+  static constexpr int mask_ip_table = flag_unwanted | flag_preferred;
 
   PeerInfo(const sockaddr* address);
   ~PeerInfo();
