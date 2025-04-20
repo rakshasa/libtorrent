@@ -32,6 +32,9 @@ Thread::Thread() :
 
   m_interrupt_sender = std::move(interrupt_sockets.first);
   m_interrupt_receiver = std::move(interrupt_sockets.second);
+
+  m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
 }
 
 Thread::~Thread() {
@@ -179,10 +182,6 @@ Thread::event_loop() {
 
 void
 Thread::init_thread_local() {
-  m_self = this;
-  m_thread = pthread_self();
-  m_thread_id = std::this_thread::get_id();
-
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(name());
 #elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
@@ -190,7 +189,15 @@ Thread::init_thread_local() {
   pthread_setname_np(pthread_self(), name());
 #endif
 
-  m_signal_bitfield.handover(std::this_thread::get_id());
+  m_self = this;
+  m_thread = pthread_self();
+  m_thread_id = std::this_thread::get_id();
+
+  m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
+  m_scheduler->set_thread_id(m_thread_id);
+
+  m_signal_bitfield.handover(m_thread_id);
 
   if (m_resolver)
     m_resolver->init();
@@ -204,11 +211,15 @@ Thread::init_thread_local() {
 void
 Thread::process_events() {
   m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
+
   call_events();
 
   m_signal_bitfield.work();
 
   m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
+
   m_scheduler->perform(m_cached_time);
 }
 

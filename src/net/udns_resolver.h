@@ -4,9 +4,9 @@
 #include <map>
 #include <mutex>
 
-#include "rak/priority_queue_default.h"
 #include "torrent/event.h"
 #include "torrent/net/types.h"
+#include "torrent/utils/scheduler.h"
 
 struct dns_ctx;
 struct dns_query;
@@ -70,8 +70,8 @@ protected:
 
   static bool         m_initialized;
 
-  ::dns_ctx*          m_ctx{nullptr};
-  rak::priority_item  m_task_timeout;
+  ::dns_ctx*            m_ctx{nullptr};
+  utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;
   query_map           m_queries;

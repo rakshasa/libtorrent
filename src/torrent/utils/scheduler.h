@@ -1,6 +1,7 @@
 #ifndef TORRENT_UTILS_SCHEDULER_H
 #define TORRENT_UTILS_SCHEDULER_H
 
+#include <thread>
 #include <torrent/common.h>
 #include <torrent/utils/chrono.h>
 
@@ -17,20 +18,33 @@ public:
   using base_type::empty;
   using base_type::clear;
 
-  Scheduler() = default;
   ~Scheduler() = default;
-
-  void perform(time_type time);
 
   // time_type is milliseconds since unix epoch.
 
-  void insert(SchedulerEntry* entry, time_type time);
-  void erase(SchedulerEntry* entry);
-  void update(SchedulerEntry* entry, time_type time);
+  void                insert_time(SchedulerEntry* entry, time_type time);
+  void                insert_after(SchedulerEntry* entry, time_type time);
+
+  void                erase(SchedulerEntry* entry);
+
+  void                update_time(SchedulerEntry* entry, time_type time);
+  void                update_after(SchedulerEntry* entry, time_type time);
+  void                update_after_ceil_seconds(SchedulerEntry* entry, time_type time);
+
+protected:
+  friend class Thread;
+
+  void                perform(time_type time);
+
+  void                set_thread_id(std::thread::id id) { m_thread_id = id; }
+  void                set_cached_time(time_type t)      { m_cached_time = t; }
 
 private:
-  void make_heap();
-  void push_heap();
+  void                make_heap();
+  void                push_heap();
+
+  std::atomic<std::thread::id> m_thread_id{};
+  time_type                    m_cached_time{};
 };
 
 class LIBTORRENT_EXPORT SchedulerEntry {
