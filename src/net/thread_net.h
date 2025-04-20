@@ -27,7 +27,7 @@ protected:
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 
-  UdnsResolver*       udns() const { return m_udns.get(); }
+  UdnsResolver*             udns() const    { return m_udns.get(); }
 
 private:
   static ThreadNet*             m_thread_net;

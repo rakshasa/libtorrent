@@ -14,6 +14,7 @@
 #include "torrent/net/resolver.h"
 #include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
 
 namespace torrent::utils {
@@ -22,7 +23,8 @@ thread_local Thread*     Thread::m_self{nullptr};
 Thread::global_lock_type Thread::m_global;
 
 Thread::Thread() :
-  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL)
+  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+  m_scheduler(std::make_unique<Scheduler>())
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
 
@@ -137,15 +139,13 @@ Thread::event_loop() {
     m_poll->insert_read(m_interrupt_receiver.get());
 
     while (true) {
-      call_events();
-      signal_bitfield()->work();
+      process_events();
 
       m_flags |= flag_polling;
 
-      // Call again after setting flag_polling to ensure we process
-      // any events set while it was working.
-      call_events();
-      signal_bitfield()->work();
+      // Call again after setting flag_polling to ensure we process any events that have
+      // race-conditions with flag_polling.
+      process_events();
 
       auto timeout = next_timeout();
 
@@ -201,6 +201,18 @@ Thread::init_thread_local() {
     throw internal_error("Thread::init_thread_local() : " + std::string(name()) + " : called on an object that is not in the initialized state.");
 }
 
+void
+Thread::process_events() {
+  m_cached_time = time_since_epoch();
+  call_events();
+
+  m_signal_bitfield.work();
+
+  m_cached_time = time_since_epoch();
+  m_scheduler->perform(m_cached_time);
+}
+
+// TODO: This should be called in event_loop or process_events.
 void
 Thread::process_callbacks() {
   while (true) {

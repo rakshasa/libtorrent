@@ -39,6 +39,7 @@ public:
 
   // TODO: Should we clear m_self after event_loop ends?
   static Thread*      self();
+  virtual const char* name() const = 0;
 
   bool                is_initialized() const { return state() == STATE_INITIALIZED; }
   bool                is_active()      const { return state() == STATE_ACTIVE; }
@@ -50,16 +51,17 @@ public:
   bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
   bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
 
-  state_type          state() const { return m_state; }
-  int                 flags() const { return m_flags; }
-
-  virtual const char* name() const = 0;
-
   pthread_t           pthread()         { return m_thread; }
   std::thread::id     thread_id()       { return m_thread_id; }
 
+  state_type          state() const { return m_state; }
+  int                 flags() const { return m_flags; }
+
+  auto                cached_time() const  { return m_cached_time.load(); }
+
   Poll*                  poll()            { return m_poll.get(); }
   net::Resolver*         resolver()        { return m_resolver.get(); }
+  Scheduler*             scheduler()       { return m_scheduler.get(); }
   class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
 
   virtual void        init_thread() = 0;
@@ -105,6 +107,7 @@ protected:
   virtual void                      call_events() = 0;
   virtual std::chrono::microseconds next_timeout() = 0;
 
+  void                process_events();
   void                process_callbacks();
 
   static thread_local Thread*  m_self;
@@ -116,10 +119,14 @@ protected:
   std::atomic<state_type>      m_state{STATE_UNKNOWN};
   std::atomic_int              m_flags{0};
 
+  // TODO: Make it so only thread_this can access m_cached_time.
+  std::atomic<std::chrono::microseconds> m_cached_time;
+
   int                          m_instrumentation_index;
 
   std::unique_ptr<Poll>             m_poll;
   std::unique_ptr<net::Resolver>    m_resolver;
+  std::unique_ptr<Scheduler>        m_scheduler;
   class signal_bitfield             m_signal_bitfield;
 
   std::unique_ptr<thread_interrupt> m_interrupt_sender;
