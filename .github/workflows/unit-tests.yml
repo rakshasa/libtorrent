@@ -114,7 +114,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ['x86_64', 'x86']
+        platform: ['x86_64', 'x86', 's390x']
     defaults:
       run:
         shell: alpine.sh {0}
