@@ -1,7 +1,9 @@
 #ifndef TORRENT_UTILS_SCHEDULER_H
 #define TORRENT_UTILS_SCHEDULER_H
 
+#include <atomic>
 #include <thread>
+#include <vector>
 #include <torrent/common.h>
 #include <torrent/utils/chrono.h>
 
