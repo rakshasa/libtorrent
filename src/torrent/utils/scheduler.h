@@ -2,6 +2,7 @@
 #define TORRENT_UTILS_SCHEDULER_H
 
 #include <atomic>
+#include <functional>
 #include <thread>
 #include <vector>
 #include <torrent/common.h>
