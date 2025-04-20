@@ -3,6 +3,7 @@
 
 #include <map>
 #include <mutex>
+#include <string>
 
 #include "torrent/event.h"
 #include "torrent/net/types.h"
