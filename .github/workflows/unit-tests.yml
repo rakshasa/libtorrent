@@ -3,7 +3,7 @@ name: Unit tests
 on: pull_request
 
 jobs:
-  unit-tests:
+  Ubuntu:
     runs-on: ubuntu-22.04
     steps:
     - name: Prepare
@@ -12,10 +12,12 @@ jobs:
         sudo apt-get install -y libcppunit-dev
     - uses: actions/checkout@v4
     - name: Run
+      run: |
         autoreconf -fiv
         ./configure
         make
         make check
+
   MacOS:
     runs-on: macos-latest
     steps:
@@ -29,6 +31,7 @@ jobs:
           ./configure
           make
           make check
+
   DragonflyBSD:
     runs-on: ubuntu-latest
     steps:
@@ -42,6 +45,7 @@ jobs:
             ./configure
             make
 #            make check
+
   FreeBSD:
     runs-on: ubuntu-latest
     steps:
@@ -55,6 +59,7 @@ jobs:
             ./configure
             make
 #            make check
+
   NetBSD:
     runs-on: ubuntu-latest
     steps:
@@ -68,6 +73,7 @@ jobs:
             ./configure
             make
 #            make check
+
 #  OpenBSD:
 #    runs-on: ubuntu-latest
 #    steps:
@@ -81,6 +87,7 @@ jobs:
 #            ./configure
 #            make
 #            make check
+
   OmniOS:
     runs-on: ubuntu-latest
     steps:
@@ -94,6 +101,7 @@ jobs:
             ./configure
             make
 #            make check
+
   Alpine:
     runs-on: ubuntu-22.04
     strategy:
