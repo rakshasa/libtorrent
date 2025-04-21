@@ -17,9 +17,9 @@ inline utils::Thread* thread_self();
 
 // TODO: Add the other torrent threads as namespaces.
 namespace torrent::this_thread {
-Poll*             poll();
-net::Resolver*    resolver();
-utils::Scheduler* scheduler();
+Poll*             poll() LIBTORRENT_EXPORT;
+net::Resolver*    resolver() LIBTORRENT_EXPORT;
+utils::Scheduler* scheduler() LIBTORRENT_EXPORT;
 // TODO: Add callbacks.
 }
 

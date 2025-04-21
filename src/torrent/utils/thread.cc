@@ -261,8 +261,8 @@ Thread::process_callbacks() {
 
 namespace torrent::this_thread {
 
-Poll*             poll()      { return utils::ThreadInternal::poll(); }
-net::Resolver*    resolver()  { return utils::ThreadInternal::resolver(); }
-utils::Scheduler* scheduler() { return utils::ThreadInternal::scheduler(); }
+LIBTORRENT_EXPORT Poll*             poll()      { return utils::ThreadInternal::poll(); }
+LIBTORRENT_EXPORT net::Resolver*    resolver()  { return utils::ThreadInternal::resolver(); }
+LIBTORRENT_EXPORT utils::Scheduler* scheduler() { return utils::ThreadInternal::scheduler(); }
 
 }
