@@ -61,7 +61,7 @@ UdnsResolver::UdnsResolver() {
 }
 
 UdnsResolver::~UdnsResolver() {
-  priority_queue_erase(&taskScheduler, &m_task_timeout);
+  utils::Thread::self()->scheduler()->erase(&m_task_timeout);
 
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
@@ -239,7 +239,7 @@ UdnsResolver::process_timeouts() {
   thread_self()->poll()->insert_read(this);
   thread_self()->poll()->insert_error(this);
 
-  priority_queue_update(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(timeout)).round_seconds());
+  utils::Thread::self()->scheduler()->update_after_ceil_seconds(&m_task_timeout, timeout * 1s);
 }
 
 void

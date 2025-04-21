@@ -90,6 +90,8 @@ libtorrent_torrent_la_SOURCES = \
 	utils/ranges.h \
 	utils/resume.cc \
 	utils/resume.h \
+	utils/scheduler.cc \
+	utils/scheduler.h \
 	utils/signal_bitfield.cc \
 	utils/signal_bitfield.h \
 	utils/thread.cc \
@@ -210,6 +212,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/option_strings.h \
 	utils/ranges.h \
 	utils/resume.h \
+	utils/scheduler.h \
 	utils/signal_bitfield.h \
 	utils/thread.h \
 	utils/thread_interrupt.h \

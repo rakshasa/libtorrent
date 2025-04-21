@@ -86,6 +86,8 @@ class Tracker;
 }
 
 namespace utils {
+class Scheduler;
+class SchedulerEntry;
 class Thread;
 }
 
