@@ -147,6 +147,8 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
 
 void
 TrackerHttp::send_scrape() {
+
+  // TODO: Check that this is enough of a check.
   if (m_data != nullptr)
     return;
 
@@ -289,6 +291,9 @@ TrackerHttp::receive_signal_failed(const std::string& msg) {
 
 void
 TrackerHttp::receive_failed(const std::string& msg) {
+  if (m_data == nullptr)
+    throw internal_error("TrackerHttp::receive_failed() called on an invalid object");
+
   LT_LOG("received failure : msg:%s", msg.c_str());
 
   if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {

@@ -22,6 +22,13 @@ namespace torrent::utils {
 thread_local Thread*     Thread::m_self{nullptr};
 Thread::global_lock_type Thread::m_global;
 
+class ThreadInternal {
+public:
+  static Poll*          poll()      { return Thread::m_self->m_poll.get(); }
+  static Scheduler*     scheduler() { return Thread::m_self->m_scheduler.get(); }
+  static net::Resolver* resolver()  { return Thread::m_self->m_resolver.get(); }
+};
+
 Thread::Thread() :
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
   m_scheduler(std::make_unique<Scheduler>())
@@ -249,5 +256,13 @@ Thread::process_callbacks() {
     m_callbacks_processing_lock.unlock();
   }
 }
+
+}
+
+namespace torrent::this_thread {
+
+Poll*             poll()      { return utils::ThreadInternal::poll(); }
+net::Resolver*    resolver()  { return utils::ThreadInternal::resolver(); }
+utils::Scheduler* scheduler() { return utils::ThreadInternal::scheduler(); }
 
 }
