@@ -123,12 +123,16 @@ sa_is_port_any(const sockaddr* sa) {
 size_t
 sa_length(const sockaddr* sa) {
   switch(sa->sa_family) {
+  case AF_UNSPEC:
+    return sizeof(sockaddr);
   case AF_INET:
     return sizeof(sockaddr_in);
   case AF_INET6:
     return sizeof(sockaddr_in6);
+  case AF_UNIX:
+    return sizeof(sockaddr_un);
   default:
-    return sizeof(sockaddr);
+    throw internal_error("torrent::sa_length: sockaddr is not a valid family");
   }
 }
 
