@@ -99,7 +99,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
 #elif defined(USE_POSIX_FALLOCATE)
   if (flags & flag_fallocate && flags & flag_fallocate_blocking) {
     if (posix_fallocate(m_fd, 0, size) == -1) {
-      LT_LOG_INFO("posix_fallocate failed : %s", strerror(errno));
+      LT_LOG_ERROR("posix_fallocate failed : %s", strerror(errno));
       return false;
     }
   }
@@ -121,7 +121,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
 //       throw internal_error("hack: fcntl failed" + std::string(strerror(errno)));
 
     if (fcntl(m_fd, F_PREALLOCATE, &fstore) == -1)
-      LT_LOG_INFO("fcntl(,F_PREALLOCATE,) failed : %s", strerror(errno));
+      LT_LOG_ERROR("fcntl(,F_PREALLOCATE,) failed : %s", strerror(errno));
 
     return true;
   }
