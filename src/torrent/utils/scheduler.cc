@@ -148,6 +148,7 @@ Scheduler::perform(Scheduler::time_type current_time) {
     std::pop_heap(begin(), end(), [](const SchedulerEntry* a, const SchedulerEntry* b) {
         return a->time() > b->time();
       });
+    base_type::pop_back();
 
     entry->set_scheduler(nullptr);
     entry->set_time(Scheduler::time_type{});
