@@ -2,6 +2,7 @@
 
 #include "torrent/utils/scheduler.h"
 
+#include <algorithm>
 #include <cassert>
 
 #include "torrent/exceptions.h"
