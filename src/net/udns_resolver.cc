@@ -61,7 +61,7 @@ UdnsResolver::UdnsResolver() {
 }
 
 UdnsResolver::~UdnsResolver() {
-  utils::Thread::self()->scheduler()->erase(&m_task_timeout);
+  this_thread::scheduler()->erase(&m_task_timeout);
 
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
@@ -239,7 +239,7 @@ UdnsResolver::process_timeouts() {
   thread_self()->poll()->insert_read(this);
   thread_self()->poll()->insert_error(this);
 
-  utils::Thread::self()->scheduler()->update_after_ceil_seconds(&m_task_timeout, timeout * 1s);
+  this_thread::scheduler()->update_for_ceil_seconds(&m_task_timeout, timeout * 1s);
 }
 
 void

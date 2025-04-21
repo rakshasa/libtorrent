@@ -105,8 +105,6 @@ DhtRouter::~DhtRouter() {
 
   for (auto& node : m_nodes)
     delete node.second;
-
-  thread_self()->resolver()->cancel(this);
 }
 
 void
@@ -122,6 +120,8 @@ DhtRouter::start(int port) {
 
 void
 DhtRouter::stop() {
+  this_thread::resolver()->cancel(this);
+
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
   m_server.stop();
 }
@@ -582,7 +582,7 @@ DhtRouter::bootstrap() {
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
     // Currently discarding SOCK_DGRAM.
-    thread_self()->resolver()->resolve_specific(this, m_contacts->back().first.c_str(), rak::socket_address::pf_inet, [this](auto sa, int) {
+    this_thread::resolver()->resolve_specific(this, m_contacts->back().first.c_str(), rak::socket_address::pf_inet, [this](auto sa, int) {
       if (sa != nullptr)
         contact(sa.get(), m_contacts->back().second);
     });

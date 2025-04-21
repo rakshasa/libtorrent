@@ -20,11 +20,15 @@
 
 namespace torrent::tracker {
 
-Manager::Manager(utils::Thread* main_thread) :
-  m_main_thread(main_thread) {
+Manager::Manager(utils::Thread* main_thread, utils::Thread* tracker_thread) :
+  m_main_thread(main_thread),
+  m_tracker_thread(tracker_thread) {
 
   if (m_main_thread == nullptr)
     throw internal_error("tracker::Manager::Manager(...) main_thread is null.");
+
+  if (m_tracker_thread == nullptr)
+    throw internal_error("tracker::Manager::Manager(...) tracker_thread is null.");
 }
 
 TrackerControllerWrapper
@@ -89,6 +93,7 @@ Manager::add_event(torrent::TrackerWorker* tracker_worker, std::function<void()>
 void
 Manager::remove_events(torrent::TrackerWorker* tracker_worker) {
   m_main_thread->cancel_callback_and_wait(tracker_worker);
+  m_tracker_thread->cancel_callback_and_wait(tracker_worker);
 }
 
 } // namespace torrent

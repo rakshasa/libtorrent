@@ -15,7 +15,17 @@ namespace torrent {
 inline utils::Thread* thread_self();
 }
 
+// TODO: Add the other torrent threads as namespaces.
+namespace torrent::this_thread {
+Poll*             poll();
+net::Resolver*    resolver();
+utils::Scheduler* scheduler();
+// TODO: Add callbacks.
+}
+
 namespace torrent::utils {
+
+class ThreadInternal;
 
 class LIBTORRENT_EXPORT Thread {
 public:
@@ -59,9 +69,11 @@ public:
 
   auto                cached_time() const  { return m_cached_time.load(); }
 
+  // Only call these from the same thread, or before start_thread.
+  //
+  // TODO: Move all to ThreadInternal.
   Poll*                  poll()            { return m_poll.get(); }
-  net::Resolver*         resolver()        { return m_resolver.get(); }
-  Scheduler*             scheduler()       { return m_scheduler.get(); }
+
   class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
 
   virtual void        init_thread() = 0;
@@ -97,10 +109,15 @@ public:
   void                event_loop();
 
 protected:
+  friend class ThreadInternal;
+
   struct global_lock_type {
     std::atomic_int waiting{0};
     std::mutex      mutex;
   };
+
+  net::Resolver*      resolver()  { return m_resolver.get(); }
+  Scheduler*          scheduler() { return m_scheduler.get(); }
 
   static void*        enter_event_loop(Thread* thread);
 

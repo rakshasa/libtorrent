@@ -31,7 +31,7 @@ public:
 
   tracker::Manager*   tracker_manager() { return m_tracker_manager.get(); }
 
-  void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
+  // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
 protected:
   friend class Manager;
@@ -43,7 +43,7 @@ private:
   ThreadTracker() = default;
   ~ThreadTracker() override;
 
-  void                process_send_events();
+  // void                process_send_events();
 
   static ThreadTracker*         m_thread_tracker;
 
@@ -51,8 +51,8 @@ private:
 
   unsigned int                  m_signal_send_event{~0u};
 
-  std::mutex                    m_send_events_lock;
-  std::vector<TrackerSendEvent> m_send_events;
+  // std::mutex                    m_send_events_lock;
+  // std::vector<TrackerSendEvent> m_send_events;
 };
 
 inline ThreadTracker* thread_tracker() {
