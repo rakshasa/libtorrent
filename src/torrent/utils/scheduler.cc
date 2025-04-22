@@ -33,20 +33,20 @@ Scheduler::push_heap() {
 }
 
 void
-Scheduler::insert_until(SchedulerEntry* entry, Scheduler::time_type time) {
+Scheduler::wait_until(SchedulerEntry* entry, Scheduler::time_type time) {
   assert(m_thread_id == std::thread::id() || m_thread_id == std::this_thread::get_id());
 
   if (time == Scheduler::time_type())
-    throw torrent::internal_error("Scheduler::insert(...) received a bad timer.");
+    throw torrent::internal_error("Scheduler::wait_until(...) received a bad timer.");
 
   if (time < Scheduler::time_type(365 * 24h))
-    throw torrent::internal_error("Scheduler::insert(...) received a too small timer.");
+    throw torrent::internal_error("Scheduler::wait_until(...) received a too small timer.");
 
   if (!entry->is_valid())
-    throw torrent::internal_error("Scheduler::insert(...) called on an invalid entry.");
+    throw torrent::internal_error("Scheduler::wait_until(...) called on an invalid entry.");
 
   if (entry->is_scheduled())
-    throw torrent::internal_error("Scheduler::insert(...) called on an already scheduled entry.");
+    throw torrent::internal_error("Scheduler::wait_until(...) called on an already scheduled entry.");
 
   entry->set_scheduler(this);
   entry->set_time(time);
@@ -56,11 +56,19 @@ Scheduler::insert_until(SchedulerEntry* entry, Scheduler::time_type time) {
 }
 
 void
-Scheduler::insert_for(SchedulerEntry* entry, Scheduler::time_type time) {
+Scheduler::wait_for(SchedulerEntry* entry, Scheduler::time_type time) {
   if (time > Scheduler::time_type(10 * 365 * 24h))
-    throw torrent::internal_error("Scheduler::insert_after(...) received a too large timer.");
+    throw torrent::internal_error("Scheduler::wait_after(...) received a too large timer.");
 
-  insert_until(entry, m_cached_time + time);
+  wait_until(entry, m_cached_time + time);
+}
+
+void
+Scheduler::wait_for_ceil_seconds(SchedulerEntry* entry, Scheduler::time_type time) {
+  if (time > Scheduler::time_type(10 * 365 * 24h))
+    throw torrent::internal_error("Scheduler::wait_after_ceil_seconds(...) received a too large timer.");
+
+  wait_until(entry, ceil_seconds(m_cached_time + time));
 }
 
 // We can't make erase/update part of SchedulerItem in case another thread tries to call the
@@ -96,21 +104,21 @@ Scheduler::erase(SchedulerEntry* entry) {
 }
 
 void
-Scheduler::update_until(SchedulerEntry* entry, Scheduler::time_type time) {
+Scheduler::update_wait_until(SchedulerEntry* entry, Scheduler::time_type time) {
   assert(m_thread_id == std::thread::id() || m_thread_id == std::this_thread::get_id());
 
   if (time == Scheduler::time_type())
-    throw torrent::internal_error("Scheduler::update(...) received a bad timer.");
+    throw torrent::internal_error("Scheduler::update_wait(...) received a bad timer.");
 
   if (time < Scheduler::time_type(365 * 24h))
-    throw torrent::internal_error("Scheduler::update(...) received a too small timer.");
+    throw torrent::internal_error("Scheduler::update_wait(...) received a too small timer.");
 
   if (!entry->is_valid())
-    throw torrent::internal_error("Scheduler::update(...) called on an invalid entry.");
+    throw torrent::internal_error("Scheduler::update_wait(...) called on an invalid entry.");
 
   if (entry->is_scheduled()) {
     if (entry->scheduler() != this)
-      throw torrent::internal_error("Scheduler::update(...) called on an entry that is in another scheduler.");
+      throw torrent::internal_error("Scheduler::update_wait(...) called on an entry that is in another scheduler.");
 
     entry->set_time(time);
     make_heap();
@@ -125,19 +133,19 @@ Scheduler::update_until(SchedulerEntry* entry, Scheduler::time_type time) {
 }
 
 void
-Scheduler::update_for(SchedulerEntry* entry, Scheduler::time_type time) {
+Scheduler::update_wait_for(SchedulerEntry* entry, Scheduler::time_type time) {
   if (time > Scheduler::time_type(10 * 365 * 24h))
-    throw torrent::internal_error("Scheduler::update_after(...) received a too large timer.");
+    throw torrent::internal_error("Scheduler::update_wait_after(...) received a too large timer.");
 
-  update_until(entry, m_cached_time + time);
+  update_wait_until(entry, m_cached_time + time);
 }
 
 void
-Scheduler::update_for_ceil_seconds(SchedulerEntry* entry, Scheduler::time_type time) {
+Scheduler::update_wait_for_ceil_seconds(SchedulerEntry* entry, Scheduler::time_type time) {
   if (time > Scheduler::time_type(10 * 365 * 24h))
-    throw torrent::internal_error("Scheduler::update_after_ceil_seconds(...) received a too large timer.");
+    throw torrent::internal_error("Scheduler::update_wait_after_ceil_seconds(...) received a too large timer.");
 
-  update_until(entry, ceil_seconds(m_cached_time + time));
+  update_wait_until(entry, ceil_seconds(m_cached_time + time));
 }
 
 void

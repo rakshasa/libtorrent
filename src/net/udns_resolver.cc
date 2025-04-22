@@ -239,7 +239,7 @@ UdnsResolver::process_timeouts() {
   thread_self()->poll()->insert_read(this);
   thread_self()->poll()->insert_error(this);
 
-  this_thread::scheduler()->update_for_ceil_seconds(&m_task_timeout, timeout * 1s);
+  this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, timeout * 1s);
 }
 
 void
