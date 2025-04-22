@@ -394,7 +394,7 @@ TrackerUdp::process_announce_output() {
     auto guard = lock_guard();
 
     state().set_normal_interval(m_read_buffer->read_32());
-    state().set_min_interval(tracker::TrackerState::default_min_interval);
+    state().set_min_interval(tracker::TrackerState::interval::default_min);
 
     state().m_scrape_incomplete = m_read_buffer->read_32(); // leechers
     state().m_scrape_complete   = m_read_buffer->read_32(); // seeders

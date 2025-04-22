@@ -24,11 +24,6 @@
 
 namespace torrent {
 
-const int ConnectionList::disconnect_available;
-const int ConnectionList::disconnect_quick;
-const int ConnectionList::disconnect_unwanted;
-const int ConnectionList::disconnect_delayed;
-
 ConnectionList::ConnectionList(DownloadMain* download) :
     m_download(download) {
 }
@@ -75,7 +70,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
 
   base_type::push_back(peerConnection);
 
-  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
+  m_download->info()->change_flags(DownloadInfo::flag::accepting_new_peers, size() < m_maxSize);
 
   ::utils::slot_list_call(m_signalConnected, peerConnection);
 
@@ -87,7 +82,7 @@ ConnectionList::erase(iterator pos, int flags) {
   if (pos < begin() || pos >= end())
     throw internal_error("ConnectionList::erase(...) iterator out or range.");
 
-  if (flags & disconnect_delayed) {
+  if (flags & disconnect::delayed) {
     m_disconnectQueue.push_back((*pos)->id());
 
     this_thread::scheduler()->update_wait_for(&m_download->delay_disconnect_peers(), 0us);
@@ -102,7 +97,7 @@ ConnectionList::erase(iterator pos, int flags) {
   *pos = base_type::back();
   base_type::pop_back();
 
-  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
+  m_download->info()->change_flags(DownloadInfo::flag::accepting_new_peers, size() < m_maxSize);
 
   ::utils::slot_list_call(m_signalDisconnected, peerConnection);
 
@@ -135,20 +130,20 @@ ConnectionList::erase(PeerInfo* peerInfo, int flags) {
 
 void
 ConnectionList::erase_remaining(iterator pos, int flags) {
-  flags |= disconnect_quick;
+  flags |= disconnect::quick;
 
   // Need to do it one connection at the time to ensure that when the
   // signal is emited everything is in a valid state.
   while (pos != end())
     erase(--end(), flags);
 
-  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
+  m_download->info()->change_flags(DownloadInfo::flag::accepting_new_peers, size() < m_maxSize);
 }
 
 void
 ConnectionList::erase_seeders() {
   erase_remaining(std::partition(begin(), end(), [](Peer* p) { return p->c_ptr()->is_not_seeder(); }),
-                  disconnect_unwanted);
+                  disconnect::unwanted);
 }
 
 void
@@ -218,7 +213,7 @@ ConnectionList::set_max_size(size_type v) {
     v = choke_queue::unlimited;
 
   m_maxSize = v;
-  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
+  m_download->info()->change_flags(DownloadInfo::flag::accepting_new_peers, size() < m_maxSize);
   //m_download->choke_group()->up_queue()->balance();
 }
 

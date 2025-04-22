@@ -274,7 +274,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
       // If PEX was disabled since the last peer exchange, deactivate it now.
       } else if (info()->is_pex_active()) {
-        info()->unset_flags(DownloadInfo::flag_pex_active);
+        info()->unset_flags(DownloadInfo::flag::pex_active);
 
         for (auto& connection : *m_main->connection_list())
           connection->m_ptr()->set_peer_exchange(false);
@@ -283,7 +283,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
     for (auto itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end();)
       if (!(*itr)->m_ptr()->receive_keepalive())
-        itr = m_main->connection_list()->erase(itr, ConnectionList::disconnect_available);
+        itr = m_main->connection_list()->erase(itr, ConnectionList::disconnect::available);
       else
         itr++;
   }
@@ -313,12 +313,12 @@ DownloadWrapper::receive_update_priorities() {
     {
       File::range_type range = file->range();
 
-      if (file->has_flags(File::flag_prioritize_first) && range.first != range.second) {
+      if (file->has_flags(File::flag::prioritize_first) && range.first != range.second) {
         data()->mutable_high_priority()->insert(range.first, range.first + 1);
         range.first++;
       }
 
-      if (file->has_flags(File::flag_prioritize_last) && range.first != range.second) {
+      if (file->has_flags(File::flag::prioritize_last) && range.first != range.second) {
         data()->mutable_high_priority()->insert(range.second - 1, range.second);
         range.second--;
       }

@@ -30,9 +30,11 @@ public:
     STATE_INACTIVE
   };
 
-  static constexpr int flag_do_shutdown  = 0x1;
-  static constexpr int flag_did_shutdown = 0x2;
-  static constexpr int flag_polling      = 0x4;
+  enum flag {
+    do_shutdown  = 0x1,
+    did_shutdown = 0x2,
+    polling      = 0x4,
+  };
 
   // The ctor and dtor are called outside of the thread, so thread-specific initialization and
   // destruction should be done in init_thread() and cleanup_thread() respectively.
@@ -50,8 +52,8 @@ public:
   bool                is_polling() const;
   bool                is_current() const;
 
-  bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
-  bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
+  bool                has_do_shutdown()  const { return (flags() & flag::do_shutdown); }
+  bool                has_did_shutdown() const { return (flags() & flag::did_shutdown); }
 
   pthread_t           pthread()            { return m_thread; }
   std::thread::id     thread_id()          { return m_thread_id; }
@@ -141,7 +143,7 @@ protected:
 
 inline bool
 Thread::is_polling() const {
-  return (flags() & flag_polling);
+  return (flags() & flag::polling);
 }
 
 inline bool

@@ -89,15 +89,15 @@ SocketFile::allocate(uint64_t size, int flags) const {
     throw internal_error("SocketFile::allocate() called on a closed file");
 
 #if defined(USE_FALLOCATE)
-  if (flags & flag_fallocate) {
-    if (fallocate(m_fd, 0, 0, size) == -1) {
+  if (flags & flag::fallocate) {
+    if (::fallocate(m_fd, 0, 0, size) == -1) {
       LT_LOG_ERROR("fallocate failed : %s", strerror(errno));
       return false;
     }
   }
 
 #elif defined(USE_POSIX_FALLOCATE)
-  if (flags & flag_fallocate && flags & flag_fallocate_blocking) {
+  if (flags & flag::fallocate && flags & flag::fallocate_blocking) {
     if (posix_fallocate(m_fd, 0, size) == -1) {
       LT_LOG_ERROR("posix_fallocate failed : %s", strerror(errno));
       return false;
@@ -105,7 +105,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
   }
 
 #elif defined(SYS_DARWIN)
-  if (flags & flag_fallocate) {
+  if (flags & flag::fallocate) {
     fstore_t fstore;
     fstore.fst_flags = F_ALLOCATECONTIG;
     fstore.fst_posmode = F_PEOFPOSMODE;

@@ -108,7 +108,7 @@ void
 HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* download, int encryption_options) {
   int connection_options = PeerList::connect_keep_handshakes;
 
-  if (!(encryption_options & ConnectionManager::encryption_retrying))
+  if (!(encryption_options & ConnectionManager::encryption::retrying))
     connection_options |= PeerList::connect_filter_recent;
 
   PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(), connection_options);
@@ -122,7 +122,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
 
   if (rak::socket_address::cast_from(manager->connection_manager()->proxy_address())->is_valid()) {
     connectAddress = rak::socket_address::cast_from(manager->connection_manager()->proxy_address());
-    encryption_options |= ConnectionManager::encryption_use_proxy;
+    encryption_options |= ConnectionManager::encryption::use_proxy;
   }
 
   if (!fd.open_stream() ||
@@ -139,9 +139,9 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
 
   int message;
 
-  if (encryption_options & ConnectionManager::encryption_use_proxy)
+  if (encryption_options & ConnectionManager::encryption::use_proxy)
     message = ConnectionManager::handshake_outgoing_proxy;
-  else if (encryption_options & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require))
+  else if (encryption_options & (ConnectionManager::encryption::try_outgoing | ConnectionManager::encryption::require))
     message = ConnectionManager::handshake_outgoing_encrypted;
   else
     message = ConnectionManager::handshake_outgoing;
@@ -227,11 +227,11 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   LT_LOG_SAP(sa, "Received error: message:%x %s.", message, strerror(error));
 
   if (handshake->encryption()->should_retry()) {
-    int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
+    int retry_options = handshake->retry_options() | ConnectionManager::encryption::retrying;
     DownloadMain* download = handshake->download();
 
     LT_LOG_SAP(sa, "Retrying %s.",
-              retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
+              retry_options & ConnectionManager::encryption::try_outgoing ? "encrypted" : "plaintext");
 
     rak::socket_address sa_copy;
     sa_copy.copy_sockaddr(sa.get());
@@ -257,7 +257,7 @@ HandshakeManager::setup_socket(SocketFd fd) {
 
   ConnectionManager* m = manager->connection_manager();
 
-  if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
+  if (m->priority() != ConnectionManager::iptos::def && !fd.set_priority(m->priority()))
     return false;
 
   if (m->send_buffer_size() != 0 && !fd.set_send_buffer_size(m->send_buffer_size()))

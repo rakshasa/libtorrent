@@ -55,10 +55,10 @@ Thread::start_thread() {
     usleep(100);
 }
 
-// Each thread needs to check flag_do_shutdown in call_events() and decide how to cleanly shut down.
+// Each thread needs to check flag::do_shutdown in call_events() and decide how to cleanly shut down.
 void
 Thread::stop_thread_wait() {
-  m_flags |= flag_do_shutdown;
+  m_flags |= flag::do_shutdown;
   interrupt();
 
   pthread_join(m_thread, NULL);
@@ -144,10 +144,10 @@ Thread::event_loop() {
     while (true) {
       process_events();
 
-      m_flags |= flag_polling;
+      m_flags |= flag::polling;
 
-      // Call again after setting flag_polling to ensure we process any events that have
-      // race-conditions with flag_polling.
+      // Call again after setting flag::polling to ensure we process any events that have
+      // race-conditions with flag::polling.
       process_events();
 
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
@@ -163,7 +163,7 @@ Thread::event_loop() {
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
 
-      m_flags &= ~flag_polling;
+      m_flags &= ~flag::polling;
     }
 
   } catch (shutdown_exception& e) {

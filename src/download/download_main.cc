@@ -128,7 +128,7 @@ DownloadMain::open(int flags) {
   m_chunkList->resize(file_list()->size_chunks());
   m_chunkStatistics->initialize(file_list()->size_chunks());
 
-  info()->set_flags(DownloadInfo::flag_open);
+  info()->set_flags(DownloadInfo::flag::open);
 }
 
 void
@@ -139,7 +139,7 @@ DownloadMain::close() {
   if (!info()->is_open())
     return;
 
-  info()->unset_flags(DownloadInfo::flag_open);
+  info()->unset_flags(DownloadInfo::flag::open);
 
   // Don't close the tracker manager here else it will cause STOPPED
   // requests to be lost. TODO: Check that this is valid.
@@ -174,7 +174,7 @@ void DownloadMain::start(int flags) {
   // flag_queued_create set.
   file_list()->open(false, (flags & ~FileList::open_no_create));
 
-  info()->set_flags(DownloadInfo::flag_active);
+  info()->set_flags(DownloadInfo::flag::active);
   chunk_list()->set_flags(ChunkList::flag_active);
 
   m_delegator.set_aggressive(false);
@@ -190,11 +190,11 @@ DownloadMain::stop() {
 
   // Set this early so functions like receive_connect_peers() knows
   // not to eat available peers.
-  info()->unset_flags(DownloadInfo::flag_active);
+  info()->unset_flags(DownloadInfo::flag::active);
   chunk_list()->unset_flags(ChunkList::flag_active);
 
   m_slot_stop_handshakes(this);
-  connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
+  connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect::available);
 
   m_initial_seeding.reset();
 
@@ -230,9 +230,9 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
 
   if (pcb_itr != m_connectionList->end()) {
     std::iter_swap(m_connectionList->begin(), pcb_itr);
-    m_connectionList->erase_remaining(m_connectionList->begin() + 1, ConnectionList::disconnect_available);
+    m_connectionList->erase_remaining(m_connectionList->begin() + 1, ConnectionList::disconnect::available);
   } else {
-    m_connectionList->erase_remaining(m_connectionList->begin(), ConnectionList::disconnect_available);
+    m_connectionList->erase_remaining(m_connectionList->begin(), ConnectionList::disconnect::available);
   }
 
   // Switch to normal seeding.
@@ -275,7 +275,7 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
   // That is... non at all ;)
 
   if (peerInfo->failed_counter() > HandshakeManager::max_failed)
-    connection_list()->erase(peerInfo, ConnectionList::disconnect_unwanted);
+    connection_list()->erase(peerInfo, ConnectionList::disconnect::unwanted);
 }
 
 void
@@ -345,7 +345,7 @@ DownloadMain::do_peer_exchange() {
   if (!m_info->is_pex_active() &&
       m_connectionList->size() < m_connectionList->min_size() / 2 &&
       m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
-    m_info->set_flags(DownloadInfo::flag_pex_active);
+    m_info->set_flags(DownloadInfo::flag::pex_active);
 
     // Only set PEX_ENABLE if we don't have max_size_pex set to zero.
     if (m_info->size_pex() < m_info->max_size_pex())
@@ -355,7 +355,7 @@ DownloadMain::do_peer_exchange() {
              m_connectionList->size() >= m_connectionList->min_size()) {
 //              m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
     togglePex = PeerConnectionBase::PEX_DISABLE;
-    m_info->unset_flags(DownloadInfo::flag_pex_active);
+    m_info->unset_flags(DownloadInfo::flag::pex_active);
   }
 
   // Return if we don't really want to do anything?

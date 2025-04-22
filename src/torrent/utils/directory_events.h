@@ -24,9 +24,11 @@ public:
   using wd_list     = std::vector<watch_descriptor>;
   using slot_string = watch_descriptor::slot_string;
 
-  static constexpr int flag_on_added   = 0x1;
-  static constexpr int flag_on_removed = 0x2;
-  static constexpr int flag_on_updated = 0x3;
+  enum flag_on {
+    added   = 0x1,
+    removed = 0x2,
+    updated = 0x3,
+  };
 
   directory_events() { m_fileDesc = -1; }
   ~directory_events() override = default;

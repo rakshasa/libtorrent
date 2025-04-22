@@ -33,16 +33,18 @@ public:
     STOPPED
   };
 
-  static constexpr int flag_open                = (1 << 0);
-  static constexpr int flag_active              = (1 << 1);
-  static constexpr int flag_accepting_new_peers = (1 << 3);
-  static constexpr int flag_accepting_seeders   = (1 << 4); // Only used during leeching.
-  static constexpr int flag_private             = (1 << 5);
-  static constexpr int flag_meta_download       = (1 << 6);
-  static constexpr int flag_pex_enabled         = (1 << 7);
-  static constexpr int flag_pex_active          = (1 << 8);
+  enum flag {
+    open                = (1 << 0),
+    active              = (1 << 1),
+    accepting_new_peers = (1 << 3),
+    accepting_seeders   = (1 << 4), // Only used during leeching.
+    priv                = (1 << 5),
+    meta_download       = (1 << 6),
+    pex_enabled         = (1 << 7),
+    pex_active          = (1 << 8),
+  };
 
-  static constexpr int public_flags = flag_accepting_seeders;
+  static constexpr int public_flags = flag::accepting_seeders;
 
   static constexpr uint32_t unlimited = ~uint32_t();
 
@@ -60,14 +62,14 @@ public:
   const HashString&   local_id() const                             { return m_local_id; }
   HashString&         mutable_local_id()                           { return m_local_id; }
 
-  bool                is_open() const                              { return m_flags & flag_open; }
-  bool                is_active() const                            { return m_flags & flag_active; }
-  bool                is_accepting_new_peers() const               { return m_flags & flag_accepting_new_peers; }
-  bool                is_accepting_seeders() const                 { return m_flags & flag_accepting_seeders; }
-  bool                is_private() const                           { return m_flags & flag_private; }
-  bool                is_meta_download() const                     { return m_flags & flag_meta_download; }
-  bool                is_pex_enabled() const                       { return m_flags & flag_pex_enabled; }
-  bool                is_pex_active() const                        { return m_flags & flag_pex_active; }
+  bool                is_open() const                              { return m_flags & flag::open; }
+  bool                is_active() const                            { return m_flags & flag::active; }
+  bool                is_accepting_new_peers() const               { return m_flags & flag::accepting_new_peers; }
+  bool                is_accepting_seeders() const                 { return m_flags & flag::accepting_seeders; }
+  bool                is_private() const                           { return m_flags & flag::priv; }
+  bool                is_meta_download() const                     { return m_flags & flag::meta_download; }
+  bool                is_pex_enabled() const                       { return m_flags & flag::pex_enabled; }
+  bool                is_pex_active() const                        { return m_flags & flag::pex_active; }
 
   int                 flags() const                                { return m_flags; }
 
@@ -79,8 +81,8 @@ public:
   void                public_unset_flags(int flags) const              { m_flags &= ~(flags & public_flags); }
   void                public_change_flags(int flags, bool state) const { if (state) public_set_flags(flags); else public_unset_flags(flags); }
 
-  void                set_private()                                { set_flags(flag_private); unset_flags(flag_pex_enabled); }
-  void                set_pex_enabled()                            { if (!is_private()) set_flags(flag_pex_enabled); }
+  void                set_private()                                { set_flags(flag::priv); unset_flags(flag::pex_enabled); }
+  void                set_pex_enabled()                            { if (!is_private()) set_flags(flag::pex_enabled); }
 
   const Rate*         up_rate() const                              { return &m_up_rate; }
   const Rate*         down_rate() const                            { return &m_down_rate; }
@@ -143,7 +145,7 @@ private:
   HashString          m_hash_obfuscated{HashString::new_zero()};
   HashString          m_local_id{HashString::new_zero()};
 
-  mutable int         m_flags{flag_accepting_new_peers | flag_accepting_seeders | flag_pex_enabled | flag_pex_active};
+  mutable int         m_flags{flag::accepting_new_peers | flag::accepting_seeders | flag::pex_enabled | flag::pex_active};
 
   mutable Rate        m_up_rate{60};
   mutable Rate        m_down_rate{60};

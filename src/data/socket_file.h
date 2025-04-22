@@ -20,8 +20,10 @@ public:
   static constexpr int o_truncate             = O_TRUNC;
   static constexpr int o_nonblock             = O_NONBLOCK;
 
-  static constexpr int flag_fallocate          = (1 << 0);
-  static constexpr int flag_fallocate_blocking = (1 << 1);
+  enum flag {
+    fallocate          = (1 << 0),
+    fallocate_blocking = (1 << 1),
+  };
 
   SocketFile() = default;
   ~SocketFile() = default;
