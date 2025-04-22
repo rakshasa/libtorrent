@@ -315,7 +315,7 @@ TrackerHttp::receive_done() {
 
   process_success(b);
 
-  if (m_requested_scrape)
+  if (m_requested_scrape && !is_busy())
     this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
@@ -348,7 +348,7 @@ TrackerHttp::receive_failed(const std::string& msg) {
 
   m_slot_failure(msg);
 
-  if (m_requested_scrape)
+  if (m_requested_scrape && !is_busy())
     this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
