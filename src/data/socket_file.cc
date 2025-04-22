@@ -12,7 +12,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
-#ifdef HAVE_FALLOCATE
+#ifdef USE_FALLOCATE
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -88,7 +88,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
   if (!is_open())
     throw internal_error("SocketFile::allocate() called on a closed file");
 
-#if defined(HAVE_FALLOCATE)
+#if defined(USE_FALLOCATE)
   if (flags & flag_fallocate) {
     if (fallocate(m_fd, 0, 0, size) == -1) {
       LT_LOG_ERROR("fallocate failed : %s", strerror(errno));
