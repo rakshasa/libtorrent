@@ -48,11 +48,11 @@ ThreadNet::call_events() {
   // lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
 
   // TODO: Consider moving this into timer events instead.
-  if ((m_flags & flag_do_shutdown)) {
-    if ((m_flags & flag_did_shutdown))
+  if ((m_flags & flag::do_shutdown)) {
+    if ((m_flags & flag::did_shutdown))
       throw internal_error("Already trigged shutdown.");
 
-    m_flags |= flag_did_shutdown;
+    m_flags |= flag::did_shutdown;
     throw shutdown_exception();
   }
 

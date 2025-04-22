@@ -94,7 +94,7 @@ DownloadConstructor::parse_info(const Object& b) {
   uint32_t chunkSize;
 
   if (b.has_key_value("meta_download") && b.get_key_value("meta_download"))
-    m_download->info()->set_flags(DownloadInfo::flag_meta_download);
+    m_download->info()->set_flags(DownloadInfo::flag::meta_download);
 
   if (m_download->info()->is_meta_download()) {
     if (b.get_key_string("pieces").length() != HashString::size_data)
@@ -279,7 +279,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
 
     if (object.has_key_string("attr")) {
       if (object.get_key_string("attr").find('p') != std::string::npos)
-        attr_flags |= File::flag_attr_padding;
+        attr_flags |= File::flag::attr_padding;
     }
 
     split_list.emplace_back(length, choose_path(&path_list), attr_flags);

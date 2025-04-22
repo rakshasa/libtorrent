@@ -56,15 +56,15 @@ constexpr option_pair option_list_heuristics_upload[] = {
 };
 
 constexpr option_pair option_list_encryption[] = {
-  { "none",             torrent::ConnectionManager::encryption_none },
-  { "allow_incoming",   torrent::ConnectionManager::encryption_allow_incoming },
-  { "try_outgoing",     torrent::ConnectionManager::encryption_try_outgoing },
-  { "require",          torrent::ConnectionManager::encryption_require },
-  { "require_RC4",      torrent::ConnectionManager::encryption_require_RC4 },
-  { "require_rc4",      torrent::ConnectionManager::encryption_require_RC4 },
-  { "enable_retry",     torrent::ConnectionManager::encryption_enable_retry },
-  { "prefer_plaintext", torrent::ConnectionManager::encryption_prefer_plaintext },
-  { NULL, 0 }
+  { "none",             torrent::ConnectionManager::encryption::none },
+  { "allow_incoming",   torrent::ConnectionManager::encryption::allow_incoming },
+  { "try_outgoing",     torrent::ConnectionManager::encryption::try_outgoing },
+  { "require",          torrent::ConnectionManager::encryption::require },
+  { "require_RC4",      torrent::ConnectionManager::encryption::require_RC4 },
+  { "require_rc4",      torrent::ConnectionManager::encryption::require_RC4 },
+  { "enable_retry",     torrent::ConnectionManager::encryption::enable_retry },
+  { "prefer_plaintext", torrent::ConnectionManager::encryption::prefer_plaintext },
+  { nullptr, 0 }
 };
 
 constexpr option_pair option_list_ip_filter[] = {
@@ -74,12 +74,12 @@ constexpr option_pair option_list_ip_filter[] = {
 };
 
 constexpr option_pair option_list_ip_tos[] = {
-  { "default",     torrent::ConnectionManager::iptos_default },
-  { "lowdelay",    torrent::ConnectionManager::iptos_lowdelay },
-  { "throughput",  torrent::ConnectionManager::iptos_throughput },
-  { "reliability", torrent::ConnectionManager::iptos_reliability },
-  { "mincost",     torrent::ConnectionManager::iptos_mincost },
-  { NULL, 0 }
+  { "default",     torrent::ConnectionManager::iptos::def },
+  { "lowdelay",    torrent::ConnectionManager::iptos::lowdelay },
+  { "throughput",  torrent::ConnectionManager::iptos::throughput },
+  { "reliability", torrent::ConnectionManager::iptos::reliability },
+  { "mincost",     torrent::ConnectionManager::iptos::mincost },
+  { nullptr, 0 }
 };
 
 constexpr option_pair option_list_tracker_mode[] = {

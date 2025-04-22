@@ -385,12 +385,12 @@ TrackerHttp::process_success(const Object& object) {
     if (object.has_key_value("interval"))
       state().set_normal_interval(object.get_key_value("interval"));
     else
-      state().set_normal_interval(tracker::TrackerState::default_normal_interval);
+      state().set_normal_interval(tracker::TrackerState::interval::default_normal);
 
     if (object.has_key_value("min interval"))
       state().set_min_interval(object.get_key_value("min interval"));
     else
-      state().set_min_interval(tracker::TrackerState::default_min_interval);
+      state().set_min_interval(tracker::TrackerState::interval::default_min);
 
     if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
       state().m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);

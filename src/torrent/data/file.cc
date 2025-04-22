@@ -14,17 +14,6 @@
 
 namespace torrent {
 
-const int File::flag_active;
-const int File::flag_create_queued;
-const int File::flag_resize_queued;
-const int File::flag_fallocate;
-const int File::flag_previously_created;
-
-const int File::flag_prioritize_first;
-const int File::flag_prioritize_last;
-
-const int File::flag_attr_padding;
-
 File::~File() {
   assert((is_padding() || !is_open()) && "File::~File() called on an open file.");
 }
@@ -71,7 +60,7 @@ File::prepare(int prot, int flags) {
 
   m_last_touched = this_thread::cached_time().count();
 
-  // Check if we got write protection and flag_resize_queued is
+  // Check if we got write protection and flag::resize_queued is
   // set. If so don't quit as we need to try re-sizing, instead call
   // resize_file.
 
@@ -79,7 +68,7 @@ File::prepare(int prot, int flags) {
     return true;
 
   // For now don't allow overridding this check in prepare.
-  if (m_flags & flag_create_queued)
+  if (m_flags & flag::create_queued)
     flags |= SocketFile::o_create;
   else
     flags &= ~SocketFile::o_create;
@@ -87,12 +76,12 @@ File::prepare(int prot, int flags) {
   if (!manager->file_manager()->open(this, prot, flags))
     return false;
 
-  m_flags |= flag_previously_created;
-  m_flags &= ~flag_create_queued;
+  m_flags |= flag::previously_created;
+  m_flags &= ~flag::create_queued;
 
   // Replace PROT_WRITE with something prettier.
-  if ((m_flags & flag_resize_queued) && has_permissions(PROT_WRITE)) {
-    m_flags &= ~flag_resize_queued;
+  if ((m_flags & flag::resize_queued) && has_permissions(PROT_WRITE)) {
+    m_flags &= ~flag::resize_queued;
     return resize_file();
   }
 
@@ -141,9 +130,9 @@ File::resize_file() {
   if (!SocketFile(m_fd).set_size(m_size))
     return false;
 
-  if (m_flags & flag_fallocate) {
+  if (m_flags & flag::fallocate) {
     // Only do non-blocking fallocate.
-    if (!SocketFile(m_fd).allocate(m_size, SocketFile::flag_fallocate))
+    if (!SocketFile(m_fd).allocate(m_size, SocketFile::flag::fallocate))
       return false;
   }
 

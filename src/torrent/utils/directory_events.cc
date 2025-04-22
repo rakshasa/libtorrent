@@ -75,13 +75,13 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   in_flags |= IN_ONLYDIR;
 #endif
 
-  if ((flags & flag_on_added))
+  if ((flags & flag_on::added))
     in_flags |= (IN_CREATE | IN_MOVED_TO);
 
-  if ((flags & flag_on_updated))
+  if ((flags & flag_on::updated))
     in_flags |= IN_CLOSE_WRITE;
 
-  if ((flags & flag_on_removed))
+  if ((flags & flag_on::removed))
     in_flags |= (IN_DELETE | IN_MOVED_FROM);
 
   int result = inotify_add_watch(m_fileDesc, path.c_str(), in_flags);
