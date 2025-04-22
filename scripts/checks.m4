@@ -176,7 +176,7 @@ AC_DEFUN([TORRENT_CHECK_FALLOCATE], [
                #include <fcntl.h>
               ]], [[ fallocate(0, FALLOC_FL_KEEP_SIZE, 0, 0); return 0;
               ]])],[
-      AC_DEFINE(HAVE_FALLOCATE, 1, Linux's fallocate supported.)
+      AC_DEFINE(USE_FALLOCATE, 1, Linux's fallocate supported.)
       AC_MSG_RESULT(yes)
     ],[
       AC_MSG_RESULT(no)
