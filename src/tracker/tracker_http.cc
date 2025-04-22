@@ -17,9 +17,9 @@
 #include "torrent/net/utils.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/object_stream.h"
-#include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/thread.h"
 #include "torrent/utils/uri_parser.h"
 
 #include "globals.h"
@@ -43,6 +43,8 @@ TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags) :
 
   m_get->signal_done().emplace_back([this] { receive_done(); });
   m_get->signal_failed().emplace_back([this](const auto& str) { receive_signal_failed(str); });
+
+  m_delay_scrape.slot() = [this] { delayed_send_scrape(); };
 }
 
 bool
@@ -66,6 +68,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   LT_LOG("sending event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
 
   close_directly();
+  this_thread::scheduler()->erase(&m_delay_scrape);
 
   lock_and_set_latest_event(new_state);
 
@@ -147,12 +150,33 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
 
 void
 TrackerHttp::send_scrape() {
-
-  // TODO: Check that this is enough of a check.
-  if (m_data != nullptr)
+  if (m_requested_scrape) {
+    LT_LOG("scrape already requested : url:%s", info().url.c_str());
     return;
+  }
 
-  LT_LOG("sending scrape : url:%s", info().url.c_str());
+  m_requested_scrape = true;
+
+  if (is_busy()) {
+    LT_LOG("scrape requested, but tracker is busy : url:%s", info().url.c_str());
+    return;
+  }
+
+  LT_LOG("scrape requested : url:%s", info().url.c_str());
+
+  this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
+}
+
+// We delay scrape for 10 seconds after any tracker activity to ensure all callbacks are process
+// before starting.
+void
+TrackerHttp::delayed_send_scrape() {
+  if (is_busy())
+    throw internal_error("TrackerHttp::delayed_send_scrape() called while busy");
+
+  LT_LOG("sending delayed scrape request : url:%s", info().url.c_str());
+
+  close_directly();
 
   lock_and_set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
 
@@ -179,6 +203,9 @@ TrackerHttp::close() {
   LT_LOG("closing event : state:%s url:%s",
          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
+  this_thread::scheduler()->erase(&m_delay_scrape);
+  m_requested_scrape = false;
+
   close_directly();
 }
 
@@ -186,6 +213,9 @@ TrackerHttp::close() {
 
 void
 TrackerHttp::disown() {
+  this_thread::scheduler()->erase(&m_delay_scrape);
+  m_requested_scrape = false;
+
   if (m_data == nullptr) {
     LT_LOG("disowning tracker (already closed) : state:%s url:%s",
            option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
@@ -277,15 +307,22 @@ TrackerHttp::receive_done() {
 
   // If no failures, set intervals to defaults prior to processing
 
-  if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE)
+  if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE) {
+    m_requested_scrape = false;
     process_scrape(b);
-  else
-    process_success(b);
+    return;
+  }
+
+  process_success(b);
+
+  if (m_requested_scrape)
+    this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
 void
 TrackerHttp::receive_signal_failed(const std::string& msg) {
   lock_and_clear_intervals();
+
   return receive_failed(msg);
 }
 
@@ -303,10 +340,16 @@ TrackerHttp::receive_failed(const std::string& msg) {
 
   close_directly();
 
-  if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE)
+  if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE) {
+    m_requested_scrape = false;
     m_slot_scrape_failure(msg);
-  else
-    m_slot_failure(msg);
+    return;
+  }
+
+  m_slot_failure(msg);
+
+  if (m_requested_scrape)
+    this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
 void

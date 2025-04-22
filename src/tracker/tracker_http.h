@@ -5,8 +5,9 @@
 #include <memory>
 
 #include "torrent/object.h"
-#include "torrent/tracker/tracker_state.h"
 #include "tracker/tracker_worker.h"
+#include "torrent/tracker/tracker_state.h"
+#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -32,6 +33,8 @@ private:
 
   void                request_prefix(std::stringstream* stream, const std::string& url);
 
+  void                delayed_send_scrape();
+
   void                receive_done();
   void                receive_signal_failed(const std::string& msg);
   void                receive_failed(const std::string& msg);
@@ -45,8 +48,11 @@ private:
   std::unique_ptr<Http>              m_get;
   std::unique_ptr<std::stringstream> m_data;
 
-  bool                m_drop_deliminator;
-  std::string         m_current_tracker_id;
+  bool                  m_drop_deliminator;
+  std::string           m_current_tracker_id;
+
+  bool                  m_requested_scrape;
+  utils::SchedulerEntry m_delay_scrape;
 };
 
 }

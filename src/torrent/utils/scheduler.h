@@ -25,14 +25,15 @@ public:
 
   // time_type is milliseconds since unix epoch.
 
-  void                insert_until(SchedulerEntry* entry, time_type time);
-  void                insert_for(SchedulerEntry* entry, time_type time);
+  void                wait_until(SchedulerEntry* entry, time_type time);
+  void                wait_for(SchedulerEntry* entry, time_type time);
+  void                wait_for_ceil_seconds(SchedulerEntry* entry, time_type time);
 
   void                erase(SchedulerEntry* entry);
 
-  void                update_until(SchedulerEntry* entry, time_type time);
-  void                update_for(SchedulerEntry* entry, time_type time);
-  void                update_for_ceil_seconds(SchedulerEntry* entry, time_type time);
+  void                update_wait_until(SchedulerEntry* entry, time_type time);
+  void                update_wait_for(SchedulerEntry* entry, time_type time);
+  void                update_wait_for_ceil_seconds(SchedulerEntry* entry, time_type time);
 
 protected:
   friend class Thread;
