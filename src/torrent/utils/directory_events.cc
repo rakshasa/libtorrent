@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <algorithm>
 
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
 #include <sys/inotify.h>
 #endif
 
@@ -26,7 +26,7 @@ directory_events::open() {
 
   rak::error_number::current().clear_global();
 
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
   m_fileDesc = inotify_init();
 
   if (!SocketFd(m_fileDesc).set_nonblock()) {
@@ -64,7 +64,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   if (path.empty())
     throw input_error("Cannot add notification event for empty paths.");
 
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
   int in_flags = IN_MASK_ADD;
 
 #ifdef IN_EXCL_UNLINK
@@ -101,7 +101,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
 
 void
 directory_events::event_read() {
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
   char buffer[2048];
   int result = ::read(m_fileDesc, buffer, 2048);
 
