@@ -30,20 +30,23 @@ public:
   test_thread();
   ~test_thread() override;
 
-  int     test_state() const { return m_test_state; }
+  int                 test_state() const                 { return m_test_state; }
 
-  bool    is_state(int state) const { return m_state == state; }
-  bool    is_test_state(int state) const { return m_test_state == state; }
-  bool    is_test_flags(int flags) const { return (m_test_flags & flags) == flags; }
-  bool    is_not_test_flags(int flags) const { return !(m_test_flags & flags); }
+  bool                is_state(int state) const          { return m_state == state; }
+  bool                is_test_state(int state) const     { return m_test_state == state; }
+  bool                is_test_flags(int flags) const     { return (m_test_flags & flags) == flags; }
+  bool                is_not_test_flags(int flags) const { return !(m_test_flags & flags); }
 
-  auto    name() const -> const char* override { return "test_thread"; }
+  // Loop count increments twice each loop.
+  int                 loop_count() const                 { return m_loop_count; }
 
-  void    init_thread() override;
+  const char*         name() const override              { return "test_thread"; }
 
-  void    set_pre_stop() { m_test_flags |= test_flag_pre_stop; }
-  void    set_acquire_global() { m_test_flags |= test_flag_acquire_global; }
-  void    set_test_flag(int flags) { m_test_flags |= flags; }
+  void                init_thread() override;
+
+  void                set_pre_stop()           { m_test_flags |= test_flag_pre_stop; }
+  void                set_acquire_global()     { m_test_flags |= test_flag_acquire_global; }
+  void                set_test_flag(int flags) { m_test_flags |= flags; }
 
 private:
 
@@ -52,6 +55,7 @@ private:
 
   std::atomic_int m_test_state;
   std::atomic_int m_test_flags;
+  std::atomic_int m_loop_count{0};
 };
 
 struct thread_management_type {
@@ -60,6 +64,9 @@ struct thread_management_type {
 };
 
 void set_create_poll();
+
+// TODO: Need better cleanup here.
+// TODO: Replace these with class that holds the threads and cleans them up on destruction.
 
 #define SETUP_THREAD_DISK()                                             \
   thread_management_type thread_management;                             \

@@ -7,7 +7,8 @@
 
 #include "data/thread_disk.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll_select.h"
+#include "torrent/poll_epoll.h"
+#include "torrent/poll_kqueue.h"
 
 const int test_thread::test_flag_pre_stop;
 const int test_thread::test_flag_long_timeout;
@@ -18,6 +19,28 @@ const int test_thread::test_flag_has_global;
 const int test_thread::test_flag_do_work;
 const int test_thread::test_flag_pre_poke;
 const int test_thread::test_flag_post_poke;
+
+// TODO: Remove PollSelect.
+
+torrent::Poll*
+create_poll() {
+  torrent::Poll* poll = torrent::PollEPoll::create(256);
+  if (poll != nullptr)
+    return poll;
+
+  poll = torrent::PollKQueue::create(256);
+  if (poll != nullptr)
+    return poll;
+
+  throw torrent::internal_error("Unable to create poll object");
+}
+
+void
+set_create_poll() {
+  torrent::Poll::slot_create_poll() = []() {
+    return create_poll();
+  };
+}
 
 test_thread::test_thread() :
   m_test_state(TEST_NONE),
@@ -33,11 +56,13 @@ test_thread::init_thread() {
   m_state = STATE_INITIALIZED;
   m_test_state = TEST_PRE_START;
 
-  m_poll = std::unique_ptr<torrent::PollSelect>(torrent::PollSelect::create(256));
+  m_poll = std::unique_ptr<torrent::Poll>(create_poll());
 }
 
 void
 test_thread::call_events() {
+  m_loop_count++;
+
   if ((m_test_flags & test_flag_pre_stop) && m_test_state == TEST_PRE_START && m_state == STATE_ACTIVE)
     m_test_state = TEST_PRE_STOP;
 
@@ -66,14 +91,6 @@ test_thread::call_events() {
   if ((m_test_flags & test_flag_post_poke)) {
   }
 
-  // while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
-  //   rak::priority_item* v = taskScheduler.top();
-  //   taskScheduler.pop();
-
-  //   v->clear_time();
-  //   v->slot()();
-  // }
-
   process_callbacks();
 }
 
@@ -92,11 +109,4 @@ thread_management_type::thread_management_type() {
 
 thread_management_type::~thread_management_type() {
   torrent::utils::Thread::release_global_lock();
-}
-
-void
-set_create_poll() {
-  torrent::Poll::slot_create_poll() = [] {
-      return torrent::PollSelect::create(256);
-    };
 }

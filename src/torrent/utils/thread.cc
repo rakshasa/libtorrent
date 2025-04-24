@@ -230,7 +230,7 @@ Thread::process_events() {
   m_scheduler->perform(m_cached_time);
 }
 
-// TODO: This should be called in event_loop or process_events.
+// TODO: This should be called in process_events.
 void
 Thread::process_callbacks() {
   while (true) {

@@ -5,6 +5,7 @@
 // #include "helpers/test_thread.h"
 // #include "helpers/test_utils.h"
 
+#include "test/helpers/test_thread.h"
 #include "torrent/exceptions.h"
 // #include "torrent/utils/signal_interrupt.h"
 #include "torrent/utils/thread.h"
@@ -66,4 +67,63 @@ TestSignalInterrupt::test_basic() {
 
     CPPUNIT_ASSERT((end_time - start_time) < 1ms);
   }
+}
+
+void
+TestSignalInterrupt::test_thread_interrupt() {
+  auto thread = std::make_unique<test_thread>();
+  thread->set_test_flag(test_thread::test_flag_long_timeout);
+
+  thread->init_thread();
+  thread->start_thread();
+
+  std::this_thread::sleep_for(10ms);
+  CPPUNIT_ASSERT(thread->is_state(test_thread::STATE_ACTIVE));
+
+  int loop_count = thread->loop_count();
+
+  std::this_thread::sleep_for(500ms);
+  CPPUNIT_ASSERT(thread->loop_count() == loop_count);
+
+  thread->interrupt();
+
+  std::this_thread::sleep_for(1ms);
+  CPPUNIT_ASSERT(thread->loop_count() == loop_count + 2);
+
+  thread->stop_thread();
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
+}
+
+// TODO: Test multiple calls to poke.
+
+void
+TestSignalInterrupt::test_latency() {
+  auto thread = std::make_unique<test_thread>();
+  thread->set_test_flag(test_thread::test_flag_long_timeout);
+
+  thread->init_thread();
+  thread->start_thread();
+
+  std::this_thread::sleep_for(10ms);
+  CPPUNIT_ASSERT(thread->is_state(test_thread::STATE_ACTIVE));
+
+  int loop_count = thread->loop_count();
+
+  auto start_time = std::chrono::steady_clock::now();
+
+  for (int i = 0; i < 1000; i++) {
+    thread->interrupt();
+
+    std::this_thread::sleep_for(1ms);
+    CPPUNIT_ASSERT(thread->loop_count() == loop_count + 2);
+
+    loop_count = thread->loop_count();
+  }
+
+  auto end_time = std::chrono::steady_clock::now();
+
+  CPPUNIT_ASSERT((end_time - start_time) < 2s);
+
+  thread->stop_thread();
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
