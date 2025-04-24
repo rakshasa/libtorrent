@@ -11,6 +11,11 @@
 
 namespace torrent {
 
+// TODO: Use pipe instead of socketpair.
+// TODO: Rename to SignalInterrupt.
+// TODO: Use TCP_NODELAY. (or pipe with no buffering)
+// TODO: Make two separate classes, one for each end of the socket pair.
+
 thread_interrupt::thread_interrupt(int fd) :
   m_poking(false) {
   m_fileDesc = fd;
@@ -25,6 +30,7 @@ thread_interrupt::~thread_interrupt() {
   m_fileDesc = -1;
 }
 
+// TODO: make void.
 bool
 thread_interrupt::poke() {
   bool expected = false;
@@ -33,9 +39,13 @@ thread_interrupt::poke() {
 
   int result = ::send(m_fileDesc, "a", 1, 0);
 
+  // TODO: Stricter check, should never momentarily block.
+
   if (result == 0 ||
       (result == -1 && !rak::error_number::current().is_blocked_momentary()))
     throw internal_error("Invalid result writing to thread_interrupt socket.");
+
+  // Add logging.
 
   instrumentation_update(INSTRUMENTATION_POLLING_INTERRUPT_POKE, 1);
 
@@ -45,6 +55,8 @@ thread_interrupt::poke() {
 thread_interrupt::pair_type
 thread_interrupt::create_pair() {
   int fd1, fd2;
+
+  // TODO: Use pipe instead?
 
   if (!SocketFd::open_socket_pair(fd1, fd2))
     throw internal_error("Could not create socket pair for thread_interrupt: " + std::string(rak::error_number::current().c_str()) + ".");
@@ -68,6 +80,8 @@ thread_interrupt::event_read() {
   if (result == 0 ||
       (result == -1 && !rak::error_number::current().is_blocked_momentary()))
     throw internal_error("Invalid result reading from thread_interrupt socket.");
+
+  // TODO: Add logging.
 
   instrumentation_update(INSTRUMENTATION_POLLING_INTERRUPT_READ_EVENT, 1);
 

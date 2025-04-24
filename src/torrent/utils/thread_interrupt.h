@@ -18,6 +18,8 @@ public:
 
   static pair_type    create_pair();
 
+  bool                is_poking() const { return m_poking.load(); }
+
   bool                poke();
 
   void                event_read();

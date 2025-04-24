@@ -31,6 +31,7 @@ public:
   ~test_thread() override;
 
   int     test_state() const { return m_test_state; }
+
   bool    is_state(int state) const { return m_state == state; }
   bool    is_test_state(int state) const { return m_test_state == state; }
   bool    is_test_flags(int flags) const { return (m_test_flags & flags) == flags; }
