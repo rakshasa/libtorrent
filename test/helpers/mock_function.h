@@ -10,7 +10,7 @@
 #include <utility>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "helpers/mock_compare.h"
+#include "test/helpers/mock_compare.h"
 
 namespace torrent {
 extern int fd__accept(int socket, sockaddr *address, socklen_t *address_len);

@@ -1,7 +1,7 @@
 #ifndef TEST_TORRENT_UTILS_SIGNAL_INTERRUPT_H
 #define TEST_TORRENT_UTILS_SIGNAL_INTERRUPT_H
 
-#include "helpers/test_fixture.h"
+#include "test/helpers/test_fixture.h"
 
 class TestSignalInterrupt : public test_fixture {
   CPPUNIT_TEST_SUITE(TestSignalInterrupt);
