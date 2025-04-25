@@ -8,15 +8,15 @@
 
 namespace torrent {
 
-// TODO: Use pipe instead of socketpair.
-// TODO: Use TCP_NODELAY. (or pipe with no buffering)
-// TODO: Make two separate classes, one for each end of the socket pair.
-
 SignalInterrupt::SignalInterrupt(int fd) {
   m_fileDesc = fd;
 
   if (!fd_set_nonblock(fd))
     throw internal_error("Could not set non-blocking mode for SignalInterrupt socket: " + std::string(std::strerror(errno)));
+
+  // Not supported on socketpair on MacOS. (TODO: Check if this is true on other platforms.)
+  // if (!fd_set_tcp_nodelay(fd))
+  //   throw internal_error("Could not set TCP_NODELAY for SignalInterrupt socket: " + std::string(std::strerror(errno)));
 }
 
 SignalInterrupt::~SignalInterrupt() {
@@ -33,6 +33,7 @@ SignalInterrupt::create_pair() {
 
   // TODO: Use pipe instead?
   fd_open_socket_pair(fd1, fd2);
+  // fd_open_pipe(fd1, fd2);
 
   pair_type result{new SignalInterrupt(fd1), new SignalInterrupt(fd2)};
 

@@ -46,6 +46,8 @@ TestSignalInterrupt::test_basic() {
   }
 }
 
+// TODO: Add some allowance for loop_count checks not being ready after 1ms.
+
 void
 TestSignalInterrupt::test_thread_interrupt() {
   auto thread = test_thread::create();
@@ -122,10 +124,18 @@ TestSignalInterrupt::test_hammer() {
     for (int j = 0; j < 10; j++)
       thread->interrupt();
 
-    std::this_thread::sleep_for(1ms);
-    CPPUNIT_ASSERT(thread->loop_count() == loop_count + 2);
+    for (int j = 0; j < 10; j++) {
+      if (thread->loop_count() >= loop_count + 2)
+        continue;
 
-    loop_count = thread->loop_count();
+      std::this_thread::sleep_for(1ms);
+    }
+
+    auto new_count = thread->loop_count();
+
+    CPPUNIT_ASSERT(new_count == loop_count + 2);
+
+    loop_count = new_count;
   }
 
   auto end_time = std::chrono::steady_clock::now();
