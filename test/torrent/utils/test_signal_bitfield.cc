@@ -107,7 +107,7 @@ test_signal_bitfield::test_multiple() {
 void
 test_signal_bitfield::test_threaded() {
   std::atomic_uint32_t marked_bitfield{0};
-  auto thread = std::make_unique<test_thread>();
+  auto thread = test_thread::create();
   // thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   for (unsigned int i = 0; i < torrent::signal_bitfield::max_size; i++)

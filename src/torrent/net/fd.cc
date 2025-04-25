@@ -113,6 +113,17 @@ fd_open(fd_flags flags) {
 }
 
 void
+fd_open_socket_pair(int& fd1, int& fd2) {
+  int result[2];
+
+  if (socketpair(AF_LOCAL, SOCK_STREAM, 0, result) == -1)
+    throw internal_error("torrent::fd_open_socket_pair failed: " + std::string(strerror(errno)));
+
+  fd1 = result[0];
+  fd2 = result[1];
+}
+
+void
 fd_close(int fd) {
   if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
     throw internal_error("torrent::fd_close: tried to close stdin/out/err");

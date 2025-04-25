@@ -1,6 +1,8 @@
 #ifndef TEST_HELPERS_TEST_MAIN_THREAD_H
 #define TEST_HELPERS_TEST_MAIN_THREAD_H
 
+#include <memory>
+
 #include "test/helpers/test_thread.h"
 #include "torrent/common.h"
 #include "torrent/utils/thread.h"
@@ -8,7 +10,8 @@
 
 class TestMainThread : public torrent::utils::Thread {
 public:
-  TestMainThread();
+  static std::unique_ptr<TestMainThread> create();
+
   ~TestMainThread() override;
 
   const char*         name() const override  { return "rtorrent test main"; }
@@ -16,6 +19,8 @@ public:
   void                init_thread() override;
 
 private:
+  TestMainThread();
+
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 };
@@ -23,7 +28,7 @@ private:
 #define SETUP_THREAD_TRACKER()                                          \
   set_create_poll();                                                    \
   thread_management_type thread_management;                             \
-  auto test_main_thread = std::make_unique<TestMainThread>();           \
+  auto test_main_thread = TestMainThread::create();                     \
   test_main_thread->init_thread();                                      \
   torrent::ThreadTracker::create_thread(test_main_thread.get());        \
   torrent::thread_tracker()->init_thread();                             \

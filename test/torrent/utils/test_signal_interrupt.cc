@@ -2,42 +2,19 @@
 
 #include "test_signal_interrupt.h"
 
-// #include "helpers/test_thread.h"
-// #include "helpers/test_utils.h"
-
 #include "test/helpers/test_thread.h"
+#include "test/helpers/network.h"
 #include "torrent/exceptions.h"
-// #include "torrent/utils/signal_interrupt.h"
 #include "torrent/utils/thread.h"
-#include "torrent/utils/thread_interrupt.h"
+#include "utils/signal_interrupt.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(TestSignalInterrupt, "torrent/utils");
 
-#include <sys/select.h>
-
-bool
-check_event_is_readable(torrent::Event* event, std::chrono::microseconds timeout) {
-  int fd = event->file_descriptor();
-
-  fd_set read_fds;
-  FD_ZERO(&read_fds);
-  FD_SET(fd, &read_fds);
-
-  struct timeval t = {
-    static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(timeout).count()),
-    static_cast<suseconds_t>(timeout.count() % 1000000)
-  };
-
-  int result = select(fd + 1, &read_fds, nullptr, nullptr, &t);
-
-  CPPUNIT_ASSERT(result != -1);
-
-  return FD_ISSET(fd, &read_fds);
-}
-
 void
 TestSignalInterrupt::test_basic() {
-  auto pair = torrent::thread_interrupt::create_pair();
+  mock_redirect_defaults();
+
+  auto pair = torrent::SignalInterrupt::create_pair();
 
   CPPUNIT_ASSERT(pair.first != nullptr);
   CPPUNIT_ASSERT(pair.second != nullptr);
@@ -71,7 +48,7 @@ TestSignalInterrupt::test_basic() {
 
 void
 TestSignalInterrupt::test_thread_interrupt() {
-  auto thread = std::make_unique<test_thread>();
+  auto thread = test_thread::create();
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   thread->init_thread();
@@ -94,11 +71,9 @@ TestSignalInterrupt::test_thread_interrupt() {
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
-// TODO: Test multiple calls to poke.
-
 void
 TestSignalInterrupt::test_latency() {
-  auto thread = std::make_unique<test_thread>();
+  auto thread = test_thread::create();
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   thread->init_thread();
@@ -127,3 +102,38 @@ TestSignalInterrupt::test_latency() {
   thread->stop_thread();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
+
+void
+TestSignalInterrupt::test_hammer() {
+  auto thread = test_thread::create();
+  thread->set_test_flag(test_thread::test_flag_long_timeout);
+
+  thread->init_thread();
+  thread->start_thread();
+
+  std::this_thread::sleep_for(10ms);
+  CPPUNIT_ASSERT(thread->is_state(test_thread::STATE_ACTIVE));
+
+  int loop_count = thread->loop_count();
+
+  auto start_time = std::chrono::steady_clock::now();
+
+  for (int i = 0; i < 1000; i++) {
+    for (int j = 0; j < 10; j++)
+      thread->interrupt();
+
+    std::this_thread::sleep_for(1ms);
+    CPPUNIT_ASSERT(thread->loop_count() == loop_count + 2);
+
+    loop_count = thread->loop_count();
+  }
+
+  auto end_time = std::chrono::steady_clock::now();
+
+  CPPUNIT_ASSERT((end_time - start_time) < 2s);
+
+  thread->stop_thread();
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
+}
+
+// TODO: Test with high load / long process.

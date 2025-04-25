@@ -4,9 +4,19 @@
 
 #include "globals.h"
 #include "rak/timer.h"
+#include "test/helpers/mock_function.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
+
+std::unique_ptr<TestMainThread>
+TestMainThread::create() {
+  // Needs to be called before Thread is created.
+  mock_redirect_defaults();
+
+  auto thread = new TestMainThread();
+  return std::unique_ptr<TestMainThread>(thread);
+}
 
 TestMainThread::TestMainThread() {}
 

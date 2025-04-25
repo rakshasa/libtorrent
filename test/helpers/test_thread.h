@@ -27,7 +27,8 @@ public:
   static const int test_flag_pre_poke  = 0x200;
   static const int test_flag_post_poke = 0x400;
 
-  test_thread();
+  static std::unique_ptr<test_thread> create();
+
   ~test_thread() override;
 
   int                 test_state() const                 { return m_test_state; }
@@ -49,6 +50,7 @@ public:
   void                set_test_flag(int flags) { m_test_flags |= flags; }
 
 private:
+  test_thread();
 
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
@@ -70,7 +72,7 @@ void set_create_poll();
 
 #define SETUP_THREAD_DISK()                                             \
   thread_management_type thread_management;                             \
-  auto thread_test = std::make_unique<test_thread>();                   \
+  auto thread_test = test_thread::create();                             \
   thread_test->init_thread();                                           \
   torrent::ThreadDisk::create_thread();                                 \
   torrent::thread_disk()->init_thread();                                \

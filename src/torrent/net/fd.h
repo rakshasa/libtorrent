@@ -20,6 +20,7 @@ enum fd_flags : int {
 constexpr bool fd_valid_flags(fd_flags flags);
 
 int  fd_open(fd_flags flags) LIBTORRENT_EXPORT;
+void fd_open_socket_pair(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 void fd_close(int fd) LIBTORRENT_EXPORT;
 
 fd_sap_tuple fd_accept(int fd) LIBTORRENT_EXPORT;

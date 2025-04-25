@@ -12,10 +12,10 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
-#include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
+#include "utils/signal_interrupt.h"
 
 namespace torrent::utils {
 
@@ -31,14 +31,9 @@ public:
 
 Thread::Thread() :
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
-  m_scheduler(std::make_unique<Scheduler>())
-{
-  std::memset(&m_thread, 0, sizeof(pthread_t));
+  m_scheduler(std::make_unique<Scheduler>()) {
 
-  thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
-
-  m_interrupt_sender = std::move(interrupt_sockets.first);
-  m_interrupt_receiver = std::move(interrupt_sockets.second);
+  std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
 
   m_cached_time = time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);

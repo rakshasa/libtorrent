@@ -31,6 +31,7 @@ LibTorrent_Test_Common = \
 	helpers/mock_compare.h \
 	helpers/mock_function.cc \
 	helpers/mock_function.h \
+	helpers/network.cc \
 	helpers/network.h \
 	helpers/progress_listener.cc \
 	helpers/progress_listener.h \

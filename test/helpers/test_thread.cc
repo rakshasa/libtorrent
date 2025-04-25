@@ -6,6 +6,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 
 #include "data/thread_disk.h"
+#include "test/helpers/mock_function.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll_epoll.h"
 #include "torrent/poll_kqueue.h"
@@ -40,6 +41,15 @@ set_create_poll() {
   torrent::Poll::slot_create_poll() = []() {
     return create_poll();
   };
+}
+
+std::unique_ptr<test_thread>
+test_thread::create() {
+  // Needs to be called before Thread is created.
+  mock_redirect_defaults();
+
+  auto thread = new test_thread();
+  return std::unique_ptr<test_thread>(thread);
 }
 
 test_thread::test_thread() :
