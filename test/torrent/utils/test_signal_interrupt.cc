@@ -99,6 +99,7 @@ TestSignalInterrupt::test_latency() {
     }
 
     auto new_count = thread->loop_count();
+    CPPUNIT_ASSERT(new_count <= loop_count + 2);
     CPPUNIT_ASSERT(new_count == loop_count + 2);
     loop_count = new_count;
   }
@@ -138,6 +139,7 @@ TestSignalInterrupt::test_hammer() {
     }
 
     auto new_count = thread->loop_count();
+    CPPUNIT_ASSERT(new_count <= loop_count + 2);
     CPPUNIT_ASSERT(new_count == loop_count + 2);
     loop_count = new_count;
   }
