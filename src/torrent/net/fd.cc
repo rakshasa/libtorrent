@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
+#include <netinet/tcp.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
@@ -16,30 +17,30 @@
 #define LT_LOG(log_fmt, ...)                                    \
   lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__);
 #define LT_LOG_FLAG(log_fmt)                                            \
-  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " (flags:0x%x)", flags);
+  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x", flags);
 #define LT_LOG_FLAG_ERROR(log_fmt)                                      \
-  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " (flags:0x%x errno:%i message:'%s')", \
+  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
                flags, errno, std::strerror(errno));
 #define LT_LOG_FD(log_fmt)                                      \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd);
 #define LT_LOG_FD_ERROR(log_fmt)                                        \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (errno:%i message:'%s')", \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", \
                fd, errno, std::strerror(errno));
 #define LT_LOG_FD_SOCKADDR(log_fmt)                                   \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (address:%s)", \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s", \
                fd, sa_pretty_str(sa).c_str());
 #define LT_LOG_FD_SOCKADDR_ERROR(log_fmt)                               \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (address:%s errno:%i message:'%s')", \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s errno:%i message:'%s'", \
                fd, sa_pretty_str(sa).c_str(), errno, std::strerror(errno));
 #define LT_LOG_FD_FLAG(log_fmt)                                         \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (flags:0x%x)", fd, flags);
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x", fd, flags);
 #define LT_LOG_FD_FLAG_ERROR(log_fmt)                                   \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (flags:0x%x errno:%i message:'%s')", \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
                fd, flags, errno, std::strerror(errno));
 #define LT_LOG_FD_VALUE(log_fmt, value)                                 \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (value:%i)", fd, (int)value);
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i", fd, (int)value);
 #define LT_LOG_FD_VALUE_ERROR(log_fmt, value)                           \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (value:%i errno:%i message:'%s')", \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i errno:%i message:'%s'", \
                fd, (int)value, errno, std::strerror(errno));
 
 namespace torrent {
@@ -110,6 +111,32 @@ fd_open(fd_flags flags) {
 
   LT_LOG_FD_FLAG("fd_open succeeded");
   return fd;
+}
+
+void
+fd_open_pipe(int& fd1, int& fd2) {
+  int result[2];
+
+  if (pipe(result) == -1)
+    throw internal_error("torrent::fd_open_pipe failed: " + std::string(strerror(errno)));
+
+  fd1 = result[0];
+  fd2 = result[1];
+
+  LT_LOG("fd_open_pipe succeeded : fd1:%i fd2:%i", fd1, fd2);
+}
+
+void
+fd_open_socket_pair(int& fd1, int& fd2) {
+  int result[2];
+
+  if (socketpair(AF_LOCAL, SOCK_STREAM, 0, result) == -1)
+    throw internal_error("torrent::fd_open_socket_pair failed: " + std::string(strerror(errno)));
+
+  fd1 = result[0];
+  fd2 = result[1];
+
+  LT_LOG("fd_open_socket_pair succeeded : fd1:%i fd2:%i", fd1, fd2);
 }
 
 void
@@ -195,6 +222,17 @@ fd_set_reuse_address(int fd, bool state) {
   }
 
   LT_LOG_FD_VALUE("fd_set_reuse_address succeeded", state);
+  return true;
+}
+
+bool
+fd_set_tcp_nodelay(int fd) {
+  if (fd__setsockopt_int(fd, IPPROTO_TCP, TCP_NODELAY, true) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_tcp_nodelay failed", true);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_tcp_nodelay succeeded", true);
   return true;
 }
 

@@ -20,6 +20,8 @@ enum fd_flags : int {
 constexpr bool fd_valid_flags(fd_flags flags);
 
 int  fd_open(fd_flags flags) LIBTORRENT_EXPORT;
+void fd_open_pipe(int& fd1, int& fd2) LIBTORRENT_EXPORT;
+void fd_open_socket_pair(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 void fd_close(int fd) LIBTORRENT_EXPORT;
 
 fd_sap_tuple fd_accept(int fd) LIBTORRENT_EXPORT;
@@ -30,8 +32,10 @@ bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
 bool fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
 bool fd_set_reuse_address(int fd, bool state) LIBTORRENT_EXPORT;
+bool fd_set_tcp_nodelay(int fd) LIBTORRENT_EXPORT;
 bool fd_set_v6only(int fd, bool state) LIBTORRENT_EXPORT;
 
+// Defined with gnu::weak so that we can override them in tests.
 [[gnu::weak]] int fd__accept(int socket, sockaddr *address, socklen_t *address_len) LIBTORRENT_EXPORT;
 [[gnu::weak]] int fd__bind(int socket, const sockaddr *address, socklen_t address_len) LIBTORRENT_EXPORT;
 [[gnu::weak]] int fd__close(int fildes) LIBTORRENT_EXPORT;

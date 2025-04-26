@@ -12,10 +12,10 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
-#include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
+#include "utils/signal_interrupt.h"
 
 namespace torrent::utils {
 
@@ -31,14 +31,9 @@ public:
 
 Thread::Thread() :
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
-  m_scheduler(std::make_unique<Scheduler>())
-{
-  std::memset(&m_thread, 0, sizeof(pthread_t));
+  m_scheduler(std::make_unique<Scheduler>()) {
 
-  thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
-
-  m_interrupt_sender = std::move(interrupt_sockets.first);
-  m_interrupt_receiver = std::move(interrupt_sockets.second);
+  std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
 
   m_cached_time = time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);
@@ -79,12 +74,14 @@ void
 Thread::stop_thread_wait() {
   stop_thread();
 
-  release_global_lock();
+  if ((m_flags & flag_main_thread))
+    release_global_lock();
 
   pthread_join(m_thread, NULL);
   assert(is_inactive());
 
-  acquire_global_lock();
+  if ((m_flags & flag_main_thread))
+    acquire_global_lock();
 }
 
 void
@@ -230,7 +227,7 @@ Thread::process_events() {
   m_scheduler->perform(m_cached_time);
 }
 
-// TODO: This should be called in event_loop or process_events.
+// TODO: This should be called in process_events.
 void
 Thread::process_callbacks() {
   while (true) {

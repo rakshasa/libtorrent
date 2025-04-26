@@ -148,6 +148,8 @@ libtorrent_other_la_SOURCES = \
 	utils/instrumentation.h \
 	utils/rc4.h \
 	utils/sha1.h \
+	utils/signal_interrupt.cc \
+	utils/signal_interrupt.h \
 	utils/queue_buckets.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir)

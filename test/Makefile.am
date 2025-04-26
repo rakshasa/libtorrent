@@ -31,6 +31,7 @@ LibTorrent_Test_Common = \
 	helpers/mock_compare.h \
 	helpers/mock_function.cc \
 	helpers/mock_function.h \
+	helpers/network.cc \
 	helpers/network.h \
 	helpers/progress_listener.cc \
 	helpers/progress_listener.h \
@@ -68,6 +69,8 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_queue_buckets.h \
 	torrent/utils/test_signal_bitfield.cc \
 	torrent/utils/test_signal_bitfield.h \
+	torrent/utils/test_signal_interrupt.cc \
+	torrent/utils/test_signal_interrupt.h \
 	torrent/utils/test_thread_base.cc \
 	torrent/utils/test_thread_base.h \
 	torrent/utils/test_uri_parser.cc \

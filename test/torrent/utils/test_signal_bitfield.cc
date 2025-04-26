@@ -5,9 +5,9 @@
 #include "helpers/test_thread.h"
 #include "helpers/test_utils.h"
 
-#include <torrent/exceptions.h>
-#include <torrent/utils/signal_bitfield.h>
-#include <torrent/utils/thread.h>
+#include "torrent/exceptions.h"
+#include "torrent/utils/signal_bitfield.h"
+#include "torrent/utils/thread.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_signal_bitfield, "torrent/utils");
 
@@ -107,7 +107,7 @@ test_signal_bitfield::test_multiple() {
 void
 test_signal_bitfield::test_threaded() {
   std::atomic_uint32_t marked_bitfield{0};
-  test_thread* thread = new test_thread;
+  auto thread = test_thread::create();
   // thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   for (unsigned int i = 0; i < torrent::signal_bitfield::max_size; i++)
@@ -130,9 +130,7 @@ test_signal_bitfield::test_threaded() {
   }
 
   thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread, test_thread::STATE_INACTIVE)));
-
-  delete thread;
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
 // Test invalid signal added.

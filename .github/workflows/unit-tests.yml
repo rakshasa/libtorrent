@@ -21,6 +21,8 @@ jobs:
   MacOS:
     needs: Ubuntu
     runs-on: macos-latest
+    env:
+      TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
     steps:
       - name: Prepare
         run: |

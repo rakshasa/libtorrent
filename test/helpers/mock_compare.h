@@ -86,10 +86,10 @@ inline bool mock_compare_arg<torrent::Event*>(torrent::Event* lhs, torrent::Even
       mock_compare_map<torrent::Event>::values[lhs] = rhs;
       return true;
     }
-    
+
     return mock_compare_map<torrent::Event>::has_key(lhs) && mock_compare_map<torrent::Event>::get(lhs) == rhs;
   }
-  
+
   return lhs == rhs;
 }
 

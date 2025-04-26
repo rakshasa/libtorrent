@@ -3,13 +3,33 @@
 
 #include <functional>
 #include <map>
+#include <mutex>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "helpers/mock_compare.h"
+#include "test/helpers/mock_compare.h"
+
+namespace torrent {
+extern int fd__accept(int socket, sockaddr *address, socklen_t *address_len);
+extern int fd__bind(int socket, const sockaddr *address, socklen_t address_len);
+extern int fd__close(int fildes);
+extern int fd__connect(int socket, const sockaddr *address, socklen_t address_len);
+extern int fd__fcntl_int(int fildes, int cmd, int arg);
+extern int fd__listen(int socket, int backlog);
+extern int fd__setsockopt_int(int socket, int level, int option_name, int option_value);
+extern int fd__socket(int domain, int type, int protocol);
+}
+
+enum mock_redirect_flags {
+  mock_redirect_all = ~0,
+};
+
+void mock_init();
+void mock_cleanup();
+void mock_redirect_defaults(mock_redirect_flags flags = mock_redirect_all);
 
 template<typename R, typename... Args>
 struct mock_function_map {
@@ -20,10 +40,13 @@ struct mock_function_map {
   typedef std::function<R (Args...)> function_type;
   typedef std::map<void*, function_type> redirect_map_type;
 
-  static func_map_type functions;
+  static std::mutex        mutex;
+  static func_map_type     functions;
   static redirect_map_type redirects;
 
   static bool cleanup(void* fn) {
+    std::lock_guard<std::mutex> lock(mutex);
+
     redirects.erase(fn);
     return functions.erase(fn) == 0;
   }
@@ -41,6 +64,8 @@ struct mock_function_map {
 };
 
 template<typename R, typename... Args>
+std::mutex mock_function_map<R, Args...>::mutex;
+template<typename R, typename... Args>
 typename mock_function_map<R, Args...>::func_map_type mock_function_map<R, Args...>::functions;
 template<typename R, typename... Args>
 typename mock_function_map<R, Args...>::redirect_map_type mock_function_map<R, Args...>::redirects;
@@ -56,8 +81,16 @@ struct mock_function_type {
   }
 
   static R    ret_erase(void* fn) { return type::ret_erase(fn); }
-  static bool has_redirect(void* fn) { return type::redirects.find(fn) != type::redirects.end(); }
-  static R    call_redirect(void* fn, Args... args) { return type::redirects.find(fn)->second(args...); }
+
+  static bool has_redirect(void* fn) {
+    std::lock_guard<std::mutex> lock(type::mutex);
+    return type::redirects.find(fn) != type::redirects.end();
+  }
+
+  static R    call_redirect(void* fn, Args... args) {
+    std::lock_guard<std::mutex> lock(type::mutex);
+    return type::redirects.find(fn)->second(args...);
+  }
 };
 
 template<typename... Args>
@@ -69,12 +102,17 @@ struct mock_function_type<void, Args...> {
   }
 
   static void ret_erase(void* fn) { type::ret_erase(fn); }
-  static bool has_redirect(void* fn) { return type::redirects.find(fn) != type::redirects.end(); }
-  static void call_redirect(void* fn, Args... args) { type::redirects.find(fn)->second(args...); }
-};
 
-void mock_init();
-void mock_cleanup();
+  static bool has_redirect(void* fn) {
+    std::lock_guard<std::mutex> lock(type::mutex);
+    return type::redirects.find(fn) != type::redirects.end();
+  }
+
+  static void call_redirect(void* fn, Args... args) {
+    std::lock_guard<std::mutex> lock(type::mutex);
+    type::redirects.find(fn)->second(args...);
+  }
+};
 
 template<typename R, typename... Args>
 bool
@@ -86,6 +124,7 @@ template<typename R, typename... Args>
 void
 mock_expect(R fn(Args...), R ret, Args... args) {
   typedef mock_function_map<R, Args...> mock_map;
+  std::lock_guard<std::mutex> lock(mock_map::mutex);
   mock_map::functions[reinterpret_cast<void*>(fn)].push_back(std::tuple<R, Args...>(ret, args...));
 }
 
@@ -93,6 +132,7 @@ template<typename... Args>
 void
 mock_expect(void fn(Args...), Args... args) {
   typedef mock_function_map<mock_void, Args...> mock_map;
+  std::lock_guard<std::mutex> lock(mock_map::mutex);
   mock_map::functions[reinterpret_cast<void*>(fn)].push_back(std::tuple<mock_void, Args...>(mock_void(), args...));
 }
 
@@ -100,6 +140,7 @@ template<typename R, typename... Args>
 void
 mock_redirect(R fn(Args...), std::function<R (Args...)> func) {
   typedef mock_function_map<R, Args...> mock_map;
+  std::lock_guard<std::mutex> lock(mock_map::mutex);
   mock_map::redirects[reinterpret_cast<void*>(fn)] = func;
 }
 
@@ -107,6 +148,8 @@ template<typename R, typename... Args>
 auto
 mock_call_direct(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)) {
   typedef mock_function_type<R, Args...> mock_type;
+
+  std::lock_guard<std::mutex> lock(mock_type::type::mutex);
 
   auto itr = mock_type::type::functions.find(reinterpret_cast<void*>(fn));
   CPPUNIT_ASSERT_MESSAGE(("mock_call expected function calls exhausted by '" + name + "'").c_str(),

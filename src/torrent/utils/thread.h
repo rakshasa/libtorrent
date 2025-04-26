@@ -12,7 +12,11 @@
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
+
+class SignalInterrupt;
+
 inline utils::Thread* thread_self();
+
 }
 
 // TODO: Add the other torrent threads as namespaces.
@@ -131,7 +135,7 @@ protected:
   static global_lock_type      m_global;
 
   // TODO: Remove m_thread.
-  pthread_t                    m_thread;
+  pthread_t                    m_thread{};
   std::atomic<std::thread::id> m_thread_id;
   std::atomic<state_type>      m_state{STATE_UNKNOWN};
   std::atomic_int              m_flags{0};
@@ -141,13 +145,13 @@ protected:
 
   int                          m_instrumentation_index;
 
-  std::unique_ptr<Poll>             m_poll;
-  std::unique_ptr<net::Resolver>    m_resolver;
-  std::unique_ptr<Scheduler>        m_scheduler;
-  class signal_bitfield             m_signal_bitfield;
+  std::unique_ptr<Poll>            m_poll;
+  std::unique_ptr<net::Resolver>   m_resolver;
+  std::unique_ptr<Scheduler>       m_scheduler;
+  class signal_bitfield            m_signal_bitfield;
 
-  std::unique_ptr<thread_interrupt> m_interrupt_sender;
-  std::unique_ptr<thread_interrupt> m_interrupt_receiver;
+  std::unique_ptr<SignalInterrupt> m_interrupt_sender;
+  std::unique_ptr<SignalInterrupt> m_interrupt_receiver;
 
   std::mutex                                         m_callbacks_lock;
   std::multimap<const void*, std::function<void ()>> m_callbacks;

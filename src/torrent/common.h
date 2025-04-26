@@ -74,8 +74,6 @@ class TrackerController;
 class TrackerList;
 class TransferList;
 
-class thread_interrupt;
-
 namespace net {
 class Resolver;
 }

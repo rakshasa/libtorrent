@@ -30,7 +30,7 @@ test_thread_base::tearDown() {
 
 void
 test_thread_base::test_basic() {
-  test_thread* thread = new test_thread;
+  auto thread = test_thread::create();
 
   CPPUNIT_ASSERT(thread->flags() == 0);
 
@@ -43,7 +43,7 @@ test_thread_base::test_basic() {
 
 void
 test_thread_base::test_lifecycle() {
-  test_thread* thread = new test_thread;
+  auto thread = test_thread::create();
 
   CPPUNIT_ASSERT(thread->state() == torrent::utils::Thread::STATE_UNKNOWN);
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_NONE);
@@ -54,23 +54,21 @@ test_thread_base::test_lifecycle() {
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_PRE_START);
 
   thread->set_pre_stop();
-  CPPUNIT_ASSERT(!wait_for_true(std::bind(&test_thread::is_test_state, thread, test_thread::TEST_PRE_STOP)));
+  CPPUNIT_ASSERT(!wait_for_true(std::bind(&test_thread::is_test_state, thread.get(), test_thread::TEST_PRE_STOP)));
 
   thread->start_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread, test_thread::STATE_ACTIVE)));
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_ACTIVE)));
   CPPUNIT_ASSERT(thread->is_active());
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_test_state, thread, test_thread::TEST_PRE_STOP)));
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_test_state, thread.get(), test_thread::TEST_PRE_STOP)));
 
   thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread, test_thread::STATE_INACTIVE)));
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
   CPPUNIT_ASSERT(thread->is_inactive());
-
-  delete thread;
 }
 
 void
 test_thread_base::test_global_lock_basic() {
-  test_thread* thread = new test_thread;
+  auto thread = test_thread::create();
 
   thread->init_thread();
   thread->start_thread();
@@ -90,10 +88,10 @@ test_thread_base::test_global_lock_basic() {
   CPPUNIT_ASSERT(!torrent::utils::Thread::trylock_global_lock());
 
   thread->set_acquire_global();
-  CPPUNIT_ASSERT(!wait_for_true(std::bind(&test_thread::is_test_flags, thread, test_thread::test_flag_has_global)));
+  CPPUNIT_ASSERT(!wait_for_true(std::bind(&test_thread::is_test_flags, thread.get(), test_thread::test_flag_has_global)));
 
   torrent::utils::Thread::release_global_lock();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_test_flags, thread, test_thread::test_flag_has_global)));
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_test_flags, thread.get(), test_thread::test_flag_has_global)));
 
   auto try_global_lock_1 = std::async([&]() {
       return torrent::utils::Thread::trylock_global_lock();
@@ -121,14 +119,13 @@ test_thread_base::test_global_lock_basic() {
   // Test waive (loop).
 
   thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread, test_thread::STATE_INACTIVE)));
-
-  delete thread;
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
 void
 test_thread_base::test_interrupt() {
-  test_thread* thread = new test_thread;
+  auto thread = test_thread::create();
+
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   thread->init_thread();
@@ -144,13 +141,11 @@ test_thread_base::test_interrupt() {
     thread->interrupt();
 
     // Wait for flag to clear.
-    CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_not_test_flags, thread, test_thread::test_flag_do_work)));
+    CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_not_test_flags, thread.get(), test_thread::test_flag_do_work)));
   }
 
   thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread, test_thread::STATE_INACTIVE)));
-
-  delete thread;
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
 void
@@ -163,7 +158,7 @@ test_thread_base::test_stop() {
   for (int i = 0; i < 20; i++) {
     CPPUNIT_ASSERT(!torrent::utils::Thread::trylock_global_lock());
 
-    test_thread* thread = new test_thread;
+    auto thread = test_thread::create();
     thread->set_test_flag(test_thread::test_flag_do_work);
 
     { TEST_BEGIN("init and start thread");
@@ -174,8 +169,6 @@ test_thread_base::test_stop() {
     { TEST_BEGIN("stop and delete thread");
       thread->stop_thread_wait();
       CPPUNIT_ASSERT(thread->is_inactive());
-
-      delete thread;
     }
   }
 

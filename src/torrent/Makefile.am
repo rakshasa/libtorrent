@@ -96,8 +96,6 @@ libtorrent_torrent_la_SOURCES = \
 	utils/signal_bitfield.h \
 	utils/thread.cc \
 	utils/thread.h \
-	utils/thread_interrupt.cc \
-	utils/thread_interrupt.h \
 	utils/uri_parser.cc \
 	utils/uri_parser.h \
 \
@@ -215,7 +213,6 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/scheduler.h \
 	utils/signal_bitfield.h \
 	utils/thread.h \
-	utils/thread_interrupt.h \
 	utils/uri_parser.h
 
 libtorrent_torrent_includedir = $(includedir)/torrent

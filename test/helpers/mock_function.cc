@@ -1,14 +1,16 @@
 #include "config.h"
 
-#include "mock_function.h"
+#include "test/helpers/mock_function.h"
 
 #include <fcntl.h>
 #include <iostream>
-#include <torrent/event.h>
-#include <torrent/net/socket_address.h>
-#include <torrent/net/fd.h>
-#include <torrent/utils/log.h>
-#include <torrent/utils/random.h>
+#include <unistd.h>
+
+#include "torrent/event.h"
+#include "torrent/net/socket_address.h"
+#include "torrent/net/fd.h"
+#include "torrent/utils/log.h"
+#include "torrent/utils/random.h"
 
 #define MOCK_CLEANUP_MAP(MOCK_FUNC) \
   CPPUNIT_ASSERT_MESSAGE("expected mock function calls not completed for '" #MOCK_FUNC "'", mock_cleanup_map(&MOCK_FUNC) || ignore_assert);
@@ -42,13 +44,23 @@ mock_clear(bool ignore_assert) {
   mock_compare_map<torrent::Event>::values.clear();
 };
 
-void mock_init() {
+void
+mock_init() {
   log_add_group_output(torrent::LOG_MOCK_CALLS, "test_output");
   mock_clear(true);
 }
 
-void mock_cleanup() {
+void
+mock_cleanup() {
   mock_clear(false);
+}
+
+void
+mock_redirect_defaults([[maybe_unused]] mock_redirect_flags flags) {
+  mock_redirect(torrent::fd__close, std::function<int(int fildes)>([](int fildes) { return ::close(fildes); }));
+  mock_redirect(torrent::fd__fcntl_int, std::function<int(int fildes, int cmd, int arg)>([](int fildes, int cmd, int arg) { return ::fcntl(fildes, cmd, arg); }));
+  mock_redirect(torrent::fd__setsockopt_int, std::function<int(int socket, int level, int option_name, int option_value)>([](int socket, int level, int option_name, int option_value) { return ::setsockopt(socket, level, option_name, &option_value, sizeof(int)); }));
+  mock_redirect(torrent::fd__socket, std::function<int(int domain, int type, int protocol)>([](int domain, int type, int protocol) { return ::socket(domain, type, protocol); }));
 }
 
 namespace torrent {
