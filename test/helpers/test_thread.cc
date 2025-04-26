@@ -58,6 +58,9 @@ test_thread::test_thread() :
 }
 
 test_thread::~test_thread() {
+  if (is_active())
+    stop_thread();
+
   m_self = nullptr;
 }
 

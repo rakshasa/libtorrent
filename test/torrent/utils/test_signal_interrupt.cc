@@ -68,9 +68,6 @@ TestSignalInterrupt::test_thread_interrupt() {
 
   std::this_thread::sleep_for(1ms);
   CPPUNIT_ASSERT(thread->loop_count() == loop_count + 2);
-
-  thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
 void
@@ -107,9 +104,6 @@ TestSignalInterrupt::test_latency() {
   auto end_time = std::chrono::steady_clock::now();
 
   CPPUNIT_ASSERT((end_time - start_time) < 2s);
-
-  thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
 void
@@ -147,9 +141,6 @@ TestSignalInterrupt::test_hammer() {
   auto end_time = std::chrono::steady_clock::now();
 
   CPPUNIT_ASSERT((end_time - start_time) < 2s);
-
-  thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
 // TODO: Test with high load / long process.
