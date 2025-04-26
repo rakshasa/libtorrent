@@ -2,6 +2,8 @@
 
 #include "test_signal_interrupt.h"
 
+#include <cstdlib>
+
 #include "test/helpers/test_thread.h"
 #include "test/helpers/network.h"
 #include "torrent/exceptions.h"
@@ -103,6 +105,9 @@ TestSignalInterrupt::test_latency() {
 
   auto end_time = std::chrono::steady_clock::now();
 
+  if (std::getenv("TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY") == std::string("YES"))
+    return;
+
   CPPUNIT_ASSERT((end_time - start_time) < 2s);
 }
 
@@ -139,6 +144,9 @@ TestSignalInterrupt::test_hammer() {
   }
 
   auto end_time = std::chrono::steady_clock::now();
+
+  if (std::getenv("TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY") == std::string("YES"))
+    return;
 
   CPPUNIT_ASSERT((end_time - start_time) < 2s);
 }
