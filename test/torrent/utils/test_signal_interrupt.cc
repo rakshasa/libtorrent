@@ -104,8 +104,9 @@ TestSignalInterrupt::test_latency() {
   }
 
   auto end_time = std::chrono::steady_clock::now();
+  auto ignore_signal_latency = std::getenv("TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY");
 
-  if (std::getenv("TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY") == std::string("YES"))
+  if (ignore_signal_latency != nullptr && ignore_signal_latency == std::string("YES"))
     return;
 
   CPPUNIT_ASSERT((end_time - start_time) < 2s);
@@ -144,8 +145,9 @@ TestSignalInterrupt::test_hammer() {
   }
 
   auto end_time = std::chrono::steady_clock::now();
+  auto ignore_signal_latency = std::getenv("TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY");
 
-  if (std::getenv("TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY") == std::string("YES"))
+  if (ignore_signal_latency != nullptr && ignore_signal_latency == std::string("YES"))
     return;
 
   CPPUNIT_ASSERT((end_time - start_time) < 2s);
