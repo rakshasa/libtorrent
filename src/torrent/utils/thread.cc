@@ -74,12 +74,14 @@ void
 Thread::stop_thread_wait() {
   stop_thread();
 
-  release_global_lock();
+  if ((m_flags & flag_main_thread))
+    release_global_lock();
 
   pthread_join(m_thread, NULL);
   assert(is_inactive());
 
-  acquire_global_lock();
+  if ((m_flags & flag_main_thread))
+    acquire_global_lock();
 }
 
 void

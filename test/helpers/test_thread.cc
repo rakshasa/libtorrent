@@ -59,7 +59,7 @@ test_thread::test_thread() :
 
 test_thread::~test_thread() {
   if (is_active())
-    stop_thread();
+    stop_thread_wait();
 
   m_self = nullptr;
 }
