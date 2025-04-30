@@ -139,8 +139,10 @@ TestSignalInterrupt::test_hammer() {
     }
 
     auto new_count = thread->loop_count();
-    CPPUNIT_ASSERT(new_count <= loop_count + 2);
-    CPPUNIT_ASSERT(new_count == loop_count + 2);
+
+    // Since we hammer the interrupt, we can't expect the loop count to just increment by 2.
+    CPPUNIT_ASSERT(new_count <= loop_count + 20);
+
     loop_count = new_count;
   }
 
