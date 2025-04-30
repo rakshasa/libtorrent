@@ -18,6 +18,14 @@ SchedulerEntry::~SchedulerEntry() {
   m_time = time_type{};
 }
 
+
+Scheduler::time_type
+Scheduler::next_timeout() const {
+  assert(!empty());
+
+  return std::max(front()->time() - m_cached_time, Scheduler::time_type());
+}
+
 inline void
 Scheduler::make_heap() {
   std::make_heap(begin(), end(), [](const SchedulerEntry* a, const SchedulerEntry* b) {

@@ -145,6 +145,8 @@ Thread::event_loop() {
 
     m_poll->insert_read(m_interrupt_receiver.get());
 
+    // TODO: Need to handle flag_do_shutdown in a more universal way.
+
     while (true) {
       process_events();
 
@@ -154,8 +156,6 @@ Thread::event_loop() {
       // race-conditions with flag_polling.
       process_events();
 
-      auto timeout = next_timeout();
-
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
 
@@ -163,6 +163,11 @@ Thread::event_loop() {
 
       if (!(flags() & flag_main_thread))
         poll_flags = torrent::Poll::poll_worker_thread;
+
+      auto timeout = next_timeout();
+
+      if (!m_scheduler->empty())
+        timeout = std::min(timeout, m_scheduler->next_timeout());
 
       int event_count = m_poll->do_poll(timeout.count(), poll_flags);
 
@@ -172,9 +177,11 @@ Thread::event_loop() {
       m_flags &= ~flag_polling;
     }
 
+    // TODO: This is never reached.
     m_poll->remove_read(m_interrupt_receiver.get());
 
   } catch (torrent::shutdown_exception& e) {
+    // TODO: Remove this and use callbacks / stop_thread instead.
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
 
