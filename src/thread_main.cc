@@ -70,14 +70,8 @@ void
 ThreadMain::call_events() {
   cachedTime = rak::timer::current();
 
-  // Putting this after task scheduler causes client input lag.
   if (m_slot_do_work)
     m_slot_do_work();
-
-  // Ensure we don't call rak::timer::current() twice if there was no
-  // scheduled tasks called.
-  if (taskScheduler.empty() || taskScheduler.top()->time() > cachedTime)
-    return;
 
   while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
     rak::priority_item* v = taskScheduler.top();
@@ -107,6 +101,7 @@ ThreadMain::next_timeout() {
   }
 
   if (m_slot_next_timeout) {
+    // TODO: Change slot to chrono.
     auto slot_timeout = std::max<uint64_t>(m_slot_next_timeout(), 0);
 
     timeout = std::min(timeout, std::chrono::microseconds(slot_timeout));

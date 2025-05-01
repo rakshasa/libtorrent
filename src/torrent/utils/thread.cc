@@ -163,7 +163,7 @@ Thread::event_loop() {
       if (!(flags() & flag_main_thread))
         poll_flags = torrent::Poll::poll_worker_thread;
 
-      auto timeout = next_timeout();
+      auto timeout = std::max(next_timeout(), std::chrono::microseconds(0));
 
       if (!m_scheduler->empty())
         timeout = std::min(timeout, m_scheduler->next_timeout());
@@ -221,6 +221,9 @@ void
 Thread::process_events() {
   m_cached_time = time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);
+
+  // TODO: We should call process_callbacks() here before and after call_events, however due to the
+  // many different cached times in the code, we need to let each thread manage this themselves.
 
   call_events();
 
