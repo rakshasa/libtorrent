@@ -24,9 +24,10 @@ Thread::global_lock_type Thread::m_global;
 
 class ThreadInternal {
 public:
-  static Poll*          poll()      { return Thread::m_self->m_poll.get(); }
-  static Scheduler*     scheduler() { return Thread::m_self->m_scheduler.get(); }
-  static net::Resolver* resolver()  { return Thread::m_self->m_resolver.get(); }
+  static std::chrono::microseconds cached_time() { return Thread::m_self->m_cached_time; }
+  static Poll*                     poll()        { return Thread::m_self->m_poll.get(); }
+  static Scheduler*                scheduler()   { return Thread::m_self->m_scheduler.get(); }
+  static net::Resolver*            resolver()    { return Thread::m_self->m_resolver.get(); }
 };
 
 Thread::Thread() :
@@ -266,8 +267,9 @@ Thread::process_callbacks() {
 
 namespace torrent::this_thread {
 
-LIBTORRENT_EXPORT Poll*             poll()      { return utils::ThreadInternal::poll(); }
-LIBTORRENT_EXPORT net::Resolver*    resolver()  { return utils::ThreadInternal::resolver(); }
-LIBTORRENT_EXPORT utils::Scheduler* scheduler() { return utils::ThreadInternal::scheduler(); }
+LIBTORRENT_EXPORT std::chrono::microseconds cached_time() { return utils::ThreadInternal::cached_time(); }
+LIBTORRENT_EXPORT Poll*                     poll()        { return utils::ThreadInternal::poll(); }
+LIBTORRENT_EXPORT net::Resolver*            resolver()    { return utils::ThreadInternal::resolver(); }
+LIBTORRENT_EXPORT utils::Scheduler*         scheduler()   { return utils::ThreadInternal::scheduler(); }
 
 }

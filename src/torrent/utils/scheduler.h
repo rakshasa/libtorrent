@@ -8,6 +8,11 @@
 #include <torrent/common.h>
 #include <torrent/utils/chrono.h>
 
+namespace torrent::this_thread {
+std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
+utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
+}
+
 namespace torrent::utils {
 
 class LIBTORRENT_EXPORT Scheduler : public std::vector<SchedulerEntry*> {

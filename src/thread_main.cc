@@ -92,22 +92,12 @@ std::chrono::microseconds
 ThreadMain::next_timeout() {
   cachedTime = rak::timer::current();
 
-  auto timeout = std::chrono::microseconds(10s);
+  if (taskScheduler.empty())
+    return 10s;
 
-  if (!taskScheduler.empty()) {
-    auto task_timeout = std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
+  auto task_timeout = std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
 
-    timeout = std::min(timeout, std::chrono::microseconds(task_timeout));
-  }
-
-  if (m_slot_next_timeout) {
-    // TODO: Change slot to chrono.
-    auto slot_timeout = std::max<uint64_t>(m_slot_next_timeout(), 0);
-
-    timeout = std::min(timeout, std::chrono::microseconds(slot_timeout));
-  }
-
-  return timeout;
+  return std::min(std::chrono::microseconds(task_timeout), std::chrono::microseconds(10s));
 }
 
 }
