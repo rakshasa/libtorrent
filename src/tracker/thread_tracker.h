@@ -20,16 +20,17 @@ struct TrackerSendEvent {
 
 class LIBTORRENT_EXPORT ThreadTracker : public utils::Thread {
 public:
+  ~ThreadTracker() override;
 
   static void           create_thread(utils::Thread* main_thread);
   static void           destroy_thread();
   static ThreadTracker* thread_tracker();
 
-  const char*         name() const override { return "rtorrent tracker"; }
+  const char*           name() const override { return "rtorrent tracker"; }
 
-  virtual void        init_thread() override;
+  void                  init_thread() override;
 
-  tracker::Manager*   tracker_manager() { return m_tracker_manager.get(); }
+  tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
 
   // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
@@ -41,7 +42,6 @@ protected:
 
 private:
   ThreadTracker() = default;
-  ~ThreadTracker() override;
 
   // void                process_send_events();
 

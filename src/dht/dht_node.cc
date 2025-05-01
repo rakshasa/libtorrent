@@ -65,7 +65,8 @@ DhtNode::DhtNode(const HashString& id, const rak::socket_address* sa) :
 }
 
 DhtNode::DhtNode(const std::string& id, const Object& cache) :
-  HashString(*HashString::cast_from(id.c_str())) {
+    HashString(*HashString::cast_from(id.c_str())),
+    m_lastSeen(cache.get_key_value("t")) {
 
   // TODO: Check how DHT handles inet6.
   rak::socket_address_inet* sa = m_socketAddress.sa_inet();
@@ -73,8 +74,6 @@ DhtNode::DhtNode(const std::string& id, const Object& cache) :
   sa->set_family();
   sa->set_address_h(cache.get_key_value("i"));
   sa->set_port(cache.get_key_value("p"));
-
-  m_lastSeen = cache.get_key_value("t");
 
   LT_LOG_THIS("initializing (address:%s)", sa->address_str().c_str());
 

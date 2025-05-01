@@ -10,6 +10,7 @@ class UdnsResolver;
 
 class LIBTORRENT_EXPORT ThreadNet : public utils::Thread {
 public:
+  ~ThreadNet() override;
 
   static void         create_thread();
   static ThreadNet*   thread_net();
@@ -22,7 +23,6 @@ protected:
   friend class torrent::net::Resolver;
 
   ThreadNet() = default;
-  ~ThreadNet() override;
 
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;

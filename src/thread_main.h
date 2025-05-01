@@ -12,6 +12,7 @@ class HashQueue;
 
 class LIBTORRENT_EXPORT ThreadMain : public utils::Thread {
 public:
+  ~ThreadMain() override;
 
   static void         create_thread();
   static ThreadMain*  thread_main();
@@ -27,7 +28,6 @@ public:
 
 protected:
   ThreadMain() = default;
-  ~ThreadMain() override;
 
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;

@@ -39,16 +39,15 @@
 namespace torrent {
 
 DownloadMain::DownloadMain() :
-  m_info(new DownloadInfo),
-  m_tracker_list(new TrackerList),
+    m_info(new DownloadInfo),
+    m_tracker_list(new TrackerList),
 
-  m_chunkList(new ChunkList),
-  m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
-  m_chunkStatistics(new ChunkStatistics) {
+    m_chunkList(new ChunkList),
+    m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
+    m_chunkStatistics(new ChunkStatistics),
+    m_connectionList(new ConnectionList(this)) {
 
   // Only set trivial values here, the rest is done in DownloadWrapper.
-
-  m_connectionList = new ConnectionList(this);
 
   m_delegator.slot_chunk_find() = [this](auto pc, auto prio) { return m_chunkSelector->find(pc, prio); };
   m_delegator.slot_chunk_size() = [this](auto i) { return file_list()->chunk_index_size(i); };

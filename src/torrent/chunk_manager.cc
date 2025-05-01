@@ -49,12 +49,11 @@
 
 namespace torrent {
 
-ChunkManager::ChunkManager() {
-
-  // 1/5 of the available memory should be enough for the client. If
-  // the client really requires alot more memory it should call this
-  // itself.
-  m_maxMemoryUsage = (estimate_max_memory_usage() * 4) / 5;
+// 1/5 of the available memory should be enough for the client. If
+// the client really requires alot more memory it should call this
+// itself.
+ChunkManager::ChunkManager() :
+    m_maxMemoryUsage((estimate_max_memory_usage() * 4) / 5) {
 }
 
 ChunkManager::~ChunkManager() {

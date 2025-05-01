@@ -26,7 +26,7 @@ public:
   static constexpr uint32_t udp_tries = 2;
 
   TrackerUdp(const TrackerInfo& info, int flags = 0);
-  ~TrackerUdp();
+  ~TrackerUdp() override;
 
   const char*         type_name() const override { return "tracker_udp"; }
 

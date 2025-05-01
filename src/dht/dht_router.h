@@ -126,7 +126,7 @@ private:
   DhtBucketList       m_routingTable;
   DhtTrackerList      m_trackers;
 
-  std::deque<contact_t>* m_contacts{};
+  std::unique_ptr<std::deque<contact_t>> m_contacts;
 
   int                 m_numRefresh{0};
 

@@ -76,7 +76,7 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
   }
 
   if (m_nodes.size() < num_bootstrap_complete) {
-    m_contacts = new std::deque<contact_t>;
+    m_contacts = std::make_unique<std::deque<contact_t>>();
 
     if (cache.has_key("contacts")) {
       const Object::list_type& contacts = cache.get_key_list("contacts");
@@ -93,7 +93,6 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
 
 DhtRouter::~DhtRouter() {
   stop();
-  delete m_contacts;
 
   for (auto& route : m_routingTable)
     delete route.second;
@@ -392,8 +391,7 @@ DhtRouter::receive_timeout_bootstrap() {
 
   } else {
     // We won't be needing external contacts after this.
-    delete m_contacts;
-    m_contacts = NULL;
+    m_contacts = nullptr;
 
     m_taskTimeout.slot() = [this] { receive_timeout(); };
 

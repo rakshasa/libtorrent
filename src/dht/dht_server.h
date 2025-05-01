@@ -30,9 +30,9 @@ class TrackerDht;
 class DhtServer : public SocketDatagram {
 public:
   DhtServer(DhtRouter* self);
-  ~DhtServer();
+  ~DhtServer() override;
 
-  const char*         type_name() const { return "dht"; }
+  const char*         type_name() const override         { return "dht"; }
 
   void                start(int port);
   void                stop();
@@ -69,9 +69,9 @@ public:
   void                set_upload_throttle(ThrottleList* t)    { m_uploadThrottle = t; }
   void                set_download_throttle(ThrottleList* t)  { m_downloadThrottle = t; }
 
-  virtual void        event_read();
-  virtual void        event_write();
-  virtual void        event_error();
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
 
 private:
   // DHT error codes.

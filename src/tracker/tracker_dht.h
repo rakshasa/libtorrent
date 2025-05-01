@@ -17,7 +17,7 @@ namespace torrent {
 class TrackerDht : public TrackerWorker {
 public:
   TrackerDht(const TrackerInfo& info, int flags = 0);
-  ~TrackerDht();
+  ~TrackerDht() override;
 
   enum state_type {
     state_idle,
