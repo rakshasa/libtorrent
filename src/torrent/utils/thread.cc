@@ -64,6 +64,7 @@ Thread::start_thread() {
     usleep(100);
 }
 
+// Each thread needs to check flag_do_shutdown in call_events() and decide how to cleanly shut down.
 void
 Thread::stop_thread() {
   m_flags |= flag_do_shutdown;
@@ -154,8 +155,6 @@ Thread::event_loop() {
       // race-conditions with flag_polling.
       process_events();
 
-      auto timeout = next_timeout();
-
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
 
@@ -163,6 +162,11 @@ Thread::event_loop() {
 
       if (!(flags() & flag_main_thread))
         poll_flags = torrent::Poll::poll_worker_thread;
+
+      auto timeout = std::max(next_timeout(), std::chrono::microseconds(0));
+
+      if (!m_scheduler->empty())
+        timeout = std::min(timeout, m_scheduler->next_timeout());
 
       int event_count = m_poll->do_poll(timeout.count(), poll_flags);
 
@@ -172,11 +176,12 @@ Thread::event_loop() {
       m_flags &= ~flag_polling;
     }
 
-    m_poll->remove_read(m_interrupt_receiver.get());
-
   } catch (torrent::shutdown_exception& e) {
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
+
+  // Some test, and perhaps other code, segfaults on this.
+  // m_poll->remove_read(m_interrupt_receiver.get());
 
   auto previous_state = STATE_ACTIVE;
 
@@ -216,6 +221,9 @@ void
 Thread::process_events() {
   m_cached_time = time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);
+
+  // TODO: We should call process_callbacks() here before and after call_events, however due to the
+  // many different cached times in the code, we need to let each thread manage this themselves.
 
   call_events();
 

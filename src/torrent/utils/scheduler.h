@@ -17,13 +17,16 @@ public:
 
   using base_type::begin;
   using base_type::end;
+  using base_type::front;
   using base_type::size;
   using base_type::empty;
   using base_type::clear;
 
   ~Scheduler() = default;
 
-  // time_type is milliseconds since unix epoch.
+  // time_type is microseconds since unix epoch.
+
+  time_type           next_timeout() const;
 
   void                wait_until(SchedulerEntry* entry, time_type time);
   void                wait_for(SchedulerEntry* entry, time_type time);
