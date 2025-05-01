@@ -88,6 +88,14 @@ private:
   time_type           m_time{};
 };
 
+class LIBTORRENT_EXPORT ExternalScheduler : public Scheduler {
+public:
+  void                external_perform(time_type time)           { perform(time); }
+
+  void                external_set_thread_id(std::thread::id id) { set_thread_id(id); }
+  void                external_set_cached_time(time_type t)      { set_cached_time(t); }
+};
+
 } // namespace torrent::utils
 
 #endif // TORRENT_UTILS_SCHEDULER_H
