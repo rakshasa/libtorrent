@@ -64,6 +64,7 @@ Thread::start_thread() {
     usleep(100);
 }
 
+// Each thread needs to check flag_do_shutdown in call_events() and decide how to cleanly shut down.
 void
 Thread::stop_thread() {
   m_flags |= flag_do_shutdown;
@@ -145,8 +146,6 @@ Thread::event_loop() {
 
     m_poll->insert_read(m_interrupt_receiver.get());
 
-    // TODO: Need to handle flag_do_shutdown in a more universal way.
-
     while (true) {
       process_events();
 
@@ -177,13 +176,12 @@ Thread::event_loop() {
       m_flags &= ~flag_polling;
     }
 
-    // TODO: This is never reached.
-    m_poll->remove_read(m_interrupt_receiver.get());
-
   } catch (torrent::shutdown_exception& e) {
-    // TODO: Remove this and use callbacks / stop_thread instead.
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
+
+  // Some test, and perhaps other code, segfaults on this.
+  // m_poll->remove_read(m_interrupt_receiver.get());
 
   auto previous_state = STATE_ACTIVE;
 
