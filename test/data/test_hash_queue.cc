@@ -37,8 +37,6 @@ check_for_chunk_done(torrent::HashQueue* hash_queue, done_chunks_type* done_chun
   return done_chunks->find(index) != done_chunks->end();
 }
 
-static void do_nothing() {}
-
 void
 test_hash_queue::setUp() {
   test_fixture::setUp();
@@ -47,7 +45,7 @@ test_hash_queue::setUp() {
 
   torrent::Poll::slot_create_poll() = [] { return torrent::PollSelect::create(256); };
 
-  signal(SIGUSR1, (sig_t)&do_nothing);
+  signal(SIGUSR1, [](auto){});
 }
 
 void
