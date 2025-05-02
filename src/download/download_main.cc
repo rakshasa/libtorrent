@@ -47,6 +47,8 @@ DownloadMain::DownloadMain() :
     m_chunkStatistics(new ChunkStatistics),
     m_connectionList(new ConnectionList(this)) {
 
+  m_info->set_load_date(utils::cast_seconds(utils::time_since_epoch()).count());
+
   // Only set trivial values here, the rest is done in DownloadWrapper.
 
   m_delegator.slot_chunk_find() = [this](auto pc, auto prio) { return m_chunkSelector->find(pc, prio); };

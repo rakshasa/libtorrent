@@ -3,11 +3,14 @@
 
 #include <cinttypes>
 #include <cstddef>
+#include <chrono>
 
 struct sockaddr;
 struct sockaddr_in;
 struct sockaddr_in6;
 struct sockaddr_un;
+
+using namespace std::chrono_literals;
 
 namespace torrent {
 
@@ -89,6 +92,8 @@ class SchedulerEntry;
 class Thread;
 }
 
+}
+
 // This should only need to be set when compiling libtorrent.
 #ifdef SUPPORT_ATTRIBUTE_VISIBILITY
   #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
@@ -98,6 +103,14 @@ class Thread;
   #define LIBTORRENT_EXPORT
 #endif
 
+// TODO: Add the other torrent threads as namespaces.
+namespace torrent::this_thread {
+std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
+std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
+Poll*                     poll() LIBTORRENT_EXPORT;
+net::Resolver*            resolver() LIBTORRENT_EXPORT;
+utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
+// TODO: Add callbacks.
 }
 
 #endif

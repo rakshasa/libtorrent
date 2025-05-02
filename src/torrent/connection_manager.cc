@@ -13,10 +13,10 @@
 namespace torrent {
 
 ConnectionManager::ConnectionManager() :
-    m_listen(new Listen),
-    m_bindAddress((new rak::socket_address())->c_sockaddr()),
-    m_localAddress((new rak::socket_address())->c_sockaddr()),
-    m_proxyAddress((new rak::socket_address())->c_sockaddr()) {
+  m_bindAddress((new rak::socket_address())->c_sockaddr()),
+  m_localAddress((new rak::socket_address())->c_sockaddr()),
+  m_proxyAddress((new rak::socket_address())->c_sockaddr()),
+  m_listen(new Listen) {
 
   rak::socket_address::cast_from(m_bindAddress)->clear();
   rak::socket_address::cast_from(m_localAddress)->clear();
