@@ -9,8 +9,6 @@
 #include <torrent/rate.h>
 #include <torrent/hash_string.h>
 
-#include <rak/timer.h>
-
 namespace torrent {
 
 class FileList;
@@ -134,6 +132,11 @@ public:
   slot_stat_type&     slot_left()                                  { return m_slotStatLeft; }
   slot_stat_type&     slot_completed()                             { return m_slotStatCompleted; }
 
+protected:
+  friend class DownloadMain;
+
+  void                set_load_date(uint32_t d)                    { m_loadDate = d; }
+
 private:
   std::string         m_name;
   HashString          m_hash{HashString::new_zero()};
@@ -153,7 +156,7 @@ private:
   size_t              m_metadataSize{0};
 
   uint32_t            m_creationDate{0};
-  uint32_t            m_loadDate = rak::timer::current_seconds();
+  uint32_t            m_loadDate{};
 
   uint32_t            m_upload_unchoked{0};
   uint32_t            m_download_unchoked{0};
