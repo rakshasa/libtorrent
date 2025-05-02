@@ -24,10 +24,11 @@ Thread::global_lock_type Thread::m_global;
 
 class ThreadInternal {
 public:
-  static std::chrono::microseconds cached_time() { return Thread::m_self->m_cached_time; }
-  static Poll*                     poll()        { return Thread::m_self->m_poll.get(); }
-  static Scheduler*                scheduler()   { return Thread::m_self->m_scheduler.get(); }
-  static net::Resolver*            resolver()    { return Thread::m_self->m_resolver.get(); }
+  static std::chrono::microseconds cached_time()    { return Thread::m_self->m_cached_time; }
+  static std::chrono::seconds      cached_seconds() { return cast_seconds(Thread::m_self->m_cached_time); }
+  static Poll*                     poll()           { return Thread::m_self->m_poll.get(); }
+  static Scheduler*                scheduler()      { return Thread::m_self->m_scheduler.get(); }
+  static net::Resolver*            resolver()       { return Thread::m_self->m_resolver.get(); }
 };
 
 Thread::Thread() :
@@ -141,7 +142,7 @@ Thread::enter_event_loop(Thread* thread) {
 
 void
 Thread::event_loop() {
-  lt_log_print(torrent::LOG_THREAD_NOTICE, "%s : starting thread event loop", name());
+  lt_log_print(LOG_THREAD_NOTICE, "%s : starting thread event loop", name());
 
   try {
 
@@ -162,7 +163,7 @@ Thread::event_loop() {
       int poll_flags = 0;
 
       if (!(flags() & flag_main_thread))
-        poll_flags = torrent::Poll::poll_worker_thread;
+        poll_flags = Poll::poll_worker_thread;
 
       auto timeout = std::max(next_timeout(), std::chrono::microseconds(0));
 
@@ -177,8 +178,8 @@ Thread::event_loop() {
       m_flags &= ~flag_polling;
     }
 
-  } catch (torrent::shutdown_exception& e) {
-    lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
+  } catch (shutdown_exception& e) {
+    lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
 
   // Some test, and perhaps other code, segfaults on this.
@@ -267,9 +268,10 @@ Thread::process_callbacks() {
 
 namespace torrent::this_thread {
 
-LIBTORRENT_EXPORT std::chrono::microseconds cached_time() { return utils::ThreadInternal::cached_time(); }
-LIBTORRENT_EXPORT Poll*                     poll()        { return utils::ThreadInternal::poll(); }
-LIBTORRENT_EXPORT net::Resolver*            resolver()    { return utils::ThreadInternal::resolver(); }
-LIBTORRENT_EXPORT utils::Scheduler*         scheduler()   { return utils::ThreadInternal::scheduler(); }
+LIBTORRENT_EXPORT std::chrono::microseconds cached_time()    { return utils::ThreadInternal::cached_time(); }
+LIBTORRENT_EXPORT std::chrono::seconds      cached_seconds() { return utils::ThreadInternal::cached_seconds(); }
+LIBTORRENT_EXPORT Poll*                     poll()           { return utils::ThreadInternal::poll(); }
+LIBTORRENT_EXPORT net::Resolver*            resolver()       { return utils::ThreadInternal::resolver(); }
+LIBTORRENT_EXPORT utils::Scheduler*         scheduler()      { return utils::ThreadInternal::scheduler(); }
 
 }

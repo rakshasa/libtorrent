@@ -19,15 +19,6 @@ inline utils::Thread* thread_self();
 
 }
 
-// TODO: Add the other torrent threads as namespaces.
-namespace torrent::this_thread {
-std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
-Poll*                     poll() LIBTORRENT_EXPORT;
-net::Resolver*            resolver() LIBTORRENT_EXPORT;
-utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
-// TODO: Add callbacks.
-}
-
 namespace torrent::utils {
 
 class ThreadInternal;

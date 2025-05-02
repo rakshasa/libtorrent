@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include "torrent/exceptions.h"
+#include "torrent/utils/chrono.h"
 
 namespace torrent::utils {
 
