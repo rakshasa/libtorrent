@@ -66,15 +66,13 @@ verify_hash(const done_chunks_type* done_chunks, int index, const torrent::HashS
   return true;
 }
 
-static void do_nothing() {}
-
 void
 test_hash_check_queue::setUp() {
   test_fixture::setUp();
 
   torrent::Poll::slot_create_poll() = [] { return torrent::PollSelect::create(256); };
 
-  signal(SIGUSR1, (sig_t)&do_nothing);
+  signal(SIGUSR1, [](auto){});
 }
 
 void
