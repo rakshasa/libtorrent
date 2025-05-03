@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cerrno>
-#include <stdexcept>
 #include <unistd.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -34,15 +33,15 @@ public:
   static constexpr uint32_t flag_write = (1 << 1);
   static constexpr uint32_t flag_error = (1 << 2);
 
-  inline uint32_t     event_mask(Event* e) LIBTORRENT_NO_EXPORT;
-  inline void         set_event_mask(Event* e, uint32_t m) LIBTORRENT_NO_EXPORT;
+  inline uint32_t     event_mask(Event* e);
+  inline void         set_event_mask(Event* e, uint32_t m);
 
-  void                flush_events() LIBTORRENT_NO_EXPORT;
-  void                modify(torrent::Event* event, unsigned short op, short mask) LIBTORRENT_NO_EXPORT;
+  void                flush_events();
+  void                modify(torrent::Event* event, unsigned short op, short mask);
 
   int                 m_fd;
 
-  unsigned int        m_maxEvents;
+  unsigned int        m_max_events;
   unsigned int        m_waitingEvents{};
   unsigned int        m_changedEvents{};
 
@@ -74,7 +73,7 @@ PollInternal::flush_events() {
                       m_changes.get(),
                       m_changedEvents,
                       m_events.get() + m_waitingEvents,
-                      m_maxEvents - m_waitingEvents,
+                      m_max_events - m_waitingEvents,
                       &timeout);
 
   if (nfds == -1)
@@ -89,8 +88,8 @@ PollInternal::modify(Event* event, unsigned short op, short mask) {
   LT_LOG_EVENT(event, DEBUG, "modify event : op:%hx mask:%hx changed:%u", op, mask, m_changedEvents);
 
   // Flush the changed filters to the kernel if the buffer is full.
-  if (m_changedEvents == m_maxEvents) {
-    if (::kevent(m_fd, m_changes.get(), m_changedEvents, NULL, 0, NULL) == -1)
+  if (m_changedEvents == m_max_events) {
+    if (::kevent(m_fd, m_changes.get(), m_changedEvents, nullptr, 0, nullptr) == -1)
       throw internal_error("PollInternal::modify() error: " + std::string(std::strerror(errno)));
 
     m_changedEvents = 0;
@@ -108,15 +107,15 @@ Poll::create(int max_open_sockets) {
   int fd = kqueue();
 
   if (fd == -1)
-    return NULL;
+    return nullptr;
 
   auto poll = new Poll();
   poll->m_internal = std::make_unique<PollInternal>();
 
   poll->m_internal->m_table.resize(max_open_sockets);
   poll->m_internal->m_fd = fd;
-  poll->m_internal->m_maxEvents = 1024;
-  poll->m_internal->m_events = std::make_unique<struct kevent[]>(poll->m_internal->m_maxEvents);
+  poll->m_internal->m_max_events = 1024;
+  poll->m_internal->m_events = std::make_unique<struct kevent[]>(poll->m_internal->m_max_events);
   poll->m_internal->m_changes = std::make_unique<struct kevent[]>(max_open_sockets);
 
   return poll;
@@ -142,7 +141,7 @@ Poll::do_poll(int64_t timeout_usec, int flags) {
 
   if (status == -1) {
     if (errno != EINTR)
-      throw std::runtime_error("Poll::work(): " + std::string(std::strerror(errno)));
+      throw internal_error("Poll::work(): " + std::string(std::strerror(errno)));
 
     return 0;
   }
@@ -158,7 +157,7 @@ Poll::poll(int msec) {
                       m_internal->m_changes.get(),
                       m_internal->m_changedEvents,
                       m_internal->m_events.get() + m_internal->m_waitingEvents,
-                      m_internal->m_maxEvents - m_internal->m_waitingEvents,
+                      m_internal->m_max_events - m_internal->m_waitingEvents,
                       &timeout);
 
   // Clear the changed events even on fail as we might have received a
@@ -172,8 +171,8 @@ Poll::poll(int msec) {
   if (nfds == -1)
     return -1;
 
+  // TODO: Different from poll_epoll.
   m_internal->m_waitingEvents += nfds;
-
   return nfds;
 }
 
@@ -190,7 +189,7 @@ Poll::perform() {
 
     auto evItr = m_internal->m_table.begin() + itr->ident;
 
-    if ((itr->flags & EV_ERROR) && evItr->second != NULL) {
+    if ((itr->flags & EV_ERROR) && evItr->second != nullptr) {
       if (evItr->first & PollInternal::flag_error)
         evItr->second->event_error();
 
@@ -202,12 +201,12 @@ Poll::perform() {
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & PollInternal::flag_read) {
+    if (itr->filter == EVFILT_READ && evItr->second != nullptr && evItr->first & PollInternal::flag_read) {
       count++;
       evItr->second->event_read();
     }
 
-    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & PollInternal::flag_write) {
+    if (itr->filter == EVFILT_WRITE && evItr->second != nullptr && evItr->first & PollInternal::flag_write) {
       count++;
       evItr->second->event_write();
     }
@@ -245,7 +244,7 @@ Poll::close(Event* event) {
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
-      itr->udata = NULL;
+      itr->udata = nullptr;
 
   auto last_itr = std::remove_if(m_internal->m_changes.get(),
                                  m_internal->m_changes.get() + m_internal->m_changedEvents,
@@ -267,7 +266,7 @@ Poll::closed(Event* event) {
   // Shouldn't be needed anymore.
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
-      itr->udata = NULL;
+      itr->udata = nullptr;
 
   auto last_itr = std::remove_if(m_internal->m_changes.get(),
                                  m_internal->m_changes.get() + m_internal->m_changedEvents,
