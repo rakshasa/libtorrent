@@ -31,13 +31,13 @@ public:
   inline uint32_t     event_mask(Event* e);
   inline void         set_event_mask(Event* e, uint32_t m);
 
-  void                flush_events() LIBTORRENT_NO_EXPORT;
+  void                flush_events();
   void                modify(torrent::Event* event, unsigned short op, uint32_t mask);
 
   int                 m_fd;
 
-  unsigned int        m_maxEvents;
-  unsigned int        m_waitingEvents{};
+  unsigned int        m_max_events;
+  unsigned int        m_waiting_events{};
 
   Table                                 m_table;
   std::unique_ptr<struct epoll_event[]> m_events;
@@ -112,8 +112,8 @@ Poll::create(int max_open_sockets) {
 
   poll->m_internal->m_table.resize(max_open_sockets);
   poll->m_internal->m_fd = fd;
-  poll->m_internal->m_maxEvents = 1024;
-  poll->m_internal->m_events = std::make_unique<struct epoll_event[]>(poll->m_internal->m_maxEvents);
+  poll->m_internal->m_max_events = 1024;
+  poll->m_internal->m_events = std::make_unique<struct epoll_event[]>(poll->m_internal->m_max_events);
 
   return poll;
 }
@@ -148,12 +148,12 @@ Poll::do_poll(int64_t timeout_usec, int flags) {
 
 int
 Poll::poll(int msec) {
-  int nfds = ::epoll_wait(m_internal->m_fd, m_internal->m_events.get(), m_internal->m_maxEvents, msec);
+  int nfds = ::epoll_wait(m_internal->m_fd, m_internal->m_events.get(), m_internal->m_max_events, msec);
 
   if (nfds == -1)
     return -1;
 
-  m_internal->m_waitingEvents = nfds;
+  m_internal->m_waiting_events = nfds;
   return nfds;
 }
 
@@ -166,7 +166,7 @@ unsigned int
 Poll::perform() {
   unsigned int count = 0;
 
-  for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr) {
+  for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
     // TODO: These should be asserts?
     if (itr->data.fd < 0 || static_cast<size_t>(itr->data.fd) >= m_internal->m_table.size())
       continue;
@@ -198,7 +198,7 @@ Poll::perform() {
     }
   }
 
-  m_internal->m_waitingEvents = 0;
+  m_internal->m_waiting_events = 0;
   return count;
 }
 
@@ -226,7 +226,7 @@ Poll::close(Event* event) {
 
   // Clear the event list just in case we open a new socket with the
   // same fd while in the middle of calling Poll::perform.
-  for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr)
+  for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr)
     if (itr->data.fd == event->file_descriptor())
       itr->events = 0;
 }
@@ -240,7 +240,7 @@ Poll::closed(Event* event) {
   if (m_internal->m_table[event->file_descriptor()].second == event)
     m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
-  // for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr) {
+  // for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
   //   if (itr->data.fd == event->file_descriptor())
   //     itr->events = 0;
   // }

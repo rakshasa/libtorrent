@@ -42,8 +42,8 @@ public:
   int                 m_fd;
 
   unsigned int        m_max_events;
-  unsigned int        m_waitingEvents{};
-  unsigned int        m_changedEvents{};
+  unsigned int        m_waiting_events{};
+  unsigned int        m_changed_events{};
 
   Table                            m_table;
   std::unique_ptr<struct kevent[]> m_events;
@@ -71,31 +71,31 @@ PollInternal::flush_events() {
 
   int nfds = ::kevent(m_fd,
                       m_changes.get(),
-                      m_changedEvents,
-                      m_events.get() + m_waitingEvents,
-                      m_max_events - m_waitingEvents,
+                      m_changed_events,
+                      m_events.get() + m_waiting_events,
+                      m_max_events - m_waiting_events,
                       &timeout);
 
   if (nfds == -1)
     throw internal_error("PollInternal::flush_events() error: " + std::string(std::strerror(errno)));
 
-  m_changedEvents = 0;
-  m_waitingEvents += nfds;
+  m_changed_events = 0;
+  m_waiting_events += nfds;
 }
 
 void
 PollInternal::modify(Event* event, unsigned short op, short mask) {
-  LT_LOG_EVENT(event, DEBUG, "modify event : op:%hx mask:%hx changed:%u", op, mask, m_changedEvents);
+  LT_LOG_EVENT(event, DEBUG, "modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
 
   // Flush the changed filters to the kernel if the buffer is full.
-  if (m_changedEvents == m_max_events) {
-    if (::kevent(m_fd, m_changes.get(), m_changedEvents, nullptr, 0, nullptr) == -1)
+  if (m_changed_events == m_max_events) {
+    if (::kevent(m_fd, m_changes.get(), m_changed_events, nullptr, 0, nullptr) == -1)
       throw internal_error("PollInternal::modify() error: " + std::string(std::strerror(errno)));
 
-    m_changedEvents = 0;
+    m_changed_events = 0;
   }
 
-  struct kevent* itr = m_changes.get() + (m_changedEvents++);
+  struct kevent* itr = m_changes.get() + (m_changed_events++);
 
   assert(event == m_table[event->file_descriptor()].second);
   EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
@@ -155,9 +155,9 @@ Poll::poll(int msec) {
 
   int nfds = ::kevent(m_internal->m_fd,
                       m_internal->m_changes.get(),
-                      m_internal->m_changedEvents,
-                      m_internal->m_events.get() + m_internal->m_waitingEvents,
-                      m_internal->m_max_events - m_internal->m_waitingEvents,
+                      m_internal->m_changed_events,
+                      m_internal->m_events.get() + m_internal->m_waiting_events,
+                      m_internal->m_max_events - m_internal->m_waiting_events,
                       &timeout);
 
   // Clear the changed events even on fail as we might have received a
@@ -166,13 +166,12 @@ Poll::poll(int msec) {
   //
   // There's a chance a bad changed event could make kevent return -1,
   // but it won't as long as there is room enough in m_internal->m_events.
-  m_internal->m_changedEvents = 0;
+  m_internal->m_changed_events = 0;
 
   if (nfds == -1)
     return -1;
 
-  // TODO: Different from poll_epoll.
-  m_internal->m_waitingEvents += nfds;
+  m_internal->m_waiting_events += nfds;
   return nfds;
 }
 
@@ -180,7 +179,7 @@ unsigned int
 Poll::perform() {
   unsigned int count = 0;
 
-  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr) {
+  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
     if (itr->ident >= m_internal->m_table.size())
       continue;
 
@@ -212,7 +211,7 @@ Poll::perform() {
     }
   }
 
-  m_internal->m_waitingEvents = 0;
+  m_internal->m_waiting_events = 0;
   return count;
 }
 
@@ -239,18 +238,15 @@ Poll::close(Event* event) {
   m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
   // Shouldn't be needed anymore.
-  //
-  // TODO: We seem to null it out, so the remove_if below will not do anything.
-
-  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr)
+  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = nullptr;
 
   auto last_itr = std::remove_if(m_internal->m_changes.get(),
-                                 m_internal->m_changes.get() + m_internal->m_changedEvents,
+                                 m_internal->m_changes.get() + m_internal->m_changed_events,
                                  [event](const struct kevent& ke) { return ke.udata == event; });
 
-  m_internal->m_changedEvents = last_itr - m_internal->m_changes.get();
+  m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
 }
 
 void
@@ -264,15 +260,15 @@ Poll::closed(Event* event) {
     m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
   // Shouldn't be needed anymore.
-  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr)
+  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = nullptr;
 
   auto last_itr = std::remove_if(m_internal->m_changes.get(),
-                                 m_internal->m_changes.get() + m_internal->m_changedEvents,
+                                 m_internal->m_changes.get() + m_internal->m_changed_events,
                                  [event](const struct kevent& ke) { return ke.udata == event; });
 
-  m_internal->m_changedEvents = last_itr - m_internal->m_changes.get();
+  m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
 }
 
 bool
@@ -296,8 +292,8 @@ Poll::insert_read(Event* event) {
     return;
 
   LT_LOG_EVENT(event, DEBUG, "insert read", 0);
-  m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_read);
 
+  m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_read);
   m_internal->modify(event, EV_ADD, EVFILT_READ);
 }
 
@@ -307,6 +303,7 @@ Poll::insert_write(Event* event) {
     return;
 
   LT_LOG_EVENT(event, DEBUG, "insert write", 0);
+
   m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_write);
   m_internal->modify(event, EV_ADD, EVFILT_WRITE);
 }
