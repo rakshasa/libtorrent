@@ -63,7 +63,7 @@ jobs:
             autoreconf -fiv
             ./configure
             make
-#            make check
+            make check
 
   NetBSD:
     needs: Ubuntu
