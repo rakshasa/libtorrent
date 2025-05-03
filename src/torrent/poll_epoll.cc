@@ -1,52 +1,72 @@
 #include "config.h"
 
-#include <cerrno>
-#include <cstring>
-#include <cstdio>
-
-#include <stdexcept>
-#include <unistd.h>
-#include <torrent/exceptions.h>
-#include <torrent/event.h>
-
-#include "torrent.h"
-#include "poll_epoll.h"
-#include "utils/log.h"
-#include "utils/thread.h"
-#include "rak/error_number.h"
-#include "rak/timer.h"
-
 #ifdef USE_EPOLL
+
+#include "torrent/poll.h"
+
+#include <algorithm>
+#include <cassert>
+#include <cerrno>
+#include <unistd.h>
 #include <sys/epoll.h>
-#endif
+#include <sys/time.h>
+#include <sys/types.h>
+
+#include "torrent/exceptions.h"
+#include "torrent/event.h"
+#include "torrent/utils/log.h"
+#include "torrent/utils/thread.h"
 
 #define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
   lt_log_print(LOG_SOCKET_##log_level, "epoll->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
 
 namespace torrent {
 
-#ifdef USE_EPOLL
+std::function<Poll*()> Poll::m_slot_create_poll;
+
+class PollInternal {
+public:
+  using Table = std::vector<std::pair<uint32_t, Event*>>;
+
+  inline uint32_t     event_mask(Event* e);
+  inline void         set_event_mask(Event* e, uint32_t m);
+
+  void                flush_events();
+  void                modify(torrent::Event* event, unsigned short op, uint32_t mask);
+
+  int                 m_fd;
+
+  unsigned int        m_max_events;
+  unsigned int        m_waiting_events{};
+
+  Table                                 m_table;
+  std::unique_ptr<struct epoll_event[]> m_events;
+};
 
 inline uint32_t
-PollEPoll::event_mask(Event* e) {
+PollInternal::event_mask(Event* e) {
+  assert(e->file_descriptor() != -1);
+
   Table::value_type entry = m_table[e->file_descriptor()];
   return entry.second != e ? 0 : entry.first;
 }
 
 inline void
-PollEPoll::set_event_mask(Event* e, uint32_t m) {
+PollInternal::set_event_mask(Event* e, uint32_t m) {
+  assert(e->file_descriptor() != -1);
+
   m_table[e->file_descriptor()] = Table::value_type(m, e);
 }
 
-inline void
-PollEPoll::modify(Event* event, int op, uint32_t mask) {
+void
+PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
   if (event_mask(event) == mask)
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "Modify event: op:%hx mask:%hx.", op, mask);
+  LT_LOG_EVENT(event, DEBUG, "modify event : op:%hx mask:%hx", op, mask);
 
   epoll_event e;
-  e.data.u64 = 0; // Make valgrind happy? Remove please.
+  e.data.u64 = 0;
   e.data.fd = event->file_descriptor();
   e.events = mask;
 
@@ -71,7 +91,7 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
     if (errno || epoll_ctl(m_fd, retry, event->file_descriptor(), &e)) {
       char errmsg[1024];
       snprintf(errmsg, sizeof(errmsg),
-               "PollEPoll::modify(...) epoll_ctl(%d, %d -> %d, %d, [%p:%x]) = %d: %s",
+               "Poll::modify(...) epoll_ctl(%d, %d -> %d, %d, [%p:%x]) = %d: %s",
                m_fd, op, retry, event->file_descriptor(), event, mask, errno, strerror(errno));
 
       throw internal_error(errmsg);
@@ -79,113 +99,46 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
   }
 }
 
-PollEPoll*
-PollEPoll::create(int maxOpenSockets) {
-  int fd = epoll_create(maxOpenSockets);
+// TODO: Use unique_ptr
+Poll*
+Poll::create(int max_open_sockets) {
+  int fd = epoll_create(max_open_sockets);
 
   if (fd == -1)
-    return NULL;
+    return nullptr;
 
-  return new PollEPoll(fd, 1024, maxOpenSockets);
+  auto poll = new Poll();
+  poll->m_internal = std::make_unique<PollInternal>();
+
+  poll->m_internal->m_table.resize(max_open_sockets);
+  poll->m_internal->m_fd = fd;
+  poll->m_internal->m_max_events = 1024;
+  poll->m_internal->m_events = std::make_unique<struct epoll_event[]>(poll->m_internal->m_max_events);
+
+  return poll;
 }
 
-PollEPoll::PollEPoll(int fd, int max_events, int max_open_sockets) :
-    m_fd(fd),
-    m_maxEvents(max_events),
-    m_events(new epoll_event[m_maxEvents]) {
+Poll::~Poll() {
+  m_internal->m_table.clear();
 
-  try {
-    m_table.resize(max_open_sockets);
-  } catch (const std::bad_alloc&) {
-    char errmsg[1024];
-    snprintf(errmsg, sizeof(errmsg),
-             "PollEPoll::PollEPoll(...): Error allocating m_table array: too much space requested: max_open_sockets:%d", max_open_sockets);
-
-    throw internal_error(errmsg);
-  }
-}
-
-PollEPoll::~PollEPoll() {
-  m_table.clear();
-  delete [] m_events;
-
-  ::close(m_fd);
-}
-
-int
-PollEPoll::poll(int msec) {
-  int nfds = epoll_wait(m_fd, m_events, m_maxEvents, msec);
-
-  if (nfds == -1)
-    return -1;
-
-  return m_waitingEvents = nfds;
-}
-
-// We check m_table to make sure the Event is still listening to the
-// event, so it is safe to remove Event's while in working.
-//
-// TODO: Do we want to guarantee if the Event has been removed from
-// some event but not closed, it won't call that event? Think so...
-unsigned int
-PollEPoll::perform() {
-  unsigned int count = 0;
-
-  for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->data.fd < 0 || static_cast<size_t>(itr->data.fd) >= m_table.size())
-      continue;
-
-    if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
-      utils::Thread::waive_global_lock();
-
-    auto evItr = m_table.begin() + itr->data.fd;
-
-    // Each branch must check for data.ptr != NULL to allow the socket
-    // to remove itself between the calls.
-    //
-    // TODO: Make it so that it checks that read/write is wanted, that
-    // it wasn't removed from one of them but not closed.
-
-    if (itr->events & EPOLLERR && evItr->second != NULL && evItr->first & EPOLLERR) {
-      count++;
-      evItr->second->event_error();
-    }
-
-    if (itr->events & EPOLLIN && evItr->second != NULL && evItr->first & EPOLLIN) {
-      count++;
-      evItr->second->event_read();
-    }
-
-    if (itr->events & EPOLLOUT && evItr->second != NULL && evItr->first & EPOLLOUT) {
-      count++;
-      evItr->second->event_write();
-    }
-  }
-
-  m_waitingEvents = 0;
-  return count;
+  ::close(m_internal->m_fd);
 }
 
 unsigned int
-PollEPoll::do_poll(int64_t timeout_usec, int flags) {
-  auto timeout = rak::timer(timeout_usec);
+Poll::do_poll(int64_t timeout_usec, int flags) {
+  timeout_usec += 10;
 
-  timeout += 10;
-
-  if (!(flags & poll_worker_thread)) {
+  if (!(flags & poll_worker_thread))
     utils::Thread::release_global_lock();
-  }
 
-  int status = poll((timeout.usec() + 999) / 1000);
+  int status = poll((timeout_usec + 999) / 1000);
 
-  if (!(flags & poll_worker_thread)) {
+  if (!(flags & poll_worker_thread))
     utils::Thread::acquire_global_lock();
-  }
 
   if (status == -1) {
-    if (rak::error_number::current().value() != rak::error_number::e_intr) {
-      throw std::runtime_error("PollEPoll::work(): " + std::string(rak::error_number::current().c_str()));
-    }
+    if (errno != EINTR)
+      throw internal_error("Poll::work(): " + std::string(std::strerror(errno)));
 
     return 0;
   }
@@ -193,146 +146,196 @@ PollEPoll::do_poll(int64_t timeout_usec, int flags) {
   return perform();
 }
 
+int
+Poll::poll(int msec) {
+  int nfds = ::epoll_wait(m_internal->m_fd, m_internal->m_events.get(), m_internal->m_max_events, msec);
+
+  if (nfds == -1)
+    return -1;
+
+  m_internal->m_waiting_events = nfds;
+  return nfds;
+}
+
+// We check m_internal->m_table to make sure the Event is still listening to the
+// event, so it is safe to remove Event's while in working.
+//
+// TODO: Do we want to guarantee if the Event has been removed from
+// some event but not closed, it won't call that event? Think so...
+unsigned int
+Poll::perform() {
+  unsigned int count = 0;
+
+  for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
+    // TODO: These should be asserts?
+    if (itr->data.fd < 0 || static_cast<size_t>(itr->data.fd) >= m_internal->m_table.size())
+      continue;
+
+    if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
+      utils::Thread::waive_global_lock();
+
+    auto evItr = m_internal->m_table.begin() + itr->data.fd;
+
+    // Each branch must check for data.ptr != nullptr to allow the socket
+    // to remove itself between the calls.
+    //
+    // TODO: Make it so that it checks that read/write is wanted, that
+    // it wasn't removed from one of them but not closed.
+
+    if (itr->events & EPOLLERR && evItr->second != nullptr && evItr->first & EPOLLERR) {
+      count++;
+      evItr->second->event_error();
+    }
+
+    if (itr->events & EPOLLIN && evItr->second != nullptr && evItr->first & EPOLLIN) {
+      count++;
+      evItr->second->event_read();
+    }
+
+    if (itr->events & EPOLLOUT && evItr->second != nullptr && evItr->first & EPOLLOUT) {
+      count++;
+      evItr->second->event_write();
+    }
+  }
+
+  m_internal->m_waiting_events = 0;
+  return count;
+}
+
 uint32_t
-PollEPoll::open_max() const {
-  return m_table.size();
+Poll::open_max() const {
+  return m_internal->m_table.size();
 }
 
 void
-PollEPoll::open(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Open event.", 0);
+Poll::open(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "open event", 0);
 
-  if (event_mask(event) != 0)
-    throw internal_error("PollEPoll::open(...) called but the file descriptor is active");
+  if (m_internal->event_mask(event) != 0)
+    throw internal_error("Poll::open(...) called but the file descriptor is active");
 }
 
 void
-PollEPoll::close(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Close event.", 0);
+Poll::close(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "close event", 0);
 
-  if (event_mask(event) != 0)
-    throw internal_error("PollEPoll::close(...) called but the file descriptor is active");
+  if (m_internal->event_mask(event) != 0)
+    throw internal_error("Poll::close(...) called but the file descriptor is active");
 
-  m_table[event->file_descriptor()] = Table::value_type();
+  m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
   // Clear the event list just in case we open a new socket with the
-  // same fd while in the middle of calling PollEPoll::perform.
-  for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
+  // same fd while in the middle of calling Poll::perform.
+  for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr)
     if (itr->data.fd == event->file_descriptor())
       itr->events = 0;
 }
 
 void
-PollEPoll::closed(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Closed event.", 0);
+Poll::closed(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "closed event", 0);
 
   // Kernel removes closed FDs automatically, so just clear the mask and remove it from pending calls.
   // Don't touch if the FD was re-used before we received the close notification.
-  if (m_table[event->file_descriptor()].second == event)
-    m_table[event->file_descriptor()] = Table::value_type();
+  if (m_internal->m_table[event->file_descriptor()].second == event)
+    m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
-  // for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+  // for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
   //   if (itr->data.fd == event->file_descriptor())
   //     itr->events = 0;
   // }
 }
 
-// Use custom defines for EPOLL* to make the below code compile with
-// and with epoll.
 bool
-PollEPoll::in_read(Event* event) {
-  return event_mask(event) & EPOLLIN;
+Poll::in_read(Event* event) {
+  return m_internal->event_mask(event) & EPOLLIN;
 }
 
 bool
-PollEPoll::in_write(Event* event) {
-  return event_mask(event) & EPOLLOUT;
+Poll::in_write(Event* event) {
+  return m_internal->event_mask(event) & EPOLLOUT;
 }
 
 bool
-PollEPoll::in_error(Event* event) {
-  return event_mask(event) & EPOLLERR;
+Poll::in_error(Event* event) {
+  return m_internal->event_mask(event) & EPOLLERR;
 }
 
 void
-PollEPoll::insert_read(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Insert read.", 0);
+Poll::insert_read(Event* event) {
+  if (m_internal->event_mask(event) & EPOLLIN)
+    return;
 
-  modify(event,
-	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 event_mask(event) | EPOLLIN);
+  LT_LOG_EVENT(event, DEBUG, "insert read", 0);
+
+  m_internal->modify(event,
+                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     m_internal->event_mask(event) | EPOLLIN);
 }
 
 void
-PollEPoll::insert_write(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Insert write.", 0);
+Poll::insert_write(Event* event) {
+  if (m_internal->event_mask(event) & EPOLLOUT)
+    return;
 
-  modify(event,
-	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 event_mask(event) | EPOLLOUT);
+  LT_LOG_EVENT(event, DEBUG, "insert write", 0);
+
+  m_internal->modify(event,
+                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     m_internal->event_mask(event) | EPOLLOUT);
 }
 
 void
-PollEPoll::insert_error(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Insert error.", 0);
+Poll::insert_error(Event* event) {
+  if (m_internal->event_mask(event) & EPOLLERR)
+    return;
 
-  modify(event,
-	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 event_mask(event) | EPOLLERR);
+  LT_LOG_EVENT(event, DEBUG, "insert error", 0);
+
+  m_internal->modify(event,
+                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     m_internal->event_mask(event) | EPOLLERR);
 }
 
 void
-PollEPoll::remove_read(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Remove read.", 0);
+Poll::remove_read(Event* event) {
+  if (!(m_internal->event_mask(event) & EPOLLIN))
+    return;
 
-  uint32_t mask = event_mask(event) & ~EPOLLIN;
-  modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
+  LT_LOG_EVENT(event, DEBUG, "remove read", 0);
+
+  uint32_t mask = m_internal->event_mask(event) & ~EPOLLIN;
+  m_internal->modify(event,
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     mask);
 }
 
 void
-PollEPoll::remove_write(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Remove write.", 0);
+Poll::remove_write(Event* event) {
+  if (!(m_internal->event_mask(event) & EPOLLOUT))
+    return;
 
-  uint32_t mask = event_mask(event) & ~EPOLLOUT;
-  modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
+  LT_LOG_EVENT(event, DEBUG, "remove write", 0);
+
+  uint32_t mask = m_internal->event_mask(event) & ~EPOLLOUT;
+  m_internal->modify(event,
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     mask);
 }
 
 void
-PollEPoll::remove_error(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Remove error.", 0);
+Poll::remove_error(Event* event) {
+  if (!(m_internal->event_mask(event) & EPOLLERR))
+    return;
 
-  uint32_t mask = event_mask(event) & ~EPOLLERR;
-  modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
+  LT_LOG_EVENT(event, DEBUG, "remove error", 0);
+
+  uint32_t mask = m_internal->event_mask(event) & ~EPOLLERR;
+  m_internal->modify(event,
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     mask);
 }
 
-#else // USE_EPOLL
-
-PollEPoll* PollEPoll::create(int maxOpenSockets) { return NULL; }
-PollEPoll::~PollEPoll() {}
-
-int PollEPoll::poll(int msec) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-unsigned int PollEPoll::perform() { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-unsigned int PollEPoll::do_poll(int64_t timeout_usec, int flags) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-uint32_t PollEPoll::open_max() const { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-
-void PollEPoll::open(torrent::Event* event) {}
-void PollEPoll::close(torrent::Event* event) {}
-void PollEPoll::closed(torrent::Event* event) {}
-
-bool PollEPoll::in_read(torrent::Event* event) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-bool PollEPoll::in_write(torrent::Event* event) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-bool PollEPoll::in_error(torrent::Event* event) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-
-void PollEPoll::insert_read(torrent::Event* event) {}
-void PollEPoll::insert_write(torrent::Event* event) {}
-void PollEPoll::insert_error(torrent::Event* event) {}
-
-void PollEPoll::remove_read(torrent::Event* event) {}
-void PollEPoll::remove_write(torrent::Event* event) {}
-void PollEPoll::remove_error(torrent::Event* event) {}
-
-PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
+}
 
 #endif // USE_EPOLL
-
-}

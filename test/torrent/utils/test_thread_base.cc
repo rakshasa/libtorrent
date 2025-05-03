@@ -10,7 +10,6 @@
 #include "helpers/test_thread.h"
 #include "helpers/test_utils.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll_select.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
 

@@ -8,8 +8,7 @@
 #include "data/thread_disk.h"
 #include "test/helpers/mock_function.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll_epoll.h"
-#include "torrent/poll_kqueue.h"
+#include "torrent/poll.h"
 
 const int test_thread::test_flag_pre_stop;
 const int test_thread::test_flag_long_timeout;
@@ -25,15 +24,12 @@ const int test_thread::test_flag_post_poke;
 
 torrent::Poll*
 create_poll() {
-  torrent::Poll* poll = torrent::PollEPoll::create(256);
-  if (poll != nullptr)
-    return poll;
+  torrent::Poll* poll = torrent::Poll::create(256);
 
-  poll = torrent::PollKQueue::create(256);
-  if (poll != nullptr)
-    return poll;
+  if (poll == nullptr)
+    throw torrent::internal_error("Unable to create poll object");
 
-  throw torrent::internal_error("Unable to create poll object");
+  return poll;
 }
 
 void

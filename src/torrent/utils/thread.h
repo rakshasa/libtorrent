@@ -67,7 +67,7 @@ public:
 
   // Only call these from the same thread, or before start_thread.
   //
-  // TODO: Move all to ThreadInternal.
+  // TODO: Move poll to ThreadInternal.
   Poll*                  poll()            { return m_poll.get(); }
 
   class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
