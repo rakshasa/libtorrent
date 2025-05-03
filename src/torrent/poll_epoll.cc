@@ -148,7 +148,7 @@ Poll::do_poll(int64_t timeout_usec, int flags) {
 
 int
 Poll::poll(int msec) {
-  int nfds = epoll_wait(m_internal->m_fd, m_internal->m_events, m_internal->m_maxEvents, msec);
+  int nfds = ::epoll_wait(m_internal->m_fd, m_internal->m_events.get(), m_internal->m_maxEvents, msec);
 
   if (nfds == -1)
     return -1;
@@ -211,7 +211,7 @@ void
 Poll::open(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "open event", 0);
 
-  if (event_mask(event) != 0)
+  if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::open(...) called but the file descriptor is active");
 }
 
@@ -219,7 +219,7 @@ void
 Poll::close(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "close event", 0);
 
-  if (event_mask(event) != 0)
+  if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::close(...) called but the file descriptor is active");
 
   m_internal->m_table[event->file_descriptor()] = Table::value_type();
@@ -269,8 +269,8 @@ Poll::insert_read(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "insert read", 0);
 
   modify(event,
-         event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-         event_mask(event) | EPOLLIN);
+         m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+         m_internal->event_mask(event) | EPOLLIN);
 }
 
 void
@@ -281,8 +281,8 @@ Poll::insert_write(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "insert write", 0);
 
   modify(event,
-         event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-         event_mask(event) | EPOLLOUT);
+         m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+         m_internal->event_mask(event) | EPOLLOUT);
 }
 
 void
@@ -293,8 +293,8 @@ Poll::insert_error(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "insert error", 0);
 
   modify(event,
-	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 event_mask(event) | EPOLLERR);
+         m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+         m_internal->event_mask(event) | EPOLLERR);
 }
 
 void
@@ -304,7 +304,7 @@ Poll::remove_read(Event* event) {
 
   LT_LOG_EVENT(event, DEBUG, "remove read", 0);
 
-  uint32_t mask = event_mask(event) & ~EPOLLIN;
+  uint32_t mask = m_internal->event_mask(event) & ~EPOLLIN;
   modify(event,
          mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
          mask);
@@ -317,7 +317,7 @@ Poll::remove_write(Event* event) {
 
   LT_LOG_EVENT(event, DEBUG, "remove write", 0);
 
-  uint32_t mask = event_mask(event) & ~EPOLLOUT;
+  uint32_t mask = m_internal->event_mask(event) & ~EPOLLOUT;
   modify(event,
          mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
          mask);
@@ -330,7 +330,7 @@ Poll::remove_error(Event* event) {
 
   LT_LOG_EVENT(event, DEBUG, "remove error", 0);
 
-  uint32_t mask = event_mask(event) & ~EPOLLERR;
+  uint32_t mask = m_internal->event_mask(event) & ~EPOLLERR;
   modify(event,
          mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
          mask);
