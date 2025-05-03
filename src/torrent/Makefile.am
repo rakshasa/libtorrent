@@ -131,10 +131,7 @@ libtorrent_torrent_la_SOURCES = \
 	poll.h \
 	poll_epoll.cc \
 	poll_epoll.h \
-	poll_kqueue.h \
 	poll_kqueue.cc \
-	poll_select.h \
-	poll_select.cc \
 	rate.cc \
 	rate.h \
 	throttle.cc \
@@ -234,9 +231,6 @@ libtorrent_torrent_include_HEADERS = \
 	object_stream.h \
 	path.h \
 	poll.h \
-	poll_epoll.h \
-	poll_kqueue.h \
-	poll_select.h \
 	rate.h \
 	throttle.h \
 	torrent.h \

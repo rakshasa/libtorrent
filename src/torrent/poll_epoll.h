@@ -37,71 +37,71 @@
 #ifndef LIBTORRENT_TORRENT_POLL_EPOLL_H
 #define LIBTORRENT_TORRENT_POLL_EPOLL_H
 
-#include <vector>
-#include <torrent/poll.h>
+// #include <vector>
+// #include <torrent/poll.h>
 
-struct epoll_event;
+// struct epoll_event;
 
-namespace torrent {
+// namespace torrent {
 
-class LIBTORRENT_EXPORT PollEPoll : public torrent::Poll {
-public:
-  using Table = std::vector<std::pair<uint32_t, Event*>>;
+// class LIBTORRENT_EXPORT PollEPoll : public torrent::Poll {
+// public:
+//   using Table = std::vector<std::pair<uint32_t, Event*>>;
 
-  static PollEPoll*   create(int maxOpenSockets);
-  ~PollEPoll() override;
+//   static PollEPoll*   create(int maxOpenSockets);
+//   ~PollEPoll() override;
 
-  int                 poll(int msec);
-  unsigned int        perform();
+//   int                 poll(int msec);
+//   unsigned int        perform();
 
-  unsigned int        do_poll(int64_t timeout_usec, int flags = 0) override;
+//   unsigned int        do_poll(int64_t timeout_usec, int flags = 0) override;
 
-  int                 file_descriptor() { return m_fd; }
+//   int                 file_descriptor() { return m_fd; }
 
-  uint32_t            open_max() const override;
+//   uint32_t            open_max() const override;
 
-  // torrent::Event::get_fd() is guaranteed to be valid and remain constant
-  // from open(...) is called to close(...) returns.
-  void                open(torrent::Event* event) override;
-  void                close(torrent::Event* event) override;
+//   // torrent::Event::get_fd() is guaranteed to be valid and remain constant
+//   // from open(...) is called to close(...) returns.
+//   void                open(torrent::Event* event) override;
+//   void                close(torrent::Event* event) override;
 
-  // torrent::Event::get_fd() was closed outside of our control.
-  void                closed(torrent::Event* event) override;
+//   // torrent::Event::get_fd() was closed outside of our control.
+//   void                closed(torrent::Event* event) override;
 
-  // Functions for checking whetever the torrent::Event is listening to r/w/e?
-  bool                in_read(torrent::Event* event) override;
-  bool                in_write(torrent::Event* event) override;
-  bool                in_error(torrent::Event* event) override;
+//   // Functions for checking whetever the torrent::Event is listening to r/w/e?
+//   bool                in_read(torrent::Event* event) override;
+//   bool                in_write(torrent::Event* event) override;
+//   bool                in_error(torrent::Event* event) override;
 
-  // These functions may be called on 'event's that might, or might
-  // not, already be in the set.
-  void               insert_read(torrent::Event* event) override;
-  void               insert_write(torrent::Event* event) override;
-  void               insert_error(torrent::Event* event) override;
+//   // These functions may be called on 'event's that might, or might
+//   // not, already be in the set.
+//   void               insert_read(torrent::Event* event) override;
+//   void               insert_write(torrent::Event* event) override;
+//   void               insert_error(torrent::Event* event) override;
 
-  void               remove_read(torrent::Event* event) override;
-  void               remove_write(torrent::Event* event) override;
-  void               remove_error(torrent::Event* event) override;
+//   void               remove_read(torrent::Event* event) override;
+//   void               remove_write(torrent::Event* event) override;
+//   void               remove_error(torrent::Event* event) override;
 
-private:
-  PollEPoll(int fd, int maxEvents, int maxOpenSockets);
-  PollEPoll(const PollEPoll&) = delete;
-  PollEPoll& operator=(const PollEPoll&) = delete;
+// private:
+//   PollEPoll(int fd, int maxEvents, int maxOpenSockets);
+//   PollEPoll(const PollEPoll&) = delete;
+//   PollEPoll& operator=(const PollEPoll&) = delete;
 
-  inline uint32_t     event_mask(Event* e);
-  inline void         set_event_mask(Event* e, uint32_t m);
+//   inline uint32_t     event_mask(Event* e);
+//   inline void         set_event_mask(Event* e, uint32_t m);
 
-  inline void         modify(torrent::Event* event, int op, uint32_t mask);
+//   inline void         modify(torrent::Event* event, int op, uint32_t mask);
 
-  int                 m_fd;
+//   int                 m_fd;
 
-  int                 m_maxEvents;
-  int                 m_waitingEvents{0};
+//   int                 m_maxEvents;
+//   int                 m_waitingEvents{0};
 
-  Table               m_table;
-  epoll_event*        m_events;
-};
+//   Table               m_table;
+//   epoll_event*        m_events;
+// };
 
-}
+// }
 
 #endif

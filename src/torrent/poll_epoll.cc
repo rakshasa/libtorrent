@@ -1,5 +1,7 @@
 #include "config.h"
 
+#ifdef USE_EPOLL
+
 #include <cerrno>
 #include <cstring>
 #include <cstdio>
@@ -16,16 +18,14 @@
 #include "rak/error_number.h"
 #include "rak/timer.h"
 
-#ifdef USE_EPOLL
 #include <sys/epoll.h>
-#endif
 
 #define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
   lt_log_print(LOG_SOCKET_##log_level, "epoll->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
 
 namespace torrent {
 
-#ifdef USE_EPOLL
+std::function<Poll*()> Poll::m_slot_create_poll;
 
 inline uint32_t
 PollEPoll::event_mask(Event* e) {
@@ -305,34 +305,6 @@ PollEPoll::remove_error(Event* event) {
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
-#else // USE_EPOLL
-
-PollEPoll* PollEPoll::create(int maxOpenSockets) { return NULL; }
-PollEPoll::~PollEPoll() {}
-
-int PollEPoll::poll(int msec) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-unsigned int PollEPoll::perform() { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-unsigned int PollEPoll::do_poll(int64_t timeout_usec, int flags) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-uint32_t PollEPoll::open_max() const { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-
-void PollEPoll::open(torrent::Event* event) {}
-void PollEPoll::close(torrent::Event* event) {}
-void PollEPoll::closed(torrent::Event* event) {}
-
-bool PollEPoll::in_read(torrent::Event* event) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-bool PollEPoll::in_write(torrent::Event* event) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-bool PollEPoll::in_error(torrent::Event* event) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-
-void PollEPoll::insert_read(torrent::Event* event) {}
-void PollEPoll::insert_write(torrent::Event* event) {}
-void PollEPoll::insert_error(torrent::Event* event) {}
-
-void PollEPoll::remove_read(torrent::Event* event) {}
-void PollEPoll::remove_write(torrent::Event* event) {}
-void PollEPoll::remove_error(torrent::Event* event) {}
-
-PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
+}
 
 #endif // USE_EPOLL
-
-}

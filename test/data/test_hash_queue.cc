@@ -11,7 +11,6 @@
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/hash_string.h"
-#include "torrent/poll_select.h"
 #include "data/thread_disk.h"
 
 #include "test_chunk_list.h"
@@ -43,8 +42,7 @@ test_hash_queue::setUp() {
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
-  torrent::Poll::slot_create_poll() = [] { return torrent::PollSelect::create(256); };
-
+  set_create_poll();
   signal(SIGUSR1, [](auto){});
 }
 

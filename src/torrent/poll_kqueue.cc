@@ -1,39 +1,58 @@
 #include "config.h"
 
-#include <cerrno>
+#ifdef USE_KQUEUE
+
+#include "poll.h"
 
 #include <algorithm>
-#include <unistd.h>
+#include <cassert>
+#include <cerrno>
 #include <stdexcept>
-#include <rak/error_number.h>
-#include <torrent/exceptions.h>
-#include <torrent/event.h>
+#include <unistd.h>
+#include <sys/event.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
-#include "poll_kqueue.h"
-#include "torrent.h"
-#include "rak/timer.h"
-#include "rak/error_number.h"
 #include "utils/log.h"
 #include "utils/thread.h"
+#include "torrent/exceptions.h"
+#include "torrent/event.h"
 
-#ifdef USE_KQUEUE
-#include <sys/types.h>
-#include <sys/event.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#endif
-
-#include <assert.h>
-
+// TODO: Add new log category.
 #define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
-  lt_log_print(LOG_SOCKET_##log_level, "kqueue->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
+  lt_log_print(LOG_SOCKET_##log_level, "kqueue->%s(%i) : " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
 
 namespace torrent {
 
-#ifdef USE_KQUEUE
+std::function<Poll*()> Poll::m_slot_create_poll;
+
+class PollInternal {
+public:
+  using Table = std::vector<std::pair<uint32_t, Event*>>;
+
+  static constexpr uint32_t flag_read  = (1 << 0);
+  static constexpr uint32_t flag_write = (1 << 1);
+  static constexpr uint32_t flag_error = (1 << 2);
+
+  inline uint32_t     event_mask(Event* e) LIBTORRENT_NO_EXPORT;
+  inline void         set_event_mask(Event* e, uint32_t m) LIBTORRENT_NO_EXPORT;
+
+  void                flush_events() LIBTORRENT_NO_EXPORT;
+  void                modify(torrent::Event* event, unsigned short op, short mask) LIBTORRENT_NO_EXPORT;
+
+  int                 m_fd;
+
+  unsigned int        m_maxEvents;
+  unsigned int        m_waitingEvents{};
+  unsigned int        m_changedEvents{};
+
+  Table                            m_table;
+  std::unique_ptr<struct kevent[]> m_events;
+  std::unique_ptr<struct kevent[]> m_changes;
+};
 
 inline uint32_t
-PollKQueue::event_mask(Event* e) {
+PollInternal::event_mask(Event* e) {
   assert(e->file_descriptor() != -1);
 
   Table::value_type entry = m_table[e->file_descriptor()];
@@ -41,198 +60,89 @@ PollKQueue::event_mask(Event* e) {
 }
 
 inline void
-PollKQueue::set_event_mask(Event* e, uint32_t m) {
+PollInternal::set_event_mask(Event* e, uint32_t m) {
   assert(e->file_descriptor() != -1);
 
   m_table[e->file_descriptor()] = Table::value_type(m, e);
 }
 
 void
-PollKQueue::flush_events() {
+PollInternal::flush_events() {
   timespec timeout = { 0, 0 };
 
-  int nfds = kevent(m_fd, m_changes, m_changedEvents, m_events + m_waitingEvents, m_maxEvents - m_waitingEvents, &timeout);
+  int nfds = ::kevent(m_fd,
+                      m_changes.get(),
+                      m_changedEvents,
+                      m_events.get() + m_waitingEvents,
+                      m_maxEvents - m_waitingEvents,
+                      &timeout);
+
   if (nfds == -1)
-    throw internal_error("PollKQueue::flush_events() error: " + std::string(rak::error_number::current().c_str()));
+    throw internal_error("PollInternal::flush_events() error: " + std::string(std::strerror(errno)));
 
   m_changedEvents = 0;
   m_waitingEvents += nfds;
 }
 
 void
-PollKQueue::modify(Event* event, unsigned short op, short mask) {
-  LT_LOG_EVENT(event, DEBUG, "Modify event: op:%hx mask:%hx changed:%u.", op, mask, m_changedEvents);
+PollInternal::modify(Event* event, unsigned short op, short mask) {
+  LT_LOG_EVENT(event, DEBUG, "modify event : op:%hx mask:%hx changed:%u", op, mask, m_changedEvents);
 
   // Flush the changed filters to the kernel if the buffer is full.
   if (m_changedEvents == m_maxEvents) {
-    if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
-      throw internal_error("PollKQueue::modify() error: " + std::string(rak::error_number::current().c_str()));
+    if (::kevent(m_fd, m_changes.get(), m_changedEvents, NULL, 0, NULL) == -1)
+      throw internal_error("PollInternal::modify() error: " + std::string(std::strerror(errno)));
 
     m_changedEvents = 0;
   }
 
-  struct kevent* itr = m_changes + (m_changedEvents++);
+  struct kevent* itr = m_changes.get() + (m_changedEvents++);
 
   assert(event == m_table[event->file_descriptor()].second);
   EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
 }
 
-PollKQueue*
-PollKQueue::create(int maxOpenSockets) {
+// TODO: Use unique_ptr
+Poll*
+Poll::create(int max_open_sockets) {
   int fd = kqueue();
 
   if (fd == -1)
     return NULL;
 
-  return new PollKQueue(fd, 1024, maxOpenSockets);
+  auto poll = new Poll();
+  poll->m_internal = std::make_unique<PollInternal>();
+
+  poll->m_internal->m_table.resize(max_open_sockets);
+  poll->m_internal->m_fd = fd;
+  poll->m_internal->m_maxEvents = 1024;
+  poll->m_internal->m_events = std::make_unique<struct kevent[]>(poll->m_internal->m_maxEvents);
+  poll->m_internal->m_changes = std::make_unique<struct kevent[]>(max_open_sockets);
+
+  return poll;
 }
 
-PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) :
-    m_fd(fd),
-    m_maxEvents(maxEvents),
-    m_events(new struct kevent[m_maxEvents]),
-    m_changes(new struct kevent[maxOpenSockets]) {
+Poll::~Poll() {
+  m_internal->m_table.clear();
 
-  m_table.resize(maxOpenSockets);
-}
-
-PollKQueue::~PollKQueue() {
-  m_table.clear();
-  delete [] m_events;
-  delete [] m_changes;
-
-  ::close(m_fd);
-}
-
-int
-PollKQueue::poll(int msec) {
-#if KQUEUE_SOCKET_ONLY
-  if (m_stdinEvent != NULL) {
-    // Flush all changes to the kqueue poll before we start select
-    // polling, so that they get included.
-    if (m_changedEvents != 0)
-      flush_events();
-
-    if (poll_select(msec) == -1)
-      return -1;
-
-    // The timeout was already handled in select().
-    msec = 0;
-  }
-#endif
-
-  timespec timeout = { msec / 1000, (msec % 1000) * 1000000 };
-
-  int nfds = kevent(m_fd, m_changes, m_changedEvents, m_events + m_waitingEvents, m_maxEvents - m_waitingEvents, &timeout);
-
-  // Clear the changed events even on fail as we might have received a
-  // signal or similar, and the changed events have already been
-  // consumed.
-  //
-  // There's a chance a bad changed event could make kevent return -1,
-  // but it won't as long as there is room enough in m_events.
-  m_changedEvents = 0;
-
-  if (nfds == -1)
-    return -1;
-
-  m_waitingEvents += nfds;
-
-  return nfds;
-}
-
-#if KQUEUE_SOCKET_ONLY
-int
-PollKQueue::poll_select(int msec) {
-  if (m_waitingEvents >= m_maxEvents)
-    return 0;
-
-  timeval selectTimeout = { msec / 1000, (msec % 1000) * 1000 };
-
-  // If m_fd isn't the first FD opened by the client and has
-  // a low number, using ::poll() here would perform better.
-  //
-  // This kinda assumes fd_set's internal type is int.
-  int readBuffer[m_fd + 1];
-  fd_set* readSet = (fd_set*)&readBuffer;
-
-  std::memset(readBuffer, 0, m_fd + 1);
-  FD_SET(0,    readSet);
-  FD_SET(m_fd, readSet);
-
-  int nfds = select(m_fd + 1, readSet, NULL, NULL, &selectTimeout);
-
-  if (nfds == -1)
-    return nfds;
-
-  if (FD_ISSET(0, readSet)) {
-    m_events[m_waitingEvents].ident = 0;
-    m_events[m_waitingEvents].filter = EVFILT_READ;
-    m_events[m_waitingEvents].flags = 0;
-    m_waitingEvents++;
-  }
-
-  return nfds;
-}
-#endif
-
-unsigned int
-PollKQueue::perform() {
-  unsigned int count = 0;
-
-  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->ident >= m_table.size())
-      continue;
-
-    if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
-      utils::Thread::waive_global_lock();
-
-    auto evItr = m_table.begin() + itr->ident;
-
-    if ((itr->flags & EV_ERROR) && evItr->second != NULL) {
-      if (evItr->first & flag_error)
-        evItr->second->event_error();
-
-      count++;
-      continue;
-    }
-
-    // Also check current mask.
-
-    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & flag_read) {
-      count++;
-      evItr->second->event_read();
-    }
-
-    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & flag_write) {
-      count++;
-      evItr->second->event_write();
-    }
-  }
-
-  m_waitingEvents = 0;
-  return count;
+  ::close(m_internal->m_fd);
 }
 
 unsigned int
-PollKQueue::do_poll(int64_t timeout_usec, int flags) {
-  auto timeout = rak::timer(timeout_usec);
-  timeout += 10;
+Poll::do_poll(int64_t timeout_usec, int flags) {
+  timeout_usec += 10;
 
-  if (!(flags & poll_worker_thread)) {
+  if (!(flags & poll_worker_thread))
     utils::Thread::release_global_lock();
-  }
 
-  int status = poll((timeout.usec() + 999) / 1000);
+  int status = poll((timeout_usec + 999) / 1000);
 
-  if (!(flags & poll_worker_thread)) {
+  if (!(flags & poll_worker_thread))
     utils::Thread::acquire_global_lock();
-  }
 
   if (status == -1) {
-    if (rak::error_number::current().value() != rak::error_number::e_intr) {
-      throw std::runtime_error("PollKQueue::work(): " + std::string(rak::error_number::current().c_str()));
-    }
+    if (errno != EINTR)
+      throw std::runtime_error("Poll::work(): " + std::string(std::strerror(errno)));
 
     return 0;
   }
@@ -240,237 +150,200 @@ PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   return perform();
 }
 
+int
+Poll::poll(int msec) {
+  timespec timeout = { msec / 1000, (msec % 1000) * 1000000 };
+
+  int nfds = ::kevent(m_internal->m_fd,
+                      m_internal->m_changes.get(),
+                      m_internal->m_changedEvents,
+                      m_internal->m_events.get() + m_internal->m_waitingEvents,
+                      m_internal->m_maxEvents - m_internal->m_waitingEvents,
+                      &timeout);
+
+  // Clear the changed events even on fail as we might have received a
+  // signal or similar, and the changed events have already been
+  // consumed.
+  //
+  // There's a chance a bad changed event could make kevent return -1,
+  // but it won't as long as there is room enough in m_internal->m_events.
+  m_internal->m_changedEvents = 0;
+
+  if (nfds == -1)
+    return -1;
+
+  m_internal->m_waitingEvents += nfds;
+
+  return nfds;
+}
+
+unsigned int
+Poll::perform() {
+  unsigned int count = 0;
+
+  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr) {
+    if (itr->ident >= m_internal->m_table.size())
+      continue;
+
+    if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
+      utils::Thread::waive_global_lock();
+
+    auto evItr = m_internal->m_table.begin() + itr->ident;
+
+    if ((itr->flags & EV_ERROR) && evItr->second != NULL) {
+      if (evItr->first & PollInternal::flag_error)
+        evItr->second->event_error();
+
+      count++;
+
+      // We assume that the event gets closed if we get an error.
+      continue;
+    }
+
+    // Also check current mask.
+
+    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & PollInternal::flag_read) {
+      count++;
+      evItr->second->event_read();
+    }
+
+    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & PollInternal::flag_write) {
+      count++;
+      evItr->second->event_write();
+    }
+  }
+
+  m_internal->m_waitingEvents = 0;
+  return count;
+}
+
 uint32_t
-PollKQueue::open_max() const {
-  return m_table.size();
+Poll::open_max() const {
+  return m_internal->m_table.size();
 }
 
 void
-PollKQueue::open(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Open event.", 0);
+Poll::open(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "open event", 0);
 
-  if (event_mask(event) != 0)
-    throw internal_error("PollKQueue::open(...) called but the file descriptor is active");
+  if (m_internal->event_mask(event) != 0)
+    throw internal_error("Poll::open(...) called but the file descriptor is active");
 }
 
 void
-PollKQueue::close(Event* event) {
+Poll::close(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "close event", 0);
 
-#if KQUEUE_SOCKET_ONLY
-  if (event->file_descriptor() == 0) {
-    m_stdinEvent = NULL;
-    return;
-  }
-#endif
+  if (m_internal->event_mask(event) != 0)
+    throw internal_error("Poll::close(...) called but the file descriptor is active");
 
-  if (event_mask(event) != 0)
-    throw internal_error("PollKQueue::close(...) called but the file descriptor is active");
-
-  m_table[event->file_descriptor()] = Table::value_type();
+  m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
   // Shouldn't be needed anymore.
-  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
+  //
+  // TODO: We seem to null it out, so the remove_if below will not do anything.
+
+  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = NULL;
 
-  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
-                                   [event](const struct kevent& ke) { return ke.udata == event; }) - m_changes;
+  auto last_itr = std::remove_if(m_internal->m_changes.get(),
+                                 m_internal->m_changes.get() + m_internal->m_changedEvents,
+                                 [event](const struct kevent& ke) { return ke.udata == event; });
+
+  m_internal->m_changedEvents = last_itr - m_internal->m_changes.get();
 }
 
 void
-PollKQueue::closed(Event* event) {
+Poll::closed(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "closed event", 0);
-
-#if KQUEUE_SOCKET_ONLY
-  if (event->file_descriptor() == 0) {
-    m_stdinEvent = NULL;
-    return;
-  }
-#endif
 
   // Kernel removes closed FDs automatically, so just clear the mask
   // and remove it from pending calls.  Don't touch if the FD was
   // re-used before we received the close notification.
-  if (m_table[event->file_descriptor()].second == event)
-    m_table[event->file_descriptor()] = Table::value_type();
+  if (m_internal->m_table[event->file_descriptor()].second == event)
+    m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
   // Shouldn't be needed anymore.
-  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
+  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = NULL;
 
-  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
-                                   [event](const struct kevent& ke) { return ke.udata == event; }) - m_changes;
-}
+  auto last_itr = std::remove_if(m_internal->m_changes.get(),
+                                 m_internal->m_changes.get() + m_internal->m_changedEvents,
+                                 [event](const struct kevent& ke) { return ke.udata == event; });
 
-// Use custom defines for EPOLL* to make the below code compile with
-// and with epoll.
-bool
-PollKQueue::in_read(Event* event) {
-  return event_mask(event) & flag_read;
+  m_internal->m_changedEvents = last_itr - m_internal->m_changes.get();
 }
 
 bool
-PollKQueue::in_write(Event* event) {
-  return event_mask(event) & flag_write;
+Poll::in_read(Event* event) {
+  return m_internal->event_mask(event) & PollInternal::flag_read;
 }
 
 bool
-PollKQueue::in_error(Event* event) {
-  return event_mask(event) & flag_error;
-}
-
-void
-PollKQueue::insert_read(Event* event) {
-  if (event_mask(event) & flag_read)
-    return;
-
-  LT_LOG_EVENT(event, DEBUG, "Insert read.", 0);
-  set_event_mask(event, event_mask(event) | flag_read);
-
-#if KQUEUE_SOCKET_ONLY
-  if (event->file_descriptor() == 0) {
-    m_stdinEvent = event;
-    return;
-  }
-#endif
-
-  modify(event, EV_ADD, EVFILT_READ);
-}
-
-void
-PollKQueue::insert_write(Event* event) {
-  if (event_mask(event) & flag_write)
-    return;
-
-  LT_LOG_EVENT(event, DEBUG, "Insert write.", 0);
-  set_event_mask(event, event_mask(event) | flag_write);
-  modify(event, EV_ADD, EVFILT_WRITE);
-}
-
-void
-PollKQueue::insert_error(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Insert error.", 0);
-}
-
-void
-PollKQueue::remove_read(Event* event) {
-  if (!(event_mask(event) & flag_read))
-    return;
-
-  LT_LOG_EVENT(event, DEBUG, "Remove read.", 0);
-  set_event_mask(event, event_mask(event) & ~flag_read);
-
-#if KQUEUE_SOCKET_ONLY
-  if (event->file_descriptor() == 0) {
-    m_stdinEvent = NULL;
-    return;
-  }
-#endif
-
-  modify(event, EV_DELETE, EVFILT_READ);
-}
-
-void
-PollKQueue::remove_write(Event* event) {
-  if (!(event_mask(event) & flag_write))
-    return;
-
-  LT_LOG_EVENT(event, DEBUG, "Remove write.", 0);
-  set_event_mask(event, event_mask(event) & ~flag_write);
-  modify(event, EV_DELETE, EVFILT_WRITE);
-}
-
-void
-PollKQueue::remove_error(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Remove error.", 0);
-}
-
-#else // USE_QUEUE
-
-PollKQueue*
-PollKQueue::create([[maybe_unused]] int maxOpenSockets) {
-  return NULL;
-}
-
-PollKQueue::~PollKQueue() = default;
-
-int
-PollKQueue::poll([[maybe_unused]] int msec) {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
-}
-
-unsigned int
-PollKQueue::perform() {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
-}
-
-unsigned int
-PollKQueue::do_poll(int64_t timeout_usec, int flags) {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
-}
-
-uint32_t
-PollKQueue::open_max() const {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
-}
-
-void
-PollKQueue::open([[maybe_unused]] torrent::Event* event) {
-}
-
-void
-PollKQueue::close([[maybe_unused]] torrent::Event* event) {
-}
-
-void
-PollKQueue::closed([[maybe_unused]] torrent::Event* event) {
+Poll::in_write(Event* event) {
+  return m_internal->event_mask(event) & PollInternal::flag_write;
 }
 
 bool
-PollKQueue::in_read([[maybe_unused]] torrent::Event* event) {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
-}
-
-bool
-PollKQueue::in_write([[maybe_unused]] torrent::Event* event) {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
-}
-
-bool
-PollKQueue::in_error([[maybe_unused]] torrent::Event* event) {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
+Poll::in_error(Event* event) {
+  return m_internal->event_mask(event) & PollInternal::flag_error;
 }
 
 void
-PollKQueue::insert_read([[maybe_unused]] torrent::Event* event) {
+Poll::insert_read(Event* event) {
+  if (m_internal->event_mask(event) & PollInternal::flag_read)
+    return;
+
+  LT_LOG_EVENT(event, DEBUG, "insert read", 0);
+  m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_read);
+
+  m_internal->modify(event, EV_ADD, EVFILT_READ);
 }
 
 void
-PollKQueue::insert_write([[maybe_unused]] torrent::Event* event) {
+Poll::insert_write(Event* event) {
+  if (m_internal->event_mask(event) & PollInternal::flag_write)
+    return;
+
+  LT_LOG_EVENT(event, DEBUG, "insert write", 0);
+  m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_write);
+  m_internal->modify(event, EV_ADD, EVFILT_WRITE);
 }
 
 void
-PollKQueue::insert_error([[maybe_unused]] torrent::Event* event) {
+Poll::insert_error(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "insert error", 0);
 }
 
 void
-PollKQueue::remove_read([[maybe_unused]] torrent::Event* event) {
+Poll::remove_read(Event* event) {
+  if (!(m_internal->event_mask(event) & PollInternal::flag_read))
+    return;
+
+  LT_LOG_EVENT(event, DEBUG, "remove read", 0);
+
+  m_internal->set_event_mask(event, m_internal->event_mask(event) & ~PollInternal::flag_read);
+  m_internal->modify(event, EV_DELETE, EVFILT_READ);
 }
 
 void
-PollKQueue::remove_write([[maybe_unused]] torrent::Event* event) {
+Poll::remove_write(Event* event) {
+  if (!(m_internal->event_mask(event) & PollInternal::flag_write))
+    return;
+
+  LT_LOG_EVENT(event, DEBUG, "remove write", 0);
+
+  m_internal->set_event_mask(event, m_internal->event_mask(event) & ~PollInternal::flag_write);
+  m_internal->modify(event, EV_DELETE, EVFILT_WRITE);
 }
 
 void
-PollKQueue::remove_error([[maybe_unused]] torrent::Event* event) {
+Poll::remove_error(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "remove error", 0);
 }
 
-PollKQueue::PollKQueue([[maybe_unused]] int fd, [[maybe_unused]] int maxEvents, [[maybe_unused]] int maxOpenSockets) {
-  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 #endif // USE_KQUEUE
-
-}
