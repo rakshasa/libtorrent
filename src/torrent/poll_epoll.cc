@@ -222,7 +222,7 @@ Poll::close(Event* event) {
   if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::close(...) called but the file descriptor is active");
 
-  m_internal->m_table[event->file_descriptor()] = Table::value_type();
+  m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
   // Clear the event list just in case we open a new socket with the
   // same fd while in the middle of calling Poll::perform.
@@ -238,7 +238,7 @@ Poll::closed(Event* event) {
   // Kernel removes closed FDs automatically, so just clear the mask and remove it from pending calls.
   // Don't touch if the FD was re-used before we received the close notification.
   if (m_internal->m_table[event->file_descriptor()].second == event)
-    m_internal->m_table[event->file_descriptor()] = Table::value_type();
+    m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
   // for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waitingEvents; itr != last; ++itr) {
   //   if (itr->data.fd == event->file_descriptor())
@@ -268,9 +268,9 @@ Poll::insert_read(Event* event) {
 
   LT_LOG_EVENT(event, DEBUG, "insert read", 0);
 
-  modify(event,
-         m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-         m_internal->event_mask(event) | EPOLLIN);
+  m_internal->modify(event,
+                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     m_internal->event_mask(event) | EPOLLIN);
 }
 
 void
@@ -280,9 +280,9 @@ Poll::insert_write(Event* event) {
 
   LT_LOG_EVENT(event, DEBUG, "insert write", 0);
 
-  modify(event,
-         m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-         m_internal->event_mask(event) | EPOLLOUT);
+  m_internal->modify(event,
+                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     m_internal->event_mask(event) | EPOLLOUT);
 }
 
 void
@@ -292,9 +292,9 @@ Poll::insert_error(Event* event) {
 
   LT_LOG_EVENT(event, DEBUG, "insert error", 0);
 
-  modify(event,
-         m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-         m_internal->event_mask(event) | EPOLLERR);
+  m_internal->modify(event,
+                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     m_internal->event_mask(event) | EPOLLERR);
 }
 
 void
@@ -305,9 +305,9 @@ Poll::remove_read(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "remove read", 0);
 
   uint32_t mask = m_internal->event_mask(event) & ~EPOLLIN;
-  modify(event,
-         mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
-         mask);
+  m_internal->modify(event,
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     mask);
 }
 
 void
@@ -318,9 +318,9 @@ Poll::remove_write(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "remove write", 0);
 
   uint32_t mask = m_internal->event_mask(event) & ~EPOLLOUT;
-  modify(event,
-         mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
-         mask);
+  m_internal->modify(event,
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     mask);
 }
 
 void
@@ -331,9 +331,9 @@ Poll::remove_error(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "remove error", 0);
 
   uint32_t mask = m_internal->event_mask(event) & ~EPOLLERR;
-  modify(event,
-         mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
-         mask);
+  m_internal->modify(event,
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     mask);
 }
 
 }
