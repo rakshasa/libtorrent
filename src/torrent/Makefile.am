@@ -130,7 +130,6 @@ libtorrent_torrent_la_SOURCES = \
 	path.h \
 	poll.h \
 	poll_epoll.cc \
-	poll_epoll.h \
 	poll_kqueue.cc \
 	rate.cc \
 	rate.h \
