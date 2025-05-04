@@ -99,6 +99,18 @@ Thread::callback(void* target, std::function<void ()>&& fn) {
 }
 
 void
+Thread::callback_interrupt_pollling(void* target, std::function<void ()>&& fn) {
+  {
+    auto lock = std::scoped_lock(m_callbacks_lock);
+
+    m_interrupt_callbacks.emplace(target, std::move(fn));
+    m_callbacks_should_interrupt_polling = true;
+  }
+
+  interrupt();
+}
+
+void
 Thread::cancel_callback(void* target) {
   if (target == nullptr)
     throw internal_error("Thread::cancel_callback called with a null pointer target.");
@@ -106,6 +118,7 @@ Thread::cancel_callback(void* target) {
   auto lock = std::scoped_lock(m_callbacks_lock);
 
   m_callbacks.erase(target);
+  m_interrupt_callbacks.erase(target);
 }
 
 void
@@ -239,17 +252,21 @@ Thread::process_events() {
 
 // TODO: This should be called in process_events.
 void
-Thread::process_callbacks() {
+Thread::process_callbacks(bool only_interrupt) {
+  m_callbacks_should_interrupt_polling = false;
+
   while (true) {
     std::function<void ()> callback;
 
     {
       auto lock = std::scoped_lock(m_callbacks_lock);
 
-      if (m_callbacks.empty())
+      if (!m_interrupt_callbacks.empty())
+        callback = m_interrupt_callbacks.extract(m_interrupt_callbacks.begin()).mapped();
+      else if (!only_interrupt && !m_callbacks.empty())
+        callback = m_callbacks.extract(m_callbacks.begin()).mapped();
+      else
         break;
-
-      callback = m_callbacks.extract(m_callbacks.begin()).mapped();
 
       // The 'm_callbacks_processing_lock' is used by 'cancel_callback_and_wait' as a way to wait
       // for the processing of the callbacks to finish.

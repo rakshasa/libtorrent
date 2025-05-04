@@ -66,7 +66,7 @@ private:
   Poll& operator=(const Poll&) = delete;
 
   int                 poll(int msec);
-  unsigned int        perform();
+  unsigned int        process();
 
   static std::function<Poll*()> m_slot_create_poll;
 

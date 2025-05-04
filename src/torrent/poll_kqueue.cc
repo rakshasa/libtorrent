@@ -146,7 +146,7 @@ Poll::do_poll(int64_t timeout_usec, int flags) {
     return 0;
   }
 
-  return perform();
+  return process();
 }
 
 int
@@ -176,7 +176,7 @@ Poll::poll(int msec) {
 }
 
 unsigned int
-Poll::perform() {
+Poll::process() {
   unsigned int count = 0;
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
@@ -185,6 +185,9 @@ Poll::perform() {
 
     if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
       utils::Thread::waive_global_lock();
+
+    if (thread_self()->callbacks_should_interrupt_polling())
+      thread_self()->process_callbacks(true);
 
     auto evItr = m_internal->m_table.begin() + itr->ident;
 

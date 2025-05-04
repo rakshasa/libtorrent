@@ -80,6 +80,7 @@ public:
   void                stop_thread_wait();
 
   void                callback(void* target, std::function<void ()>&& fn);
+  void                callback_interrupt_pollling(void* target, std::function<void ()>&& fn);
   void                cancel_callback(void* target);
   void                cancel_callback_and_wait(void* target);
 
@@ -105,6 +106,7 @@ public:
   void                event_loop();
 
 protected:
+  friend class torrent::Poll;
   friend class ThreadInternal;
 
   struct global_lock_type {
@@ -115,13 +117,15 @@ protected:
   net::Resolver*      resolver()  { return m_resolver.get(); }
   Scheduler*          scheduler() { return m_scheduler.get(); }
 
+  bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
+
   static void*        enter_event_loop(Thread* thread);
 
   virtual void                      call_events() = 0;
   virtual std::chrono::microseconds next_timeout() = 0;
 
   void                process_events();
-  void                process_callbacks();
+  void                process_callbacks(bool only_interrupt = false);
 
   static thread_local Thread*  m_self;
   static global_lock_type      m_global;
@@ -147,6 +151,8 @@ protected:
 
   std::mutex                                         m_callbacks_lock;
   std::multimap<const void*, std::function<void ()>> m_callbacks;
+  std::multimap<const void*, std::function<void ()>> m_interrupt_callbacks;
+  std::atomic<bool>                                  m_callbacks_should_interrupt_polling{false};
   std::mutex                                         m_callbacks_processing_lock;
   std::atomic<bool>                                  m_callbacks_processing{false};
 };
