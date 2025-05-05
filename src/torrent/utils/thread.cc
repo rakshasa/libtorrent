@@ -19,8 +19,7 @@
 
 namespace torrent::utils {
 
-thread_local Thread*     Thread::m_self{nullptr};
-Thread::global_lock_type Thread::m_global;
+thread_local Thread* Thread::m_self{nullptr};
 
 class ThreadInternal {
 public:
@@ -77,14 +76,8 @@ void
 Thread::stop_thread_wait() {
   stop_thread();
 
-  if ((m_flags & flag_main_thread))
-    release_global_lock();
-
   pthread_join(m_thread, NULL);
   assert(is_inactive());
-
-  if ((m_flags & flag_main_thread))
-    acquire_global_lock();
 }
 
 void
@@ -173,17 +166,12 @@ Thread::event_loop() {
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
 
-      int poll_flags = 0;
-
-      if (!(flags() & flag_main_thread))
-        poll_flags = Poll::poll_worker_thread;
-
       auto timeout = std::max(next_timeout(), std::chrono::microseconds(0));
 
       if (!m_scheduler->empty())
         timeout = std::min(timeout, m_scheduler->next_timeout());
 
-      int event_count = m_poll->do_poll(timeout.count(), poll_flags);
+      int event_count = m_poll->do_poll(timeout.count());
 
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);

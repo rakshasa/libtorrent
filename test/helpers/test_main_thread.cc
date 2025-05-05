@@ -26,18 +26,12 @@ TestMainThread::~TestMainThread() {
 
 void
 TestMainThread::init_thread() {
-  // acquire_global_lock();
-
   if (!torrent::Poll::slot_create_poll())
     throw torrent::internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
 
   m_poll = std::unique_ptr<torrent::Poll>(torrent::Poll::slot_create_poll()());
-  m_poll->set_flags(torrent::Poll::flag_waive_global_lock);
-
   m_resolver = std::make_unique<torrent::net::Resolver>();
-
   m_state = STATE_INITIALIZED;
-  m_flags |= flag_main_thread;
 
   //m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
 

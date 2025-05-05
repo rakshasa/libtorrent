@@ -12,8 +12,6 @@ class test_signal_bitfield : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void tearDown();
-
   void test_basic();
   void test_single();
   void test_multiple();

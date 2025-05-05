@@ -37,18 +37,12 @@ ThreadMain::thread_main() {
 
 void
 ThreadMain::init_thread() {
-  acquire_global_lock();
-
   if (!Poll::slot_create_poll())
     throw internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
 
   m_resolver = std::make_unique<net::Resolver>();
-
   m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
-  m_poll->set_flags(Poll::flag_waive_global_lock);
-
   m_state = STATE_INITIALIZED;
-  m_flags |= flag_main_thread;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
 
@@ -57,6 +51,7 @@ ThreadMain::init_thread() {
   auto hash_work_signal = m_signal_bitfield.add_signal([this]() {
       return m_hash_queue->work();
     });
+
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
     };

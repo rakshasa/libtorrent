@@ -125,16 +125,8 @@ Poll::~Poll() {
 }
 
 unsigned int
-Poll::do_poll(int64_t timeout_usec, int flags) {
-  timeout_usec += 10;
-
-  if (!(flags & poll_worker_thread))
-    utils::Thread::release_global_lock();
-
-  int status = poll((timeout_usec + 999) / 1000);
-
-  if (!(flags & poll_worker_thread))
-    utils::Thread::acquire_global_lock();
+Poll::do_poll(int64_t timeout_usec) {
+  int status = poll((timeout_usec + 999 + 10) / 1000);
 
   if (status == -1) {
     if (errno != EINTR)
@@ -170,9 +162,6 @@ Poll::process() {
     // TODO: These should be asserts?
     if (itr->data.fd < 0 || static_cast<size_t>(itr->data.fd) >= m_internal->m_table.size())
       continue;
-
-    if ((flags() & flag_waive_global_lock) && utils::Thread::global_queue_size() != 0)
-      utils::Thread::waive_global_lock();
 
     if (thread_self()->callbacks_should_interrupt_polling())
       thread_self()->process_callbacks(true);
