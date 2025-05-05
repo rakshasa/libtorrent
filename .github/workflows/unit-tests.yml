@@ -48,7 +48,7 @@ jobs:
             autoreconf -fiv
             ./configure
             make
-#            make check
+            make check
 
   FreeBSD:
     needs: Ubuntu
@@ -78,7 +78,7 @@ jobs:
             autoreconf -fiv
             ./configure
             make
-#            make check
+            make check
 
 #  OpenBSD:
 #    needs: Ubuntu
