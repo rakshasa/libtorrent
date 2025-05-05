@@ -77,8 +77,9 @@ public:
   pointer allocate(size_type num, const_void_pointer hint = 0) { return alloc_size(num*sizeof(T)); }
 
   static pointer alloc_size(size_type size) {
-    // assert(size % LT_SMP_CACHE_BYTES == 0 && "Size must be a multiple of cacheline size");
-    return static_cast<pointer>(std::aligned_alloc(LT_SMP_CACHE_BYTES, size));
+    void* ptr = nullptr;
+    posix_memalign(&ptr, LT_SMP_CACHE_BYTES, size);
+    return static_cast<pointer>(ptr);
   }
 
   void construct (pointer p, const T& value) { new((void*)p)T(value); }
