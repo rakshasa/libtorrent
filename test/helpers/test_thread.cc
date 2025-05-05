@@ -13,9 +13,6 @@
 const int test_thread::test_flag_pre_stop;
 const int test_thread::test_flag_long_timeout;
 
-const int test_thread::test_flag_acquire_global;
-const int test_thread::test_flag_has_global;
-
 const int test_thread::test_flag_do_work;
 const int test_thread::test_flag_pre_poke;
 const int test_thread::test_flag_post_poke;
@@ -75,12 +72,6 @@ test_thread::call_events() {
   if ((m_test_flags & test_flag_pre_stop) && m_test_state == TEST_PRE_START && m_state == STATE_ACTIVE)
     m_test_state = TEST_PRE_STOP;
 
-  if ((m_test_flags & test_flag_acquire_global)) {
-    acquire_global_lock();
-    m_test_flags &= ~test_flag_acquire_global;
-    m_test_flags |= test_flag_has_global;
-  }
-
   if ((m_flags & flag_do_shutdown)) {
     if ((m_flags & flag_did_shutdown))
       throw torrent::internal_error("Already trigged shutdown.");
@@ -109,13 +100,4 @@ test_thread::next_timeout() {
     return std::chrono::microseconds(10s);
   else
     return std::chrono::microseconds(100ms);
-}
-
-
-thread_management_type::thread_management_type() {
-  CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
-}
-
-thread_management_type::~thread_management_type() {
-  torrent::utils::Thread::release_global_lock();
 }

@@ -21,13 +21,6 @@ check_index(std::atomic_uint32_t& bitfield, unsigned int index) {
   return bitfield & (1 << index);
 }
 
-void
-test_signal_bitfield::tearDown() {
-  CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
-  torrent::utils::Thread::release_global_lock();
-  test_fixture::tearDown();
-}
-
 static bool
 verify_did_internal_error(std::function<unsigned int ()> func, bool should_throw) {
   bool did_throw = false;

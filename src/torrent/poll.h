@@ -12,17 +12,12 @@ class PollInternal;
 
 class LIBTORRENT_EXPORT Poll {
 public:
-  static constexpr int      poll_worker_thread     = 0x1;
-  static constexpr uint32_t flag_waive_global_lock = 0x1;
-
   static Poll*        create(int max_open_sockets);
 
   ~Poll();
 
-  uint32_t            flags() const             { return m_flags; }
-  void                set_flags(uint32_t flags) { m_flags = flags; }
-
-  unsigned int        do_poll(int64_t timeout_usec, int flags = 0);
+  // TODO: Make protected.
+  unsigned int        do_poll(int64_t timeout_usec);
 
   // The open max value is used when initializing libtorrent, it
   // should be less than or equal to sysconf(_SC_OPEN_MAX).
@@ -70,7 +65,6 @@ private:
 
   static std::function<Poll*()> m_slot_create_poll;
 
-  uint32_t                      m_flags{0};
   std::unique_ptr<PollInternal> m_internal;
 };
 

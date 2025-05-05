@@ -21,20 +21,12 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_thread_base, "torrent/utils");
 void throw_shutdown_exception() { throw torrent::shutdown_exception(); }
 
 void
-test_thread_base::tearDown() {
-  CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
-  torrent::utils::Thread::release_global_lock();
-  test_fixture::tearDown();
-}
-
-void
 test_thread_base::test_basic() {
   auto thread = test_thread::create();
 
   CPPUNIT_ASSERT(thread->flags() == 0);
 
   CPPUNIT_ASSERT(!thread->is_active());
-  CPPUNIT_ASSERT(thread->global_queue_size() == 0);
   CPPUNIT_ASSERT(thread->poll() == NULL);
 
   // Check active...
@@ -66,62 +58,6 @@ test_thread_base::test_lifecycle() {
 }
 
 void
-test_thread_base::test_global_lock_basic() {
-  auto thread = test_thread::create();
-
-  thread->init_thread();
-  thread->start_thread();
-
-  CPPUNIT_ASSERT(torrent::utils::Thread::global_queue_size() == 0);
-
-  // Acquire main thread...
-  CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
-  CPPUNIT_ASSERT(!torrent::utils::Thread::trylock_global_lock());
-
-  torrent::utils::Thread::release_global_lock();
-  CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
-  CPPUNIT_ASSERT(!torrent::utils::Thread::trylock_global_lock());
-
-  torrent::utils::Thread::release_global_lock();
-  torrent::utils::Thread::acquire_global_lock();
-  CPPUNIT_ASSERT(!torrent::utils::Thread::trylock_global_lock());
-
-  thread->set_acquire_global();
-  CPPUNIT_ASSERT(!wait_for_true(std::bind(&test_thread::is_test_flags, thread.get(), test_thread::test_flag_has_global)));
-
-  torrent::utils::Thread::release_global_lock();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_test_flags, thread.get(), test_thread::test_flag_has_global)));
-
-  auto try_global_lock_1 = std::async([&]() {
-      return torrent::utils::Thread::trylock_global_lock();
-    });
-
-  CPPUNIT_ASSERT(!try_global_lock_1.get());
-
-  torrent::utils::Thread::release_global_lock();
-
-  auto try_global_lock_2 = std::async([&]() {
-      bool result = torrent::utils::Thread::trylock_global_lock();
-
-      if (!result)
-        return false;
-
-      if (torrent::utils::Thread::global_queue_size() != 0)
-        return false;
-
-      torrent::utils::Thread::release_global_lock();
-      return true;
-    });
-
-  CPPUNIT_ASSERT(try_global_lock_2.get());
-
-  // Test waive (loop).
-
-  thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
-}
-
-void
 test_thread_base::test_interrupt() {
   auto thread = test_thread::create();
 
@@ -149,14 +85,7 @@ test_thread_base::test_interrupt() {
 
 void
 test_thread_base::test_stop() {
-  { TEST_BEGIN("trylock global lock");
-    CPPUNIT_ASSERT(torrent::utils::Thread::trylock_global_lock());
-    // torrent::utils::Thread::acquire_global_lock();
-  };
-
   for (int i = 0; i < 20; i++) {
-    CPPUNIT_ASSERT(!torrent::utils::Thread::trylock_global_lock());
-
     auto thread = test_thread::create();
     thread->set_test_flag(test_thread::test_flag_do_work);
 
@@ -170,8 +99,4 @@ test_thread_base::test_stop() {
       CPPUNIT_ASSERT(thread->is_inactive());
     }
   }
-
-  { TEST_BEGIN("release global lock");
-    torrent::utils::Thread::release_global_lock();
-  };
 }

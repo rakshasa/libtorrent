@@ -20,9 +20,6 @@ public:
   static const int test_flag_pre_stop       = 0x1;
   static const int test_flag_long_timeout   = 0x2;
 
-  static const int test_flag_acquire_global = 0x10;
-  static const int test_flag_has_global     = 0x20;
-
   static const int test_flag_do_work   = 0x100;
   static const int test_flag_pre_poke  = 0x200;
   static const int test_flag_post_poke = 0x400;
@@ -46,7 +43,6 @@ public:
   void                init_thread() override;
 
   void                set_pre_stop()           { m_test_flags |= test_flag_pre_stop; }
-  void                set_acquire_global()     { m_test_flags |= test_flag_acquire_global; }
   void                set_test_flag(int flags) { m_test_flags |= flags; }
 
 private:
@@ -60,22 +56,16 @@ private:
   std::atomic_int m_loop_count{0};
 };
 
-struct thread_management_type {
-  thread_management_type();
-  ~thread_management_type();
-};
-
 void set_create_poll();
 
 // TODO: Need better cleanup here.
 // TODO: Replace these with class that holds the threads and cleans them up on destruction.
 
-#define SETUP_THREAD_DISK()                                             \
-  thread_management_type thread_management;                             \
-  auto thread_test = test_thread::create();                             \
-  thread_test->init_thread();                                           \
-  torrent::ThreadDisk::create_thread();                                 \
-  torrent::thread_disk()->init_thread();                                \
+#define SETUP_THREAD_DISK()                     \
+  auto thread_test = test_thread::create();     \
+  thread_test->init_thread();                   \
+  torrent::ThreadDisk::create_thread();         \
+  torrent::thread_disk()->init_thread();        \
   torrent::thread_disk()->start_thread();
 
 #define CLEANUP_THREAD_DISK()                   \

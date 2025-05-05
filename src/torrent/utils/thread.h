@@ -38,8 +38,6 @@ public:
   static constexpr int flag_did_shutdown = 0x2;
   static constexpr int flag_polling      = 0x4;
 
-  static constexpr int flag_main_thread  = 0x10;
-
   Thread();
   virtual ~Thread();
 
@@ -87,20 +85,6 @@ public:
   void                interrupt();
   void                send_event_signal(unsigned int index, bool interrupt = true);
 
-  static int          global_queue_size() { return m_global.waiting; }
-
-  // Regarding try_lock used by acquire_global_lock:
-  //
-  // This function is allowed to fail spuriously and return false even if the mutex is not currently
-  // locked by any other thread.
-  //
-  // If try_lock is called by a thread that already owns the mutex, the behavior is undefined.
-
-  static inline void  acquire_global_lock();
-  static inline bool  trylock_global_lock();
-  static inline void  release_global_lock();
-  static inline void  waive_global_lock();
-
   static bool         should_handle_sigusr1();
 
   void                event_loop();
@@ -108,11 +92,6 @@ public:
 protected:
   friend class torrent::Poll;
   friend class ThreadInternal;
-
-  struct global_lock_type {
-    std::atomic_int waiting{0};
-    std::mutex      mutex;
-  };
 
   net::Resolver*      resolver()  { return m_resolver.get(); }
   Scheduler*          scheduler() { return m_scheduler.get(); }
@@ -128,7 +107,6 @@ protected:
   void                process_callbacks(bool only_interrupt = false);
 
   static thread_local Thread*  m_self;
-  static global_lock_type      m_global;
 
   // TODO: Remove m_thread.
   pthread_t                    m_thread{};
@@ -173,29 +151,6 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
 
   if (do_interrupt)
     interrupt();
-}
-
-inline void
-Thread::acquire_global_lock() {
-  Thread::m_global.waiting++;
-  Thread::m_global.mutex.lock();
-  Thread::m_global.waiting--;
-}
-
-inline bool
-Thread::trylock_global_lock() {
-  return Thread::m_global.mutex.try_lock();
-}
-
-inline void
-Thread::release_global_lock() {
-  Thread::m_global.mutex.unlock();
-}
-
-inline void
-Thread::waive_global_lock() {
-  release_global_lock();
-  acquire_global_lock();
 }
 
 }

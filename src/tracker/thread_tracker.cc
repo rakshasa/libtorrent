@@ -27,6 +27,7 @@ ThreadTracker::create_thread(utils::Thread* main_thread) {
   m_thread_tracker->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
 }
 
+// TODO: Deprecate this function.
 void
 ThreadTracker::destroy_thread() {
   if (m_thread_tracker == nullptr)
