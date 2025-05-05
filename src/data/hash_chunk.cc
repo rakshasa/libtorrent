@@ -36,11 +36,31 @@
 
 #include "config.h"
 
-#include "hash_chunk.h"
 #include "chunk.h"
 #include "chunk_list_node.h"
+#include "hash_chunk.h"
+#include "utils/sha1.h"
 
 namespace torrent {
+
+HashChunk::~HashChunk() = default;
+
+HashChunk::HashChunk(ChunkHandle h) {
+  m_hash = std::make_unique<Sha1>();
+  set_chunk(h);
+}
+
+void
+HashChunk::set_chunk(ChunkHandle h) {
+  m_position = 0;
+  m_chunk    = h;
+  m_hash->init();
+}
+
+void
+HashChunk::hash_c(char* buffer) {
+  m_hash->final_c(buffer);
+}
 
 bool
 HashChunk::perform(uint32_t length, bool force) {
@@ -88,8 +108,8 @@ HashChunk::advise_willneed(uint32_t length) {
 uint32_t
 HashChunk::perform_part(Chunk::iterator itr, uint32_t length) {
   length = std::min(length, remaining_part(itr, m_position));
-  
-  m_hash.update(itr->chunk().begin() + m_position - itr->position(), length);
+
+  m_hash->update(itr->chunk().begin() + m_position - itr->position(), length);
   m_position += length;
 
   return length;
