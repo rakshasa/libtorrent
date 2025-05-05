@@ -12,14 +12,15 @@
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
-#include "torrent/peer/peer.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/peer/peer.h"
+#include "torrent/tracker/manager.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
-#include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
 #include "utils/functional.h"
+#include "utils/sha1.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_info(LOG_TORRENT_INFO, this->info(), "download", log_fmt, __VA_ARGS__);
