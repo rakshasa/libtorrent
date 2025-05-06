@@ -8,5 +8,5 @@ Description: A BitTorrent library
 Version: @VERSION@
 Requires.private: zlib, libcrypto
 Libs: -L${libdir} -ltorrent
-Libs.private: -pthread
+Libs.private: @PTHREAD_LIBS@ @ATOMIC_LIBS@
 Cflags: -I${includedir}
