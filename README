@@ -20,3 +20,9 @@ CONTACT
  Send bug reports, suggestions and patches to
 <sundell.software@gmail.com> or to the mailinglist.
 
+Installation:
+
+autoreconf -fi
+./configure
+make
+make install
