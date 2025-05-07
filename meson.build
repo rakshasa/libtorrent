@@ -1,0 +1,143 @@
+project(
+  'libtorrent',
+  'cpp',
+  version: '0.15.3',
+  meson_version: '>=0.50.0',
+  default_options: ['cpp_std=c++17', 'warning_level=1'],
+)
+
+if get_option('b_ndebug') not in ['true', 'if-release']
+  add_project_arguments('-DDEBUG', language: 'cpp')
+endif
+
+cdata = configuration_data()
+
+cdata.set('HAVE_CONFIG_H', 1)
+cdata.set_quoted('VERSION', meson.project_version())
+cdata.set_quoted('PEER_NAME', '-lt0F03-')
+cdata.set_quoted('PEER_VERSION', 'lt\\x0F\\x03')
+
+cc = meson.get_compiler('cpp')
+if cc.has_function_attribute('visibility:default')
+  cdata.set('SUPPORT_ATTRIBUTE_VISIBILITY', 1)
+endif
+
+cdata.set('IS_@0@_ENDIAN'.format(host_machine.endian().to_upper()), 1)
+
+cdata.set('LT_INSTRUMENTATION', 1)
+
+if cc.has_header_symbol('new', 'std::hardware_constructive_interference_size')
+  cdata.set('LT_SMP_CACHE_BYTES', 'std::hardware_constructive_interference_size')
+else
+  cdata.set('LT_SMP_CACHE_BYTES', '128')
+endif
+
+cdata.set('lt_cacheline_aligned', 'alignas(LT_SMP_CACHE_BYTES)')
+if cc.sizeof('void*') == 8
+  cdata.set('DEFAULT_ADDRESS_SPACE_SIZE', 4096)
+else
+  cdata.set('DEFAULT_ADDRESS_SPACE_SIZE', 1024)
+endif
+
+foreach h : ['epoll', 'inotify']
+  if cc.has_header('sys/@0@.h'.format(h), required: get_option(h))
+    cdata.set('USE_@0@'.format(h.to_upper()), 1)
+  endif
+endforeach
+
+foreach f : ['madvise', 'mincore']
+  if cc.has_header_symbol('sys/mman.h', f, required: get_option(f))
+    cdata.set('USE_@0@'.format(f.to_upper()), 1)
+  endif
+endforeach
+
+if cc.has_function('__builtin_popcount')
+  cdata.set('USE_BUILTIN_POPCOUNT', 1)
+endif
+
+if cc.has_function('posix_fadvise')
+  cdata.set('USE_POSIX_FADVISE', 1)
+endif
+
+if cc.has_header('execinfo.h', required: get_option('execinfo'))
+  cdata.set('HAVE_BACKTRACE', 1)
+endif
+
+if get_option('posix_fallocate') and cc.has_function('posix_fallocate')
+  cdata.set('USE_POSIX_FALLOCATE', 1)
+elif host_machine.system() == 'darwin'
+  cdata.set('SYS_DARWIN', 1)
+elif cc.has_function('fallocate')
+  cdata.set('USE_FALLOCATE', 1)
+endif
+
+if cdata.has('USE_MINCORE')
+  if cc.compiles('#include <sys/mman.h>\nint main(){mincore(0,0,(unsigned char*)0);}')
+    cdata.set('USE_MINCORE_UNSIGNED', 1)
+  else
+    cdata.set('USE_MINCORE_UNSIGNED', 0)
+  endif
+endif
+
+if cc.compiles('#include <pthread.h>\nint main(){pthread_setname_np("foo");}')
+  cdata.set('HAS_PTHREAD_SETNAME_NP_DARWIN', 1)
+elif cc.compiles('#include <pthread.h>\nint main(){pthread_t t;pthread_setname_np(t,"foo");}')
+  cdata.set('HAS_PTHREAD_SETNAME_NP_GENERIC', 1)
+endif
+
+if cc.has_header('sys/statvfs.h', required: get_option('statvfs'))
+  cdata.set('HAVE_SYS_STATVFS_H', 1)
+  cdata.set('FS_STAT_FD', 'fstatvfs(fd, &m_stat) == 0')
+  cdata.set('FS_STAT_FN', 'statvfs(fn, &m_stat) == 0')
+  cdata.set('FS_STAT_STRUCT', 'struct statvfs')
+  cdata.set('FS_STAT_SIZE_TYPE', 'unsigned long')
+  cdata.set('FS_STAT_COUNT_TYPE', 'fsblkcnt_t')
+  cdata.set('FS_STAT_BLOCK_SIZE', '(m_stat.f_frsize)')
+elif cc.has_header('sys/statfs.h', required: get_option('statfs'))
+  cdata.set('HAVE_SYS_STATFS_H', 1)
+  cdata.set('HAVE_SYS_VFS_H', 1)
+  cdata.set('FS_STAT_FD', 'fstatfs(fd, &m_stat) == 0')
+  cdata.set('FS_STAT_FN', 'statfs(fn, &m_stat) == 0')
+  cdata.set('FS_STAT_STRUCT', 'struct statfs')
+  cdata.set('FS_STAT_SIZE_TYPE', 'long')
+  cdata.set('FS_STAT_COUNT_TYPE', 'long')
+  cdata.set('FS_STAT_BLOCK_SIZE', '(m_stat.f_bsize)')
+else
+  cdata.set('FS_STAT_FD', '(errno = ENOSYS) == 0')
+  cdata.set('FS_STAT_FN', '(errno = ENOSYS) == 0')
+  cdata.set('FS_STAT_STRUCT', 'struct {blocksize_type f_bsize;blockcount_type f_bavail;}')
+  cdata.set('FS_STAT_SIZE_TYPE', 'int')
+  cdata.set('FS_STAT_COUNT_TYPE', 'int')
+  cdata.set('FS_STAT_BLOCK_SIZE', '(4096)')
+endif
+
+if get_option('kqueue').enabled()
+  if cdata.has('USE_EPOLL')
+    error('epoll and kqueue are mutually exclusive. Please enable only one')
+  endif
+  if cc.has_header('sys/event.h')
+    kqueue_dep = declare_dependency()
+  else
+    kqueue_dep = dependency('libkqueue')
+  endif
+  cdata.set('USE_KQUEUE', 1)
+elif not cdata.has('USE_EPOLL')
+  kqueue_dep = dependency('libkqueue', required: get_option('kqueue'))
+  if cc.has_header('sys/event.h', required: get_option('kqueue')) or kqueue_dep.found()
+    cdata.set('USE_KQUEUE', 1)
+  endif
+else
+  kqueue_dep = []
+endif
+
+ssl_dep = dependency('libcrypto')
+thread_dep = dependency('threads')
+zlib_dep = dependency('zlib')
+
+cfile = configure_file(
+  configuration: cdata,
+  output: 'config.h',
+)
+
+subdir('src')
+subdir('test')
