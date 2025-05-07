@@ -51,6 +51,7 @@ jobs:
             make check
 
   FreeBSD:
+    if: ${{ false }} # Keeps entering infinite VM boot loop
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -80,20 +81,21 @@ jobs:
             make
             make check
 
-#  OpenBSD:
-#    needs: Ubuntu
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - uses: vmactions/openbsd-vm@v1
-#        with:
-#          prepare: |
-#            pkg_add automake autoconf-2.72p0 cppunit libtool openssl pkgconf
-#          run: |
-#            env AUTOCONF_VERSION=2.72 autoreconf -fiv
-#            ./configure
-#            make
-#            make check
+  OpenBSD:
+    if: ${{ false }} # Doesn't work yet
+    needs: Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/openbsd-vm@v1
+        with:
+          prepare: |
+            pkg_add automake autoconf-2.72p0 cppunit libtool openssl pkgconf
+          run: |
+            env AUTOCONF_VERSION=2.72 autoreconf -fiv
+            ./configure
+            make
+            make check
 
   OmniOS:
     needs: Ubuntu
