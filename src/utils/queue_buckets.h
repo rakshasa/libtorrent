@@ -71,7 +71,7 @@ public:
 
   value_type       front(int idx)       { return queue_at(idx).front(); }
   value_type       back(int idx)        { return queue_at(idx).back(); }
-  const value_type front(int idx) const { return queue_at(idx).front(); }
+  value_type front(int idx) const { return queue_at(idx).front(); }
   value_type back(int idx)  const { return queue_at(idx).back(); }
 
   void pop_front(int idx);
