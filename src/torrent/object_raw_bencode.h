@@ -63,7 +63,7 @@ public:
   using this_type = raw_bencode;
   RAW_BENCODE_SET_USING
 
-  raw_bencode() : raw_object() {}
+  raw_bencode() = default;
   raw_bencode(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   bool        is_empty() const      { return m_size == 0; }
