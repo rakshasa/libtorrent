@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -39,25 +39,63 @@
 
 #include "config.h"
 
-#include <openssl/rc4.h>
+#include <openssl/evp.h>
 
 namespace torrent {
 
 class RC4 {
 public:
-  RC4()                                                               { }
+  RC4();
+  ~RC4();
+  RC4(const RC4&);
+  RC4& operator=(const RC4&);
 
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  RC4(const unsigned char key[], int len)                             { RC4_set_key(&m_key, len, key); }
+  RC4(const unsigned char key[], int len, int enc);
 
-  void crypt(const void* indata, void* outdata, unsigned int length)  { ::RC4(&m_key, length, static_cast<const unsigned char*>(indata), static_cast<unsigned char*>(outdata)); }
-  void crypt(void* data, unsigned int length)                         { ::RC4(&m_key, length, static_cast<unsigned char*>(data), static_cast<unsigned char*>(data)); }
+  void crypt(const void* indata, void* outdata, unsigned int length);
+  void crypt(void* data, unsigned int length);
 
 private:
-  RC4_KEY m_key;
-
+  EVP_CIPHER_CTX* m_ctx{EVP_CIPHER_CTX_new()};
 };
 
-};
+inline RC4::RC4() = default;
+
+inline RC4::~RC4() {
+  EVP_CIPHER_CTX_free(m_ctx);
+}
+
+inline RC4::RC4(const RC4& rhs) {
+  EVP_CIPHER_CTX_copy(m_ctx, rhs.m_ctx);
+}
+
+inline RC4& RC4::operator=(const RC4& rhs) {
+  if (this != &rhs) {
+    EVP_CIPHER_CTX_free(m_ctx);
+    auto ctx = EVP_CIPHER_CTX_new();
+    EVP_CIPHER_CTX_copy(ctx, rhs.m_ctx);
+    m_ctx = ctx;
+  }
+  return *this;
+}
+
+inline RC4::RC4(const unsigned char key[], int len, int enc) {
+  EVP_CipherInit_ex(m_ctx, EVP_rc4(), nullptr, nullptr, nullptr, enc);
+  EVP_CIPHER_CTX_set_key_length(m_ctx, len);
+  EVP_CipherInit_ex(m_ctx, EVP_rc4(), nullptr, key, nullptr, -1);
+}
+
+inline void
+RC4::crypt(const void* indata, void* outdata, unsigned int length) {
+  int outlen;
+  EVP_CipherUpdate(m_ctx, static_cast<unsigned char*>(outdata), &outlen, static_cast<const unsigned char*>(indata), length);
+}
+
+inline void
+RC4::crypt(void* data, unsigned int length) {
+  int outlen;
+  EVP_CipherUpdate(m_ctx, static_cast<unsigned char*>(data), &outlen, static_cast<unsigned char*>(data), length);
+}
+} // namespace torrent
 
 #endif
