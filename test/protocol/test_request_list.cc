@@ -206,7 +206,7 @@ TestRequestList::test_choke_normal() {
   test_main_thread->test_process_events_without_cached_time();
   VERIFY_QUEUE_SIZES(0, 0, 0, 3);
 
-  test_main_thread->test_set_cached_time(6s);
+  test_main_thread->test_set_cached_time(1s + 6s);
   test_main_thread->test_process_events_without_cached_time();
   VERIFY_QUEUE_SIZES(0, 0, 0, 0);
 
@@ -223,11 +223,11 @@ TestRequestList::test_choke_unchoke_discard() {
   test_main_thread->test_process_events_without_cached_time();
   request_list->unchoked();
 
-  test_main_thread->test_set_cached_time(10s);
+  test_main_thread->test_set_cached_time(5s + 5s);
   test_main_thread->test_process_events_without_cached_time();
   VERIFY_QUEUE_SIZES(0, 0, 0, 3);
 
-  test_main_thread->test_set_cached_time(65s);
+  test_main_thread->test_set_cached_time(5s + 60s);
   test_main_thread->test_process_events_without_cached_time();
   VERIFY_QUEUE_SIZES(0, 0, 0, 0);
 
@@ -243,19 +243,19 @@ TestRequestList::test_choke_unchoke_transfer() {
   test_main_thread->test_process_events_without_cached_time();
   request_list->unchoked();
 
-  test_main_thread->test_set_cached_time(10s);
+  test_main_thread->test_set_cached_time(5s + 5s);
   test_main_thread->test_process_events_without_cached_time();
   CPPUNIT_ASSERT(request_list->downloading(*piece_1));
   request_list->transfer()->adjust_position(piece_1->length());
   request_list->finished();
 
-  test_main_thread->test_set_cached_time(60s);
+  test_main_thread->test_set_cached_time(10s + 50s);
   test_main_thread->test_process_events_without_cached_time();
   CPPUNIT_ASSERT(request_list->downloading(*piece_2));
   request_list->transfer()->adjust_position(piece_2->length());
   request_list->finished();
 
-  test_main_thread->test_set_cached_time(110s);
+  test_main_thread->test_set_cached_time(60s + 50s);
   test_main_thread->test_process_events_without_cached_time();
   CPPUNIT_ASSERT(request_list->downloading(*piece_3));
   request_list->transfer()->adjust_position(piece_3->length());

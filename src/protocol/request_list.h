@@ -45,6 +45,7 @@ public:
   // Some parameters here, like how fast we are downloading and stuff
   // when we start considering those.
   std::vector<const Piece*>  delegate(uint32_t maxPieces);
+
   void                 stall_initial();
   void                 stall_prolonged();
 
