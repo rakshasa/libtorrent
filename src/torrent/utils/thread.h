@@ -96,6 +96,8 @@ protected:
   net::Resolver*      resolver()  { return m_resolver.get(); }
   Scheduler*          scheduler() { return m_scheduler.get(); }
 
+  void                set_cached_time(std::chrono::microseconds t);
+
   bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
 
   static void*        enter_event_loop(Thread* thread);
@@ -104,6 +106,7 @@ protected:
   virtual std::chrono::microseconds next_timeout() = 0;
 
   void                process_events();
+  void                process_events_without_cached_time();
   void                process_callbacks(bool only_interrupt = false);
 
   static thread_local Thread*  m_self;
