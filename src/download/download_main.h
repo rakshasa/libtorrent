@@ -46,7 +46,7 @@ public:
   void                open(int flags);
   void                close();
 
-  void                start();
+  void                start(int flags);
   void                stop();
 
   class choke_group*       choke_group()                           { return m_choke_group; }
