@@ -205,11 +205,10 @@ Thread::init_thread_local() {
   m_thread = pthread_self();
   m_thread_id = std::this_thread::get_id();
 
-  m_cached_time = time_since_epoch();
-  m_scheduler->set_cached_time(m_cached_time);
   m_scheduler->set_thread_id(m_thread_id);
-
   m_signal_bitfield.handover(m_thread_id);
+
+  set_cached_time(time_since_epoch());
 
   if (m_resolver)
     m_resolver->init();
@@ -221,20 +220,31 @@ Thread::init_thread_local() {
 }
 
 void
-Thread::process_events() {
-  m_cached_time = time_since_epoch();
-  m_scheduler->set_cached_time(m_cached_time);
+Thread::set_cached_time(std::chrono::microseconds t) {
+  m_cached_time = t;
+  m_scheduler->set_cached_time(t);
+}
 
+void
+Thread::process_events() {
   // TODO: We should call process_callbacks() here before and after call_events, however due to the
   // many different cached times in the code, we need to let each thread manage this themselves.
 
-  call_events();
+  set_cached_time(time_since_epoch());
 
+  call_events();
   m_signal_bitfield.work();
 
-  m_cached_time = time_since_epoch();
-  m_scheduler->set_cached_time(m_cached_time);
+  set_cached_time(time_since_epoch());
 
+  m_scheduler->perform(m_cached_time);
+}
+
+// Used for testing.
+void
+Thread::process_events_without_cached_time() {
+  call_events();
+  m_signal_bitfield.work();
   m_scheduler->perform(m_cached_time);
 }
 

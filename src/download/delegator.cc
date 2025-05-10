@@ -1,42 +1,3 @@
-
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
-// Fucked up ugly piece of hack, this code.
-
 #include "config.h"
 
 #include <algorithm>
@@ -69,6 +30,7 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
     for (BlockList* itr : m_transfers) {
       if (new_transfers.size() >= maxPieces)
         return new_transfers;
+
       if (affinity == itr->index())
         delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
     }
@@ -79,14 +41,17 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
     for (BlockList* itr : m_transfers) {
       if (new_transfers.size() >= maxPieces)
         return new_transfers;
+
       if (itr->by_seeder())
         delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
     }
+
     // Create new high priority pieces.
     delegate_new_chunks(new_transfers, maxPieces, peerChunks, true);
     // Create new normal priority pieces.
     delegate_new_chunks(new_transfers, maxPieces, peerChunks, false);
   }
+
   if (new_transfers.size() >= maxPieces)
     return new_transfers;
 
@@ -94,6 +59,7 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
   for (BlockList* itr : m_transfers) {
     if (new_transfers.size() >= maxPieces)
       return new_transfers;
+
     if (itr->priority() == PRIORITY_HIGH && peerChunks->bitfield()->get(itr->index()))
       delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
   }
@@ -105,6 +71,7 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
   for (BlockList* itr : m_transfers) {
     if (new_transfers.size() >= maxPieces)
       return new_transfers;
+
     if (itr->priority() == PRIORITY_NORMAL && peerChunks->bitfield()->get(itr->index()))
       delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
   }
@@ -120,13 +87,16 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
 
   // No more than 4 per piece.
   uint16_t overlapped = 5;
+
   for (BlockList* itr : m_transfers) {
     if (new_transfers.size() >= maxPieces)
       return new_transfers;
+
     if (peerChunks->bitfield()->get(itr->index()) && itr->priority() != PRIORITY_OFF) {
       for (auto bl_itr = itr->begin(); bl_itr != itr->end() && overlapped != 0; bl_itr++) {
         if (new_transfers.size() >= maxPieces || bl_itr->size_not_stalled() >= overlapped)
           break;
+
         if (!bl_itr->is_finished()) {
           BlockTransfer* inserted_info = bl_itr->insert(peerInfo);
           if (inserted_info != NULL) {
@@ -158,6 +128,7 @@ Delegator::delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t 
       (*itr)->set_priority(PRIORITY_HIGH);
     else
       (*itr)->set_priority(PRIORITY_NORMAL);
+
     delegate_from_blocklist(transfers, maxPieces, *itr, pc->peer_info());
   }
 }
@@ -169,6 +140,7 @@ Delegator::delegate_from_blocklist(std::vector<BlockTransfer*> &transfers, uint3
     if (!i->is_finished() && i->is_stalled() && i->size_all() == 0)
       transfers.push_back(i->insert(peerInfo));
   }
+
   if (transfers.size() >= maxPieces)
     return;
 

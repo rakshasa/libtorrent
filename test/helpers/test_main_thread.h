@@ -18,6 +18,9 @@ public:
 
   void                init_thread() override;
 
+  void                test_set_cached_time(std::chrono::microseconds t) { set_cached_time(365 * 24h + t); }
+  void                test_process_events_without_cached_time()         { process_events_without_cached_time(); }
+
 private:
   TestMainThread();
 

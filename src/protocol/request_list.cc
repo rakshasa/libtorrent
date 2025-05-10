@@ -1,21 +1,20 @@
 #include "config.h"
 
-#include <algorithm>
-#include <functional>
-#include <cinttypes>
+#include "request_list.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cinttypes>
+#include <functional>
+
+#include "download/delegator.h"
+#include "protocol/peer_chunks.h"
 #include "torrent/data/block.h"
 #include "torrent/data/block_list.h"
 #include "torrent/exceptions.h"
-#include "download/delegator.h"
 #include "utils/instrumentation.h"
 
-#include "peer_chunks.h"
-#include "request_list.h"
-
 namespace torrent {
-
-const int request_list_constants::bucket_count;
 
 const instrumentation_enum request_list_constants::instrumentation_added[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
@@ -71,14 +70,11 @@ struct request_list_same_piece {
 };
 
 RequestList::~RequestList() {
-  if (m_transfer != NULL)
-    throw internal_error("request dtor m_transfer != NULL");
+  assert(m_transfer == nullptr);
+  assert(m_queues.empty());
 
-  if (!m_queues.empty())
-    throw internal_error("request dtor m_queues not empty");
-
-  priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
-  priority_queue_erase(&taskScheduler, &m_delay_process_unordered);
+  torrent::this_thread::scheduler()->erase(&m_delay_remove_choked);
+  torrent::this_thread::scheduler()->erase(&m_delay_process_unordered);
 }
 
 std::vector<const Piece*>
@@ -113,7 +109,7 @@ RequestList::stall_initial() {
 
 void
 RequestList::stall_prolonged() {
-  if (m_transfer != NULL)
+  if (m_transfer != nullptr)
     Block::stalled(m_transfer);
 
   queue_bucket_for_all_in_queue(m_queues, bucket_queued, &Block::stalled);
@@ -129,7 +125,7 @@ RequestList::choked() {
   // Check if we want to update the choke timer; if non-zero and
   // updated within a short timespan?
 
-  m_last_choke = cachedTime;
+  m_last_choke = torrent::this_thread::cached_time();
 
   if (m_queues.queue_empty(bucket_queued) && m_queues.queue_empty(bucket_unordered))
     return;
@@ -138,27 +134,24 @@ RequestList::choked() {
   m_queues.move_all_to(bucket_unordered, bucket_choked);
   m_queues.move_all_to(bucket_stalled, bucket_choked);
 
-  if (!m_delay_remove_choked.is_queued())
-    priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
-                          (cachedTime + rak::timer::from_seconds(timeout_remove_choked)).round_seconds());
+  if (!m_delay_process_unordered.is_scheduled())
+    torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_remove_choked, timeout_remove_choked);
 }
 
 void
 RequestList::unchoked() {
-  m_last_unchoke = cachedTime;
-
+  m_last_unchoke = torrent::this_thread::cached_time();
 
   // Clear choked queue if the peer doesn't start sending previously
   // requested pieces.
   //
   // This handles the case where a peer does a choke immediately
   // followed unchoke before starting to send pieces.
-  if (!m_queues.queue_empty(bucket_choked)) {
-    priority_queue_update(&taskScheduler, &m_delay_remove_choked,
-                          (cachedTime + rak::timer::from_seconds(timeout_remove_choked)).round_seconds());
-  } else {
-    priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
-  }
+
+  if (!m_queues.queue_empty(bucket_choked))
+    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_delay_remove_choked, timeout_remove_choked);
+  else
+    torrent::this_thread::scheduler()->erase(&m_delay_remove_choked);
 }
 
 void
@@ -171,11 +164,10 @@ RequestList::prepare_process_unordered(queues_type::iterator itr) {
   m_queues.move_to(bucket_queued, m_queues.begin(bucket_queued), itr,
                    bucket_unordered);
 
-  if (m_delay_process_unordered.is_queued())
+  if (m_delay_process_unordered.is_scheduled())
     return;
 
-  priority_queue_insert(&taskScheduler, &m_delay_process_unordered,
-                        (cachedTime + rak::timer::from_seconds(timeout_process_unordered)).round_seconds());
+  torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_process_unordered, timeout_process_unordered);
 
   m_last_unordered_position = unordered_size();
 }
@@ -193,8 +185,7 @@ RequestList::delay_process_unordered() {
   m_last_unordered_position = unordered_size();
 
   if (m_last_unordered_position != 0)
-    priority_queue_insert(&taskScheduler, &m_delay_process_unordered,
-                          (cachedTime + rak::timer::from_seconds(timeout_process_unordered / 2)).round_seconds());
+    torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_process_unordered, timeout_process_unordered);
 }
 
 void
@@ -210,8 +201,8 @@ RequestList::clear() {
 
 bool
 RequestList::downloading(const Piece& piece) {
-  if (m_transfer != NULL)
-    throw internal_error("RequestList::downloading(...) m_transfer != NULL.");
+  if (m_transfer != nullptr)
+    throw internal_error("RequestList::downloading(...) m_transfer != nullptr.");
 
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING, 1);
 
@@ -225,16 +216,18 @@ RequestList::downloading(const Piece& piece) {
 
     m_transfer = m_queues.take(itr.first, itr.second);
     break;
+
   case bucket_unordered:
     // Do unordered take of element here to avoid copy shifting the whole deque. (?)
     //
     // Alternatively, move back some elements to bucket_queued.
 
-    if (std::distance(m_queues.begin(itr.first), itr.second) < m_last_unordered_position)
+    if (std::distance(m_queues.begin(itr.first), itr.second) < static_cast<std::ptrdiff_t>(m_last_unordered_position))
       m_last_unordered_position--;
 
     m_transfer = m_queues.take(itr.first, itr.second);
     break;
+
   case bucket_stalled:
     // Do special handling of unordered pieces.
 
@@ -245,9 +238,9 @@ RequestList::downloading(const Piece& piece) {
 
     // We make sure that the choked queue eventually gets cleared if
     // the peer has skipped sending some pieces from the choked queue.
-    priority_queue_update(&taskScheduler, &m_delay_remove_choked,
-                          (cachedTime + rak::timer::from_seconds(timeout_choked_received)).round_seconds());
+    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_delay_remove_choked, timeout_choked_received);
     break;
+
   default:
     goto downloading_error;
   };
@@ -294,7 +287,7 @@ RequestList::finished() {
     throw internal_error("RequestList::finished() called but transfer is invalid.");
 
   BlockTransfer* transfer = m_transfer;
-  m_transfer = NULL;
+  m_transfer = nullptr;
 
   m_delegator->transfer_list()->finished(transfer);
 
@@ -307,7 +300,7 @@ RequestList::skipped() {
     throw internal_error("RequestList::skip() called but no transfer is in progress.");
 
   Block::release(m_transfer);
-  m_transfer = NULL;
+  m_transfer = nullptr;
 
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_SKIPPED, 1);
 }
@@ -320,6 +313,7 @@ RequestList::transfer_dissimilar() {
     throw internal_error("RequestList::transfer_dissimilar() called but no transfer is in progress.");
 
   auto dummy = new BlockTransfer();
+
   Block::create_dummy(dummy, m_peerChunks->peer_info(), m_transfer->piece());
   dummy->set_position(m_transfer->position());
 
