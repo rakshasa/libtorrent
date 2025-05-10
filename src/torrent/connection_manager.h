@@ -22,30 +22,30 @@ public:
   using port_type     = uint16_t;
   using priority_type = uint8_t;
 
-  static const priority_type iptos_default     = 0;
-  static const priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
-  static const priority_type iptos_throughput  = IPTOS_THROUGHPUT;
-  static const priority_type iptos_reliability = IPTOS_RELIABILITY;
+  static constexpr priority_type iptos_default     = 0;
+  static constexpr priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
+  static constexpr priority_type iptos_throughput  = IPTOS_THROUGHPUT;
+  static constexpr priority_type iptos_reliability = IPTOS_RELIABILITY;
 
 #if defined IPTOS_MINCOST
-  static const priority_type iptos_mincost     = IPTOS_MINCOST;
+  static constexpr priority_type iptos_mincost     = IPTOS_MINCOST;
 #elif defined IPTOS_LOWCOST
-  static const priority_type iptos_mincost     = IPTOS_LOWCOST;
+  static constexpr priority_type iptos_mincost     = IPTOS_LOWCOST;
 #else
-  static const priority_type iptos_mincost     = iptos_throughput;
+  static constexpr priority_type iptos_mincost     = iptos_throughput;
 #endif
 
-  static const uint32_t encryption_none             = 0;
-  static const uint32_t encryption_allow_incoming   = (1 << 0);
-  static const uint32_t encryption_try_outgoing     = (1 << 1);
-  static const uint32_t encryption_require          = (1 << 2);
-  static const uint32_t encryption_require_RC4      = (1 << 3);
-  static const uint32_t encryption_enable_retry     = (1 << 4);
-  static const uint32_t encryption_prefer_plaintext = (1 << 5);
+  static constexpr uint32_t encryption_none             = 0;
+  static constexpr uint32_t encryption_allow_incoming   = (1 << 0);
+  static constexpr uint32_t encryption_try_outgoing     = (1 << 1);
+  static constexpr uint32_t encryption_require          = (1 << 2);
+  static constexpr uint32_t encryption_require_RC4      = (1 << 3);
+  static constexpr uint32_t encryption_enable_retry     = (1 << 4);
+  static constexpr uint32_t encryption_prefer_plaintext = (1 << 5);
 
   // Internal to libtorrent.
-  static const uint32_t encryption_use_proxy        = (1 << 6);
-  static const uint32_t encryption_retrying         = (1 << 7);
+  static constexpr uint32_t encryption_use_proxy        = (1 << 6);
+  static constexpr uint32_t encryption_retrying         = (1 << 7);
 
   enum {
     handshake_incoming           = 1,

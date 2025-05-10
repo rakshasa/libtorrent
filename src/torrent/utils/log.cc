@@ -35,8 +35,9 @@ struct log_cache_entry {
 };
 
 struct log_gz_output {
-  log_gz_output(const char* filename, bool append) { gz_file = gzopen(filename, append ? "a" : "w"); }
-  ~log_gz_output() { if (gz_file != NULL) gzclose(gz_file); }
+  log_gz_output(const char* filename, bool append) :
+      gz_file(gzopen(filename, append ? "a" : "w")) {}
+  ~log_gz_output() { if (gz_file != nullptr) gzclose(gz_file); }
   log_gz_output(const log_gz_output&) = delete;
   log_gz_output& operator=(const log_gz_output&) = delete;
 
@@ -130,7 +131,7 @@ log_rebuild_cache() {
 void
 log_group::internal_print(const HashString* hash, const char* subsystem, const void* dump_data, size_t dump_size, const char* fmt, ...) {
   va_list ap;
-  unsigned int buffer_size = 4096;
+  const unsigned int buffer_size = 4096;
   char buffer[buffer_size];
   char* first = buffer;
 
@@ -157,7 +158,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
     return elem(buffer, std::distance(buffer, first), std::distance(log_groups.begin(), this));
   });
   if (dump_data != NULL) {
-    std::for_each(m_first, m_last, [this, dump_data, dump_size](const auto& log) {
+    std::for_each(m_first, m_last, [dump_data, dump_size](const auto& log) {
       return log(static_cast<const char*>(dump_data), dump_size, -1);
     });
   }
@@ -232,8 +233,8 @@ log_cleanup() {
 
 log_output_list::iterator
 log_find_output_name(const char* name) {
-  log_output_list::iterator itr = log_outputs.begin();
-  log_output_list::iterator last = log_outputs.end();
+  auto itr = log_outputs.begin();
+  auto last = log_outputs.end();
 
   while (itr != last && itr->first != name)
     itr++;
@@ -249,7 +250,7 @@ log_open_output(const char* name, const log_slot& slot) {
     throw input_error("Cannot open more than 64 log output handlers.");
   }
 
-  log_output_list::iterator itr = log_find_output_name(name);
+  auto itr = log_find_output_name(name);
 
   if (itr == log_outputs.end()) {
     log_outputs.emplace_back(name, slot);
@@ -266,7 +267,7 @@ void
 log_close_output(const char* name) {
   auto lock = std::scoped_lock(log_mutex);
 
-  log_output_list::iterator itr = log_find_output_name(name);
+  auto itr = log_find_output_name(name);
 
   if (itr != log_outputs.end())
     log_outputs.erase(itr);
@@ -276,7 +277,7 @@ void
 log_add_group_output(int group, const char* name) {
   auto lock = std::scoped_lock(log_mutex);
 
-  log_output_list::iterator itr = log_find_output_name(name);
+  auto itr = log_find_output_name(name);
   size_t index = std::distance(log_outputs.begin(), itr);
 
   if (itr == log_outputs.end())

@@ -44,7 +44,7 @@
 namespace torrent {
 
 struct static_map_mapping_type {
-  static const size_t max_key_size = 16;
+  static constexpr size_t max_key_size = 16;
 
   bool        is_end() const { return key[0] == '\0'; }
   static bool is_not_key_char(char c) { return c == '\0' || c == ':' || c == '[' || c == '*'; }
@@ -70,7 +70,7 @@ public:
   typedef mapping_type    key_list_type[tmpl_length];
   typedef entry_type      value_list_type[tmpl_length];
 
-  static const size_t size = tmpl_length;
+  static constexpr size_t size = tmpl_length;
   static const key_list_type keys;
 
   entry_type*         values() { return m_values; }
@@ -106,11 +106,11 @@ using static_map_key_search_result = std::pair<const static_map_mapping_type*, u
 
 // Note that the key for both functions must be null-terminated at
 // 'key_last'.
-const static_map_key_search_result
+static_map_key_search_result
 find_key_match(const static_map_mapping_type* first, const static_map_mapping_type* last,
                const char* key_first, const char* key_last) LIBTORRENT_EXPORT;
 
-inline const static_map_key_search_result
+inline static_map_key_search_result
 find_key_match(const static_map_mapping_type* first, const static_map_mapping_type* last,
                const char* key) {
   return find_key_match(first, last, key, key + strlen(key));

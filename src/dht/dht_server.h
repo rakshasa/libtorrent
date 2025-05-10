@@ -1,8 +1,10 @@
 #ifndef LIBTORRENT_DHT_SERVER_H
 #define LIBTORRENT_DHT_SERVER_H
 
-#include <map>
+#include <array>
 #include <deque>
+#include <map>
+
 #include <rak/priority_queue_default.h>
 #include <rak/socket_address.h>
 
@@ -28,9 +30,9 @@ class TrackerDht;
 class DhtServer : public SocketDatagram {
 public:
   DhtServer(DhtRouter* self);
-  ~DhtServer();
+  ~DhtServer() override;
 
-  const char*         type_name() const { return "dht"; }
+  const char*         type_name() const override         { return "dht"; }
 
   void                start(int port);
   void                stop();
@@ -67,16 +69,16 @@ public:
   void                set_upload_throttle(ThrottleList* t)    { m_uploadThrottle = t; }
   void                set_download_throttle(ThrottleList* t)  { m_downloadThrottle = t; }
 
-  virtual void        event_read();
-  virtual void        event_write();
-  virtual void        event_error();
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
 
 private:
   // DHT error codes.
-  static const int dht_error_generic    = 201;
-  static const int dht_error_server     = 202;
-  static const int dht_error_protocol   = 203;
-  static const int dht_error_bad_method = 204;
+  static constexpr int dht_error_generic    = 201;
+  static constexpr int dht_error_server     = 202;
+  static constexpr int dht_error_protocol   = 203;
+  static constexpr int dht_error_bad_method = 204;
 
   struct [[gnu::packed]] compact_node_info {
     char                 _id[20];
@@ -94,12 +96,17 @@ private:
   using transaction_itr = transaction_map::iterator;
 
   // DHT transaction names for given transaction type.
-  static const char* queries[];
+  static constexpr std::array queries{
+    "ping",
+    "find_node",
+    "get_peers",
+    "announce_peer",
+  };
 
   // Priorities for the outgoing packets.
-  static const int packet_prio_high  = 2;  // For important queries we send (announces).
-  static const int packet_prio_low   = 1;  // For (relatively) unimportant queries we send.
-  static const int packet_prio_reply = 0;  // For replies to peer queries.
+  static constexpr int packet_prio_high  = 2;  // For important queries we send (announces).
+  static constexpr int packet_prio_low   = 1;  // For (relatively) unimportant queries we send.
+  static constexpr int packet_prio_reply = 0;  // For replies to peer queries.
 
   void                start_write();
 
@@ -151,7 +158,7 @@ private:
   unsigned int        m_errorsReceived;
   unsigned int        m_errorsCaught;
 
-  bool                m_networkUp;
+  bool                m_networkUp{false};
 };
 
 }

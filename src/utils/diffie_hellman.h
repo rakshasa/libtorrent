@@ -32,7 +32,7 @@ public:
 private:
   dh_ptr       m_dh;
   secret_ptr   m_secret;
-  int          m_size;
+  int          m_size{0};
 };
 
 };

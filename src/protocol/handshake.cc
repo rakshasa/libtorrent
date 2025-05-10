@@ -34,8 +34,6 @@
 
 namespace torrent {
 
-const char* Handshake::m_protocol = "BitTorrent protocol";
-
 class handshake_error : public network_error {
 public:
   handshake_error(int type, int error) : m_type(type), m_error(error) {}
@@ -55,18 +53,11 @@ public:
 };
 
 Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
-  m_state(INACTIVE),
-
   m_manager(m),
-  m_peerInfo(NULL),
-  m_download(NULL),
 
   // Use global throttles until we know which download it is.
   m_uploadThrottle(manager->upload_throttle()->throttle_list()),
   m_downloadThrottle(manager->download_throttle()->throttle_list()),
-
-  m_readDone(false),
-  m_writeDone(false),
 
   m_encryption(encryptionOptions),
   m_extensions(m->default_extensions()) {
@@ -214,8 +205,8 @@ Handshake::read_proxy_connect() {
   if (m_readBuffer.remaining() < patternLength)
     return false;
 
-  Buffer::iterator itr = std::search(m_readBuffer.begin(), m_readBuffer.end(),
-                                     (uint8_t*)pattern, (uint8_t*)pattern + patternLength);
+  auto itr = std::search(m_readBuffer.begin(), m_readBuffer.end(),
+                                     reinterpret_cast<const uint8_t*>(pattern), reinterpret_cast<const uint8_t*>(pattern) + patternLength);
 
   m_readBuffer.set_position_itr(itr != m_readBuffer.end() ? (itr + patternLength) : (itr - patternLength));
   m_readBuffer.move_unused();
@@ -287,8 +278,8 @@ bool
 Handshake::read_encryption_sync() {
   // Check if we've read the sync string already in the previous
   // state. This is very likely and avoids an unneeded read.
-  Buffer::iterator itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
-                                     (uint8_t*)m_encryption.sync(), (uint8_t*)m_encryption.sync() + m_encryption.sync_length());
+  auto itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
+                                     reinterpret_cast<const uint8_t*>(m_encryption.sync()), reinterpret_cast<const uint8_t*>(m_encryption.sync()) + m_encryption.sync_length());
 
   if (itr == m_readBuffer.end()) {
     // Otherwise read as many bytes as possible until we find the sync
@@ -301,7 +292,7 @@ Handshake::read_encryption_sync() {
     m_readBuffer.move_end(read_unthrottled(m_readBuffer.end(), toRead));
 
     itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
-                      (uint8_t*)m_encryption.sync(), (uint8_t*)m_encryption.sync() + m_encryption.sync_length());
+                      reinterpret_cast<const uint8_t*>(m_encryption.sync()), reinterpret_cast<const uint8_t*>(m_encryption.sync()) + m_encryption.sync_length());
 
     if (itr == m_readBuffer.end())
       return false;
@@ -328,8 +319,8 @@ Handshake::read_encryption_skey() {
   if (!fill_read_buffer(20))
     return false;
 
-  m_encryption.deobfuscate_hash((char*)m_readBuffer.position());
-  m_download = m_manager->download_info_obfuscated((char*)m_readBuffer.position());
+  m_encryption.deobfuscate_hash(reinterpret_cast<char*>(m_readBuffer.position()));
+  m_download = m_manager->download_info_obfuscated(reinterpret_cast<char*>(m_readBuffer.position()));
   m_readBuffer.consume(20);
 
   validate_download();
@@ -478,11 +469,11 @@ Handshake::read_info() {
     if (m_download != NULL) {
       // Have the download from the encrypted handshake, make sure it
       // matches the BT handshake.
-      if (m_download->info()->hash().not_equal_to((char*)m_readBuffer.position()))
+      if (m_download->info()->hash().not_equal_to(reinterpret_cast<char*>(m_readBuffer.position())))
         throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
     } else {
-      m_download = m_manager->download_info((char*)m_readBuffer.position());
+      m_download = m_manager->download_info(reinterpret_cast<char*>(m_readBuffer.position()));
     }
 
     validate_download();
@@ -492,7 +483,7 @@ Handshake::read_info() {
     prepare_handshake();
 
   } else {
-    if (m_download->info()->hash().not_equal_to((char*)m_readBuffer.position()))
+    if (m_download->info()->hash().not_equal_to(reinterpret_cast<char*>(m_readBuffer.position())))
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
   }
 
@@ -976,7 +967,7 @@ Handshake::event_write() {
 
 void
 Handshake::prepare_proxy_connect() {
-  int advance = snprintf((char*)m_writeBuffer.position(), m_writeBuffer.reserved_left(),
+  int advance = snprintf(reinterpret_cast<char*>(m_writeBuffer.position()), m_writeBuffer.reserved_left(),
                          "CONNECT %s:%hu HTTP/1.0\r\n\r\n", sap_addr_str(m_address).c_str(), sap_port(m_address));
 
   if (advance == -1 || advance > m_writeBuffer.reserved_left())
@@ -993,7 +984,7 @@ Handshake::prepare_key_plus_pad() {
   m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
   m_writeBuffer.move_end(96);
 
-  int length = random() % enc_pad_size;
+  const int length = random() % enc_pad_size;
   char pad[length];
 
   std::generate_n(pad, length, &::random);
@@ -1078,7 +1069,7 @@ Handshake::prepare_peer_info() {
 
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
 
-  m_peerInfo->mutable_id().assign((const char*)m_readBuffer.position());
+  m_peerInfo->mutable_id().assign(reinterpret_cast<const char*>(m_readBuffer.position()));
   m_readBuffer.consume(20);
 
   hash_string_to_hex(m_peerInfo->id(), m_peerInfo->mutable_id_hex());

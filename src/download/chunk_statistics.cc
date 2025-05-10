@@ -81,8 +81,8 @@ ChunkStatistics::received_connect(PeerChunks* pc) {
     // when there's no need.
     pc->set_using_counter(true);
     m_accounted++;
-    
-    iterator itr = base_type::begin();
+
+    auto itr = base_type::begin();
 
     // Use a bitfield iterator instead.
     for (Bitfield::size_type index = 0; index < pc->bitfield()->size_bits(); ++index, ++itr)
@@ -110,7 +110,7 @@ ChunkStatistics::received_disconnect(PeerChunks* pc) {
 
     m_accounted--;
 
-    iterator itr = base_type::begin();
+    auto itr = base_type::begin();
 
     // Use a bitfield iterator instead.
     for (Bitfield::size_type index = 0; index < pc->bitfield()->size_bits(); ++index, ++itr)

@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-const static_map_key_search_result
+static_map_key_search_result
 find_key_match(const static_map_mapping_type* first, const static_map_mapping_type* last,
                const char* key_first, const char* key_last) {
   //  unsigned int key_length = strlen(key);

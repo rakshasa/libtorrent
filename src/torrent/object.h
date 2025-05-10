@@ -71,19 +71,19 @@ public:
 
   // Flags in the range of 0xffff0000 may be set by the user, however
   // 0x00ff0000 are reserved for keywords defined by libtorrent.
-  static const uint32_t mask_type     = 0xff;
-  static const uint32_t mask_flags    = ~mask_type;
-  static const uint32_t mask_internal = 0xffff;
-  static const uint32_t mask_public   = ~mask_internal;
+  static constexpr uint32_t mask_type     = 0xff;
+  static constexpr uint32_t mask_flags    = ~mask_type;
+  static constexpr uint32_t mask_internal = 0xffff;
+  static constexpr uint32_t mask_public   = ~mask_internal;
 
-  static const uint32_t flag_unordered    = 0x100;    // bencode dictionary was not sorted
-  static const uint32_t flag_static_data  = 0x010000;  // Object does not change across sessions.
-  static const uint32_t flag_session_data = 0x020000;  // Object changes between sessions.
-  static const uint32_t flag_function     = 0x040000;  // A function object.
-  static const uint32_t flag_function_q1  = 0x080000;  // A quoted function object.
-  static const uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object.
+  static constexpr uint32_t flag_unordered    = 0x100;    // bencode dictionary was not sorted
+  static constexpr uint32_t flag_static_data  = 0x010000;  // Object does not change across sessions.
+  static constexpr uint32_t flag_session_data = 0x020000;  // Object changes between sessions.
+  static constexpr uint32_t flag_function     = 0x040000;  // A function object.
+  static constexpr uint32_t flag_function_q1  = 0x080000;  // A quoted function object.
+  static constexpr uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object.
 
-  static const uint32_t mask_function     = 0x1C0000;  // Mask for function objects.
+  static constexpr uint32_t mask_function     = 0x1C0000;  // Mask for function objects.
 
   enum type_type {
     TYPE_NONE,
@@ -135,7 +135,7 @@ public:
   // cases where we pass constant rvalues.
   void                clear();
 
-  type_type           type() const                            { return (type_type)(m_flags & mask_type); }
+  type_type           type() const                            { return static_cast<type_type>(m_flags & mask_type); }
   uint32_t            flags() const                           { return m_flags & mask_flags; }
 
   void                set_flags(uint32_t f)                   { m_flags |= f & mask_public; }
@@ -232,9 +232,9 @@ public:
   Object&             insert_back(const Object& b)                   { check_throw(TYPE_LIST); return *_list().insert(_list().end(), b); }
 
   // Copy and merge operations:
-  Object&             move(Object& b);
-  Object&             swap(Object& b);
-  Object&             swap_same_type(Object& b);
+  Object&             move(Object& b) noexcept;
+  Object&             swap(Object& b) noexcept;
+  Object&             swap_same_type(Object& b) noexcept;
 
   // Only map entries are merged.
   Object&             merge_move(Object& object, uint32_t maxDepth = ~uint32_t());
@@ -243,11 +243,11 @@ public:
                                  uint32_t maxDepth = ~uint32_t());
 
   // Internal:
-  void                swap_same_type(Object& left, Object& right);
+  void                swap_same_type(Object& left, Object& right) noexcept;
 
  private:
-  inline bool         check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
-  inline void         check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
+  bool                check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
+  void                check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
 
   template <typename T> void check_value_throw(const char* err_msg) const;
 
@@ -343,8 +343,8 @@ public:
 };
 
 inline
-Object::Object(const Object& b) {
-  m_flags = b.m_flags & (mask_type | mask_public);
+Object::Object(const Object& b) :
+    m_flags(b.m_flags & (mask_type | mask_public)) {
 
   switch (type()) {
   case TYPE_NONE:
@@ -461,7 +461,7 @@ Object::clear() {
 }
 
 inline void
-Object::swap_same_type(Object& left, Object& right) {
+Object::swap_same_type(Object& left, Object& right) noexcept {
   std::swap(left.m_flags, right.m_flags);
 
   switch (left.type()) {
@@ -474,7 +474,7 @@ Object::swap_same_type(Object& left, Object& right) {
   }
 }
 
-inline void swap(Object& left, Object& right) { left.swap(right); }
+inline void swap(Object& left, Object& right) noexcept { left.swap(right); }
 
 inline bool
 object_equal(const Object& left, const Object& right) {

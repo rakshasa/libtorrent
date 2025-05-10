@@ -3,11 +3,14 @@
 
 #include <cinttypes>
 #include <cstddef>
+#include <chrono>
 
 struct sockaddr;
 struct sockaddr_in;
 struct sockaddr_in6;
 struct sockaddr_un;
+
+using namespace std::chrono_literals;
 
 namespace torrent {
 
@@ -23,8 +26,6 @@ enum tracker_enum {
   TRACKER_UDP,
   TRACKER_DHT,
 };
-
-using priority_t = priority_enum;
 
 // Just forward declare everything here so we can keep the actual
 // headers clean.
@@ -57,6 +58,7 @@ class Handshake;
 class HandshakeManager;
 class HashString;
 class Listen;
+class Manager;
 class MemoryChunk;
 class Object;
 class Path;
@@ -75,20 +77,21 @@ class TrackerController;
 class TrackerList;
 class TransferList;
 
-class thread_interrupt;
-
 namespace net {
 class Resolver;
 }
 
 namespace tracker {
 class DhtController;
-class Manager;
 class Tracker;
 }
 
 namespace utils {
+class Scheduler;
+class SchedulerEntry;
 class Thread;
+}
+
 }
 
 // This should only need to be set when compiling libtorrent.
@@ -100,6 +103,14 @@ class Thread;
   #define LIBTORRENT_EXPORT
 #endif
 
+// TODO: Add the other torrent threads as namespaces.
+namespace torrent::this_thread {
+std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
+std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
+Poll*                     poll() LIBTORRENT_EXPORT;
+net::Resolver*            resolver() LIBTORRENT_EXPORT;
+utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
+// TODO: Add callbacks.
 }
 
 #endif

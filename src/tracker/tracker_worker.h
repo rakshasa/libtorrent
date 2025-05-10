@@ -57,7 +57,7 @@ protected:
   void                lock_and_set_latest_event(tracker::TrackerState::event_enum new_state);
 
   void                lock() const                          { m_mutex.lock(); }
-  auto                lock_guard() const                    { return std::lock_guard<std::mutex>(m_mutex); }
+  auto                lock_guard() const                    { return std::scoped_lock(m_mutex); }
   void                unlock() const                        { m_mutex.unlock(); }
 
   // Protected members that require locking:

@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <cstring>
 
@@ -17,7 +18,7 @@ namespace torrent {
 
 struct option_single {
   unsigned int size;
-  const char** name;
+  const char* const* name;
 };
 
 struct option_pair {
@@ -25,7 +26,7 @@ struct option_pair {
   unsigned int value;
 };
 
-option_pair option_list_connection_type[] = {
+constexpr option_pair option_list_connection_type[] = {
   { "leech",        Download::CONNECTION_LEECH },
   { "seed",         Download::CONNECTION_SEED },
   { "initial_seed", Download::CONNECTION_INITIAL_SEED },
@@ -33,7 +34,7 @@ option_pair option_list_connection_type[] = {
   { NULL, 0 }
 };
 
-option_pair option_list_heuristics[] = {
+constexpr option_pair option_list_heuristics[] = {
   { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
   { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
   { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
@@ -42,19 +43,19 @@ option_pair option_list_heuristics[] = {
   { NULL, 0 }
 };
 
-option_pair option_list_heuristics_download[] = {
+constexpr option_pair option_list_heuristics_download[] = {
   { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
   { NULL, 0 }
 };
 
-option_pair option_list_heuristics_upload[] = {
+constexpr option_pair option_list_heuristics_upload[] = {
   { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
   { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
   { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
   { NULL, 0 }
 };
 
-option_pair option_list_encryption[] = {
+constexpr option_pair option_list_encryption[] = {
   { "none",             torrent::ConnectionManager::encryption_none },
   { "allow_incoming",   torrent::ConnectionManager::encryption_allow_incoming },
   { "try_outgoing",     torrent::ConnectionManager::encryption_try_outgoing },
@@ -66,13 +67,13 @@ option_pair option_list_encryption[] = {
   { NULL, 0 }
 };
 
-option_pair option_list_ip_filter[] = {
+constexpr option_pair option_list_ip_filter[] = {
   { "unwanted",  PeerInfo::flag_unwanted },
   { "preferred", PeerInfo::flag_preferred },
   { NULL, 0 }
 };
 
-option_pair option_list_ip_tos[] = {
+constexpr option_pair option_list_ip_tos[] = {
   { "default",     torrent::ConnectionManager::iptos_default },
   { "lowdelay",    torrent::ConnectionManager::iptos_lowdelay },
   { "throughput",  torrent::ConnectionManager::iptos_throughput },
@@ -81,13 +82,13 @@ option_pair option_list_ip_tos[] = {
   { NULL, 0 }
 };
 
-option_pair option_list_tracker_mode[] = {
+constexpr option_pair option_list_tracker_mode[] = {
   { "normal",     choke_group::TRACKER_MODE_NORMAL },
   { "aggressive", choke_group::TRACKER_MODE_AGGRESSIVE },
   { NULL, 0 }
 };
 
-const char* option_list_handshake_connection[] = {
+constexpr const char* option_list_handshake_connection[] = {
   "none",
   "incoming",
   "outgoing_normal",
@@ -97,10 +98,12 @@ const char* option_list_handshake_connection[] = {
   "dropped",
   "failed",
   "retry_plaintext",
-  "retry_encrypted"
+  "retry_encrypted",
+
+  nullptr
 };
 
-const char* option_list_log_group[] = {
+constexpr const char* option_list_log_group[] = {
   "critical",
   "error",
   "warn",
@@ -207,7 +210,7 @@ const char* option_list_log_group[] = {
   NULL
 };
 
-const char* option_list_tracker_event[] = {
+constexpr const char* option_list_tracker_event[] = {
   "updated",
   "completed",
   "started",
@@ -217,7 +220,7 @@ const char* option_list_tracker_event[] = {
   NULL
 };
 
-option_pair* option_pair_lists[OPTION_START_COMPACT] = {
+constexpr std::array option_pair_lists{
   option_list_connection_type,
   option_list_heuristics,
   option_list_heuristics_download,
@@ -227,20 +230,22 @@ option_pair* option_pair_lists[OPTION_START_COMPACT] = {
   option_list_ip_tos,
   option_list_tracker_mode,
 };
+static_assert(option_pair_lists.size() == OPTION_START_COMPACT);
 
 #define OPTION_SINGLE_ENTRY(single_name) \
-  { sizeof(single_name) / sizeof(const char*) - 1, single_name }
+  option_single{ sizeof(single_name) / sizeof(const char*) - 1, single_name }
 
-option_single option_single_lists[OPTION_SINGLE_SIZE] = {
+constexpr std::array option_single_lists{
   OPTION_SINGLE_ENTRY(option_list_handshake_connection),
   OPTION_SINGLE_ENTRY(option_list_log_group),
   OPTION_SINGLE_ENTRY(option_list_tracker_event),
 };
+static_assert(option_single_lists.size() == OPTION_SINGLE_SIZE);
 
 int
 option_find_string(option_enum opt_enum, const char* name) {
   if (opt_enum < OPTION_START_COMPACT) {
-    option_pair* itr = option_pair_lists[opt_enum];
+    auto itr = option_pair_lists[opt_enum];
 
     do {
       if (std::strcmp(itr->name, name) == 0)
@@ -248,7 +253,7 @@ option_find_string(option_enum opt_enum, const char* name) {
     } while ((++itr)->name != NULL);
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
-    const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
+    auto itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
 
     do {
       if (std::strcmp(*itr, name) == 0)
@@ -262,7 +267,7 @@ option_find_string(option_enum opt_enum, const char* name) {
 const char*
 option_to_string(option_enum opt_enum, unsigned int value, const char* not_found) {
   if (opt_enum < OPTION_START_COMPACT) {
-    option_pair* itr = option_pair_lists[opt_enum];
+    auto itr = option_pair_lists[opt_enum];
 
     do {
       if (itr->value == value)
@@ -302,13 +307,13 @@ option_list_strings(option_enum opt_enum) {
   Object::list_type result;
 
   if (opt_enum < OPTION_START_COMPACT) {
-    option_pair* itr = option_pair_lists[opt_enum];
+    auto itr = option_pair_lists[opt_enum];
 
     while (itr->name != NULL)
       result.emplace_back(std::string(itr++->name));
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
-    const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
+    auto itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
 
     while (*itr != NULL)
       result.emplace_back(std::string(*itr++));

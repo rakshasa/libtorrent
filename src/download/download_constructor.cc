@@ -189,7 +189,7 @@ DownloadConstructor::add_dht_node(const Object& b) {
   if (!b.is_list() || b.as_list().size() < 2)
     return;
 
-  Object::list_type::const_iterator el = b.as_list().begin();
+  auto el = b.as_list().begin();
 
   if (!el->is_string())
     return;
@@ -328,7 +328,7 @@ static const char*
 parse_base32_sha1(const char* pos, HashString& hash) {
   HashString::iterator hashItr = hash.begin();
 
-  static const int base_shift = 8+8-5;
+  static constexpr int base_shift = 8+8-5;
   int shift = base_shift;
   uint16_t decoded = 0;
 
@@ -445,7 +445,7 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
   Object& info = b.insert_key("info", Object::create_map());
   info.insert_key("pieces", hash.str());
   info.insert_key("name", rak::transform_hex(hash.str()) + ".meta");
-  info.insert_key("meta_download", (int64_t)1);
+  info.insert_key("meta_download", static_cast<int64_t>(1));
 
   if (!trackers.as_list().empty()) {
     b.insert_preserve_copy("announce", trackers.as_list().begin()->as_list().begin()->as_string());

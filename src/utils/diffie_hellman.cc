@@ -40,7 +40,7 @@ static const BIGNUM* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) {
 
 DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
                              const unsigned char *generator, int generatorLength) :
-  m_dh(dh_new()), m_size(0) {
+  m_dh(dh_new()) {
 
   BIGNUM* dh_p = BN_bin2bn(prime, primeLength, nullptr);
   BIGNUM* dh_g = BN_bin2bn(generator, generatorLength, nullptr);
@@ -74,7 +74,7 @@ DiffieHellman::store_pub_key(unsigned char* dest, unsigned int length) {
 
   const BIGNUM *pub_key = dh_get_pub_key(m_dh);
 
-  if ((int)length >= BN_num_bytes(pub_key))
+  if (static_cast<int>(length) >= BN_num_bytes(pub_key))
     BN_bn2bin(pub_key, dest + length - BN_num_bytes(pub_key));
 }
 

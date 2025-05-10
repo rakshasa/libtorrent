@@ -83,7 +83,7 @@ FileManager::close(value_type file) {
   file->set_protection(0);
   file->set_file_descriptor(-1);
 
-  iterator itr = std::find(begin(), end(), file);
+  auto itr = std::find(begin(), end(), file);
 
   if (itr == end())
     throw internal_error("FileManager::close_file(...) itr == end().");
@@ -95,8 +95,6 @@ FileManager::close(value_type file) {
 }
 
 struct FileManagerActivity {
-  FileManagerActivity() : m_last(rak::timer::max().usec()), m_file(NULL) {}
-
   void operator ()(File* f) {
     if (f->is_open() && f->last_touched() <= m_last) {
       m_last = f->last_touched();
@@ -104,8 +102,8 @@ struct FileManagerActivity {
     }
   }
 
-  uint64_t   m_last;
-  File*      m_file;
+  uint64_t m_last{static_cast<uint64_t>(rak::timer::max().usec())};
+  File*    m_file{};
 };
 
 void

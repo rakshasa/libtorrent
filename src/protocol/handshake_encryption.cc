@@ -94,7 +94,7 @@ HandshakeEncryption::initialize_decrypt(const char* origHash, bool incoming) {
 
   sha1_salt(incoming ? "keyA" : "keyB", 4, m_key->c_str(), 96, origHash, 20, hash);
 
-  m_info.set_decrypt(RC4((const unsigned char*)hash, 20));
+  m_info.set_decrypt(RC4(reinterpret_cast<const unsigned char*>(hash), 20));
   m_info.decrypt(discard, 1024);
 }
 
@@ -105,7 +105,7 @@ HandshakeEncryption::initialize_encrypt(const char* origHash, bool incoming) {
 
   sha1_salt(incoming ? "keyB" : "keyA", 4, m_key->c_str(), 96, origHash, 20, hash);
 
-  m_info.set_encrypt(RC4((const unsigned char*)hash, 20));
+  m_info.set_encrypt(RC4(reinterpret_cast<const unsigned char*>(hash), 20));
   m_info.encrypt(discard, 1024);
 }
 
@@ -137,7 +137,7 @@ HandshakeEncryption::encrypt_vc_to_sync(const char* origHash) {
 
   sha1_salt("keyB", 4, m_key->c_str(), 96, origHash, 20, hash);
 
-  RC4 peerEncrypt((const unsigned char*)hash, 20);
+  RC4 peerEncrypt(reinterpret_cast<const unsigned char*>(hash), 20);
 
   peerEncrypt.crypt(discard, 1024);
   peerEncrypt.crypt(m_sync, HandshakeEncryption::vc_length);

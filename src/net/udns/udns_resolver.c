@@ -35,7 +35,7 @@
 # include <fcntl.h>
 # include <sys/time.h>
 # ifdef HAVE_POLL
-#  include <sys/poll.h>
+#  include <poll.h>
 # else
 #  ifdef HAVE_SYS_SELECT_H
 #   include <sys/select.h>
@@ -887,7 +887,7 @@ dns_submit_dn(struct dns_ctx *ctx,
   SETCTXOPEN(ctx);
   dns_assert_ctx(ctx);
 
-  q = (struct dns_query *)calloc(sizeof(*q), 1);
+  q = (struct dns_query *)calloc(1, sizeof(*q));
   if (!q) {
     ctx->dnsc_qstatus = DNS_E_NOMEM;
     return NULL;

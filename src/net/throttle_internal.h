@@ -47,8 +47,8 @@ namespace torrent {
 
 class ThrottleInternal : public Throttle {
 public:
-  static const int flag_none = 0;
-  static const int flag_root = 1;
+  static constexpr int flag_none = 0;
+  static constexpr int flag_root = 1;
 
   ThrottleInternal(int flags);
   ~ThrottleInternal();
@@ -62,8 +62,8 @@ public:
 
 private:
   // Fraction is a fixed-precision value with the given number of bits after the decimal point.
-  static const uint32_t fraction_bits = 16;
-  static const uint32_t fraction_base = (1 << fraction_bits);
+  static constexpr uint32_t fraction_bits = 16;
+  static constexpr uint32_t fraction_base = (1 << fraction_bits);
 
   using SlaveList = std::vector<ThrottleInternal*>;
 
@@ -77,7 +77,7 @@ private:
   SlaveList           m_slaveList;
   SlaveList::iterator m_nextSlave;
 
-  uint32_t            m_unusedQuota;
+  uint32_t            m_unusedQuota{0};
 
   rak::timer          m_timeLastTick;
   rak::priority_item  m_taskTick;

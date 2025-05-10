@@ -3,36 +3,136 @@ name: Unit tests
 on: pull_request
 
 jobs:
-
-  unit-tests:
+  Ubuntu:
     runs-on: ubuntu-22.04
-
     steps:
-    - name: Update Packages
+    - name: Prepare
       run: |
         sudo apt-get update
-    - name: Install Dependencies
-      run: |
         sudo apt-get install -y libcppunit-dev
     - uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 0
-    - name: Fetch base branch
+    - name: Run
       run: |
-        git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
-        git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
-    - name: Configure Project
-      run: |
-        libtoolize
-        aclocal -I scripts
-        autoconf -i
-        autoheader
-        automake --add-missing
+        autoreconf -fiv
         ./configure
-    - name: Build Project
-      run: |
         make
-    - name: Run Unit Tests
-      run: |
         make check
+
+  MacOS:
+    needs: Ubuntu
+    runs-on: macos-latest
+    env:
+      TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
+    steps:
+      - name: Prepare
+        run: |
+          brew install automake cppunit libtool
+      - uses: actions/checkout@v4
+      - name: Run
+        run: |
+          autoreconf -fiv
+          ./configure
+          make
+          make check
+
+  DragonflyBSD:
+    needs: Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/dragonflybsd-vm@v1
+        with:
+          prepare: |
+            pkg install -y automake autoconf cppunit libtool openssl pkgconf
+          run: |
+            autoreconf -fiv
+            ./configure
+            make
+            make check
+
+  FreeBSD:
+    if: ${{ false }} # Keeps entering infinite VM boot loop
+    needs: Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          prepare: |
+            pkg install -y automake autoconf cppunit libtool openssl pkgconf
+          run: |
+            autoreconf -fiv
+            ./configure
+            make
+            make check
+
+  NetBSD:
+    needs: Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/netbsd-vm@v1
+        with:
+          prepare: |
+            /usr/sbin/pkg_add automake autoconf cppunit libtool openssl pkgconf
+          run: |
+            autoreconf -fiv
+            ./configure
+            make
+            make check
+
+  OpenBSD:
+    if: ${{ false }} # Doesn't work yet
+    needs: Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/openbsd-vm@v1
+        with:
+          prepare: |
+            pkg_add automake autoconf-2.72p0 cppunit libtool openssl pkgconf
+          run: |
+            env AUTOCONF_VERSION=2.72 autoreconf -fiv
+            ./configure
+            make
+            make check
+
+  OmniOS:
+    needs: Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/omnios-vm@v1
+        with:
+          prepare: |
+            pkg install automake autoconf gcc14 libtool openssl pkg-config
+          run: |
+            autoreconf -fiv
+            ./configure
+            make
+#            make check
+
+  Alpine:
+    needs: Ubuntu
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ['x86_64', 'x86']
+    defaults:
+      run:
+        shell: alpine.sh {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jirutka/setup-alpine@v1
+        with:
+          branch: edge
+          arch: ${{matrix.platform}}
+          packages: >
+            build-base automake autoconf cppunit-dev libtool linux-headers openssl-dev pkgconf zlib-dev
+      - name: Compile and Test
+        run: |
+          autoreconf -fiv
+          ./configure
+          make
+          make check

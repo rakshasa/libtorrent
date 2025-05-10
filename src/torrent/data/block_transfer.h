@@ -12,7 +12,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT BlockTransfer {
 public:
-  static const uint32_t invalid_index = ~uint32_t();
+  static constexpr uint32_t invalid_index = ~uint32_t();
 
   using key_type = PeerInfo*;
 

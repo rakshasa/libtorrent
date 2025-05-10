@@ -11,7 +11,6 @@
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/hash_string.h"
-#include "torrent/poll_select.h"
 #include "data/thread_disk.h"
 
 #include "test_chunk_list.h"
@@ -37,17 +36,14 @@ check_for_chunk_done(torrent::HashQueue* hash_queue, done_chunks_type* done_chun
   return done_chunks->find(index) != done_chunks->end();
 }
 
-static void do_nothing() {}
-
 void
 test_hash_queue::setUp() {
   test_fixture::setUp();
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
-  torrent::Poll::slot_create_poll() = [] { return torrent::PollSelect::create(256); };
-
-  signal(SIGUSR1, (sig_t)&do_nothing);
+  set_create_poll();
+  signal(SIGUSR1, [](auto){});
 }
 
 void

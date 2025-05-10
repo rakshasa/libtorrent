@@ -60,7 +60,7 @@ public:
   using base_type = std::vector<Event*, rak::cacheline_allocator<Event*>>;
   using Table     = std::vector<size_type, rak::cacheline_allocator<size_type>>;
 
-  static const size_type npos = static_cast<size_type>(-1);
+  static constexpr auto npos = ~size_type{0};
 
   using base_type::value_type;
 

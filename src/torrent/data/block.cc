@@ -87,7 +87,7 @@ Block::insert(PeerInfo* peerInfo) {
 
   m_notStalled++;
 
-  transfer_list_type::iterator itr = m_queued.insert(m_queued.end(), new BlockTransfer());
+  auto itr = m_queued.insert(m_queued.end(), new BlockTransfer());
 
   (*itr)->set_peer_info(peerInfo);
   (*itr)->set_block(this);
@@ -112,7 +112,7 @@ Block::erase(BlockTransfer* transfer) {
   m_notStalled -= transfer->stall() == 0;
 
   if (transfer->is_queued()) {
-    transfer_list_type::iterator itr = std::find(m_queued.begin(), m_queued.end(), transfer);
+    auto itr = std::find(m_queued.begin(), m_queued.end(), transfer);
 
     if (itr == m_queued.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
@@ -120,7 +120,7 @@ Block::erase(BlockTransfer* transfer) {
     m_queued.erase(itr);
 
   } else if (!transfer->is_finished()) {
-    transfer_list_type::iterator itr = std::find(m_transfers.begin(), m_transfers.end(), transfer);
+    auto itr = std::find(m_transfers.begin(), m_transfers.end(), transfer);
 
     if (itr == m_transfers.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
@@ -177,7 +177,7 @@ Block::transfering(BlockTransfer* transfer) {
   if (!transfer->is_valid())
     throw internal_error("Block::transfering(...) transfer->block() == NULL.");
 
-  transfer_list_type::iterator itr = std::find(m_queued.begin(), m_queued.end(), transfer);
+  auto itr = std::find(m_queued.begin(), m_queued.end(), transfer);
 
   if (itr == m_queued.end())
     throw internal_error("Block::transfering(...) not queued.");
@@ -224,7 +224,7 @@ Block::completed(BlockTransfer* transfer) {
 
   m_parent->inc_finished();
 
-  if ((Block::size_type)std::count_if(m_parent->begin(), m_parent->end(), std::mem_fn(&Block::is_finished)) < m_parent->finished())
+  if (static_cast<Block::size_type>(std::count_if(m_parent->begin(), m_parent->end(), std::mem_fn(&Block::is_finished))) < m_parent->finished())
     throw internal_error("Block::completed(...) Finished blocks too large.");
 
   m_notStalled -= transfer->stall() == 0;

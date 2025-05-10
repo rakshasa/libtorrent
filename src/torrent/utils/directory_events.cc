@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <algorithm>
 
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
 #include <sys/inotify.h>
 #endif
 
@@ -26,7 +26,7 @@ directory_events::open() {
 
   rak::error_number::current().clear_global();
 
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
   m_fileDesc = inotify_init();
 
   if (!SocketFd(m_fileDesc).set_nonblock()) {
@@ -64,7 +64,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   if (path.empty())
     throw input_error("Cannot add notification event for empty paths.");
 
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
   int in_flags = IN_MASK_ADD;
 
 #ifdef IN_EXCL_UNLINK
@@ -89,7 +89,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   if (result == -1)
     throw input_error("Call to inotify_add_watch(...) failed: " + std::string(rak::error_number::current().c_str()));
 
-  wd_list::iterator itr = m_wd_list.insert(m_wd_list.end(), watch_descriptor());
+  auto itr = m_wd_list.insert(m_wd_list.end(), watch_descriptor());
   itr->descriptor = result;
   itr->path = path + (*path.rbegin() != '/' ? "/" : "");
   itr->slot = slot;
@@ -101,17 +101,17 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
 
 void
 directory_events::event_read() {
-#ifdef HAVE_INOTIFY
+#ifdef USE_INOTIFY
   char buffer[2048];
   int result = ::read(m_fileDesc, buffer, 2048);
 
   if (result < sizeof(struct inotify_event))
     return;
 
-  struct inotify_event* event = (struct inotify_event*)buffer;
+  auto event = reinterpret_cast<struct inotify_event*>(buffer);
 
-  while (event + 1 <= (struct inotify_event*)(buffer + result)) {
-    char* next_event = (char*)event + sizeof(struct inotify_event) + event->len;
+  while (event + 1 <= reinterpret_cast<struct inotify_event*>(buffer + result)) {
+    auto next_event = reinterpret_cast<char*>(event) + sizeof(struct inotify_event) + event->len;
 
     if (event->len == 0 || next_event > buffer + 2048)
       return;
@@ -122,11 +122,11 @@ directory_events::event_read() {
 
     if (itr != m_wd_list.end()) {
       std::string sname(event->name);
-      if((sname.substr(sname.find_last_of(".") ) == ".torrent"))
+      if (sname.size() >= 8 && sname.compare(sname.size() - 8, 8, ".torrent") == 0)
         itr->slot(itr->path + event->name);
     }
 
-    event = (struct inotify_event*)(next_event);
+    event = reinterpret_cast<struct inotify_event*>(next_event);
   }
 #endif
 }

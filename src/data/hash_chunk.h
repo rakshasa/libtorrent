@@ -1,8 +1,9 @@
 #ifndef LIBTORRENT_HASH_CHUNK_H
 #define LIBTORRENT_HASH_CHUNK_H
 
+#include <memory>
+
 #include "torrent/exceptions.h"
-#include "utils/sha1.h"
 
 #include "chunk.h"
 #include "chunk_handle.h"
@@ -14,17 +15,18 @@ namespace torrent {
 // stuff related to performance and responsiveness.
 
 class ChunkListNode;
+class Sha1;
 
 class HashChunk {
 public:
-  HashChunk() = default;
-  HashChunk(ChunkHandle h)  { set_chunk(h); }
+  ~HashChunk();
+  HashChunk(ChunkHandle h);
 
-  void                set_chunk(ChunkHandle h)                { m_position = 0; m_chunk = h; m_hash.init(); }
+  void                set_chunk(ChunkHandle h);
 
   ChunkHandle*        chunk()                                 { return &m_chunk; }
   ChunkHandle&        handle()                                { return m_chunk; }
-  void                hash_c(char* buffer)                    { m_hash.final_c(buffer); }
+  void                hash_c(char* buffer);
 
   // If force is true, then the return value is always true.
   bool                perform(uint32_t length, bool force = true);
@@ -34,13 +36,16 @@ public:
   uint32_t            remaining();
 
 private:
+  HashChunk(const HashChunk&) = delete;
+  HashChunk& operator=(const HashChunk&) = delete;
+
   inline uint32_t     remaining_part(Chunk::iterator itr, uint32_t pos);
   uint32_t            perform_part(Chunk::iterator itr, uint32_t length);
 
   uint32_t            m_position;
 
   ChunkHandle         m_chunk;
-  Sha1                m_hash;
+  std::unique_ptr<Sha1> m_hash;
 };
 
 inline uint32_t

@@ -117,8 +117,8 @@ public:
   bool                make_all_paths();
 
 protected:
-  static const int open_no_create        = (1 << 0);
-  static const int open_require_all_open = (1 << 1);
+  static constexpr int open_no_create        = (1 << 0);
+  static constexpr int open_require_all_open = (1 << 1);
 
   void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
 

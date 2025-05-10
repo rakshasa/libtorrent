@@ -12,7 +12,7 @@ namespace torrent {
 class SocketBase : public Event {
 public:
   SocketBase() { set_fd(SocketFd()); }
-  virtual ~SocketBase();
+  ~SocketBase() override;
   SocketBase(const SocketBase&) = delete;
   SocketBase& operator=(const SocketBase&) = delete;
 
@@ -30,7 +30,7 @@ public:
   void                receive_throttle_up_activate();
 
 protected:
-  static const size_t null_buffer_size = 1 << 17;
+  static constexpr size_t null_buffer_size = 1 << 17;
 
   static char*        m_nullBuffer;
 };

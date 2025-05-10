@@ -59,7 +59,7 @@ File::is_correct_size() const {
   if (!fs.update(frozen_path()))
     return false;
 
-  return fs.is_regular() && (uint64_t)fs.size() == m_size;
+  return fs.is_regular() && static_cast<uint64_t>(fs.size()) == m_size;
 }
 
 void
@@ -125,8 +125,8 @@ void
 File::set_match_depth(File* left, File* right) {
   uint32_t level = 0;
 
-  Path::const_iterator itrLeft = left->path()->begin();
-  Path::const_iterator itrRight = right->path()->begin();
+  auto itrLeft = left->path()->begin();
+  auto itrRight = right->path()->begin();
 
   while (itrLeft != left->path()->end() && itrRight != right->path()->end() && *itrLeft == *itrRight) {
     itrLeft++;

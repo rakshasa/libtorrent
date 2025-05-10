@@ -13,12 +13,6 @@ namespace torrent {
 
 DhtSearch::DhtSearch(const HashString& target, const DhtBucket& contacts)
   : base_type(dht_compare_closer(target)),
-    m_pending(0),
-    m_contacted(0),
-    m_replied(0),
-    m_concurrency(3),
-    m_restart(false),
-    m_started(false),
     m_next(end()),
     m_target(target) {
 
@@ -38,7 +32,7 @@ DhtSearch::~DhtSearch() {
 
 bool
 DhtSearch::add_contact(const HashString& id, const rak::socket_address* sa) {
-  DhtNode* n = new DhtNode(id, sa);
+  auto n = new DhtNode(id, sa);
   bool added = emplace(n, this).second;
 
   if (!added)
@@ -220,8 +214,8 @@ DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
   object_buffer_t result = static_map_write_bencode_c(object_write_to_buffer, NULL, std::make_pair(buffer, buffer + sizeof(buffer)), msg);
 
   m_length = result.second - buffer;
-  m_data = new char[m_length];
-  memcpy(m_data, buffer, m_length);
+  m_data   = std::make_unique<char[]>(m_length);
+  memcpy(m_data.get(), buffer, m_length);
 }
 
 DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString& id, const rak::socket_address* sa)
@@ -229,9 +223,7 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
     m_hasQuickTimeout(quick_timeout > 0),
     m_sa(*sa),
     m_timeout(cachedTime.seconds() + timeout),
-    m_quickTimeout(cachedTime.seconds() + quick_timeout),
-    m_packet(NULL) {
-
+    m_quickTimeout(cachedTime.seconds() + quick_timeout) {
 }
 
 DhtTransaction::~DhtTransaction() {

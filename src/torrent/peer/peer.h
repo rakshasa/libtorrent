@@ -54,6 +54,7 @@ class PeerConnectionBase;
 // date. 
 class LIBTORRENT_EXPORT Peer {
 public:
+  virtual ~Peer() = default;
   Peer(const Peer&) = delete;
   Peer& operator=(const Peer&) = delete;
 
@@ -108,7 +109,6 @@ public:
 
 protected:
   Peer() = default;
-  virtual ~Peer() = default;
 
   bool                 operator == (const Peer& p) const;
 

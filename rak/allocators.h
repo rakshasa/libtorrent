@@ -39,71 +39,24 @@
 #ifndef RAK_ALLOCATORS_H
 #define RAK_ALLOCATORS_H
 
-#include <cassert>
 #include <cstddef>
-#include <limits>
-#include <stdlib.h>
-#include <sys/types.h>
+#include <new>
 
 namespace rak {
 
-template <class T = void*>
+template <class T>
 class cacheline_allocator {
 public:
-  typedef size_t size_type;
-  typedef ptrdiff_t difference_type;
-  typedef T* pointer;
-  typedef const T* const_pointer;
-  typedef const void* const_void_pointer;
-  typedef T& reference;
-  typedef const T& const_reference;
-  typedef T value_type;
+  using value_type = T;
 
-  cacheline_allocator() throw() { }
-  cacheline_allocator(const cacheline_allocator&) throw() { }
-  template <class U>
-  cacheline_allocator(const cacheline_allocator<U>&) throw() { }
-  ~cacheline_allocator() throw() { }
-
-  template <class U>
-  struct rebind { typedef cacheline_allocator<U> other; };
-
-  // return address of values
-  pointer address (reference value) const { return &value; }
-  const_pointer address (const_reference value) const { return &value; }
-
-  size_type max_size () const throw() { return std::numeric_limits<size_t>::max() / sizeof(T); }
-
-  pointer allocate(size_type num, const_void_pointer hint = 0) { return alloc_size(num*sizeof(T)); }
-
-  static pointer alloc_size(size_type size) {
-    // assert(size % LT_SMP_CACHE_BYTES == 0 && "Size must be a multiple of cacheline size");
-    return static_cast<pointer>(std::aligned_alloc(LT_SMP_CACHE_BYTES, size));
+  T* allocate(size_t n) {
+    return static_cast<T*>(operator new(n * sizeof(T), std::align_val_t(LT_SMP_CACHE_BYTES)));
   }
 
-  void construct (pointer p, const T& value) { new((void*)p)T(value); }
-  void destroy (pointer p) { p->~T(); }
-  void deallocate (pointer p, size_type num) { free((void*)p); }
+  void deallocate(T* p, size_t) noexcept {
+    operator delete(p, std::align_val_t(LT_SMP_CACHE_BYTES));
+  }
 };
-
-
-template <class T1, class T2>
-bool operator== (const cacheline_allocator<T1>&, const cacheline_allocator<T2>&) throw() {
-  return true;
-}
-
-template <class T1, class T2>
-bool operator!= (const cacheline_allocator<T1>&, const cacheline_allocator<T2>&) throw() {
-  return false;
-}
-
-}
-
-//
-// Operator new with custom allocators:
-//
-
-template <typename T>
-void* operator new(size_t s, rak::cacheline_allocator<T> a) { return a.alloc_size(s); }
+}; // namespace rak
 
 #endif // namespace rak

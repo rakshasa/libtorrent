@@ -55,7 +55,7 @@ class DhtNode : public HashString {
 
 public:
   // A node is considered bad if it failed to reply to this many queries.
-  static const unsigned int max_failed_replies = 5;
+  static constexpr unsigned int max_failed_replies = 5;
 
   DhtNode(const HashString& id, const rak::socket_address* sa);
   DhtNode(const std::string& id, const Object& cache);
@@ -102,9 +102,9 @@ private:
 
   rak::socket_address m_socketAddress;
   unsigned int        m_lastSeen;
-  bool                m_recentlyActive;
-  unsigned int        m_recentlyInactive;
-  DhtBucket*          m_bucket;
+  bool                m_recentlyActive{};
+  unsigned int        m_recentlyInactive{};
+  DhtBucket*          m_bucket{};
 };
 
 inline void

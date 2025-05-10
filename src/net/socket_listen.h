@@ -14,8 +14,6 @@ class socket_listen : public socket_event {
 public:
   using accepted_ftor = std::function<void(int, sa_unique_ptr)>;
 
-  socket_listen();
-
   int  backlog() const;
 
   void set_backlog(int backlog);
@@ -34,7 +32,7 @@ public:
 private:
   bool m_open_port(int fd, sa_unique_ptr& sap, uint16_t port);
 
-  int           m_backlog;
+  int           m_backlog{SOMAXCONN};
   accepted_ftor m_slot_accepted;
 };
 

@@ -55,12 +55,12 @@ public:
   // Needs to be small enough so that a packet with a payload of num_peers*6 bytes 
   // does not need fragmentation. Value chosen so that the size is approximately
   // equal to a FIND_NODE reply (8*26 bytes).
-  static const unsigned int max_peers = 32;
+  static constexpr unsigned int max_peers = 32;
 
   // Maximum number of peers we keep track of. For torrents with more peers,
   // we replace the oldest peer with each new announce to avoid excessively
   // large peer tables for very active torrents.
-  static const unsigned int max_size = 128;
+  static constexpr unsigned int max_size = 128;
 
   bool                empty() const                { return m_peers.empty(); }
   size_t              size() const                 { return m_peers.size(); }

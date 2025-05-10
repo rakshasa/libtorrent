@@ -3,10 +3,11 @@
 
 #include <map>
 #include <mutex>
+#include <string>
 
-#include "rak/priority_queue_default.h"
 #include "torrent/event.h"
 #include "torrent/net/types.h"
+#include "torrent/utils/scheduler.h"
 
 struct dns_ctx;
 struct dns_query;
@@ -40,7 +41,7 @@ public:
   using query_map = std::multimap<void*, std::unique_ptr<Query>>;
 
   UdnsResolver();
-  ~UdnsResolver();
+  ~UdnsResolver() override;
 
   const char*         type_name() const override { return "udns"; }
 
@@ -70,8 +71,8 @@ protected:
 
   static bool         m_initialized;
 
-  ::dns_ctx*          m_ctx{nullptr};
-  rak::priority_item  m_taskTimeout;
+  ::dns_ctx*            m_ctx{nullptr};
+  utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;
   query_map           m_queries;

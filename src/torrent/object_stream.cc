@@ -113,8 +113,7 @@ object_read_bencode_c_string(const char* first, const char* last) {
   while (first != last && *first >= '0' && *first <= '9')
     length = length * 10 + (*first++ - '0');
 
-  if (length + 1 > (unsigned int)std::distance(first, last) || length + 1 == 0
-		  || *first++ != ':')
+  if (length + 1 > static_cast<unsigned int>(std::distance(first, last)) || length + 1 == 0 || *first++ != ':')
     throw torrent::bencode_error("Invalid bencode data.");
   
   return raw_string(first, length);
@@ -151,7 +150,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 	return;
       }
 
-      Object::list_iterator itr = object->as_list().insert(object->as_list().end(), Object());
+      auto itr = object->as_list().insert(object->as_list().end(), Object());
       object_read_bencode(input, &*itr, depth);
 
       // The unordered flag is inherited also from list elements who
@@ -242,7 +241,7 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
       if (*first == 'e')
 	return first + 1;
 
-      Object::list_iterator itr = object->as_list().insert(object->as_list().end(), Object());
+      auto itr = object->as_list().insert(object->as_list().end(), Object());
       first = object_read_bencode_c(first, last, &*itr, depth);
 
       // The unordered flag is inherited also from list elements who

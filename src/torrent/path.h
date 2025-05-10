@@ -86,7 +86,7 @@ public:
   // is only inserted between path elements.
   std::string        as_string() const;
 
-  const std::string  encoding() const                     { return m_encoding; }
+  std::string  encoding() const                     { return m_encoding; }
   void               set_encoding(const std::string& enc) { m_encoding = enc; }
 
   base_type*         base()                               { return this; }

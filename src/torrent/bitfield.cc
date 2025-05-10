@@ -69,7 +69,7 @@ Bitfield::allocate() {
 
   m_data = new value_type[size_bytes()];
 
-  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, (int64_t)size_bytes());
+  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, static_cast<int64_t>(size_bytes()));
 }
 
 void
@@ -80,7 +80,7 @@ Bitfield::unallocate() {
   delete [] m_data;
   m_data = NULL;
 
-  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, -(int64_t)size_bytes());
+  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, -static_cast<int64_t>(size_bytes()));
 }
 
 void
@@ -119,7 +119,7 @@ Bitfield::copy(const Bitfield& bf) {
 }
 
 void
-Bitfield::swap(Bitfield& bf) {
+Bitfield::swap(Bitfield& bf) noexcept {
   std::swap(m_size, bf.m_size);
   std::swap(m_set, bf.m_set);
   std::swap(m_data, bf.m_data);

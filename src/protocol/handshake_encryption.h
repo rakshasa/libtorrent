@@ -53,17 +53,17 @@ public:
     RETRY_ENCRYPTED,
   };
 
-  static const int           crypto_plain = 1;
-  static const int           crypto_rc4   = 2;
+  static constexpr int           crypto_plain = 1;
+  static constexpr int           crypto_rc4   = 2;
 
   static const unsigned char dh_prime[];
-  static const unsigned int  dh_prime_length = 96;
+  static constexpr unsigned int  dh_prime_length = 96;
 
   static const unsigned char dh_generator[];
-  static const unsigned int  dh_generator_length = 1;
+  static constexpr unsigned int  dh_generator_length = 1;
 
   static const unsigned char vc_data[];
-  static const unsigned int  vc_length = 8;
+  static constexpr unsigned int  vc_length = 8;
 
   HandshakeEncryption(int options) :
     m_options(options)

@@ -110,14 +110,14 @@ public:
 private:
   inline void         allocate_quota(ThrottleNode* node);
 
-  bool                m_enabled;
-  uint32_t            m_size;
+  bool                m_enabled{false};
+  uint32_t            m_size{0};
 
-  uint32_t            m_outstandingQuota;
-  uint32_t            m_unallocatedQuota;
-  uint32_t            m_unusedUnthrottledQuota;
+  uint32_t            m_outstandingQuota{0};
+  uint32_t            m_unallocatedQuota{0};
+  uint32_t            m_unusedUnthrottledQuota{0};
 
-  uint32_t            m_rateAdded;
+  uint32_t            m_rateAdded{0};
 
   uint32_t            m_minChunkSize;
   uint32_t            m_maxChunkSize;

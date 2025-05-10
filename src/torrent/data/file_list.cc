@@ -37,7 +37,7 @@ verify_file_list(const FileList* fl) {
   if ((*fl->begin())->match_depth_prev() != 0 || (*fl->rbegin())->match_depth_next() != 0)
     throw internal_error("verify_file_list() 2.", fl->data()->hash());
 
-  for (FileList::const_iterator itr = fl->begin(), last = fl->end() - 1; itr != last; itr++)
+  for (auto itr = fl->begin(), last = fl->end() - 1; itr != last; itr++)
     if ((*itr)->match_depth_next() != (*(itr + 1))->match_depth_prev() ||
         (*itr)->match_depth_next() >= (*itr)->path()->size())
       throw internal_error("verify_file_list() 3.", fl->data()->hash());
@@ -106,7 +106,7 @@ uint64_t
 FileList::left_bytes() const {
   uint64_t left = size_bytes() - completed_bytes();
 
-  if (left > ((uint64_t)1 << 60))
+  if (left > (uint64_t{1} << 60))
     throw internal_error("FileList::bytes_left() is too large.", data()->hash());
 
   if (completed_chunks() == size_chunks() && left != 0)
@@ -188,7 +188,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
 
   position = begin() + index;
 
-  iterator itr = position;
+  auto itr = position;
 
   while (first != last) {
     auto new_file = std::make_unique<File>();
@@ -231,7 +231,7 @@ FileList::merge(iterator first, iterator last, const Path& path) {
   } else {
     new_file->set_offset((*first)->offset());
 
-    for (iterator itr = first; itr != last; ++itr)
+    for (auto itr = first; itr != last; ++itr)
       new_file->set_size_bytes(new_file->size_bytes() + (*itr)->size_bytes());
 
     first = base_type::erase(first + 1, last) - 1;
@@ -295,8 +295,8 @@ FileList::make_all_paths() {
     if (entry->path()->empty())
       throw storage_error("Found an empty filename.");
 
-    Path::const_iterator lastPathItr   = lastPath->begin();
-    Path::const_iterator firstMismatch = entry->path()->begin();
+    auto lastPathItr   = lastPath->begin();
+    auto firstMismatch = entry->path()->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
     while (firstMismatch != entry->path()->end() && lastPathItr != lastPath->end() && *firstMismatch == *lastPathItr) {
@@ -362,7 +362,7 @@ FileList::open(bool hashing, int flags) {
   Path lastPath;
   path_set pathSet;
 
-  iterator itr = end();
+  auto itr = end();
 
   try {
     if (!(flags & open_no_create) && !make_root_path())
@@ -515,8 +515,8 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
   if (!(flags & open_no_create)) {
     const Path* path = file_node->path();
 
-    Path::const_iterator lastItr = lastPath.begin();
-    Path::const_iterator firstMismatch = path->begin();
+    auto lastItr = lastPath.begin();
+    auto firstMismatch = path->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
     while (firstMismatch != path->end() && lastItr != lastPath.end() && *firstMismatch == *lastItr) {
@@ -553,7 +553,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   if ((*itr)->is_padding())
     return SocketFile().create_padding_chunk(length, prot, MemoryChunk::map_shared);
 
-  if ((int64_t)offset < 0)
+  if (static_cast<int64_t>(offset) < 0)
     throw internal_error("FileList::chunk_part(...) caught a negative offset", data()->hash());
 
   // Check that offset != length of file.
@@ -624,12 +624,12 @@ FileList::create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot)
 
 Chunk*
 FileList::create_chunk_index(uint32_t index, int prot) {
-  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), false, prot);
+  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), false, prot);
 }
 
 Chunk*
 FileList::create_hashing_chunk_index(uint32_t index, int prot) {
-  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), true, prot);
+  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), true, prot);
 }
 
 void
@@ -699,7 +699,7 @@ FileList::update_completed() {
     if (bitfield()->is_all_unset())
       return;
 
-    iterator entryItr = begin();
+    auto entryItr = begin();
 
     for (Bitfield::size_type index = 0; index < bitfield()->size_bits(); ++index)
       if (bitfield()->get(index))

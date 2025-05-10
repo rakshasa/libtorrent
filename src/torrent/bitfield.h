@@ -84,7 +84,7 @@ public:
   void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= mask_before(m_size % 8); }
 
   void                copy(const Bitfield& bf);
-  void                swap(Bitfield& bf);
+  void                swap(Bitfield& bf) noexcept;
 
   void                set_all();
   void                set_range(size_type first, size_type last);
@@ -110,8 +110,8 @@ public:
 
   // Remember to use modulo.
   static value_type   mask_at(size_type idx)        { return 1 << (7 - idx); }
-  static value_type   mask_before(size_type idx)    { return (value_type)~0 << (8 - idx); }
-  static value_type   mask_from(size_type idx)      { return (value_type)~0 >> idx; }
+  static value_type   mask_before(size_type idx)    { return static_cast<value_type>(~0) << (8 - idx); }
+  static value_type   mask_from(size_type idx)      { return static_cast<value_type>(~0) >> idx; }
 
 private:
   size_type           m_size{};

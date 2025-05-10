@@ -230,7 +230,7 @@ ClientList::insert_helper(ClientInfo::id_type type,
   std::memset(newKey, 0, ClientInfo::max_key_size);
   std::memcpy(newKey, key, ClientInfo::key_size(type));
 
-  iterator itr = insert(type, newKey, version, upperVersion);
+  auto itr = insert(type, newKey, version, upperVersion);
   itr->set_short_description(shortDescription);
 
   return itr;

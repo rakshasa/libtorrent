@@ -38,8 +38,8 @@ public:
 
   uint32_t            index() const                 { return m_piece.index(); }
 
-  priority_t          priority() const              { return m_priority; }
-  void                set_priority(priority_t p)    { m_priority = p; }
+  priority_enum       priority() const              { return m_priority; }
+  void                set_priority(priority_enum p) { m_priority = p; }
 
   size_type           finished() const              { return m_finished; }
   void                inc_finished()                { m_finished++; }
@@ -64,7 +64,7 @@ public:
 
 private:
   Piece               m_piece;
-  priority_t          m_priority{PRIORITY_OFF};
+  priority_enum       m_priority{PRIORITY_OFF};
 
   size_type           m_finished{0};
   uint32_t            m_failed{0};

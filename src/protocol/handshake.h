@@ -20,20 +20,20 @@ class ThrottleList;
 
 class Handshake : public SocketStream {
 public:
-  static const uint32_t part1_size     = 20 + 28;
-  static const uint32_t part2_size     = 20;
-  static const uint32_t handshake_size = part1_size + part2_size;
-  static const uint32_t read_message_size = 2 * 5;
+  static constexpr uint32_t part1_size     = 20 + 28;
+  static constexpr uint32_t part2_size     = 20;
+  static constexpr uint32_t handshake_size = part1_size + part2_size;
+  static constexpr uint32_t read_message_size = 2 * 5;
 
-  static const uint32_t protocol_bitfield  = 5;
-  static const uint32_t protocol_port      = 9;
-  static const uint32_t protocol_extension = 20;
+  static constexpr uint32_t protocol_bitfield  = 5;
+  static constexpr uint32_t protocol_port      = 9;
+  static constexpr uint32_t protocol_extension = 20;
 
-  static const uint32_t enc_negotiation_size = 8 + 4 + 2;
-  static const uint32_t enc_pad_size         = 512;
-  static const uint32_t enc_pad_read_size    = 96 + enc_pad_size + 20;
+  static constexpr uint32_t enc_negotiation_size = 8 + 4 + 2;
+  static constexpr uint32_t enc_pad_size         = 512;
+  static constexpr uint32_t enc_pad_read_size    = 96 + enc_pad_size + 20;
 
-  static const uint32_t buffer_size = enc_pad_read_size + 20 + enc_negotiation_size + enc_pad_size + 2 + handshake_size + read_message_size;
+  static constexpr uint32_t buffer_size = enc_pad_read_size + 20 + enc_negotiation_size + enc_pad_size + 2 + handshake_size + read_message_size;
 
   using Buffer = ProtocolBuffer<buffer_size>;
 
@@ -61,11 +61,11 @@ public:
   };
 
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
-  ~Handshake();
+  ~Handshake() override;
   Handshake(const Handshake&) = delete;
   Handshake& operator=(const Handshake&) = delete;
 
-  const char*         type_name() const { return "handshake"; }
+  const char*         type_name() const override    { return "handshake"; }
 
   bool                is_active() const             { return m_state != INACTIVE; }
 
@@ -93,9 +93,9 @@ public:
 
   rak::timer          initialized_time() const      { return m_initializedTime; }
 
-  virtual void        event_read();
-  virtual void        event_write();
-  virtual void        event_error();
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
 
   HandshakeEncryption* encryption()                 { return &m_encryption; }
   ProtocolExtension*   extensions()                  { return m_extensions; }
@@ -137,14 +137,14 @@ protected:
   uint32_t            read_unthrottled(void* buf, uint32_t length);
   uint32_t            write_unthrottled(const void* buf, uint32_t length);
 
-  static const char*  m_protocol;
+  static constexpr auto m_protocol = "BitTorrent protocol";
 
-  State               m_state;
+  State               m_state{INACTIVE};
 
   HandshakeManager*   m_manager;
 
-  PeerInfo*           m_peerInfo;
-  DownloadMain*       m_download;
+  PeerInfo*           m_peerInfo{};
+  DownloadMain*       m_download{};
   Bitfield            m_bitfield;
 
   ThrottleList*       m_uploadThrottle;
@@ -156,8 +156,8 @@ protected:
   uint32_t            m_readPos;
   uint32_t            m_writePos;
 
-  bool                m_readDone;
-  bool                m_writeDone;
+  bool                m_readDone{false};
+  bool                m_writeDone{false};
 
   bool                m_incoming;
 

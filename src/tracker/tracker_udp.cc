@@ -75,10 +75,10 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
       m_failed_since_last_resolved > 3) {
 
     // Currently discarding SOCK_DGRAM filter.
-    thread_self()->resolver()->resolve_both(this, hostname.data(), AF_UNSPEC,
-                                            [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
-                                              receive_resolved(sin, sin6, err);
-                                            });
+    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), AF_UNSPEC,
+                                          [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
+                                            receive_resolved(sin, sin6, err);
+                                          });
     return;
   }
 
@@ -128,7 +128,8 @@ TrackerUdp::close_directly() {
 
   m_slot_close();
 
-  thread_self()->resolver()->cancel(this);
+  // TODO: Wrong ptr align:
+  this_thread::resolver()->cancel(static_cast<TrackerWorker*>(this));
 
   m_resolver_requesting = false;
   m_sending_announce = false;
@@ -141,10 +142,10 @@ TrackerUdp::close_directly() {
   if (!get_fd().is_valid())
     return;
 
-  thread_self()->poll()->remove_read(this);
-  thread_self()->poll()->remove_write(this);
-  thread_self()->poll()->remove_error(this);
-  thread_self()->poll()->close(this);
+  this_thread::poll()->remove_read(this);
+  this_thread::poll()->remove_write(this);
+  this_thread::poll()->remove_error(this);
+  this_thread::poll()->close(this);
 
   get_fd().close();
   get_fd().clear();
@@ -184,14 +185,14 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
 
   if (sin != nullptr) {
     m_inet_address = sin_copy(sin.get());
-    sa_set_port((sockaddr*)m_inet_address.get(), m_port);
+    sa_set_port(reinterpret_cast<sockaddr*>(m_inet_address.get()), m_port);
   } else {
     m_inet_address = nullptr;
   }
 
   if (sin6 != nullptr) {
     m_inet6_address = sin6_copy(sin6.get());
-    sa_set_port((sockaddr*)m_inet6_address.get(), m_port);
+    sa_set_port(reinterpret_cast<sockaddr*>(m_inet6_address.get()), m_port);
   } else {
     m_inet6_address = nullptr;
   }
@@ -213,7 +214,7 @@ TrackerUdp::receive_timeout() {
   }
 
   priority_queue_insert(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
-  thread_self()->poll()->insert_write(this);
+  this_thread::poll()->insert_write(this);
 }
 
 void
@@ -226,9 +227,9 @@ TrackerUdp::start_announce() {
   // TODO: Properly select preferred protocol and on failure try the other one.
 
   if (m_inet_address != nullptr)
-    m_current_address = (sockaddr*)m_inet_address.get();
+    m_current_address = reinterpret_cast<sockaddr*>(m_inet_address.get());
   else if (m_inet6_address != nullptr)
-    m_current_address = (sockaddr*)m_inet6_address.get();
+    m_current_address = reinterpret_cast<sockaddr*>(m_inet6_address.get());
   else
     throw internal_error("TrackerUdp::start_announce() called but both m_inet_address and m_inet6_address are nullptr.");
 
@@ -256,10 +257,10 @@ TrackerUdp::start_announce() {
 
   prepare_connect_input();
 
-  thread_self()->poll()->open(this);
-  thread_self()->poll()->insert_read(this);
-  thread_self()->poll()->insert_write(this);
-  thread_self()->poll()->insert_error(this);
+  this_thread::poll()->open(this);
+  this_thread::poll()->insert_read(this);
+  this_thread::poll()->insert_write(this);
+  this_thread::poll()->insert_error(this);
 
   m_tries = udp_tries;
   priority_queue_insert(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
@@ -278,7 +279,7 @@ TrackerUdp::event_read() {
   m_read_buffer->set_end(s);
 
   LT_LOG("received reply : size:%d", s);
-  LT_LOG_DUMP((const char*)m_read_buffer->begin(), s, "received reply", 0);
+  LT_LOG_DUMP(reinterpret_cast<const char*>(m_read_buffer->begin()), s, "received reply", 0);
 
   if (s < 4)
     return;
@@ -296,7 +297,7 @@ TrackerUdp::event_read() {
     priority_queue_update(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
 
     m_tries = udp_tries;
-    thread_self()->poll()->insert_write(this);
+    this_thread::poll()->insert_write(this);
     return;
 
   case 1:
@@ -323,7 +324,7 @@ TrackerUdp::event_write() {
 
   [[maybe_unused]] int s = write_datagram_sa(m_write_buffer->begin(), m_write_buffer->size_end(), m_current_address);
 
-  thread_self()->poll()->remove_write(this);
+  this_thread::poll()->remove_write(this);
 }
 
 void

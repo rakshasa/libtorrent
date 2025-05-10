@@ -26,13 +26,13 @@ public:
     EVENT_SCRAPE
   };
 
-  static const int flag_enabled       = 0x1;
-  static const int flag_extra_tracker = 0x2;
-  static const int flag_scrapable     = 0x4;
+  static constexpr int flag_enabled       = 0x1;
+  static constexpr int flag_extra_tracker = 0x2;
+  static constexpr int flag_scrapable     = 0x4;
 
   // TODO: Remove these:
-  // static const int max_flag_size   = 0x10;
-  // static const int mask_base_flags = 0x10 - 1;
+  // static constexpr int max_flag_size   = 0x10;
+  // static constexpr int mask_base_flags = 0x10 - 1;
 
   static constexpr int default_min_interval = 600;
   static constexpr int min_min_interval     = 300;
@@ -119,7 +119,7 @@ TrackerState::success_time_next() const {
   if (m_success_counter == 0)
     return 0;
 
-  return m_success_time_last + std::max(m_normal_interval, (uint32_t)min_normal_interval);
+  return m_success_time_last + std::max(m_normal_interval, static_cast<uint32_t>(min_normal_interval));
 }
 
 inline uint32_t
@@ -130,7 +130,7 @@ TrackerState::failed_time_next() const {
   if (m_min_interval > min_min_interval)
     return m_failed_time_last + m_min_interval;
 
-  return m_failed_time_last + std::min(5 << std::min(m_failed_counter - 1, (uint32_t)6), min_min_interval-1);
+  return m_failed_time_last + std::min(5 << std::min<uint32_t>(m_failed_counter - 1, 6), min_min_interval - 1);
 }
 
 inline void

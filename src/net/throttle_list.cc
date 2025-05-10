@@ -46,13 +46,6 @@
 namespace torrent {
 
 ThrottleList::ThrottleList() :
-  m_enabled(false),
-  m_size(0),
-  m_outstandingQuota(0),
-  m_unallocatedQuota(0),
-  m_unusedUnthrottledQuota(0),
-  m_rateAdded(0),
-
   m_minChunkSize(2 << 10),
   m_maxChunkSize(16 << 10),
 
@@ -62,12 +55,12 @@ ThrottleList::ThrottleList() :
 
 bool
 ThrottleList::is_active(const ThrottleNode* node) const {
-  return std::find(begin(), (const_iterator)m_splitActive, node) != m_splitActive;
+  return std::find(begin(), const_iterator(m_splitActive), node) != m_splitActive;
 }
 
 bool
 ThrottleList::is_inactive(const ThrottleNode* node) const {
-  return std::find((const_iterator)m_splitActive, end(), node) != end();
+  return std::find(const_iterator(m_splitActive), end(), node) != end();
 }
 
 bool

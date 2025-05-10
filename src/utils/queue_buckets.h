@@ -72,7 +72,7 @@ public:
   value_type       front(int idx)       { return queue_at(idx).front(); }
   value_type       back(int idx)        { return queue_at(idx).back(); }
   const value_type front(int idx) const { return queue_at(idx).front(); }
-  const value_type back(int idx)  const { return queue_at(idx).back(); }
+  value_type back(int idx)  const { return queue_at(idx).back(); }
 
   void pop_front(int idx);
   void pop_back(int idx);
@@ -128,7 +128,7 @@ template<typename QueueBucket, typename Ftor>
 inline std::pair<int, typename QueueBucket::iterator>
 queue_bucket_find_if_in_any(QueueBucket& queues, Ftor ftor) {
   for (int i = 0; i < QueueBucket::constants::bucket_count; i++) {
-    typename QueueBucket::iterator itr = std::find_if(queues.begin(i), queues.end(i), ftor);
+    auto itr = std::find_if(queues.begin(i), queues.end(i), ftor);
 
     if (itr != queues.end(i))
       return std::make_pair(i, itr);

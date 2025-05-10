@@ -6,6 +6,7 @@ includedir=@includedir@
 Name: libtorrent
 Description: A BitTorrent library
 Version: @VERSION@
+Requires.private: zlib, libcrypto
 Libs: -L${libdir} -ltorrent
-Libs.Private: -lz
+Libs.private: @PTHREAD_LIBS@ @ATOMIC_LIBS@
 Cflags: -I${includedir}

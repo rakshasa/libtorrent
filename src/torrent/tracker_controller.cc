@@ -285,7 +285,7 @@ TrackerController::enable(int enable_flags) {
   if (!(enable_flags & enable_dont_reset_stats))
     m_tracker_list->clear_stats();
 
-  LT_LOG_TRACKER_EVENTS("enabled : trackers:%u", m_tracker_list->size());
+  LT_LOG_TRACKER_EVENTS("enabled : trackers:%zu", m_tracker_list->size());
 
   // Adding of the tracker requests gets done after the caller has had
   // a chance to override the default behavior.
@@ -303,7 +303,7 @@ TrackerController::disable() {
   m_tracker_list->close_all_excluding((1 << tracker::TrackerState::EVENT_STOPPED) | (1 << tracker::TrackerState::EVENT_COMPLETED));
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
-  LT_LOG_TRACKER_EVENTS("disabled : trackers:%u", m_tracker_list->size());
+  LT_LOG_TRACKER_EVENTS("disabled : trackers:%zu", m_tracker_list->size());
 }
 
 void
@@ -396,17 +396,17 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
     interval = tracker_state.normal_interval();
   }
 
-  int32_t min_interval = std::max(tracker_state.min_interval(), (uint32_t)300);
+  int32_t min_interval = std::max(tracker_state.min_interval(), uint32_t{300});
   int32_t use_interval = std::min(interval, min_interval);
 
-  int32_t since_last = cachedTime.seconds() - (int32_t)tracker_state.activity_time_last();
+  int32_t since_last = cachedTime.seconds() - static_cast<int32_t>(tracker_state.activity_time_last());
 
   return std::max(use_interval - since_last, 0);
 }
 
 TrackerList::iterator
 tracker_find_preferred(TrackerList::iterator first, TrackerList::iterator last, uint32_t* next_timeout) {
-  TrackerList::iterator preferred = last;
+  auto preferred = last;
   uint32_t preferred_time_last = ~uint32_t();
 
   for (; first != last; first++) {
@@ -444,7 +444,7 @@ TrackerController::do_timeout() {
   if ((m_flags & (flag_promiscuous_mode | flag_requesting))) {
     uint32_t next_timeout = ~uint32_t();
 
-    TrackerList::iterator itr = m_tracker_list->begin();
+    auto itr = m_tracker_list->begin();
 
     while (itr != m_tracker_list->end()) {
       uint32_t group = itr->group();
@@ -454,8 +454,8 @@ TrackerController::do_timeout() {
         continue;
       }
 
-      TrackerList::iterator group_end = m_tracker_list->end_group(itr->group());
-      TrackerList::iterator preferred = itr;
+      auto group_end = m_tracker_list->end_group(itr->group());
+      auto preferred = itr;
 
       // TODO: Rewrite to be in tracker thread or atomic tracker state.
       auto tracker_state = itr->state();
@@ -485,7 +485,7 @@ TrackerController::do_timeout() {
 
   // TODO: Send for start/completed also?
   } else {
-    TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
+    auto itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
 
     if (itr == m_tracker_list->end())
       return;
@@ -507,7 +507,7 @@ TrackerController::do_timeout() {
 
 void
 TrackerController::do_scrape() {
-  TrackerList::iterator itr = m_tracker_list->begin();
+  auto itr = m_tracker_list->begin();
 
   while (itr != m_tracker_list->end()) {
     uint32_t group = itr->group();
@@ -517,7 +517,7 @@ TrackerController::do_scrape() {
       continue;
     }
 
-    TrackerList::iterator group_end = m_tracker_list->end_group(itr->group());
+    auto group_end = m_tracker_list->end_group(itr->group());
 
     while (itr != group_end) {
       if (itr->is_scrapable() && itr->is_usable()) {

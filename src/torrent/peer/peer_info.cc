@@ -52,7 +52,7 @@ namespace torrent {
 //
 // TODO: Use a safer socket address parameter.
 PeerInfo::PeerInfo(const sockaddr* address) {
-  rak::socket_address* sa = new rak::socket_address();
+  auto sa = new rak::socket_address();
   *sa = *rak::socket_address::cast_from(address);
 
   m_address = sa->c_sockaddr();

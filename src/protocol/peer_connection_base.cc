@@ -92,27 +92,10 @@ log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
 }
 
 PeerConnectionBase::PeerConnectionBase() :
-  m_download(NULL),
-  
   m_down(new ProtocolRead()),
-  m_up(new ProtocolWrite()),
+  m_up(new ProtocolWrite()) {
 
-  m_downStall(0),
-
-  m_downInterested(false),
-  m_downUnchoked(false),
-
-  m_sendChoked(false),
-  m_sendInterested(false),
-  m_tryRequest(true),
-  m_sendPEXMask(0),
-
-  m_encryptBuffer(NULL),
-  m_extensions(NULL),
-
-  m_incoreContinous(false) {
-
-  m_peerInfo = NULL;
+  m_peerInfo = nullptr;
 }
 
 PeerConnectionBase::~PeerConnectionBase() {
@@ -377,7 +360,7 @@ PeerConnectionBase::load_up_chunk() {
 
   up_chunk_release();
 
-  m_upChunk = m_download->chunk_list()->get_chunk(m_upPiece.index());
+  m_upChunk = m_download->chunk_list()->get(m_upPiece.index());
 
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
@@ -467,7 +450,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
   if (!m_downChunk.is_valid() || piece.index() != m_downChunk.index()) {
     down_chunk_release();
-    m_downChunk = m_download->chunk_list()->get_chunk(piece.index(), ChunkList::get_writable);
+    m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_writable);
 
     if (!m_downChunk.is_valid())
       throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
@@ -700,7 +683,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 bool
 PeerConnectionBase::down_extension() {
   if (m_down->buffer()->remaining()) {
-    uint32_t need = std::min(m_extensions->read_need(), (uint32_t)m_down->buffer()->remaining());
+    uint32_t need = std::min(m_extensions->read_need(), static_cast<uint32_t>(m_down->buffer()->remaining()));
     std::memcpy(m_extensions->read_position(), m_down->buffer()->position(), need);
 
     m_extensions->read_move(need);
@@ -814,7 +797,7 @@ PeerConnectionBase::up_extension() {
       m_encryption.encrypt(m_extensionMessage.data(), m_extensionMessage.length());
 
     } else {
-      char* buffer = new char[m_extensionMessage.length()];
+      auto buffer = new char[m_extensionMessage.length()];
 
       m_encryption.encrypt(m_extensionMessage.data(), buffer, m_extensionMessage.length());
       m_extensionMessage.set(buffer, buffer + m_extensionMessage.length(), true);
@@ -861,9 +844,9 @@ PeerConnectionBase::up_chunk_release() {
 
 void
 PeerConnectionBase::read_request_piece(const Piece& p) {
-  PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(),
-                                                        m_peerChunks.upload_queue()->end(),
-                                                        p);
+  auto itr = std::find(m_peerChunks.upload_queue()->begin(),
+                       m_peerChunks.upload_queue()->end(),
+                       p);
 
   if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17)) {
     LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
@@ -880,9 +863,9 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
 
 void
 PeerConnectionBase::read_cancel_piece(const Piece& p) {
-  PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(),
-                                                        m_peerChunks.upload_queue()->end(),
-                                                        p);
+  auto itr = std::find(m_peerChunks.upload_queue()->begin(),
+                       m_peerChunks.upload_queue()->end(),
+                       p);
 
   if (itr != m_peerChunks.upload_queue()->end()) {
     m_peerChunks.upload_queue()->erase(itr);

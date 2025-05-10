@@ -147,10 +147,10 @@ Delegator::delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t 
   while (transfers.size() < maxPieces) {
     uint32_t index = m_slot_chunk_find(pc, highPriority);
 
-    if (index == ~(uint32_t)0)
+    if (index == ~uint32_t{0})
       return;
 
-    TransferList::iterator itr = m_transfers.insert(Piece(index, 0, m_slot_chunk_size(index)), block_size);
+    auto itr = m_transfers.insert(Piece(index, 0, m_slot_chunk_size(index)), block_size);
 
     (*itr)->set_by_seeder(pc->is_seeder());
 

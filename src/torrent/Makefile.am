@@ -75,6 +75,7 @@ libtorrent_torrent_la_SOURCES = \
 	tracker/wrappers.cc \
 	tracker/wrappers.h \
 \
+	utils/chrono.h \
 	utils/directory_events.cc \
 	utils/directory_events.h \
 	utils/extents.h \
@@ -89,12 +90,12 @@ libtorrent_torrent_la_SOURCES = \
 	utils/ranges.h \
 	utils/resume.cc \
 	utils/resume.h \
+	utils/scheduler.cc \
+	utils/scheduler.h \
 	utils/signal_bitfield.cc \
 	utils/signal_bitfield.h \
 	utils/thread.cc \
 	utils/thread.h \
-	utils/thread_interrupt.cc \
-	utils/thread_interrupt.h \
 	utils/uri_parser.cc \
 	utils/uri_parser.h \
 \
@@ -129,11 +130,7 @@ libtorrent_torrent_la_SOURCES = \
 	path.h \
 	poll.h \
 	poll_epoll.cc \
-	poll_epoll.h \
-	poll_kqueue.h \
 	poll_kqueue.cc \
-	poll_select.h \
-	poll_select.cc \
 	rate.cc \
 	rate.h \
 	throttle.cc \
@@ -201,6 +198,7 @@ libtorrent_torrent_tracker_include_HEADERS = \
 
 libtorrent_torrent_utils_includedir = $(includedir)/torrent/utils
 libtorrent_torrent_utils_include_HEADERS = \
+	utils/chrono.h \
 	utils/directory_events.h \
 	utils/extents.h \
 	utils/log.h \
@@ -208,9 +206,9 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/option_strings.h \
 	utils/ranges.h \
 	utils/resume.h \
+	utils/scheduler.h \
 	utils/signal_bitfield.h \
 	utils/thread.h \
-	utils/thread_interrupt.h \
 	utils/uri_parser.h
 
 libtorrent_torrent_includedir = $(includedir)/torrent
@@ -232,9 +230,6 @@ libtorrent_torrent_include_HEADERS = \
 	object_stream.h \
 	path.h \
 	poll.h \
-	poll_epoll.h \
-	poll_kqueue.h \
-	poll_select.h \
 	rate.h \
 	throttle.h \
 	torrent.h \

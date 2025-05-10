@@ -21,17 +21,17 @@ class download_data;
 
 class LIBTORRENT_EXPORT Download {
 public:
-  static const uint32_t numwanted_diabled = ~uint32_t();
+  static constexpr uint32_t numwanted_diabled = ~uint32_t();
 
   // Start and open flags can be stored in the same integer, same for
   // stop and close flags.
-  static const int open_enable_fallocate = (1 << 0);
+  static constexpr int open_enable_fallocate = (1 << 0);
 
-  static const int start_no_create       = (1 << 1);
-  static const int start_keep_baseline   = (1 << 2);
-  static const int start_skip_tracker    = (1 << 3);
+  static constexpr int start_no_create       = (1 << 1);
+  static constexpr int start_keep_baseline   = (1 << 2);
+  static constexpr int start_skip_tracker    = (1 << 3);
 
-  static const int stop_skip_tracker     = (1 << 0);
+  static constexpr int stop_skip_tracker     = (1 << 0);
 
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
@@ -95,8 +95,8 @@ public:
   void                set_bitfield(bool allSet);
   void                set_bitfield(uint8_t* first, uint8_t* last);
 
-  static const int update_range_recheck = (1 << 0);
-  static const int update_range_clear   = (1 << 1);
+  static constexpr int update_range_recheck = (1 << 0);
+  static constexpr int update_range_clear   = (1 << 1);
 
   void                update_range(int flags, uint32_t first, uint32_t last);
 

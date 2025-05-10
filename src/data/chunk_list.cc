@@ -40,7 +40,7 @@ ChunkList::has_chunk(size_type index, int prot) const {
 
 void
 ChunkList::resize(size_type to_size) {
-  LT_LOG_THIS(INFO, "Resizing: from:%" PRIu32 " to:%" PRIu32 ".", size(), to_size);
+  LT_LOG_THIS(INFO, "Resizing: from:%zu to:%u.", size(), to_size);
 
   if (!empty())
     throw internal_error("ChunkList::resize(...) called on an non-empty object.");
@@ -282,8 +282,8 @@ ChunkList::sync_chunks(int flags) {
 
   uint32_t failed = 0;
 
-  for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
-    
+  for (auto itr = split, last = m_queue.end(); itr != last; ++itr) {
+
     // We can easily skip pieces by swap_iter, so there should be no
     // problem being selective about the ranges we sync.
 
@@ -378,7 +378,7 @@ ChunkList::check_node(ChunkListNode* node) {
 
 ChunkList::Queue::iterator
 ChunkList::partition_optimize(Queue::iterator first, Queue::iterator last, int weight, int maxDistance, bool dontSkip) {
-  for (Queue::iterator itr = first; itr != last;) {
+  for (auto itr = first; itr != last;) {
     auto range = seek_range(itr, last);
 
     bool required = std::any_of(itr, range, [this](auto wrapper) { return check_node(wrapper); });
@@ -408,14 +408,14 @@ ChunkList::partition_optimize(Queue::iterator first, Queue::iterator last, int w
 
 ChunkList::chunk_address_result
 ChunkList::find_address(void* ptr) {
-  iterator first = begin();
-  iterator last = end();
+  auto first = begin();
+  auto last  = end();
 
   for (; first != last; first++) {
     if (!first->is_valid())
       continue;
 
-    Chunk::iterator partition = first->chunk()->find_address(ptr);
+    auto partition = first->chunk()->find_address(ptr);
 
     if (partition != first->chunk()->end())
       return chunk_address_result(first, partition);

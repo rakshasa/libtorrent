@@ -41,20 +41,19 @@ public:
   using base_type::empty;
   using base_type::operator[];
 
-  static const int sync_all          = (1 << 0);
-  static const int sync_force        = (1 << 1);
-  static const int sync_safe         = (1 << 2);
-  static const int sync_sloppy       = (1 << 3);
-  static const int sync_use_timeout  = (1 << 4);
-  static const int sync_ignore_error = (1 << 5);
+  static constexpr int sync_all          = (1 << 0);
+  static constexpr int sync_force        = (1 << 1);
+  static constexpr int sync_safe         = (1 << 2);
+  static constexpr int sync_sloppy       = (1 << 3);
+  static constexpr int sync_use_timeout  = (1 << 4);
+  static constexpr int sync_ignore_error = (1 << 5);
 
-  static const int get_writable      = (1 << 0);
-  static const int get_blocking      = (1 << 1);
-  static const int get_dont_log      = (1 << 2);
-  static const int get_nonblock      = (1 << 3);
-  static const int get_hashing       = (1 << 4);
+  static constexpr int get_writable      = (1 << 0);
+  static constexpr int get_blocking      = (1 << 1);
+  static constexpr int get_dont_log      = (1 << 2);
+  static constexpr int get_nonblock      = (1 << 3);
 
-  static const int flag_active       = (1 << 0);
+  static constexpr int flag_active       = (1 << 0);
 
   ChunkList() = default;
   ~ChunkList() { clear(); }
@@ -79,7 +78,7 @@ public:
   void                resize(size_type to_size);
   void                clear();
 
-  ChunkHandle         get_chunk(size_type index, int flags = 0);
+  ChunkHandle         get(size_type index, int flags = 0);
   void                release(ChunkHandle* handle, int flags = 0);
 
   // Replace use_timeout with something like performance related

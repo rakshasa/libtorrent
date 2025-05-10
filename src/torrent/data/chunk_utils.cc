@@ -88,11 +88,11 @@ chunk_list_address_info(void* address) {
       ci.download = Download(*d_itr);
       ci.chunk_index = result.first->index();
       ci.chunk_offset = result.second->position() +
-        std::distance(result.second->chunk().begin(), (char*)address);
-      
+                        std::distance(result.second->chunk().begin(), static_cast<char*>(address));
+
       ci.file_path = result.second->file()->frozen_path().c_str();
       ci.file_offset = result.second->file_offset() +
-        std::distance(result.second->chunk().begin(), (char*)address);
+                       std::distance(result.second->chunk().begin(), static_cast<char*>(address));
 
       return ci;
     }

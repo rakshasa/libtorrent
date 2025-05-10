@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <mutex>
 #include <signal.h>
 #include <unistd.h>
 
@@ -11,24 +12,32 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
-#include "torrent/utils/thread_interrupt.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
+#include "utils/signal_interrupt.h"
 
 namespace torrent::utils {
 
-thread_local Thread*     Thread::m_self{nullptr};
-Thread::global_lock_type Thread::m_global;
+thread_local Thread* Thread::m_self{nullptr};
+
+class ThreadInternal {
+public:
+  static std::chrono::microseconds cached_time()    { return Thread::m_self->m_cached_time; }
+  static std::chrono::seconds      cached_seconds() { return cast_seconds(Thread::m_self->m_cached_time); }
+  static Poll*                     poll()           { return Thread::m_self->m_poll.get(); }
+  static Scheduler*                scheduler()      { return Thread::m_self->m_scheduler.get(); }
+  static net::Resolver*            resolver()       { return Thread::m_self->m_resolver.get(); }
+};
 
 Thread::Thread() :
-  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL)
-{
-  std::memset(&m_thread, 0, sizeof(pthread_t));
+  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+  m_scheduler(std::make_unique<Scheduler>()) {
 
-  thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
+  std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
 
-  m_interrupt_sender = std::move(interrupt_sockets.first);
-  m_interrupt_receiver = std::move(interrupt_sockets.second);
+  m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
 }
 
 Thread::~Thread() {
@@ -49,13 +58,14 @@ Thread::start_thread() {
   if (!is_initialized())
     throw internal_error("Called Thread::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, (pthread_func)&Thread::enter_event_loop, this))
+  if (pthread_create(&m_thread, NULL, reinterpret_cast<pthread_func>(&Thread::enter_event_loop), this))
     throw internal_error("Failed to create thread.");
 
   while (m_state != STATE_ACTIVE)
     usleep(100);
 }
 
+// Each thread needs to check flag_do_shutdown in call_events() and decide how to cleanly shut down.
 void
 Thread::stop_thread() {
   m_flags |= flag_do_shutdown;
@@ -66,20 +76,28 @@ void
 Thread::stop_thread_wait() {
   stop_thread();
 
-  release_global_lock();
-
   pthread_join(m_thread, NULL);
   assert(is_inactive());
-
-  acquire_global_lock();
 }
 
 void
 Thread::callback(void* target, std::function<void ()>&& fn) {
   {
-    std::lock_guard<std::mutex> guard(m_callbacks_lock);
+    auto lock = std::scoped_lock(m_callbacks_lock);
 
     m_callbacks.emplace(target, std::move(fn));
+  }
+
+  interrupt();
+}
+
+void
+Thread::callback_interrupt_pollling(void* target, std::function<void ()>&& fn) {
+  {
+    auto lock = std::scoped_lock(m_callbacks_lock);
+
+    m_interrupt_callbacks.emplace(target, std::move(fn));
+    m_callbacks_should_interrupt_polling = true;
   }
 
   interrupt();
@@ -90,9 +108,10 @@ Thread::cancel_callback(void* target) {
   if (target == nullptr)
     throw internal_error("Thread::cancel_callback called with a null pointer target.");
 
-  std::lock_guard<std::mutex> guard(m_callbacks_lock);
+  auto lock = std::scoped_lock(m_callbacks_lock);
 
   m_callbacks.erase(target);
+  m_interrupt_callbacks.erase(target);
 }
 
 void
@@ -100,7 +119,7 @@ Thread::cancel_callback_and_wait(void* target) {
   cancel_callback(target);
 
   if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing)
-    std::unique_lock<std::mutex> lock(m_callbacks_processing_lock);
+    auto lock = std::scoped_lock(m_callbacks_processing_lock);
 }
 
 // Fix interrupting when shutting down thread.
@@ -129,62 +148,43 @@ Thread::enter_event_loop(Thread* thread) {
 
 void
 Thread::event_loop() {
-  lt_log_print(torrent::LOG_THREAD_NOTICE, "%s : starting thread event loop", name());
+  lt_log_print(LOG_THREAD_NOTICE, "%s : starting thread event loop", name());
 
   try {
 
     m_poll->insert_read(m_interrupt_receiver.get());
 
     while (true) {
-      if (m_slot_do_work)
-        m_slot_do_work();
-
-      call_events();
-      signal_bitfield()->work();
+      process_events();
 
       m_flags |= flag_polling;
 
-      // Call again after setting flag_polling to ensure we process
-      // any events set while it was working.
-      if (m_slot_do_work)
-        m_slot_do_work();
-
-      call_events();
-      signal_bitfield()->work();
-
-      uint64_t next_timeout = 0;
-
-      if (!has_no_timeout()) {
-        next_timeout = next_timeout_usec();
-
-        if (m_slot_next_timeout)
-          next_timeout = std::min(next_timeout, m_slot_next_timeout());
-      }
-
-      // Add the sleep call when testing interrupts, etc.
-      // usleep(50);
-
-      int poll_flags = 0;
-
-      if (!(flags() & flag_main_thread))
-        poll_flags = torrent::Poll::poll_worker_thread;
+      // Call again after setting flag_polling to ensure we process any events that have
+      // race-conditions with flag_polling.
+      process_events();
 
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
 
-      int event_count = m_poll->do_poll(next_timeout, poll_flags);
+      auto timeout = std::max(next_timeout(), std::chrono::microseconds(0));
+
+      if (!m_scheduler->empty())
+        timeout = std::min(timeout, m_scheduler->next_timeout());
+
+      int event_count = m_poll->do_poll(timeout.count());
 
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
 
-      m_flags &= ~(flag_polling | flag_no_timeout);
+      m_flags &= ~flag_polling;
     }
 
-    m_poll->remove_read(m_interrupt_receiver.get());
-
-  } catch (torrent::shutdown_exception& e) {
-    lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
+  } catch (shutdown_exception& e) {
+    lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
+
+  // Some test, and perhaps other code, segfaults on this.
+  // m_poll->remove_read(m_interrupt_receiver.get());
 
   auto previous_state = STATE_ACTIVE;
 
@@ -194,10 +194,6 @@ Thread::event_loop() {
 
 void
 Thread::init_thread_local() {
-  m_self = this;
-  m_thread = pthread_self();
-  m_thread_id = std::this_thread::get_id();
-
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(name());
 #elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
@@ -205,7 +201,15 @@ Thread::init_thread_local() {
   pthread_setname_np(pthread_self(), name());
 #endif
 
-  m_signal_bitfield.handover(std::this_thread::get_id());
+  m_self = this;
+  m_thread = pthread_self();
+  m_thread_id = std::this_thread::get_id();
+
+  m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
+  m_scheduler->set_thread_id(m_thread_id);
+
+  m_signal_bitfield.handover(m_thread_id);
 
   if (m_resolver)
     m_resolver->init();
@@ -217,17 +221,40 @@ Thread::init_thread_local() {
 }
 
 void
-Thread::process_callbacks() {
+Thread::process_events() {
+  m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
+
+  // TODO: We should call process_callbacks() here before and after call_events, however due to the
+  // many different cached times in the code, we need to let each thread manage this themselves.
+
+  call_events();
+
+  m_signal_bitfield.work();
+
+  m_cached_time = time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
+
+  m_scheduler->perform(m_cached_time);
+}
+
+// TODO: This should be called in process_events.
+void
+Thread::process_callbacks(bool only_interrupt) {
+  m_callbacks_should_interrupt_polling = false;
+
   while (true) {
     std::function<void ()> callback;
 
     {
-      std::lock_guard<std::mutex> guard(m_callbacks_lock);
+      auto lock = std::scoped_lock(m_callbacks_lock);
 
-      if (m_callbacks.empty())
+      if (!m_interrupt_callbacks.empty())
+        callback = m_interrupt_callbacks.extract(m_interrupt_callbacks.begin()).mapped();
+      else if (!only_interrupt && !m_callbacks.empty())
+        callback = m_callbacks.extract(m_callbacks.begin()).mapped();
+      else
         break;
-
-      callback = m_callbacks.extract(m_callbacks.begin()).mapped();
 
       // The 'm_callbacks_processing_lock' is used by 'cancel_callback_and_wait' as a way to wait
       // for the processing of the callbacks to finish.
@@ -241,5 +268,15 @@ Thread::process_callbacks() {
     m_callbacks_processing_lock.unlock();
   }
 }
+
+}
+
+namespace torrent::this_thread {
+
+LIBTORRENT_EXPORT std::chrono::microseconds cached_time()    { return utils::ThreadInternal::cached_time(); }
+LIBTORRENT_EXPORT std::chrono::seconds      cached_seconds() { return utils::ThreadInternal::cached_seconds(); }
+LIBTORRENT_EXPORT Poll*                     poll()           { return utils::ThreadInternal::poll(); }
+LIBTORRENT_EXPORT net::Resolver*            resolver()       { return utils::ThreadInternal::resolver(); }
+LIBTORRENT_EXPORT utils::Scheduler*         scheduler()      { return utils::ThreadInternal::scheduler(); }
 
 }

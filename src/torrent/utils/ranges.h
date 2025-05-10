@@ -55,7 +55,7 @@ ranges<RangesType>::insert(value_type r) {
   if (r.first >= r.second)
     return;
 
-  iterator first = std::find_if(begin(), end(), [r](const value_type v) { return r.first <= v.second; });
+  auto first = std::find_if(begin(), end(), [r](const value_type v) { return r.first <= v.second; });
 
   if (first == end() || r.second < first->first) {
     // The new range is before the first, after the last or between
@@ -66,7 +66,7 @@ ranges<RangesType>::insert(value_type r) {
     first->first = std::min(r.first, first->first);
     first->second = std::max(r.second, first->second);
 
-    iterator last = std::find_if(first, end(), [first](const value_type v) { return first->second < v.second; });
+    auto last = std::find_if(first, end(), [first](const value_type v) { return first->second < v.second; });
 
     if (last != end() && first->second >= last->first)
       first->second = (last++)->second;
@@ -81,8 +81,8 @@ ranges<RangesType>::erase(value_type r) {
   if (r.first >= r.second)
     return;
 
-  iterator first = std::find_if(begin(), end(), [r](const value_type v) { return r.first < v.second; });
-  iterator last  = std::find_if(first, end(), [r](const value_type v) { return r.second < v.second; });
+  auto first = std::find_if(begin(), end(), [r](const value_type v) { return r.first < v.second; });
+  auto last  = std::find_if(first, end(), [r](const value_type v) { return r.second < v.second; });
 
   if (first == end())
     return;
@@ -126,7 +126,7 @@ ranges<RangesType>::find(bound_type index) const {
 template <typename RangesType>
 bool
 ranges<RangesType>::has(bound_type index) const {
-  const_iterator itr = find(index);
+  auto itr = find(index);
 
   return itr != end() && index >= itr->first;
 }
@@ -141,7 +141,7 @@ ranges<RangesType>::intersect_distance(bound_type first, bound_type last) const 
 template <typename RangesType>
 size_t
 ranges<RangesType>::intersect_distance(value_type range) const {
-  const_iterator first = find(range.first);
+  auto first = find(range.first);
 
   if (first == end() || range.second <= first->first)
     return 0;
@@ -165,10 +165,10 @@ ranges<RangesType>::create_union(const ranges& left, const ranges& right) {
 
   ranges result;
 
-  typename ranges::const_iterator left_itr = left.begin();
-  typename ranges::const_iterator left_last = left.end();
-  typename ranges::const_iterator right_itr = right.begin();
-  typename ranges::const_iterator right_last = right.end();
+  auto   left_itr   = left.begin();
+  auto   left_last  = left.end();
+  auto   right_itr  = right.begin();
+  auto   right_last = right.end();
 
   if (left_itr->first < right_itr->first)
     result.base_type::push_back(*left_itr++);

@@ -52,17 +52,13 @@ PeerInfo* const InitialSeeding::chunk_unknown = (PeerInfo*) 1;
 PeerInfo* const InitialSeeding::chunk_done    = (PeerInfo*) 2;
 
 InitialSeeding::InitialSeeding(DownloadMain* download) :
-  m_nextChunk(0),
-  m_chunksLeft(download->file_list()->size_chunks()),
-  m_download(download),
-  m_peerChunks(new PeerInfo*[m_chunksLeft]) {
-
-  memset(m_peerChunks, 0, m_chunksLeft * sizeof(m_peerChunks[0]));
+    m_chunksLeft(download->file_list()->size_chunks()),
+    m_download(download),
+    m_peerChunks(std::make_unique<PeerInfo*[]>(m_chunksLeft)) {
 }
 
 InitialSeeding::~InitialSeeding() {
   unblock_all();
-  delete[] m_peerChunks;
 }
 
 inline bool
@@ -173,10 +169,10 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
 
     // Re-connection of a peer we already sent a chunk.
     // Offer the same chunk again.
-    auto peerChunksEnd = m_peerChunks + m_download->file_list()->size_chunks();
-    auto itr           = std::find(m_peerChunks, peerChunksEnd, peer);
+    auto peerChunksEnd = m_peerChunks.get() + m_download->file_list()->size_chunks();
+    auto itr           = std::find(m_peerChunks.get(), peerChunksEnd, peer);
     if (itr != peerChunksEnd)
-      return itr - m_peerChunks;
+      return itr - m_peerChunks.get();
 
     // Couldn't find the chunk, we probably sent it to someone
     // else since the disconnection. So offer a new one.

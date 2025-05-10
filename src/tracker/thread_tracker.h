@@ -1,6 +1,8 @@
 #ifndef LIBTORRENT_THREAD_TRACKER_H
 #define LIBTORRENT_THREAD_TRACKER_H
 
+#include <vector>
+
 #include "torrent/common.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/thread.h"
@@ -18,30 +20,30 @@ struct TrackerSendEvent {
 
 class LIBTORRENT_EXPORT ThreadTracker : public utils::Thread {
 public:
+  ~ThreadTracker() override;
 
   static void           create_thread(utils::Thread* main_thread);
   static void           destroy_thread();
   static ThreadTracker* thread_tracker();
 
-  const char*         name() const override { return "rtorrent tracker"; }
+  const char*           name() const override { return "rtorrent tracker"; }
 
-  virtual void        init_thread() override;
+  void                  init_thread() override;
 
-  tracker::Manager*   tracker_manager() { return m_tracker_manager.get(); }
+  tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
 
-  void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
+  // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
 protected:
   friend class Manager;
 
-  virtual void        call_events() override;
-  virtual int64_t     next_timeout_usec() override;
+  void                      call_events() override;
+  std::chrono::microseconds next_timeout() override;
 
 private:
   ThreadTracker() = default;
-  ~ThreadTracker() override;
 
-  void                process_send_events();
+  // void                process_send_events();
 
   static ThreadTracker*         m_thread_tracker;
 
@@ -49,8 +51,8 @@ private:
 
   unsigned int                  m_signal_send_event{~0u};
 
-  std::mutex                    m_send_events_lock;
-  std::vector<TrackerSendEvent> m_send_events;
+  // std::mutex                    m_send_events_lock;
+  // std::vector<TrackerSendEvent> m_send_events;
 };
 
 inline ThreadTracker* thread_tracker() {

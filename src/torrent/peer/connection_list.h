@@ -91,10 +91,10 @@ public:
   using base_type::rend;
   
   // Make sure any change here match PeerList's flags.
-  static const int disconnect_available = (1 << 0);
-  static const int disconnect_quick     = (1 << 1);
-  static const int disconnect_unwanted  = (1 << 2);
-  static const int disconnect_delayed   = (1 << 3);
+  static constexpr int disconnect_available = (1 << 0);
+  static constexpr int disconnect_quick     = (1 << 1);
+  static constexpr int disconnect_unwanted  = (1 << 2);
+  static constexpr int disconnect_delayed   = (1 << 3);
 
   ConnectionList(DownloadMain* download);
   ~ConnectionList() = default;

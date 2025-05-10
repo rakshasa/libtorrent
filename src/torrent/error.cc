@@ -36,11 +36,13 @@
 
 #include "config.h"
 
+#include <array>
+
 #include "error.h"
 
 namespace torrent {
 
-static const char* errorStrings[e_last + 1] = {
+static constexpr std::array<const char*, e_last + 1> errorStrings{
   "unknown error",                      // e_none
 
   "not BitTorrent protocol",            // eh_not_bittorrent

@@ -13,16 +13,16 @@ public:
 
   using range_type = std::pair<uint32_t, uint32_t>;
 
-  static const int flag_active             = (1 << 0);
-  static const int flag_create_queued      = (1 << 1);
-  static const int flag_resize_queued      = (1 << 2);
-  static const int flag_fallocate          = (1 << 3);
-  static const int flag_previously_created = (1 << 4);
+  static constexpr int flag_active             = (1 << 0);
+  static constexpr int flag_create_queued      = (1 << 1);
+  static constexpr int flag_resize_queued      = (1 << 2);
+  static constexpr int flag_fallocate          = (1 << 3);
+  static constexpr int flag_previously_created = (1 << 4);
 
-  static const int flag_prioritize_first   = (1 << 5);
-  static const int flag_prioritize_last    = (1 << 6);
+  static constexpr int flag_prioritize_first   = (1 << 5);
+  static constexpr int flag_prioritize_last    = (1 << 6);
 
-  static const int flag_attr_padding       = (1 << 7);
+  static constexpr int flag_attr_padding       = (1 << 7);
 
   File() =default;
   ~File();
@@ -57,8 +57,8 @@ public:
   uint32_t            range_first() const                      { return m_range.first; }
   uint32_t            range_second() const                     { return m_range.second; }
 
-  priority_t          priority() const                         { return m_priority; }
-  void                set_priority(priority_t t)               { m_priority = t; }
+  priority_enum       priority() const                         { return m_priority; }
+  void                set_priority(priority_enum t)            { m_priority = t; }
 
   const Path*         path() const                             { return &m_path; }
   Path*               mutable_path()                           { return &m_path; }
@@ -121,7 +121,7 @@ private:
   range_type          m_range;
 
   uint32_t            m_completed{0};
-  priority_t          m_priority{PRIORITY_NORMAL};
+  priority_enum       m_priority{PRIORITY_NORMAL};
 
   uint32_t            m_match_depth_prev{0};
   uint32_t            m_match_depth_next{0};

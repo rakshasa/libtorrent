@@ -38,43 +38,18 @@
 
 namespace torrent {
 
-// TODO: Move to download_info.h.
-DownloadInfo::DownloadInfo() :
-  m_flags(flag_accepting_new_peers | flag_accepting_seeders | flag_pex_enabled | flag_pex_active),
-
-  m_upRate(60),
-  m_downRate(60),
-  m_skipRate(60),
-
-  m_uploadedBaseline(0),
-  m_completedBaseline(0),
-  m_sizePex(0),
-  m_maxSizePex(8),
-  m_metadataSize(0),
-
-  m_creationDate(0),
-  m_loadDate(rak::timer::current_seconds()),
-
-  m_upload_unchoked(0),
-  m_download_unchoked(0) {
-}
-
 DownloadMain::DownloadMain() :
-  m_info(new DownloadInfo),
-  m_tracker_list(new TrackerList),
+    m_info(new DownloadInfo),
+    m_tracker_list(new TrackerList),
 
-  m_choke_group(NULL),
-  m_chunkList(new ChunkList),
-  m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
-  m_chunkStatistics(new ChunkStatistics),
+    m_chunkList(new ChunkList),
+    m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
+    m_chunkStatistics(new ChunkStatistics),
+    m_connectionList(new ConnectionList(this)) {
 
-  m_initialSeeding(NULL),
-  m_uploadThrottle(NULL),
-  m_downloadThrottle(NULL) {
+  m_info->set_load_date(utils::cast_seconds(utils::time_since_epoch()).count());
 
   // Only set trivial values here, the rest is done in DownloadWrapper.
-
-  m_connectionList = new ConnectionList(this);
 
   m_delegator.slot_chunk_find() = [this](auto pc, auto prio) { return m_chunkSelector->find(pc, prio); };
   m_delegator.slot_chunk_size() = [this](auto i) { return file_list()->chunk_index_size(i); };
@@ -250,7 +225,7 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
   // the connection list, so don't treat it as an error. Make sure to
   // catch close_connection() at the caller of new_peer(...) and just
   // close the filedesc before proceeding as normal.
-  ConnectionList::iterator pcb_itr = std::find(m_connectionList->begin(), m_connectionList->end(), pcb);
+  auto pcb_itr = std::find(m_connectionList->begin(), m_connectionList->end(), pcb);
 
   if (pcb_itr != m_connectionList->end()) {
     std::iter_swap(m_connectionList->begin(), pcb_itr);
@@ -260,7 +235,7 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
   }
 
   // Switch to normal seeding.
-  DownloadManager::iterator itr = manager->download_manager()->find(m_info);
+  auto itr = manager->download_manager()->find(m_info);
   (*itr)->set_connection_type(Download::CONNECTION_SEED);
   m_connectionList->slot_new_connection(&createPeerConnectionSeed);
 
@@ -416,7 +391,7 @@ DownloadMain::do_peer_exchange() {
     DataBuffer* message = pcb->extension_message();
 
     if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
-      char* buffer = new char[message->length()];
+      auto buffer = new char[message->length()];
       memcpy(buffer, message->data(), message->length());
       message->set(buffer, buffer + message->length(), true);
     }

@@ -50,8 +50,8 @@ public:
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   RC4(const unsigned char key[], int len)                             { RC4_set_key(&m_key, len, key); }
 
-  void crypt(const void* indata, void* outdata, unsigned int length)  { ::RC4(&m_key, length, (const unsigned char*)indata, (unsigned char*)outdata); }
-  void crypt(void* data, unsigned int length)                         { ::RC4(&m_key, length, (unsigned char*)data, (unsigned char*)data); }
+  void crypt(const void* indata, void* outdata, unsigned int length)  { ::RC4(&m_key, length, static_cast<const unsigned char*>(indata), static_cast<unsigned char*>(outdata)); }
+  void crypt(void* data, unsigned int length)                         { ::RC4(&m_key, length, static_cast<unsigned char*>(data), static_cast<unsigned char*>(data)); }
 
 private:
   RC4_KEY m_key;

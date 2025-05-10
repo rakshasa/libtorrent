@@ -40,17 +40,17 @@ public:
 #endif
 
   // Find an optimal number for this.
-  static const uint32_t read_size = 64;
+  static constexpr uint32_t read_size = 64;
 
   // Bitmasks for peer exchange messages to send.
-  static const int PEX_DO      = (1 << 0);
-  static const int PEX_ENABLE  = (1 << 1);
-  static const int PEX_DISABLE = (1 << 2);
+  static constexpr int PEX_DO      = (1 << 0);
+  static constexpr int PEX_ENABLE  = (1 << 1);
+  static constexpr int PEX_DISABLE = (1 << 2);
 
   PeerConnectionBase();
-  virtual ~PeerConnectionBase();
+  ~PeerConnectionBase() override;
 
-  const char*         type_name() const { return "pcb"; }
+  const char*         type_name() const override      { return "pcb"; }
 
   void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
@@ -98,7 +98,7 @@ public:
   bool                receive_upload_choke(bool choke);
   bool                receive_download_choke(bool choke);
 
-  virtual void        event_error();
+  void                event_error() override;
 
   void                push_unread(const void* data, uint32_t size);
 
@@ -114,7 +114,7 @@ public:
   bool                should_connection_unchoke(choke_queue* cq) const;
 
 protected:
-  static const uint32_t extension_must_encrypt = ~uint32_t();
+  static constexpr uint32_t extension_must_encrypt = ~uint32_t();
 
   inline bool         read_remaining();
   inline bool         write_remaining();
@@ -154,7 +154,7 @@ protected:
   bool                send_pex_message();
   bool                send_ext_message();
 
-  DownloadMain*       m_download;
+  DownloadMain*       m_download{};
 
   ProtocolRead*       m_down;
   ProtocolWrite*      m_up;
@@ -163,7 +163,7 @@ protected:
 
   RequestList         m_request_list;
   ChunkHandle         m_downChunk;
-  uint32_t            m_downStall;
+  uint32_t            m_downStall{0};
 
   Piece               m_upPiece;
   ChunkHandle         m_upChunk;
@@ -181,25 +181,25 @@ protected:
   choke_status        m_upChoke;
   choke_status        m_downChoke;
 
-  bool                m_downInterested;
-  bool                m_downUnchoked;
+  bool                m_downInterested{false};
+  bool                m_downUnchoked{false};
 
-  bool                m_sendChoked;
-  bool                m_sendInterested;
-  bool                m_tryRequest;
+  bool                m_sendChoked{false};
+  bool                m_sendInterested{false};
+  bool                m_tryRequest{true};
 
-  int                 m_sendPEXMask;
+  int                 m_sendPEXMask{0};
 
   rak::timer          m_timeLastRead;
 
   DataBuffer          m_extensionMessage;
   uint32_t            m_extensionOffset;
 
-  EncryptBuffer*      m_encryptBuffer;
+  EncryptBuffer*      m_encryptBuffer{};
   EncryptionInfo      m_encryption;
-  ProtocolExtension*  m_extensions;
+  ProtocolExtension*  m_extensions{};
 
-  bool m_incoreContinous;
+  bool m_incoreContinous{false};
 };
 
 inline void

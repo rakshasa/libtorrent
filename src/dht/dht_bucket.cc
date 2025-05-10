@@ -44,16 +44,6 @@
 namespace torrent {
 
 DhtBucket::DhtBucket(const HashString& begin, const HashString& end) :
-  m_parent(NULL),
-  m_child(NULL),
-
-  m_lastChanged(cachedTime.seconds()),
-
-  m_good(0),
-  m_bad(0),
-
-  m_fullCacheLength(0),
-
   m_begin(begin),
   m_end(end) {
 
@@ -107,10 +97,10 @@ DhtBucket::update() {
 
 DhtBucket::iterator
 DhtBucket::find_replacement_candidate(bool onlyOldest) {
-  iterator oldest = end();
-  unsigned int oldestTime = std::numeric_limits<unsigned int>::max();
+  auto oldest     = end();
+  auto oldestTime = std::numeric_limits<unsigned int>::max();
 
-  for (iterator itr = begin(); itr != end(); ++itr) {
+  for (auto itr = begin(); itr != end(); ++itr) {
     if ((*itr)->is_bad() && !onlyOldest)
       return itr;
 
@@ -129,7 +119,7 @@ DhtBucket::get_mid_point(HashString* middle) const {
 
   for (unsigned int i=0; i<m_begin.size(); i++)
     if (m_begin[i] != m_end[i]) {
-      (*middle)[i] = ((uint8_t)m_begin[i] + (uint8_t)m_end[i]) / 2;
+      (*middle)[i] = (static_cast<uint8_t>(m_begin[i]) + static_cast<uint8_t>(m_end[i])) / 2;
       break;
     }
 }
@@ -153,13 +143,13 @@ DhtBucket::split(const HashString& id) {
   HashString mid_range;
   get_mid_point(&mid_range);
 
-  DhtBucket* other = new DhtBucket(m_begin, mid_range);
+  auto other = new DhtBucket(m_begin, mid_range);
 
   // Set m_begin = mid_range + 1
   int carry = 1;
   for (unsigned int i = mid_range.size(); i>0; i--) {
-    unsigned int sum = (uint8_t)mid_range[i-1] + carry;
-    m_begin[i-1] = (uint8_t)sum;
+    unsigned int sum = static_cast<uint8_t>(mid_range[i - 1]) + carry;
+    m_begin[i - 1]   = static_cast<uint8_t>(sum);
     carry = sum >> 8;
   }
 
@@ -205,7 +195,7 @@ DhtBucket::build_full_cache() {
   char* pos = m_fullCache;
 
   do {
-    for (const_iterator itr = chain.bucket()->begin(); itr != chain.bucket()->end() && pos < m_fullCache + sizeof(m_fullCache); ++itr) {
+    for (auto itr = chain.bucket()->begin(); itr != chain.bucket()->end() && pos < m_fullCache + sizeof(m_fullCache); ++itr) {
       if (!(*itr)->is_bad()) {
         pos = (*itr)->store_compact(pos);
 

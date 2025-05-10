@@ -45,7 +45,7 @@ namespace torrent {
 
 bool
 FileListIterator::is_file() const {
-  return m_depth >= 0 && m_depth + 1 == (int32_t)(*m_position)->path()->size();
+  return m_depth >= 0 && m_depth + 1 == static_cast<int32_t>((*m_position)->path()->size());
 }
 
 bool
@@ -55,7 +55,7 @@ FileListIterator::is_empty() const {
 
 bool
 FileListIterator::is_entering() const {
-  return m_depth >= 0 && m_depth + 1 != (int32_t)(*m_position)->path()->size();
+  return m_depth >= 0 && m_depth + 1 != static_cast<int32_t>((*m_position)->path()->size());
 }
 
 FileListIterator&
@@ -75,7 +75,7 @@ FileListIterator::operator ++() {
   if (m_depth == size)
     m_depth = -(size - 1);
 
-  if (m_depth == -(int32_t)(*m_position)->match_depth_next()) {
+  if (m_depth == -static_cast<int32_t>((*m_position)->match_depth_next())) {
     m_depth = (*m_position)->match_depth_next();
     m_position++;
   }
@@ -95,17 +95,17 @@ FileListIterator::operator --() {
     if ((*m_position)->path()->size() > 1)
       m_depth = -1;
 
-  } else if (m_depth == (int32_t)(*m_position)->match_depth_prev()) {
+  } else if (m_depth == static_cast<int32_t>((*m_position)->match_depth_prev())) {
     m_position--;
 
     // If only the last element differs, then we don't switch to
     // negative depth. Also make sure we skip the negative of the
     // current depth, as we index by the depth we're exiting from.
-    if (m_depth + 1 != (int32_t)(*m_position)->path()->size())
+    if (m_depth + 1 != static_cast<int32_t>((*m_position)->path()->size()))
       m_depth = -(m_depth + 1);
 
   } else {
-    int32_t size = (int32_t)(*m_position)->path()->size();
+    auto size = static_cast<int32_t>((*m_position)->path()->size());
     m_depth--;
 
     if (m_depth < -size)

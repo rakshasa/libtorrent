@@ -13,7 +13,6 @@
 #include "utils/sha1.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll_select.h"
 
 #include "test_chunk_list.h"
 
@@ -66,15 +65,12 @@ verify_hash(const done_chunks_type* done_chunks, int index, const torrent::HashS
   return true;
 }
 
-static void do_nothing() {}
-
 void
 test_hash_check_queue::setUp() {
   test_fixture::setUp();
 
-  torrent::Poll::slot_create_poll() = [] { return torrent::PollSelect::create(256); };
-
-  signal(SIGUSR1, (sig_t)&do_nothing);
+  set_create_poll();
+  signal(SIGUSR1, [](auto){});
 }
 
 void

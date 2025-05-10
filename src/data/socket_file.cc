@@ -12,7 +12,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
-#ifdef HAVE_FALLOCATE
+#ifdef USE_FALLOCATE
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -88,7 +88,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
   if (!is_open())
     throw internal_error("SocketFile::allocate() called on a closed file");
 
-#if defined(HAVE_FALLOCATE)
+#if defined(USE_FALLOCATE)
   if (flags & flag_fallocate) {
     if (fallocate(m_fd, 0, 0, size) == -1) {
       LT_LOG_ERROR("fallocate failed : %s", strerror(errno));
@@ -99,7 +99,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
 #elif defined(USE_POSIX_FALLOCATE)
   if (flags & flag_fallocate && flags & flag_fallocate_blocking) {
     if (posix_fallocate(m_fd, 0, size) == -1) {
-      LT_LOG_INFO("posix_fallocate failed : %s", strerror(errno));
+      LT_LOG_ERROR("posix_fallocate failed : %s", strerror(errno));
       return false;
     }
   }
@@ -121,7 +121,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
 //       throw internal_error("hack: fcntl failed" + std::string(strerror(errno)));
 
     if (fcntl(m_fd, F_PREALLOCATE, &fstore) == -1)
-      LT_LOG_INFO("fcntl(,F_PREALLOCATE,) failed : %s", strerror(errno));
+      LT_LOG_ERROR("fcntl(,F_PREALLOCATE,) failed : %s", strerror(errno));
 
     return true;
   }
@@ -134,7 +134,7 @@ MemoryChunk
 SocketFile::create_padding_chunk(uint32_t length, int prot, int flags) const {
   flags |= MemoryChunk::map_anon;
 
-  char* ptr = (char*)mmap(NULL, length, prot, flags, -1, 0);
+  auto ptr = static_cast<char*>(mmap(NULL, length, prot, flags, -1, 0));
 
   if (ptr == MAP_FAILED)
     return MemoryChunk();
@@ -154,7 +154,7 @@ SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) 
 
   uint64_t align = offset % MemoryChunk::page_size();
 
-  char* ptr = (char*)mmap(NULL, length + align, prot, flags, m_fd, offset - align);
+  auto ptr = static_cast<char*>(mmap(nullptr, length + align, prot, flags, m_fd, offset - align));
 
   if (ptr == MAP_FAILED)
     return MemoryChunk();

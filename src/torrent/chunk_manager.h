@@ -86,8 +86,8 @@ public:
   //
   // The primary user of these functions is ChunkList.
 
-  static const int allocate_revert_log = (1 << 0);
-  static const int allocate_dont_log   = (1 << 1);
+  static constexpr int allocate_revert_log = (1 << 0);
+  static constexpr int allocate_dont_log   = (1 << 1);
 
   bool                allocate(uint32_t size, int flags = 0);
   void                deallocate(uint32_t size, int flags = 0);

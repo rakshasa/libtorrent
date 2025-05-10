@@ -20,6 +20,8 @@ bool                is_initialized() LIBTORRENT_EXPORT;
 
 utils::Thread*      main_thread() LIBTORRENT_EXPORT;
 
+void                set_main_thread_slots(std::function<void()> do_work) LIBTORRENT_EXPORT;
+
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
 ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
