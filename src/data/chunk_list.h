@@ -48,10 +48,12 @@ public:
   static constexpr int sync_use_timeout  = (1 << 4);
   static constexpr int sync_ignore_error = (1 << 5);
 
+  // TODO: Add a 'get_not_hashing' flag and require either of them or fail.
   static constexpr int get_writable      = (1 << 0);
   static constexpr int get_blocking      = (1 << 1);
-  static constexpr int get_dont_log      = (1 << 2);
-  static constexpr int get_nonblock      = (1 << 3);
+  static constexpr int get_nonblock      = (1 << 2);
+  static constexpr int get_hashing       = (1 << 3);
+  static constexpr int get_dont_log      = (1 << 4);
 
   static constexpr int flag_active       = (1 << 0);
 

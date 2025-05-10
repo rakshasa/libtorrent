@@ -220,10 +220,9 @@ DownloadWrapper::check_chunk_hash(ChunkHandle handle, bool hashing) {
   if (hashing)
     flags |= ChunkList::get_hashing;
 
-  ChunkHandle new_handle = m_main->chunk_list()->get_chunk(handle.index(), flags);
+  ChunkHandle new_handle = m_main->chunk_list()->get(handle.index(), flags);
 
   m_main->chunk_list()->release(&handle);
-
   hash_queue()->push_back(new_handle, data(), [this](auto c, auto h) { receive_hash_done(c, h); });
 }
 
