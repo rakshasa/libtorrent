@@ -88,7 +88,7 @@ test_hash_check_queue::test_single() {
   done_chunks_type done_chunks;
   hash_queue.slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
 
-  torrent::ChunkHandle handle_0 = chunk_list->get_chunk(0, torrent::ChunkList::get_blocking);
+  torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
   hash_queue.push_back(new torrent::HashChunk(handle_0));
 
@@ -118,7 +118,7 @@ test_hash_check_queue::test_multiple() {
   handle_list handles;
 
   for (unsigned int i = 0; i < 20; i++) {
-    handles.push_back(chunk_list->get_chunk(i, torrent::ChunkList::get_blocking));
+    handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
 
     hash_queue.push_back(new torrent::HashChunk(handles.back()));
 
@@ -151,7 +151,7 @@ test_hash_check_queue::test_erase() {
   // handle_list handles;
 
   // for (unsigned int i = 0; i < 20; i++) {
-  //   handles.push_back(chunk_list->get_chunk(i, torrent::ChunkList::get_blocking));
+  //   handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
 
   //   hash_queue.push_back(new torrent::HashChunk(handles.back()));
 
@@ -188,7 +188,7 @@ test_hash_check_queue::test_thread_interrupt() {
     done_chunks.erase(0);
     pthread_mutex_unlock(&done_chunks_lock);
 
-    torrent::ChunkHandle handle_0 = chunk_list->get_chunk(0, torrent::ChunkList::get_blocking);
+    torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
     hash_queue->push_back(new torrent::HashChunk(handle_0));
     torrent::thread_disk()->interrupt();

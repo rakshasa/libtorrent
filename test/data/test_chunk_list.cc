@@ -60,7 +60,7 @@ test_chunk_list::test_get_release() {
 
   CPPUNIT_ASSERT(!(*chunk_list)[0].is_valid());
 
-  torrent::ChunkHandle handle_0 = chunk_list->get_chunk(0);
+  torrent::ChunkHandle handle_0 = chunk_list->get(0);
 
   CPPUNIT_ASSERT(handle_0.object() != NULL);
   CPPUNIT_ASSERT(handle_0.object()->index() == 0);
@@ -75,7 +75,7 @@ test_chunk_list::test_get_release() {
 
   chunk_list->release(&handle_0);
 
-  torrent::ChunkHandle handle_1 = chunk_list->get_chunk(1, torrent::ChunkList::get_writable);
+  torrent::ChunkHandle handle_1 = chunk_list->get(1, torrent::ChunkList::get_writable);
 
   CPPUNIT_ASSERT(handle_1.object() != NULL);
   CPPUNIT_ASSERT(handle_1.object()->index() == 1);
@@ -90,7 +90,7 @@ test_chunk_list::test_get_release() {
 
   chunk_list->release(&handle_1);
 
-  torrent::ChunkHandle handle_2 = chunk_list->get_chunk(2, torrent::ChunkList::get_blocking);
+  torrent::ChunkHandle handle_2 = chunk_list->get(2, torrent::ChunkList::get_blocking);
 
   CPPUNIT_ASSERT(handle_2.object() != NULL);
   CPPUNIT_ASSERT(handle_2.object()->index() == 2);
@@ -115,23 +115,25 @@ void
 test_chunk_list::test_blocking() {
   SETUP_CHUNK_LIST();
 
-  torrent::ChunkHandle handle_0_ro = chunk_list->get_chunk(0, torrent::ChunkList::get_blocking);
+  torrent::ChunkHandle handle_0_ro = chunk_list->get(0, torrent::ChunkList::get_blocking);
   CPPUNIT_ASSERT(handle_0_ro.is_valid());
 
   // Test writable, etc, on blocking without get_nonblock using a
   // timer on other thread.
-  // torrent::ChunkHandle handle_1 = chunk_list->get_chunk(0, torrent::ChunkList::get_writable);
+  // torrent::ChunkHandle handle_1 = chunk_list->get(0, torrent::ChunkList::get_writable);
 
-  torrent::ChunkHandle handle_0_rw = chunk_list->get_chunk(0, torrent::ChunkList::get_writable | torrent::ChunkList::get_nonblock);
+  torrent::ChunkHandle handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_writable | torrent::ChunkList::get_nonblock);
   CPPUNIT_ASSERT(!handle_0_rw.is_valid());
   CPPUNIT_ASSERT(handle_0_rw.error_number() == rak::error_number::e_again);
 
   chunk_list->release(&handle_0_ro);
 
-  handle_0_rw = chunk_list->get_chunk(0, torrent::ChunkList::get_writable);
+  handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_writable);
   CPPUNIT_ASSERT(handle_0_rw.is_valid());
 
   chunk_list->release(&handle_0_rw);
 
   CLEANUP_CHUNK_LIST();
 }
+
+// TODO: Add tests for get_hashing, etc.

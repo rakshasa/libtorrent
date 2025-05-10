@@ -73,7 +73,7 @@ test_hash_queue::test_single() {
   SETUP_THREAD_DISK();
   SETUP_HASH_QUEUE();
 
-  torrent::ChunkHandle handle_0 = chunk_list->get_chunk(0, torrent::ChunkList::get_blocking);
+  torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
   hash_queue->push_back(handle_0, NULL, std::bind(&chunk_done, chunk_list, &done_chunks, std::placeholders::_1, std::placeholders::_2));
 
   CPPUNIT_ASSERT(hash_queue->size() == 1);
@@ -101,7 +101,7 @@ test_hash_queue::test_multiple() {
   SETUP_HASH_QUEUE();
 
   for (unsigned int i = 0; i < 20; i++) {
-    hash_queue->push_back(chunk_list->get_chunk(i, torrent::ChunkList::get_blocking),
+    hash_queue->push_back(chunk_list->get(i, torrent::ChunkList::get_blocking),
                           NULL, std::bind(&chunk_done, chunk_list, &done_chunks, std::placeholders::_1, std::placeholders::_2));
 
     CPPUNIT_ASSERT(hash_queue->size() == i + 1);
@@ -128,7 +128,7 @@ test_hash_queue::test_erase() {
   SETUP_HASH_QUEUE();
 
   for (unsigned int i = 0; i < 20; i++) {
-    hash_queue->push_back(chunk_list->get_chunk(i, torrent::ChunkList::get_blocking),
+    hash_queue->push_back(chunk_list->get(i, torrent::ChunkList::get_blocking),
                           NULL, std::bind(&chunk_done, chunk_list, &done_chunks, std::placeholders::_1, std::placeholders::_2));
 
     CPPUNIT_ASSERT(hash_queue->size() == i + 1);
@@ -152,7 +152,7 @@ test_hash_queue::test_erase_stress() {
 
   for (unsigned int i = 0; i < 1000; i++) {
     for (unsigned int i = 0; i < 20; i++) {
-      hash_queue->push_back(chunk_list->get_chunk(i, torrent::ChunkList::get_blocking),
+      hash_queue->push_back(chunk_list->get(i, torrent::ChunkList::get_blocking),
                             NULL, std::bind(&chunk_done, chunk_list, &done_chunks, std::placeholders::_1, std::placeholders::_2));
 
       CPPUNIT_ASSERT(hash_queue->size() == i + 1);
