@@ -14,13 +14,13 @@ template <typename Arg>
 inline bool mock_compare_arg(Arg lhs, Arg rhs) { return lhs == rhs; }
 
 template <int I, typename A, typename... Args>
-typename std::enable_if<I == 1, int>::type
+std::enable_if_t<I == 1, int>
 mock_compare_tuple(const std::tuple<A, Args...>& lhs, const std::tuple<Args...>& rhs) {
   return mock_compare_arg(std::get<I>(lhs), std::get<I - 1>(rhs)) ? 0 : 1;
 }
 
 template <int I, typename A, typename... Args>
-typename std::enable_if<1 < I, int>::type
+std::enable_if_t<1 < I, int>
 mock_compare_tuple(const std::tuple<A, Args...>& lhs, const std::tuple<Args...>& rhs) {
   auto res = mock_compare_tuple<I - 1>(lhs, rhs);
 
