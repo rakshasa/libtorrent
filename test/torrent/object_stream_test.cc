@@ -185,10 +185,10 @@ ObjectStreamTest::test_write() {
   CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:teste"));
 
   obj.as_map()["c"] = torrent::Object::create_list();
-  obj.as_map()["c"].as_list().push_back("foo");
+  obj.as_map()["c"].as_list().emplace_back("foo");
   CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:test1:cl3:fooee"));
 
-  obj.as_map()["c"].as_list().push_back(torrent::Object());
+  obj.as_map()["c"].as_list().emplace_back();
   obj.as_map()["d"] = torrent::Object();
   CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:test1:cl3:fooee"));
 }

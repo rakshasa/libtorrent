@@ -360,7 +360,7 @@ ObjectStaticMapTest::test_write_single() {
   CPPUNIT_ASSERT(static_map_write_bencode(map_value, "d1:b4:teste"));
 
   map_value[key_single_a] = torrent::Object::create_list();
-  map_value[key_single_a].as_list().push_back("test");
+  map_value[key_single_a].as_list().emplace_back("test");
   CPPUNIT_ASSERT(static_map_write_bencode(map_value, "d1:bl4:testee"));
 
   map_value[key_single_a] = torrent::raw_bencode("i1e", 3);
