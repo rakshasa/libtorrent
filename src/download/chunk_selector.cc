@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "protocol/peer_chunks.h"
 #include "torrent/exceptions.h"

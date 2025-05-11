@@ -3,7 +3,7 @@
 #include "net/socket_base.h"
 
 #include <cassert>
-#include <errno.h>
+#include <cerrno>
 #include <sys/types.h>
 #include <sys/socket.h>
 

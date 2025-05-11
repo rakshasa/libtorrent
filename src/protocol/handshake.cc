@@ -3,7 +3,7 @@
 #include "handshake.h"
 
 #include <cassert>
-#include <stdio.h>
+#include <cstdio>
 
 #include "manager.h"
 #include "download/download_main.h"
