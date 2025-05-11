@@ -97,9 +97,6 @@ protected:
   std::function<TrackerParameters()> m_slot_parameters;
 
 private:
-  TrackerWorker(const TrackerWorker&) = delete;
-  TrackerWorker& operator=(const TrackerWorker&) = delete;
-
   mutable std::mutex    m_mutex;
 
   TrackerInfo           m_info;

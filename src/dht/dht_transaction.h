@@ -265,9 +265,6 @@ public:
   DhtTransaction*             transaction()             { return m_transaction; }
 
 private:
-  DhtTransactionPacket(const DhtTransactionPacket&) = delete;
-  DhtTransactionPacket& operator=(const DhtTransactionPacket&) = delete;
-
   void                        build_buffer(const DhtMessage& data);
 
   rak::socket_address         m_sa;

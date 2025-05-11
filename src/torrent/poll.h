@@ -57,9 +57,6 @@ public:
 private:
   Poll() = default;
 
-  Poll(const Poll&) = delete;
-  Poll& operator=(const Poll&) = delete;
-
   int                 poll(int msec);
   unsigned int        process();
 

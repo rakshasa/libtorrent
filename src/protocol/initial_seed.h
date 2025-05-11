@@ -61,9 +61,6 @@ public:
   bool                should_upload(uint32_t index);
 
 private:
-  InitialSeeding(const InitialSeeding&) = delete;
-  InitialSeeding& operator=(const InitialSeeding&) = delete;
-
   static PeerInfo* const chunk_unsent;  // Chunk never sent to anyone.
   static PeerInfo* const chunk_unknown; // Peer has chunk, we don't know who we sent it to.
   static PeerInfo* const chunk_done;    // Chunk properly distributed by peer.

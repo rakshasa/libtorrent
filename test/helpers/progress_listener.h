@@ -17,7 +17,8 @@ typedef std::vector<failure_type> failure_list_type;
 
 class progress_listener : public CppUnit::TestListener {
 public:
-  progress_listener() : m_last_test_failed(false) {}
+  progress_listener() = default;
+  ~progress_listener() override = default;
 
   void startTest(CppUnit::Test *test) override;
   void addFailure(const CppUnit::TestFailure &failure) override;
@@ -36,12 +37,12 @@ public:
   failure_list_type&& move_failures() { return std::move(m_failures); }
 
 private:
-  progress_listener(const progress_listener& rhs) = delete;
-  void operator =(const progress_listener& rhs) = delete;
+  progress_listener(const progress_listener&) = delete;
+  progress_listener& operator=(const progress_listener&) = delete;
 
   test_list_type    m_test_path;
   failure_list_type m_failures;
-  bool              m_last_test_failed;
+  bool              m_last_test_failed{};
 
   torrent::log_buffer_ptr m_current_log_buffer;
 };

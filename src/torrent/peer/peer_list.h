@@ -52,8 +52,6 @@ public:
 
   PeerList();
   ~PeerList();
-  PeerList(const PeerList&) = delete;
-  PeerList& operator=(const PeerList&) = delete;
 
   PeerInfo*           insert_address(const sockaddr* address, int flags);
 

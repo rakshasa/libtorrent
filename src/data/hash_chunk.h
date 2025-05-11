@@ -36,9 +36,6 @@ public:
   uint32_t            remaining();
 
 private:
-  HashChunk(const HashChunk&) = delete;
-  HashChunk& operator=(const HashChunk&) = delete;
-
   inline uint32_t     remaining_part(Chunk::iterator itr, uint32_t pos);
   uint32_t            perform_part(Chunk::iterator itr, uint32_t length);
 
