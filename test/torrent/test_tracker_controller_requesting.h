@@ -25,20 +25,20 @@ public:
   void setUp();
   void tearDown();
 
-  void test_hammering_basic_success();
-  void test_hammering_basic_success_long_timeout();
-  void test_hammering_basic_success_short_timeout();
-  void test_hammering_basic_failure();
-  void test_hammering_basic_failure_long_timeout();
-  void test_hammering_basic_failure_short_timeout();
+  static void test_hammering_basic_success();
+  static void test_hammering_basic_success_long_timeout();
+  static void test_hammering_basic_success_short_timeout();
+  static void test_hammering_basic_failure();
+  static void test_hammering_basic_failure_long_timeout();
+  static void test_hammering_basic_failure_short_timeout();
 
-  void test_hammering_multi_success();
-  void test_hammering_multi_success_long_timeout();
-  void test_hammering_multi_success_short_timeout();
-  void test_hammering_multi_failure();
-  void test_hammering_multi_failure_long_timeout();
-  void test_hammering_multi_failure_short_timeout();
+  static void test_hammering_multi_success();
+  static void test_hammering_multi_success_long_timeout();
+  static void test_hammering_multi_success_short_timeout();
+  static void test_hammering_multi_failure();
+  static void test_hammering_multi_failure_long_timeout();
+  static void test_hammering_multi_failure_short_timeout();
 
-  void do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t min_interval = 0);
-  void do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t min_interval = 0);
+  static void do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t min_interval = 0);
+  static void do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t min_interval = 0);
 };

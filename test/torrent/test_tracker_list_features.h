@@ -17,11 +17,11 @@ public:
   void setUp();
   void tearDown();
 
-  void test_new_peers();
-  void test_has_active();
-  void test_find_next_to_request();
-  void test_find_next_to_request_groups();
-  void test_count_active();
+  static void test_new_peers();
+  static void test_has_active();
+  static void test_find_next_to_request();
+  static void test_find_next_to_request_groups();
+  static void test_count_active();
 
-  void test_request_safeguard();
+  static void test_request_safeguard();
 };

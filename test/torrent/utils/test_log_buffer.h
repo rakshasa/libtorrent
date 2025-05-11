@@ -7,6 +7,6 @@ class test_log_buffer : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
-  void test_timestamps();
+  static void test_basic();
+  static void test_timestamps();
 };

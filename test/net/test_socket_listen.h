@@ -24,21 +24,21 @@ class test_socket_listen : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
+  static void test_basic();
 
-  void test_open_error();
-  void test_open_sap();
-  void test_open_sap_error();
-  void test_open_flags();
-  void test_open_flags_error();
+  static void test_open_error();
+  static void test_open_sap();
+  static void test_open_sap_error();
+  static void test_open_flags();
+  static void test_open_flags_error();
 
-  void test_open_port_single();
-  void test_open_port_single_error();
-  void test_open_port_range();
-  void test_open_port_range_error();
+  static void test_open_port_single();
+  static void test_open_port_single_error();
+  static void test_open_port_range();
+  static void test_open_port_range_error();
 
-  void test_open_sequential();
-  void test_open_randomize();
+  static void test_open_sequential();
+  static void test_open_randomize();
 
-  void test_accept();
+  static void test_accept();
 };

@@ -15,8 +15,8 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void test_basic();
-  void test_intersect();
+  static void test_basic();
+  static void test_intersect();
 
-  void test_create_union();
+  static void test_create_union();
 };

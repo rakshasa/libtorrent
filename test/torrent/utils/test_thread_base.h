@@ -12,10 +12,10 @@ class test_thread_base : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
-  void test_lifecycle();
+  static void test_basic();
+  static void test_lifecycle();
 
-  void test_interrupt();
-  void test_interrupt_legacy();
-  void test_stop();
+  static void test_interrupt();
+  static void test_interrupt_legacy();
+  static void test_stop();
 };

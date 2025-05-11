@@ -15,12 +15,12 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void test_basic();
-  void test_flags();
-  void test_merge();
+  static void test_basic();
+  static void test_flags();
+  static void test_merge();
 
-  void test_swap_and_move();
+  static void test_swap_and_move();
 
-  void test_create_normal();
+  static void test_create_normal();
 };
 

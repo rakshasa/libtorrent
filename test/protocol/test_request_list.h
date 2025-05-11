@@ -18,12 +18,12 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void test_basic();
+  static void test_basic();
 
-  void test_single_request();
-  void test_single_canceled();
+  static void test_single_request();
+  static void test_single_canceled();
 
-  void test_choke_normal();
-  void test_choke_unchoke_discard();
-  void test_choke_unchoke_transfer();
+  static void test_choke_normal();
+  static void test_choke_unchoke_discard();
+  static void test_choke_unchoke_transfer();
 };

@@ -24,11 +24,11 @@ public:
   void setUp();
   void tearDown();
 
-  void test_single();
-  void test_multiple();
-  void test_erase();
+  static void test_single();
+  static void test_multiple();
+  static void test_erase();
 
-  void test_thread_interrupt();
+  static void test_thread_interrupt();
 };
 
 typedef std::map<int, torrent::HashString> done_chunks_type;

@@ -25,23 +25,23 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void test_basics();
-  void test_write();
+  static void test_basics();
+  static void test_write();
 
-  void test_read();
+  static void test_read();
 
-  void test_read_extensions();
+  static void test_read_extensions();
 
   // Proper unit tests:
-  void test_read_empty();
-  void test_read_single();
-  void test_read_single_raw();
-  void test_read_raw_types();
-  void test_read_multiple();
-  void test_read_dict();
+  static void test_read_empty();
+  static void test_read_single();
+  static void test_read_single_raw();
+  static void test_read_raw_types();
+  static void test_read_multiple();
+  static void test_read_dict();
 
-  void test_write_empty();
-  void test_write_single();
-  void test_write_multiple();
+  static void test_write_empty();
+  static void test_write_single();
+  static void test_write_multiple();
 };
 

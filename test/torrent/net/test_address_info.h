@@ -13,7 +13,7 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void test_basic();
-  void test_numericserv();
-  void test_helpers();
+  static void test_basic();
+  static void test_numericserv();
+  static void test_helpers();
 };
