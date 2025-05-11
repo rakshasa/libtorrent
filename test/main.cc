@@ -2,8 +2,8 @@
 
 #include <cstdlib>
 #include <stdexcept>
-#include <signal.h>
-#include <string.h>
+#include <csignal>
+#include <cstring>
 #include <cppunit/BriefTestProgressListener.h>
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/TestResult.h>

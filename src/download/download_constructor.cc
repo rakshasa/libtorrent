@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <string.h>
 #include <rak/string_manip.h>
 
 #include "download/download_wrapper.h"

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "allocators_test.h"
 
