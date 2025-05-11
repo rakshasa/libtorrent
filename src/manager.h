@@ -5,8 +5,8 @@
 #include <memory>
 #include <string>
 
-#include "rak/priority_queue_default.h"
 #include "torrent/common.h"
+#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -57,8 +57,8 @@ private:
   Throttle*           m_uploadThrottle;
   Throttle*           m_downloadThrottle;
 
-  unsigned int        m_ticks{0};
-  rak::priority_item  m_taskTick;
+  unsigned int          m_ticks{0};
+  utils::SchedulerEntry m_task_tick;
 };
 
 extern Manager* manager;

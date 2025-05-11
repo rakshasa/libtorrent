@@ -20,13 +20,6 @@ SchedulerEntry::~SchedulerEntry() {
 }
 
 
-Scheduler::time_type
-Scheduler::next_timeout() const {
-  assert(!empty());
-
-  return std::max(front()->time() - m_cached_time, Scheduler::time_type());
-}
-
 inline void
 Scheduler::make_heap() {
   std::make_heap(begin(), end(), [](const SchedulerEntry* a, const SchedulerEntry* b) {
@@ -39,6 +32,44 @@ Scheduler::push_heap() {
   std::push_heap(begin(), end(), [](const SchedulerEntry* a, const SchedulerEntry* b) {
       return a->time() > b->time();
     });
+}
+
+Scheduler::time_type
+Scheduler::next_timeout() const {
+  assert(!empty());
+
+  return std::max(front()->time() - m_cached_time, Scheduler::time_type());
+}
+
+// We can't make erase/update part of SchedulerItem in case another thread tries to call the
+// scheduler, which is not thread-safe.
+void
+Scheduler::erase(SchedulerEntry* entry) {
+  assert(m_thread_id == std::thread::id() || m_thread_id == std::this_thread::get_id());
+
+  if (!entry->is_scheduled())
+    return;
+
+  // Check is_valid() after is_schedulerd() so that it is safe to call
+  // erase on untouched instances.
+  if (!entry->is_valid())
+    throw torrent::internal_error("Scheduler::erase(...) called on an invalid entry.");
+
+  if (entry->scheduler() != this)
+    throw torrent::internal_error("Scheduler::erase(...) called on an entry that is in another scheduler.");
+
+  auto itr = std::find_if(begin(), end(), [entry](const SchedulerEntry* e) {
+      return e == entry;
+    });
+
+  if (itr == end())
+    throw torrent::internal_error("Scheduler::erase(...) could not find item in queue.");
+
+  entry->set_scheduler(nullptr);
+  entry->set_time(Scheduler::time_type{});
+
+  base_type::erase(itr);
+  make_heap();
 }
 
 void
@@ -78,38 +109,6 @@ Scheduler::wait_for_ceil_seconds(SchedulerEntry* entry, Scheduler::time_type tim
     throw torrent::internal_error("Scheduler::wait_after_ceil_seconds(...) received a too large timer.");
 
   wait_until(entry, ceil_seconds(m_cached_time + time));
-}
-
-// We can't make erase/update part of SchedulerItem in case another thread tries to call the
-// scheduler, which is not thread-safe.
-
-void
-Scheduler::erase(SchedulerEntry* entry) {
-  assert(m_thread_id == std::thread::id() || m_thread_id == std::this_thread::get_id());
-
-  if (!entry->is_scheduled())
-    return;
-
-  // Check is_valid() after is_schedulerd() so that it is safe to call
-  // erase on untouched instances.
-  if (!entry->is_valid())
-    throw torrent::internal_error("Scheduler::erase(...) called on an invalid entry.");
-
-  if (entry->scheduler() != this)
-    throw torrent::internal_error("Scheduler::erase(...) called on an entry that is in another scheduler.");
-
-  auto itr = std::find_if(begin(), end(), [entry](const SchedulerEntry* e) {
-      return e == entry;
-    });
-
-  if (itr == end())
-    throw torrent::internal_error("Scheduler::erase(...) could not find item in queue.");
-
-  entry->set_scheduler(nullptr);
-  entry->set_time(Scheduler::time_type{});
-
-  base_type::erase(itr);
-  make_heap();
 }
 
 void
