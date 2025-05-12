@@ -204,6 +204,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/log.h \
 	utils/log_buffer.h \
 	utils/option_strings.h \
+	utils/random.h \
 	utils/ranges.h \
 	utils/resume.h \
 	utils/scheduler.h \

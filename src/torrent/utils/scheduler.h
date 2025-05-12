@@ -24,14 +24,13 @@ public:
   ~Scheduler() = default;
 
   // time_type is microseconds since unix epoch.
-
   time_type           next_timeout() const;
+
+  void                erase(SchedulerEntry* entry);
 
   void                wait_until(SchedulerEntry* entry, time_type time);
   void                wait_for(SchedulerEntry* entry, time_type time);
   void                wait_for_ceil_seconds(SchedulerEntry* entry, time_type time);
-
-  void                erase(SchedulerEntry* entry);
 
   void                update_wait_until(SchedulerEntry* entry, time_type time);
   void                update_wait_for(SchedulerEntry* entry, time_type time);

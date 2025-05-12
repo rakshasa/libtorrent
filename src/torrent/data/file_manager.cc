@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <fcntl.h>
+#include <limits>
 
 #include "manager.h"
 #include "data/socket_file.h"
@@ -97,7 +98,7 @@ struct FileManagerActivity {
     }
   }
 
-  uint64_t m_last{static_cast<uint64_t>(rak::timer::max().usec())};
+  uint64_t m_last{std::numeric_limits<int64_t>::max()};
   File*    m_file{};
 };
 

@@ -2,6 +2,8 @@
 
 #include "data/thread_disk.h"
 
+#include "thread_main.h"
+#include "data/hash_queue.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
@@ -48,6 +50,10 @@ ThreadDisk::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
+
+  m_hash_check_queue.slot_chunk_done() = [](auto hc, const auto& hv) {
+      thread_main()->hash_queue()->chunk_done(hc, hv);
+    };
 }
 
 void
