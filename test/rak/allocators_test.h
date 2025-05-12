@@ -15,5 +15,5 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void testAlignment();
+  static void testAlignment();
 };

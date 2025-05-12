@@ -10,9 +10,9 @@ class test_chunk_list : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
-  void test_get_release();
-  void test_blocking();
+  static void test_basic();
+  static void test_get_release();
+  static void test_blocking();
 };
 
 #include "data/chunk_list.h"

@@ -19,16 +19,16 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void testInputOrdered();
-  void testInputNullKey();
-  void testOutputMask();
-  void testBuffer();
+  static void testInputOrdered();
+  static void testInputNullKey();
+  static void testOutputMask();
+  static void testBuffer();
 
-  void testReadBencodeC();
+  static void testReadBencodeC();
 
-  void test_read_skip();
-  void test_read_skip_invalid();
+  static void test_read_skip();
+  static void test_read_skip_invalid();
 
-  void test_write();
+  static void test_write();
 };
 

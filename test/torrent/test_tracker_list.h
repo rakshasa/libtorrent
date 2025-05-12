@@ -30,24 +30,24 @@ public:
   void setUp() {}
   void tearDown();
 
-  void test_basic();
-  void test_enable();
-  void test_close();
+  static void test_basic();
+  static void test_enable();
+  static void test_close();
 
-  void test_tracker_flags();
-  void test_find_url();
-  void test_can_scrape();
+  static void test_tracker_flags();
+  static void test_find_url();
+  static void test_can_scrape();
 
-  void test_single_success();
-  void test_single_failure();
-  void test_single_closing();
+  static void test_single_success();
+  static void test_single_failure();
+  static void test_single_closing();
 
-  void test_multiple_success();
+  static void test_multiple_success();
 
-  void test_scrape_success();
-  void test_scrape_failure();
+  static void test_scrape_success();
+  static void test_scrape_failure();
 
-  void test_has_active();
+  static void test_has_active();
 };
 
 bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* states, bool scrape);

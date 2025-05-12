@@ -15,11 +15,11 @@ public:
   void setUp();
   void tearDown();
 
-  void test_basic();
-  void test_output_open();
+  static void test_basic();
+  static void test_output_open();
 
-  void test_print();
-  void test_children();
-  void test_file_output();
-  void test_file_output_append();
+  static void test_print();
+  static void test_children();
+  static void test_file_output();
+  static void test_file_output_append();
 };

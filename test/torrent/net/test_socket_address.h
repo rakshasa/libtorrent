@@ -25,19 +25,19 @@ public:
   void setUp() {}
   void tearDown() {}
 
-  void test_sa_is_any();
-  void test_sa_is_broadcast();
+  static void test_sa_is_any();
+  static void test_sa_is_broadcast();
 
-  void test_make();
+  static void test_make();
 
-  void test_sin_from_sa();
-  void test_sin6_from_sa();
+  static void test_sin_from_sa();
+  static void test_sin6_from_sa();
 
-  void test_sa_equal();
-  void test_sa_equal_addr();
-  void test_sa_copy();
-  void test_sa_copy_addr();
+  static void test_sa_equal();
+  static void test_sa_equal_addr();
+  static void test_sa_copy();
+  static void test_sa_copy_addr();
 
-  void test_sa_from_v4mapped();
-  void test_sa_to_v4mapped();
+  static void test_sa_from_v4mapped();
+  static void test_sa_to_v4mapped();
 };

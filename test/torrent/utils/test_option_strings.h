@@ -6,5 +6,5 @@ class test_option_strings : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_entries();
+  static void test_entries();
 };

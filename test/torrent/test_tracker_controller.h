@@ -38,34 +38,34 @@ public:
   void setUp();
   void tearDown();
 
-  void test_basic();
-  void test_enable();
-  void test_disable();
-  void test_requesting();
-  void test_timeout();
+  static void test_basic();
+  static void test_enable();
+  static void test_disable();
+  static void test_requesting();
+  static void test_timeout();
 
-  void test_single_success();
-  void test_single_failure();
-  void test_single_disable();
+  static void test_single_success();
+  static void test_single_failure();
+  static void test_single_disable();
 
-  void test_send_start();
-  void test_send_stop_normal();
-  void test_send_completed_normal();
-  void test_send_update_normal();
-  void test_send_update_failure();
-  void test_send_task_timeout();
-  void test_send_close_on_enable();
+  static void test_send_start();
+  static void test_send_stop_normal();
+  static void test_send_completed_normal();
+  static void test_send_update_normal();
+  static void test_send_update_failure();
+  static void test_send_task_timeout();
+  static void test_send_close_on_enable();
 
-  void test_multiple_success();
-  void test_multiple_failure();
-  void test_multiple_cycle();
-  void test_multiple_cycle_second_group();
-  void test_multiple_send_stop();
-  void test_multiple_send_update();
+  static void test_multiple_success();
+  static void test_multiple_failure();
+  static void test_multiple_cycle();
+  static void test_multiple_cycle_second_group();
+  static void test_multiple_send_stop();
+  static void test_multiple_send_update();
 
-  void test_timeout_lacking_usable();
-  void test_disable_tracker();
-  void test_new_peers();
+  static void test_timeout_lacking_usable();
+  static void test_disable_tracker();
+  static void test_new_peers();
 };
 
 #define TRACKER_CONTROLLER_SETUP()                                      \

@@ -12,9 +12,9 @@ class test_signal_bitfield : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
-  void test_single();
-  void test_multiple();
+  static void test_basic();
+  static void test_single();
+  static void test_multiple();
 
-  void test_threaded();
+  static void test_threaded();
 };

@@ -14,10 +14,10 @@ class TestSignalInterrupt : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
-  void test_thread_interrupt();
-  void test_latency();
-  void test_hammer();
+  static void test_basic();
+  static void test_thread_interrupt();
+  static void test_latency();
+  static void test_hammer();
 };
 
 #endif // TEST_TORRENT_UTILS_SIGNAL_INTERRUPT_H

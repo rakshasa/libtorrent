@@ -21,14 +21,14 @@ public:
   void setUp();
   void tearDown();
 
-  void test_requesting_basic();
-  void test_requesting_timeout();
-  void test_promiscious_timeout();
-  void test_promiscious_failed();
+  static void test_requesting_basic();
+  static void test_requesting_timeout();
+  static void test_promiscious_timeout();
+  static void test_promiscious_failed();
 
-  void test_scrape_basic();
-  void test_scrape_priority();
+  static void test_scrape_basic();
+  static void test_scrape_priority();
 
-  void test_groups_requesting();
-  void test_groups_scrape();
+  static void test_groups_requesting();
+  static void test_groups_scrape();
 };

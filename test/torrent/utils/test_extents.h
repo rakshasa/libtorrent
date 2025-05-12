@@ -6,5 +6,5 @@ class test_extents : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
+  static void test_basic();
 };

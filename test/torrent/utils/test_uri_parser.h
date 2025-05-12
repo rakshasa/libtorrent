@@ -10,7 +10,7 @@ class test_uri_parser : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
-  void test_basic_magnet();
-  void test_query_magnet();
+  static void test_basic();
+  static void test_basic_magnet();
+  static void test_query_magnet();
 };

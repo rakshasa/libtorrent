@@ -13,9 +13,9 @@ class test_tracker_timeout : public test_fixture {
 public:
   void setUp();
 
-  void test_set_timeout();
+  static void test_set_timeout();
 
-  void test_timeout_tracker();
-  void test_timeout_update();
-  void test_timeout_requesting();
+  static void test_timeout_tracker();
+  static void test_timeout_update();
+  static void test_timeout_requesting();
 };

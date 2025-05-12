@@ -13,11 +13,11 @@ class test_http : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void test_basic();
-  void test_done();
-  void test_failure();
+  static void test_basic();
+  static void test_done();
+  static void test_failure();
 
-  void test_delete_on_done();
-  void test_delete_on_failure();
+  static void test_delete_on_done();
+  static void test_delete_on_failure();
 };
 
