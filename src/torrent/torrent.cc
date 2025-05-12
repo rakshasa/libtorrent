@@ -58,6 +58,12 @@ calculate_reserved(uint32_t openMax) {
 }
 
 void
+initialize_main_thread() {
+  ThreadMain::create_thread();
+  thread_main()->init_thread();
+}
+
+void
 initialize() {
   if (manager != NULL)
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
@@ -68,12 +74,9 @@ initialize() {
 
   manager = new Manager;
 
-  ThreadMain::create_thread();
   ThreadDisk::create_thread();
   ThreadNet::create_thread();
   ThreadTracker::create_thread(thread_main());
-
-  thread_main()->init_thread();
 
   uint32_t maxFiles = calculate_max_open_files(thread_main()->poll()->open_max());
 

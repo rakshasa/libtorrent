@@ -9,6 +9,7 @@
 namespace torrent {
 
 // Make sure you seed srandom and srand48 if available.
+void                initialize_main_thread()LIBTORRENT_EXPORT;
 void                initialize() LIBTORRENT_EXPORT;
 
 // Clean up and close stuff. Stopping all torrents and waiting for
