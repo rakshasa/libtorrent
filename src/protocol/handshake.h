@@ -1,13 +1,12 @@
 #ifndef LIBTORRENT_HANDSHAKE_H
 #define LIBTORRENT_HANDSHAKE_H
 
-#include <rak/priority_queue_default.h>
-
 #include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
 #include "torrent/bitfield.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/utils/scheduler.h"
 #include "utils/sha1.h"
 
 #include "handshake_encryption.h"
@@ -91,7 +90,7 @@ public:
   const void*         unread_data()                 { return m_readBuffer.position(); }
   uint32_t            unread_size() const           { return m_readBuffer.remaining(); }
 
-  rak::timer          initialized_time() const      { return m_initializedTime; }
+  std::chrono::microseconds initialized_time() const { return m_initialized_time; }
 
   void                event_read() override;
   void                event_write() override;
@@ -150,8 +149,8 @@ protected:
   ThrottleList*       m_uploadThrottle;
   ThrottleList*       m_downloadThrottle;
 
-  rak::priority_item  m_taskTimeout;
-  rak::timer          m_initializedTime;
+  utils::SchedulerEntry     m_task_timeout;
+  std::chrono::microseconds m_initialized_time;
 
   uint32_t            m_readPos;
   uint32_t            m_writePos;

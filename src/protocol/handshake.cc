@@ -67,13 +67,12 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_readBuffer.reset();
   m_writeBuffer.reset();
 
-  m_taskTimeout.clear_time();
-  m_taskTimeout.slot() = [this, m] { m->receive_timeout(this); };
+  m_task_timeout.slot() = [this, m] { m->receive_timeout(this); };
 }
 
 Handshake::~Handshake() {
-  assert(!m_taskTimeout.is_queued() && "Handshake dtor called but m_taskTimeout is queued.");
-  assert(!get_fd().is_valid() && "Handshake dtor called but m_fd is still open.");
+  assert(!m_task_timeout.is_scheduled());
+  assert(!get_fd().is_valid());
 
   m_encryption.cleanup();
 }
@@ -93,7 +92,7 @@ Handshake::initialize_incoming(const sockaddr* sa) {
   thread_self()->poll()->insert_error(this);
 
   // Use lower timeout here.
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+  this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
 }
 
 void
@@ -114,7 +113,7 @@ Handshake::initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* pe
   thread_self()->poll()->insert_write(this);
   thread_self()->poll()->insert_error(this);
 
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+  this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
 }
 
 void
@@ -124,7 +123,7 @@ Handshake::deactivate_connection() {
 
   m_state = INACTIVE;
 
-  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+  this_thread::scheduler()->erase(&m_task_timeout);
 
   thread_self()->poll()->remove_read(this);
   thread_self()->poll()->remove_write(this);
@@ -511,7 +510,7 @@ Handshake::read_peer() {
   // handshake and now (e.g. when connecting takes longer). Ideally we
   // should make a snapshot of the bitfield here in case it changes while
   // we're sending it (if it can't be sent in one write() call).
-  m_initializedTime = cachedTime;
+  m_initialized_time = this_thread::cached_time();
 
   // The download is just starting so we're not sending any
   // bitfield. Pretend we wrote it already.
@@ -530,7 +529,7 @@ Handshake::read_peer() {
   thread_self()->poll()->insert_write(this);
 
   // Give some extra time for reading/writing the bitfield.
-  priority_queue_update(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(120)).round_seconds());
+  this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 120s);
 
   return true;
 }
