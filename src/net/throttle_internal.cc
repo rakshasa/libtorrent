@@ -2,6 +2,8 @@
 
 #include "net/throttle_internal.h"
 
+#include <algorithm>
+
 #include "net/throttle_list.h"
 #include "torrent/exceptions.h"
 
