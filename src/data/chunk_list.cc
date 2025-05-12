@@ -104,7 +104,12 @@ ChunkList::get(size_type index, int flags) {
       return ChunkHandle::from_error(rak::error_number::e_nomem);
     }
 
-    Chunk* chunk = m_slot_create_chunk(index, prot_flags);
+    Chunk* chunk;
+
+    if ((flags & get_hashing))
+      chunk = m_slot_create_hashing_chunk(index, prot_flags);
+    else
+      chunk = m_slot_create_chunk(index, prot_flags);
 
     if (chunk == NULL) {
       rak::error_number current_error = rak::error_number::current();
@@ -168,7 +173,7 @@ ChunkList::release(ChunkHandle* handle, int release_flags) {
     throw internal_error("ChunkList::release(...) received an unknown handle.");
 
   LT_LOG_THIS(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", handle->index(), release_flags);
- 
+
   if (handle->object()->references() <= 0 ||
       (handle->is_writable() && handle->object()->writable() <= 0) ||
       (handle->is_blocking() && handle->object()->blocking() <= 0))

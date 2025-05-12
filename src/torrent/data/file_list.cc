@@ -349,7 +349,7 @@ struct file_list_cstr_less {
 };
 
 void
-FileList::open(int flags) {
+FileList::open(bool hashing, int flags) {
   using path_set = std::set<const char*, file_list_cstr_less>;
 
   LT_LOG_FL(INFO, "Opening.", 0);
@@ -402,7 +402,7 @@ FileList::open(int flags) {
 
       entry->set_flags_protected(File::flag_active);
 
-      if (!open_file(&*entry, lastPath, flags)) {
+      if (!open_file(&*entry, lastPath, hashing, flags)) {
         // This needs to check if the error was due to open_no_create
         // being set or not.
         if (!(flags & open_no_create))
@@ -460,9 +460,6 @@ FileList::close() {
   LT_LOG_FL(INFO, "Closing.", 0);
 
   for (auto& entry : *this) {
-    if (entry->is_padding())
-      continue;
-
     entry->unset_flags_protected(File::flag_active);
     manager->file_manager()->close(entry.get());
   }
@@ -471,6 +468,17 @@ FileList::close() {
   m_indirect_links.clear();
 
   m_data.mutable_completed_bitfield()->unallocate();
+}
+
+void
+FileList::close_all_files() {
+  if (!is_open())
+    return;
+
+  LT_LOG_FL(INFO, "Closing all files.", 0);
+
+  for (auto& entry : *this)
+    manager->file_manager()->close(entry.get());
 }
 
 void
@@ -501,11 +509,11 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 }
 
 bool
-FileList::open_file(File* node, const Path& lastPath, int flags) {
+FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int flags) {
   rak::error_number::clear_global();
 
   if (!(flags & open_no_create)) {
-    const Path* path = node->path();
+    const Path* path = file_node->path();
 
     auto lastItr = lastPath.begin();
     auto firstMismatch = path->begin();
@@ -521,12 +529,12 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
-  if (node->path()->back().empty())
-    return node->size_bytes() == 0;
+  if (file_node->path()->back().empty())
+    return file_node->size_bytes() == 0;
 
   rak::file_stat file_stat;
 
-  if (file_stat.update(node->frozen_path()) &&
+  if (file_stat.update(file_node->frozen_path()) &&
       !file_stat.is_regular() && !file_stat.is_link()) {
     // Might also bork on other kinds of file types, but there's no
     // suitable errno for all cases.
@@ -534,11 +542,11 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
     return false;
   }
 
-  return node->prepare(MemoryChunk::prot_read, 0);
+  return file_node->prepare(hashing, MemoryChunk::prot_read, 0);
 }
 
 MemoryChunk
-FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, int prot) {
+FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) {
   offset -= (*itr)->offset();
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
@@ -550,32 +558,44 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
 
   // Check that offset != length of file.
 
-  if (!(*itr)->prepare(prot))
+  if (!(*itr)->prepare(hashing, prot, 0))
     return MemoryChunk();
 
+  auto mc = SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
 
-  auto chunk = SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
-
-  if (!chunk.is_valid())
+  if (!mc.is_valid())
     return MemoryChunk();
+
+  if (mc.size() == 0)
+    throw internal_error("FileList::create_chunk(...) mc.size() == 0.", data()->hash());
+
+  if (mc.size() > length)
+    throw internal_error("FileList::create_chunk(...) mc.size() > length.", data()->hash());
 
 #ifdef USE_MADVISE
   // TODO: Update all uses of madvise to posix_madvise.
-  if (manager->file_manager()->advise_random())
-    madvise(chunk.ptr(), chunk.size(), MADV_RANDOM);
+  if (hashing) {
+    if (manager->file_manager()->advise_random_hashing())
+      madvise(mc.ptr(), mc.size(), MADV_RANDOM);
+  } else {
+    if (manager->file_manager()->advise_random())
+      madvise(mc.ptr(), mc.size(), MADV_RANDOM);
+  }
 #endif
 
-  return chunk;
+  return mc;
 }
 
 Chunk*
-FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
+FileList::create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot) {
   if (offset + length > m_torrent_size)
     throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
   auto chunk = std::make_unique<Chunk>();
 
-  auto itr = std::find_if(begin(), end(), [offset](const value_type& file) { return file->is_valid_position(offset); });
+  auto itr = std::find_if(begin(), end(), [offset](const value_type& file) {
+      return file->is_valid_position(offset);
+    });
 
   for (; length != 0; ++itr) {
     if (itr == end())
@@ -584,16 +604,10 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
     if ((*itr)->size_bytes() == 0)
       continue;
 
-    MemoryChunk mc = create_chunk_part(itr, offset, length, prot);
+    MemoryChunk mc = create_chunk_part(itr, offset, length, hashing, prot);
 
     if (!mc.is_valid())
-      return NULL;
-
-    if (mc.size() == 0)
-      throw internal_error("FileList::create_chunk(...) mc.size() == 0.", data()->hash());
-
-    if (mc.size() > length)
-      throw internal_error("FileList::create_chunk(...) mc.size() > length.", data()->hash());
+      return nullptr;
 
     chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
     chunk->back().set_file(itr->get(), offset - (*itr)->offset());
@@ -610,7 +624,12 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
 
 Chunk*
 FileList::create_chunk_index(uint32_t index, int prot) {
-  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), prot);
+  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), false, prot);
+}
+
+Chunk*
+FileList::create_hashing_chunk_index(uint32_t index, int prot) {
+  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), true, prot);
 }
 
 void
@@ -688,6 +707,7 @@ FileList::update_completed() {
   }
 }
 
+// Used for metadata downloads.
 void
 FileList::reset_filesize(int64_t size) {
   LT_LOG_FL(INFO, "Resetting torrent size: size:%" PRIi64 ".", size);
@@ -701,7 +721,7 @@ FileList::reset_filesize(int64_t size) {
   m_data.mutable_completed_bitfield()->allocate();
   m_data.mutable_completed_bitfield()->unset_all();
 
-  open(open_no_create);
+  open(false, open_no_create);
 }
 
 }
