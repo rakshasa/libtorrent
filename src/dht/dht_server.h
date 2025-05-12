@@ -5,15 +5,13 @@
 #include <deque>
 #include <map>
 
-#include <rak/priority_queue_default.h>
-#include <rak/socket_address.h>
-
+#include "dht/dht_transaction.h"
 #include "net/socket_datagram.h"
 #include "net/throttle_node.h"
+#include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
-
-#include "dht_transaction.h"
+#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -139,24 +137,24 @@ private:
   bool                process_queue(packet_queue& queue, uint32_t* quota);
   void                receive_timeout();
 
-  DhtRouter*          m_router;
+  DhtRouter*          m_router{};
   packet_queue        m_highQueue;
   packet_queue        m_lowQueue;
   transaction_map     m_transactions;
 
-  rak::priority_item  m_taskTimeout;
+  utils::SchedulerEntry m_task_timeout;
 
-  ThrottleNode        m_uploadNode;
-  ThrottleNode        m_downloadNode;
+  ThrottleNode        m_uploadNode{60};
+  ThrottleNode        m_downloadNode{60};
 
-  ThrottleList*       m_uploadThrottle;
-  ThrottleList*       m_downloadThrottle;
+  ThrottleList*       m_uploadThrottle{};
+  ThrottleList*       m_downloadThrottle{};
 
-  unsigned int        m_queriesReceived;
-  unsigned int        m_queriesSent;
-  unsigned int        m_repliesReceived;
-  unsigned int        m_errorsReceived;
-  unsigned int        m_errorsCaught;
+  unsigned int        m_queriesReceived{};
+  unsigned int        m_queriesSent{};
+  unsigned int        m_repliesReceived{};
+  unsigned int        m_errorsReceived{};
+  unsigned int        m_errorsCaught{};
 
   bool                m_networkUp{false};
 };

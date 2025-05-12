@@ -71,7 +71,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   LT_LOG("resolving hostname : address:%s", hostname.data());
 
   if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
-      (cachedTime - m_time_last_resolved) > rak::timer::from_minutes(24 * 60) ||
+      (this_thread::cached_time() - m_time_last_resolved) > 24h ||
       m_failed_since_last_resolved > 3) {
 
     // Currently discarding SOCK_DGRAM filter.
@@ -128,16 +128,14 @@ TrackerUdp::close_directly() {
 
   m_slot_close();
 
-  // TODO: Wrong ptr align:
   this_thread::resolver()->cancel(static_cast<TrackerWorker*>(this));
+  this_thread::scheduler()->erase(&m_task_timeout);
 
   m_resolver_requesting = false;
   m_sending_announce = false;
 
   m_read_buffer = nullptr;
   m_write_buffer = nullptr;
-
-  priority_queue_erase(&taskScheduler, &m_task_timeout);
 
   if (!get_fd().is_valid())
     return;
@@ -197,7 +195,7 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
     m_inet6_address = nullptr;
   }
 
-  m_time_last_resolved = cachedTime;
+  m_time_last_resolved = this_thread::cached_time();
   m_failed_since_last_resolved = 0;
 
   start_announce();
@@ -205,7 +203,7 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
 
 void
 TrackerUdp::receive_timeout() {
-  if (m_task_timeout.is_queued())
+  if (m_task_timeout.is_scheduled())
     throw internal_error("TrackerUdp::receive_timeout() called but m_task_timeout is still scheduled.");
 
   if (--m_tries == 0) {
@@ -213,7 +211,7 @@ TrackerUdp::receive_timeout() {
     return;
   }
 
-  priority_queue_insert(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
+  this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, std::chrono::seconds(udp_timeout));
   this_thread::poll()->insert_write(this);
 }
 
@@ -263,7 +261,8 @@ TrackerUdp::start_announce() {
   this_thread::poll()->insert_error(this);
 
   m_tries = udp_tries;
-  priority_queue_insert(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
+
+  this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, std::chrono::seconds(udp_timeout));
 }
 
 void
@@ -294,7 +293,7 @@ TrackerUdp::event_read() {
 
     prepare_announce_input();
 
-    priority_queue_update(&taskScheduler, &m_task_timeout, (cachedTime + rak::timer::from_seconds(udp_timeout)).round_seconds());
+    this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, std::chrono::seconds(udp_timeout));
 
     m_tries = udp_tries;
     this_thread::poll()->insert_write(this);
