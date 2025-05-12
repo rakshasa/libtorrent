@@ -529,7 +529,7 @@ Handshake::read_peer() {
   thread_self()->poll()->insert_write(this);
 
   // Give some extra time for reading/writing the bitfield.
-  this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 120s);
+  this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 120s);
 
   return true;
 }
