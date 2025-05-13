@@ -48,7 +48,6 @@ TrackerController::current_send_event() const {
 }
 
 TrackerController::TrackerController(TrackerList* trackers) :
-
     m_tracker_list(trackers),
     m_private(new tracker_controller_private) {
 
@@ -87,14 +86,17 @@ uint32_t
 TrackerController::seconds_to_next_timeout() const {
   auto timeout = m_private->task_timeout.time() - this_thread::cached_time();
 
+  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, timeout.count());
+
   if (timeout <= 0s)
     return 0;
 
-  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, timeout.count());
-  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::ceil_seconds(timeout).count());
-  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::cast_seconds(utils::ceil_seconds(timeout)).count());
+  if (timeout <= 1s)
+    return 1;
 
-  return utils::cast_seconds(utils::ceil_seconds(timeout)).count();
+  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::cast_seconds(timeout).count());
+
+  return utils::cast_seconds(timeout).count();
 }
 
 uint32_t
@@ -104,7 +106,10 @@ TrackerController::seconds_to_next_scrape() const {
   if (timeout <= 0s)
     return 0;
 
-  return utils::cast_seconds(utils::ceil_seconds(timeout)).count();
+  if (timeout <= 1s)
+    return 1;
+
+  return utils::cast_seconds(timeout).count();
 }
 
 void
@@ -118,6 +123,11 @@ TrackerController::manual_request([[maybe_unused]] bool request_now) {
 
 void
 TrackerController::scrape_request(uint32_t seconds_to_request) {
+  if (seconds_to_request == 0) {
+    this_thread::scheduler()->update_wait_for(&m_private->task_scrape, 0s);
+    return;
+  }
+
   this_thread::scheduler()->update_wait_for_ceil_seconds(&m_private->task_scrape, std::chrono::seconds(seconds_to_request));
 }
 

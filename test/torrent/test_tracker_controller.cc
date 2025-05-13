@@ -146,10 +146,9 @@ TestTrackerController::test_single_success() {
   m_main_thread->test_process_events_without_cached_time();             \
                                                                         \
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());                \
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == test_interval || \
-                 tracker_controller.seconds_to_next_timeout() == test_interval + 1); \
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == test_interval); \
                                                                         \
-  m_main_thread->test_add_cached_time(std::chrono::seconds(tracker_controller.seconds_to_next_timeout()));
+  m_main_thread->test_add_cached_time(std::chrono::seconds(test_interval));
 
 void
 TestTrackerController::test_single_failure() {
