@@ -14,7 +14,6 @@
 #include "torrent/peer/peer.h"
 #include "torrent/peer/choke_status.h"
 
-
 namespace torrent {
 
 // Base class for peer connection classes. Rename to PeerConnection
@@ -199,7 +198,7 @@ protected:
   EncryptionInfo      m_encryption;
   ProtocolExtension*  m_extensions{};
 
-  bool m_incoreContinous{false};
+  bool                m_incoreContinous{false};
 };
 
 inline void

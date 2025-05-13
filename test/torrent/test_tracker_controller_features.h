@@ -1,7 +1,6 @@
-#include "test/helpers/test_fixture.h"
-#include "test/torrent/test_tracker_controller.h"
+#include "test/helpers/test_main_thread.h"
 
-class test_tracker_controller_features : public test_fixture {
+class test_tracker_controller_features : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE(test_tracker_controller_features);
 
   CPPUNIT_TEST(test_requesting_basic);

@@ -72,3 +72,19 @@ TestMainThread::next_timeout() {
   else
     return std::chrono::microseconds(10min);
 }
+
+void
+TestFixtureWithMainThread::setUp() {
+  test_fixture::setUp();
+
+  set_create_poll();
+  m_main_thread = TestMainThread::create();
+  m_main_thread->init_thread();
+}
+
+void
+TestFixtureWithMainThread::tearDown() {
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}

@@ -1,7 +1,7 @@
-#include "test/helpers/test_fixture.h"
+#include "test/helpers/test_main_thread.h"
 
-class test_tracker_list_features : public test_fixture {
-  CPPUNIT_TEST_SUITE(test_tracker_list_features);
+class TestTrackerListFeatures : public TestFixtureWithMainThread {
+  CPPUNIT_TEST_SUITE(TestTrackerListFeatures);
 
   CPPUNIT_TEST(test_new_peers);
   CPPUNIT_TEST(test_has_active);

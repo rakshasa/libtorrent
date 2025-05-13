@@ -1,12 +1,14 @@
 #include "config.h"
 
+#include "test/torrent/test_tracker_controller_features.h"
+
 #include <functional>
 #include <iostream>
 
 #include "globals.h"
 #include "rak/priority_queue_default.h"
 #include "test/helpers/test_thread.h"
-#include "test/torrent/test_tracker_controller_features.h"
+#include "test/torrent/test_tracker_controller.h"
 #include "test/torrent/test_tracker_list.h"
 #include "src/tracker/thread_tracker.h"
 
@@ -14,7 +16,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller_features);
 
 void
 test_tracker_controller_features::setUp() {
-  test_fixture::setUp();
+  TestFixtureWithMainThread::setUp();
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
@@ -26,7 +28,7 @@ test_tracker_controller_features::tearDown() {
   torrent::ThreadTracker::destroy_thread();
   torrent::taskScheduler.clear();
 
-  test_fixture::tearDown();
+  TestFixtureWithMainThread::tearDown();
 }
 
 void

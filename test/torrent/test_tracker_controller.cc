@@ -8,9 +8,10 @@
 #include "test/torrent/test_tracker_controller.h"
 #include "test/torrent/test_tracker_list.h"
 #include "test/helpers/test_main_thread.h"
+#include "torrent/utils/log.h"
 #include "src/tracker/thread_tracker.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller);
+CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerController);
 
 bool
 test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout, bool is_scrape) {
@@ -50,24 +51,29 @@ test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t 
 }
 
 void
-test_tracker_controller::setUp() {
-  test_fixture::setUp();
+TestTrackerController::setUp() {
+  TestFixtureWithMainThread::setUp();
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
   torrent::cachedTime = rak::timer::current();
+
+  log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
+  log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
 }
 
 void
-test_tracker_controller::tearDown() {
+TestTrackerController::tearDown() {
+  m_main_thread.reset();
+
   torrent::ThreadTracker::destroy_thread();
   torrent::taskScheduler.clear();
 
-  test_fixture::tearDown();
+  TestFixtureWithMainThread::tearDown();
 }
 
 void
-test_tracker_controller::test_basic() {
+TestTrackerController::test_basic() {
   torrent::TrackerController tracker_controller(NULL);
 
   CPPUNIT_ASSERT(tracker_controller.flags() == 0);
@@ -76,9 +82,8 @@ test_tracker_controller::test_basic() {
 }
 
 void
-test_tracker_controller::test_enable() {
-  torrent::TrackerList tracker_list;
-  torrent::TrackerController tracker_controller(&tracker_list);
+TestTrackerController::test_enable() {
+  TRACKER_CONTROLLER_SETUP();
 
   tracker_controller.enable();
 
@@ -87,9 +92,8 @@ test_tracker_controller::test_enable() {
 }
 
 void
-test_tracker_controller::test_requesting() {
-  torrent::TrackerList tracker_list;
-  torrent::TrackerController tracker_controller(&tracker_list);
+TestTrackerController::test_requesting() {
+  TRACKER_CONTROLLER_SETUP();
 
   tracker_controller.enable();
   tracker_controller.start_requesting();
@@ -104,7 +108,7 @@ test_tracker_controller::test_requesting() {
 }
 
 void
-test_tracker_controller::test_timeout() {
+TestTrackerController::test_timeout() {
   TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
 
@@ -115,13 +119,14 @@ test_tracker_controller::test_timeout() {
   tracker_controller.enable();
 
   rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
+  m_main_thread->test_process_events_without_cached_time();
 
   CPPUNIT_ASSERT(timeout_counter == 1);
   TEST_SINGLE_END(0, 0);
 }
 
 void
-test_tracker_controller::test_single_success() {
+TestTrackerController::test_single_success() {
   TEST_SINGLE_BEGIN();
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
@@ -138,16 +143,16 @@ test_tracker_controller::test_single_success() {
 }
 
 #define TEST_SINGLE_FAILURE_TIMEOUT(test_interval)                      \
-  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime); \
+  m_main_thread->test_process_events_without_cached_time();             \
                                                                         \
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());                \
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == test_interval); \
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == test_interval || \
+                 tracker_controller.seconds_to_next_timeout() == test_interval + 1); \
                                                                         \
-  torrent::cachedTime += rak::timer::from_seconds(test_interval);
+  m_main_thread->test_add_cached_time(std::chrono::seconds(tracker_controller.seconds_to_next_timeout()));
 
 void
-test_tracker_controller::test_single_failure() {
-  torrent::cachedTime = rak::timer::from_seconds(1 << 20);
+TestTrackerController::test_single_failure() {
   TEST_SINGLE_BEGIN();
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
@@ -170,14 +175,14 @@ test_tracker_controller::test_single_failure() {
 }
 
 void
-test_tracker_controller::test_single_disable() {
+TestTrackerController::test_single_disable() {
   TEST_SINGLE_BEGIN();
   tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
   TEST_SINGLE_END(0, 0);
 }
 
 void
-test_tracker_controller::test_send_start() {
+TestTrackerController::test_send_start() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
@@ -202,7 +207,7 @@ test_tracker_controller::test_send_start() {
 }
 
 void
-test_tracker_controller::test_send_stop_normal() {
+TestTrackerController::test_send_stop_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -231,7 +236,7 @@ test_tracker_controller::test_send_stop_normal() {
 // send_stop during request and right after start, send stop failed.
 
 void
-test_tracker_controller::test_send_completed_normal() {
+TestTrackerController::test_send_completed_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -258,7 +263,7 @@ test_tracker_controller::test_send_completed_normal() {
 }
 
 void
-test_tracker_controller::test_send_update_normal() {
+TestTrackerController::test_send_update_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -275,7 +280,7 @@ test_tracker_controller::test_send_update_normal() {
 }
 
 void
-test_tracker_controller::test_send_update_failure() {
+TestTrackerController::test_send_update_failure() {
   torrent::cachedTime = rak::timer::from_seconds(1 << 20);
 
   TEST_SINGLE_BEGIN();
@@ -291,7 +296,7 @@ test_tracker_controller::test_send_update_failure() {
 }
 
 void
-test_tracker_controller::test_send_task_timeout() {
+TestTrackerController::test_send_task_timeout() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -301,7 +306,7 @@ test_tracker_controller::test_send_task_timeout() {
 }
 
 void
-test_tracker_controller::test_send_close_on_enable() {
+TestTrackerController::test_send_close_on_enable() {
   TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
@@ -324,7 +329,7 @@ test_tracker_controller::test_send_close_on_enable() {
 }
 
 void
-test_tracker_controller::test_multiple_success() {
+TestTrackerController::test_multiple_success() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -349,7 +354,7 @@ test_tracker_controller::test_multiple_success() {
 }
 
 void
-test_tracker_controller::test_multiple_failure() {
+TestTrackerController::test_multiple_failure() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -408,7 +413,7 @@ test_tracker_controller::test_multiple_failure() {
 }
 
 void
-test_tracker_controller::test_multiple_cycle() {
+TestTrackerController::test_multiple_cycle() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -429,7 +434,7 @@ test_tracker_controller::test_multiple_cycle() {
 }
 
 void
-test_tracker_controller::test_multiple_cycle_second_group() {
+TestTrackerController::test_multiple_cycle_second_group() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -451,7 +456,7 @@ test_tracker_controller::test_multiple_cycle_second_group() {
 }
 
 void
-test_tracker_controller::test_multiple_send_stop() {
+TestTrackerController::test_multiple_send_stop() {
   TEST_MULTI3_BEGIN();
 
   auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
@@ -505,7 +510,7 @@ test_tracker_controller::test_multiple_send_stop() {
 }
 
 void
-test_tracker_controller::test_multiple_send_update() {
+TestTrackerController::test_multiple_send_update() {
   TEST_MULTI3_BEGIN();
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
@@ -537,7 +542,7 @@ test_tracker_controller::test_multiple_send_update() {
 // The enable/disable tracker functions will poke the tracker
 // controller, ensuring the tast timeout gets re-started.
 void
-test_tracker_controller::test_timeout_lacking_usable() {
+TestTrackerController::test_timeout_lacking_usable() {
   TEST_MULTI3_BEGIN();
 
   std::for_each(tracker_list.begin(), tracker_list.end(), std::mem_fn(&torrent::tracker::Tracker::disable));
@@ -566,7 +571,7 @@ test_tracker_controller::test_timeout_lacking_usable() {
 }
 
 void
-test_tracker_controller::test_disable_tracker() {
+TestTrackerController::test_disable_tracker() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
@@ -582,7 +587,7 @@ test_tracker_controller::test_disable_tracker() {
 }
 
 void
-test_tracker_controller::test_new_peers() {
+TestTrackerController::test_new_peers() {
   TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
 

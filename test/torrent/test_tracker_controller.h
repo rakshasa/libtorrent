@@ -1,9 +1,9 @@
-#include "test/helpers/test_fixture.h"
 #include "test/helpers/test_main_thread.h"
+#include "torrent/download_info.h"
 #include "torrent/tracker_controller.h"
 
-class test_tracker_controller : public test_fixture {
-  CPPUNIT_TEST_SUITE(test_tracker_controller);
+class TestTrackerController : public TestFixtureWithMainThread {
+  CPPUNIT_TEST_SUITE(TestTrackerController);
 
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
@@ -71,7 +71,10 @@ public:
 #define TRACKER_CONTROLLER_SETUP()                                      \
   SETUP_THREAD_TRACKER();                                               \
                                                                         \
+  torrent::DownloadInfo download_info;                                  \
   torrent::TrackerList tracker_list;                                    \
+  TestTrackerListWrapper(&tracker_list).set_info(&download_info);       \
+                                                                        \
   torrent::TrackerController tracker_controller(&tracker_list);         \
                                                                         \
   int success_counter = 0;                                              \
