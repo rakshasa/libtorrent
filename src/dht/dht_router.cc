@@ -76,16 +76,11 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
   }
 
   if (m_nodes.size() < num_bootstrap_complete) {
-    m_contacts = std::make_unique<std::deque<contact_t>>();
-
+    m_contacts.emplace();
     if (cache.has_key("contacts")) {
-      const Object::list_type& contacts = cache.get_key_list("contacts");
-
-      for (const auto& contact : contacts) {
-        auto               litr = contact.as_list().begin();
-        const std::string& host = litr->as_string();
-        int port = (++litr)->as_value();
-        m_contacts->emplace_back(host, port);
+      for (const auto& contact : cache.get_key_list("contacts")) {
+        auto litr = contact.as_list().begin();
+        m_contacts->emplace_back(litr->as_string(), std::next(litr)->as_value());
       }
     }
   }
@@ -202,7 +197,7 @@ void
 DhtRouter::add_contact(const std::string& host, int port) {
   // Externally obtained nodes are added to the contact list, but only if
   // we're still bootstrapping. We don't contact external nodes after that.
-  if (m_contacts != NULL) {
+  if (m_contacts) {
     if (m_contacts->size() >= num_bootstrap_contacts)
       m_contacts->pop_front();
 
@@ -328,7 +323,7 @@ DhtRouter::store_cache(Object* container) const {
   }
 
   // Insert contacts, if we have any.
-  if (m_contacts != NULL) {
+  if (m_contacts) {
     Object& contacts = container->insert_key("contacts", Object::create_list());
 
     for (const auto& m_contact : *m_contacts) {
@@ -381,7 +376,7 @@ DhtRouter::receive_timeout_bootstrap() {
   // to a less aggressive non-bootstrap mode of collecting nodes that contact us
   // and through doing normal torrent announces.
   if (m_nodes.size() < num_bootstrap_complete) {
-    if (m_contacts == NULL)
+    if (!m_contacts)
       throw internal_error("DhtRouter::receive_timeout_bootstrap called without contact list.");
 
     if (!m_nodes.empty() || !m_contacts->empty())
@@ -394,7 +389,7 @@ DhtRouter::receive_timeout_bootstrap() {
 
   } else {
     // We won't be needing external contacts after this.
-    m_contacts = nullptr;
+    m_contacts.reset();
 
     m_task_timeout.slot() = [this] { receive_timeout(); };
 

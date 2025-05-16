@@ -134,8 +134,8 @@ TrackerUdp::close_directly() {
   m_resolver_requesting = false;
   m_sending_announce = false;
 
-  m_read_buffer = nullptr;
-  m_write_buffer = nullptr;
+  m_read_buffer.reset();
+  m_write_buffer.reset();
 
   if (!get_fd().is_valid())
     return;
@@ -250,8 +250,8 @@ TrackerUdp::start_announce() {
   }
 
   // TODO: Don't recreate buffers.
-  m_read_buffer = std::make_unique<ReadBuffer>();
-  m_write_buffer = std::make_unique<WriteBuffer>();
+  m_read_buffer.emplace();
+  m_write_buffer.emplace();
 
   prepare_connect_input();
 

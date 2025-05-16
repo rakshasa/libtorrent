@@ -11,6 +11,8 @@
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/scheduler.h"
 
+#include <optional>
+
 namespace torrent {
 
 class DhtBucket;
@@ -126,7 +128,7 @@ private:
   DhtBucketList       m_routingTable;
   DhtTrackerList      m_trackers;
 
-  std::unique_ptr<std::deque<contact_t>> m_contacts;
+  std::optional<std::deque<contact_t>> m_contacts;
 
   int                 m_numRefresh{0};
 

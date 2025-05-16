@@ -183,10 +183,7 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_AZUREUS, "ZT", NULL, NULL, "ZipTorrent");
 } 
 
-ClientList::~ClientList() {
-  for (auto& client : *this)
-    delete client.info();
-}
+ClientList::~ClientList() = default;
 
 ClientList::iterator
 ClientList::insert(ClientInfo::id_type type, const char* key, const char* version, const char* upperVersion) {
@@ -196,7 +193,7 @@ ClientList::insert(ClientInfo::id_type type, const char* key, const char* versio
   ClientInfo clientInfo;
 
   clientInfo.set_type(type);
-  clientInfo.set_info(new ClientInfo::info_type);
+  clientInfo.m_info.emplace();
   clientInfo.set_short_description("Unknown");
 
   std::memset(clientInfo.mutable_key(), 0, ClientInfo::max_key_size);
@@ -216,7 +213,7 @@ ClientList::insert(ClientInfo::id_type type, const char* key, const char* versio
   else
     std::memset(clientInfo.mutable_upper_version(), -1, ClientInfo::max_version_size);
 
-  return base_type::insert(end(), clientInfo);
+  return base_type::insert(end(), std::move(clientInfo));
 }
 
 ClientList::iterator
