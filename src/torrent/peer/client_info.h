@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_PEER_CLIENT_INFO_H
 #define LIBTORRENT_PEER_CLIENT_INFO_H
 
+#include <optional>
+
 #include <torrent/common.h>
 
 namespace torrent {
@@ -86,8 +88,8 @@ public:
 protected:
   void                set_type(id_type t)                     { m_type = t; }
   
-  info_type*          info() const                            { return m_info; }
-  void                set_info(info_type* ptr)                { m_info = ptr; }
+  std::optional<info_type> info() const                       { return m_info; }
+  void                set_info(std::optional<info_type> ptr)  { m_info = std::move(ptr); }
 
   char*               mutable_key()                           { return m_key; }
   char*               mutable_version()                       { return m_version; }
@@ -106,7 +108,7 @@ private:
 
   // We don't really care about cleaning up this as deleting an entry
   // form ClientList shouldn't happen.
-  info_type*          m_info;
+  std::optional<info_type> m_info;
 };
 
 }

@@ -2,7 +2,7 @@
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
 #include <array>
-#include <memory>
+#include <optional>
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
@@ -75,8 +75,8 @@ private:
   uint64_t            m_connection_id{};
   uint32_t            m_transaction_id{};
 
-  std::unique_ptr<ReadBuffer>  m_read_buffer;
-  std::unique_ptr<WriteBuffer> m_write_buffer;
+  std::optional<ReadBuffer>  m_read_buffer;
+  std::optional<WriteBuffer> m_write_buffer;
 
   uint32_t            m_tries{};
   uint32_t            m_failed_since_last_resolved{};
