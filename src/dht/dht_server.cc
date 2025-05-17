@@ -184,9 +184,11 @@ void
 DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
   auto search = new DhtSearch(target, contacts);
 
-  DhtSearch::const_accessor n;
-  while ((n = search->get_contact()) != search->end())
+  auto n = search->get_contact();
+  while (n != search->end()) {
     add_transaction(new DhtTransactionFindNode(n), packet_prio_low);
+    n = search->get_contact();
+  }
 
   // This shouldn't happen, it means we had no contactable nodes at all.
   if (!search->start())
@@ -196,10 +198,12 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
 void
 DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker) {
   auto announce = new DhtAnnounce(infoHash, tracker, contacts);
+  auto n        = announce->get_contact();
 
-  DhtSearch::const_accessor n;
-  while ((n = announce->get_contact()) != announce->end())
+  while (n != announce->end()) {
     add_transaction(new DhtTransactionFindNode(n), packet_prio_high);
+    n = announce->get_contact();
+  }
 
   // This can only happen if all nodes we know are bad.
   if (!announce->start())
@@ -445,9 +449,11 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   if (transaction->search()->is_announce())
     priority = packet_prio_high;
 
-  DhtSearch::const_accessor node;
-  while ((node = transaction->search()->get_contact()) != transaction->search()->end())
+  auto node = transaction->search()->get_contact();
+  while (node != transaction->search()->end()) {
     add_transaction(new DhtTransactionFindNode(node), priority);
+    node = transaction->search()->get_contact();
+  }
 
   if (!transaction->search()->is_announce())
     return;

@@ -26,8 +26,8 @@ DhtSearch::~DhtSearch() {
   assert(!m_pending && "DhtSearch::~DhtSearch called with pending transactions.");
   assert(m_concurrency == 3 && "DhtSearch::~DhtSearch called with invalid concurrency limit.");
 
-  for (accessor itr = begin(); itr != end(); ++itr)
-    delete itr.node();
+  for (auto& [node, _] : *this)
+    delete node;
 }
 
 bool
