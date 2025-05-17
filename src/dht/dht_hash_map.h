@@ -120,19 +120,6 @@ public:
 };
 
 class DhtTrackerList : public std::unordered_map<HashString, DhtTracker*, hashstring_hash> {
-public:
-  using base_type = std::unordered_map<HashString, DhtTracker*, hashstring_hash>;
-
-  template<typename T>
-  struct accessor_wrapper : public T {
-    accessor_wrapper(const T& itr) : T(itr) { }
-
-    const HashString&    id() const       { return (**this).first; }
-    DhtTracker*          tracker() const  { return (**this).second; }
-  };
-
-  using const_accessor = accessor_wrapper<const_iterator>;
-  using accessor       = accessor_wrapper<iterator>;
 };
 
 inline
