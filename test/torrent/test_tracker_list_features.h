@@ -1,6 +1,6 @@
 #include "test/helpers/test_main_thread.h"
 
-class TestTrackerListFeatures : public TestFixtureWithMainThread {
+class TestTrackerListFeatures : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE(TestTrackerListFeatures);
 
   CPPUNIT_TEST(test_new_peers);
@@ -14,9 +14,6 @@ class TestTrackerListFeatures : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
-  void tearDown();
-
   void test_new_peers();
   void test_has_active();
   void test_find_next_to_request();

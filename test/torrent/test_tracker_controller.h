@@ -2,7 +2,7 @@
 #include "torrent/download_info.h"
 #include "torrent/tracker_controller.h"
 
-class TestTrackerController : public TestFixtureWithMainThread {
+class TestTrackerController : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE(TestTrackerController);
 
   CPPUNIT_TEST(test_basic);
@@ -69,8 +69,6 @@ public:
 };
 
 #define TRACKER_CONTROLLER_SETUP()                                      \
-  SETUP_THREAD_TRACKER();                                               \
-                                                                        \
   torrent::DownloadInfo download_info;                                  \
   torrent::TrackerList tracker_list;                                    \
   TestTrackerListWrapper(&tracker_list).set_info(&download_info);       \

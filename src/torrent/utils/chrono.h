@@ -28,6 +28,11 @@ ceil_seconds(std::chrono::microseconds t) {
   return std::chrono::duration_cast<std::chrono::microseconds>(seconds);
 }
 
+inline std::chrono::seconds
+ceil_cast_seconds(std::chrono::microseconds t) {
+  return std::chrono::duration_cast<std::chrono::seconds>(t + 1s - 1us);
+}
+
 inline std::chrono::microseconds
 time_since_epoch() {
   return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());

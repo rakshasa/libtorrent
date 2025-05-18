@@ -1,7 +1,7 @@
 #include "test/helpers/test_main_thread.h"
 #include "test/torrent/test_tracker_controller.h"
 
-class TestTrackerControllerRequesting : public TestFixtureWithMainThread {
+class TestTrackerControllerRequesting : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE(TestTrackerControllerRequesting);
 
   CPPUNIT_TEST(test_hammering_basic_success);
@@ -22,9 +22,6 @@ class TestTrackerControllerRequesting : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
-  void tearDown();
-
   void test_hammering_basic_success();
   void test_hammering_basic_success_long_timeout();
   void test_hammering_basic_success_short_timeout();

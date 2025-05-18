@@ -39,6 +39,16 @@ protected:
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
+class TestFixtureWithMainAndTrackerThread : public test_fixture {
+public:
+  void setUp();
+  void tearDown();
+
+protected:
+  std::unique_ptr<TestMainThread> m_main_thread;
+};
+
+// TODO: Remove.
 #define SETUP_THREAD_TRACKER()                                  \
   torrent::ThreadTracker::create_thread(m_main_thread.get());   \
   torrent::thread_tracker()->init_thread();                     \

@@ -1,6 +1,6 @@
 #include "test/helpers/test_main_thread.h"
 
-class test_tracker_controller_features : public TestFixtureWithMainThread {
+class test_tracker_controller_features : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE(test_tracker_controller_features);
 
   CPPUNIT_TEST(test_requesting_basic);
@@ -17,9 +17,6 @@ class test_tracker_controller_features : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
-  void tearDown();
-
   void test_requesting_basic();
   void test_requesting_timeout();
   void test_promiscious_timeout();

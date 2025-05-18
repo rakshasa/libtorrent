@@ -91,12 +91,9 @@ TrackerController::seconds_to_next_timeout() const {
   if (timeout <= 0s)
     return 0;
 
-  if (timeout <= 1s)
-    return 1;
+  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::ceil_cast_seconds(timeout).count());
 
-  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::cast_seconds(timeout).count());
-
-  return utils::cast_seconds(timeout).count();
+  return utils::ceil_cast_seconds(timeout).count();
 }
 
 uint32_t
@@ -106,10 +103,7 @@ TrackerController::seconds_to_next_scrape() const {
   if (timeout <= 0s)
     return 0;
 
-  if (timeout <= 1s)
-    return 1;
-
-  return utils::cast_seconds(timeout).count();
+  return utils::ceil_cast_seconds(timeout).count();
 }
 
 void

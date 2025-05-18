@@ -88,3 +88,25 @@ TestFixtureWithMainThread::tearDown() {
 
   test_fixture::tearDown();
 }
+
+void
+TestFixtureWithMainAndTrackerThread::setUp() {
+  test_fixture::setUp();
+
+  set_create_poll();
+  m_main_thread = TestMainThread::create();
+  m_main_thread->init_thread();
+
+  torrent::ThreadTracker::create_thread(m_main_thread.get());
+  torrent::thread_tracker()->init_thread();
+  torrent::thread_tracker()->start_thread();
+}
+
+void
+TestFixtureWithMainAndTrackerThread::tearDown() {
+  torrent::thread_tracker()->destroy_thread();
+
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}

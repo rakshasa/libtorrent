@@ -45,11 +45,10 @@ private:
 
   // void                process_send_events();
 
-  static ThreadTracker*         m_thread_tracker;
+  static std::atomic<ThreadTracker*> m_thread_tracker;
 
-  std::unique_ptr<tracker::Manager> m_tracker_manager;
-
-  unsigned int                  m_signal_send_event{~0u};
+  std::unique_ptr<tracker::Manager>  m_tracker_manager;
+  unsigned int                       m_signal_send_event{~0u};
 
   // std::mutex                    m_send_events_lock;
   // std::vector<TrackerSendEvent> m_send_events;

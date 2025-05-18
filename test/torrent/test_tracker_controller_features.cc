@@ -15,23 +15,6 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_controller_features);
 
 void
-test_tracker_controller_features::setUp() {
-  TestFixtureWithMainThread::setUp();
-
-  CPPUNIT_ASSERT(torrent::taskScheduler.empty());
-
-  torrent::cachedTime = rak::timer::current();
-}
-
-void
-test_tracker_controller_features::tearDown() {
-  torrent::ThreadTracker::destroy_thread();
-  torrent::taskScheduler.clear();
-
-  TestFixtureWithMainThread::tearDown();
-}
-
-void
 test_tracker_controller_features::test_requesting_basic() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);

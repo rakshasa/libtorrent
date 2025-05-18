@@ -9,7 +9,6 @@
 #include "test/torrent/test_tracker_list.h"
 #include "test/helpers/test_main_thread.h"
 #include "torrent/utils/log.h"
-#include "src/tracker/thread_tracker.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerController);
 
@@ -52,11 +51,11 @@ test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t 
 
 void
 TestTrackerController::setUp() {
-  TestFixtureWithMainThread::setUp();
+  TestFixtureWithMainAndTrackerThread::setUp();
 
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
-  torrent::cachedTime = rak::timer::current();
+  // torrent::cachedTime = rak::timer::current();
 
   log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
   log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
@@ -64,12 +63,7 @@ TestTrackerController::setUp() {
 
 void
 TestTrackerController::tearDown() {
-  m_main_thread.reset();
-
-  torrent::ThreadTracker::destroy_thread();
-  torrent::taskScheduler.clear();
-
-  TestFixtureWithMainThread::tearDown();
+  TestFixtureWithMainAndTrackerThread::tearDown();
 }
 
 void
@@ -118,7 +112,6 @@ TestTrackerController::test_timeout() {
 
   tracker_controller.enable();
 
-  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
   m_main_thread->test_process_events_without_cached_time();
 
   CPPUNIT_ASSERT(timeout_counter == 1);
@@ -143,6 +136,9 @@ TestTrackerController::test_single_success() {
 }
 
 #define TEST_SINGLE_FAILURE_TIMEOUT(test_interval)                      \
+  lt_log_print(torrent::LOG_TRACKER_EVENTS, "test_single_failure: main_thread->cached_time:%" PRIu64, torrent::this_thread::cached_time().count()); \
+                                                                        \
+  std::this_thread::sleep_for(1s);                                      \
   m_main_thread->test_process_events_without_cached_time();             \
                                                                         \
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());                \
@@ -152,12 +148,19 @@ TestTrackerController::test_single_success() {
 
 void
 TestTrackerController::test_single_failure() {
+  // torrent::cachedTime = rak::timer::from_seconds(1 << 20);
+  m_main_thread->test_set_cached_time(0s);
+
   TEST_SINGLE_BEGIN();
+
+  // TOOD: Need separate test handler for ThreadTracker?
+
+  // TODO: Add a 'wait-for-one-event-loop' function to threads?
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
   TEST_SINGLE_FAILURE_TIMEOUT(5);
-  TEST_SINGLE_FAILURE_TIMEOUT(10);
+  TEST_SINGLE_FAILURE_TIMEOUT(10+1);
   TEST_SINGLE_FAILURE_TIMEOUT(20);
   TEST_SINGLE_FAILURE_TIMEOUT(40);
   TEST_SINGLE_FAILURE_TIMEOUT(80);

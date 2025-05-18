@@ -1,7 +1,7 @@
 #include "test/helpers/test_main_thread.h"
 #include "test/helpers/tracker_test.h"
 
-class TestTrackerList : public TestFixtureWithMainThread {
+class TestTrackerList : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE(TestTrackerList);
 
   CPPUNIT_TEST(test_basic);
@@ -26,8 +26,6 @@ class TestTrackerList : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void tearDown();
-
   void test_basic();
   void test_enable();
   void test_close();
@@ -59,8 +57,6 @@ struct TestTrackerListWrapper {
 };
 
 #define TRACKER_LIST_SETUP()                                            \
-  SETUP_THREAD_TRACKER();                                               \
-                                                                        \
   torrent::TrackerList tracker_list;                                    \
   int success_counter = 0;                                              \
   int failure_counter = 0;                                              \
