@@ -130,7 +130,9 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
   if (!tracker.is_scrapable())
     return;
 
-  if (rak::timer::from_seconds(tracker.state().scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
+  auto timeout = std::chrono::seconds(tracker.state().scrape_time_last()) + 600s;
+
+  if (timeout > this_thread::cached_time())
     return;
 
   LT_LOG("sending scrape : requester:%p url:%s", tracker.get_worker(), tracker.url().c_str());
@@ -419,7 +421,7 @@ TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
 
   {
     auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().m_success_time_last = cachedTime.seconds();
+    tracker.get_worker()->state().m_success_time_last = this_thread::cached_seconds().count();
     tracker.get_worker()->state().m_success_counter++;
     tracker.get_worker()->state().m_failed_counter = 0;
     tracker.get_worker()->state().m_latest_sum_peers = l->size();
@@ -451,7 +453,7 @@ TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) 
 
   {
     auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().m_failed_time_last = cachedTime.seconds();
+    tracker.get_worker()->state().m_failed_time_last = this_thread::cached_seconds().count();
     tracker.get_worker()->state().m_failed_counter++;
   }
 
@@ -474,7 +476,7 @@ TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
 
   {
     auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().m_scrape_time_last = cachedTime.seconds();
+    tracker.get_worker()->state().m_scrape_time_last = this_thread::cached_seconds().count();
     tracker.get_worker()->state().m_scrape_counter++;
   }
 

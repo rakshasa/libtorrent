@@ -371,7 +371,7 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
   // if (tracker.success_counter() == 0 && tracker.failed_counter() == 0)
   //   return 0;
 
-  int32_t last_activity = cachedTime.seconds() - activity_time_last;
+  int32_t last_activity = this_thread::cached_seconds().count() - activity_time_last;
 
   // TODO: Use min interval if we're requesting manual update.
 
@@ -413,7 +413,7 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   int32_t min_interval = std::max(tracker_state.min_interval(), uint32_t{300});
   int32_t use_interval = std::min(interval, min_interval);
 
-  int32_t since_last = cachedTime.seconds() - static_cast<int32_t>(tracker_state.activity_time_last());
+  int32_t since_last = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
 
   return std::max(use_interval - since_last, 0);
 }
@@ -508,11 +508,12 @@ TrackerController::do_timeout() {
     auto tracker_state = itr->state();
 
     int32_t next_timeout = tracker_state.activity_time_next();
+    int32_t cached_seconds = this_thread::cached_seconds().count();
 
-    if (next_timeout <= cachedTime.seconds())
+    if (next_timeout <= cached_seconds)
       m_tracker_list->send_event(*itr, send_event);
     else
-      update_timeout(next_timeout - cachedTime.seconds());
+      update_timeout(next_timeout - cached_seconds);
   }
 
   if (m_slot_timeout)
