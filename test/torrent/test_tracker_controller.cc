@@ -144,7 +144,7 @@ TestTrackerController::test_single_success() {
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());                \
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == test_interval); \
                                                                         \
-  m_main_thread->test_add_cached_time(std::chrono::seconds(test_interval));
+  m_main_thread->test_add_cached_time(std::chrono::seconds(test_interval + 1));
 
 void
 TestTrackerController::test_single_failure() {
@@ -160,7 +160,7 @@ TestTrackerController::test_single_failure() {
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
   TEST_SINGLE_FAILURE_TIMEOUT(5);
-  TEST_SINGLE_FAILURE_TIMEOUT(10+1);
+  TEST_SINGLE_FAILURE_TIMEOUT(10);
   TEST_SINGLE_FAILURE_TIMEOUT(20);
   TEST_SINGLE_FAILURE_TIMEOUT(40);
   TEST_SINGLE_FAILURE_TIMEOUT(80);

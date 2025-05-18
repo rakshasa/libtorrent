@@ -12,14 +12,6 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_timeout);
 
 void
-test_tracker_timeout::setUp() {
-  torrent::cachedTime = rak::timer::current();
-  //  torrent::cachedTime = rak::timer::current().round_seconds();
-
-  test_fixture::setUp();
-}
-
-void
 test_tracker_timeout::test_set_timeout() {
   auto tracker = TrackerTest::new_tracker(NULL, "");
   auto tracker_worker = TrackerTest::test_worker(tracker);
