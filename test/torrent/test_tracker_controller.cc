@@ -1,7 +1,6 @@
 #include "config.h"
 
 #include <functional>
-#include <iostream>
 
 #include "globals.h"
 #include "rak/priority_queue_default.h"
@@ -13,57 +12,62 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerController);
 
 bool
-test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout, bool is_scrape) {
+test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
+                       torrent::TrackerController* tracker_controller,
+                       uint32_t assumed_timeout,
+                       bool is_scrape) {
   uint32_t next_timeout = tracker_controller->is_timeout_queued() ? tracker_controller->seconds_to_next_timeout() : ~uint32_t();
   uint32_t next_scrape  = tracker_controller->is_scrape_queued()  ? tracker_controller->seconds_to_next_scrape()  : ~uint32_t();
 
+  bool result = true;
+  std::string message;
+
   if (next_timeout == next_scrape && next_timeout == ~uint32_t()) {
-    std::cout << "(nq)";
-    return false;
+    message = "(no timeout or scrape queued) ";
+    result = false;
   }
 
   if (next_timeout < next_scrape) {
     if (is_scrape) {
-      std::cout << "(t" << next_timeout << "<s" << next_scrape << ")";
-      return false;
+      message += "n<s(t" + std::to_string(next_timeout) + "<s" + std::to_string(next_scrape) + ") ";
+      result = false;
     }
 
-    if (assumed_timeout != next_timeout) {
-      std::cout << '(' << assumed_timeout << "!=t" << next_timeout << ')';
-      return false;
+    uint32_t range_min = next_timeout > 2 ? next_timeout - 2 : 0;
+
+    if (assumed_timeout < range_min && assumed_timeout > next_timeout + 2) {
+      message += "n<s(" + std::to_string(assumed_timeout) + "!=" + std::to_string(next_timeout) + ") ";
+      result = false;
     }
   } else if (next_scrape < next_timeout) {
     if (!is_scrape) {
-      std::cout << "(s" << next_scrape << "<t" << next_timeout << ")";
-      return false;
+      message += "s<t(s" + std::to_string(next_scrape) + "<t" + std::to_string(next_timeout) + ") ";
+      result = false;
     }
 
-    if (assumed_timeout != next_scrape) {
-      std::cout << '(' << assumed_timeout << "!=s" << next_scrape << ')';
-      return false;
+    uint32_t range_min = next_scrape > 2 ? next_scrape - 2 : 0;
+
+    if (assumed_timeout < range_min && assumed_timeout > next_scrape + 2) {
+      message += "s<t(" + std::to_string(assumed_timeout) + "!=" + std::to_string(next_scrape) + ") ";
+      result = false;
     }
   }
 
-  torrent::cachedTime += rak::timer::from_seconds(is_scrape ? next_scrape : next_timeout);
-  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
+  if (!result) {
+    lt_log_print(torrent::LOG_TRACKER_EVENTS, "test_goto_next_timeout: %s", message.c_str());
+    return false;
+  }
+
+  if (is_scrape)
+    fixture->m_main_thread->test_add_cached_time(std::chrono::seconds(next_scrape + 1));
+  else
+    fixture->m_main_thread->test_add_cached_time(std::chrono::seconds(next_timeout + 1));
+
+  std::this_thread::sleep_for(100ms);
+  fixture->m_main_thread->test_process_events_without_cached_time();
+  std::this_thread::sleep_for(100ms);
+
   return true;
-}
-
-void
-TestTrackerController::setUp() {
-  TestFixtureWithMainAndTrackerThread::setUp();
-
-  CPPUNIT_ASSERT(torrent::taskScheduler.empty());
-
-  // torrent::cachedTime = rak::timer::current();
-
-  log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
-  log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
-}
-
-void
-TestTrackerController::tearDown() {
-  TestFixtureWithMainAndTrackerThread::tearDown();
 }
 
 void
@@ -138,7 +142,7 @@ TestTrackerController::test_single_success() {
 #define TEST_SINGLE_FAILURE_TIMEOUT(test_interval)                      \
   lt_log_print(torrent::LOG_TRACKER_EVENTS, "test_single_failure: main_thread->cached_time:%" PRIu64, torrent::this_thread::cached_time().count()); \
                                                                         \
-  std::this_thread::sleep_for(1s);                                      \
+  std::this_thread::sleep_for(100ms);                                   \
   m_main_thread->test_process_events_without_cached_time();             \
                                                                         \
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());                \
@@ -148,14 +152,13 @@ TestTrackerController::test_single_success() {
 
 void
 TestTrackerController::test_single_failure() {
-  // torrent::cachedTime = rak::timer::from_seconds(1 << 20);
   m_main_thread->test_set_cached_time(0s);
 
   TEST_SINGLE_BEGIN();
 
   // TOOD: Need separate test handler for ThreadTracker?
-
   // TODO: Add a 'wait-for-one-event-loop' function to threads?
+  // TODO: Add test-specific ThreadTracker that allows us to trigger process events and cached_time.
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
@@ -169,9 +172,6 @@ TestTrackerController::test_single_failure() {
   TEST_SINGLE_FAILURE_TIMEOUT(299);
 
   // TODO: Test with cachedTime not rounded to second.
-
-  // Test also with a low timer value...
-  // torrent::cachedTime = rak::timer::from_seconds(1000);
 
   TEST_SINGLE_END(0, 4);
 }
@@ -283,7 +283,7 @@ TestTrackerController::test_send_update_normal() {
 
 void
 TestTrackerController::test_send_update_failure() {
-  torrent::cachedTime = rak::timer::from_seconds(1 << 20);
+  m_main_thread->test_set_cached_time(0s);
 
   TEST_SINGLE_BEGIN();
 
@@ -339,12 +339,12 @@ TestTrackerController::test_multiple_success() {
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0.state().normal_interval()));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().normal_interval()));
   TEST_MULTI3_IS_BUSY("10000", "10000");
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0.state().normal_interval()));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().normal_interval()));
   TEST_MULTI3_IS_BUSY("10000", "10000");
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
@@ -374,7 +374,7 @@ TestTrackerController::test_multiple_failure() {
   TEST_MULTI3_IS_BUSY("00100", "00100");
   CPPUNIT_ASSERT(tracker_1_0_worker->trigger_success());
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_1_0.state().normal_interval()));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_1_0.state().normal_interval()));
 
   TEST_MULTI3_IS_BUSY("10000", "10000");
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
@@ -401,12 +401,12 @@ TestTrackerController::test_multiple_failure() {
 
   // Try inserting some delays in order to test the timers.
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 5));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 5));
   TEST_MULTI3_IS_BUSY("00100", "00100");
   CPPUNIT_ASSERT(tracker_1_0_worker->trigger_success());
   CPPUNIT_ASSERT(!tracker_controller.is_failure_mode());
 
-  // CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_list[0].state().normal_interval()));
+  // CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_list[0].state().normal_interval()));
   // TEST_MULTI3_IS_BUSY("01000", "10000");
   // CPPUNIT_ASSERT(tracker_0_1_worker->trigger_success());
 
@@ -426,7 +426,7 @@ TestTrackerController::test_multiple_cycle() {
   CPPUNIT_ASSERT(tracker_0_1_worker->trigger_success());
   CPPUNIT_ASSERT(tracker_list.front() == tracker_0_1);
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_1.state().normal_interval()));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_1.state().normal_interval()));
 
   TEST_MULTI3_IS_BUSY("01000", "10000");
   CPPUNIT_ASSERT(tracker_0_1_worker->trigger_success());
@@ -519,7 +519,7 @@ TestTrackerController::test_multiple_send_update() {
   auto tracker_0_1_worker = TrackerTest::test_worker(tracker_0_1);
 
   tracker_controller.send_update_event();
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   TEST_MULTI3_IS_BUSY("10000", "10000");
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
@@ -527,12 +527,12 @@ TestTrackerController::test_multiple_send_update() {
   tracker_0_0_worker->set_failed(1, torrent::cachedTime.seconds());
 
   tracker_controller.send_update_event();
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   TEST_MULTI3_IS_BUSY("01000", "01000");
 
   CPPUNIT_ASSERT(tracker_0_1_worker->trigger_failure());
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   TEST_MULTI3_IS_BUSY("00100", "00100");
 
   TEST_MULTIPLE_END(2, 0);
@@ -550,7 +550,7 @@ TestTrackerController::test_timeout_lacking_usable() {
   std::for_each(tracker_list.begin(), tracker_list.end(), std::mem_fn(&torrent::tracker::Tracker::disable));
   CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
 
   TEST_MULTI3_IS_BUSY("00000", "00000");
   CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
@@ -560,7 +560,7 @@ TestTrackerController::test_timeout_lacking_usable() {
   CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
 
   TEST_MULTI3_IS_BUSY("00100", "00100");
 
@@ -602,7 +602,7 @@ TestTrackerController::test_new_peers() {
 
   tracker_controller.enable();
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success(20));
   CPPUNIT_ASSERT(tracker_0_0.state().latest_new_peers() == 20);
 

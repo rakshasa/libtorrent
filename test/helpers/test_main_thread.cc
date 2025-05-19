@@ -8,6 +8,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
+#include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
 
 std::unique_ptr<TestMainThread>
@@ -94,8 +95,12 @@ TestFixtureWithMainAndTrackerThread::setUp() {
   test_fixture::setUp();
 
   set_create_poll();
+
   m_main_thread = TestMainThread::create();
   m_main_thread->init_thread();
+
+  log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
+  log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
 
   torrent::ThreadTracker::create_thread(m_main_thread.get());
   torrent::thread_tracker()->init_thread();

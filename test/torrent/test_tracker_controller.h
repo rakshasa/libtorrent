@@ -35,9 +35,6 @@ class TestTrackerController : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
-  void tearDown();
-
   void test_basic();
   void test_enable();
   void test_disable();
@@ -155,6 +152,9 @@ public:
 #define TEST_GOTO_NEXT_SCRAPE(assumed_scrape)                           \
   CPPUNIT_ASSERT(tracker_controller.is_scrape_queued());                \
   CPPUNIT_ASSERT(assumed_scrape == tracker_controller.seconds_to_next_scrape()); \
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, assumed_scrape, true));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, assumed_scrape, true));
 
-bool test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout, bool is_scrape = false);
+bool test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
+                            torrent::TrackerController* tracker_controller,
+                            uint32_t assumed_timeout,
+                            bool is_scrape = false);

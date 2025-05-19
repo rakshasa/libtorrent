@@ -4,7 +4,6 @@
 
 #include "globals.h"
 #include "net/address_list.h"
-#include "torrent/download_info.h"
 #include "torrent/http.h"
 #include "torrent/utils/uri_parser.h"
 
@@ -162,10 +161,6 @@ TestTrackerList::test_can_scrape() {
   TRACKER_LIST_SETUP();
 
   torrent::Http::slot_factory() = std::bind(&http_factory);
-
-  auto download_info = torrent::DownloadInfo();
-
-  TestTrackerListWrapper(&tracker_list).set_info(&download_info);
 
   tracker_list.insert_url(0, "http://example.com/announce");
   CPPUNIT_ASSERT(tracker_list.back().is_scrapable());

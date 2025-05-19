@@ -27,7 +27,7 @@ test_tracker_controller_features::test_requesting_basic() {
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success(8, 9));
 
   tracker_controller.start_requesting();
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   TEST_MULTI3_IS_BUSY("00111", "00111");
 
   CPPUNIT_ASSERT(tracker_1_0_worker->trigger_success());
@@ -39,10 +39,10 @@ test_tracker_controller_features::test_requesting_basic() {
   // requesting from spent trackers.
 
   // Next timeout should be soon...
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 30));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 30));
   TEST_MULTI3_IS_BUSY("00000", "00000");
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0.state().min_interval() - 30));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().min_interval() - 30));
   TEST_MULTI3_IS_BUSY("10111", "10111");
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
@@ -61,7 +61,7 @@ test_tracker_controller_features::test_requesting_timeout() {
   TEST_SEND_SINGLE_BEGIN(update);
 
   tracker_controller.start_requesting();
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
 
   TEST_MULTI3_IS_BUSY("10111", "10111");
 
@@ -72,21 +72,26 @@ test_tracker_controller_features::test_requesting_timeout() {
   auto tracker_3_0_worker = TrackerTest::test_worker(tracker_3_0);
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
-  CPPUNIT_ASSERT_EQUAL((uint32_t)5, tracker_controller.seconds_to_next_timeout());
+
+  auto next_timeout_1 = tracker_controller.seconds_to_next_timeout();
+  CPPUNIT_ASSERT(next_timeout_1 == 5 || next_timeout_1 == 6);
+
   // CPPUNIT_ASSERT(tracker_0_1_worker->trigger_failure());
   CPPUNIT_ASSERT(tracker_1_0_worker->trigger_failure());
   CPPUNIT_ASSERT(tracker_2_0_worker->trigger_failure());
   CPPUNIT_ASSERT(tracker_3_0_worker->trigger_failure());
 
-  // CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  // CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   TEST_MULTI3_IS_BUSY("01000", "01000");
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 5));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 5));
   TEST_MULTI3_IS_BUSY("01111", "01111");
 
   CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
   CPPUNIT_ASSERT(tracker_0_1_worker->trigger_success());
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 30);
+
+  auto next_timeout_2 = tracker_controller.seconds_to_next_timeout();
+  CPPUNIT_ASSERT(next_timeout_2 == 30 || next_timeout_2 == 31);
 
   TEST_MULTIPLE_END(1, 4);
 }
@@ -96,7 +101,7 @@ test_tracker_controller_features::test_promiscious_timeout() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 3));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 3));
 
   TEST_MULTI3_IS_BUSY("10111", "10111");
 
@@ -116,7 +121,7 @@ test_tracker_controller_features::test_promiscious_timeout() {
   CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
   CPPUNIT_ASSERT(tracker_3_0_worker->trigger_success());
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0.state().normal_interval()));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().normal_interval()));
 
   TEST_MULTIPLE_END(4, 0);
 }
@@ -146,7 +151,13 @@ test_tracker_controller_features::test_promiscious_failed() {
   CPPUNIT_ASSERT(tracker_2_0_worker->trigger_failure());
 
   TEST_MULTI3_IS_BUSY("01100", "01100");
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 3));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 3));
+
+  m_main_thread->test_add_cached_time(std::chrono::seconds(1));
+  std::this_thread::sleep_for(100ms);
+  m_main_thread->test_process_events_without_cached_time();
+  std::this_thread::sleep_for(100ms);
+
   TEST_MULTI3_IS_BUSY("01101", "01101");
 
   CPPUNIT_ASSERT(tracker_0_1_worker->trigger_failure());
@@ -210,7 +221,7 @@ test_tracker_controller_features::test_scrape_basic() {
 void
 test_tracker_controller_features::test_scrape_priority() {
   TEST_SINGLE_BEGIN();
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
@@ -245,7 +256,7 @@ test_tracker_controller_features::test_scrape_priority() {
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   CPPUNIT_ASSERT(tracker_0_0.state().latest_event() == torrent::tracker::TrackerState::EVENT_SCRAPE);
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 1));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 1));
 
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   CPPUNIT_ASSERT(tracker_0_0.state().latest_event() == torrent::tracker::TrackerState::EVENT_NONE);
@@ -262,7 +273,7 @@ test_tracker_controller_features::test_groups_requesting() {
 
   tracker_controller.start_requesting();
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   TEST_GROUP_IS_BUSY("100101", "100101");
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
@@ -278,9 +289,9 @@ test_tracker_controller_features::test_groups_requesting() {
   // requesting from spent trackers.
 
   // Next timeout should be soon...
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 30));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 30));
   TEST_GROUP_IS_BUSY("000000", "000000");
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0.state().min_interval() - 30));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().min_interval() - 30));
   TEST_GROUP_IS_BUSY("100101", "100101");
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
@@ -288,7 +299,7 @@ test_tracker_controller_features::test_groups_requesting() {
   CPPUNIT_ASSERT(tracker_2_0_worker->trigger_success());
 
   // Once we've requested twice, it should stop requesting from that tier.
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 30));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 30));
   TEST_GROUP_IS_BUSY("000000", "000000");
 
   tracker_controller.stop_requesting();

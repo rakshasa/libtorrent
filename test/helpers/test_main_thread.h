@@ -35,7 +35,6 @@ public:
   void setUp();
   void tearDown();
 
-protected:
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
@@ -44,7 +43,6 @@ public:
   void setUp();
   void tearDown();
 
-protected:
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 

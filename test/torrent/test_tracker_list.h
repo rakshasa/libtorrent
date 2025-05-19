@@ -1,5 +1,6 @@
 #include "test/helpers/test_main_thread.h"
 #include "test/helpers/tracker_test.h"
+#include "torrent/download_info.h"
 
 class TestTrackerList : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE(TestTrackerList);
@@ -57,7 +58,10 @@ struct TestTrackerListWrapper {
 };
 
 #define TRACKER_LIST_SETUP()                                            \
+  torrent::DownloadInfo download_info;                                  \
   torrent::TrackerList tracker_list;                                    \
+  TestTrackerListWrapper(&tracker_list).set_info(&download_info);       \
+                                                                        \
   int success_counter = 0;                                              \
   int failure_counter = 0;                                              \
   int scrape_success_counter = 0;                                       \
