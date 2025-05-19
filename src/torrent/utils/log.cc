@@ -36,16 +36,13 @@ struct log_cache_entry {
 
 struct log_gz_output {
   log_gz_output(const char* filename, bool append) :
-      gz_file(gzopen(filename, append ? "a" : "w")) {}
-  ~log_gz_output() { if (gz_file != nullptr) gzclose(gz_file); }
-  log_gz_output(const log_gz_output&) = delete;
-  log_gz_output& operator=(const log_gz_output&) = delete;
+      gz_file(gzopen(filename, append ? "a" : "w"), gzclose) {}
 
   bool is_valid() { return gz_file != Z_NULL; }
 
-  // bool set_buffer(unsigned size) { return gzbuffer(gz_file, size) == 0; }
+  // bool set_buffer(unsigned size) { return gzbuffer(gz_file.get(), size) == 0; }
 
-  gzFile gz_file;
+  std::unique_ptr<gzFile_s, decltype(&gzclose)> gz_file;
 };
 
 using log_cache_list  = std::vector<log_cache_entry>;
@@ -344,18 +341,18 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
                                  log_level_char[group % 6]);
 
     if (buffer_length > 0)
-      gzwrite(outfile->gz_file, buffer, buffer_length);
+      gzwrite(outfile->gz_file.get(), buffer, buffer_length);
 
-    gzwrite(outfile->gz_file, data, length);
-    gzwrite(outfile->gz_file, "\n", 1);
+    gzwrite(outfile->gz_file.get(), data, length);
+    gzwrite(outfile->gz_file.get(), "\n", 1);
 
   } else if (group == -1) {
-    gzwrite(outfile->gz_file, "---DUMP---\n", sizeof("---DUMP---\n") - 1);
+    gzwrite(outfile->gz_file.get(), "---DUMP---\n", sizeof("---DUMP---\n") - 1);
 
     if (length != 0)
-      gzwrite(outfile->gz_file, data, length);
+      gzwrite(outfile->gz_file.get(), data, length);
 
-    gzwrite(outfile->gz_file, "---END---\n", sizeof("---END---\n") - 1);
+    gzwrite(outfile->gz_file.get(), "---END---\n", sizeof("---END---\n") - 1);
   }
 }
 
