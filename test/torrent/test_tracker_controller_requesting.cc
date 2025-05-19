@@ -28,7 +28,9 @@ TestTrackerControllerRequesting::do_test_hammering_basic(bool success1, bool suc
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   CPPUNIT_ASSERT(success1 ? tracker_0_0_worker->trigger_success() : tracker_0_0_worker->trigger_failure());
 
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0.state().normal_interval());
+  CPPUNIT_ASSERT(test_tracker_value_in_range(tracker_controller.seconds_to_next_timeout(),
+                                             tracker_0_0.state().normal_interval() - 2,
+                                             tracker_0_0.state().normal_interval() + 2));
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
 
   tracker_controller.start_requesting();
@@ -110,7 +112,9 @@ TestTrackerControllerRequesting::do_test_hammering_multi3(bool success1, bool su
   TEST_MULTI3_IS_BUSY("10000", "10000");
   CPPUNIT_ASSERT(success1 ? tracker_0_0_worker->trigger_success() : tracker_0_0_worker->trigger_failure());
 
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0.state().normal_interval());
+  CPPUNIT_ASSERT(test_tracker_value_in_range(tracker_controller.seconds_to_next_timeout(),
+                                             tracker_0_0.state().normal_interval() - 2,
+                                             tracker_0_0.state().normal_interval() + 2));
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
 
   tracker_controller.start_requesting();

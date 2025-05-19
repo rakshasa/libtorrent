@@ -12,10 +12,32 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerController);
 
 bool
+test_tracker_value_in_range(uint32_t value, int32_t min, uint32_t max) {
+  uint32_t range_min = min < 0 ? 0 : min;
+
+  if (value < range_min || value > max) {
+    lt_log_print(torrent::LOG_TRACKER_EVENTS, "test_tracker_value_in_range: %u not in range [%u, %u]", value, range_min, max);
+    return false;
+  }
+
+  return true;
+}
+
+void
+test_tracker_step_time(TestFixtureWithMainAndTrackerThread* fixture, int32_t seconds) {
+  fixture->m_main_thread->test_add_cached_time(std::chrono::seconds(seconds));
+  std::this_thread::sleep_for(50ms);
+
+  fixture->m_main_thread->test_process_events_without_cached_time();
+  std::this_thread::sleep_for(50ms);
+}
+
+bool
 test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
                        torrent::TrackerController* tracker_controller,
                        uint32_t assumed_timeout,
                        bool is_scrape) {
+
   uint32_t next_timeout = tracker_controller->is_timeout_queued() ? tracker_controller->seconds_to_next_timeout() : ~uint32_t();
   uint32_t next_scrape  = tracker_controller->is_scrape_queued()  ? tracker_controller->seconds_to_next_scrape()  : ~uint32_t();
 
@@ -33,9 +55,7 @@ test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
       result = false;
     }
 
-    uint32_t range_min = next_timeout > 2 ? next_timeout - 2 : 0;
-
-    if (assumed_timeout < range_min && assumed_timeout > next_timeout + 2) {
+    if (!test_tracker_value_in_range(next_timeout, (int32_t)assumed_timeout - 2, assumed_timeout + 2)) {
       message += "n<s(" + std::to_string(assumed_timeout) + "!=" + std::to_string(next_timeout) + ") ";
       result = false;
     }
@@ -45,9 +65,7 @@ test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
       result = false;
     }
 
-    uint32_t range_min = next_scrape > 2 ? next_scrape - 2 : 0;
-
-    if (assumed_timeout < range_min && assumed_timeout > next_scrape + 2) {
+    if (!test_tracker_value_in_range(next_scrape, (int32_t)assumed_timeout - 2, assumed_timeout + 2)) {
       message += "s<t(" + std::to_string(assumed_timeout) + "!=" + std::to_string(next_scrape) + ") ";
       result = false;
     }
@@ -58,15 +76,7 @@ test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
     return false;
   }
 
-  if (is_scrape)
-    fixture->m_main_thread->test_add_cached_time(std::chrono::seconds(next_scrape + 1));
-  else
-    fixture->m_main_thread->test_add_cached_time(std::chrono::seconds(next_timeout + 1));
-
-  std::this_thread::sleep_for(100ms);
-  fixture->m_main_thread->test_process_events_without_cached_time();
-  std::this_thread::sleep_for(100ms);
-
+  test_tracker_step_time(fixture, is_scrape ? (next_scrape + 1) : (next_timeout + 1));
   return true;
 }
 
@@ -524,7 +534,7 @@ TestTrackerController::test_multiple_send_update() {
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
 
-  tracker_0_0_worker->set_failed(1, torrent::cachedTime.seconds());
+  tracker_0_0_worker->set_failed(1, torrent::this_thread::cached_seconds().count());
 
   tracker_controller.send_update_event();
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));

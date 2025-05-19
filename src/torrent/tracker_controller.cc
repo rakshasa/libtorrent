@@ -86,12 +86,12 @@ uint32_t
 TrackerController::seconds_to_next_timeout() const {
   auto timeout = m_private->task_timeout.time() - this_thread::cached_time();
 
-  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, timeout.count());
+  // LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, timeout.count());
 
   if (timeout <= 0s)
     return 0;
 
-  LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::ceil_cast_seconds(timeout).count());
+  // LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::ceil_cast_seconds(timeout).count());
 
   return utils::ceil_cast_seconds(timeout).count();
 }
@@ -414,6 +414,9 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   int32_t use_interval = std::min(interval, min_interval);
 
   int32_t since_last = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
+
+  lt_log_print(LOG_TRACKER_EVENTS, "tracker_next_timeout_promiscuous: min_interval:%d use_interval:%d since_last:%d",
+               min_interval, use_interval, since_last);
 
   return std::max(use_interval - since_last, 0);
 }

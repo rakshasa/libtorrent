@@ -154,7 +154,6 @@ public:
   CPPUNIT_ASSERT(assumed_scrape == tracker_controller.seconds_to_next_scrape()); \
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, assumed_scrape, true));
 
-bool test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
-                            torrent::TrackerController* tracker_controller,
-                            uint32_t assumed_timeout,
-                            bool is_scrape = false);
+bool test_tracker_value_in_range(uint32_t value, int32_t min, uint32_t max);
+void test_tracker_step_time(TestFixtureWithMainAndTrackerThread* fixture, int32_t seconds);
+bool test_goto_next_timeout(TestFixtureWithMainAndTrackerThread*, torrent::TrackerController*, uint32_t assumed_timeout, bool is_scrape = false);
