@@ -2,13 +2,13 @@
 
 #include "torrent/tracker_controller.h"
 
-#include "rak/priority_queue_default.h"
+#include "globals.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
-
-#include "globals.h"
+#include "torrent/utils/chrono.h"
+#include "torrent/utils/scheduler.h"
 
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                              \
   lt_log_print_info(LOG_TRACKER_EVENTS, m_tracker_list->info(), "tracker_controller", log_fmt, __VA_ARGS__);
@@ -17,8 +17,8 @@ namespace torrent {
 
 // TODO: Make these member variables.
 struct tracker_controller_private {
-  rak::priority_item task_timeout;
-  rak::priority_item task_scrape;
+  utils::SchedulerEntry task_timeout;
+  utils::SchedulerEntry task_scrape;
 };
 
 // End temp hacks...
@@ -28,12 +28,12 @@ TrackerController::update_timeout(uint32_t seconds_to_next) {
   if (!(m_flags & flag_active))
     throw internal_error("TrackerController cannot set timeout when inactive.");
 
-  rak::timer next_timeout = cachedTime;
+  if (seconds_to_next == 0) {
+    this_thread::scheduler()->update_wait_for(&m_private->task_timeout, 0s);
+    return;
+  }
 
-  if (seconds_to_next != 0)
-    next_timeout = (cachedTime + rak::timer::from_seconds(seconds_to_next)).round_seconds();
-
-  priority_queue_update(&taskScheduler, &m_private->task_timeout, next_timeout);
+  this_thread::scheduler()->update_wait_for_ceil_seconds(&m_private->task_timeout, std::chrono::seconds(seconds_to_next));
 }
 
 inline tracker::TrackerState::event_enum
@@ -48,7 +48,6 @@ TrackerController::current_send_event() const {
 }
 
 TrackerController::TrackerController(TrackerList* trackers) :
-
     m_tracker_list(trackers),
     m_private(new tracker_controller_private) {
 
@@ -57,44 +56,59 @@ TrackerController::TrackerController(TrackerList* trackers) :
 }
 
 TrackerController::~TrackerController() {
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  priority_queue_erase(&taskScheduler, &m_private->task_scrape);
+  this_thread::scheduler()->erase(&m_private->task_timeout);
+  this_thread::scheduler()->erase(&m_private->task_scrape);
+
   delete m_private;
 }
 
 bool
 TrackerController::is_timeout_queued() const {
-  return m_private->task_timeout.is_queued();
+  return m_private->task_timeout.is_scheduled();
 }
 
 bool
 TrackerController::is_scrape_queued() const {
-  return m_private->task_scrape.is_queued();
+  return m_private->task_scrape.is_scheduled();
 }
 
 int64_t
 TrackerController::next_timeout() const {
-  return m_private->task_timeout.time().usec();
+  return m_private->task_timeout.time().count();
 }
 
 int64_t
 TrackerController::next_scrape() const {
-  return m_private->task_scrape.time().usec();
+  return m_private->task_scrape.time().count();
 }
 
 uint32_t
 TrackerController::seconds_to_next_timeout() const {
-  return std::max(m_private->task_timeout.time() - cachedTime, rak::timer()).seconds_ceiling();
+  auto timeout = m_private->task_timeout.time() - this_thread::cached_time();
+
+  // LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, timeout.count());
+
+  if (timeout <= 0s)
+    return 0;
+
+  // LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::ceil_cast_seconds(timeout).count());
+
+  return utils::ceil_cast_seconds(timeout).count();
 }
 
 uint32_t
 TrackerController::seconds_to_next_scrape() const {
-  return std::max(m_private->task_scrape.time() - cachedTime, rak::timer()).seconds_ceiling();
+  auto timeout = m_private->task_scrape.time() - this_thread::cached_time();
+
+  if (timeout <= 0s)
+    return 0;
+
+  return utils::ceil_cast_seconds(timeout).count();
 }
 
 void
 TrackerController::manual_request([[maybe_unused]] bool request_now) {
-  if (!m_private->task_timeout.is_queued())
+  if (!m_private->task_timeout.is_scheduled())
     return;
 
   // Add functions to get the lowest timeout, etc...
@@ -103,12 +117,12 @@ TrackerController::manual_request([[maybe_unused]] bool request_now) {
 
 void
 TrackerController::scrape_request(uint32_t seconds_to_request) {
-  rak::timer next_timeout = cachedTime;
+  if (seconds_to_request == 0) {
+    this_thread::scheduler()->update_wait_for(&m_private->task_scrape, 0s);
+    return;
+  }
 
-  if (seconds_to_request != 0)
-    next_timeout = (cachedTime + rak::timer::from_seconds(seconds_to_request)).round_seconds();
-
-  priority_queue_update(&taskScheduler, &m_private->task_scrape, next_timeout);
+  this_thread::scheduler()->update_wait_for_ceil_seconds(&m_private->task_scrape, std::chrono::seconds(seconds_to_request));
 }
 
 // The send_*_event() functions tries to ensure the relevant trackers
@@ -267,7 +281,7 @@ TrackerController::close(int flags) {
     m_tracker_list->disown_all_including(close_disown_stop | close_disown_completed);
 
   m_tracker_list->close_all();
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  this_thread::scheduler()->erase(&m_private->task_timeout);
 }
 
 void
@@ -301,7 +315,7 @@ TrackerController::disable() {
   m_flags &= ~(flag_active | flag_requesting | flag_promiscuous_mode);
 
   m_tracker_list->close_all_excluding((1 << tracker::TrackerState::EVENT_STOPPED) | (1 << tracker::TrackerState::EVENT_COMPLETED));
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  this_thread::scheduler()->erase(&m_private->task_timeout);
 
   LT_LOG_TRACKER_EVENTS("disabled : trackers:%zu", m_tracker_list->size());
 }
@@ -357,7 +371,7 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
   // if (tracker.success_counter() == 0 && tracker.failed_counter() == 0)
   //   return 0;
 
-  int32_t last_activity = cachedTime.seconds() - activity_time_last;
+  int32_t last_activity = this_thread::cached_seconds().count() - activity_time_last;
 
   // TODO: Use min interval if we're requesting manual update.
 
@@ -399,7 +413,10 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   int32_t min_interval = std::max(tracker_state.min_interval(), uint32_t{300});
   int32_t use_interval = std::min(interval, min_interval);
 
-  int32_t since_last = cachedTime.seconds() - static_cast<int32_t>(tracker_state.activity_time_last());
+  int32_t since_last = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
+
+  lt_log_print(LOG_TRACKER_EVENTS, "tracker_next_timeout_promiscuous: min_interval:%d use_interval:%d since_last:%d",
+               min_interval, use_interval, since_last);
 
   return std::max(use_interval - since_last, 0);
 }
@@ -434,10 +451,10 @@ tracker_find_preferred(TrackerList::iterator first, TrackerList::iterator last, 
 
 void
 TrackerController::do_timeout() {
+  this_thread::scheduler()->erase(&m_private->task_timeout);
+
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
     return;
-
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
   tracker::TrackerState::event_enum send_event = current_send_event();
 
@@ -494,11 +511,12 @@ TrackerController::do_timeout() {
     auto tracker_state = itr->state();
 
     int32_t next_timeout = tracker_state.activity_time_next();
+    int32_t cached_seconds = this_thread::cached_seconds().count();
 
-    if (next_timeout <= cachedTime.seconds())
+    if (next_timeout <= cached_seconds)
       m_tracker_list->send_event(*itr, send_event);
     else
-      update_timeout(next_timeout - cachedTime.seconds());
+      update_timeout(next_timeout - cached_seconds);
   }
 
   if (m_slot_timeout)
@@ -604,7 +622,7 @@ TrackerController::receive_tracker_enabled(const tracker::Tracker& tb) {
     return;
 
   if ((m_flags & flag_active)) {
-    if (!m_private->task_timeout.is_queued() && !m_tracker_list->has_active()) {
+    if (!m_private->task_timeout.is_scheduled() && !m_tracker_list->has_active()) {
       // TODO: Figure out the proper timeout to use here based on when the
       // tracker last connected, etc.
       update_timeout(0);
@@ -617,7 +635,7 @@ TrackerController::receive_tracker_enabled(const tracker::Tracker& tb) {
 
 void
 TrackerController::receive_tracker_disabled(const tracker::Tracker& tb) {
-  if ((m_flags & flag_active) && !m_private->task_timeout.is_queued())
+  if ((m_flags & flag_active) && !m_private->task_timeout.is_scheduled())
     update_timeout(0);
 
   if (m_slot_tracker_disabled)

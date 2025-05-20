@@ -368,7 +368,7 @@ TrackerHttp::process_failure(const Object& object) {
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     state().m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
     state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-    state().m_scrape_time_last = cachedTime.seconds();
+    state().m_scrape_time_last = this_thread::cached_seconds().count();
   }
 
   if (object.has_key_value("downloaded"))
@@ -396,7 +396,7 @@ TrackerHttp::process_success(const Object& object) {
     if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
       state().m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
       state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-      state().m_scrape_time_last = cachedTime.seconds();
+      state().m_scrape_time_last = this_thread::cached_seconds().count();
     }
 
     if (object.has_key_value("downloaded"))

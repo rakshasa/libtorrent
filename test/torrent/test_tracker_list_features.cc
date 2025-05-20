@@ -8,26 +8,10 @@
 #include "test/torrent/test_tracker_list_features.h"
 #include "torrent/http.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_list_features);
+CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerListFeatures);
 
 void
-test_tracker_list_features::setUp() {
-  CPPUNIT_ASSERT(torrent::taskScheduler.empty());
-
-  torrent::cachedTime = rak::timer::current();
-
-  test_fixture::setUp();
-}
-
-void
-test_tracker_list_features::tearDown() {
-  torrent::ThreadTracker::destroy_thread();
-
-  test_fixture::tearDown();
-}
-
-void
-test_tracker_list_features::test_new_peers() {
+TestTrackerListFeatures::test_new_peers() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
 
@@ -59,7 +43,7 @@ test_tracker_list_features::test_new_peers() {
 // test has_active, and then clean up TrackerManager.
 
 void
-test_tracker_list_features::test_has_active() {
+TestTrackerListFeatures::test_has_active() {
   TRACKER_LIST_SETUP();
 
   TRACKER_INSERT(0, tracker_0_0);
@@ -99,7 +83,7 @@ test_tracker_list_features::test_has_active() {
 }
 
 void
-test_tracker_list_features::test_find_next_to_request() {
+TestTrackerListFeatures::test_find_next_to_request() {
   TRACKER_LIST_SETUP();
 
   TRACKER_INSERT(0, tracker_0);
@@ -146,7 +130,7 @@ test_tracker_list_features::test_find_next_to_request() {
 }
 
 void
-test_tracker_list_features::test_find_next_to_request_groups() {
+TestTrackerListFeatures::test_find_next_to_request_groups() {
   TRACKER_LIST_SETUP();
 
   TRACKER_INSERT(0, tracker_0);
@@ -176,7 +160,7 @@ test_tracker_list_features::test_find_next_to_request_groups() {
 }
 
 void
-test_tracker_list_features::test_count_active() {
+TestTrackerListFeatures::test_count_active() {
   TRACKER_LIST_SETUP();
 
   TRACKER_INSERT(0, tracker_0_0);
@@ -231,7 +215,7 @@ verify_did_internal_error(std::function<void ()> func, bool should_throw) {
 }
 
 void
-test_tracker_list_features::test_request_safeguard() {
+TestTrackerListFeatures::test_request_safeguard() {
   // TODO: Reimplement tracker hammering properly.
 
   // TRACKER_LIST_SETUP();

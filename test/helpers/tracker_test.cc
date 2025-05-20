@@ -123,7 +123,8 @@ TrackerTest::send_scrape() {
 
 bool
 TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
-  CPPUNIT_ASSERT(is_busy() && is_open());
+  CPPUNIT_ASSERT(is_busy() && "TrackerTest::trigger_success: is_busy()");
+  CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_success: is_open()");
 
   torrent::AddressList address_list;
 
@@ -137,8 +138,9 @@ TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
 
 bool
 TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_peers) {
-  CPPUNIT_ASSERT(is_busy() && is_open());
-  CPPUNIT_ASSERT(address_list != nullptr);
+  CPPUNIT_ASSERT(is_busy() && "TrackerTest::trigger_success: is_busy()");
+  CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_success: is_open()");
+  CPPUNIT_ASSERT(address_list != nullptr && "TrackerTest::trigger_success: address_list == nullptr");
 
   m_busy = false;
   m_open = !(state().flags() & flag_close_on_done);
@@ -165,7 +167,8 @@ TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_pe
 
 bool
 TrackerTest::trigger_failure() {
-  CPPUNIT_ASSERT(is_busy() && is_open());
+  CPPUNIT_ASSERT(is_busy() && "TrackerTest::trigger_failure: is_busy()");
+  CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_failure: is_open()");
 
   m_busy = false;
   m_open = !(state().flags() & flag_close_on_done);

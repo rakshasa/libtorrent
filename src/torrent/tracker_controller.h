@@ -12,9 +12,6 @@
 // TODO: Remove all unused functions and slots, move to src/tracker. Then add a
 // TrackerControllerWrapper that download and api uses.
 
-// Refactor:
-namespace rak { class priority_item; }
-
 namespace torrent {
 
 struct tracker_controller_private;

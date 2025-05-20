@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include <rak/timer.h>
+#include <cassert>
 
 #include "thread_tracker.h"
 
@@ -14,17 +14,19 @@
 
 namespace torrent {
 
-ThreadTracker* ThreadTracker::m_thread_tracker{nullptr};
+std::atomic<ThreadTracker*> ThreadTracker::m_thread_tracker{nullptr};
 
+// TODO: Deleting should be private, and only destroy_thread should call it.
 ThreadTracker::~ThreadTracker() {
   m_thread_tracker = nullptr;
 }
 
 void
 ThreadTracker::create_thread(utils::Thread* main_thread) {
-  m_thread_tracker = new ThreadTracker();
+  assert(m_thread_tracker == nullptr);
 
-  m_thread_tracker->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
+  m_thread_tracker = new ThreadTracker();
+  m_thread_tracker.load()->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
 }
 
 // TODO: Deprecate this function.
@@ -33,10 +35,8 @@ ThreadTracker::destroy_thread() {
   if (m_thread_tracker == nullptr)
     return;
 
-  m_thread_tracker->stop_thread_wait();
-
-  delete m_thread_tracker;
-  m_thread_tracker = nullptr;
+  m_thread_tracker.load()->stop_thread_wait();
+  delete m_thread_tracker.load();
 }
 
 ThreadTracker*
