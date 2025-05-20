@@ -48,16 +48,15 @@ ThreadMain::init_thread() {
 
   init_thread_local();
 
+  // We should only initialize things here that depend on main thread, as we want to call
+  // 'init_thread()' before 'torrent::initalize()'.
+
   auto hash_work_signal = m_signal_bitfield.add_signal([this]() {
       return m_hash_queue->work();
     });
 
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
-    };
-
-  thread_disk()->hash_check_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) {
-      m_hash_queue->chunk_done(hc, hv);
     };
 }
 

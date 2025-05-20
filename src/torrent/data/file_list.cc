@@ -214,7 +214,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
 
 FileList::iterator
 FileList::merge(iterator first, iterator last, const Path& path) {
-  auto new_file = new File;
+  auto new_file = std::make_unique<File>();
 
   // Set the path before deleting any iterators in case it refers to
   // one of the objects getting deleted.
@@ -226,7 +226,7 @@ FileList::merge(iterator first, iterator last, const Path& path) {
     else
       new_file->set_offset((*first)->offset());
 
-    first = base_type::insert(first, std::unique_ptr<File>(new_file));
+    first = base_type::insert(first, std::move(new_file));
 
   } else {
     new_file->set_offset((*first)->offset());
@@ -235,20 +235,20 @@ FileList::merge(iterator first, iterator last, const Path& path) {
       new_file->set_size_bytes(new_file->size_bytes() + (*itr)->size_bytes());
 
     first = base_type::erase(first + 1, last) - 1;
-    *first = std::unique_ptr<File>(new_file);
+    *first = std::move(new_file);
   }
 
-  new_file->set_range(m_chunk_size);
+  (*first)->set_range(m_chunk_size);
 
   if (first == begin())
-    new_file->set_match_depth_prev(0);
+    (*first)->set_match_depth_prev(0);
   else
-    File::set_match_depth((first - 1)->get(), new_file);
+    File::set_match_depth(std::prev(first)->get(), first->get());
 
   if (first + 1 == end())
-    new_file->set_match_depth_next(0);
+    (*first)->set_match_depth_next(0);
   else
-    File::set_match_depth(new_file, (first + 1)->get());
+    File::set_match_depth(first->get(), std::next(first)->get());
 
   return first;
 }

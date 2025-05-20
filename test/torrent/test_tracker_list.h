@@ -1,9 +1,9 @@
-#include "test/helpers/test_fixture.h"
 #include "test/helpers/test_main_thread.h"
 #include "test/helpers/tracker_test.h"
+#include "torrent/download_info.h"
 
-class test_tracker_list : public test_fixture {
-  CPPUNIT_TEST_SUITE(test_tracker_list);
+class TestTrackerList : public TestFixtureWithMainAndTrackerThread {
+  CPPUNIT_TEST_SUITE(TestTrackerList);
 
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
@@ -27,9 +27,6 @@ class test_tracker_list : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp() {}
-  void tearDown();
-
   void test_basic();
   void test_enable();
   void test_close();
@@ -52,10 +49,19 @@ public:
 
 bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* states, bool scrape);
 
+struct TestTrackerListWrapper {
+  TestTrackerListWrapper(torrent::TrackerList* tracker_list) : m_tracker_list(tracker_list) {}
+
+  void                set_info(torrent::DownloadInfo* info) { m_tracker_list->set_info(info); }
+
+  torrent::TrackerList* m_tracker_list;
+};
+
 #define TRACKER_LIST_SETUP()                                            \
-  SETUP_THREAD_TRACKER();                                               \
-                                                                        \
+  torrent::DownloadInfo download_info;                                  \
   torrent::TrackerList tracker_list;                                    \
+  TestTrackerListWrapper(&tracker_list).set_info(&download_info);       \
+                                                                        \
   int success_counter = 0;                                              \
   int failure_counter = 0;                                              \
   int scrape_success_counter = 0;                                       \

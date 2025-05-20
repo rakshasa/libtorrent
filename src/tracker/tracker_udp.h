@@ -6,9 +6,8 @@
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
-#include "rak/priority_queue_default.h"
-#include "rak/socket_address.h"
 #include "torrent/net/types.h"
+#include "torrent/utils/scheduler.h"
 #include "tracker/tracker_worker.h"
 
 namespace torrent {
@@ -69,22 +68,21 @@ private:
   sin_unique_ptr      m_inet_address;
   sin6_unique_ptr     m_inet6_address;
 
-  int                 m_port{0};
-  int                 m_send_state{0};
+  int                 m_port{};
+  int                 m_send_state{};
 
-  uint32_t            m_action;
-  uint64_t            m_connection_id{0};
-  uint32_t            m_transaction_id{0};
+  uint32_t            m_action{};
+  uint64_t            m_connection_id{};
+  uint32_t            m_transaction_id{};
 
   std::unique_ptr<ReadBuffer>  m_read_buffer;
   std::unique_ptr<WriteBuffer> m_write_buffer;
 
-  uint32_t            m_tries{0};
+  uint32_t            m_tries{};
+  uint32_t            m_failed_since_last_resolved{};
 
-  rak::timer          m_time_last_resolved;
-  uint32_t            m_failed_since_last_resolved{0};
-
-  rak::priority_item  m_task_timeout;
+  utils::SchedulerEntry     m_task_timeout;
+  std::chrono::microseconds m_time_last_resolved{};
 };
 
 }

@@ -1,17 +1,15 @@
 #include "config.h"
 
-#include "torrent/exceptions.h"
+#include "manager.h"
 
+#include "data/chunk_list.h"
+#include "data/hash_queue.h"
+#include "data/hash_torrent.h"
 #include "dht/dht_router.h"
 #include "download/download_wrapper.h"
 #include "download/download_main.h"
-#include "data/hash_torrent.h"
-#include "data/chunk_list.h"
 #include "protocol/handshake_manager.h"
-#include "data/hash_queue.h"
 #include "net/listen.h"
-#include "utils/instrumentation.h"
-
 #include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
 #include "torrent/data/file_manager.h"
@@ -23,30 +21,28 @@
 #include "torrent/throttle.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/tracker/manager.h"
-
-#include "manager.h"
+#include "utils/instrumentation.h"
 
 namespace torrent {
 
 Manager* manager = NULL;
 
 Manager::Manager() :
-  m_chunk_manager(new ChunkManager),
-  m_connection_manager(new ConnectionManager),
-  m_download_manager(new DownloadManager),
-  m_file_manager(new FileManager),
-  m_handshake_manager(new HandshakeManager),
-  m_resource_manager(new ResourceManager),
+    m_chunk_manager(new ChunkManager),
+    m_connection_manager(new ConnectionManager),
+    m_download_manager(new DownloadManager),
+    m_file_manager(new FileManager),
+    m_handshake_manager(new HandshakeManager),
+    m_resource_manager(new ResourceManager),
 
-  m_client_list(new ClientList),
-  m_dht_controller(new tracker::DhtController),
+    m_client_list(new ClientList),
+    m_dht_controller(new tracker::DhtController),
 
-  m_uploadThrottle(Throttle::create_throttle()),
-  m_downloadThrottle(Throttle::create_throttle()) {
+    m_uploadThrottle(Throttle::create_throttle()),
+    m_downloadThrottle(Throttle::create_throttle()) {
 
-  m_taskTick.slot() = [this] { receive_tick(); };
-
-  priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
+  m_task_tick.slot() = [this] { receive_tick(); };
+  torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 1s);
 
   m_handshake_manager->slot_download_id() = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
@@ -58,7 +54,7 @@ Manager::Manager() :
 }
 
 Manager::~Manager() {
-  priority_queue_erase(&taskScheduler, &m_taskTick);
+  torrent::this_thread::scheduler()->erase(&m_task_tick);
 
   m_handshake_manager->clear();
   m_download_manager->clear();
@@ -127,7 +123,7 @@ Manager::receive_tick() {
 
   // If you change the interval, make sure the keepalives gets
   // triggered every 120 seconds.
-  priority_queue_insert(&taskScheduler, &m_taskTick, (cachedTime + rak::timer::from_seconds(30)).round_seconds());
+  torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 30s);
 }
 
 }

@@ -181,7 +181,8 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
                                                  handshake->extensions())) != NULL) {
 
     manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
-    pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
+
+    pcb->peer_chunks()->set_have_timer(rak::timer(handshake->initialized_time().count()));
 
     LT_LOG_SA_C(handshake->peer_info()->socket_address(), "handshake success: type:%s id:%s",
                 peer_type, hash_string_to_html_str(handshake->peer_info()->id()).c_str());

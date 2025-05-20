@@ -1,9 +1,9 @@
-#include "test/helpers/test_fixture.h"
 #include "test/helpers/test_main_thread.h"
+#include "torrent/download_info.h"
 #include "torrent/tracker_controller.h"
 
-class test_tracker_controller : public test_fixture {
-  CPPUNIT_TEST_SUITE(test_tracker_controller);
+class TestTrackerController : public TestFixtureWithMainAndTrackerThread {
+  CPPUNIT_TEST_SUITE(TestTrackerController);
 
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
@@ -35,9 +35,6 @@ class test_tracker_controller : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
-  void tearDown();
-
   void test_basic();
   void test_enable();
   void test_disable();
@@ -69,9 +66,10 @@ public:
 };
 
 #define TRACKER_CONTROLLER_SETUP()                                      \
-  SETUP_THREAD_TRACKER();                                               \
-                                                                        \
+  torrent::DownloadInfo download_info;                                  \
   torrent::TrackerList tracker_list;                                    \
+  TestTrackerListWrapper(&tracker_list).set_info(&download_info);       \
+                                                                        \
   torrent::TrackerController tracker_controller(&tracker_list);         \
                                                                         \
   int success_counter = 0;                                              \
@@ -154,6 +152,8 @@ public:
 #define TEST_GOTO_NEXT_SCRAPE(assumed_scrape)                           \
   CPPUNIT_ASSERT(tracker_controller.is_scrape_queued());                \
   CPPUNIT_ASSERT(assumed_scrape == tracker_controller.seconds_to_next_scrape()); \
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, assumed_scrape, true));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, assumed_scrape, true));
 
-bool test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout, bool is_scrape = false);
+bool test_tracker_value_in_range(uint32_t value, int32_t min, uint32_t max);
+void test_tracker_step_time(TestFixtureWithMainAndTrackerThread* fixture, int32_t seconds);
+bool test_goto_next_timeout(TestFixtureWithMainAndTrackerThread*, torrent::TrackerController*, uint32_t assumed_timeout, bool is_scrape = false);

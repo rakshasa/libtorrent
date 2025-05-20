@@ -4,11 +4,10 @@
 
 #include "globals.h"
 #include "net/address_list.h"
-#include "torrent/download_info.h"
 #include "torrent/http.h"
 #include "torrent/utils/uri_parser.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_list);
+CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerList);
 
 class http_get : public torrent::Http {
 public:
@@ -23,14 +22,7 @@ public:
 torrent::Http* http_factory() { return new http_get; }
 
 void
-test_tracker_list::tearDown() {
-  torrent::ThreadTracker::destroy_thread();
-
-  test_fixture::tearDown();
-}
-
-void
-test_tracker_list::test_basic() {
+TestTrackerList::test_basic() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
@@ -45,7 +37,7 @@ test_tracker_list::test_basic() {
 }
 
 void
-test_tracker_list::test_enable() {
+TestTrackerList::test_enable() {
   TRACKER_LIST_SETUP();
   int enabled_counter = 0;
   int disabled_counter = 0;
@@ -74,7 +66,7 @@ test_tracker_list::test_enable() {
 }
 
 void
-test_tracker_list::test_close() {
+TestTrackerList::test_close() {
   TRACKER_LIST_SETUP();
 
   TRACKER_INSERT(0, tracker_0);
@@ -124,7 +116,7 @@ test_tracker_list::test_close() {
 // Test clear.
 
 void
-test_tracker_list::test_tracker_flags() {
+TestTrackerList::test_tracker_flags() {
   TRACKER_LIST_SETUP();
 
   tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, ""));
@@ -143,7 +135,7 @@ test_tracker_list::test_tracker_flags() {
 }
 
 void
-test_tracker_list::test_find_url() {
+TestTrackerList::test_find_url() {
   TRACKER_LIST_SETUP();
 
   tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "http://1"));
@@ -165,14 +157,10 @@ test_tracker_list::test_find_url() {
 }
 
 void
-test_tracker_list::test_can_scrape() {
+TestTrackerList::test_can_scrape() {
   TRACKER_LIST_SETUP();
 
   torrent::Http::slot_factory() = std::bind(&http_factory);
-
-  auto download_info = torrent::DownloadInfo();
-
-  tracker_list.set_info(&download_info);
 
   tracker_list.insert_url(0, "http://example.com/announce");
   CPPUNIT_ASSERT(tracker_list.back().is_scrapable());
@@ -207,7 +195,7 @@ test_tracker_list::test_can_scrape() {
 }
 
 void
-test_tracker_list::test_single_success() {
+TestTrackerList::test_single_success() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
@@ -243,7 +231,7 @@ test_tracker_list::test_single_success() {
 }
 
 void
-test_tracker_list::test_single_failure() {
+TestTrackerList::test_single_failure() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
@@ -271,7 +259,7 @@ test_tracker_list::test_single_failure() {
 }
 
 void
-test_tracker_list::test_single_closing() {
+TestTrackerList::test_single_closing() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
@@ -299,7 +287,7 @@ test_tracker_list::test_single_closing() {
 }
 
 void
-test_tracker_list::test_multiple_success() {
+TestTrackerList::test_multiple_success() {
   TRACKER_LIST_SETUP();
 
   TRACKER_INSERT(0, tracker_0_0);
@@ -358,7 +346,7 @@ test_tracker_list::test_multiple_success() {
 }
 
 void
-test_tracker_list::test_scrape_success() {
+TestTrackerList::test_scrape_success() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
@@ -391,7 +379,7 @@ test_tracker_list::test_scrape_success() {
 }
 
 void
-test_tracker_list::test_scrape_failure() {
+TestTrackerList::test_scrape_failure() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
@@ -436,7 +424,7 @@ check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* 
 }
 
 void
-test_tracker_list::test_has_active() {
+TestTrackerList::test_has_active() {
   TRACKER_LIST_SETUP();
 
   TRACKER_INSERT(0, tracker_0);

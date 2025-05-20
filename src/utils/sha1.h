@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -38,42 +38,49 @@
 #define LIBTORRENT_HASH_COMPUTE_H
 
 #include <cstring>
+#include <memory>
 
-#include <openssl/sha.h>
+#include <openssl/evp.h>
 
 namespace torrent {
 
 class Sha1 {
 public:
-  void                init();
-  void                update(const void* data, unsigned int length);
+  Sha1();
+  ~Sha1();
 
-  void                final_c(char* buffer);
+  void init();
+  void update(const void* data, unsigned int length);
+
+  void final_c(void* buffer);
 
 private:
-  SHA_CTX m_ctx;
+  std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> m_ctx;
 };
 
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+inline Sha1::Sha1() :
+    m_ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free) {
+}
+
+inline Sha1::~Sha1() = default;
+
 inline void
 Sha1::init() {
-  SHA1_Init(&m_ctx);
+  EVP_DigestInit_ex(m_ctx.get(), EVP_sha1(), nullptr);
 }
 
 inline void
 Sha1::update(const void* data, unsigned int length) {
-  SHA1_Update(&m_ctx, data, length);
+  EVP_DigestUpdate(m_ctx.get(), data, length);
 }
 
 inline void
-Sha1::final_c(char* buffer) {
-  SHA1_Final(reinterpret_cast<unsigned char*>(buffer), &m_ctx);
+Sha1::final_c(void* buffer) {
+  EVP_DigestFinal_ex(m_ctx.get(), static_cast<unsigned char*>(buffer), nullptr);
 }
 
 inline void
-sha1_salt(const char* salt, unsigned int saltLength,
-          const char* key, unsigned int keyLength,
-          void* out) {
+sha1_salt(const char* salt, unsigned int saltLength, const char* key, unsigned int keyLength, void* out) {
   Sha1 sha1;
 
   sha1.init();
@@ -83,10 +90,7 @@ sha1_salt(const char* salt, unsigned int saltLength,
 }
 
 inline void
-sha1_salt(const char* salt, unsigned int saltLength,
-          const char* key1, unsigned int key1Length,
-          const char* key2, unsigned int key2Length,
-          void* out) {
+sha1_salt(const char* salt, unsigned int saltLength, const char* key1, unsigned int key1Length, const char* key2, unsigned int key2Length, void* out) {
   Sha1 sha1;
 
   sha1.init();
@@ -96,6 +100,6 @@ sha1_salt(const char* salt, unsigned int saltLength,
   sha1.final_c(static_cast<char*>(out));
 }
 
-}
+} // namespace torrent
 
 #endif

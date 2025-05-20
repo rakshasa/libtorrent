@@ -1,10 +1,16 @@
 #include "config.h"
-#include "globals.h"
+
+#include "dht/dht_server.h"
 
 #include <algorithm>
 #include <cstdio>
 
+#include "globals.h"
+#include "manager.h"
 #include "thread_main.h"
+#include "dht/dht_bucket.h"
+#include "dht/dht_router.h"
+#include "dht/dht_transaction.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
@@ -15,12 +21,6 @@
 #include "torrent/throttle.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
-
-#include "dht_bucket.h"
-#include "dht_router.h"
-#include "dht_transaction.h"
-
-#include "manager.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
@@ -67,15 +67,9 @@ private:
 };
 
 DhtServer::DhtServer(DhtRouter* router) :
-  m_router(router),
-
-  m_uploadNode(60),
-  m_downloadNode(60),
-
-  m_uploadThrottle(manager->upload_throttle()->throttle_list()),
-  m_downloadThrottle(manager->download_throttle()->throttle_list())
-
-  {
+    m_router(router),
+    m_uploadThrottle(manager->upload_throttle()->throttle_list()),
+    m_downloadThrottle(manager->download_throttle()->throttle_list()) {
 
   get_fd().clear();
   reset_statistics();
@@ -84,6 +78,8 @@ DhtServer::DhtServer(DhtRouter* router) :
   // actually open it until the server is started, which may not
   // happen until the first non-private torrent is started.
   manager->connection_manager()->inc_socket_count();
+
+  m_task_timeout.slot() = [this] { receive_timeout(); };
 }
 
 DhtServer::~DhtServer() {
@@ -127,8 +123,6 @@ DhtServer::start(int port) {
     throw;
   }
 
-  m_taskTimeout.slot() = [this] { receive_timeout(); };
-
   m_uploadNode.set_list_iterator(m_uploadThrottle->end());
   m_uploadNode.slot_activate() = [this] { receive_throttle_up_activate(); };
 
@@ -149,7 +143,7 @@ DhtServer::stop() {
 
   clear_transactions();
 
-  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+  this_thread::scheduler()->erase(&m_task_timeout);
 
   m_uploadThrottle->erase(&m_uploadNode);
   m_downloadThrottle->erase(&m_downloadNode);
@@ -311,7 +305,7 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const rak::socket_ad
 }
 
 void
-DhtServer::create_announce_peer_response(const DhtMessage& req, const rak::socket_address* sa, DhtMessage& reply) {
+DhtServer::create_announce_peer_response(const DhtMessage& req, const rak::socket_address* sa, [[maybe_unused]] DhtMessage& reply) {
   raw_string info_hash = req[key_a_infoHash].as_raw_string();
 
   if (info_hash.size() < HashString::size_data)
@@ -503,7 +497,7 @@ DhtServer::drop_packet(DhtTransactionPacket* packet) {
 }
 
 void
-DhtServer::create_query(transaction_itr itr, int tID, const rak::socket_address* sa, int priority) {
+DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const rak::socket_address* sa, int priority) {
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
 
@@ -885,8 +879,8 @@ DhtServer::start_write() {
     thread_main()->poll()->insert_write(this);
   }
 
-  if (!m_taskTimeout.is_queued() && !m_transactions.empty())
-    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(5)).round_seconds());
+  if (!m_task_timeout.is_scheduled() && !m_transactions.empty())
+    this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 5s);
 }
 
 void
