@@ -8,7 +8,7 @@
 #include <vector>
 #include <torrent/tracker/tracker.h>
 
-class test_tracker_list;
+struct TestTrackerListWrapper;
 
 namespace torrent {
 
@@ -119,7 +119,7 @@ public:
 
 protected:
   friend class DownloadWrapper;
-  friend class ::test_tracker_list;
+  friend struct ::TestTrackerListWrapper;
 
   void                set_info(DownloadInfo* info)            { m_info = info; }
   void                set_state(int s)                        { m_state = s; }

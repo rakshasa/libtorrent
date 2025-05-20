@@ -43,6 +43,8 @@ Thread::Thread() :
 Thread::~Thread() {
   // Disown m_poll instead of deleting it as we don't properly clean up all the sockets.
   m_poll.release();
+
+  // TODO: Set m_self to nullptr.
 }
 
 Thread*

@@ -8,6 +8,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
+#include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
 
 std::unique_ptr<TestMainThread>
@@ -71,4 +72,46 @@ TestMainThread::next_timeout() {
     return std::chrono::microseconds(std::max(torrent::taskScheduler.top()->time() - torrent::cachedTime, rak::timer()).usec());
   else
     return std::chrono::microseconds(10min);
+}
+
+void
+TestFixtureWithMainThread::setUp() {
+  test_fixture::setUp();
+
+  set_create_poll();
+  m_main_thread = TestMainThread::create();
+  m_main_thread->init_thread();
+}
+
+void
+TestFixtureWithMainThread::tearDown() {
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}
+
+void
+TestFixtureWithMainAndTrackerThread::setUp() {
+  test_fixture::setUp();
+
+  set_create_poll();
+
+  m_main_thread = TestMainThread::create();
+  m_main_thread->init_thread();
+
+  log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
+  log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
+
+  torrent::ThreadTracker::create_thread(m_main_thread.get());
+  torrent::thread_tracker()->init_thread();
+  torrent::thread_tracker()->start_thread();
+}
+
+void
+TestFixtureWithMainAndTrackerThread::tearDown() {
+  torrent::thread_tracker()->destroy_thread();
+
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
 }
