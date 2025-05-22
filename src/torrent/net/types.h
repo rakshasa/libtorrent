@@ -14,8 +14,7 @@ namespace torrent {
 
 void sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
 
-class sockaddr_deleter {
-public:
+struct sockaddr_deleter {
   void operator()(const sockaddr* sa) {
     if (sa == nullptr)
       return;
