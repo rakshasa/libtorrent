@@ -44,10 +44,19 @@
 
 namespace torrent {
 
+struct sha1_deleter {
+  void operator()(EVP_MD_CTX* ctx) {
+    if (ctx == nullptr)
+      return;
+
+    EVP_MD_CTX_free(ctx);
+  }
+};
+
 class Sha1 {
 public:
   Sha1();
-  ~Sha1();
+  ~Sha1() = default;
 
   void init();
   void update(const void* data, unsigned int length);
@@ -55,14 +64,13 @@ public:
   void final_c(void* buffer);
 
 private:
-  std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> m_ctx;
+  std::unique_ptr<EVP_MD_CTX, sha1_deleter> m_ctx;
 };
 
-inline Sha1::Sha1() :
-    m_ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free) {
+inline
+Sha1::Sha1() :
+    m_ctx(EVP_MD_CTX_new()) {
 }
-
-inline Sha1::~Sha1() = default;
 
 inline void
 Sha1::init() {

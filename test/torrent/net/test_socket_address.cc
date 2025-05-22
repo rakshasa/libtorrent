@@ -83,7 +83,7 @@ test_socket_address::test_make() {
   CPPUNIT_ASSERT(sin6_inet6->sin6_family == AF_INET6);
   CPPUNIT_ASSERT(sin6_inet6->sin6_port == 0);
   CPPUNIT_ASSERT(sin6_inet6->sin6_flowinfo == 0);
-  CPPUNIT_ASSERT(compare_sin6_addr(sin6_inet6->sin6_addr, (in6_addr{0})));
+  CPPUNIT_ASSERT(compare_sin6_addr(sin6_inet6->sin6_addr, (in6_addr{{}})));
   CPPUNIT_ASSERT(sin6_inet6->sin6_scope_id == 0);
 
   torrent::sa_unique_ptr sa_unix = torrent::sa_make_unix("");
@@ -112,7 +112,7 @@ test_socket_address::test_sin_from_sa() {
   CPPUNIT_ASSERT(sin_inet != nullptr);
 
   CPPUNIT_ASSERT(sin_inet->sin_addr.s_addr == htonl(0x01020304));
-  
+
   CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_unique_ptr()), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_make_unspec()), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_make_inet6()), torrent::internal_error);
