@@ -48,10 +48,12 @@ public:
   static constexpr int sync_use_timeout  = (1 << 4);
   static constexpr int sync_ignore_error = (1 << 5);
 
+  // TODO: Add a 'get_not_hashing' flag and require either of them or fail.
   static constexpr int get_writable      = (1 << 0);
   static constexpr int get_blocking      = (1 << 1);
-  static constexpr int get_dont_log      = (1 << 2);
-  static constexpr int get_nonblock      = (1 << 3);
+  static constexpr int get_nonblock      = (1 << 2);
+  static constexpr int get_hashing       = (1 << 3);
+  static constexpr int get_dont_log      = (1 << 4);
 
   static constexpr int flag_active       = (1 << 0);
 
@@ -88,9 +90,10 @@ public:
   // Returns the number of failed syncs.
   uint32_t            sync_chunks(int flags);
 
-  slot_string&        slot_storage_error()  { return m_slot_storage_error; }
-  slot_chunk_index&   slot_create_chunk()   { return m_slot_create_chunk; }
-  slot_value&         slot_free_diskspace() { return m_slot_free_diskspace; }
+  slot_string&        slot_storage_error()        { return m_slot_storage_error; }
+  slot_chunk_index&   slot_create_chunk()         { return m_slot_create_chunk; }
+  slot_chunk_index&   slot_create_hashing_chunk() { return m_slot_create_hashing_chunk; }
+  slot_value&         slot_free_diskspace()       { return m_slot_free_diskspace; }
 
   using chunk_address_result = std::pair<iterator, Chunk::iterator>;
 
@@ -121,6 +124,7 @@ private:
 
   slot_string         m_slot_storage_error;
   slot_chunk_index    m_slot_create_chunk;
+  slot_chunk_index    m_slot_create_hashing_chunk;
   slot_value          m_slot_free_diskspace;
 };
 
