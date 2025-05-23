@@ -3,10 +3,10 @@
 
 #include <memory>
 
-#include "torrent/exceptions.h"
-
 #include "chunk.h"
 #include "chunk_handle.h"
+#include "torrent/exceptions.h"
+#include "utils/sha1.h"
 
 namespace torrent {
 
@@ -15,25 +15,24 @@ namespace torrent {
 // stuff related to performance and responsiveness.
 
 class ChunkListNode;
-class Sha1;
 
 class HashChunk {
 public:
-  ~HashChunk();
   HashChunk(ChunkHandle h);
-
-  void                set_chunk(ChunkHandle h);
+  ~HashChunk() = default;
 
   ChunkHandle*        chunk()                                 { return &m_chunk; }
   ChunkHandle&        handle()                                { return m_chunk; }
+  uint32_t            remaining();
+
+  void                set_chunk(ChunkHandle h);
+
   void                hash_c(char* buffer);
 
   // If force is true, then the return value is always true.
   bool                perform(uint32_t length, bool force = true);
 
   void                advise_willneed(uint32_t length);
-
-  uint32_t            remaining();
 
 private:
   HashChunk(const HashChunk&) = delete;
@@ -45,8 +44,13 @@ private:
   uint32_t            m_position;
 
   ChunkHandle         m_chunk;
-  std::unique_ptr<Sha1> m_hash;
+  Sha1                m_hash;
 };
+
+inline
+HashChunk::HashChunk(ChunkHandle h) {
+  set_chunk(h);
+}
 
 inline uint32_t
 HashChunk::remaining_part(Chunk::iterator itr, uint32_t pos) {
