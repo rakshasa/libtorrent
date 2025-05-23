@@ -19,23 +19,13 @@ static DH*       dh_get(DiffieHellman::dh_ptr& dh) { return reinterpret_cast<DH*
 
 static bool
 dh_set_pg(DiffieHellman::dh_ptr& dh, BIGNUM* dh_p, BIGNUM* dh_g) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   return DH_set0_pqg(reinterpret_cast<DH*>(dh.get()), dh_p, nullptr, dh_g);
-#else
-  reinterpret_cast<DH*>(dh.get())->p = dh_p;
-  reinterpret_cast<DH*>(dh.get())->g = dh_g;
-  return true;
-#endif
 }
 
 static const BIGNUM* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   const BIGNUM *pub_key;
   DH_get0_key(reinterpret_cast<DH*>(dh.get()), &pub_key, nullptr);
   return pub_key;
-#else
-  return dh != nullptr ? reinterpret_cast<DH*>(dh.get())->pub_key : nullptr;
-#endif
 }
 
 DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
