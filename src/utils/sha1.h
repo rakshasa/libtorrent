@@ -55,9 +55,6 @@ struct sha1_deleter {
 
 class Sha1 {
 public:
-  Sha1();
-  ~Sha1() = default;
-
   void init();
   void update(const void* data, unsigned int length);
 
@@ -67,13 +64,11 @@ private:
   std::unique_ptr<EVP_MD_CTX, sha1_deleter> m_ctx;
 };
 
-inline
-Sha1::Sha1() :
-    m_ctx(EVP_MD_CTX_new()) {
-}
-
 inline void
 Sha1::init() {
+  if (m_ctx == nullptr)
+    m_ctx.reset(EVP_MD_CTX_new());
+
   EVP_DigestInit_ex(m_ctx.get(), EVP_sha1(), nullptr);
 }
 
