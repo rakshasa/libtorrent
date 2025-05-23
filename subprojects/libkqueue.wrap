@@ -1,0 +1,13 @@
+[wrap-file]
+directory = libkqueue-2.6.2
+source_url = https://github.com/mheily/libkqueue/archive/refs/tags/v2.6.2.tar.gz
+source_filename = libkqueue-2.6.2.tar.gz
+source_hash = c3502d918ad167957302314b6d97e14052beabc5f5698ea76d0527878900d300
+patch_filename = libkqueue_2.6.2-3_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/libkqueue_2.6.2-3/get_patch
+patch_hash = 98350704bb7751bd68da0f3f3c077ac3ed50756ad45922b47ed765abc6331225
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/libkqueue_2.6.2-3/libkqueue-2.6.2.tar.gz
+wrapdb_version = 2.6.2-3
+
+[provide]
+libkqueue = libkqueue_dep
