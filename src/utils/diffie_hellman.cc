@@ -13,18 +13,18 @@ namespace torrent {
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-static void      dh_free(void* dh) { DH_free(reinterpret_cast<DH*>(dh)); }
-static DiffieHellman::dh_ptr dh_new() { return DiffieHellman::dh_ptr(reinterpret_cast<void*>(DH_new()), &dh_free); }
-static DH*       dh_get(DiffieHellman::dh_ptr& dh) { return reinterpret_cast<DH*>(dh.get()); }
+static void dh_free(void* dh) { DH_free(static_cast<DH*>(dh)); }
+static auto dh_new() { return DiffieHellman::dh_ptr(DH_new(), &dh_free); }
+static auto dh_get(DiffieHellman::dh_ptr& dh) { return static_cast<DH*>(dh.get()); }
 
 static bool
 dh_set_pg(DiffieHellman::dh_ptr& dh, BIGNUM* dh_p, BIGNUM* dh_g) {
-  return DH_set0_pqg(reinterpret_cast<DH*>(dh.get()), dh_p, nullptr, dh_g);
+  return DH_set0_pqg(static_cast<DH*>(dh.get()), dh_p, nullptr, dh_g);
 }
 
 static const BIGNUM* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) {
   const BIGNUM *pub_key;
-  DH_get0_key(reinterpret_cast<DH*>(dh.get()), &pub_key, nullptr);
+  DH_get0_key(static_cast<DH*>(dh.get()), &pub_key, nullptr);
   return pub_key;
 }
 
