@@ -57,6 +57,7 @@ internal_error::initialize(const std::string& msg) {
   }
 
   m_backtrace = output.str();
+  ::free(stack_symbol_names);
 
 #else
   m_backtrace = "stack dump not enabled";
