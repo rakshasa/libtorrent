@@ -13,34 +13,22 @@ namespace torrent {
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-static void      dh_free(void* dh) { DH_free(reinterpret_cast<DH*>(dh)); }
-static DiffieHellman::dh_ptr dh_new() { return DiffieHellman::dh_ptr(reinterpret_cast<void*>(DH_new()), &dh_free); }
-static DH*       dh_get(DiffieHellman::dh_ptr& dh) { return reinterpret_cast<DH*>(dh.get()); }
+static auto dh_get(const DiffieHellman::dh_ptr& dh) { return static_cast<DH*>(dh.get()); }
 
 static bool
 dh_set_pg(DiffieHellman::dh_ptr& dh, BIGNUM* dh_p, BIGNUM* dh_g) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-  return DH_set0_pqg(reinterpret_cast<DH*>(dh.get()), dh_p, nullptr, dh_g);
-#else
-  reinterpret_cast<DH*>(dh.get())->p = dh_p;
-  reinterpret_cast<DH*>(dh.get())->g = dh_g;
-  return true;
-#endif
+  return DH_set0_pqg(static_cast<DH*>(dh.get()), dh_p, nullptr, dh_g);
 }
 
 static const BIGNUM* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   const BIGNUM *pub_key;
-  DH_get0_key(reinterpret_cast<DH*>(dh.get()), &pub_key, nullptr);
+  DH_get0_key(dh_get(dh), &pub_key, nullptr);
   return pub_key;
-#else
-  return dh != nullptr ? reinterpret_cast<DH*>(dh.get())->pub_key : nullptr;
-#endif
 }
 
 DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
                              const unsigned char *generator, int generatorLength) :
-  m_dh(dh_new()) {
+  m_dh(DH_new(), [](auto dh){ DH_free(static_cast<DH*>(dh)); }) {
 
   BIGNUM* dh_p = BN_bin2bn(prime, primeLength, nullptr);
   BIGNUM* dh_g = BN_bin2bn(generator, generatorLength, nullptr);
