@@ -15,12 +15,10 @@ namespace torrent {
 void sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 struct sockaddr_deleter {
-  void operator()(const sockaddr* sa) {
-    if (sa == nullptr)
-      return;
+  constexpr sockaddr_deleter() noexcept = default;
 
-    sa_free(sa);
-  }
+  // void operator()(sockaddr* sa) const       { sa_free(sa); }
+  void operator()(const sockaddr* sa) const { sa_free(sa); }
 };
 
 using sa_unique_ptr   = std::unique_ptr<sockaddr, sockaddr_deleter>;
