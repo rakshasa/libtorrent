@@ -17,7 +17,6 @@ void sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
 struct sockaddr_deleter {
   constexpr sockaddr_deleter() noexcept = default;
 
-  // void operator()(sockaddr* sa) const       { sa_free(sa); }
   void operator()(const sockaddr* sa) const { sa_free(sa); }
 };
 

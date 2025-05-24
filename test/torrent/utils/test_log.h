@@ -1,7 +1,8 @@
-#include "helpers/test_fixture.h"
+#include "helpers/test_main_thread.h"
 
-class test_log : public test_fixture {
+class test_log : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE(test_log);
+
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_output_open);
 
@@ -9,11 +10,11 @@ class test_log : public test_fixture {
   CPPUNIT_TEST(test_children);
   CPPUNIT_TEST(test_file_output);
   CPPUNIT_TEST(test_file_output_append);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
   void setUp();
-  void tearDown();
 
   void test_basic();
   void test_output_open();

@@ -11,7 +11,7 @@
 #include <torrent/exceptions.h>
 #include <torrent/utils/log.h>
 
-CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_socket_listen, "net");
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(TestSocketListen, "net");
 
 struct test_sl_deleter {
   void operator()(torrent::socket_listen* sl) const { if (!sl->is_open()) delete sl; }
@@ -70,7 +70,7 @@ typedef std::unique_ptr<torrent::socket_listen, test_sl_deleter> test_sl_unique_
   }
 
 void
-test_socket_listen::test_basic() {
+TestSocketListen::test_basic() {
   TEST_SL_BEGIN("basic");
   TEST_SL_ASSERT_CLOSED();
   CPPUNIT_ASSERT(sl->backlog() == SOMAXCONN);
@@ -78,10 +78,12 @@ test_socket_listen::test_basic() {
 }
 
 void
-test_socket_listen::test_open_error() {
+TestSocketListen::test_open_error() {
   { TEST_SL_BEGIN("open twice");
+
     expect_fd_inet6_tcp_nonblock(1000);
     expect_fd_bind_listen(1000, c_sin6_any_5005);
+
     TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5005, torrent::fd_flag_stream | torrent::fd_flag_nonblock);
     CPPUNIT_ASSERT_THROW(sl->open(torrent::sap_copy(sin6_any), 5000, 5009, 5005, torrent::fd_flag_stream),
                          torrent::internal_error);
@@ -95,7 +97,7 @@ test_socket_listen::test_open_error() {
 }
 
 void
-test_socket_listen::test_open_sap() {
+TestSocketListen::test_open_sap() {
   { TEST_SL_BEGIN("sin6_any, stream");
     expect_fd_inet6_tcp(1000);
     expect_fd_bind_listen(1000, c_sin6_any_5005);
@@ -131,7 +133,7 @@ test_socket_listen::test_open_sap() {
 }
 
 void
-test_socket_listen::test_open_sap_error() {
+TestSocketListen::test_open_sap_error() {
   { TEST_SL_BEGIN("unspec");
     CPPUNIT_ASSERT_THROW(sl->open(torrent::sa_make_unspec(), 5000, 5009, 5005, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
@@ -163,7 +165,7 @@ test_socket_listen::test_open_sap_error() {
 }
 
 void
-test_socket_listen::test_open_flags() {
+TestSocketListen::test_open_flags() {
   { TEST_SL_BEGIN("sin_any, stream|v4only|nonblock");
     expect_fd_inet_tcp_nonblock(1000);
     expect_fd_bind_listen(1000, c_sin_any_5005);
@@ -206,7 +208,7 @@ test_socket_listen::test_open_flags() {
 }
 
 void
-test_socket_listen::test_open_flags_error() {
+TestSocketListen::test_open_flags_error() {
   { TEST_SL_BEGIN("sin6_any, fd_flags(0)");
     CPPUNIT_ASSERT_THROW(sl->open(torrent::sap_copy(sin6_any), 5000, 5009, 5005, torrent::fd_flags(0)), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
@@ -218,7 +220,7 @@ test_socket_listen::test_open_flags_error() {
 }
 
 void
-test_socket_listen::test_open_port_single() {
+TestSocketListen::test_open_port_single() {
   { TEST_SL_BEGIN("sin6_any, stream");
     expect_fd_inet6_tcp(1000);
     expect_fd_bind_listen(1000, c_sin6_any_5000);
@@ -234,7 +236,7 @@ test_socket_listen::test_open_port_single() {
 }
 
 void
-test_socket_listen::test_open_port_single_error() {
+TestSocketListen::test_open_port_single_error() {
   { TEST_SL_BEGIN("sin6_any, 0, 0, 0");
     CPPUNIT_ASSERT_THROW(sl->open(torrent::sap_copy(sin6_any), 0, 0, 0, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
@@ -258,7 +260,7 @@ test_socket_listen::test_open_port_single_error() {
 }
 
 void
-test_socket_listen::test_open_port_range() {
+TestSocketListen::test_open_port_range() {
   { TEST_SL_BEGIN("sin6_any, stream, first");
     expect_fd_inet6_tcp(1000);
     expect_fd_bind_listen(1000, c_sin6_any_5000);
@@ -316,7 +318,7 @@ test_socket_listen::test_open_port_range() {
 }
 
 void
-test_socket_listen::test_open_port_range_error() {
+TestSocketListen::test_open_port_range_error() {
   { TEST_SL_BEGIN("sin6_any, first > last");
     CPPUNIT_ASSERT_THROW(sl->open(torrent::sap_copy(sin6_any), 5000, 4999, 5000, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
@@ -356,7 +358,7 @@ test_socket_listen::test_open_port_range_error() {
 }
 
 void
-test_socket_listen::test_open_sequential() {
+TestSocketListen::test_open_sequential() {
   { TEST_SL_BEGIN("sin6_any, stream");
     expect_fd_inet6_tcp(1000);
     expect_fd_bind_listen(1000, c_sin6_any_5000);
@@ -366,7 +368,7 @@ test_socket_listen::test_open_sequential() {
 }
 
 void
-test_socket_listen::test_open_randomize() {
+TestSocketListen::test_open_randomize() {
   { TEST_SL_BEGIN("sin6_any, stream");
     expect_random_uniform_uint16(5005, 5000, 5010);
     expect_fd_inet6_tcp(1000);
@@ -379,7 +381,7 @@ test_socket_listen::test_open_randomize() {
 // deal with reuse error
 
 void
-test_socket_listen::test_accept() {
+TestSocketListen::test_accept() {
   { TEST_SL_BEGIN("sin6_any, stream");
     expect_fd_inet6_tcp(1000);
     expect_fd_bind_listen(1000, c_sin6_any_5000);

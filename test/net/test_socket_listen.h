@@ -1,7 +1,7 @@
-#include "helpers/test_fixture.h"
+#include "helpers/test_main_thread.h"
 
-class test_socket_listen : public test_fixture {
-  CPPUNIT_TEST_SUITE(test_socket_listen);
+class TestSocketListen : public TestFixtureWithMainThread {
+  CPPUNIT_TEST_SUITE(TestSocketListen);
 
   CPPUNIT_TEST(test_basic);
 

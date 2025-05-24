@@ -887,10 +887,10 @@ void
 DhtServer::receive_timeout() {
   auto itr = m_transactions.begin();
   while (itr != m_transactions.end()) {
-    if (itr->second->has_quick_timeout() && itr->second->quick_timeout() < cachedTime.seconds()) {
+    if (itr->second->has_quick_timeout() && itr->second->quick_timeout() < this_thread::cached_seconds().count()) {
       itr = failed_transaction(itr, true);
 
-    } else if (itr->second->timeout() < cachedTime.seconds()) {
+    } else if (itr->second->timeout() < this_thread::cached_seconds().count()) {
       itr = failed_transaction(itr, false);
 
     } else {

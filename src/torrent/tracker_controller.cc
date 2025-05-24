@@ -388,7 +388,7 @@ tracker_next_timeout_update(const tracker::Tracker& tracker) {
     return ~uint32_t();
 
   // Make sure we don't request _too_ often, check last activity.
-  // int32_t last_activity = cachedTime.seconds() - tracker.activity_time_last();
+  // int32_t last_activity = this_thread::cached_seconds().count() - tracker.activity_time_last();
 
   return 0;
 }

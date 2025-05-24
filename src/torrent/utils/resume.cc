@@ -446,7 +446,7 @@ resume_load_addresses(Download download, const Object& object) {
     if (!key.is_map() ||
         !key.has_key_string("inet") || key.get_key_string("inet").size() != sizeof(SocketAddressCompact) ||
         !key.has_key_value("failed") ||
-        !key.has_key_value("last") || key.get_key_value("last") > cachedTime.seconds())
+        !key.has_key_value("last") || key.get_key_value("last") > this_thread::cached_seconds().count())
       continue;
 
     int flags = 0;
@@ -487,7 +487,7 @@ resume_save_addresses(Download download, Object& object) {
       peer.insert_key("inet", std::string(SocketAddressCompact(sa->sa_inet()->address_n(), htons(dlp.second->listen_port())).c_str(), sizeof(SocketAddressCompact)));
 
     peer.insert_key("failed", dlp.second->failed_counter());
-    peer.insert_key("last", dlp.second->is_connected() ? cachedTime.seconds() : dlp.second->last_connection());
+    peer.insert_key("last", dlp.second->is_connected() ? this_thread::cached_seconds().count() : dlp.second->last_connection());
   }
 }
 

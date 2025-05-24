@@ -15,11 +15,6 @@
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_thread_base, "torrent/utils");
 
-#define TEST_BEGIN(name)                                           \
-  lt_log_print(torrent::LOG_MOCK_CALLS, "thread_base: %s", name);  \
-
-void throw_shutdown_exception() { throw torrent::shutdown_exception(); }
-
 void
 test_thread_base::test_basic() {
   auto thread = test_thread::create();
@@ -89,14 +84,10 @@ test_thread_base::test_stop() {
     auto thread = test_thread::create();
     thread->set_test_flag(test_thread::test_flag_do_work);
 
-    { TEST_BEGIN("init and start thread");
-      thread->init_thread();
-      thread->start_thread();
-    };
+    thread->init_thread();
+    thread->start_thread();
 
-    { TEST_BEGIN("stop and delete thread");
-      thread->stop_thread_wait();
-      CPPUNIT_ASSERT(thread->is_inactive());
-    }
+    thread->stop_thread_wait();
+    CPPUNIT_ASSERT(thread->is_inactive());
   }
 }
