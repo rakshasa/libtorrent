@@ -4,10 +4,10 @@
 #include <cinttypes>
 #include <functional>
 #include <string>
-#include <rak/priority_queue_default.h>
 
 #include "data/chunk_handle.h"
 #include "torrent/utils/ranges.h"
+#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -38,7 +38,7 @@ public:
 
   slot_chunk_handle&  slot_check_chunk() { return m_slot_check_chunk; }
 
-  rak::priority_item& delay_checked()                        { return m_delayChecked; }
+  auto&               delay_checked()                        { return m_delay_checked; }
 
   void                receive_chunkdone(uint32_t index);
   void                receive_chunk_cleared(uint32_t index);
@@ -54,9 +54,8 @@ private:
 
   ChunkList*          m_chunk_list;
 
-  slot_chunk_handle   m_slot_check_chunk;
-
-  rak::priority_item  m_delayChecked;
+  slot_chunk_handle     m_slot_check_chunk;
+  utils::SchedulerEntry m_delay_checked;
 };
 
 }
