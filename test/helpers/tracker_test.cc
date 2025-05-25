@@ -18,9 +18,9 @@ TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const st
     // .info_hash = m_info->hash(),
     // .obfuscated_hash = m_info->hash_obfuscated(),
     // .local_id = m_info->local_id(),
-    .url = url,
     // .key = m_key
   };
+  tracker_info.url = url;
 
   return torrent::tracker::Tracker(std::make_shared<TrackerTest>(tracker_info, flags));
 }
