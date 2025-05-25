@@ -2,8 +2,8 @@
 #define LIBTORRENT_DATA_CHUNK_LIST_NODE_H
 
 #include <cinttypes>
-#include <new>
-#include <rak/timer.h>
+
+#include "torrent/utils/chrono.h"
 
 namespace torrent {
 
@@ -28,14 +28,14 @@ public:
   Chunk*              chunk() const                  { return m_chunk; }
   void                set_chunk(Chunk* c)            { m_chunk = c; }
 
-  const rak::timer&   time_modified() const            { return m_timeModified; }
-  void                set_time_modified(rak::timer t)  { m_timeModified = t; }
+  auto                time_modified() const                           { return m_time_modified; }
+  void                set_time_modified(std::chrono::microseconds t)  { m_time_modified = t; }
 
-  const rak::timer&   time_preloaded() const           { return m_timePreloaded; }
-  void                set_time_preloaded(rak::timer t) { m_timePreloaded = t; }
+  auto                time_preloaded() const                          { return m_time_preloaded; }
+  void                set_time_preloaded(std::chrono::microseconds t) { m_time_preloaded = t; }
 
-  bool                sync_triggered() const         { return m_asyncTriggered; }
-  void                set_sync_triggered(bool v)     { m_asyncTriggered = v; }
+  bool                sync_triggered() const         { return m_async_triggered; }
+  void                set_sync_triggered(bool v)     { m_async_triggered = v; }
 
   int                 references() const             { return m_references; }
   int                 dec_references()               { return --m_references; }
@@ -60,10 +60,10 @@ private:
   int                 m_writable{0};
   int                 m_blocking{0};
 
-  bool                m_asyncTriggered{false};
+  bool                m_async_triggered{false};
 
-  rak::timer          m_timeModified;
-  rak::timer          m_timePreloaded;
+  std::chrono::microseconds m_time_modified{};
+  std::chrono::microseconds m_time_preloaded{};
 };
 
 }
