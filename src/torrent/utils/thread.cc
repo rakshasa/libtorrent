@@ -57,7 +57,7 @@ Thread::start_thread() {
   if (!is_initialized())
     throw internal_error("Called Thread::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, reinterpret_cast<pthread_func>(&Thread::enter_event_loop), this))
+  if (pthread_create(&m_thread, NULL, &Thread::enter_event_loop, this))
     throw internal_error("Failed to create thread.");
 
   while (m_state != STATE_ACTIVE)
@@ -130,12 +130,13 @@ Thread::should_handle_sigusr1() {
 }
 
 void*
-Thread::enter_event_loop(Thread* thread) {
-  if (thread == nullptr)
+Thread::enter_event_loop(void* thread) {
+  auto t = static_cast<Thread*>(thread);
+  if (t == nullptr)
     throw internal_error("Thread::enter_event_loop called with a null pointer thread");
 
-  thread->init_thread_local();
-  thread->event_loop();
+  t->init_thread_local();
+  t->event_loop();
 
   return nullptr;
 }

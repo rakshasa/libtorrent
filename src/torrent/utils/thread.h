@@ -99,7 +99,7 @@ protected:
 
   bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
 
-  static void*        enter_event_loop(Thread* thread);
+  static void*        enter_event_loop(void* thread);
 
   virtual void                      call_events() = 0;
   virtual std::chrono::microseconds next_timeout() = 0;
