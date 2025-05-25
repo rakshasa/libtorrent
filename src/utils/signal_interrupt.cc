@@ -2,6 +2,8 @@
 
 #include "utils/signal_interrupt.h"
 
+#include <cerrno>
+
 #include <fcntl.h>
 #include <unistd.h>
 
