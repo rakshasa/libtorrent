@@ -1,6 +1,6 @@
 #include "helpers/test_main_thread.h"
 
-class TestSocketListen : public TestFixtureWithMainThread {
+class TestSocketListen : public TestFixtureWithMockAndMainThread {
   CPPUNIT_TEST_SUITE(TestSocketListen);
 
   CPPUNIT_TEST(test_basic);
