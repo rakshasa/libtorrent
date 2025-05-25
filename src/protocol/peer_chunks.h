@@ -2,13 +2,13 @@
 #define LIBTORRENT_PROTOCOL_PEER_CHUNKS_H
 
 #include <list>
-#include <rak/partial_queue.h>
-#include <rak/timer.h>
 
 #include "net/throttle_node.h"
+#include "rak/partial_queue.h"
 #include "torrent/bitfield.h"
 #include "torrent/data/piece.h"
 #include "torrent/rate.h"
+#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -30,16 +30,16 @@ public:
   Bitfield*           bitfield()                    { return &m_bitfield; }
   const Bitfield*     bitfield() const              { return &m_bitfield; }
 
-  rak::partial_queue* download_cache()              { return &m_downloadCache; }
+  auto*               download_cache()              { return &m_downloadCache; }
 
-  piece_list_type*       upload_queue()             { return &m_uploadQueue; }
-  const piece_list_type* upload_queue() const       { return &m_uploadQueue; }
-  piece_list_type*       cancel_queue()             { return &m_cancelQueue; }
+  auto*               upload_queue()                { return &m_uploadQueue; }
+  const auto*         upload_queue() const          { return &m_uploadQueue; }
+  auto*               cancel_queue()                { return &m_cancelQueue; }
 
   // Timer used to figure out what HAVE_PIECE messages have not been
   // sent.
-  rak::timer          have_timer() const            { return m_haveTimer; }
-  void                set_have_timer(rak::timer t)  { m_haveTimer = t; }
+  std::chrono::microseconds have_timer() const                          { return m_have_timer; }
+  void                      set_have_timer(std::chrono::microseconds t) { m_have_timer = t; }
 
   Rate*               peer_rate()                   { return &m_peerRate; }
   const Rate*         peer_rate() const             { return &m_peerRate; }
@@ -61,7 +61,7 @@ private:
   piece_list_type     m_uploadQueue;
   piece_list_type     m_cancelQueue;
 
-  rak::timer          m_haveTimer;
+  std::chrono::microseconds m_have_timer{};
 
   Rate                m_peerRate{600};
 

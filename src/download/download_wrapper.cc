@@ -113,9 +113,9 @@ DownloadWrapper::close() {
   m_main->close();
 
   // Should this perhaps be in stop?
-  priority_queue_erase(&taskScheduler, &m_main->delay_download_done());
-  priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
-  priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
+  this_thread::scheduler()->erase(&m_main->delay_download_done());
+  this_thread::scheduler()->erase(&m_main->delay_partially_done());
+  this_thread::scheduler()->erase(&m_main->delay_partially_restarted());
 }
 
 bool
@@ -192,14 +192,14 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
         finished_download();
 
       } else if (was_partial && data()->wanted_chunks() == 0) {
-        priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
-        priority_queue_update(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
+        this_thread::scheduler()->erase(&m_main->delay_partially_restarted());
+        this_thread::scheduler()->update_wait_for(&m_main->delay_partially_done(), 0us);
       }
 
-      if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
-        m_main->have_queue()->emplace_front(m_main->have_queue()->front().first + 1, handle.index());
+      if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= this_thread::cached_time())
+        m_main->have_queue()->emplace_front(m_main->have_queue()->front().first + 1us, handle.index());
       else
-        m_main->have_queue()->emplace_front(cachedTime, handle.index());
+        m_main->have_queue()->emplace_front(this_thread::cached_time(), handle.index());
 
     } else {
       // This needs to ensure the chunk is still valid.
@@ -280,10 +280,13 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
         itr++;
   }
 
-  DownloadMain::have_queue_type* haveQueue = m_main->have_queue();
-  haveQueue->erase(std::find_if(haveQueue->rbegin(), haveQueue->rend(), [](auto& p) {
-    return (cachedTime - rak::timer::from_seconds(600)) < p.first;
-  }).base(), haveQueue->end());
+  auto have_queue = m_main->have_queue();
+
+  have_queue->erase(std::find_if(have_queue->rbegin(),
+                                 have_queue->rend(), [](auto& p) {
+                                     return this_thread::cached_time() - 600s < p.first;
+                                   }).base(),
+                    have_queue->end());
 
   m_main->receive_connect_peers();
 }
@@ -335,13 +338,13 @@ DownloadWrapper::receive_update_priorities() {
   // The 'partially_done/restarted' signal only gets triggered when a
   // download is active and not completed.
   if (info()->is_active() && !file_list()->is_done() && was_partial != (data()->wanted_chunks() != 0)) {
-    priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
-    priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
-    
+    this_thread::scheduler()->erase(&m_main->delay_partially_done());
+    this_thread::scheduler()->erase(&m_main->delay_partially_restarted());
+
     if (was_partial)
-      priority_queue_insert(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
+      this_thread::scheduler()->wait_for(&m_main->delay_partially_done(), 0us);
     else
-      priority_queue_insert(&taskScheduler, &m_main->delay_partially_restarted(), cachedTime);
+      this_thread::scheduler()->wait_for(&m_main->delay_partially_restarted(), 0us);
   }
 }
 
@@ -354,8 +357,7 @@ DownloadWrapper::finished_download() {
   // point.
   //
   // This needs to be seperated into a new function.
-  if (!m_main->delay_download_done().is_queued())
-    priority_queue_insert(&taskScheduler, &m_main->delay_download_done(), cachedTime);
+  this_thread::scheduler()->update_wait_for(&m_main->delay_download_done(), 0us);
 
   m_main->connection_list()->erase_seeders();
   info()->mutable_down_rate()->reset_rate();

@@ -2,6 +2,7 @@
 
 #include "torrent/torrent.h"
 
+#include "globals.h"
 #include "manager.h"
 #include "thread_main.h"
 #include "data/file_manager.h"

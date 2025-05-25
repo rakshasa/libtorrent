@@ -503,7 +503,7 @@ PeerConnection<type>::fill_write_buffer() {
 
   DownloadMain::have_queue_type* haveQueue = m_download->have_queue();
 
-  if (type == Download::CONNECTION_LEECH && 
+  if (type == Download::CONNECTION_LEECH &&
       !haveQueue->empty() &&
       m_peerChunks.have_timer() <= haveQueue->front().first &&
       m_up->can_write_have()) {
@@ -516,7 +516,7 @@ PeerConnection<type>::fill_write_buffer() {
       m_up->write_have((--last)->second);
     } while (last != haveQueue->begin() && m_up->can_write_have());
 
-    m_peerChunks.set_have_timer(last->first + 1);
+    m_peerChunks.set_have_timer(last->first + 1us);
   }
 
   if (type == Download::CONNECTION_INITIAL_SEED && m_up->can_write_have())

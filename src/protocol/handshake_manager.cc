@@ -1,23 +1,20 @@
 #include "config.h"
 
-#include <rak/socket_address.h>
+#include "handshake_manager.h"
 
-#include "torrent/exceptions.h"
-#include "torrent/error.h"
+#include "handshake.h"
+#include "manager.h"
+#include "peer_connection_base.h"
 #include "download/download_main.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
+#include "torrent/error.h"
+#include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
-
-#include "peer_connection_base.h"
-#include "handshake.h"
-#include "handshake_manager.h"
-
-#include "manager.h"
 
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
@@ -182,7 +179,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 
     manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
 
-    pcb->peer_chunks()->set_have_timer(rak::timer(handshake->initialized_time().count()));
+    pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
 
     LT_LOG_SA_C(handshake->peer_info()->socket_address(), "handshake success: type:%s id:%s",
                 peer_type, hash_string_to_html_str(handshake->peer_info()->id()).c_str());
