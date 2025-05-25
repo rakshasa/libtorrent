@@ -184,7 +184,7 @@ PeerList::insert_available(const void* al) {
         peerInfo->set_port(addr.port());
 
       if (peerInfo->connection() != NULL ||
-          peerInfo->last_handshake() + 600 > static_cast<uint32_t>(cachedTime.seconds())) {
+          peerInfo->last_handshake() + 600 > static_cast<uint32_t>(this_thread::cached_seconds().count())) {
         updated++;
         continue;
       }
@@ -288,7 +288,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
   }
 
   if (flags & connect_filter_recent &&
-      peerInfo->last_handshake() + 600 > static_cast<uint32_t>(cachedTime.seconds()))
+      peerInfo->last_handshake() + 600 > static_cast<uint32_t>(this_thread::cached_seconds().count()))
     return NULL;
 
   if (!(flags & connect_incoming))
@@ -300,7 +300,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
     peerInfo->unset_flags(PeerInfo::flag_incoming);
 
   peerInfo->set_flags(PeerInfo::flag_connected);
-  peerInfo->set_last_handshake(cachedTime.seconds());
+  peerInfo->set_last_handshake(this_thread::cached_seconds().count());
 
   return peerInfo;
 }
@@ -347,7 +347,7 @@ PeerList::disconnected(iterator itr, int flags) {
   itr->second->set_port(0);
 
   if (flags & disconnect_set_time)
-    itr->second->set_last_connection(cachedTime.seconds());
+    itr->second->set_last_connection(this_thread::cached_seconds().count());
 
   if (flags & disconnect_available && itr->second->listen_port() != 0)
     m_available_list->push_back(rak::socket_address::cast_from(itr->second->socket_address()));
@@ -362,7 +362,7 @@ PeerList::cull_peers(int flags) {
   uint32_t timer;
 
   if (flags & cull_old)
-    timer = cachedTime.seconds() - 24 * 60 * 60;
+    timer = this_thread::cached_seconds().count() - 24 * 60 * 60;
   else
     timer = 0;
 

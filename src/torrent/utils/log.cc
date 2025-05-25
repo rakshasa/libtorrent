@@ -17,8 +17,6 @@
 #include <memory>
 #include <mutex>
 
-#define GROUPFMT (group >= LOG_NON_CASCADING) ? ("%" PRIi32 " ") : ("%" PRIi32 " %c ")
-
 namespace torrent {
 
 struct log_cache_entry {
@@ -288,7 +286,7 @@ log_add_group_output(int group, const char* name) {
 }
 
 void
-log_remove_group_output(int group, const char* name) {
+log_remove_group_output([[maybe_unused]] int group, [[maybe_unused]] const char* name) {
 }
 
 // The log_children list is <child, group> since we build the output
@@ -307,7 +305,7 @@ log_add_child(int group, int child) {
 }
 
 void
-log_remove_child(int group, int child) {
+log_remove_child([[maybe_unused]] int group, [[maybe_unused]] int child) {
   // Remove from all groups, then modify all outputs.
 }
 
@@ -317,9 +315,9 @@ log_file_write(const std::shared_ptr<std::ofstream>& outfile, const char* data, 
 
   // Normal groups are nul-terminated strings.
   if (group >= LOG_NON_CASCADING) {
-    *outfile << cachedTime.seconds() << ' ' << data << std::endl;
+    *outfile << this_thread::cached_seconds().count() << ' ' << data << std::endl;
   } else if (group >= 0) {
-    *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
+    *outfile << this_thread::cached_seconds().count() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
   } else if (group == -1) {
     *outfile << "---DUMP---" << std::endl;
     if (length != 0) {
@@ -336,8 +334,9 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
 
   // Normal groups are nul-terminated strings.
   if (group >= 0) {
-    int buffer_length = snprintf(buffer, 64, GROUPFMT,
-                                 cachedTime.seconds(),
+    int buffer_length = snprintf(buffer, 64,
+                                 (group >= LOG_NON_CASCADING) ? ("%" PRIi64 " ") : ("%" PRIi64 " %c "),
+                                 (int64_t)this_thread::cached_seconds().count(),
                                  log_level_char[group % 6]);
 
     if (buffer_length > 0)

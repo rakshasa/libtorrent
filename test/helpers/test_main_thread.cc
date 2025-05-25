@@ -15,9 +15,12 @@ std::unique_ptr<TestMainThread>
 TestMainThread::create() {
   // Needs to be called before Thread is created.
   mock_redirect_defaults();
+  return std::unique_ptr<TestMainThread>(new TestMainThread());
+}
 
-  auto thread = new TestMainThread();
-  return std::unique_ptr<TestMainThread>(thread);
+std::unique_ptr<TestMainThread>
+TestMainThread::create_with_mock() {
+  return std::unique_ptr<TestMainThread>(new TestMainThread());
 }
 
 TestMainThread::TestMainThread() {}
@@ -79,6 +82,7 @@ TestFixtureWithMainThread::setUp() {
   test_fixture::setUp();
 
   set_create_poll();
+
   m_main_thread = TestMainThread::create();
   m_main_thread->init_thread();
 }
@@ -112,6 +116,22 @@ TestFixtureWithMainAndTrackerThread::tearDown() {
   torrent::thread_tracker()->destroy_thread();
 
   m_main_thread.reset();
-
   test_fixture::tearDown();
 }
+
+void
+TestFixtureWithMockAndMainThread::setUp() {
+  test_fixture::setUp();
+
+  set_create_poll();
+
+  m_main_thread = TestMainThread::create_with_mock();
+  m_main_thread->init_thread();
+}
+
+void
+TestFixtureWithMockAndMainThread::tearDown() {
+  m_main_thread.reset();
+  test_fixture::tearDown();
+}
+

@@ -245,7 +245,7 @@ public:
 
   // non-transaction packet
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
-    : m_sa(*s), m_id(-cachedTime.seconds()) { build_buffer(d); };
+    : m_sa(*s), m_id(-this_thread::cached_seconds().count()) { build_buffer(d); };
 
   ~DhtTransactionPacket() = default;
 
@@ -260,7 +260,7 @@ public:
   size_t                      length() const            { return m_length; }
 
   int                         id() const                { return m_id; }
-  int                         age() const               { return has_transaction() ? 0 : cachedTime.seconds() + m_id; }
+  int                         age() const               { return has_transaction() ? 0 : this_thread::cached_seconds().count() + m_id; }
   const DhtTransaction*       transaction() const       { return m_transaction; }
   DhtTransaction*             transaction()             { return m_transaction; }
 

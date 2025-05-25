@@ -12,6 +12,7 @@
 class TestMainThread : public torrent::utils::Thread {
 public:
   static std::unique_ptr<TestMainThread> create();
+  static std::unique_ptr<TestMainThread> create_with_mock();
 
   ~TestMainThread() override;
 
@@ -39,6 +40,14 @@ public:
 };
 
 class TestFixtureWithMainAndTrackerThread : public test_fixture {
+public:
+  void setUp();
+  void tearDown();
+
+  std::unique_ptr<TestMainThread> m_main_thread;
+};
+
+class TestFixtureWithMockAndMainThread : public test_fixture {
 public:
   void setUp();
   void tearDown();

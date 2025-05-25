@@ -174,7 +174,7 @@ ChunkManager::try_free_memory(uint64_t size) {
   // Note that it won't be able to free chunks that are scheduled for
   // hash checking, so a too low max memory setting will give problem
   // at high transfer speed.
-  if (m_timerStarved + 10 >= cachedTime.seconds())
+  if (m_timerStarved + 10 >= this_thread::cached_seconds().count())
     return;
 
   sync_all(0, size <= m_memoryUsage ? (m_memoryUsage - size) : 0);
@@ -182,7 +182,7 @@ ChunkManager::try_free_memory(uint64_t size) {
   // The caller must ensure he tries to free a sufficiently large
   // amount of memory to ensure it, and other users, has enough memory
   // space for at least 10 seconds.
-  m_timerStarved = cachedTime.seconds();
+  m_timerStarved = this_thread::cached_seconds().count();
 }
 
 void
@@ -204,7 +204,7 @@ ChunkManager::sync_all(int flags, uint64_t target) {
   do {
     if (itr == base_type::end())
       itr = base_type::begin();
-    
+
     (*itr)->sync_chunks(flags);
 
   } while (++itr != base_type::begin() + m_lastFreed && m_memoryUsage >= target);

@@ -37,13 +37,9 @@ test_output(const char* output, unsigned int length, unsigned int mask) {
 
 void
 test_log::setUp() {
-  // Don't initialize since this creates the group->child connections.
-  //  torrent::log_initialize();
-  torrent::log_cleanup();
-}
+  TestFixtureWithMainThread::setUp();
 
-void
-test_log::tearDown() {
+  // Don't initialize since this creates the group->child connections.
   torrent::log_cleanup();
 }
 

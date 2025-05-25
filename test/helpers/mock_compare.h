@@ -2,6 +2,7 @@
 #define LIBTORRENT_HELPERS_MOCK_COMPARE_H
 
 #include <algorithm>
+#include <map>
 #include <type_traits>
 #include <torrent/event.h>
 #include <torrent/net/socket_address.h>
@@ -70,10 +71,23 @@ void mock_compare_add(T* v) {
 // Specialize:
 //
 
+constexpr int mock_compare_gt_two_int = -0xFD30;
+
+template <>
+inline bool mock_compare_arg<int>(int lhs, int rhs) {
+  if (lhs == mock_compare_gt_two_int)
+    return rhs > 2;
+  if (rhs == mock_compare_gt_two_int)
+    return lhs > 2;
+
+  return lhs == rhs;
+}
+
 template <>
 inline bool mock_compare_arg<sockaddr*>(sockaddr* lhs, sockaddr* rhs) {
   return lhs != nullptr && rhs != nullptr && torrent::sa_equal(lhs, rhs);
 }
+
 template <>
 inline bool mock_compare_arg<const sockaddr*>(const sockaddr* lhs, const sockaddr* rhs) {
   return lhs != nullptr && rhs != nullptr && torrent::sa_equal(lhs, rhs);

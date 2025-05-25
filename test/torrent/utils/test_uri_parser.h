@@ -1,6 +1,6 @@
-#include "helpers/test_fixture.h"
+#include "helpers/test_main_thread.h"
 
-class test_uri_parser : public test_fixture {
+class test_uri_parser : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE(test_uri_parser);
 
   CPPUNIT_TEST(test_basic);

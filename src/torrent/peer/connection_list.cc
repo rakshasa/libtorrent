@@ -65,7 +65,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
   peerInfo->set_connection(peerConnection);
-  peerInfo->set_last_connection(cachedTime.seconds());
+  peerInfo->set_last_connection(this_thread::cached_seconds().count());
   peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
   if (!peerConnection->get_fd().is_valid()) {
