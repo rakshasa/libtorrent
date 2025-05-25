@@ -4,8 +4,6 @@
 #include <deque>
 #include <utility>
 
-#include "globals.h"
-
 #include "data/chunk_handle.h"
 #include "download/available_list.h"
 #include "download/delegator.h"
@@ -15,6 +13,7 @@
 #include "torrent/data/file_list.h"
 #include "torrent/peer/peer_list.h"
 #include "torrent/tracker/wrappers.h"
+#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -32,7 +31,7 @@ class InitialSeeding;
 
 class DownloadMain {
 public:
-  using have_queue_type = std::deque<std::pair<rak::timer, uint32_t>>;
+  using have_queue_type = std::deque<std::pair<std::chrono::microseconds, uint32_t>>;
   using pex_list        = std::vector<SocketAddressCompact>;
 
   DownloadMain();
@@ -67,7 +66,7 @@ public:
 
   have_queue_type*    have_queue()                               { return &m_haveQueue; }
 
-  InitialSeeding*     initial_seeding()                          { return m_initialSeeding; }
+  InitialSeeding*     initial_seeding()                          { return m_initial_seeding.get(); }
   bool                start_initial_seeding();
   void                initial_seeding_done(PeerConnectionBase* pcb);
 
@@ -77,11 +76,11 @@ public:
 
   std::pair<ThrottleList*, ThrottleList*> throttles(const sockaddr* sa);
 
-  ThrottleList*       upload_throttle()                          { return m_uploadThrottle; }
-  void                set_upload_throttle(ThrottleList* t)       { m_uploadThrottle = t; }
+  ThrottleList*       upload_throttle()                          { return m_upload_throttle; }
+  void                set_upload_throttle(ThrottleList* t)       { m_upload_throttle = t; }
 
-  ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
-  void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
+  ThrottleList*       download_throttle()                        { return m_download_throttle; }
+  void                set_download_throttle(ThrottleList* t)     { m_download_throttle = t; }
 
   group_entry*        up_group_entry()                           { return &m_up_group_entry; }
   group_entry*        down_group_entry()                         { return &m_down_group_entry; }
@@ -102,10 +101,10 @@ public:
   using slot_start_handshake_type = std::function<void(const rak::socket_address&, DownloadMain*)>;
   using slot_stop_handshakes_type = std::function<void(DownloadMain*)>;
 
-  void                slot_start_handshake(slot_start_handshake_type s) { m_slotStartHandshake = std::move(s); }
-  void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slotStopHandshakes = std::move(s); }
-  void                slot_count_handshakes(slot_count_handshakes_type s) { m_slotCountHandshakes = std::move(s); }
-  void                slot_hash_check_add(slot_hash_check_add_type s)     { m_slotHashCheckAdd = std::move(s); }
+  void                slot_start_handshake(slot_start_handshake_type s) { m_slot_start_handshake = std::move(s); }
+  void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slot_stop_handshakes = std::move(s); }
+  void                slot_count_handshakes(slot_count_handshakes_type s) { m_slot_count_handshakes = std::move(s); }
+  void                slot_hash_check_add(slot_hash_check_add_type s)     { m_slot_hash_check_add = std::move(s); }
 
   void                add_peer(const rak::socket_address& sa);
 
@@ -122,11 +121,11 @@ public:
 
   void                update_endgame();
 
-  rak::priority_item& delay_download_done()       { return m_delay_download_done; }
-  rak::priority_item& delay_partially_done()      { return m_delay_partially_done; }
-  rak::priority_item& delay_partially_restarted() { return m_delay_partially_restarted; }
+  auto&               delay_download_done()       { return m_delay_download_done; }
+  auto&               delay_partially_done()      { return m_delay_partially_done; }
+  auto&               delay_partially_restarted() { return m_delay_partially_restarted; }
 
-  rak::priority_item& delay_disconnect_peers() { return m_delayDisconnectPeers; }
+  auto&               delay_disconnect_peers()    { return m_delay_disconnect_peers; }
 
 private:
   void                setup_start();
@@ -148,7 +147,7 @@ private:
 
   Delegator           m_delegator;
   have_queue_type     m_haveQueue;
-  InitialSeeding*     m_initialSeeding{};
+  std::unique_ptr<InitialSeeding> m_initial_seeding;
 
   ConnectionList*     m_connectionList;
   FileList            m_fileList;
@@ -158,21 +157,21 @@ private:
   DataBuffer          m_ut_pex_initial;
   pex_list            m_ut_pex_list;
 
-  ThrottleList*       m_uploadThrottle{};
-  ThrottleList*       m_downloadThrottle{};
+  ThrottleList*       m_upload_throttle{};
+  ThrottleList*       m_download_throttle{};
 
-  slot_start_handshake_type m_slotStartHandshake;
-  slot_stop_handshakes_type m_slotStopHandshakes;
+  slot_start_handshake_type  m_slot_start_handshake;
+  slot_stop_handshakes_type  m_slot_stop_handshakes;
 
-  slot_count_handshakes_type m_slotCountHandshakes;
-  slot_hash_check_add_type   m_slotHashCheckAdd;
+  slot_count_handshakes_type m_slot_count_handshakes;
+  slot_hash_check_add_type   m_slot_hash_check_add;
 
-  rak::priority_item  m_delay_download_done;
-  rak::priority_item  m_delay_partially_done;
-  rak::priority_item  m_delay_partially_restarted;
+  utils::SchedulerEntry      m_delay_download_done;
+  utils::SchedulerEntry      m_delay_partially_done;
+  utils::SchedulerEntry      m_delay_partially_restarted;
 
-  rak::priority_item  m_delayDisconnectPeers;
-  rak::priority_item  m_taskTrackerRequest;
+  utils::SchedulerEntry      m_delay_disconnect_peers;
+  utils::SchedulerEntry      m_task_tracker_request;
 };
 
 }
