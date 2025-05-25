@@ -584,16 +584,16 @@ object_write_to_buffer(void* data, object_buffer_t buffer) {
 
 object_buffer_t
 object_write_to_sha1(void* data, object_buffer_t buffer) {
-  reinterpret_cast<Sha1*>(data)->update(buffer.first, std::distance(buffer.first, buffer.second));
+  static_cast<Sha1*>(data)->update(buffer.first, std::distance(buffer.first, buffer.second));
 
   return buffer;
 }
 
 object_buffer_t
 object_write_to_stream(void* data, object_buffer_t buffer) {
-  reinterpret_cast<std::ostream*>(data)->write(buffer.first, std::distance(buffer.first, buffer.second));
+  static_cast<std::ostream*>(data)->write(buffer.first, std::distance(buffer.first, buffer.second));
 
-  if (reinterpret_cast<std::ostream*>(data)->bad())
+  if (static_cast<std::ostream*>(data)->bad())
     return object_buffer_t(buffer.first, buffer.first);
 
   return buffer;
@@ -601,7 +601,7 @@ object_write_to_stream(void* data, object_buffer_t buffer) {
 
 object_buffer_t
 object_write_to_size(void* data, object_buffer_t buffer) {
-  *reinterpret_cast<uint64_t*>(data) += std::distance(buffer.first, buffer.second);
+  *static_cast<uint64_t*>(data) += std::distance(buffer.first, buffer.second);
 
   return buffer;
 }
