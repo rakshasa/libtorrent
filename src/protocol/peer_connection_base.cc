@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <cstdio>
@@ -359,9 +323,9 @@ PeerConnectionBase::load_up_chunk() {
   }
 
   up_chunk_release();
-  
+
   m_upChunk = m_download->chunk_list()->get(m_upPiece.index());
-  
+
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
 
@@ -383,7 +347,7 @@ PeerConnectionBase::load_up_chunk() {
   uint32_t preloadSize = m_upChunk.chunk()->chunk_size() - m_upPiece.offset();
 
   if (cm->preload_type() == 0 ||
-      m_upChunk.object()->time_preloaded() >= cachedTime - rak::timer::from_seconds(60) ||
+      m_upChunk.object()->time_preloaded() >= this_thread::cached_time() - 60s ||
 
       preloadSize < cm->preload_min_size() ||
       m_peerChunks.upload_throttle()->rate()->rate() < cm->preload_required_rate() * ((preloadSize + (2 << 20) - 1) / (2 << 20))) {
@@ -393,7 +357,7 @@ PeerConnectionBase::load_up_chunk() {
 
   cm->inc_stats_preloaded();
 
-  m_upChunk.object()->set_time_preloaded(cachedTime);
+  m_upChunk.object()->set_time_preloaded(this_thread::cached_time());
   m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), cm->preload_type() == 1);
 }
 
@@ -447,11 +411,11 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
   if (!m_download->file_list()->is_valid_piece(piece))
     throw internal_error("Incoming pieces list contains a bad piece.");
-  
+
   if (!m_downChunk.is_valid() || piece.index() != m_downChunk.index()) {
     down_chunk_release();
     m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_writable);
-  
+
     if (!m_downChunk.is_valid())
       throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
   }
@@ -469,7 +433,7 @@ PeerConnectionBase::down_chunk_finished() {
     throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
 
   BlockTransfer* transfer = request_list()->transfer();
-  
+
   LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,
                       transfer->is_leader() ? "completed " : "skipped  ",
                       transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
@@ -479,15 +443,15 @@ PeerConnectionBase::down_chunk_finished() {
       throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer is the leader, but no chunk allocated.");
 
     request_list()->finished();
-    m_downChunk.object()->set_time_modified(cachedTime);
+    m_downChunk.object()->set_time_modified(this_thread::cached_time());
 
   } else {
     request_list()->skipped();
   }
-        
+
   if (m_downStall > 0)
     m_downStall--;
-        
+
   // We need to release chunks when we're not sure if they will be
   // used in the near future so as to avoid hitting the address space
   // limit in high-bandwidth situations.
@@ -997,7 +961,7 @@ PeerConnectionBase::send_pex_message() {
   } else if (m_sendPEXMask & PEX_DO && m_extensions->id(ProtocolExtension::UT_PEX)) {
     const DataBuffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
     m_extensions->clear_initial_pex();
- 
+
     m_sendPEXMask &= ~PEX_DO;
 
     if (pexMessage.empty())
@@ -1021,7 +985,7 @@ PeerConnectionBase::send_ext_message() {
 }
 
 void
-PeerConnectionBase::receive_metadata_piece(uint32_t piece, const char* data, uint32_t length) {
+PeerConnectionBase::receive_metadata_piece([[maybe_unused]] uint32_t piece, [[maybe_unused]] const char* data, [[maybe_unused]] uint32_t length) {
 }
 
 }
