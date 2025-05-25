@@ -15,8 +15,7 @@
 namespace torrent {
 
 HashTorrent::HashTorrent(ChunkList* c) :
-  m_chunk_list(c)
-{
+    m_chunk_list(c) {
 }
 
 bool
@@ -44,8 +43,7 @@ HashTorrent::clear() {
   m_position = 0;
   m_errno = 0;
 
-  // Correct?
-  rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
+  this_thread::scheduler()->erase(&m_delay_checked);
 }
 
 bool
@@ -173,7 +171,8 @@ HashTorrent::queue(bool quick) {
 
       LT_LOG_THIS(INFO, "Completed (error): position:%u try_quick:%u errno:%i msg:'%s'.",
                   m_position, quick, m_errno, handle.error_number().c_str());
-      rak::priority_queue_update(&taskScheduler, &m_delayChecked, cachedTime);
+
+      this_thread::scheduler()->update_wait_for(&m_delay_checked, 0s);
       return;
     }
 
@@ -197,7 +196,7 @@ HashTorrent::queue(bool quick) {
 
     // Update the scheduled item just to make sure that if hashing is
     // started again during the delay it won't cause an exception.
-    rak::priority_queue_update(&taskScheduler, &m_delayChecked, cachedTime);
+    this_thread::scheduler()->update_wait_for(&m_delay_checked, 0s);
   }
 }
 
