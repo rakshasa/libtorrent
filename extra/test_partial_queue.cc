@@ -2,7 +2,6 @@
 #include <iomanip>
 #include <cstdlib>
 #include <rak/partial_queue.h>
-#include <rak/timer.h>
 
 void
 test_fill() {

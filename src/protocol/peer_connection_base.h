@@ -1,7 +1,6 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
-#include "globals.h"
 #include "thread_main.h"
 #include "data/chunk_handle.h"
 #include "net/socket_stream.h"

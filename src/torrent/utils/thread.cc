@@ -8,7 +8,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "globals.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"

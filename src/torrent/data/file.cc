@@ -10,7 +10,6 @@
 
 #include "file.h"
 #include "file_manager.h"
-#include "globals.h"
 #include "manager.h"
 
 namespace torrent {

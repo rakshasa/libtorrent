@@ -8,7 +8,6 @@
 #include "dht_tracker.h"
 #include "dht_transaction.h"
 #include "manager.h"
-#include "globals.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"

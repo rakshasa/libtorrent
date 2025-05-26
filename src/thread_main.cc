@@ -2,10 +2,8 @@
 
 #include "thread_main.h"
 
-#include "globals.h"
 #include "data/hash_queue.h"
 #include "data/thread_disk.h"
-#include "rak/timer.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
@@ -62,36 +60,15 @@ ThreadMain::init_thread() {
 
 void
 ThreadMain::call_events() {
-  cachedTime = rak::timer::current();
-
   if (m_slot_do_work)
     m_slot_do_work();
-
-  while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
-    rak::priority_item* v = taskScheduler.top();
-    taskScheduler.pop();
-
-    v->clear_time();
-    v->slot()();
-  }
-
-  // Update the timer again to ensure we get accurate triggering of
-  // msec timers.
-  cachedTime = rak::timer::current();
 
   process_callbacks();
 }
 
 std::chrono::microseconds
 ThreadMain::next_timeout() {
-  cachedTime = rak::timer::current();
-
-  if (taskScheduler.empty())
-    return 10s;
-
-  auto task_timeout = std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
-
-  return std::min(std::chrono::microseconds(task_timeout), std::chrono::microseconds(10s));
+  return std::chrono::microseconds(10s);
 }
 
 }

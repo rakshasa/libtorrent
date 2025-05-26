@@ -10,7 +10,6 @@
 
 #include "download_info.h"
 #include "exceptions.h"
-#include "globals.h"
 #include "manager.h"
 #include "peer_info.h"
 #include "peer_list.h"

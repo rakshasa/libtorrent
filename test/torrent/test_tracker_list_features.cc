@@ -2,7 +2,6 @@
 
 #include <functional>
 
-#include "globals.h"
 #include "net/address_list.h"
 #include "test/torrent/test_tracker_list.h"
 #include "test/torrent/test_tracker_list_features.h"
@@ -238,7 +237,7 @@ TestTrackerListFeatures::test_request_safeguard() {
   // CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_1, torrent::tracker::TrackerState::EVENT_NONE), true));
   // CPPUNIT_ASSERT(tracker_1_worker->trigger_success());
 
-  // torrent::cachedTime += rak::timer::from_seconds(1000);
+  // cached_time += rak::timer::from_seconds(1000);
 
   // for (unsigned int i = 0; i < 9; i++) {
   //   CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_foo, torrent::tracker::TrackerState::EVENT_NONE), false));
@@ -255,7 +254,7 @@ TestTrackerListFeatures::test_request_safeguard() {
   //   CPPUNIT_ASSERT(tracker_2_worker->trigger_success());
   //   CPPUNIT_ASSERT(tracker_2.state().success_counter() == (i + 1));
 
-  //   torrent::cachedTime += rak::timer::from_seconds(1);
+  //   cached_time += rak::timer::from_seconds(1);
   // }
 
   // for (unsigned int i = 0; i < 17; i++) {
@@ -264,7 +263,7 @@ TestTrackerListFeatures::test_request_safeguard() {
   //   CPPUNIT_ASSERT(tracker_3.state().success_counter() == (i + 1));
 
   //   if (i % 2)
-  //     torrent::cachedTime += rak::timer::from_seconds(1);
+  //     cached_time += rak::timer::from_seconds(1);
   // }
 
   // CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_event, &tracker_list, tracker_3, torrent::tracker::TrackerState::EVENT_NONE), true));

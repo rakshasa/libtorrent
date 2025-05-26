@@ -3,7 +3,6 @@
 
 #include <list>
 
-#include "globals.h"
 
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"

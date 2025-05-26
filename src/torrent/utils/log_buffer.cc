@@ -3,7 +3,6 @@
 #include "log_buffer.h"
 
 #include "log.h"
-#include "globals.h"
 
 namespace torrent {
 

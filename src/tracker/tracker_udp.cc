@@ -8,7 +8,6 @@
 #include <netdb.h>
 #include <sys/types.h>
 
-#include "globals.h"
 #include "manager.h"
 #include "net/address_list.h"
 #include "rak/error_number.h"
@@ -404,7 +403,7 @@ TrackerUdp::process_announce_output() {
 
     state().m_scrape_incomplete = m_read_buffer->read_32(); // leechers
     state().m_scrape_complete   = m_read_buffer->read_32(); // seeders
-    state().m_scrape_time_last  = rak::timer::current().seconds();
+    state().m_scrape_time_last  = this_thread::cached_seconds().count();
   }
 
   AddressList l;

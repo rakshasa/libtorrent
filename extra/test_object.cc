@@ -1,6 +1,6 @@
 #include <iostream>
 #include <iomanip>
-#include <rak/timer.h>
+
 #include "../src/torrent/object_stream.h"
 
 #ifdef NEW_OBJECT

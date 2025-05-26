@@ -1,6 +1,5 @@
 #include "config.h"
 
-#include "globals.h"
 #include "rate.h"
 #include "exceptions.h"
 

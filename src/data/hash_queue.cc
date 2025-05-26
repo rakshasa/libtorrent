@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <utility>
 
-#include "globals.h"
 #include "data/chunk.h"
 #include "data/chunk_list_node.h"
 #include "data/hash_chunk.h"

@@ -5,8 +5,6 @@
 #include <functional>
 #include <iostream>
 
-#include "globals.h"
-#include "rak/priority_queue_default.h"
 #include "test/helpers/test_thread.h"
 #include "test/torrent/test_tracker_controller.h"
 #include "test/torrent/test_tracker_list.h"
@@ -158,7 +156,7 @@ test_tracker_controller_features::test_promiscious_failed() {
 
   TEST_MULTIPLE_END(0, 3);
 
-  // TODO: This is now failing after cachedTime deprecation, and we already need to rewrite more
+  // TODO: This is now failing after cached_time deprecation, and we already need to rewrite more
   // tracker code so skip for now.
 
   // TEST_MULTI3_IS_BUSY("01101", "01101");

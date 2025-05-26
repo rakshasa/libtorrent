@@ -20,8 +20,6 @@
 #include "object.h"
 #include "tracker_list.h"
 
-#include "globals.h"
-
 #include "resume.h"
 
 #define LT_LOG_LOAD(log_fmt, ...)                                       \
@@ -331,9 +329,10 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   object.erase_key("uncertain_pieces.timestamp");
 
   const TransferList::completed_list_type& completedList = download.transfer_list()->completed_list();
+
   auto itr = std::find_if(completedList.begin(), completedList.end(), [](const auto& v) {
-    return (rak::timer::current() - rak::timer::from_minutes(15).usec()) <= v.first;
-  });
+      return this_thread::cached_time() - 15min <= std::chrono::microseconds(v.first);
+    });
 
   if (itr == completedList.end())
     return;
@@ -349,7 +348,8 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   for (unsigned int& itr2 : buffer)
     itr2 = htonl(itr2);
 
-  object.insert_key("uncertain_pieces.timestamp", rak::timer::current_seconds());
+  object.insert_key("uncertain_pieces.timestamp", this_thread::cached_seconds().count());
+
   Object::string_type& completed = object.insert_key("uncertain_pieces", std::string()).as_string();
   completed.append(reinterpret_cast<const char*>(&buffer.front()), buffer.size() * sizeof(uint32_t));
 }
