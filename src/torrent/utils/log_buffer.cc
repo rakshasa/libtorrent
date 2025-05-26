@@ -2,6 +2,8 @@
 
 #include "log_buffer.h"
 
+#include <algorithm>
+
 #include "log.h"
 
 namespace torrent {
