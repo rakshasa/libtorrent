@@ -8,30 +8,30 @@ namespace torrent {
 
 void
 AddressList::parse_address_normal(const Object::list_type& b) {
-  std::for_each(b.begin(), b.end(), [&](auto& obj) {
-      if (!obj.is_map())
-        return;
-      if (!obj.has_key_string("ip"))
-        return;
-      if (!obj.has_key_value("port"))
-        return;
+  for (const auto& obj : b) {
+    if (!obj.is_map())
+      return;
+    if (!obj.has_key_string("ip"))
+      return;
+    if (!obj.has_key_value("port"))
+      return;
 
-      rak::socket_address sa;
-      sa.clear();
+    rak::socket_address sa;
+    sa.clear();
 
-      if (!sa.set_address_str(obj.get_key_string("ip")))
-        return;
+    if (!sa.set_address_str(obj.get_key_string("ip")))
+      return;
 
-      auto port = obj.get_key_value("port");
+    auto port = obj.get_key_value("port");
 
-      if (port <= 0 || port >= (1 << 16))
-        return;
+    if (port <= 0 || port >= (1 << 16))
+      return;
 
-      sa.set_port(port);
+    sa.set_port(port);
 
-      if (sa.is_valid())
-        this->push_back(sa);
-    });
+    if (sa.is_valid())
+      this->push_back(sa);
+  }
 }
 
 void
