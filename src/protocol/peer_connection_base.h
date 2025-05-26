@@ -189,7 +189,7 @@ protected:
 
   int                 m_sendPEXMask{0};
 
-  rak::timer          m_timeLastRead;
+  std::chrono::microseconds m_time_last_read{};
 
   DataBuffer          m_extensionMessage;
   uint32_t            m_extensionOffset;

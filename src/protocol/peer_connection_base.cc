@@ -132,7 +132,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   thread_main()->poll()->insert_write(this);
   thread_main()->poll()->insert_error(this);
 
-  m_timeLastRead = cachedTime;
+  m_time_last_read = this_thread::cached_time();
 
   m_download->chunk_statistics()->received_connect(&m_peerChunks);
 

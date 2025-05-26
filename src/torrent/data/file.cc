@@ -70,7 +70,7 @@ File::prepare(int prot, int flags) {
   if (is_padding())
     return true;
 
-  m_last_touched = cachedTime.usec();
+  m_last_touched = this_thread::cached_time().count();
 
   // Check if we got write protection and flag_resize_queued is
   // set. If so don't quit as we need to try re-sizing, instead call
