@@ -1,7 +1,6 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
-#include "globals.h"
 #include "thread_main.h"
 #include "data/chunk_handle.h"
 #include "net/socket_stream.h"
@@ -189,7 +188,7 @@ protected:
 
   int                 m_sendPEXMask{0};
 
-  rak::timer          m_timeLastRead;
+  std::chrono::microseconds m_time_last_read{};
 
   DataBuffer          m_extensionMessage;
   uint32_t            m_extensionOffset;

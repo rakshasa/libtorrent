@@ -1,7 +1,6 @@
 #ifndef LIBTORRENT_DHT_NODE_H
 #define LIBTORRENT_DHT_NODE_H
 
-#include "globals.h"
 
 #include <rak/socket_address.h>
 

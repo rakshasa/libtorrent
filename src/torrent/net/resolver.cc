@@ -2,9 +2,11 @@
 
 #include "torrent/net/resolver.h"
 
-#include "globals.h"
+#include <cassert>
+
 #include "net/thread_net.h"
 #include "net/udns_resolver.h"
+#include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/thread.h"
 
@@ -14,7 +16,7 @@ void
 Resolver::init() {
   m_thread = torrent::thread_self();
 
-  assert(m_thread != nullptr);
+  assert(m_thread != nullptr && "Resolver::m_thread is nullptr.");
 }
 
 void

@@ -2,8 +2,9 @@
 
 #include "log_buffer.h"
 
+#include <algorithm>
+
 #include "log.h"
-#include "globals.h"
 
 namespace torrent {
 

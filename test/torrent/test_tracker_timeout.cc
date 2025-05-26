@@ -2,7 +2,6 @@
 
 #include "test/torrent/test_tracker_timeout.h"
 
-#include "globals.h"
 #include "test/torrent/test_tracker_list.h"
 #include "torrent/tracker_controller.h"
 

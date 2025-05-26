@@ -6,10 +6,10 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include "globals.h"
 #include "manager.h"
 #include "net/udns/udns.h"
 #include "torrent/common.h"
+#include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"

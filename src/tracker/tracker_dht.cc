@@ -13,7 +13,6 @@
 
 #include "tracker_dht.h"
 
-#include "globals.h"
 #include "manager.h"
 
 namespace torrent {

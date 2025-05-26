@@ -2,7 +2,6 @@
 
 #include "torrent/tracker_controller.h"
 
-#include "globals.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/tracker_list.h"

@@ -5,7 +5,6 @@
 #include <functional>
 #include <signal.h>
 
-#include "globals.h"
 #include "data/hash_queue.h"
 #include "data/hash_queue_node.h"
 #include "torrent/chunk_manager.h"
@@ -40,8 +39,6 @@ void
 test_hash_queue::setUp() {
   test_fixture::setUp();
 
-  CPPUNIT_ASSERT(torrent::taskScheduler.empty());
-
   set_create_poll();
   signal(SIGUSR1, [](auto){});
 }
@@ -49,7 +46,6 @@ test_hash_queue::setUp() {
 void
 test_hash_queue::tearDown() {
   torrent::ThreadDisk::destroy_thread();
-  torrent::taskScheduler.clear();
 
   test_fixture::tearDown();
 }

@@ -2,7 +2,6 @@
 
 #include "log.h"
 
-#include "globals.h"
 #include "torrent/exceptions.h"
 #include "torrent/hash_string.h"
 

@@ -10,8 +10,6 @@ libtorrent_la_LIBADD = \
 	libtorrent_other.la
 
 libtorrent_la_SOURCES = \
-	globals.cc \
-	globals.h \
 	manager.cc \
 	manager.h \
 	thread_main.cc \

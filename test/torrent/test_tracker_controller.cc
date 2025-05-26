@@ -2,8 +2,6 @@
 
 #include <functional>
 
-#include "globals.h"
-#include "rak/priority_queue_default.h"
 #include "test/torrent/test_tracker_controller.h"
 #include "test/torrent/test_tracker_list.h"
 #include "test/helpers/test_main_thread.h"
@@ -181,7 +179,7 @@ TestTrackerController::test_single_failure() {
   TEST_SINGLE_FAILURE_TIMEOUT(299);
   TEST_SINGLE_FAILURE_TIMEOUT(299);
 
-  // TODO: Test with cachedTime not rounded to second.
+  // TODO: Test with cached_time not rounded to second.
 
   TEST_SINGLE_END(0, 4);
 }

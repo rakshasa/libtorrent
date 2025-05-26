@@ -5,7 +5,6 @@
 #include <cassert>
 #include <stdio.h>
 
-#include "globals.h"
 #include "manager.h"
 #include "download/download_main.h"
 #include "net/throttle_list.h"

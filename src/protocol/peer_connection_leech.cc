@@ -81,7 +81,7 @@ PeerConnection<type>::update_interested() {
 template<Download::ConnectionType type>
 bool
 PeerConnection<type>::receive_keepalive() {
-  if (cachedTime - m_timeLastRead > rak::timer::from_seconds(240))
+  if (this_thread::cached_time() - m_time_last_read > 240s)
     return false;
 
   // There's no point in adding ourselves to the write poll if the
@@ -329,7 +329,7 @@ PeerConnection<type>::read_message() {
 template<Download::ConnectionType type>
 void
 PeerConnection<type>::event_read() {
-  m_timeLastRead = cachedTime;
+  m_time_last_read = this_thread::cached_time();
 
   // Need to make sure ProtocolBuffer::end() is pointing to the end of
   // the unread data, and that the unread data starts from the
@@ -338,7 +338,7 @@ PeerConnection<type>::event_read() {
   // the unused data.
 
   try {
-    
+
     // Normal read.
     //
     // We rarely will read zero bytes as the read of 64 bytes will
@@ -361,8 +361,9 @@ PeerConnection<type>::event_read() {
           m_down->buffer()->move_end(length);
         }
 
-        while (read_message());
-        
+        while (read_message())
+          ; // Do nothing.
+
         if (m_down->buffer()->size_end() == read_size) {
           m_down->buffer()->move_unused();
           break;

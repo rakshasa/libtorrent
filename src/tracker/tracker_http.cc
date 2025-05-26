@@ -22,7 +22,6 @@
 #include "torrent/utils/thread.h"
 #include "torrent/utils/uri_parser.h"
 
-#include "globals.h"
 #include "manager.h"
 
 #define LT_LOG(log_fmt, ...)                                            \

@@ -2,7 +2,6 @@
 
 #include "torrent/torrent.h"
 
-#include "globals.h"
 #include "manager.h"
 #include "thread_main.h"
 #include "data/file_manager.h"
@@ -68,8 +67,6 @@ void
 initialize() {
   if (manager != NULL)
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
-
-  cachedTime = rak::timer::current();
 
   instrumentation_initialize();
 

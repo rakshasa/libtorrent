@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "globals.h"
 #include "manager.h"
 #include "thread_main.h"
 #include "dht/dht_bucket.h"

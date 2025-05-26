@@ -2,7 +2,6 @@
 
 #include "test/torrent/test_tracker_list.h"
 
-#include "globals.h"
 #include "net/address_list.h"
 #include "torrent/http.h"
 #include "torrent/utils/uri_parser.h"
