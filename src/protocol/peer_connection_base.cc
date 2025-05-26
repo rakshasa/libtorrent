@@ -175,7 +175,7 @@ PeerConnectionBase::cleanup() {
   thread_main()->poll()->remove_write(this);
   thread_main()->poll()->remove_error(this);
   thread_main()->poll()->close(this);
-  
+
   manager->connection_manager()->dec_socket_count();
 
   get_fd().close();
@@ -207,7 +207,7 @@ PeerConnectionBase::receive_upload_choke(bool choke) {
 
   m_sendChoked = true;
   m_upChoke.set_unchoked(!choke);
-  m_upChoke.set_time_last_choke(cachedTime.usec());
+  m_upChoke.set_time_last_choke(this_thread::cached_time());
 
   if (choke) {
     m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - 1);
@@ -237,7 +237,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
   write_insert_poll_safe();
 
   m_downChoke.set_unchoked(!choke);
-  m_downChoke.set_time_last_choke(cachedTime.usec());
+  m_downChoke.set_time_last_choke(this_thread::cached_time());
 
   if (choke) {
     m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - 1);

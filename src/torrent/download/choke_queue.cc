@@ -1,8 +1,10 @@
 #include "config.h"
 
+#include "choke_queue.h"
+
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
-#include <functional>
 #include <numeric>
 
 #include "protocol/peer_connection_base.h"
@@ -10,8 +12,6 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/choke_status.h"
 #include "torrent/utils/log.h"
-
-#include "choke_queue.h"
 
 // TODO: Add a different logging category.
 #define LT_LOG_THIS(log_fmt, ...)                                       \
@@ -39,11 +39,8 @@ log_choke_changes_func_new(void* address, const char* title, int quota, int adju
 }
 
 choke_queue::~choke_queue() {
-  if (m_currently_unchoked != 0)
-    throw internal_error("choke_queue::~choke_queue() called but m_currentlyUnchoked != 0.");
-
-  if (m_currently_queued != 0)
-    throw internal_error("choke_queue::~choke_queue() called but m_currentlyQueued != 0.");
+  assert(m_currently_unchoked == 0 && "choke_queue::~choke_queue() called but m_currently_unchoked != 0.");
+  assert(m_currently_queued == 0 && "choke_queue::~choke_queue() called but m_currently_queued != 0.");
 }
 
 // 1  > 1
@@ -300,9 +297,10 @@ choke_queue::set_queued(PeerConnectionBase* pc, choke_status* base) {
   base->entry()->connection_queued(pc);
   modify_currently_queued(1);
 
-  if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke() > 0) &&
+  if (!is_full() &&
+      (m_flags & flag_unchoke_all_new || m_slotCanUnchoke() > 0) &&
       should_connection_unchoke(this, pc) &&
-      rak::timer(base->time_last_choke()) + rak::timer::from_seconds(10) < cachedTime) {
+      base->time_last_choke() + 10s < this_thread::cached_time()) {
     m_slotConnection(pc, false);
     m_slotUnchoke(1);
   }
@@ -360,15 +358,15 @@ choke_queue::set_not_snubbed(PeerConnectionBase* pc, choke_status* base) {
 
   if (base->unchoked())
     throw internal_error("choke_queue::set_not_snubbed(...) base->unchoked().");
-  
+
   base->entry()->connection_queued(pc);
   modify_currently_queued(1);
 
   if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke() > 0) &&
       should_connection_unchoke(this, pc) &&
-      rak::timer(base->time_last_choke()) + rak::timer::from_seconds(10) < cachedTime) {
-    m_slotConnection(pc, false);
+      base->time_last_choke() + 10s < this_thread::cached_time()) {
 
+    m_slotConnection(pc, false);
     m_slotUnchoke(1);
   }
 }
@@ -396,7 +394,7 @@ choke_queue::disconnected(PeerConnectionBase* pc, choke_status* base) {
 // No need to do any choking as the next choke balancing will take
 // care of things.
 void
-choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain* download, group_entry* base) {
+choke_queue::move_connections(choke_queue* src, choke_queue* dest, [[maybe_unused]] DownloadMain* download, group_entry* base) {
   if (src != NULL) {
     auto itr = std::find(src->m_group_container.begin(), src->m_group_container.end(), base);
 
@@ -669,7 +667,7 @@ calculate_upload_unchoke_seed(choke_queue::iterator first, choke_queue::iterator
 }
 
 //
-// New leeching choke algorithm that 
+// New leeching choke algorithm:
 //
 
 // Order 0: Normal
@@ -678,7 +676,7 @@ void
 calculate_choke_upload_leech_experimental(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     // Don't choke a peer that hasn't had time to unchoke us.
-    if (rak::timer(first->connection->up_choke()->time_last_choke()) + rak::timer::from_seconds(50) > cachedTime) {
+    if (first->connection->up_choke()->time_last_choke() + 50s > this_thread::cached_time()) {
       first->weight = 1 * choke_queue::order_base;
       first++;
       continue;
