@@ -100,6 +100,7 @@ test_signal_bitfield::test_multiple() {
 void
 test_signal_bitfield::test_threaded() {
   std::atomic_uint32_t marked_bitfield{0};
+
   auto thread = test_thread::create();
   // thread->set_test_flag(test_thread::test_flag_long_timeout);
 
@@ -122,7 +123,7 @@ test_signal_bitfield::test_threaded() {
     marked_bitfield &= ~uint32_t();
   }
 
-  thread->stop_thread();
+  thread->stop_thread_wait();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
