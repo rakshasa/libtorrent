@@ -35,7 +35,8 @@ ThrottleInternal::~ThrottleInternal() {
 void
 ThrottleInternal::enable() {
   m_throttleList->enable();
-  std::for_each(m_slave_list.begin(), m_slave_list.end(), [](auto* t) { t->m_throttleList->enable(); });
+  for (auto t : m_slave_list)
+    t->m_throttleList->enable();
 
   if (is_root()) {
     // We need to start the ticks, and make sure we set timeLastTick
@@ -48,7 +49,8 @@ ThrottleInternal::enable() {
 
 void
 ThrottleInternal::disable() {
-  std::for_each(m_slave_list.begin(), m_slave_list.end(), [](auto* t) { t->m_throttleList->disable(); });
+  for (auto t : m_slave_list)
+    t->m_throttleList->disable();
   m_throttleList->disable();
 
   if (is_root())
