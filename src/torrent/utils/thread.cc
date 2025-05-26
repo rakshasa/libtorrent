@@ -68,14 +68,9 @@ Thread::start_thread() {
 
 // Each thread needs to check flag_do_shutdown in call_events() and decide how to cleanly shut down.
 void
-Thread::stop_thread() {
+Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
   interrupt();
-}
-
-void
-Thread::stop_thread_wait() {
-  stop_thread();
 
   pthread_join(m_thread, NULL);
   assert(is_inactive());
