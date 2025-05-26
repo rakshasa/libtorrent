@@ -2,7 +2,7 @@
 #define LIBTORRENT_DHT_BUCKET_H
 
 #include <list>
-
+#include <vector>
 
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
