@@ -1,6 +1,6 @@
-#include "helpers/test_fixture.h"
+#include "helpers/test_main_thread.h"
 
-class test_hash_queue : public test_fixture {
+class test_hash_queue : public TestFixtureWithMainAndDiskThread {
   CPPUNIT_TEST_SUITE(test_hash_queue);
 
   CPPUNIT_TEST(test_single);
@@ -11,9 +11,6 @@ class test_hash_queue : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
-  void tearDown();
-
   void test_single();
   void test_multiple();
   void test_erase();

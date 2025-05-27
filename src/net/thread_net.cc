@@ -2,11 +2,8 @@
 
 #include "net/thread_net.h"
 
-#include <chrono>
-
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll.h"
 #include "torrent/net/resolver.h"
 #include "utils/instrumentation.h"
 
@@ -17,6 +14,7 @@ namespace torrent {
 ThreadNet* ThreadNet::m_thread_net{nullptr};
 
 ThreadNet::~ThreadNet() {
+  m_udns.reset();
   m_thread_net = nullptr;
 }
 
@@ -34,10 +32,6 @@ ThreadNet::thread_net() {
 
 void
 ThreadNet::init_thread() {
-  if (!Poll::slot_create_poll())
-    throw internal_error("ThreadNet::init_thread(): Poll::slot_create_poll() not valid.");
-
-  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_NET - INSTRUMENTATION_POLLING_DO_POLL;

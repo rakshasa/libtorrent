@@ -2,12 +2,15 @@
 
 #include "test_main_thread.h"
 
+#include <signal.h>
+
+#include "data/thread_disk.h"
 #include "test/helpers/mock_function.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll.h"
 #include "torrent/net/resolver.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
+#include "tracker/thread_tracker.h"
 
 std::unique_ptr<TestMainThread>
 TestMainThread::create() {
@@ -21,18 +24,8 @@ TestMainThread::create_with_mock() {
   return std::unique_ptr<TestMainThread>(new TestMainThread());
 }
 
-TestMainThread::TestMainThread() {}
-
-TestMainThread::~TestMainThread() {
-  m_self = nullptr;
-}
-
 void
 TestMainThread::init_thread() {
-  if (!torrent::Poll::slot_create_poll())
-    throw torrent::internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
-
-  m_poll = std::unique_ptr<torrent::Poll>(torrent::Poll::slot_create_poll()());
   m_resolver = std::make_unique<torrent::net::Resolver>();
   m_state = STATE_INITIALIZED;
 
@@ -48,14 +41,12 @@ TestMainThread::call_events() {
 
 std::chrono::microseconds
 TestMainThread::next_timeout() {
-  return std::chrono::microseconds(10min);
+  return 10min;
 }
 
 void
 TestFixtureWithMainThread::setUp() {
   test_fixture::setUp();
-
-  set_create_poll();
 
   m_main_thread = TestMainThread::create();
   m_main_thread->init_thread();
@@ -69,10 +60,34 @@ TestFixtureWithMainThread::tearDown() {
 }
 
 void
-TestFixtureWithMainAndTrackerThread::setUp() {
+TestFixtureWithMainAndDiskThread::setUp() {
   test_fixture::setUp();
 
-  set_create_poll();
+  m_main_thread = TestMainThread::create();
+  m_main_thread->init_thread();
+
+  // m_hash_check_queue.slot_chunk_done() binds to main_thread().
+
+  torrent::ThreadDisk::create_thread();
+  torrent::thread_disk()->init_thread();
+  torrent::thread_disk()->start_thread();
+
+  signal(SIGUSR1, [](auto){});
+}
+
+void
+TestFixtureWithMainAndDiskThread::tearDown() {
+  torrent::thread_disk()->stop_thread_wait();
+  delete torrent::thread_disk();
+
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}
+
+void
+TestFixtureWithMainAndTrackerThread::setUp() {
+  test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
   m_main_thread->init_thread();
@@ -87,17 +102,17 @@ TestFixtureWithMainAndTrackerThread::setUp() {
 
 void
 TestFixtureWithMainAndTrackerThread::tearDown() {
-  torrent::thread_tracker()->destroy_thread();
+  torrent::thread_tracker()->stop_thread_wait();
+  delete torrent::thread_tracker();
 
   m_main_thread.reset();
+
   test_fixture::tearDown();
 }
 
 void
 TestFixtureWithMockAndMainThread::setUp() {
   test_fixture::setUp();
-
-  set_create_poll();
 
   m_main_thread = TestMainThread::create_with_mock();
   m_main_thread->init_thread();
@@ -106,6 +121,7 @@ TestFixtureWithMockAndMainThread::setUp() {
 void
 TestFixtureWithMockAndMainThread::tearDown() {
   m_main_thread.reset();
+
   test_fixture::tearDown();
 }
 

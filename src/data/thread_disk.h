@@ -12,7 +12,6 @@ public:
   ~ThreadDisk() override;
 
   static void        create_thread();
-  static void        destroy_thread();
   static ThreadDisk* thread_disk();
 
   const char*     name() const override { return "rtorrent disk"; }

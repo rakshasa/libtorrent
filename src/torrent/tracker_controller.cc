@@ -46,8 +46,8 @@ TrackerController::current_send_event() const {
   }
 }
 
-TrackerController::TrackerController(TrackerList* trackers) :
-    m_tracker_list(trackers),
+TrackerController::TrackerController(TrackerList* trackers)
+  : m_tracker_list(trackers),
     m_private(new tracker_controller_private) {
 
   m_private->task_timeout.slot() = [this] { do_timeout(); };
@@ -57,8 +57,6 @@ TrackerController::TrackerController(TrackerList* trackers) :
 TrackerController::~TrackerController() {
   this_thread::scheduler()->erase(&m_private->task_timeout);
   this_thread::scheduler()->erase(&m_private->task_scrape);
-
-  delete m_private;
 }
 
 bool

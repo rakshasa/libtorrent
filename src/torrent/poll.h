@@ -7,12 +7,11 @@
 
 namespace torrent {
 
-class Event;
 class PollInternal;
 
 class LIBTORRENT_EXPORT Poll {
 public:
-  static Poll*        create(int max_open_sockets);
+  static std::unique_ptr<Poll> create();
 
   ~Poll();
 
@@ -51,19 +50,13 @@ public:
 
   // Add one for HUP? Or would that be in event?
 
-  // TODO: Remove.
-  static auto&        slot_create_poll() { return m_slot_create_poll; }
-
 private:
   Poll() = default;
-
   Poll(const Poll&) = delete;
   Poll& operator=(const Poll&) = delete;
 
-  int                 poll(int msec);
+  int                 poll(int timeout_usec);
   unsigned int        process();
-
-  static std::function<Poll*()> m_slot_create_poll;
 
   std::unique_ptr<PollInternal> m_internal;
 };

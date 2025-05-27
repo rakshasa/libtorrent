@@ -23,8 +23,6 @@
 
 namespace torrent {
 
-std::function<Poll*()> Poll::m_slot_create_poll;
-
 class PollInternal {
 public:
   using Table = std::vector<std::pair<uint32_t, Event*>>;
@@ -101,24 +99,30 @@ PollInternal::modify(Event* event, unsigned short op, short mask) {
   EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
 }
 
-// TODO: Use unique_ptr
-Poll*
-Poll::create(int max_open_sockets) {
+std::unique_ptr<Poll>
+Poll::create() {
+  auto socket_open_max = sysconf(_SC_OPEN_MAX);
+
+  if (socket_open_max == -1)
+    throw internal_error("Poll::create(): sysconf(_SC_OPEN_MAX) failed: " + std::string(std::strerror(errno)));
+
   int fd = kqueue();
 
   if (fd == -1)
     return nullptr;
 
   auto poll = new Poll();
-  poll->m_internal = std::make_unique<PollInternal>();
 
-  poll->m_internal->m_table.resize(max_open_sockets);
+  poll->m_internal = std::make_unique<PollInternal>();
+  poll->m_internal->m_table.resize(socket_open_max);
   poll->m_internal->m_fd = fd;
   poll->m_internal->m_max_events = 1024;
   poll->m_internal->m_events = std::make_unique<struct kevent[]>(poll->m_internal->m_max_events);
-  poll->m_internal->m_changes = std::make_unique<struct kevent[]>(max_open_sockets);
 
-  return poll;
+  // TODO: Dynamically resize.
+  poll->m_internal->m_changes = std::make_unique<struct kevent[]>(socket_open_max);
+
+  return std::unique_ptr<Poll>(poll);
 }
 
 Poll::~Poll() {
@@ -129,7 +133,7 @@ Poll::~Poll() {
 
 unsigned int
 Poll::do_poll(int64_t timeout_usec) {
-  int status = poll((timeout_usec + 999 + 10) / 1000);
+  int status = poll(timeout_usec);
 
   if (status == -1) {
     if (errno != EINTR)
@@ -142,8 +146,8 @@ Poll::do_poll(int64_t timeout_usec) {
 }
 
 int
-Poll::poll(int msec) {
-  timespec timeout = { msec / 1000, (msec % 1000) * 1000000 };
+Poll::poll(int timeout_usec) {
+  timespec timeout = { timeout_usec / 1000000, (timeout_usec % 1000000) * 1000 };
 
   int nfds = ::kevent(m_internal->m_fd,
                       m_internal->m_changes.get(),

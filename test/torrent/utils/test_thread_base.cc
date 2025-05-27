@@ -22,7 +22,7 @@ test_thread_base::test_basic() {
   CPPUNIT_ASSERT(thread->flags() == 0);
 
   CPPUNIT_ASSERT(!thread->is_active());
-  CPPUNIT_ASSERT(thread->poll() == NULL);
+  CPPUNIT_ASSERT(thread->poll() != nullptr);
 
   // Check active...
 }

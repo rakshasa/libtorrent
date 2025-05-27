@@ -22,8 +22,6 @@
 
 namespace torrent {
 
-std::function<Poll*()> Poll::m_slot_create_poll;
-
 class PollInternal {
 public:
   using Table = std::vector<std::pair<uint32_t, Event*>>;
@@ -99,23 +97,27 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
   }
 }
 
-// TODO: Use unique_ptr
-Poll*
-Poll::create(int max_open_sockets) {
-  int fd = epoll_create(max_open_sockets);
+std::unique_ptr<Poll>
+Poll::create() {
+  auto socket_open_max = sysconf(_SC_OPEN_MAX);
+
+  if (socket_open_max == -1)
+    throw internal_error("Poll::create(): sysconf(_SC_OPEN_MAX) failed: " + std::string(std::strerror(errno)));
+
+  int fd = epoll_create(socket_open_max);
 
   if (fd == -1)
     return nullptr;
 
   auto poll = new Poll();
-  poll->m_internal = std::make_unique<PollInternal>();
 
-  poll->m_internal->m_table.resize(max_open_sockets);
+  poll->m_internal = std::make_unique<PollInternal>();
+  poll->m_internal->m_table.resize(socket_open_max);
   poll->m_internal->m_fd = fd;
   poll->m_internal->m_max_events = 1024;
   poll->m_internal->m_events = std::make_unique<struct epoll_event[]>(poll->m_internal->m_max_events);
 
-  return poll;
+  return std::unique_ptr<Poll>(poll);
 }
 
 Poll::~Poll() {
@@ -126,7 +128,7 @@ Poll::~Poll() {
 
 unsigned int
 Poll::do_poll(int64_t timeout_usec) {
-  int status = poll((timeout_usec + 999 + 10) / 1000);
+  int status = poll(timeout_usec);
 
   if (status == -1) {
     if (errno != EINTR)
@@ -139,8 +141,11 @@ Poll::do_poll(int64_t timeout_usec) {
 }
 
 int
-Poll::poll(int msec) {
-  int nfds = ::epoll_wait(m_internal->m_fd, m_internal->m_events.get(), m_internal->m_max_events, msec);
+Poll::poll(int timeout_usec) {
+  int nfds = ::epoll_wait(m_internal->m_fd,
+                          m_internal->m_events.get(),
+                          m_internal->m_max_events,
+                          timeout_usec / 1000);
 
   if (nfds == -1)
     return -1;

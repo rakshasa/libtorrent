@@ -318,6 +318,7 @@ TestTrackerController::test_send_task_timeout() {
 void
 TestTrackerController::test_send_close_on_enable() {
   TRACKER_CONTROLLER_SETUP();
+
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(0, tracker_2);
@@ -334,8 +335,6 @@ TestTrackerController::test_send_close_on_enable() {
   CPPUNIT_ASSERT(!tracker_1.is_busy());
   CPPUNIT_ASSERT(!tracker_2.is_busy());
   CPPUNIT_ASSERT(tracker_3.is_busy());
-
-  TRACKER_CONTROLLER_CLEANUP();
 }
 
 void
@@ -599,6 +598,7 @@ TestTrackerController::test_disable_tracker() {
 void
 TestTrackerController::test_new_peers() {
   TRACKER_CONTROLLER_SETUP();
+
   TRACKER_INSERT(0, tracker_0_0);
 
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
@@ -613,8 +613,6 @@ TestTrackerController::test_new_peers() {
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success(20));
   CPPUNIT_ASSERT(tracker_0_0.state().latest_new_peers() == 20);
-
-  TRACKER_CONTROLLER_CLEANUP();
 }
 
 // Add new function for finding the first tracker that will time out,

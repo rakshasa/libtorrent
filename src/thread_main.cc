@@ -3,11 +3,8 @@
 #include "thread_main.h"
 
 #include "data/hash_queue.h"
-#include "data/thread_disk.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll.h"
 #include "torrent/net/resolver.h"
-#include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
@@ -35,11 +32,7 @@ ThreadMain::thread_main() {
 
 void
 ThreadMain::init_thread() {
-  if (!Poll::slot_create_poll())
-    throw internal_error("ThreadMain::init_thread(): Poll::slot_create_poll() not valid.");
-
   m_resolver = std::make_unique<net::Resolver>();
-  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;

@@ -32,8 +32,6 @@ TestTrackerListFeatures::test_new_peers() {
   tracker_list.clear_stats();
   CPPUNIT_ASSERT(tracker_0_0.state().latest_new_peers() == 0);
   CPPUNIT_ASSERT(tracker_0_0.state().latest_sum_peers() == 0);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 // test last_connect timer.
@@ -77,8 +75,6 @@ TestTrackerListFeatures::test_has_active() {
   tracker_list.send_scrape(tracker_1_0);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -124,8 +120,6 @@ TestTrackerListFeatures::test_find_next_to_request() {
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
   tracker_1_worker->set_success(1, torrent::this_thread::cached_seconds().count() - (tracker_1.state().normal_interval() - 1));
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -154,8 +148,6 @@ TestTrackerListFeatures::test_find_next_to_request_groups() {
 
   tracker_1_worker->set_failed(0, torrent::this_thread::cached_seconds().count() - 0);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -193,8 +185,6 @@ TestTrackerListFeatures::test_count_active() {
 
   tracker_1_0_worker->trigger_success();
   CPPUNIT_ASSERT(TrackerTest::count_active(&tracker_list) == 0);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 // Add separate functions for sending state to multiple trackers...

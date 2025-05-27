@@ -70,7 +70,6 @@ struct RequestListGuard {
   request_list->set_peer_chunks(peer_chunks.get());
 
 #define SETUP_ALL(fpc_prefix)                       \
-  set_create_poll();                                \
   auto test_main_thread = TestMainThread::create(); \
   test_main_thread->init_thread();                  \
   test_main_thread->test_set_cached_time(0s);       \
