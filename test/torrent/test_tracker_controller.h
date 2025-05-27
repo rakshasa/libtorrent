@@ -89,9 +89,6 @@ public:
   tracker_list.slot_tracker_enabled()  = std::bind(&torrent::TrackerController::receive_tracker_enabled, &tracker_controller, std::placeholders::_1); \
   tracker_list.slot_tracker_disabled() = std::bind(&torrent::TrackerController::receive_tracker_disabled, &tracker_controller, std::placeholders::_1);
 
-#define TRACKER_CONTROLLER_CLEANUP()            \
-  CLEANUP_THREAD_TRACKER();
-
 #define TEST_SINGLE_BEGIN()                                             \
   TRACKER_CONTROLLER_SETUP();                                           \
   TRACKER_INSERT(0, tracker_0_0);                                       \
@@ -103,8 +100,7 @@ public:
   tracker_controller.disable();                                         \
   CPPUNIT_ASSERT(!tracker_list.has_active());                           \
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
-                 failure_counter == failure_counter);                   \
-  TRACKER_CONTROLLER_CLEANUP();
+                 failure_counter == failure_counter);
 
 #define TEST_SEND_SINGLE_BEGIN(event_name)                              \
   tracker_controller.send_##event_name##_event();                       \
@@ -146,8 +142,7 @@ public:
   tracker_controller.disable();                                         \
   CPPUNIT_ASSERT(!tracker_list.has_active());                           \
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
-                 failure_counter == failed);                            \
-  TRACKER_CONTROLLER_CLEANUP();
+                 failure_counter == failed);
 
 #define TEST_GOTO_NEXT_SCRAPE(assumed_scrape)                           \
   CPPUNIT_ASSERT(tracker_controller.is_scrape_queued());                \

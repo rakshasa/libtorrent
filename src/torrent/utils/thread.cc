@@ -31,6 +31,7 @@ public:
 
 Thread::Thread() :
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+  m_poll(Poll::create()),
   m_scheduler(std::make_unique<Scheduler>()) {
 
   std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
@@ -40,10 +41,7 @@ Thread::Thread() :
 }
 
 Thread::~Thread() {
-  // Disown m_poll instead of deleting it as we don't properly clean up all the sockets.
-  m_poll.release();
-
-  // TODO: Set m_self to nullptr.
+  m_self = nullptr;
 }
 
 Thread*

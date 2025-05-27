@@ -66,21 +66,6 @@ verify_hash(const done_chunks_type* done_chunks, int index, const torrent::HashS
 }
 
 void
-test_hash_check_queue::setUp() {
-  test_fixture::setUp();
-
-  set_create_poll();
-  signal(SIGUSR1, [](auto){});
-}
-
-void
-test_hash_check_queue::tearDown() {
-  torrent::ThreadDisk::destroy_thread();
-
-  test_fixture::tearDown();
-}
-
-void
 test_hash_check_queue::test_single() {
   SETUP_CHUNK_LIST();
   torrent::HashCheckQueue hash_queue;
@@ -176,7 +161,6 @@ test_hash_check_queue::test_erase() {
 void
 test_hash_check_queue::test_thread_interrupt() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD_DISK();
 
   torrent::HashCheckQueue* hash_queue = torrent::thread_disk()->hash_check_queue();
 
@@ -197,6 +181,5 @@ test_hash_check_queue::test_thread_interrupt() {
     chunk_list->release(&handle_0);
   }
 
-  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }

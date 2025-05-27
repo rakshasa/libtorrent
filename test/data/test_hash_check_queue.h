@@ -6,10 +6,10 @@
 
 #include "data/hash_queue_node.h"
 #include "data/hash_check_queue.h"
-#include "helpers/test_fixture.h"
+#include "helpers/test_main_thread.h"
 #include "torrent/hash_string.h"
 
-class test_hash_check_queue : public test_fixture {
+class test_hash_check_queue : public TestFixtureWithMainAndDiskThread {
   CPPUNIT_TEST_SUITE(test_hash_check_queue);
 
   CPPUNIT_TEST(test_single);
@@ -21,9 +21,6 @@ class test_hash_check_queue : public test_fixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
-  void tearDown();
-
   void test_single();
   void test_multiple();
   void test_erase();

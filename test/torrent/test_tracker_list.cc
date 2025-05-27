@@ -31,8 +31,6 @@ TestTrackerList::test_basic() {
 
   auto usable_itr = std::find_if(tracker_list.begin(), tracker_list.end(), std::mem_fn(&torrent::tracker::Tracker::is_usable));
   CPPUNIT_ASSERT(usable_itr != tracker_list.end());
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -60,8 +58,6 @@ TestTrackerList::test_enable() {
   tracker_0.enable(); tracker_1.enable();
   tracker_0.enable(); tracker_1.enable();
   CPPUNIT_ASSERT(enabled_counter == 4 && disabled_counter == 2);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -108,8 +104,6 @@ TestTrackerList::test_close() {
   CPPUNIT_ASSERT(!tracker_1.is_busy());
   CPPUNIT_ASSERT(!tracker_2.is_busy());
   CPPUNIT_ASSERT(tracker_3.is_busy());
-
-  TRACKER_LIST_CLEANUP();
 }
 
 // Test clear.
@@ -129,8 +123,6 @@ TestTrackerList::test_tracker_flags() {
   CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[2]) & 0xf) == torrent::tracker::TrackerState::flag_enabled);
   CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[3]) & 0xf) == torrent::tracker::TrackerState::flag_extra_tracker);
   CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[4]) & 0xf) == (torrent::tracker::TrackerState::flag_enabled | torrent::tracker::TrackerState::flag_extra_tracker));
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -151,8 +143,6 @@ TestTrackerList::test_find_url() {
 
   CPPUNIT_ASSERT(tracker_list.find_url("http://3") != tracker_list.end());
   CPPUNIT_ASSERT(*tracker_list.find_url("http://3") == tracker_list[2]);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -189,8 +179,6 @@ TestTrackerList::test_can_scrape() {
 
   tracker_list.insert_url(0, "http://example.com/x%064announce");
   CPPUNIT_ASSERT(!tracker_list.back().is_scrapable());
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -225,8 +213,6 @@ TestTrackerList::test_single_success() {
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
   CPPUNIT_ASSERT(tracker_0.state().success_counter() == 1);
   CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -253,8 +239,6 @@ TestTrackerList::test_single_failure() {
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 1);
   CPPUNIT_ASSERT(tracker_0.state().success_counter() == 1);
   CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -281,8 +265,6 @@ TestTrackerList::test_single_closing() {
   CPPUNIT_ASSERT(!tracker_0_worker->is_open());
   CPPUNIT_ASSERT(tracker_0.state().success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -340,8 +322,6 @@ TestTrackerList::test_multiple_success() {
   CPPUNIT_ASSERT(!tracker_1_1.is_busy());
 
   CPPUNIT_ASSERT(success_counter == 3 && failure_counter == 0);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -373,8 +353,6 @@ TestTrackerList::test_scrape_success() {
   CPPUNIT_ASSERT(tracker_0.state().success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
   CPPUNIT_ASSERT(tracker_0.state().scrape_counter() == 1);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 void
@@ -399,8 +377,6 @@ TestTrackerList::test_scrape_failure() {
   CPPUNIT_ASSERT(tracker_0.state().success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
   CPPUNIT_ASSERT(tracker_0.state().scrape_counter() == 0);
-
-  TRACKER_LIST_CLEANUP();
 }
 
 bool
@@ -491,6 +467,4 @@ TestTrackerList::test_has_active() {
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "000000", false));
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "000000", true));
-
-  TRACKER_LIST_CLEANUP();
 }

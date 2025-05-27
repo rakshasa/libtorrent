@@ -3,7 +3,6 @@
 #include "test_hash_queue.h"
 
 #include <functional>
-#include <signal.h>
 
 #include "data/hash_queue.h"
 #include "data/hash_queue_node.h"
@@ -35,21 +34,6 @@ check_for_chunk_done(torrent::HashQueue* hash_queue, done_chunks_type* done_chun
   return done_chunks->find(index) != done_chunks->end();
 }
 
-void
-test_hash_queue::setUp() {
-  test_fixture::setUp();
-
-  set_create_poll();
-  signal(SIGUSR1, [](auto){});
-}
-
-void
-test_hash_queue::tearDown() {
-  torrent::ThreadDisk::destroy_thread();
-
-  test_fixture::tearDown();
-}
-
 static void
 fill_queue() {
 }
@@ -66,7 +50,6 @@ fill_queue() {
 void
 test_hash_queue::test_single() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD_DISK();
   SETUP_HASH_QUEUE();
 
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
@@ -86,14 +69,12 @@ test_hash_queue::test_single() {
   CPPUNIT_ASSERT(torrent::thread_disk()->hash_check_queue()->empty());
   delete hash_queue;
 
-  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 
 void
 test_hash_queue::test_multiple() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD_DISK();
   SETUP_HASH_QUEUE();
 
   for (unsigned int i = 0; i < 20; i++) {
@@ -113,14 +94,12 @@ test_hash_queue::test_multiple() {
   CPPUNIT_ASSERT(torrent::thread_disk()->hash_check_queue()->empty());
   delete hash_queue;
 
-  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 
 void
 test_hash_queue::test_erase() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD_DISK();
   SETUP_HASH_QUEUE();
 
   for (unsigned int i = 0; i < 20; i++) {
@@ -136,14 +115,12 @@ test_hash_queue::test_erase() {
   CPPUNIT_ASSERT(torrent::thread_disk()->hash_check_queue()->empty());
   delete hash_queue;
 
-  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 
 void
 test_hash_queue::test_erase_stress() {
   SETUP_CHUNK_LIST();
-  SETUP_THREAD_DISK();
   SETUP_HASH_QUEUE();
 
   for (unsigned int i = 0; i < 1000; i++) {
@@ -161,7 +138,6 @@ test_hash_queue::test_erase_stress() {
   CPPUNIT_ASSERT(torrent::thread_disk()->hash_check_queue()->empty());
   delete hash_queue;
 
-  CLEANUP_THREAD_DISK();
   CLEANUP_CHUNK_LIST();
 }
 
