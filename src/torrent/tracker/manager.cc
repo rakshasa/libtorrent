@@ -32,7 +32,7 @@ Manager::Manager(utils::Thread* main_thread, utils::Thread* tracker_thread) :
 }
 
 TrackerControllerWrapper
-Manager::add_controller(DownloadInfo* download_info, TrackerController* controller) {
+Manager::add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerController> controller) {
   assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
   if (download_info->hash() == HashString::new_zero())
@@ -40,7 +40,7 @@ Manager::add_controller(DownloadInfo* download_info, TrackerController* controll
 
   auto lock = std::scoped_lock(m_lock);
 
-  auto wrapper = TrackerControllerWrapper(download_info->hash(), std::shared_ptr<TrackerController>(controller));
+  auto wrapper = TrackerControllerWrapper(download_info->hash(), std::move(controller));
   auto result  = m_controllers.insert(wrapper);
 
   if (!result.second)
