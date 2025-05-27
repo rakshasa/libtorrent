@@ -92,7 +92,7 @@ DownloadMain::~DownloadMain() {
 
 void
 DownloadMain::post_initialize() {
-  auto tracker_controller = new TrackerController(m_tracker_list);
+  auto tracker_controller = std::make_shared<TrackerController>(m_tracker_list);
 
   m_tracker_list->slot_success()          = [tracker_controller](const auto& t, auto al) { return tracker_controller->receive_success(t, al); };
   m_tracker_list->slot_failure()          = [tracker_controller](const auto& t, const auto& str) { tracker_controller->receive_failure(t, str); };
@@ -101,7 +101,7 @@ DownloadMain::post_initialize() {
   m_tracker_list->slot_tracker_disabled() = [tracker_controller](const auto& t) { tracker_controller->receive_tracker_disabled(t); };
 
   // TODO: Move tracker list to manager, and add the proper barrier for slots.
-  m_tracker_controller = thread_tracker()->tracker_manager()->add_controller(info(), tracker_controller);
+  m_tracker_controller = thread_tracker()->tracker_manager()->add_controller(info(), std::move(tracker_controller));
 }
 
 std::pair<ThrottleList*, ThrottleList*>

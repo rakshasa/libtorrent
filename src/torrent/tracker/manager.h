@@ -29,7 +29,7 @@ protected:
 
   // Main thread:
 
-  TrackerControllerWrapper add_controller(DownloadInfo* download_info, TrackerController* controller);
+  TrackerControllerWrapper add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerController> controller);
   void                     remove_controller(TrackerControllerWrapper controller);
 
   void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
