@@ -112,7 +112,7 @@ Poll::create() {
   auto poll = new Poll();
 
   poll->m_internal = std::make_unique<PollInternal>();
-  poll->m_internal->m_table.resize(max_open_sockets);
+  poll->m_internal->m_table.resize(socket_open_max);
   poll->m_internal->m_fd = fd;
   poll->m_internal->m_max_events = 1024;
   poll->m_internal->m_events = std::make_unique<struct epoll_event[]>(poll->m_internal->m_max_events);
