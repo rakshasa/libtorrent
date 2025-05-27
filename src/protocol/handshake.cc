@@ -983,10 +983,10 @@ Handshake::prepare_key_plus_pad() {
   m_writeBuffer.move_end(96);
 
   const int length = random() % enc_pad_size;
-  char pad[length];
+  auto pad = std::make_unique<char[]>(length);
 
-  std::generate_n(pad, length, &::random);
-  m_writeBuffer.write_len(pad, length);
+  std::generate_n(pad.get(), length, &::random);
+  m_writeBuffer.write_len(pad.get(), length);
 }
 
 void

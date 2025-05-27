@@ -5,6 +5,7 @@
 #include <cinttypes>
 #include <sys/mman.h>
 #include <cstddef>
+#include <memory>
 
 namespace torrent {
 
@@ -122,11 +123,13 @@ MemoryChunk::size_aligned() const {
 inline bool
 MemoryChunk::is_incore(uint32_t offset, uint32_t length) {
   const uint32_t size = pages_touched(offset, length);
-  char buf[size];
+  auto buf = std::make_unique<char[]>(size);
+  auto begin = buf.get();
+  auto end = begin + size;
 
-  incore(buf, offset, length);
+  incore(begin, offset, length);
 
-  return std::find(buf, buf + size, 0) == buf + size;
+  return std::find(begin, end, 0) == end;
 }
 
 }

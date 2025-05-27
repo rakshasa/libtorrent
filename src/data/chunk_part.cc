@@ -49,11 +49,13 @@ ChunkPart::incore_length(uint32_t pos, uint32_t length) {
     throw internal_error("ChunkPart::incore_length(...) got invalid position");
 
   const uint32_t touched = m_chunk.pages_touched(pos, length);
-  char buf[touched];
+  auto buf = std::make_unique<char[]>(touched);
+  auto begin = buf.get();
+  auto end = buf.get() + touched;
 
-  m_chunk.incore(buf, pos, length);
+  m_chunk.incore(begin, pos, length);
 
-  uint32_t dist = std::distance(buf, std::find(buf, buf + touched, 0));
+  uint32_t dist = std::distance(begin, std::find(begin, end, 0));
 
   // This doesn't properly account for alignment when calculating the length.
   return std::min(dist ? (dist * m_chunk.page_size() - m_chunk.page_align()) : 0,
