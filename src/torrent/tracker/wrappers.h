@@ -23,8 +23,6 @@ public:
   TrackerControllerWrapper() = default;
   TrackerControllerWrapper(const HashString& info_hash, std::shared_ptr<TrackerController>&& controller);
 
-  const HashString&   info_hash() const { return m_info_hash; }
-
   bool                is_valid() const  { return m_ptr != nullptr; }
 
   bool                is_active() const;
@@ -32,11 +30,35 @@ public:
   bool                is_failure_mode() const;
   bool                is_promiscuous_mode() const;
 
+  bool                has_active_trackers() const;
+  bool                has_active_trackers_not_scrape() const;
+  bool                has_usable_trackers() const;
+
+  const HashString&   info_hash() const { return m_info_hash; }
+
+  uint32_t            key() const;
+
+  int32_t             numwant() const;
+  void                set_numwant(int32_t n);
+
+  uint32_t            size() const;
+  Tracker             at(uint32_t index) const;
+
+  void                add_extra_tracker(uint32_t group, const std::string& url);
+
   uint32_t            seconds_to_next_timeout() const;
   uint32_t            seconds_to_next_scrape() const;
 
   void                manual_request(bool request_now);
   void                scrape_request(uint32_t seconds_to_request);
+
+  void                cycle_group(uint32_t group);
+
+  // Algorithms:
+  Tracker             find_if(const std::function<bool(Tracker&)>& f);
+  void                for_each(const std::function<void(Tracker&)>& f);
+  Tracker             c_find_if(const std::function<bool(const Tracker&)>& f) const;
+  void                c_for_each(const std::function<void(const Tracker&)>& f) const;
 
   bool operator<(const TrackerControllerWrapper& rhs) const;
 
