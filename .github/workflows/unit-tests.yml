@@ -1,6 +1,18 @@
 name: Unit tests
 
-on: pull_request
+on:
+  pull_request:
+    inputs:
+      limited_scope:
+        description: 'Limit the variety of test environments'
+        required: false
+        default: true
+  workflow_dispatch:
+    inputs:
+      limited_scope:
+        description: 'Limit the variety of test environments'
+        required: false
+        default: true
 
 jobs:
   Ubuntu:
@@ -36,7 +48,7 @@ jobs:
           make check
 
   DragonflyBSD:
-    if: ${{ false }} # Disabled to reduce GitHub resource usage
+    if: github.event.inputs.limited_scope == false
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -52,7 +64,7 @@ jobs:
             make check
 
   FreeBSD:
-    if: ${{ false }} # Keeps entering infinite VM boot loop
+    if: github.event.inputs.limited_scope == false
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -99,7 +111,7 @@ jobs:
             make check
 
   OmniOS:
-    if: ${{ false }} # Disabled to reduce GitHub resource usage
+    if: github.event.inputs.limited_scope == false
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
