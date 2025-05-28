@@ -38,7 +38,7 @@ jobs:
           make check
 
   DragonflyBSD:
-    if: false
+    if: true
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +54,7 @@ jobs:
             make check
 
   FreeBSD:
-    if: false
+    if: true
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -101,7 +101,7 @@ jobs:
             make check
 
   OmniOS:
-    if: false
+    if: true
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
