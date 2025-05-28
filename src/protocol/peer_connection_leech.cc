@@ -3,15 +3,14 @@
 #include <cstring>
 #include <sstream>
 
-#include "manager.h"
-#include "data/chunk_list_node.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
+#include "manager.h"
 #include "rak/string_manip.h"
-#include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
+#include "torrent/download_info.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/tracker/dht_controller.h"

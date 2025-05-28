@@ -5,7 +5,6 @@
 #include <cassert>
 #include <cstring>
 #include <mutex>
-#include <csignal>
 #include <unistd.h>
 
 #include "torrent/exceptions.h"

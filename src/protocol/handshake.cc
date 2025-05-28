@@ -5,19 +5,18 @@
 #include <cassert>
 #include <cstdio>
 
-#include "manager.h"
 #include "download/download_main.h"
+#include "manager.h"
 #include "net/throttle_list.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/download_info.h"
-#include "torrent/exceptions.h"
 #include "torrent/error.h"
+#include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
 #include "utils/diffie_hellman.h"
 
 #define LT_LOG(log_fmt, ...)                                            \

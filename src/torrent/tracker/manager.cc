@@ -1,19 +1,17 @@
 #include "config.h"
 
-#include "torrent/tracker/manager.h"
-
 #include <cassert>
 #include <utility>
 
-#include "src/manager.h"
-#include "tracker/tracker_worker.h"
-#include "torrent/exceptions.h"
 #include "torrent/download_info.h"
+#include "torrent/exceptions.h"
+#include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
 #include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
+#include "tracker/tracker_worker.h"
 
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
   lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker::manager", log_fmt, __VA_ARGS__);

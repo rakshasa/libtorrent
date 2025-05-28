@@ -3,20 +3,15 @@
 #include "dht_router.h"
 
 #include <cassert>
-#include <sstream>
 
 #include "dht_bucket.h"
 #include "dht_tracker.h"
 #include "dht_transaction.h"
-#include "manager.h"
-#include "torrent/connection_manager.h"
-#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
 #include "utils/sha1.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \

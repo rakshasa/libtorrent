@@ -1,9 +1,5 @@
 #include "config.h"
 
-#include <algorithm>
-#include <cinttypes>
-
-#include "torrent/exceptions.h"
 #include "torrent/bitfield.h"
 #include "torrent/data/block.h"
 #include "torrent/data/block_list.h"

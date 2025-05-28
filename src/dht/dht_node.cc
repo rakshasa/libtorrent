@@ -1,6 +1,5 @@
 #include "config.h"
 
-#include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/utils/log.h"
 

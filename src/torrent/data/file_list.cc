@@ -5,13 +5,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <functional>
 #include <limits>
 #include <memory>
-#include <set>
 #include <rak/error_number.h>
 #include <rak/file_stat.h>
 #include <rak/fs_stat.h>
+#include <set>
 
 #include "manager.h"
 #include "piece.h"

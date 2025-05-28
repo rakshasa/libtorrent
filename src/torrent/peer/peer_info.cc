@@ -36,11 +36,8 @@
 
 #include "config.h"
 
-#include <cstring>
 #include <rak/socket_address.h>
 
-#include "protocol/extensions.h"
-#include "protocol/peer_connection_base.h"
 #include "utils/instrumentation.h"
 
 #include "exceptions.h"

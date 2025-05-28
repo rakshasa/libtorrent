@@ -4,7 +4,6 @@
 
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/resolver.h"
 #include "utils/instrumentation.h"
 
 using namespace std::chrono_literals;

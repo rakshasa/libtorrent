@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <algorithm>
-#include <functional>
 #include <rak/string_manip.h>
 
 #include "client_list.h"

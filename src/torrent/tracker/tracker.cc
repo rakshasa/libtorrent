@@ -2,11 +2,7 @@
 
 #include "torrent/tracker/tracker.h"
 
-#include "torrent/exceptions.h"
-#include "tracker/tracker_list.h"
 #include "tracker/tracker_worker.h"
-
-#include <algorithm>
 
 namespace torrent::tracker {
 

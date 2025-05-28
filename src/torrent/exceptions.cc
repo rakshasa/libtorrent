@@ -1,10 +1,8 @@
 #include "config.h"
 
-#include <cerrno>
 #include <cstring>
 #include <netdb.h>
 #include <sstream>
-#include <unistd.h>
 
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>

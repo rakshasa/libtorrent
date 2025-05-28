@@ -2,9 +2,6 @@
 
 #include "socket_listen.h"
 
-#include <algorithm>
-
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/random.h"

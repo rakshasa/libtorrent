@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <algorithm>
-#include <cstring>
 
 #include "object.h"
 #include "object_stream.h"
