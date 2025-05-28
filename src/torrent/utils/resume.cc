@@ -1,26 +1,25 @@
 #include "config.h"
 
+#include "resume.h"
+
 #include <rak/file_stat.h>
 #include <rak/socket_address.h>
-
-#include "peer/peer_info.h"
-#include "peer/peer_list.h"
-#include "torrent/tracker/tracker.h"
-#include "torrent/utils/log.h"
 
 #include "data/file.h"
 #include "data/file_list.h"
 #include "data/transfer_list.h"
+#include "download/download_main.h"
 #include "net/address_list.h"
-
-#include "common.h"
-#include "bitfield.h"
-#include "download.h"
-#include "download_info.h"
-#include "object.h"
-#include "tracker_list.h"
-
-#include "resume.h"
+#include "peer/peer_info.h"
+#include "peer/peer_list.h"
+#include "torrent/common.h"
+#include "torrent/bitfield.h"
+#include "torrent/download.h"
+#include "torrent/download_info.h"
+#include "torrent/object.h"
+#include "torrent/tracker/tracker.h"
+#include "torrent/utils/log.h"
+#include "tracker/tracker_list.h"
 
 #define LT_LOG_LOAD(log_fmt, ...)                                       \
   lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", log_fmt, __VA_ARGS__);
@@ -420,8 +419,8 @@ resume_load_file_priorities(Download download, const Object& object) {
 
 void
 resume_save_file_priorities(Download download, Object& object) {
-  Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
-  auto filesItr = files.begin();
+  auto& files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
+  auto  filesItr = files.begin();
 
   FileList* fileList = download.file_list();
 
@@ -469,7 +468,7 @@ resume_load_addresses(Download download, const Object& object) {
 
 void
 resume_save_addresses(Download download, Object& object) {
-  Object&         dest     = object.insert_key("peers", Object::create_list());
+  auto& dest = object.insert_key("peers", Object::create_list());
 
   for (const auto& dlp : *download.peer_list()) {
     // Add some checks, like see if there's anything interesting to
@@ -496,8 +495,8 @@ resume_load_tracker_settings(Download download, const Object& object) {
   if (!object.has_key_map("trackers"))
     return;
 
-  const Object& src = object.get_key("trackers");
-  TrackerList*  tracker_list = download.tracker_list();
+  auto& src          = object.get_key("trackers");
+  auto  tracker_list = download.main()->tracker_list();
 
   for (const auto& map : src.as_map()) {
     if (!map.second.has_key("extra_tracker") || map.second.get_key_value("extra_tracker") == 0 ||
@@ -507,7 +506,7 @@ resume_load_tracker_settings(Download download, const Object& object) {
     if (tracker_list->find_url(map.first) != tracker_list->end())
       continue;
 
-    download.tracker_list()->insert_url(map.second.get_key_value("group"), map.first);
+    download.main()->tracker_list()->insert_url(map.second.get_key_value("group"), map.first);
   }
 
   for (auto tracker : *tracker_list) {
@@ -525,8 +524,8 @@ resume_load_tracker_settings(Download download, const Object& object) {
 
 void
 resume_save_tracker_settings(Download download, Object& object) {
-  Object& dest = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
-  TrackerList* tracker_list = download.tracker_list();
+  auto& dest         = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
+  auto  tracker_list = download.main()->tracker_list();
 
   for (auto tracker : *tracker_list) {
     Object& trackerObject = dest.insert_key(tracker.url(), Object::create_map());

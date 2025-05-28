@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_HELPER_TRACKER_TEST_H
 #define LIBTORRENT_HELPER_TRACKER_TEST_H
 
-#include "torrent/tracker_list.h"
+#include "tracker/tracker_list.h"
 #include "tracker/tracker_worker.h"
 
 class TrackerTest : public torrent::TrackerWorker {
