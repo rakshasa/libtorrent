@@ -3,16 +3,16 @@ name: Unit tests
 on:
   pull_request:
     inputs:
-      limited_scope:
+      run_all:
         description: 'Limit the variety of test environments'
         required: false
-        default: true
+        default: false
   workflow_dispatch:
     inputs:
-      limited_scope:
+      run_all:
         description: 'Limit the variety of test environments'
         required: false
-        default: true
+        default: false
 
 jobs:
   Ubuntu:
@@ -48,7 +48,7 @@ jobs:
           make check
 
   DragonflyBSD:
-    if: github.event.inputs.limited_scope == false
+    if: github.event.inputs.run_all == true
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +64,7 @@ jobs:
             make check
 
   FreeBSD:
-    if: github.event.inputs.limited_scope == false
+    if: github.event.inputs.run_all == true
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -111,7 +111,7 @@ jobs:
             make check
 
   OmniOS:
-    if: github.event.inputs.limited_scope == false
+    if: github.event.inputs.run_all == true
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
