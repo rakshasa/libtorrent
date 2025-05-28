@@ -15,10 +15,10 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/tracker/manager.h"
-#include "torrent/tracker_controller.h"
-#include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
+#include "tracker/tracker_controller.h"
+#include "tracker/tracker_list.h"
 #include "utils/functional.h"
 #include "utils/sha1.h"
 
@@ -29,8 +29,8 @@
 
 namespace torrent {
 
-DownloadWrapper::DownloadWrapper() :
-  m_main(new DownloadMain) {
+DownloadWrapper::DownloadWrapper()
+  : m_main(new DownloadMain) {
 
   m_main->delay_download_done().slot()       = [this] { data()->call_download_done(); };
   m_main->delay_partially_done().slot()      = [this] { data()->call_partially_done(); };

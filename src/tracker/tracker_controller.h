@@ -2,21 +2,17 @@
 #define LIBTORRENT_TRACKER_CONTROLLER_H
 
 #include <functional>
-#include <memory>
 #include <string>
-#include <torrent/common.h>
-#include <torrent/tracker/tracker.h>
 
-// TODO: Remove from export, rtorrent doesn't need this much api access.
+#include "torrent/tracker/tracker_state.h"
+#include "torrent/utils/scheduler.h"
 
 // TODO: Remove all unused functions and slots, move to src/tracker. Then add a
 // TrackerControllerWrapper that download and api uses.
 
 namespace torrent {
 
-struct tracker_controller_private;
-
-class LIBTORRENT_EXPORT TrackerController {
+class TrackerController {
 public:
   using address_list = AddressList;
 
@@ -113,7 +109,8 @@ private:
   slot_tracker        m_slot_tracker_enabled;
   slot_tracker        m_slot_tracker_disabled;
 
-  std::unique_ptr<tracker_controller_private> m_private;
+  utils::SchedulerEntry m_task_timeout;
+  utils::SchedulerEntry m_task_scrape;
 };
 
 uint32_t tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags);

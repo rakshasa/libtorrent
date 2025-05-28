@@ -27,19 +27,19 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/tracker_controller.h"
-#include "torrent/tracker_list.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
+#include "tracker/tracker_controller.h"
+#include "tracker/tracker_list.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
-DownloadMain::DownloadMain() :
-    m_info(new DownloadInfo),
+DownloadMain::DownloadMain()
+  : m_info(new DownloadInfo),
     m_tracker_list(new TrackerList),
 
     m_chunkList(new ChunkList),

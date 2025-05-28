@@ -48,6 +48,7 @@ public:
 
 protected:
   friend class Manager;
+  friend class TrackerControllerWrapper;
   friend class torrent::ThreadTracker;
   friend class torrent::TrackerList;
   friend class ::TrackerTest;
