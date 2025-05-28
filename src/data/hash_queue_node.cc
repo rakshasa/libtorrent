@@ -38,7 +38,6 @@
 
 #include "hash_chunk.h"
 #include "hash_queue_node.h"
-#include "chunk_list_node.h"
 
 namespace torrent {
 

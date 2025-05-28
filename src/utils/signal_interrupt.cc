@@ -5,10 +5,10 @@
 #include <cerrno>
 
 #include <fcntl.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
-#include "torrent/net/fd.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {

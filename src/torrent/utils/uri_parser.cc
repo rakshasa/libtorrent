@@ -2,8 +2,6 @@
 
 #include <torrent/utils/uri_parser.h>
 
-#include <cctype>
-
 #include "rak/string_manip.h"
 
 namespace torrent::utils {

@@ -5,19 +5,10 @@
 #include "torrent/utils/log.h"
 
 #include <fcntl.h>
-#include <unistd.h>
-#include <rak/error_number.h>
 #include <rak/file_stat.h>
-#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
-
-#ifdef USE_FALLOCATE
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-#include <linux/falloc.h>
-#endif
+#include <unistd.h>
 
 #define LT_LOG_ERROR(log_fmt, ...)                                      \
   lt_log_print(LOG_STORAGE, "socket_file->%i: " log_fmt, m_fd, __VA_ARGS__);

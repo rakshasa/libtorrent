@@ -1,12 +1,9 @@
 #include "config.h"
 
 #include <cassert>
-#include <rak/error_number.h>
 #include <rak/file_stat.h>
 
-#include "data/memory_chunk.h"
 #include "data/socket_file.h"
-#include "torrent/exceptions.h"
 
 #include "file.h"
 #include "file_manager.h"

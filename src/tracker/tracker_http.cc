@@ -11,15 +11,13 @@
 
 #include "net/address_list.h"
 #include "torrent/connection_manager.h"
-#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
-#include "torrent/net/utils.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/net/utils.h"
 #include "torrent/object_stream.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
-#include "torrent/utils/thread.h"
 #include "torrent/utils/uri_parser.h"
 
 #include "manager.h"

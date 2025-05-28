@@ -36,7 +36,6 @@
 
 #include "config.h"
 
-#include <cstdlib>
 #include <algorithm>
 #include <iterator>
 

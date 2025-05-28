@@ -1,9 +1,8 @@
 #include "config.h"
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/mman.h>
 #include <rak/error_number.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include "torrent/exceptions.h"
 #include "memory_chunk.h"

@@ -3,9 +3,7 @@
 #include "thread_main.h"
 
 #include "data/hash_queue.h"
-#include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
-#include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
 namespace torrent::main_thread {

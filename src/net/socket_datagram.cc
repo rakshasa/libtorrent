@@ -2,8 +2,6 @@
 
 #include "socket_datagram.h"
 
-#include <cerrno>
-#include <sys/types.h>
 #include <sys/socket.h>
 
 #include "rak/socket_address.h"

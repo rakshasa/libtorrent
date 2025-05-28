@@ -1,7 +1,6 @@
 #include "config.h"
 
 #include <algorithm>
-#include <unistd.h>
 
 #include "torrent/exceptions.h"
 #include "chunk_part.h"

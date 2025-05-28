@@ -4,18 +4,12 @@
 
 #include "listen.h"
 
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-
 #include "manager.h"
 #include "rak/socket_address.h"
-#include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
+#include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
 
 namespace torrent {
 

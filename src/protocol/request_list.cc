@@ -4,8 +4,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cinttypes>
-#include <functional>
 
 #include "download/delegator.h"
 #include "protocol/peer_chunks.h"

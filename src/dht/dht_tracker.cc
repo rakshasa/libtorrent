@@ -1,7 +1,5 @@
 #include "config.h"
 
-#include "torrent/object.h"
-
 #include "dht_tracker.h"
 
 namespace torrent {

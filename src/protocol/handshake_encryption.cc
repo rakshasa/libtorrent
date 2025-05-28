@@ -36,13 +36,7 @@
 
 #include "config.h"
 
-#include <sys/types.h>
-
-#include <algorithm>
-#include <functional>
-
 #include "torrent/connection_manager.h"
-#include "torrent/exceptions.h"
 #include "utils/diffie_hellman.h"
 #include "utils/sha1.h"
 

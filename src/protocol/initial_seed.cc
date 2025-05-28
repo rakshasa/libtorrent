@@ -38,12 +38,13 @@
 
 #include <cstring>
 
+#include "download/chunk_statistics.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
-#include "download/chunk_statistics.h"
+#include "torrent/peer/peer_info.h"
 
 #include "initial_seed.h"
-#include "peer_connection_leech.h"
+#include "peer_connection_base.h"
 
 namespace torrent {
 

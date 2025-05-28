@@ -5,18 +5,16 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "manager.h"
-#include "thread_main.h"
 #include "dht/dht_bucket.h"
 #include "dht/dht_router.h"
 #include "dht/dht_transaction.h"
-#include "torrent/exceptions.h"
+#include "manager.h"
 #include "torrent/connection_manager.h"
-#include "torrent/download_info.h"
+#include "torrent/exceptions.h"
 #include "torrent/object.h"
+#include "torrent/object_static_map.h"
 #include "torrent/object_stream.h"
 #include "torrent/poll.h"
-#include "torrent/object_static_map.h"
 #include "torrent/throttle.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"

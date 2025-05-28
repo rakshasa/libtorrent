@@ -6,8 +6,6 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/tracker/manager.h"
-#include "torrent/utils/log.h"
-#include "tracker/tracker_worker.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
