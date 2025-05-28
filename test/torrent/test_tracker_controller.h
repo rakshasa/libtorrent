@@ -1,6 +1,6 @@
 #include "test/helpers/test_main_thread.h"
 #include "torrent/download_info.h"
-#include "torrent/tracker_controller.h"
+#include "tracker/tracker_controller.h"
 
 class TestTrackerController : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST_SUITE(TestTrackerController);

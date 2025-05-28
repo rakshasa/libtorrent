@@ -19,14 +19,12 @@
 #include "torrent/download_info.h"
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
-#include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 
 #include "exceptions.h"
 #include "download.h"
 #include "object.h"
 #include "throttle.h"
-#include "tracker_list.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
@@ -228,13 +226,13 @@ Download::file_list() const {
   return m_ptr->main()->file_list();
 }
 
-TrackerList*
-Download::tracker_list() const {
-  return m_ptr->main()->tracker_list();
-}
-
 tracker::TrackerControllerWrapper
 Download::tracker_controller() {
+  return m_ptr->main()->tracker_controller();
+}
+
+const tracker::TrackerControllerWrapper
+Download::c_tracker_controller() const {
   return m_ptr->main()->tracker_controller();
 }
 

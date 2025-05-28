@@ -1,12 +1,13 @@
 #include "config.h"
 
+#include "tracker/tracker_list.h"
+
 #include <functional>
 #include <random>
 
 #include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
-#include "torrent/tracker_list.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
@@ -15,7 +16,6 @@
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_udp.h"
-
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
