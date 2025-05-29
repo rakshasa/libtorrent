@@ -312,11 +312,16 @@ resume_load_uncertain_pieces(Download download, const Object& object) {
 
   LT_LOG_LOAD("found %zu uncertain pieces", uncertain.size() / 2);
 
-  for (auto itr = uncertain.begin(); itr + sizeof(uint32_t) < uncertain.end(); itr += sizeof(uint32_t)) {
+  const char* itr  = uncertain.c_str();
+  const char* last = uncertain.c_str() + uncertain.size();
+
+  while (itr + sizeof(uint32_t) <= last) {
     // Fix this so it does full ranges.
     download.update_range(Download::update_range_recheck | Download::update_range_clear,
-                          ntohl(*reinterpret_cast<const uint32_t*>(&(*itr))),
-                          ntohl(*reinterpret_cast<const uint32_t*>(&(*std::next(itr)))));
+                          ntohl(*reinterpret_cast<const uint32_t*>(itr)),
+                          ntohl(*reinterpret_cast<const uint32_t*>(itr)) + 1);
+
+    itr += sizeof(uint32_t);
   }
 }
 

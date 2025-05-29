@@ -2,17 +2,7 @@ name: Unit tests
 
 on:
   pull_request:
-    inputs:
-      run_all:
-        description: 'Limit the variety of test environments'
-        required: false
-        default: false
   workflow_dispatch:
-    inputs:
-      run_all:
-        description: 'Limit the variety of test environments'
-        required: false
-        default: true
 
 jobs:
   Ubuntu:
@@ -48,7 +38,7 @@ jobs:
           make check
 
   DragonflyBSD:
-    if: ${{ github.event.inputs.run_all == true }}
+    if: ${{ false }} # Disabled to reduce GitHub resource usage
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +54,7 @@ jobs:
             make check
 
   FreeBSD:
-    if: ${{ github.event.inputs.run_all == true }}
+    if: ${{ false }} # Disabled to reduce GitHub resource usage
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -111,7 +101,7 @@ jobs:
             make check
 
   OmniOS:
-    if: ${{ github.event.inputs.run_all == true }}
+    if: ${{ false }} # Avoid excessive resource usage.
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
