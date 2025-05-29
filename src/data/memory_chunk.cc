@@ -85,7 +85,7 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
 #if USE_MINCORE_UNSIGNED
   if (mincore(m_ptr + offset, length, reinterpret_cast<unsigned char*>(buf)))
 #else
-  if (mincore(m_ptr + offset, length, reinterpret_cast<char*>(buf)))
+  if (mincore(m_ptr + offset, length, buf))
 #endif
     throw storage_error("System call mincore failed: " + std::string(rak::error_number::current().c_str()));
 

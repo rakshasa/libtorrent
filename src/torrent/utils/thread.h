@@ -55,26 +55,25 @@ public:
   bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
   bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
 
-  pthread_t           pthread()         { return m_thread; }
-  std::thread::id     thread_id()       { return m_thread_id; }
+  pthread_t           pthread()            { return m_thread; }
+  std::thread::id     thread_id()          { return m_thread_id; }
 
-  state_type          state() const { return m_state; }
-  int                 flags() const { return m_flags; }
+  state_type          state() const        { return m_state; }
+  int                 flags() const        { return m_flags; }
 
   auto                cached_time() const  { return m_cached_time.load(); }
 
   // Only call these from the same thread, or before start_thread.
   //
   // TODO: Move poll to ThreadInternal.
-  Poll*                  poll()            { return m_poll.get(); }
-
-  class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
+  // TODO: Remove Poll.
+  Poll*               poll()               { return m_poll.get(); }
+  auto                signal_bitfield()    { return &m_signal_bitfield; }
 
   virtual void        init_thread() = 0;
   void                init_thread_local();
 
-  virtual void        start_thread();
-  virtual void        stop_thread();
+  void                start_thread();
   void                stop_thread_wait();
 
   void                callback(void* target, std::function<void ()>&& fn);
@@ -100,7 +99,7 @@ protected:
 
   bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
 
-  static void*        enter_event_loop(Thread* thread);
+  static void*        enter_event_loop(void* thread);
 
   virtual void                      call_events() = 0;
   virtual std::chrono::microseconds next_timeout() = 0;

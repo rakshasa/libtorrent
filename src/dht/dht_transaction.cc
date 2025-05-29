@@ -1,13 +1,13 @@
 #include "config.h"
 
+#include "dht/dht_transaction.h"
+
 #include <cassert>
 
+#include "dht/dht_bucket.h"
 #include "torrent/exceptions.h"
 #include "torrent/object_stream.h"
 #include "tracker/tracker_dht.h"
-
-#include "dht_bucket.h"
-#include "dht_transaction.h"
 
 namespace torrent {
 
@@ -26,8 +26,8 @@ DhtSearch::~DhtSearch() {
   assert(!m_pending && "DhtSearch::~DhtSearch called with pending transactions.");
   assert(m_concurrency == 3 && "DhtSearch::~DhtSearch called with invalid concurrency limit.");
 
-  for (accessor itr = begin(); itr != end(); ++itr)
-    delete itr.node();
+  for (auto& [node, _] : *this)
+    delete node;
 }
 
 bool
@@ -222,8 +222,8 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
   : m_id(id),
     m_hasQuickTimeout(quick_timeout > 0),
     m_sa(*sa),
-    m_timeout(cachedTime.seconds() + timeout),
-    m_quickTimeout(cachedTime.seconds() + quick_timeout) {
+    m_timeout(this_thread::cached_seconds().count() + timeout),
+    m_quickTimeout(this_thread::cached_seconds().count() + quick_timeout) {
 }
 
 DhtTransaction::~DhtTransaction() {

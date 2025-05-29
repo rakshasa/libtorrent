@@ -4,11 +4,11 @@
 #include <functional>
 #include <inttypes.h>
 #include <string>
-#include <rak/unordered_vector.h>
-#include <rak/socket_address.h>
-#include <torrent/connection_manager.h>
 
 #include "net/socket_fd.h"
+#include "rak/socket_address.h"
+#include "rak/unordered_vector.h"
+#include "torrent/connection_manager.h"
 
 namespace torrent {
 

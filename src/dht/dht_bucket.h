@@ -1,45 +1,8 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #ifndef LIBTORRENT_DHT_BUCKET_H
 #define LIBTORRENT_DHT_BUCKET_H
 
 #include <list>
-
-#include "globals.h"
+#include <vector>
 
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
@@ -90,9 +53,9 @@ public:
   unsigned int        num_good() const                        { return m_good; }
   unsigned int        num_bad() const                         { return m_bad; }
 
-  unsigned int        age() const                             { return cachedTime.seconds() - m_lastChanged; }
-  void                touch()                                 { m_lastChanged = cachedTime.seconds(); }
-  void                set_time(int32_t time)                  { m_lastChanged = time; }
+  unsigned int        age() const                             { return this_thread::cached_seconds().count() - m_last_changed; }
+  void                touch()                                 { m_last_changed = this_thread::cached_seconds().count(); }
+  void                set_time(int32_t time)                  { m_last_changed = time; }
 
   // Called every 15 minutes after updating nodes.
   void                update();
@@ -127,8 +90,8 @@ private:
 
   DhtBucket*          m_parent{};
   DhtBucket*          m_child{};
-  
-  int32_t             m_lastChanged{cachedTime.seconds()};
+
+  int64_t             m_last_changed{this_thread::cached_seconds().count()};
 
   unsigned int        m_good{0};
   unsigned int        m_bad{0};

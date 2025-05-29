@@ -72,9 +72,6 @@ struct TestTrackerListWrapper {
   tracker_list.slot_scrape_success() = std::bind(&increment_value_void, &scrape_success_counter); \
   tracker_list.slot_scrape_failure() = std::bind(&increment_value_void, &scrape_failure_counter);
 
-#define TRACKER_LIST_CLEANUP()                  \
-  CLEANUP_THREAD_TRACKER();
-
 #define TRACKER_INSERT(group, name)                                     \
   auto name = TrackerTest::new_tracker(&tracker_list, "");              \
   TrackerTest::insert_tracker(&tracker_list, group, name);

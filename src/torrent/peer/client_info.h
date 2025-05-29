@@ -53,10 +53,6 @@ public:
     TYPE_MAX_SIZE
   };
 
-  struct info_type {
-    const char*         m_shortDescription;
-  };    
-
   static constexpr uint32_t max_key_size = 2;
   static constexpr uint32_t max_version_size = 4;
 
@@ -66,8 +62,8 @@ public:
   const char*         version() const                         { return m_version; }
   const char*         upper_version() const                   { return m_upperVersion; }
 
-  const char*         short_description() const               { return m_info->m_shortDescription; }
-  void                set_short_description(const char* str)  { m_info->m_shortDescription = str; }
+  const char*         short_description() const               { return m_info; }
+  void                set_short_description(const char* str)  { m_info = str; }
 
   static unsigned int key_size(id_type id);
   static unsigned int version_size(id_type id);
@@ -86,8 +82,8 @@ public:
 protected:
   void                set_type(id_type t)                     { m_type = t; }
   
-  info_type*          info() const                            { return m_info; }
-  void                set_info(info_type* ptr)                { m_info = ptr; }
+  const char*         info() const                            { return m_info; }
+  void                set_info(const char* ptr)               { m_info = ptr; }
 
   char*               mutable_key()                           { return m_key; }
   char*               mutable_version()                       { return m_version; }
@@ -106,7 +102,7 @@ private:
 
   // We don't really care about cleaning up this as deleting an entry
   // form ClientList shouldn't happen.
-  info_type*          m_info;
+  const char*         m_info{};
 };
 
 }

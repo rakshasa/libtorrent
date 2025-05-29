@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <cstdio>
@@ -168,7 +132,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   thread_main()->poll()->insert_write(this);
   thread_main()->poll()->insert_error(this);
 
-  m_timeLastRead = cachedTime;
+  m_time_last_read = this_thread::cached_time();
 
   m_download->chunk_statistics()->received_connect(&m_peerChunks);
 
@@ -211,7 +175,7 @@ PeerConnectionBase::cleanup() {
   thread_main()->poll()->remove_write(this);
   thread_main()->poll()->remove_error(this);
   thread_main()->poll()->close(this);
-  
+
   manager->connection_manager()->dec_socket_count();
 
   get_fd().close();
@@ -243,7 +207,7 @@ PeerConnectionBase::receive_upload_choke(bool choke) {
 
   m_sendChoked = true;
   m_upChoke.set_unchoked(!choke);
-  m_upChoke.set_time_last_choke(cachedTime.usec());
+  m_upChoke.set_time_last_choke(this_thread::cached_time());
 
   if (choke) {
     m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - 1);
@@ -273,7 +237,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
   write_insert_poll_safe();
 
   m_downChoke.set_unchoked(!choke);
-  m_downChoke.set_time_last_choke(cachedTime.usec());
+  m_downChoke.set_time_last_choke(this_thread::cached_time());
 
   if (choke) {
     m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - 1);
@@ -383,7 +347,7 @@ PeerConnectionBase::load_up_chunk() {
   uint32_t preloadSize = m_upChunk.chunk()->chunk_size() - m_upPiece.offset();
 
   if (cm->preload_type() == 0 ||
-      m_upChunk.object()->time_preloaded() >= cachedTime - rak::timer::from_seconds(60) ||
+      m_upChunk.object()->time_preloaded() >= this_thread::cached_time() - 60s ||
 
       preloadSize < cm->preload_min_size() ||
       m_peerChunks.upload_throttle()->rate()->rate() < cm->preload_required_rate() * ((preloadSize + (2 << 20) - 1) / (2 << 20))) {
@@ -393,7 +357,7 @@ PeerConnectionBase::load_up_chunk() {
 
   cm->inc_stats_preloaded();
 
-  m_upChunk.object()->set_time_preloaded(cachedTime);
+  m_upChunk.object()->set_time_preloaded(this_thread::cached_time());
   m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), cm->preload_type() == 1);
 }
 
@@ -479,7 +443,7 @@ PeerConnectionBase::down_chunk_finished() {
       throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer is the leader, but no chunk allocated.");
 
     request_list()->finished();
-    m_downChunk.object()->set_time_modified(cachedTime);
+    m_downChunk.object()->set_time_modified(this_thread::cached_time());
 
   } else {
     request_list()->skipped();

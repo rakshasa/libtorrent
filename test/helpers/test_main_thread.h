@@ -7,13 +7,11 @@
 #include "test/helpers/test_thread.h"
 #include "torrent/common.h"
 #include "torrent/utils/thread.h"
-#include "tracker/thread_tracker.h"
 
 class TestMainThread : public torrent::utils::Thread {
 public:
   static std::unique_ptr<TestMainThread> create();
-
-  ~TestMainThread() override;
+  static std::unique_ptr<TestMainThread> create_with_mock();
 
   const char*         name() const override  { return "rtorrent test main"; }
 
@@ -24,13 +22,21 @@ public:
   void                test_process_events_without_cached_time()         { process_events_without_cached_time(); }
 
 private:
-  TestMainThread();
+  TestMainThread() = default;
 
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 };
 
 class TestFixtureWithMainThread : public test_fixture {
+public:
+  void setUp();
+  void tearDown();
+
+  std::unique_ptr<TestMainThread> m_main_thread;
+};
+
+class TestFixtureWithMainAndDiskThread : public test_fixture {
 public:
   void setUp();
   void tearDown();
@@ -46,15 +52,12 @@ public:
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
-// TODO: Remove.
-#define SETUP_THREAD_TRACKER()                                  \
-  torrent::ThreadTracker::create_thread(m_main_thread.get());   \
-  torrent::thread_tracker()->init_thread();                     \
-  torrent::thread_tracker()->start_thread();
+class TestFixtureWithMockAndMainThread : public test_fixture {
+public:
+  void setUp();
+  void tearDown();
 
-// Make sure tearDown also calls torrent::ThreadTracker::destroy_thread().
-
-#define CLEANUP_THREAD_TRACKER()                \
-  torrent::ThreadTracker::destroy_thread();
+  std::unique_ptr<TestMainThread> m_main_thread;
+};
 
 #endif // TEST_HELPERS_TEST_MAIN_THREAD_H

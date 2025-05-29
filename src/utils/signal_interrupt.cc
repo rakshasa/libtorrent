@@ -2,6 +2,11 @@
 
 #include "utils/signal_interrupt.h"
 
+#include <cerrno>
+
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "utils/instrumentation.h"
@@ -11,7 +16,7 @@ namespace torrent {
 SignalInterrupt::SignalInterrupt(int fd) {
   m_fileDesc = fd;
 
-  if (!fd_set_nonblock(fd))
+  if (::fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
     throw internal_error("Could not set non-blocking mode for SignalInterrupt socket: " + std::string(std::strerror(errno)));
 
   // Not supported on socketpair on MacOS. (TODO: Check if this is true on other platforms.)
@@ -23,19 +28,26 @@ SignalInterrupt::~SignalInterrupt() {
   if (m_fileDesc == -1)
     return;
 
-  fd_close(m_fileDesc);
+  ::close(m_fileDesc);
   m_fileDesc = -1;
 }
 
 SignalInterrupt::pair_type
 SignalInterrupt::create_pair() {
-  int fd1, fd2;
+  // int fd1, fd2;
 
   // TODO: Use pipe instead?
-  fd_open_socket_pair(fd1, fd2);
+  // fd_open_socket_pair(fd1, fd2);
   // fd_open_pipe(fd1, fd2);
 
-  pair_type result{new SignalInterrupt(fd1), new SignalInterrupt(fd2)};
+  // Open explicitly here to avoid mock fd_* functions interferring with thread interrupts and
+  // cached_time access during main thread ctor.
+  int fds[2];
+
+  if (::socketpair(AF_LOCAL, SOCK_STREAM, 0, fds) == -1)
+    throw internal_error("torrent::fd_open_socket_pair failed: " + std::string(strerror(errno)));
+
+  pair_type result{new SignalInterrupt(fds[0]), new SignalInterrupt(fds[1])};
 
   result.first->m_other = result.second.get();
   result.second->m_other = result.first.get();

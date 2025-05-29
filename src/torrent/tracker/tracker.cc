@@ -3,13 +3,14 @@
 #include "torrent/tracker/tracker.h"
 
 #include "torrent/exceptions.h"
-#include "torrent/tracker_list.h"
+#include "tracker/tracker_list.h"
 #include "tracker/tracker_worker.h"
-#include "globals.h"
 
 #include <algorithm>
 
 namespace torrent::tracker {
+
+// TODO: Handle !is_valid() errors.
 
 Tracker::Tracker(std::shared_ptr<torrent::TrackerWorker>&& worker) :
   m_worker(std::move(worker)) {

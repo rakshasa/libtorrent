@@ -15,11 +15,6 @@
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_thread_base, "torrent/utils");
 
-#define TEST_BEGIN(name)                                           \
-  lt_log_print(torrent::LOG_MOCK_CALLS, "thread_base: %s", name);  \
-
-void throw_shutdown_exception() { throw torrent::shutdown_exception(); }
-
 void
 test_thread_base::test_basic() {
   auto thread = test_thread::create();
@@ -27,7 +22,7 @@ test_thread_base::test_basic() {
   CPPUNIT_ASSERT(thread->flags() == 0);
 
   CPPUNIT_ASSERT(!thread->is_active());
-  CPPUNIT_ASSERT(thread->poll() == NULL);
+  CPPUNIT_ASSERT(thread->poll() != nullptr);
 
   // Check active...
 }
@@ -52,7 +47,7 @@ test_thread_base::test_lifecycle() {
   CPPUNIT_ASSERT(thread->is_active());
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_test_state, thread.get(), test_thread::TEST_PRE_STOP)));
 
-  thread->stop_thread();
+  thread->stop_thread_wait();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
   CPPUNIT_ASSERT(thread->is_inactive());
 }
@@ -79,7 +74,7 @@ test_thread_base::test_interrupt() {
     CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_not_test_flags, thread.get(), test_thread::test_flag_do_work)));
   }
 
-  thread->stop_thread();
+  thread->stop_thread_wait();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 
@@ -89,14 +84,10 @@ test_thread_base::test_stop() {
     auto thread = test_thread::create();
     thread->set_test_flag(test_thread::test_flag_do_work);
 
-    { TEST_BEGIN("init and start thread");
-      thread->init_thread();
-      thread->start_thread();
-    };
+    thread->init_thread();
+    thread->start_thread();
 
-    { TEST_BEGIN("stop and delete thread");
-      thread->stop_thread_wait();
-      CPPUNIT_ASSERT(thread->is_inactive());
-    }
+    thread->stop_thread_wait();
+    CPPUNIT_ASSERT(thread->is_inactive());
   }
 }

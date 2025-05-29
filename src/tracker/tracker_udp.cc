@@ -8,23 +8,21 @@
 #include <netdb.h>
 #include <sys/types.h>
 
-#include "globals.h"
 #include "manager.h"
+#include "thread_main.h"
 #include "net/address_list.h"
 #include "rak/error_number.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/poll.h"
-#include "torrent/tracker_list.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/resolver.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/utils/thread.h"
 #include "torrent/utils/uri_parser.h"
-
-#include "thread_main.h"
+#include "tracker/tracker_list.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
@@ -404,7 +402,7 @@ TrackerUdp::process_announce_output() {
 
     state().m_scrape_incomplete = m_read_buffer->read_32(); // leechers
     state().m_scrape_complete   = m_read_buffer->read_32(); // seeders
-    state().m_scrape_time_last  = rak::timer::current().seconds();
+    state().m_scrape_time_last  = this_thread::cached_seconds().count();
   }
 
   AddressList l;

@@ -62,7 +62,7 @@ public:
   using base_type::rend;
   
   ClientList();
-  ~ClientList();
+  ~ClientList() = default;
   ClientList(const ClientList&) = delete;
   ClientList& operator=(const ClientList&) = delete;
 

@@ -9,11 +9,11 @@
 #include "tracker/tracker_worker.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
-#include "torrent/tracker_controller.h"
-#include "torrent/tracker_list.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
+#include "tracker/tracker_controller.h"
+#include "tracker/tracker_list.h"
 
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
   lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker::manager", log_fmt, __VA_ARGS__);
@@ -82,7 +82,6 @@ Manager::send_scrape(tracker::Tracker& tracker) {
   // TODO: Currently executing in main thread, but should be in tracker thread.
   tracker.get_worker()->send_scrape();
 }
-
 
 // Events are queued by the trackers and run in the main thread.
 void

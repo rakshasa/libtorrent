@@ -10,7 +10,6 @@
 
 #include "chunk_list.h"
 #include "chunk.h"
-#include "globals.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                              \
   lt_log_print_data(LOG_STORAGE_##log_level, m_data, "chunk_list", log_fmt, __VA_ARGS__);
@@ -18,14 +17,12 @@
 namespace torrent {
 
 struct chunk_list_earliest_modified {
-  chunk_list_earliest_modified() : m_time(cachedTime) {}
-
   void operator () (ChunkListNode* node) {
-    if (node->time_modified() < m_time && node->time_modified() != rak::timer())
+    if (node->time_modified() < m_time && node->time_modified() != 0us)
       m_time = node->time_modified();
   }
 
-  rak::timer m_time;
+  std::chrono::microseconds m_time{this_thread::cached_time()};
 };
 
 inline bool
@@ -122,7 +119,7 @@ ChunkList::get(size_type index, int flags) {
     }
 
     node->set_chunk(chunk);
-    node->set_time_modified(rak::timer());
+    node->set_time_modified(0us);
 
   } else if (flags & get_writable && !node->chunk()->is_writable()) {
     if (node->blocking() != 0) {
@@ -140,7 +137,7 @@ ChunkList::get(size_type index, int flags) {
     delete node->chunk();
 
     node->set_chunk(chunk);
-    node->set_time_modified(rak::timer());
+    node->set_time_modified(0us);
   }
 
   node->inc_references();
@@ -337,7 +334,7 @@ ChunkList::sync_options(ChunkListNode* node, int flags) {
       return std::make_pair(MemoryChunk::sync_async, true);
 
   } else if (flags & sync_safe) {
-      
+
     if (node->sync_triggered())
       return std::make_pair(MemoryChunk::sync_sync, true);
     else
@@ -368,8 +365,8 @@ ChunkList::seek_range(Queue::iterator first, Queue::iterator last) {
 inline bool
 ChunkList::check_node(ChunkListNode* node) {
   return
-    node->time_modified() != rak::timer() &&
-    node->time_modified() + rak::timer::from_seconds(m_manager->timeout_sync()) < cachedTime;
+    node->time_modified() != 0us &&
+    node->time_modified() + std::chrono::seconds(m_manager->timeout_sync()) < this_thread::cached_time();
 }
 
 // Optimize the selection of chunks to sync. Continuous regions are

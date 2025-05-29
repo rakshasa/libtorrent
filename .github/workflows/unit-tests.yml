@@ -1,6 +1,8 @@
 name: Unit tests
 
-on: pull_request
+on:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   Ubuntu:
@@ -36,6 +38,7 @@ jobs:
           make check
 
   DragonflyBSD:
+    if: ${{ false }} # Disabled to reduce GitHub resource usage
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +54,7 @@ jobs:
             make check
 
   FreeBSD:
-    if: ${{ false }} # Keeps entering infinite VM boot loop
+    if: ${{ false }} # Disabled to reduce GitHub resource usage
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -98,6 +101,7 @@ jobs:
             make check
 
   OmniOS:
+    if: ${{ false }} # Avoid excessive resource usage.
     needs: Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -118,7 +122,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ['x86_64', 'x86']
+        # platform: ['x86_64', 'x86']
+        platform: ['x86_64'] # Disabled x86 to reduce GitHub resource usage
     defaults:
       run:
         shell: alpine.sh {0}

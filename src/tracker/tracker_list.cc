@@ -1,12 +1,13 @@
 #include "config.h"
 
+#include "tracker/tracker_list.h"
+
 #include <functional>
 #include <random>
 
 #include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
-#include "torrent/tracker_list.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
@@ -15,8 +16,6 @@
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_udp.h"
-
-#include "globals.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
@@ -240,15 +239,15 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
-  worker->m_slot_parameters = [this]() -> TrackerParameters {
+  worker->m_slot_parameters = [this]() {
       // TODO: Lock here!
 
-      return TrackerParameters{
-        .numwant = m_numwant,
-        .uploaded_adjusted = m_info->uploaded_adjusted(),
-        .completed_adjusted = m_info->completed_adjusted(),
-        .download_left = m_info->slot_left()()
-      };
+      TrackerParameters tp;
+      tp.numwant = m_numwant;
+      tp.uploaded_adjusted = m_info->uploaded_adjusted();
+      tp.completed_adjusted = m_info->completed_adjusted();
+      tp.download_left = m_info->slot_left()();
+      return tp;
     };
 
   LT_LOG("added tracker : requester:%p group:%u url:%s", worker, itr->group(), itr->url().c_str());
@@ -269,13 +268,12 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   if (extra_tracker)
     flags |= tracker::TrackerState::flag_extra_tracker;
 
-  auto tracker_info = TrackerInfo{
-    .info_hash = m_info->hash(),
-    .obfuscated_hash = m_info->hash_obfuscated(),
-    .local_id = m_info->local_id(),
-    .url = url,
-    .key = m_key
-  };
+  TrackerInfo tracker_info;
+  tracker_info.info_hash = m_info->hash();
+  tracker_info.obfuscated_hash = m_info->hash_obfuscated();
+  tracker_info.local_id = m_info->local_id(),
+  tracker_info.url = url;
+  tracker_info.key = m_key;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {

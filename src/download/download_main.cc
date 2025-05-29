@@ -27,19 +27,19 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/tracker_controller.h"
-#include "torrent/tracker_list.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
+#include "tracker/tracker_controller.h"
+#include "tracker/tracker_list.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
-DownloadMain::DownloadMain() :
-    m_info(new DownloadInfo),
+DownloadMain::DownloadMain()
+  : m_info(new DownloadInfo),
     m_tracker_list(new TrackerList),
 
     m_chunkList(new ChunkList),
@@ -59,8 +59,8 @@ DownloadMain::DownloadMain() :
   m_delegator.transfer_list()->slot_completed() = [this](auto i) { receive_chunk_done(i); };
   m_delegator.transfer_list()->slot_corrupt()   = [this](auto i) { receive_corrupt_chunk(i); };
 
-  m_delayDisconnectPeers.slot() = [this] { m_connectionList->disconnect_queued(); };
-  m_taskTrackerRequest.slot()   = [this] { receive_tracker_request(); };
+  m_delay_disconnect_peers.slot() = [this] { m_connectionList->disconnect_queued(); };
+  m_task_tracker_request.slot()     = [this] { receive_tracker_request(); };
 
   m_chunkList->set_data(file_list()->mutable_data());
 
@@ -76,7 +76,7 @@ DownloadMain::DownloadMain() :
 }
 
 DownloadMain::~DownloadMain() {
-  assert(!m_taskTrackerRequest.is_queued() && "DownloadMain::~DownloadMain(): m_taskTrackerRequest is queued.");
+  assert(!m_task_tracker_request.is_scheduled() && "DownloadMain::~DownloadMain(): m_task_tracker_request is scheduled.");
 
   assert(m_info->size_pex() == 0 && "DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
 
@@ -191,14 +191,13 @@ DownloadMain::stop() {
   info()->unset_flags(DownloadInfo::flag_active);
   chunk_list()->unset_flags(ChunkList::flag_active);
 
-  m_slotStopHandshakes(this);
+  m_slot_stop_handshakes(this);
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
-  delete m_initialSeeding;
-  m_initialSeeding = NULL;
+  m_initial_seeding.reset();
 
-  priority_queue_erase(&taskScheduler, &m_delayDisconnectPeers);
-  priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
+  this_thread::scheduler()->erase(&m_delay_disconnect_peers);
+  this_thread::scheduler()->erase(&m_task_tracker_request);
 
   if (info()->upload_unchoked() != 0 || info()->download_unchoked() != 0)
     throw internal_error("DownloadMain::stop(): info()->upload_unchoked() != 0 || info()->download_unchoked() != 0.");
@@ -209,13 +208,13 @@ DownloadMain::start_initial_seeding() {
   if (!file_list()->is_done())
     return false;
 
-  m_initialSeeding = new InitialSeeding(this);
+  m_initial_seeding.reset(new InitialSeeding(this));
   return true;
 }
 
 void
 DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
-  if (m_initialSeeding == NULL)
+  if (m_initial_seeding == nullptr)
     throw internal_error("DownloadMain::initial_seeding_done called when not initial seeding.");
 
   // Close all connections but the currently active one (pcb), that
@@ -239,8 +238,7 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
   (*itr)->set_connection_type(Download::CONNECTION_SEED);
   m_connectionList->slot_new_connection(&createPeerConnectionSeed);
 
-  delete m_initialSeeding;
-  m_initialSeeding = NULL;
+  m_initial_seeding.reset();
 
   // And close the current connection.
   throw close_connection();
@@ -261,7 +259,7 @@ DownloadMain::receive_chunk_done(unsigned int index) {
   if (!handle.is_valid())
     throw storage_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");
 
-  m_slotHashCheckAdd(handle);
+  m_slot_hash_check_add(handle);
 }
 
 void
@@ -280,7 +278,7 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 
 void
 DownloadMain::add_peer(const rak::socket_address& sa) {
-  m_slotStartHandshake(sa, this);
+  m_slot_start_handshake(sa, this);
 }
 
 void
@@ -300,11 +298,11 @@ DownloadMain::receive_connect_peers() {
   while (!peer_list()->available_list()->empty() &&
          manager->connection_manager()->can_connect() &&
          connection_list()->size() < connection_list()->min_size() &&
-         connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->max_size()) {
+         connection_list()->size() + m_slot_count_handshakes(this) < connection_list()->max_size()) {
     rak::socket_address sa = peer_list()->available_list()->pop_random();
 
     if (connection_list()->find(sa.c_sockaddr()) == connection_list()->end())
-      m_slotStartHandshake(sa, this);
+      m_slot_start_handshake(sa, this);
   }
 }
 
@@ -313,7 +311,7 @@ DownloadMain::receive_tracker_success() {
   if (!info()->is_active())
     return;
 
-  priority_queue_update(&taskScheduler, &m_taskTrackerRequest, (cachedTime + rak::timer::from_seconds(10)).round_seconds());
+  this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_tracker_request, 10s);
 }
 
 void

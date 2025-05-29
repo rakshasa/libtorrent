@@ -68,8 +68,6 @@ initialize() {
   if (manager != NULL)
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
 
-  cachedTime = rak::timer::current();
-
   instrumentation_initialize();
 
   manager = new Manager;
@@ -101,6 +99,11 @@ cleanup() {
 
   thread_tracker()->stop_thread_wait();
   thread_disk()->stop_thread_wait();
+  thread_net()->stop_thread_wait();
+
+  delete thread_tracker();
+  delete thread_disk();
+  delete thread_net();
 
   delete manager;
   manager = NULL;

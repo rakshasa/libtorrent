@@ -8,7 +8,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "globals.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/net/resolver.h"
@@ -32,6 +31,7 @@ public:
 
 Thread::Thread() :
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+  m_poll(Poll::create()),
   m_scheduler(std::make_unique<Scheduler>()) {
 
   std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
@@ -41,10 +41,7 @@ Thread::Thread() :
 }
 
 Thread::~Thread() {
-  // Disown m_poll instead of deleting it as we don't properly clean up all the sockets.
-  m_poll.release();
-
-  // TODO: Set m_self to nullptr.
+  m_self = nullptr;
 }
 
 Thread*
@@ -60,7 +57,7 @@ Thread::start_thread() {
   if (!is_initialized())
     throw internal_error("Called Thread::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, reinterpret_cast<pthread_func>(&Thread::enter_event_loop), this))
+  if (pthread_create(&m_thread, NULL, &Thread::enter_event_loop, this))
     throw internal_error("Failed to create thread.");
 
   while (m_state != STATE_ACTIVE)
@@ -69,14 +66,9 @@ Thread::start_thread() {
 
 // Each thread needs to check flag_do_shutdown in call_events() and decide how to cleanly shut down.
 void
-Thread::stop_thread() {
+Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
   interrupt();
-}
-
-void
-Thread::stop_thread_wait() {
-  stop_thread();
 
   pthread_join(m_thread, NULL);
   assert(is_inactive());
@@ -138,12 +130,13 @@ Thread::should_handle_sigusr1() {
 }
 
 void*
-Thread::enter_event_loop(Thread* thread) {
-  if (thread == nullptr)
+Thread::enter_event_loop(void* thread) {
+  auto t = static_cast<Thread*>(thread);
+  if (t == nullptr)
     throw internal_error("Thread::enter_event_loop called with a null pointer thread");
 
-  thread->init_thread_local();
-  thread->event_loop();
+  t->init_thread_local();
+  t->event_loop();
 
   return nullptr;
 }

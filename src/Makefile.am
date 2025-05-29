@@ -10,8 +10,6 @@ libtorrent_la_LIBADD = \
 	libtorrent_other.la
 
 libtorrent_la_SOURCES = \
-	globals.cc \
-	globals.h \
 	manager.cc \
 	manager.h \
 	thread_main.cc \
@@ -132,10 +130,14 @@ libtorrent_other_la_SOURCES = \
 	\
 	tracker/thread_tracker.cc \
 	tracker/thread_tracker.h \
+	tracker/tracker_controller.cc \
+	tracker/tracker_controller.h \
 	tracker/tracker_dht.cc \
 	tracker/tracker_dht.h \
 	tracker/tracker_http.cc \
 	tracker/tracker_http.h \
+	tracker/tracker_list.cc \
+	tracker/tracker_list.h \
 	tracker/tracker_udp.cc \
 	tracker/tracker_udp.h \
 	tracker/tracker_worker.cc \

@@ -2,8 +2,9 @@
 
 #include "log_buffer.h"
 
+#include <algorithm>
+
 #include "log.h"
-#include "globals.h"
 
 namespace torrent {
 
@@ -26,7 +27,7 @@ log_buffer::lock_and_push_log(const char* data, size_t length, int group) {
   if (size() >= max_size())
     base_type::pop_front();
 
-  base_type::push_back(log_entry(cachedTime.seconds(), group % 6, std::string(data, length)));
+  base_type::push_back(log_entry(this_thread::cached_seconds().count(), group % 6, std::string(data, length)));
 
   if (m_slot_update)
     m_slot_update();

@@ -1,12 +1,10 @@
 #include "config.h"
 
-#include <cassert>
-
 #include "thread_tracker.h"
 
-#include "manager.h"
+#include <cassert>
+
 #include "torrent/exceptions.h"
-#include "torrent/poll.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_worker.h"
@@ -16,8 +14,9 @@ namespace torrent {
 
 std::atomic<ThreadTracker*> ThreadTracker::m_thread_tracker{nullptr};
 
-// TODO: Deleting should be private, and only destroy_thread should call it.
 ThreadTracker::~ThreadTracker() {
+  m_tracker_manager.reset();
+
   m_thread_tracker = nullptr;
 }
 
@@ -29,16 +28,6 @@ ThreadTracker::create_thread(utils::Thread* main_thread) {
   m_thread_tracker.load()->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
 }
 
-// TODO: Deprecate this function.
-void
-ThreadTracker::destroy_thread() {
-  if (m_thread_tracker == nullptr)
-    return;
-
-  m_thread_tracker.load()->stop_thread_wait();
-  delete m_thread_tracker.load();
-}
-
 ThreadTracker*
 ThreadTracker::thread_tracker() {
   return m_thread_tracker;
@@ -46,10 +35,6 @@ ThreadTracker::thread_tracker() {
 
 void
 ThreadTracker::init_thread() {
-  if (!Poll::slot_create_poll())
-    throw internal_error("ThreadTracker::init_thread(): Poll::slot_create_poll() not valid.");
-
-  m_poll = std::unique_ptr<Poll>(Poll::slot_create_poll()());
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;

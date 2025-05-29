@@ -2,9 +2,11 @@
 
 #include "torrent/net/resolver.h"
 
-#include "globals.h"
+#include <cassert>
+
 #include "net/thread_net.h"
 #include "net/udns_resolver.h"
+#include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/thread.h"
 
@@ -14,7 +16,7 @@ void
 Resolver::init() {
   m_thread = torrent::thread_self();
 
-  assert(m_thread != nullptr);
+  assert(m_thread != nullptr && "Resolver::m_thread is nullptr.");
 }
 
 void
@@ -35,7 +37,7 @@ Resolver::resolve_preferred(void* requester, const std::string& hostname, int fa
 
   thread_net()->callback(requester, [this, requester, hostname, family, preferred, callback = std::move(callback)]() {
       thread_net()->udns()->resolve(requester, hostname, family, [this, requester, preferred, callback = std::move(callback)](sin_shared_ptr sin, sin6_shared_ptr sin6, int err) {
-          sa_shared_ptr result;
+          sa_shared_ptr result(nullptr, sa_free);
 
           if (err == 0) {
             if (sin != nullptr && sin6 != nullptr) {
@@ -63,7 +65,7 @@ void
 Resolver::resolve_specific(void* requester, const std::string& hostname, int family, single_callback&& callback) {
   thread_net()->callback(requester, [this, requester, hostname, family, callback = std::move(callback)]() {
       thread_net()->udns()->resolve(requester, hostname, family, [this, requester, family, callback = std::move(callback)](sin_shared_ptr sin, sin6_shared_ptr sin6, int err) {
-          sa_shared_ptr result;
+          sa_shared_ptr result(nullptr, sa_free);
 
           if(err == 0) {
             if (family == AF_INET && sin != nullptr)

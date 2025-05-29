@@ -1,28 +1,25 @@
 #include "config.h"
 
+#include "resume.h"
+
 #include <rak/file_stat.h>
 #include <rak/socket_address.h>
-
-#include "peer/peer_info.h"
-#include "peer/peer_list.h"
-#include "torrent/tracker/tracker.h"
-#include "torrent/utils/log.h"
 
 #include "data/file.h"
 #include "data/file_list.h"
 #include "data/transfer_list.h"
+#include "download/download_main.h"
 #include "net/address_list.h"
-
-#include "common.h"
-#include "bitfield.h"
-#include "download.h"
-#include "download_info.h"
-#include "object.h"
-#include "tracker_list.h"
-
-#include "globals.h"
-
-#include "resume.h"
+#include "peer/peer_info.h"
+#include "peer/peer_list.h"
+#include "torrent/common.h"
+#include "torrent/bitfield.h"
+#include "torrent/download.h"
+#include "torrent/download_info.h"
+#include "torrent/object.h"
+#include "torrent/tracker/tracker.h"
+#include "torrent/utils/log.h"
+#include "tracker/tracker_list.h"
 
 #define LT_LOG_LOAD(log_fmt, ...)                                       \
   lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", log_fmt, __VA_ARGS__);
@@ -315,11 +312,16 @@ resume_load_uncertain_pieces(Download download, const Object& object) {
 
   LT_LOG_LOAD("found %zu uncertain pieces", uncertain.size() / 2);
 
-  for (auto itr = uncertain.begin(); itr + sizeof(uint32_t) < uncertain.end(); itr += sizeof(uint32_t)) {
+  const char* itr  = uncertain.c_str();
+  const char* last = uncertain.c_str() + uncertain.size();
+
+  while (itr + sizeof(uint32_t) <= last) {
     // Fix this so it does full ranges.
     download.update_range(Download::update_range_recheck | Download::update_range_clear,
-                          ntohl(*reinterpret_cast<const uint32_t*>(&(*itr))),
-                          ntohl(*reinterpret_cast<const uint32_t*>(&(*std::next(itr)))));
+                          ntohl(*reinterpret_cast<const uint32_t*>(itr)),
+                          ntohl(*reinterpret_cast<const uint32_t*>(itr)) + 1);
+
+    itr += sizeof(uint32_t);
   }
 }
 
@@ -331,9 +333,10 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   object.erase_key("uncertain_pieces.timestamp");
 
   const TransferList::completed_list_type& completedList = download.transfer_list()->completed_list();
+
   auto itr = std::find_if(completedList.begin(), completedList.end(), [](const auto& v) {
-    return (rak::timer::current() - rak::timer::from_minutes(15).usec()) <= v.first;
-  });
+      return this_thread::cached_time() - 15min <= std::chrono::microseconds(v.first);
+    });
 
   if (itr == completedList.end())
     return;
@@ -349,7 +352,8 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   for (unsigned int& itr2 : buffer)
     itr2 = htonl(itr2);
 
-  object.insert_key("uncertain_pieces.timestamp", rak::timer::current_seconds());
+  object.insert_key("uncertain_pieces.timestamp", this_thread::cached_seconds().count());
+
   Object::string_type& completed = object.insert_key("uncertain_pieces", std::string()).as_string();
   completed.append(reinterpret_cast<const char*>(&buffer.front()), buffer.size() * sizeof(uint32_t));
 }
@@ -420,8 +424,8 @@ resume_load_file_priorities(Download download, const Object& object) {
 
 void
 resume_save_file_priorities(Download download, Object& object) {
-  Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
-  auto filesItr = files.begin();
+  auto& files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
+  auto  filesItr = files.begin();
 
   FileList* fileList = download.file_list();
 
@@ -446,7 +450,7 @@ resume_load_addresses(Download download, const Object& object) {
     if (!key.is_map() ||
         !key.has_key_string("inet") || key.get_key_string("inet").size() != sizeof(SocketAddressCompact) ||
         !key.has_key_value("failed") ||
-        !key.has_key_value("last") || key.get_key_value("last") > cachedTime.seconds())
+        !key.has_key_value("last") || key.get_key_value("last") > this_thread::cached_seconds().count())
       continue;
 
     int flags = 0;
@@ -469,7 +473,7 @@ resume_load_addresses(Download download, const Object& object) {
 
 void
 resume_save_addresses(Download download, Object& object) {
-  Object&         dest     = object.insert_key("peers", Object::create_list());
+  auto& dest = object.insert_key("peers", Object::create_list());
 
   for (const auto& dlp : *download.peer_list()) {
     // Add some checks, like see if there's anything interesting to
@@ -487,7 +491,7 @@ resume_save_addresses(Download download, Object& object) {
       peer.insert_key("inet", std::string(SocketAddressCompact(sa->sa_inet()->address_n(), htons(dlp.second->listen_port())).c_str(), sizeof(SocketAddressCompact)));
 
     peer.insert_key("failed", dlp.second->failed_counter());
-    peer.insert_key("last", dlp.second->is_connected() ? cachedTime.seconds() : dlp.second->last_connection());
+    peer.insert_key("last", dlp.second->is_connected() ? this_thread::cached_seconds().count() : dlp.second->last_connection());
   }
 }
 
@@ -496,8 +500,8 @@ resume_load_tracker_settings(Download download, const Object& object) {
   if (!object.has_key_map("trackers"))
     return;
 
-  const Object& src = object.get_key("trackers");
-  TrackerList*  tracker_list = download.tracker_list();
+  auto& src          = object.get_key("trackers");
+  auto  tracker_list = download.main()->tracker_list();
 
   for (const auto& map : src.as_map()) {
     if (!map.second.has_key("extra_tracker") || map.second.get_key_value("extra_tracker") == 0 ||
@@ -507,7 +511,7 @@ resume_load_tracker_settings(Download download, const Object& object) {
     if (tracker_list->find_url(map.first) != tracker_list->end())
       continue;
 
-    download.tracker_list()->insert_url(map.second.get_key_value("group"), map.first);
+    download.main()->tracker_list()->insert_url(map.second.get_key_value("group"), map.first);
   }
 
   for (auto tracker : *tracker_list) {
@@ -525,8 +529,8 @@ resume_load_tracker_settings(Download download, const Object& object) {
 
 void
 resume_save_tracker_settings(Download download, Object& object) {
-  Object& dest = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
-  TrackerList* tracker_list = download.tracker_list();
+  auto& dest         = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
+  auto  tracker_list = download.main()->tracker_list();
 
   for (auto tracker : *tracker_list) {
     Object& trackerObject = dest.insert_key(tracker.url(), Object::create_map());

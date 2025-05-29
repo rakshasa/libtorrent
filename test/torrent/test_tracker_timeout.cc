@@ -2,9 +2,8 @@
 
 #include "test/torrent/test_tracker_timeout.h"
 
-#include "globals.h"
 #include "test/torrent/test_tracker_list.h"
-#include "torrent/tracker_controller.h"
+#include "tracker/tracker_controller.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(test_tracker_timeout);
 

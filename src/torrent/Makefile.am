@@ -136,11 +136,7 @@ libtorrent_torrent_la_SOURCES = \
 	throttle.cc \
 	throttle.h \
 	torrent.cc \
-	torrent.h \
-	tracker_controller.cc \
-	tracker_controller.h \
-	tracker_list.cc \
-	tracker_list.h
+	torrent.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
@@ -233,6 +229,4 @@ libtorrent_torrent_include_HEADERS = \
 	poll.h \
 	rate.h \
 	throttle.h \
-	torrent.h \
-	tracker_controller.h \
-	tracker_list.h
+	torrent.h
