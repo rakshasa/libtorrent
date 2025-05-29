@@ -5,6 +5,8 @@
 #include <memory>
 #include <openssl/evp.h>
 
+#include "torrent/exceptions.h"
+
 namespace torrent {
 
 struct sha1_deleter {
@@ -29,17 +31,20 @@ Sha1::init() {
   if (m_ctx == nullptr)
     m_ctx.reset(EVP_MD_CTX_new());
 
-  EVP_DigestInit_ex(m_ctx.get(), EVP_sha1(), nullptr);
+  if (EVP_DigestInit_ex(m_ctx.get(), EVP_sha1(), nullptr) == 0)
+    throw internal_error("Sha1::init() failed to initialize SHA-1 context.");
 }
 
 inline void
 Sha1::update(const void* data, unsigned int length) {
-  EVP_DigestUpdate(m_ctx.get(), data, length);
+  if (EVP_DigestUpdate(m_ctx.get(), data, length) == 0)
+    throw internal_error("Sha1::update() failed to update SHA-1 context.");
 }
 
 inline void
 Sha1::final_c(void* buffer) {
-  EVP_DigestFinal_ex(m_ctx.get(), static_cast<unsigned char*>(buffer), nullptr);
+  if (EVP_DigestFinal_ex(m_ctx.get(), static_cast<unsigned char*>(buffer), nullptr) == 0)
+    throw internal_error("Sha1::final_c() failed to finalize SHA-1 context.");
 }
 
 inline void
