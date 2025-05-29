@@ -11,9 +11,9 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_http, "torrent");
   bool http_destroyed = false;                                          \
   bool stream_destroyed = false;                                        \
                                                                         \
-  TestHttp* test_http = new TestHttp(&http_destroyed);                  \
+  auto test_http = new TestHttp(&http_destroyed);                       \
   torrent::Http* http = test_http;                                      \
-  std::stringstream* http_stream = new StringStream(&stream_destroyed); \
+  auto http_stream = new StringStream(&stream_destroyed);               \
                                                                         \
   int done_counter = 0;                                                 \
   int failed_counter = 0;                                               \
@@ -76,22 +76,21 @@ void
 test_http::test_basic() {
   torrent::Http::slot_factory() = std::bind(&create_test_http);
 
-  torrent::Http* http = torrent::Http::slot_factory()();
-  std::stringstream* http_stream = new std::stringstream;
+  auto http = torrent::Http::slot_factory()();
+  auto http_stream = std::make_unique<std::stringstream>();
 
   http->set_url("http://example.com");
   CPPUNIT_ASSERT(http->url() == "http://example.com");
 
-  CPPUNIT_ASSERT(http->stream() == NULL);
-  http->set_stream(http_stream);
-  CPPUNIT_ASSERT(http->stream() == http_stream);
+  CPPUNIT_ASSERT(http->stream() == nullptr);
+  http->set_stream(http_stream.get());
+  CPPUNIT_ASSERT(http->stream() != nullptr);
 
   CPPUNIT_ASSERT(http->timeout() == 0);
   http->set_timeout(666);
   CPPUNIT_ASSERT(http->timeout() == 666);
   
   delete http;
-  delete http_stream;
 }
 
 void
