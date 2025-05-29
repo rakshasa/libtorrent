@@ -10,7 +10,7 @@ public:
   static const int flag_scrape_on_success = 0x20;
 
   // TODO: Clean up tracker related enums.
-  TrackerTest(const torrent::TrackerInfo& info, int flags = torrent::tracker::TrackerState::flag_enabled);
+  TrackerTest(torrent::TrackerInfo info, int flags = torrent::tracker::TrackerState::flag_enabled);
 
   bool                is_busy() const override { return m_busy; }
   bool                is_open() const          { return m_open; }
@@ -60,8 +60,8 @@ private:
 };
 
 inline
-TrackerTest::TrackerTest(const torrent::TrackerInfo& info, int flags) :
-  torrent::TrackerWorker(info, flags) {
+TrackerTest::TrackerTest(torrent::TrackerInfo info, int flags) :
+  torrent::TrackerWorker(std::move(info), flags) {
 
   state().m_flags |= flag_close_on_done;
 }
