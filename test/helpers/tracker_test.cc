@@ -22,7 +22,7 @@ TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const st
   };
   tracker_info.url = url;
 
-  return torrent::tracker::Tracker(std::make_shared<TrackerTest>(tracker_info, flags));
+  return torrent::tracker::Tracker(std::make_shared<TrackerTest>(std::move(tracker_info), flags));
 }
 
 void
