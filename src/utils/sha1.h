@@ -19,7 +19,6 @@ class Sha1 {
 public:
   void init();
   void update(const void* data, unsigned int length);
-
   void final_c(void* buffer);
 
 private:
@@ -30,8 +29,10 @@ inline void
 Sha1::init() {
   if (m_ctx == nullptr)
     m_ctx.reset(EVP_MD_CTX_new());
+  else
+    EVP_MD_CTX_reset(m_ctx.get());
 
-  if (EVP_DigestInit_ex(m_ctx.get(), EVP_sha1(), nullptr) == 0)
+  if (EVP_DigestInit(m_ctx.get(), EVP_sha1()) == 0)
     throw internal_error("Sha1::init() failed to initialize SHA-1 context.");
 }
 
@@ -43,7 +44,7 @@ Sha1::update(const void* data, unsigned int length) {
 
 inline void
 Sha1::final_c(void* buffer) {
-  if (EVP_DigestFinal_ex(m_ctx.get(), static_cast<unsigned char*>(buffer), nullptr) == 0)
+  if (EVP_DigestFinal(m_ctx.get(), static_cast<unsigned char*>(buffer), nullptr) == 0)
     throw internal_error("Sha1::final_c() failed to finalize SHA-1 context.");
 }
 
