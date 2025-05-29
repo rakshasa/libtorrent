@@ -104,6 +104,7 @@ test_http::test_done() {
   // Check that we didn't delete...
 
   CPPUNIT_ASSERT(done_counter == 1 && failed_counter == 0);
+  delete http;
 }
 
 void
@@ -116,6 +117,7 @@ test_http::test_failure() {
   // Check that we didn't delete...
 
   CPPUNIT_ASSERT(done_counter == 0 && failed_counter == 1);
+  delete http;
 }
 
 void
