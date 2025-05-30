@@ -41,7 +41,6 @@ Thread::Thread() :
 }
 
 Thread::~Thread() {
-  m_self = nullptr;
 }
 
 Thread*
@@ -137,6 +136,7 @@ Thread::enter_event_loop(void* thread) {
 
   t->init_thread_local();
   t->event_loop();
+  t->cleanup_thread_local();
 
   return nullptr;
 }
@@ -179,7 +179,8 @@ Thread::event_loop() {
   }
 
   // Some test, and perhaps other code, segfaults on this.
-  // m_poll->remove_read(m_interrupt_receiver.get());
+  // TODO: Test
+  //m_poll->remove_read(m_interrupt_receiver.get());
 
   auto previous_state = STATE_ACTIVE;
 
@@ -212,6 +213,16 @@ Thread::init_thread_local() {
 
   if (!m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
     throw internal_error("Thread::init_thread_local() : " + std::string(name()) + " : called on an object that is not in the initialized state.");
+}
+
+void
+Thread::cleanup_thread_local() {
+  lt_log_print(LOG_THREAD_NOTICE, "%s : cleaning up thread local data", name());
+
+  cleanup_thread();
+
+  // TODO: Cleanup the resolver, scheduler, and poll objects.
+  m_self = nullptr;
 }
 
 void

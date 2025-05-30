@@ -38,6 +38,8 @@ public:
   static constexpr int flag_did_shutdown = 0x2;
   static constexpr int flag_polling      = 0x4;
 
+  // The ctor and dtor are called outside of the thread, so thread-specific initialization and
+  // destruction should be done in init_thread() and cleanup_thread() respectively.
   Thread();
   virtual ~Thread();
 
@@ -72,6 +74,13 @@ public:
 
   virtual void        init_thread() = 0;
   void                init_thread_local();
+
+  // It is assumed that any thread-specific resources no longer are accessed at the time
+  // cleanup_thread is called, or that those resources remain safe to call.
+  //
+  // This mean that e.g. tracker::Manager never gets called once thread_tracker is stopped.
+  virtual void        cleanup_thread() = 0;
+  void                cleanup_thread_local();
 
   void                start_thread();
   void                stop_thread_wait();

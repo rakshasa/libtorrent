@@ -13,9 +13,7 @@ namespace torrent {
 ThreadMain* ThreadMain::m_thread_main{nullptr};
 
 ThreadMain::~ThreadMain() {
-  m_thread_main = nullptr;
-
-  m_hash_queue.reset();
+  cleanup_thread();
 }
 
 void
@@ -49,6 +47,14 @@ ThreadMain::init_thread() {
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
     };
+}
+
+void
+ThreadMain::cleanup_thread() {
+  m_hash_queue.reset();
+
+  m_thread_main = nullptr;
+  m_self = nullptr;
 }
 
 void

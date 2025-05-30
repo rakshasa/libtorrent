@@ -14,11 +14,7 @@ namespace torrent {
 
 std::atomic<ThreadTracker*> ThreadTracker::m_thread_tracker{nullptr};
 
-ThreadTracker::~ThreadTracker() {
-  m_tracker_manager.reset();
-
-  m_thread_tracker = nullptr;
-}
+ThreadTracker::~ThreadTracker() = default;
 
 void
 ThreadTracker::create_thread(utils::Thread* main_thread) {
@@ -42,6 +38,13 @@ ThreadTracker::init_thread() {
   // m_signal_send_event = thread_self()->signal_bitfield()->add_signal([this]() {
   //   process_send_events();
   // });
+}
+
+void
+ThreadTracker::cleanup_thread() {
+  m_thread_tracker = nullptr;
+
+  m_tracker_manager.reset();
 }
 
 // void

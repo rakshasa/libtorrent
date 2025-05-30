@@ -14,9 +14,7 @@ namespace torrent {
 
 ThreadDisk* ThreadDisk::m_thread_disk{nullptr};
 
-ThreadDisk::~ThreadDisk() {
-  m_thread_disk = nullptr;
-}
+ThreadDisk::~ThreadDisk() = default;
 
 void
 ThreadDisk::create_thread() {
@@ -40,6 +38,13 @@ ThreadDisk::init_thread() {
   m_hash_check_queue.slot_chunk_done() = [](auto hc, const auto& hv) {
       thread_main()->hash_queue()->chunk_done(hc, hv);
     };
+}
+
+void
+ThreadDisk::cleanup_thread() {
+  m_thread_disk = nullptr;
+
+  assert(m_hash_check_queue.empty() && "ThreadDisk::cleanup_thread(): m_hash_check_queue not empty.");
 }
 
 void
