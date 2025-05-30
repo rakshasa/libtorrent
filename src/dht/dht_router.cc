@@ -2,6 +2,7 @@
 
 #include "dht_router.h"
 
+#include <cassert>
 #include <sstream>
 
 #include "dht_bucket.h"
@@ -88,7 +89,7 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
 }
 
 DhtRouter::~DhtRouter() {
-  stop();
+  assert(!is_active() && "DhtRouter::~DhtRouter() called while still active.");
 
   for (auto& route : m_routingTable)
     delete route.second;
@@ -115,6 +116,11 @@ DhtRouter::start(int port) {
 
 void
 DhtRouter::stop() {
+  if (!is_active())
+    return;
+
+  LT_LOG_THIS("stopping", 0);
+
   this_thread::resolver()->cancel(this);
   this_thread::scheduler()->erase(&m_task_timeout);
 
