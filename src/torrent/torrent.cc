@@ -97,7 +97,8 @@ cleanup() {
   if (manager == NULL)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
-  // TODO: Make sure all downloads and other resources have been removed.
+  // Might need to wait for the threads to finish?
+  manager->cleanup();
 
   thread_tracker()->stop_thread_wait();
   thread_disk()->stop_thread_wait();
