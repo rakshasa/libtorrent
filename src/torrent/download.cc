@@ -31,15 +31,6 @@
 
 namespace torrent {
 
-const int DownloadInfo::flag_open;
-const int DownloadInfo::flag_active;
-const int DownloadInfo::flag_accepting_new_peers;
-const int DownloadInfo::flag_accepting_seeders;
-const int DownloadInfo::flag_private;
-const int DownloadInfo::flag_meta_download;
-const int DownloadInfo::flag_pex_enabled;
-const int DownloadInfo::flag_pex_active;
-
 const int DownloadInfo::public_flags;
 
 const uint32_t DownloadInfo::unlimited;
@@ -63,10 +54,10 @@ Download::open(int flags) {
   // should be allowed to pass a flag that will keep the old settings,
   // although loading resume data should really handle everything
   // properly.
-  int fileFlags = File::flag_create_queued | File::flag_resize_queued;
+  int fileFlags = File::flag::create_queued | File::flag::resize_queued;
 
   if (flags & open_enable_fallocate)
-    fileFlags |= File::flag_fallocate;
+    fileFlags |= File::flag::fallocate;
 
   for (auto& file : *m_ptr->main()->file_list())
     file->set_flags(fileFlags);
@@ -105,7 +96,7 @@ Download::start(int flags) {
 
   // If the FileList::open_no_create flag was not set, our new
   // behavior is to create all zero-length files with
-  // flag_queued_create set.
+  // flag::queued_create set.
   file_list()->open(flags & ~FileList::open_no_create);
 
   if (m_ptr->connection_type() == CONNECTION_INITIAL_SEED) {
@@ -208,7 +199,7 @@ Download::set_pex_enabled(bool enabled) {
   if (enabled)
     m_ptr->info()->set_pex_enabled();
   else
-    m_ptr->info()->unset_flags(DownloadInfo::flag_pex_enabled);
+    m_ptr->info()->unset_flags(DownloadInfo::flag::pex_enabled);
 }
 
 Object*

@@ -66,7 +66,7 @@ const unsigned char HandshakeEncryption::vc_data[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 bool
 HandshakeEncryption::should_retry() const {
-  return (m_options & ConnectionManager::encryption_enable_retry) != 0 && m_retry != HandshakeEncryption::RETRY_NONE;
+  return (m_options & ConnectionManager::encryption::enable_retry) != 0 && m_retry != HandshakeEncryption::RETRY_NONE;
 }
 
 bool
