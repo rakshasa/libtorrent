@@ -3,9 +3,7 @@
 #include "test_thread.h"
 
 #include <unistd.h>
-#include <cppunit/extensions/HelperMacros.h>
 
-#include "data/thread_disk.h"
 #include "test/helpers/mock_function.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
@@ -40,6 +38,10 @@ void
 test_thread::init_thread() {
   m_state = STATE_INITIALIZED;
   m_test_state = TEST_PRE_START;
+}
+
+void
+test_thread::cleanup_thread() {
 }
 
 void

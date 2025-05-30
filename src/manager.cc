@@ -80,6 +80,11 @@ Manager::~Manager() {
 }
 
 void
+Manager::cleanup() {
+  m_dht_controller->stop();
+}
+
+void
 Manager::initialize_download(DownloadWrapper* d) {
   d->main()->slot_count_handshakes([this](DownloadMain* download) {
     return m_handshake_manager->size_info(download);

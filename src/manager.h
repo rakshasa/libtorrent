@@ -21,6 +21,8 @@ public:
   Manager();
   ~Manager();
 
+  void                cleanup();
+
   ChunkManager*       chunk_manager()      { return m_chunk_manager.get(); }
   ConnectionManager*  connection_manager() { return m_connection_manager.get(); }
   DownloadManager*    download_manager()   { return m_download_manager.get(); }

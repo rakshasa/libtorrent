@@ -41,6 +41,7 @@ public:
   const char*         name() const override              { return "test_thread"; }
 
   void                init_thread() override;
+  void                cleanup_thread() override;
 
   void                set_pre_stop()           { m_test_flags |= test_flag_pre_stop; }
   void                set_test_flag(int flags) { m_test_flags |= flags; }
