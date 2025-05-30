@@ -137,7 +137,7 @@ HashTorrent::queue(bool quick) {
 
       if (handle.is_valid()) {
         LT_LOG_THIS(DEBUG, "Return on handle.is_valid(): position:%u.", m_position);
-        return m_chunk_list->release(&handle, ChunkList::get_dont_log);
+        return m_chunk_list->release(&handle, ChunkList::release_dont_log);
       }
 
       if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent) {

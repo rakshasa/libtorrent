@@ -167,7 +167,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       m_hash_checker->receive_chunkdone(handle.index());
     }
 
-    m_main->chunk_list()->release(&handle, ChunkList::get_dont_log);
+    m_main->chunk_list()->release(&handle, ChunkList::release_dont_log);
     return;
   }
 
@@ -209,7 +209,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
   }
 
   data()->call_chunk_done(handle.object());
-  m_main->chunk_list()->release(&handle);
+  m_main->chunk_list()->release(&handle, ChunkList::release_default);
 }
 
 void
@@ -218,11 +218,13 @@ DownloadWrapper::check_chunk_hash(ChunkHandle handle, bool hashing) {
   auto flags = ChunkList::get_blocking;
 
   if (hashing)
-    flags |= ChunkList::get_hashing;
+    flags = flags | ChunkList::get_hashing;
+  else
+    flags = flags | ChunkList::get_not_hashing;
 
   ChunkHandle new_handle = m_main->chunk_list()->get(handle.index(), flags);
+  m_main->chunk_list()->release(&handle, ChunkList::release_default);
 
-  m_main->chunk_list()->release(&handle);
   hash_queue()->push_back(new_handle, data(), [this](auto c, auto h) { receive_hash_done(c, h); });
 }
 

@@ -324,7 +324,7 @@ PeerConnectionBase::load_up_chunk() {
 
   up_chunk_release();
 
-  m_upChunk = m_download->chunk_list()->get(m_upPiece.index());
+  m_upChunk = m_download->chunk_list()->get(m_upPiece.index(), ChunkList::get_not_hashing);
 
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
@@ -414,7 +414,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
   if (!m_downChunk.is_valid() || piece.index() != m_downChunk.index()) {
     down_chunk_release();
-    m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_writable);
+    m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_not_hashing | ChunkList::get_writable);
 
     if (!m_downChunk.is_valid())
       throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
@@ -797,13 +797,13 @@ PeerConnectionBase::up_extension() {
 void
 PeerConnectionBase::down_chunk_release() {
   if (m_downChunk.is_valid())
-    m_download->chunk_list()->release(&m_downChunk);
+    m_download->chunk_list()->release(&m_downChunk, ChunkList::release_default);
 }
 
 void
 PeerConnectionBase::up_chunk_release() {
   if (m_upChunk.is_valid())
-    m_download->chunk_list()->release(&m_upChunk);
+    m_download->chunk_list()->release(&m_upChunk, ChunkList::release_default);
 }
 
 void
