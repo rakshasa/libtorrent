@@ -35,6 +35,10 @@ TestMainThread::init_thread() {
 }
 
 void
+TestMainThread::cleanup_thread() {
+}
+
+void
 TestMainThread::call_events() {
   process_callbacks();
 }

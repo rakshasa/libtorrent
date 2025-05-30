@@ -13,16 +13,15 @@ namespace torrent {
 
 ThreadNet* ThreadNet::m_thread_net{nullptr};
 
-ThreadNet::~ThreadNet() {
-  m_udns.reset();
-  m_thread_net = nullptr;
-}
+ThreadNet::~ThreadNet() = default;
 
 void
 ThreadNet::create_thread() {
-  m_thread_net = new ThreadNet;
+  auto thread = new ThreadNet;
 
-  m_thread_net->m_udns = std::make_unique<UdnsResolver>();
+  thread->m_udns = std::make_unique<UdnsResolver>();
+
+  m_thread_net = thread;
 }
 
 ThreadNet*
@@ -35,6 +34,13 @@ ThreadNet::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_NET - INSTRUMENTATION_POLLING_DO_POLL;
+}
+
+void
+ThreadNet::cleanup_thread() {
+  m_thread_net = nullptr;
+
+  m_udns.reset();
 }
 
 void

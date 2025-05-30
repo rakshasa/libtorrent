@@ -19,6 +19,7 @@ public:
   HashCheckQueue* hash_check_queue() { return &m_hash_check_queue; }
 
   void            init_thread() override;
+  void            cleanup_thread() override;
 
 private:
   ThreadDisk() = default;

@@ -16,6 +16,7 @@ public:
   const char*         name() const override  { return "rtorrent test main"; }
 
   void                init_thread() override;
+  void                cleanup_thread() override;
 
   void                test_set_cached_time(std::chrono::microseconds t) { set_cached_time(365 * 24h + t); }
   void                test_add_cached_time(std::chrono::microseconds t) { set_cached_time(cached_time() + t); }

@@ -28,6 +28,7 @@ public:
   const char*           name() const override { return "rtorrent tracker"; }
 
   void                  init_thread() override;
+  void                  cleanup_thread() override;
 
   tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
 
