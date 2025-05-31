@@ -1,14 +1,15 @@
 #include "config.h"
 
+#include "torrent/chunk_manager.h"
+
+#include <cassert>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
 #include "data/chunk_list.h"
+#include "torrent/exceptions.h"
 #include "utils/instrumentation.h"
-
-#include "exceptions.h"
-#include "chunk_manager.h"
 
 namespace torrent {
 
@@ -20,8 +21,8 @@ ChunkManager::ChunkManager() :
 }
 
 ChunkManager::~ChunkManager() {
-  if (m_memoryUsage != 0 || m_memoryBlockCount != 0)
-    throw internal_error("ChunkManager::~ChunkManager() m_memoryUsage != 0 || m_memoryBlockCount != 0.");
+  assert(m_memoryUsage == 0 && "ChunkManager::~ChunkManager() m_memoryUsage != 0.");
+  assert(m_memoryBlockCount == 0 && "ChunkManager::~ChunkManager() m_memoryBlockCount != 0.");
 }
 
 uint64_t
@@ -47,7 +48,7 @@ ChunkManager::sync_queue_size() const {
 uint64_t
 ChunkManager::estimate_max_memory_usage() {
   rlimit rlp;
-  
+
 #ifdef RLIMIT_AS
   if (getrlimit(RLIMIT_AS, &rlp) == 0 && rlp.rlim_cur != RLIM_INFINITY)
 #else
@@ -168,7 +169,7 @@ ChunkManager::sync_all(int flags, uint64_t target) {
     if (itr == base_type::end())
       itr = base_type::begin();
 
-    (*itr)->sync_chunks(flags);
+    (*itr)->sync_chunks(static_cast<ChunkList::sync_flags>(flags));
 
   } while (++itr != base_type::begin() + m_lastFreed && m_memoryUsage >= target);
 

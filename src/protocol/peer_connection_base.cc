@@ -324,7 +324,7 @@ PeerConnectionBase::load_up_chunk() {
 
   up_chunk_release();
 
-  m_upChunk = m_download->chunk_list()->get(m_upPiece.index());
+  m_upChunk = m_download->chunk_list()->get(m_upPiece.index(), ChunkList::get_not_hashing);
 
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
@@ -414,7 +414,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
   if (!m_downChunk.is_valid() || piece.index() != m_downChunk.index()) {
     down_chunk_release();
-    m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_writable);
+    m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_not_hashing | ChunkList::get_writable);
 
     if (!m_downChunk.is_valid())
       throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
@@ -521,7 +521,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
     throw internal_error("PeerConnectionBase::down_chunk_from_buffer() !transfer->is_finished() && m_down->buffer()->remaining() != 0.");
 
   return m_request_list.transfer()->is_finished();
-}  
+}
 
 // When this transfer again becomes the leader, we just return false
 // and wait for the next polling. It is an exceptional case so we
@@ -556,7 +556,7 @@ PeerConnectionBase::down_chunk_skip() {
 bool
 PeerConnectionBase::down_chunk_skip_from_buffer() {
   m_down->buffer()->consume(down_chunk_skip_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
-  
+
   return m_request_list.transfer()->is_finished();
 }
 
@@ -621,7 +621,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   if (!m_downChunk.chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
     LT_LOG_PIECE_EVENTS("(down) download_data_mismatch %" PRIu32 " %" PRIu32 " %" PRIu32,
                         transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
-    
+
     m_request_list.transfer_dissimilar();
     m_request_list.transfer()->adjust_position(length);
 
@@ -640,7 +640,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 
   if (down_chunk_process(static_cast<const char*>(buffer) + compareLength, length - compareLength) != length - compareLength)
     throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) down_chunk_process(...) returned wrong value.");
-  
+
   return length;
 }
 
@@ -657,7 +657,7 @@ PeerConnectionBase::down_extension() {
   if (!m_extensions->is_complete()) {
     uint32_t bytes = read_stream_throws(m_extensions->read_position(), m_extensions->read_need());
     m_down->throttle()->node_used_unthrottled(bytes);
-    
+
     if (is_encrypted())
       m_encryption.decrypt(m_extensions->read_position(), bytes);
 
@@ -797,13 +797,13 @@ PeerConnectionBase::up_extension() {
 void
 PeerConnectionBase::down_chunk_release() {
   if (m_downChunk.is_valid())
-    m_download->chunk_list()->release(&m_downChunk);
+    m_download->chunk_list()->release(&m_downChunk, ChunkList::release_default);
 }
 
 void
 PeerConnectionBase::up_chunk_release() {
   if (m_upChunk.is_valid())
-    m_download->chunk_list()->release(&m_upChunk);
+    m_download->chunk_list()->release(&m_upChunk, ChunkList::release_default);
 }
 
 void
@@ -840,7 +840,7 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
     LT_LOG_PIECE_EVENTS("(up)   cancel_ignored   %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
   }
-}  
+}
 
 void
 PeerConnectionBase::write_prepare_piece() {
@@ -860,7 +860,7 @@ PeerConnectionBase::write_prepare_piece() {
 
     throw communication_error(buffer);
   }
-  
+
   m_up->write_piece(m_upPiece);
 
   LT_LOG_PIECE_EVENTS("(up)   prepared         %" PRIu32 " %" PRIu32 " %" PRIu32,
@@ -918,7 +918,7 @@ PeerConnectionBase::try_request_pieces() {
     int maxRequests = m_up->max_write_request();
     int maxQueued = pipeSize - request_list()->queued_size();
     int maxPieces = std::max(std::min(maxRequests, maxQueued), 1);
-    
+
     std::vector<const Piece*> pieces = request_list()->delegate(maxPieces);
     if (pieces.empty()) {
       return false;

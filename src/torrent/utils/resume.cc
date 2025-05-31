@@ -182,7 +182,7 @@ resume_save_progress(Download download, Object& object) {
   }
 
   resume_save_bitfield(download, object);
-  
+
   Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
   auto filesItr = files.begin();
 
@@ -202,7 +202,7 @@ resume_save_progress(Download download, Object& object) {
     bool fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
 
     if (!fileExists) {
-      
+
       if ((*listItr)->is_create_queued()) {
         // ~0 means the file still needs to be created.
         filesItr->insert_key("mtime", ~int64_t{0});

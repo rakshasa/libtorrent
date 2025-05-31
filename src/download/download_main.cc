@@ -63,8 +63,16 @@ DownloadMain::DownloadMain()
   m_task_tracker_request.slot()     = [this] { receive_tracker_request(); };
 
   m_chunkList->set_data(file_list()->mutable_data());
-  m_chunkList->slot_create_chunk()   = [this](auto i, auto p) { return file_list()->create_chunk_index(i, p); };
-  m_chunkList->slot_free_diskspace() = [this] { return file_list()->free_diskspace(); };
+
+  m_chunkList->slot_create_chunk() = [this](uint32_t index, int prot) {
+      return file_list()->create_chunk_index(index, prot);
+    };
+  m_chunkList->slot_create_hashing_chunk() = [this](uint32_t index, int prot) {
+      return file_list()->create_hashing_chunk_index(index, prot);
+    };
+  m_chunkList->slot_free_diskspace() = [this]() {
+      return file_list()->free_diskspace();
+    };
 }
 
 DownloadMain::~DownloadMain() {
@@ -114,7 +122,8 @@ DownloadMain::open(int flags) {
   if (info()->is_open())
     throw internal_error("Tried to open a download that is already open");
 
-  file_list()->open(flags & FileList::open_no_create);
+  // TODO: Move file_list open calls to DownloadMain.
+  file_list()->open(true, (flags & FileList::open_no_create));
 
   m_chunkList->resize(file_list()->size_chunks());
   m_chunkStatistics->initialize(file_list()->size_chunks());
@@ -147,12 +156,23 @@ DownloadMain::close() {
   m_chunkSelector->cleanup();
 }
 
-void DownloadMain::start() {
+void DownloadMain::start(int flags) {
   if (!info()->is_open())
     throw internal_error("Tried to start a closed download");
 
   if (info()->is_active())
     throw internal_error("Tried to start an active download");
+
+  // Close and clear open files to ensure hashing file/mmap advise is cleared.
+  //
+  // We should not need to clear chunks after hash checking the whole torrent as those chunk handle
+  // references go to zero.
+  file_list()->close_all_files();
+
+  // If the FileList::open_no_create flag was not set, our new
+  // behavior is to create all zero-length files with
+  // flag_queued_create set.
+  file_list()->open(false, (flags & ~FileList::open_no_create));
 
   info()->set_flags(DownloadInfo::flag_active);
   chunk_list()->set_flags(ChunkList::flag_active);
@@ -235,7 +255,8 @@ DownloadMain::update_endgame() {
 
 void
 DownloadMain::receive_chunk_done(unsigned int index) {
-  ChunkHandle handle = m_chunkList->get(index);
+  // TODO: Should we unmap the chunk here if we want sequential access?
+  ChunkHandle handle = m_chunkList->get(index, ChunkList::get_hashing);
 
   if (!handle.is_valid())
     throw storage_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");
