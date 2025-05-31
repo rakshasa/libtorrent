@@ -4,10 +4,12 @@
 
 #include <functional>
 #include <random>
+#include <sstream>
 
 #include "net/address_list.h"
-#include "torrent/exceptions.h"
 #include "torrent/download_info.h"
+#include "torrent/exceptions.h"
+#include "torrent/http.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
@@ -261,40 +263,38 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
 // TODO: Use proper flags for insert options.
 void
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
-  TrackerWorker* worker;
-
   int flags = tracker::TrackerState::flag_enabled;
 
   if (extra_tracker)
     flags |= tracker::TrackerState::flag_extra_tracker;
 
   TrackerInfo tracker_info;
-  tracker_info.info_hash = m_info->hash();
+  tracker_info.info_hash       = m_info->hash();
   tracker_info.obfuscated_hash = m_info->hash_obfuscated();
-  tracker_info.local_id = m_info->local_id(),
-  tracker_info.url = url;
-  tracker_info.key = m_key;
+  tracker_info.local_id        = m_info->local_id();
+  tracker_info.url             = url;
+  tracker_info.key             = m_key;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
-    worker = new TrackerHttp(tracker_info, flags);
-
-  } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    worker = new TrackerUdp(tracker_info, flags);
-
-  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    worker = new TrackerDht(tracker_info, flags);
-
-  } else {
-    LT_LOG("could find matching tracker protocol : url:%s", url.c_str());
-
-    if (extra_tracker)
-      throw torrent::input_error("could find matching tracker protocol (url:" + url + ")");
-
+    insert(group, tracker::Tracker(std::make_shared<TrackerHttp>(tracker_info, flags)));
     return;
   }
 
-  insert(group, tracker::Tracker(std::shared_ptr<TrackerWorker>(worker)));
+  if (std::strncmp("udp://", url.c_str(), 6) == 0) {
+    insert(group, tracker::Tracker(std::make_shared<TrackerUdp>(tracker_info, flags)));
+    return;
+  }
+
+  if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
+    insert(group, tracker::Tracker(std::make_shared<TrackerDht>(tracker_info, flags)));
+    return;
+  }
+
+  LT_LOG("could find matching tracker protocol : url:%s", url.c_str());
+
+  if (extra_tracker)
+    throw torrent::input_error("could find matching tracker protocol (url:" + url + ")");
 }
 
 TrackerList::iterator
