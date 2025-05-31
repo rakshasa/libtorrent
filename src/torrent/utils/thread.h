@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_UTILS_THREADBASE_H
-#define LIBTORRENT_UTILS_THREADBASE_H
+#ifndef LIBTORRENT_TORRENT_UTILS_THREAD_H
+#define LIBTORRENT_TORRENT_UTILS_THREAD_H
 
 #include <atomic>
 #include <functional>
@@ -12,11 +12,7 @@
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
-
 class SignalInterrupt;
-
-inline utils::Thread* thread_self();
-
 }
 
 namespace torrent::utils {
@@ -161,10 +157,6 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
     interrupt();
 }
 
-}
-
-namespace torrent {
-inline utils::Thread* thread_self() { return utils::Thread::self(); }
 }
 
 #endif

@@ -15,19 +15,11 @@
 #include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
 #include "utils/signal_interrupt.h"
+#include "utils/thread_internal.h"
 
 namespace torrent::utils {
 
 thread_local Thread* Thread::m_self{nullptr};
-
-class ThreadInternal {
-public:
-  static std::chrono::microseconds cached_time()    { return Thread::m_self->m_cached_time; }
-  static std::chrono::seconds      cached_seconds() { return cast_seconds(Thread::m_self->m_cached_time); }
-  static Poll*                     poll()           { return Thread::m_self->m_poll.get(); }
-  static Scheduler*                scheduler()      { return Thread::m_self->m_scheduler.get(); }
-  static net::Resolver*            resolver()       { return Thread::m_self->m_resolver.get(); }
-};
 
 Thread::Thread() :
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),

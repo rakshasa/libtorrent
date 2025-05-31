@@ -80,7 +80,7 @@ socket_listen::close() {
   if (!is_open())
     return;
 
-  torrent::poll_event_closed(this);
+  torrent::this_thread::event_closed_and_count(this);
 
   fd_close(file_descriptor());
   set_file_descriptor(-1);
@@ -124,9 +124,9 @@ socket_listen::m_open_port(int fd, sa_unique_ptr& sap, uint16_t port) {
   m_fileDesc = fd;
   m_socket_address.swap(sap);
 
-  torrent::poll_event_open(this);
-  torrent::poll_event_insert_read(this);
-  torrent::poll_event_insert_error(this);
+  torrent::this_thread::event_open_and_count(this);
+  torrent::this_thread::event_insert_read(this);
+  torrent::this_thread::event_insert_error(this);
 
   return true;
 }

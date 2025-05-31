@@ -122,11 +122,6 @@ is_inactive() {
   return manager == nullptr || std::all_of(manager->download_manager()->begin(), manager->download_manager()->end(), std::mem_fn(&DownloadWrapper::is_stopped));
 }
 
-utils::Thread*
-main_thread() {
-  return thread_main();
-}
-
 void
 set_main_thread_slots(std::function<void()> do_work) {
   thread_main()->slot_do_work() = std::move(do_work);
@@ -151,8 +146,6 @@ Throttle* up_throttle_global() { return manager->upload_throttle(); }
 const Rate* down_rate() { return manager->download_throttle()->rate(); }
 const Rate* up_rate() { return manager->upload_throttle()->rate(); }
 const char* version() { return VERSION; }
-
-uint32_t hash_queue_size() { return thread_main()->hash_queue()->size(); }
 
 EncodingList*
 encoding_list() {

@@ -14,7 +14,7 @@ namespace torrent::net {
 
 void
 Resolver::init() {
-  m_thread = torrent::thread_self();
+  m_thread = torrent::utils::Thread::self();
 
   assert(m_thread != nullptr && "Resolver::m_thread is nullptr.");
 }

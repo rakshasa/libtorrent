@@ -24,21 +24,26 @@
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/tracker/manager.h"
 #include "utils/instrumentation.h"
+#include "utils/thread_internal.h"
 
 namespace torrent {
 
 Manager* manager = NULL;
 
-// TODO: Replace with a this_thread::event version.
-void poll_event_open(Event* event) { this_thread::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
-void poll_event_close(Event* event) { this_thread::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
-void poll_event_closed(Event* event) { this_thread::poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
-void poll_event_insert_read(Event* event) { this_thread::poll()->insert_read(event); }
-void poll_event_insert_write(Event* event) { this_thread::poll()->insert_write(event); }
-void poll_event_insert_error(Event* event) { this_thread::poll()->insert_error(event); }
-void poll_event_remove_read(Event* event) { this_thread::poll()->remove_read(event); }
-void poll_event_remove_write(Event* event) { this_thread::poll()->remove_write(event); }
-void poll_event_remove_error(Event* event) { this_thread::poll()->remove_error(event); }
+namespace this_thread {
+
+LIBTORRENT_EXPORT void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
+LIBTORRENT_EXPORT void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
+LIBTORRENT_EXPORT void event_close_and_count(Event* event)  { utils::ThreadInternal::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
+LIBTORRENT_EXPORT void event_closed_and_count(Event* event) { utils::ThreadInternal::poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
+LIBTORRENT_EXPORT void event_insert_read(Event* event)      { utils::ThreadInternal::poll()->insert_read(event); }
+LIBTORRENT_EXPORT void event_insert_write(Event* event)     { utils::ThreadInternal::poll()->insert_write(event); }
+LIBTORRENT_EXPORT void event_insert_error(Event* event)     { utils::ThreadInternal::poll()->insert_error(event); }
+LIBTORRENT_EXPORT void event_remove_read(Event* event)      { utils::ThreadInternal::poll()->remove_read(event); }
+LIBTORRENT_EXPORT void event_remove_write(Event* event)     { utils::ThreadInternal::poll()->remove_write(event); }
+LIBTORRENT_EXPORT void event_remove_error(Event* event)     { utils::ThreadInternal::poll()->remove_error(event); }
+
+}
 
 Manager::Manager()
   : m_chunk_manager(new ChunkManager),

@@ -28,15 +28,17 @@ mock_clear(bool ignore_assert) {
   MOCK_CLEANUP_MAP(torrent::fd__setsockopt_int);
   MOCK_CLEANUP_MAP(torrent::fd__socket);
 
-  MOCK_CLEANUP_MAP(torrent::poll_event_open);
-  MOCK_CLEANUP_MAP(torrent::poll_event_close);
-  MOCK_CLEANUP_MAP(torrent::poll_event_closed);
-  MOCK_CLEANUP_MAP(torrent::poll_event_insert_read);
-  MOCK_CLEANUP_MAP(torrent::poll_event_insert_write);
-  MOCK_CLEANUP_MAP(torrent::poll_event_insert_error);
-  MOCK_CLEANUP_MAP(torrent::poll_event_remove_read);
-  MOCK_CLEANUP_MAP(torrent::poll_event_remove_write);
-  MOCK_CLEANUP_MAP(torrent::poll_event_remove_error);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_open);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_open_and_count);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_close_and_count);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_closed_and_count);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_insert_read);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_insert_write);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_insert_error);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_read);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_write);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_error);
+  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_and_close);
 
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint16);
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint32);
@@ -117,52 +119,66 @@ int fd__socket(int domain, int type, int protocol) {
 }
 
 //
-// Mock functions for 'torrent/event.h':
+// Mock functions for 'torrent/common.h':
 //
 
-void poll_event_open(Event* event) {
+namespace this_thread {
+
+void event_open(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_open, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_open, event);
 }
 
-void poll_event_close(Event* event) {
+void event_open_and_count(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_close, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_open_and_count, event);
 }
 
-void poll_event_closed(Event* event) {
+void event_close_and_count(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_closed, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_close_and_count, event);
 }
 
-void poll_event_insert_read(Event* event) {
+void event_closed_and_count(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_insert_read, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_closed_and_count, event);
 }
 
-void poll_event_insert_write(Event* event) {
+void event_insert_read(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_insert_write, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_insert_read, event);
 }
 
-void poll_event_insert_error(Event* event) {
+void event_insert_write(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_insert_error, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_insert_write, event);
 }
 
-void poll_event_remove_read(Event* event) {
+void event_insert_error(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_remove_read, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_insert_error, event);
 }
 
-void poll_event_remove_write(Event* event) {
+void event_remove_read(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_remove_write, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_remove_read, event);
 }
 
-void poll_event_remove_error(Event* event) {
+void event_remove_write(Event* event) {
   MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
-  return mock_call<void>(__func__, &torrent::poll_event_remove_error, event);
+  return mock_call<void>(__func__, &torrent::this_thread::event_remove_write, event);
+}
+
+void event_remove_error(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::this_thread::event_remove_error, event);
+}
+
+void event_remove_and_close(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::this_thread::event_remove_and_close, event);
+}
+
 }
 
 //

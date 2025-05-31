@@ -39,6 +39,7 @@ protected:
   std::function<void()>      m_slot_do_work;
 };
 
+// TODO: Remove.
 inline ThreadMain* thread_main() {
   return ThreadMain::thread_main();
 }

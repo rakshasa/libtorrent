@@ -9,13 +9,11 @@
 #include <sys/types.h>
 
 #include "manager.h"
-#include "thread_main.h"
 #include "net/address_list.h"
 #include "rak/error_number.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
-#include "torrent/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/resolver.h"
 #include "torrent/utils/log.h"
@@ -138,10 +136,7 @@ TrackerUdp::close_directly() {
   if (!get_fd().is_valid())
     return;
 
-  this_thread::poll()->remove_read(this);
-  this_thread::poll()->remove_write(this);
-  this_thread::poll()->remove_error(this);
-  this_thread::poll()->close(this);
+  this_thread::event_remove_and_close(this);
 
   get_fd().close();
   get_fd().clear();
@@ -164,7 +159,7 @@ TrackerUdp::receive_failed(const std::string& msg) {
 // events.
 void
 TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err) {
-  if (std::this_thread::get_id() != torrent::thread_main()->thread_id())
+  if (std::this_thread::get_id() != torrent::main_thread::thread_id())
     throw internal_error("TrackerUdp::receive_resolved() called from a different thread.");
 
   LT_LOG("received resolved", 0);
@@ -210,7 +205,7 @@ TrackerUdp::receive_timeout() {
   }
 
   this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, std::chrono::seconds(udp_timeout));
-  this_thread::poll()->insert_write(this);
+  this_thread::event_insert_write(this);
 }
 
 void
@@ -253,10 +248,11 @@ TrackerUdp::start_announce() {
 
   prepare_connect_input();
 
-  this_thread::poll()->open(this);
-  this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_write(this);
-  this_thread::poll()->insert_error(this);
+  // TODO: Add socket counting.
+  this_thread::event_open(this);
+  this_thread::event_insert_read(this);
+  this_thread::event_insert_write(this);
+  this_thread::event_insert_error(this);
 
   m_tries = udp_tries;
 
@@ -294,7 +290,7 @@ TrackerUdp::event_read() {
     this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, std::chrono::seconds(udp_timeout));
 
     m_tries = udp_tries;
-    this_thread::poll()->insert_write(this);
+    this_thread::event_insert_write(this);
     return;
 
   case 1:
@@ -321,7 +317,7 @@ TrackerUdp::event_write() {
 
   [[maybe_unused]] int s = write_datagram_sa(m_write_buffer->begin(), m_write_buffer->size_end(), m_current_address);
 
-  this_thread::poll()->remove_write(this);
+  this_thread::event_remove_write(this);
 }
 
 void
