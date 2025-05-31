@@ -12,11 +12,7 @@
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
-
 class SignalInterrupt;
-
-inline utils::Thread* thread_self();
-
 }
 
 namespace torrent::utils {
@@ -161,10 +157,6 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
     interrupt();
 }
 
-}
-
-namespace torrent {
-inline utils::Thread* thread_self() { return utils::Thread::self(); }
 }
 
 #endif

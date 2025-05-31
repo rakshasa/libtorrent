@@ -168,8 +168,8 @@ Poll::process() {
     if (itr->data.fd < 0 || static_cast<size_t>(itr->data.fd) >= m_internal->m_table.size())
       continue;
 
-    if (thread_self()->callbacks_should_interrupt_polling())
-      thread_self()->process_callbacks(true);
+    if (utils::Thread::self()->callbacks_should_interrupt_polling())
+      utils::Thread::self()->process_callbacks(true);
 
     auto evItr = m_internal->m_table.begin() + itr->data.fd;
 
