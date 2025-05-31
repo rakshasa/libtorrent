@@ -39,9 +39,6 @@ const Rate*         up_rate() LIBTORRENT_EXPORT;
 
 const char*         version() LIBTORRENT_EXPORT;
 
-// Disk access tuning.
-uint32_t            hash_queue_size() LIBTORRENT_EXPORT;
-
 using DList        = std::list<Download>;
 using EncodingList = std::list<std::string>;
 
