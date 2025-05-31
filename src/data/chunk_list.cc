@@ -221,7 +221,7 @@ ChunkList::clear_chunk(ChunkListNode* node, release_flags flags) {
   delete node->chunk();
   node->set_chunk(NULL);
 
-  m_manager->deallocate(m_chunk_size, (flags & get_dont_log) ? ChunkManager::allocate_dont_log : 0);
+  m_manager->deallocate(m_chunk_size, (flags & release_dont_log) ? ChunkManager::allocate_dont_log : 0);
 }
 
 inline bool
