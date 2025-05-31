@@ -72,8 +72,8 @@ public:
 
   // Remember to use modulo.
   static value_type   mask_at(size_type idx)        { return 1 << (7 - idx); }
-  static value_type   mask_before(size_type idx)    { return ~value_type{} << (8 - idx); }
-  static value_type   mask_from(size_type idx)      { return ~value_type{} >> idx; }
+  static value_type   mask_before(size_type idx)    { return value_type{0xff} << (8 - idx); }
+  static value_type   mask_from(size_type idx)      { return value_type{0xff} >> idx; }
 
 private:
   size_type           m_size{};
