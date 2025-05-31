@@ -8,6 +8,18 @@
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
+namespace torrent::main_thread {
+
+// TODO: User ThreadMainInternal to reduce function calls below.
+
+torrent::utils::Thread* thread()          { return torrent::ThreadMain::thread_main(); }
+std::thread::id         thread_id()       { return torrent::ThreadMain::thread_main()->thread_id(); }
+
+// TODO: Not thread safe.
+uint32_t                hash_queue_size() { return torrent::ThreadMain::thread_main()->hash_queue()->size(); }
+
+}
+
 namespace torrent {
 
 ThreadMain* ThreadMain::m_thread_main{nullptr};

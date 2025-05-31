@@ -89,7 +89,7 @@ public:
   void                set_priority(priority_type p)           { m_priority = p; }
   void                set_send_buffer_size(uint32_t s);
   void                set_receive_buffer_size(uint32_t s);
-  void                set_encryption_options(uint32_t options); 
+  void                set_encryption_options(uint32_t options);
 
   // Setting the addresses creates a copy of the address.
   const sockaddr*     bind_address() const                    { return m_bindAddress; }
@@ -104,7 +104,7 @@ public:
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
 
   bool                listen_open(port_type begin, port_type end);
-  void                listen_close();  
+  void                listen_close();
 
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,

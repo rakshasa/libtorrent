@@ -55,7 +55,7 @@ typedef std::unique_ptr<torrent::socket_listen, test_sl_deleter> test_sl_unique_
 
 #define TEST_SL_CLOSE(_fd)                                              \
   mock_expect(&torrent::fd__close, 0, _fd);                             \
-  mock_expect(&torrent::poll_event_closed, (torrent::Event*)sl.get());  \
+  mock_expect(&torrent::this_thread::event_closed_and_count, (torrent::Event*)sl.get()); \
   CPPUNIT_ASSERT_NO_THROW(sl->close());                                 \
   TEST_SL_ASSERT_CLOSED();
 

@@ -4,6 +4,7 @@
 #include <cinttypes>
 #include <cstddef>
 #include <chrono>
+#include <thread>
 
 struct sockaddr;
 struct sockaddr_in;
@@ -105,12 +106,36 @@ class Thread;
 
 // TODO: Add the other torrent threads as namespaces.
 namespace torrent::this_thread {
+
 std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
 std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
 Poll*                     poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
 utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
+
 // TODO: Add callbacks.
+
+[[gnu::weak]] void event_open(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_open_and_count(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_close_and_count(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_closed_and_count(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_insert_read(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_insert_write(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_insert_error(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_remove_read(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_remove_write(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_remove_error(Event* event) LIBTORRENT_EXPORT;
+[[gnu::weak]] void event_remove_and_close(Event* event) LIBTORRENT_EXPORT;
+
+}
+
+namespace torrent::main_thread {
+
+torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
+std::thread::id         thread_id() LIBTORRENT_EXPORT;
+
+uint32_t                hash_queue_size() LIBTORRENT_EXPORT;
+
 }
 
 #endif
