@@ -41,19 +41,30 @@ public:
   using base_type::empty;
   using base_type::operator[];
 
-  static constexpr int sync_all          = (1 << 0);
-  static constexpr int sync_force        = (1 << 1);
-  static constexpr int sync_safe         = (1 << 2);
-  static constexpr int sync_sloppy       = (1 << 3);
-  static constexpr int sync_use_timeout  = (1 << 4);
-  static constexpr int sync_ignore_error = (1 << 5);
+  enum sync_flags {
+    sync_all          = (1 << 0),
+    sync_force        = (1 << 1),
+    sync_safe         = (1 << 2),
+    sync_sloppy       = (1 << 3),
+    sync_use_timeout  = (1 << 4),
+    sync_ignore_error = (1 << 5)
+  };
 
-  static constexpr int get_writable      = (1 << 0);
-  static constexpr int get_blocking      = (1 << 1);
-  static constexpr int get_dont_log      = (1 << 2);
-  static constexpr int get_nonblock      = (1 << 3);
+  enum get_flags {
+    get_writable      = (1 << 0),
+    get_blocking      = (1 << 1),
+    get_nonblock      = (1 << 2),
+    get_hashing       = (1 << 3),
+    get_not_hashing   = (1 << 4),
+    get_dont_log      = (1 << 5)
+  };
 
-  static constexpr int flag_active       = (1 << 0);
+  enum release_flags {
+    release_default   = 0,
+    release_dont_log  = (1 << 0)
+  };
+
+  static constexpr int flag_active = (1 << 0);
 
   ChunkList() = default;
   ~ChunkList() { clear(); }
@@ -78,19 +89,20 @@ public:
   void                resize(size_type to_size);
   void                clear();
 
-  ChunkHandle         get(size_type index, int flags = 0);
-  void                release(ChunkHandle* handle, int flags = 0);
+  ChunkHandle         get(size_type index, get_flags flags);
+  void                release(ChunkHandle* handle, release_flags flags);
 
   // Replace use_timeout with something like performance related
   // keyword. Then use that flag to decide if we should skip
   // non-continious regions.
 
   // Returns the number of failed syncs.
-  uint32_t            sync_chunks(int flags);
+  uint32_t            sync_chunks(sync_flags flags);
 
-  slot_string&        slot_storage_error()  { return m_slot_storage_error; }
-  slot_chunk_index&   slot_create_chunk()   { return m_slot_create_chunk; }
-  slot_value&         slot_free_diskspace() { return m_slot_free_diskspace; }
+  slot_string&        slot_storage_error()        { return m_slot_storage_error; }
+  slot_chunk_index&   slot_create_chunk()         { return m_slot_create_chunk; }
+  slot_chunk_index&   slot_create_hashing_chunk() { return m_slot_create_hashing_chunk; }
+  slot_value&         slot_free_diskspace()       { return m_slot_free_diskspace; }
 
   using chunk_address_result = std::pair<iterator, Chunk::iterator>;
 
@@ -102,7 +114,7 @@ private:
 
   inline bool         is_queued(ChunkListNode* node);
 
-  inline void         clear_chunk(ChunkListNode* node, int flags = 0);
+  inline void         clear_chunk(ChunkListNode* node, release_flags flags);
   inline bool         sync_chunk(ChunkListNode* node, std::pair<int,bool> options);
 
   Queue::iterator     partition_optimize(Queue::iterator first, Queue::iterator last, int weight, int maxDistance, bool dontSkip);
@@ -110,7 +122,7 @@ private:
   inline Queue::iterator seek_range(Queue::iterator first, Queue::iterator last);
   inline bool            check_node(ChunkListNode* node);
 
-  std::pair<int,bool> sync_options(ChunkListNode* node, int flags);
+  std::pair<int,bool> sync_options(ChunkListNode* node, sync_flags flags);
 
   download_data*      m_data{};
   ChunkManager*       m_manager{};
@@ -121,8 +133,24 @@ private:
 
   slot_string         m_slot_storage_error;
   slot_chunk_index    m_slot_create_chunk;
+  slot_chunk_index    m_slot_create_hashing_chunk;
   slot_value          m_slot_free_diskspace;
 };
+
+inline ChunkList::sync_flags
+operator|(ChunkList::sync_flags a, ChunkList::sync_flags b) {
+  return static_cast<ChunkList::sync_flags>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline ChunkList::get_flags
+operator|(ChunkList::get_flags a, ChunkList::get_flags b) {
+  return static_cast<ChunkList::get_flags>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline ChunkList::release_flags
+operator|(ChunkList::release_flags a, ChunkList::release_flags b) {
+  return static_cast<ChunkList::release_flags>(static_cast<int>(a) | static_cast<int>(b));
+}
 
 }
 

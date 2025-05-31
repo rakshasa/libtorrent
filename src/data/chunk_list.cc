@@ -63,7 +63,7 @@ ChunkList::clear() {
       throw internal_error("ChunkList::clear() called but a node in the queue is still referenced.");
 
     chunk->dec_rw();
-    clear_chunk(chunk);
+    clear_chunk(chunk, release_default);
   }
 
   m_queue.clear();
@@ -84,7 +84,7 @@ ChunkList::clear() {
 }
 
 ChunkHandle
-ChunkList::get(size_type index, int flags) {
+ChunkList::get(size_type index, get_flags flags) {
   LT_LOG_THIS(DEBUG, "Get: index:%" PRIu32 " flags:%#x.", index, flags);
 
   rak::error_number::clear_global();
@@ -101,14 +101,24 @@ ChunkList::get(size_type index, int flags) {
       return ChunkHandle::from_error(rak::error_number::e_nomem);
     }
 
-    Chunk* chunk = m_slot_create_chunk(index, prot_flags);
+    Chunk* chunk;
+
+    if ((flags & get_hashing))
+      chunk = m_slot_create_hashing_chunk(index, prot_flags);
+    else if (flags & get_not_hashing)
+      chunk = m_slot_create_chunk(index, prot_flags);
+    else
+      throw internal_error("ChunkList::get(...) called with get_hashing and get_not_hashing flags set.");
 
     if (chunk == NULL) {
       rak::error_number current_error = rak::error_number::current();
 
       LT_LOG_THIS(DEBUG, "Could not create: memory:%" PRIu64 " block:%" PRIu32 " errno:%i errmsg:%s.",
-                  m_manager->memory_usage(), m_manager->memory_block_count(),
-                  current_error.value(), current_error.c_str());
+                  m_manager->memory_usage(),
+                  m_manager->memory_block_count(),
+                  current_error.value(),
+                  current_error.c_str());
+
       m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);
       return ChunkHandle::from_error(current_error.is_valid() ? current_error : rak::error_number::e_noent);
     }
@@ -157,15 +167,15 @@ ChunkList::get(size_type index, int flags) {
 // will allow us to schedule writes at more resonable intervals.
 
 void
-ChunkList::release(ChunkHandle* handle, int release_flags) {
+ChunkList::release(ChunkHandle* handle, release_flags flags) {
   if (!handle->is_valid())
     throw internal_error("ChunkList::release(...) received an invalid handle.");
 
   if (handle->object() < &*begin() || handle->object() >= &*end())
     throw internal_error("ChunkList::release(...) received an unknown handle.");
 
-  LT_LOG_THIS(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", handle->index(), release_flags);
- 
+  LT_LOG_THIS(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", handle->index(), flags);
+
   if (handle->object()->references() <= 0 ||
       (handle->is_writable() && handle->object()->writable() <= 0) ||
       (handle->is_blocking() && handle->object()->blocking() <= 0))
@@ -196,7 +206,7 @@ ChunkList::release(ChunkHandle* handle, int release_flags) {
       if (is_queued(handle->object()))
         throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
 
-      clear_chunk(handle->object(), release_flags);
+      clear_chunk(handle->object(), flags);
     }
   }
 
@@ -204,7 +214,7 @@ ChunkList::release(ChunkHandle* handle, int release_flags) {
 }
 
 void
-ChunkList::clear_chunk(ChunkListNode* node, int flags) {
+ChunkList::clear_chunk(ChunkListNode* node, release_flags flags) {
   if (!node->is_valid())
     throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
 
@@ -231,20 +241,20 @@ ChunkList::sync_chunk(ChunkListNode* node, std::pair<int,bool> options) {
     return true;
 
   node->dec_rw();
- 
+
   if (node->references() == 0)
-    clear_chunk(node);
+    clear_chunk(node, release_default);
 
   return true;
 }
 
 uint32_t
-ChunkList::sync_chunks(int flags) {
+ChunkList::sync_chunks(sync_flags flags) {
   LT_LOG_THIS(DEBUG, "Sync chunks: flags:%#x.", flags);
 
   Queue::iterator split;
 
-  if (flags & sync_all)
+  if ((flags & sync_all))
     split = m_queue.begin();
   else
     split = std::stable_partition(m_queue.begin(), m_queue.end(), [](ChunkListNode* n) {
@@ -258,14 +268,14 @@ ChunkList::sync_chunks(int flags) {
   // only areas with timers are (preferably) synced?
 
   std::sort(split, m_queue.end());
-  
+
   // If we got enough diskspace and have not requested safe syncing,
   // then sync all chunks with MS_ASYNC.
   if (!(flags & (sync_safe | sync_sloppy))) {
     if (m_manager->safe_sync() || m_slot_free_diskspace() <= m_manager->safe_free_diskspace())
-      flags |= sync_safe;
+      flags = flags | sync_safe;
     else
-      flags |= sync_force;
+      flags = flags | sync_force;
   }
 
   // TODO: This won't trigger for default sync_force.
@@ -289,7 +299,7 @@ ChunkList::sync_chunks(int flags) {
 
     if (!sync_chunk(*itr, options)) {
       std::iter_swap(itr, split++);
-      
+
       failed++;
       continue;
     }
@@ -316,20 +326,14 @@ ChunkList::sync_chunks(int flags) {
 }
 
 std::pair<int, bool>
-ChunkList::sync_options(ChunkListNode* node, int flags) {
-  // Using if statements since some linkers have problem with static
-  // const int members inside the ?: operators. The compiler should
-  // be optimizing this anyway.
-
-  if (flags & sync_force) {
-
-    if (flags & sync_safe)
+ChunkList::sync_options(ChunkListNode* node, sync_flags flags) {
+  if ((flags & sync_force)) {
+    if ((flags & sync_safe))
       return std::make_pair(MemoryChunk::sync_sync, true);
     else
       return std::make_pair(MemoryChunk::sync_async, true);
 
-  } else if (flags & sync_safe) {
-
+  } else if ((flags & sync_safe)) {
     if (node->sync_triggered())
       return std::make_pair(MemoryChunk::sync_sync, true);
     else

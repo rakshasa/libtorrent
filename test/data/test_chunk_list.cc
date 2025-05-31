@@ -8,7 +8,7 @@
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_chunk_list, "data");
 
 torrent::Chunk*
-func_create_chunk(uint32_t index, int prot_flags) {
+func_create_chunk(uint32_t index, [[maybe_unused]] int prot_flags) {
   // Do proper handling of prot_flags...
   char* memory_part1 = (char*)mmap(NULL, 10, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 
@@ -27,12 +27,12 @@ func_create_chunk(uint32_t index, int prot_flags) {
 }
 
 uint64_t
-func_free_diskspace(torrent::ChunkList* chunk_list) {
+func_free_diskspace([[maybe_unused]] torrent::ChunkList* chunk_list) {
   return 0;
 }
 
 void
-func_storage_error(torrent::ChunkList* chunk_list, const std::string& message) {
+func_storage_error([[maybe_unused]] torrent::ChunkList* chunk_list, [[maybe_unused]] const std::string& message) {
 }
 
 void
@@ -60,7 +60,7 @@ test_chunk_list::test_get_release() {
 
   CPPUNIT_ASSERT(!(*chunk_list)[0].is_valid());
 
-  torrent::ChunkHandle handle_0 = chunk_list->get(0);
+  torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_not_hashing);
 
   CPPUNIT_ASSERT(handle_0.object() != NULL);
   CPPUNIT_ASSERT(handle_0.object()->index() == 0);
@@ -73,9 +73,9 @@ test_chunk_list::test_get_release() {
   CPPUNIT_ASSERT((*chunk_list)[0].writable() == 0);
   CPPUNIT_ASSERT((*chunk_list)[0].blocking() == 0);
 
-  chunk_list->release(&handle_0);
+  chunk_list->release(&handle_0, torrent::ChunkList::release_default);
 
-  torrent::ChunkHandle handle_1 = chunk_list->get(1, torrent::ChunkList::get_writable);
+  torrent::ChunkHandle handle_1 = chunk_list->get(1, torrent::ChunkList::get_not_hashing | torrent::ChunkList::get_writable);
 
   CPPUNIT_ASSERT(handle_1.object() != NULL);
   CPPUNIT_ASSERT(handle_1.object()->index() == 1);
@@ -88,9 +88,9 @@ test_chunk_list::test_get_release() {
   CPPUNIT_ASSERT((*chunk_list)[1].writable() == 1);
   CPPUNIT_ASSERT((*chunk_list)[1].blocking() == 0);
 
-  chunk_list->release(&handle_1);
+  chunk_list->release(&handle_1, torrent::ChunkList::release_default);
 
-  torrent::ChunkHandle handle_2 = chunk_list->get(2, torrent::ChunkList::get_blocking);
+  torrent::ChunkHandle handle_2 = chunk_list->get(2, torrent::ChunkList::get_not_hashing | torrent::ChunkList::get_blocking);
 
   CPPUNIT_ASSERT(handle_2.object() != NULL);
   CPPUNIT_ASSERT(handle_2.object()->index() == 2);
@@ -103,7 +103,7 @@ test_chunk_list::test_get_release() {
   CPPUNIT_ASSERT((*chunk_list)[2].writable() == 0);
   CPPUNIT_ASSERT((*chunk_list)[2].blocking() == 1);
 
-  chunk_list->release(&handle_2);
+  chunk_list->release(&handle_2, torrent::ChunkList::release_default);
 
   // Test ro->wr, etc.
 
@@ -115,23 +115,25 @@ void
 test_chunk_list::test_blocking() {
   SETUP_CHUNK_LIST();
 
-  torrent::ChunkHandle handle_0_ro = chunk_list->get(0, torrent::ChunkList::get_blocking);
+  torrent::ChunkHandle handle_0_ro = chunk_list->get(0, torrent::ChunkList::get_not_hashing | torrent::ChunkList::get_blocking);
   CPPUNIT_ASSERT(handle_0_ro.is_valid());
 
   // Test writable, etc, on blocking without get_nonblock using a
   // timer on other thread.
   // torrent::ChunkHandle handle_1 = chunk_list->get(0, torrent::ChunkList::get_writable);
-  
-  torrent::ChunkHandle handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_writable | torrent::ChunkList::get_nonblock);
+
+  torrent::ChunkHandle handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_not_hashing | torrent::ChunkList::get_writable | torrent::ChunkList::get_nonblock);
   CPPUNIT_ASSERT(!handle_0_rw.is_valid());
   CPPUNIT_ASSERT(handle_0_rw.error_number() == rak::error_number::e_again);
 
-  chunk_list->release(&handle_0_ro);
+  chunk_list->release(&handle_0_ro, torrent::ChunkList::release_default);
 
-  handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_writable);
+  handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_not_hashing | torrent::ChunkList::get_writable);
   CPPUNIT_ASSERT(handle_0_rw.is_valid());
 
-  chunk_list->release(&handle_0_rw);
+  chunk_list->release(&handle_0_rw, torrent::ChunkList::release_default);
 
   CLEANUP_CHUNK_LIST();
 }
+
+// TODO: Add tests for get_hashing, etc.

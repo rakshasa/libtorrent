@@ -61,11 +61,22 @@ File::is_correct_size() const {
   return fs.is_regular() && static_cast<uint64_t>(fs.size()) == m_size;
 }
 
+void
+File::set_completed_chunks(uint32_t v) {
+  if (has_flags(flag_active))
+    throw internal_error("File::set_completed_chunks(...) called on an active file.");
+
+  if (v > size_chunks())
+    throw internal_error("File::set_completed_chunks(...) called with a value larger than the chunk size.");
+
+  m_completed = v;
+}
+
 // At some point we should pass flags for deciding if the correct size
 // is necessary, etc.
 
 bool
-File::prepare(int prot, int flags) {
+File::prepare(bool hashing, int prot, int flags) {
   if (is_padding())
     return true;
 
@@ -84,7 +95,7 @@ File::prepare(int prot, int flags) {
   else
     flags &= ~SocketFile::o_create;
 
-  if (!manager->file_manager()->open(this, prot, flags))
+  if (!manager->file_manager()->open(this, hashing, prot, flags))
     return false;
 
   m_flags |= flag_previously_created;
