@@ -298,7 +298,7 @@ PeerConnectionMetadata::fill_write_buffer() {
 void
 PeerConnectionMetadata::event_write() {
   try {
-  
+
     do {
 
       switch (m_up->get_state()) {
@@ -307,7 +307,7 @@ PeerConnectionMetadata::event_write() {
         fill_write_buffer();
 
         if (m_up->buffer()->remaining() == 0) {
-          thread_main()->poll()->remove_write(this);
+          this_thread::poll()->remove_write(this);
           return;
         }
 
