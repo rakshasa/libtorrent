@@ -40,12 +40,12 @@ SocketBase::write_oob(const void* buffer) {
 
 void
 SocketBase::receive_throttle_down_activate() {
-  thread_self()->poll()->insert_read(this);
+  this_thread::poll()->insert_read(this);
 }
 
 void
 SocketBase::receive_throttle_up_activate() {
-  thread_self()->poll()->insert_write(this);
+  this_thread::poll()->insert_write(this);
 }
 
 } // namespace torrent

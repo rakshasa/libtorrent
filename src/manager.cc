@@ -29,19 +29,19 @@ namespace torrent {
 
 Manager* manager = NULL;
 
-// TODO: Delete.
-void poll_event_open(Event* event) { thread_main()->poll()->open(event); manager->connection_manager()->inc_socket_count(); }
-void poll_event_close(Event* event) { thread_main()->poll()->close(event); manager->connection_manager()->dec_socket_count(); }
-void poll_event_closed(Event* event) { thread_main()->poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
-void poll_event_insert_read(Event* event) { thread_main()->poll()->insert_read(event); }
-void poll_event_insert_write(Event* event) { thread_main()->poll()->insert_write(event); }
-void poll_event_insert_error(Event* event) { thread_main()->poll()->insert_error(event); }
-void poll_event_remove_read(Event* event) { thread_main()->poll()->remove_read(event); }
-void poll_event_remove_write(Event* event) { thread_main()->poll()->remove_write(event); }
-void poll_event_remove_error(Event* event) { thread_main()->poll()->remove_error(event); }
+// TODO: Replace with a this_thread::event version.
+void poll_event_open(Event* event) { this_thread::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
+void poll_event_close(Event* event) { this_thread::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
+void poll_event_closed(Event* event) { this_thread::poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
+void poll_event_insert_read(Event* event) { this_thread::poll()->insert_read(event); }
+void poll_event_insert_write(Event* event) { this_thread::poll()->insert_write(event); }
+void poll_event_insert_error(Event* event) { this_thread::poll()->insert_error(event); }
+void poll_event_remove_read(Event* event) { this_thread::poll()->remove_read(event); }
+void poll_event_remove_write(Event* event) { this_thread::poll()->remove_write(event); }
+void poll_event_remove_error(Event* event) { this_thread::poll()->remove_error(event); }
 
-Manager::Manager() :
-    m_chunk_manager(new ChunkManager),
+Manager::Manager()
+  : m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),

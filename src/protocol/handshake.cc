@@ -86,9 +86,9 @@ Handshake::initialize_incoming(const sockaddr* sa) {
   else
     m_state = READ_INFO;
 
-  thread_self()->poll()->open(this);
-  thread_self()->poll()->insert_read(this);
-  thread_self()->poll()->insert_error(this);
+  this_thread::poll()->open(this);
+  this_thread::poll()->insert_read(this);
+  this_thread::poll()->insert_error(this);
 
   // Use lower timeout here.
   this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
@@ -108,9 +108,9 @@ Handshake::initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* pe
 
   m_state = CONNECTING;
 
-  thread_self()->poll()->open(this);
-  thread_self()->poll()->insert_write(this);
-  thread_self()->poll()->insert_error(this);
+  this_thread::poll()->open(this);
+  this_thread::poll()->insert_write(this);
+  this_thread::poll()->insert_error(this);
 
   this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
 }
@@ -124,10 +124,7 @@ Handshake::deactivate_connection() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  thread_self()->poll()->remove_read(this);
-  thread_self()->poll()->remove_write(this);
-  thread_self()->poll()->remove_error(this);
-  thread_self()->poll()->close(this);
+  this_thread::poll()->remove_and_close(this);
 }
 
 void
@@ -525,7 +522,7 @@ Handshake::read_peer() {
   }
 
   m_state = READ_MESSAGE;
-  thread_self()->poll()->insert_write(this);
+  this_thread::poll()->insert_write(this);
 
   // Give some extra time for reading/writing the bitfield.
   this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 120s);
@@ -631,7 +628,7 @@ Handshake::read_done() {
 //     throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_order);
 
   m_readDone = true;
-  thread_self()->poll()->remove_read(this);
+  this_thread::poll()->remove_read(this);
 
   if (m_bitfield.empty()) {
     m_bitfield.set_size_bits(m_download->file_list()->bitfield()->size_bits());
@@ -664,7 +661,7 @@ restart:
 
       m_state = PROXY_DONE;
 
-      thread_self()->poll()->insert_write(this);
+      this_thread::poll()->insert_write(this);
       return event_write();
 
     case READ_ENC_KEY:
@@ -837,8 +834,8 @@ restart:
 
     // Call event_write if we have any data to write. Make sure
     // event_write() doesn't get called twice in this function.
-    if (m_writeBuffer.remaining() && !thread_self()->poll()->in_write(this)) {
-      thread_self()->poll()->insert_write(this);
+    if (m_writeBuffer.remaining() && !this_thread::poll()->in_write(this)) {
+      this_thread::poll()->insert_write(this);
       return event_write();
     }
 
@@ -890,7 +887,7 @@ Handshake::event_write() {
       if (get_fd().get_error())
         throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_unreachable);
 
-      thread_self()->poll()->insert_read(this);
+      this_thread::poll()->insert_read(this);
 
       if (m_encryption.options() & ConnectionManager::encryption_use_proxy) {
         prepare_proxy_connect();
@@ -949,7 +946,7 @@ Handshake::event_write() {
       if (m_state == POST_HANDSHAKE)
         write_done();
       else
-        thread_self()->poll()->remove_write(this);
+        this_thread::poll()->remove_write(this);
     }
 
   } catch (handshake_succeeded& e) {
@@ -1123,7 +1120,7 @@ Handshake::prepare_post_handshake(bool must_write) {
 void
 Handshake::write_done() {
   m_writeDone = true;
-  thread_self()->poll()->remove_write(this);
+  this_thread::poll()->remove_write(this);
 
   // Ok to just check m_readDone as the call in event_read() won't
   // set it before the call.
@@ -1201,7 +1198,7 @@ Handshake::write_bitfield() {
   // poll in that case.
   if (m_writePos == bitfield->size_bytes()) {
     if (!m_readDone)
-      thread_self()->poll()->remove_write(this);
+      this_thread::poll()->remove_write(this);
     else
       prepare_post_handshake(false);
   }

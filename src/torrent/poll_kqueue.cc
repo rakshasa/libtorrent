@@ -336,6 +336,15 @@ Poll::remove_error(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "remove error", 0);
 }
 
+void
+Poll::remove_and_close(Event* event) {
+  remove_read(event);
+  remove_write(event);
+  // remove_error(event);
+
+  close(event);
+}
+
 }
 
 #endif // USE_KQUEUE

@@ -40,8 +40,8 @@ directory_events::open() {
   if (m_fileDesc == -1)
     return false;
 
-  thread_self()->poll()->open(this);
-  thread_self()->poll()->insert_read(this);
+  this_thread::poll()->open(this);
+  this_thread::poll()->insert_read(this);
 
   return true;
 }
@@ -51,8 +51,8 @@ directory_events::close() {
   if (m_fileDesc == -1)
     return;
 
-  thread_self()->poll()->remove_read(this);
-  thread_self()->poll()->close(this);
+  this_thread::poll()->remove_read(this);
+  this_thread::poll()->close(this);
 
   ::close(m_fileDesc);
   m_fileDesc = -1;

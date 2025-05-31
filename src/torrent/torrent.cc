@@ -76,9 +76,9 @@ initialize() {
   ThreadNet::create_thread();
   ThreadTracker::create_thread(thread_main());
 
-  uint32_t maxFiles = calculate_max_open_files(thread_main()->poll()->open_max());
+  uint32_t maxFiles = calculate_max_open_files(this_thread::poll()->open_max());
 
-  manager->connection_manager()->set_max_size(thread_main()->poll()->open_max() - maxFiles - calculate_reserved(thread_main()->poll()->open_max()));
+  manager->connection_manager()->set_max_size(this_thread::poll()->open_max() - maxFiles - calculate_reserved(this_thread::poll()->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
 
   thread_disk()->init_thread();

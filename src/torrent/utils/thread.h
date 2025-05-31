@@ -67,9 +67,6 @@ public:
 
   // Only call these from the same thread, or before start_thread.
   //
-  // TODO: Move poll to ThreadInternal.
-  // TODO: Remove Poll.
-  Poll*               poll()               { return m_poll.get(); }
   auto                signal_bitfield()    { return &m_signal_bitfield; }
 
   virtual void        init_thread() = 0;

@@ -48,6 +48,8 @@ public:
   void                remove_write(Event* event);
   void                remove_error(Event* event);
 
+  void                remove_and_close(Event* event);
+
   // Add one for HUP? Or would that be in event?
 
 private:

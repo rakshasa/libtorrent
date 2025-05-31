@@ -56,9 +56,9 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
 
       manager->connection_manager()->inc_socket_count();
 
-      thread_self()->poll()->open(this);
-      thread_self()->poll()->insert_read(this);
-      thread_self()->poll()->insert_error(this);
+      this_thread::poll()->open(this);
+      this_thread::poll()->insert_read(this);
+      this_thread::poll()->insert_error(this);
 
       lt_log_print(LOG_CONNECTION_LISTEN, "listen port %" PRIu64 " opened with backlog set to %i",
                    m_port, backlog);
@@ -81,9 +81,7 @@ void Listen::close() {
   if (!get_fd().is_valid())
     return;
 
-  thread_self()->poll()->remove_read(this);
-  thread_self()->poll()->remove_error(this);
-  thread_self()->poll()->close(this);
+  this_thread::poll()->remove_and_close(this);
 
   manager->connection_manager()->dec_socket_count();
 
