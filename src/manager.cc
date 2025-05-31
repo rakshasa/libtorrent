@@ -42,6 +42,7 @@ LIBTORRENT_EXPORT void event_insert_error(Event* event)     { utils::ThreadInter
 LIBTORRENT_EXPORT void event_remove_read(Event* event)      { utils::ThreadInternal::poll()->remove_read(event); }
 LIBTORRENT_EXPORT void event_remove_write(Event* event)     { utils::ThreadInternal::poll()->remove_write(event); }
 LIBTORRENT_EXPORT void event_remove_error(Event* event)     { utils::ThreadInternal::poll()->remove_error(event); }
+LIBTORRENT_EXPORT void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remove_and_close(event); }
 
 }
 
