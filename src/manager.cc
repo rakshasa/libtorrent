@@ -30,7 +30,7 @@ namespace torrent {
 
 Manager* manager = NULL;
 
-namespace utils {
+namespace this_thread {
 
 LIBTORRENT_EXPORT void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
 LIBTORRENT_EXPORT void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
