@@ -163,9 +163,11 @@ void DownloadMain::start(int flags) {
   if (info()->is_active())
     throw internal_error("Tried to start an active download");
 
-  // Close and clear open files and chunks to ensure hashing file/mmap advise is cleared.
+  // Close and clear open files to ensure hashing file/mmap advise is cleared.
+  //
+  // We should not need to clear chunks after hash checking the whole torrent as those chunk handle
+  // references go to zero.
   file_list()->close_all_files();
-  chunk_list()->clear();
 
   // If the FileList::open_no_create flag was not set, our new
   // behavior is to create all zero-length files with
