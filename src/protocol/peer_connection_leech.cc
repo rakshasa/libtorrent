@@ -161,7 +161,7 @@ PeerConnection<type>::read_message() {
   } else if (length > (1 << 20)) {
     throw communication_error("PeerConnection::read_message() got an invalid message length.");
   }
-    
+
   // We do not verify the message length of those with static
   // length. A bug in the remote client causing the message start to
   // be unsyncronized would in practically all cases be caught with

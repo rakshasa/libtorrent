@@ -1,6 +1,6 @@
 LibTorrent
 
-Copyright (C) 2005-2014, Jari Sundell
+Copyright (C) 2005-2025, Jari Sundell
 
 LICENSE
 
@@ -12,11 +12,4 @@ compiled if the user wishes to avoid using OpenSSL.
 
 CONTACT
 
- Jari Sundell
-
- Skomakerveien 33
- 3185 Skoppum, NORWAY
-
- Send bug reports, suggestions and patches to
-<sundell.software@gmail.com> or to the mailinglist.
-
+ Jari Sundell <sundell.software@gmail.com>
