@@ -417,8 +417,16 @@ resume_load_file_priorities(Download download, const Object& object) {
         filesItr->get_key_value("priority") >= 0 && filesItr->get_key_value("priority") <= PRIORITY_HIGH)
       (*listItr)->set_priority(static_cast<priority_enum>(filesItr->get_key_value("priority")));
 
-    if (filesItr->has_key_value("completed"))
-      (*listItr)->set_completed_chunks(filesItr->get_key_value("completed"));
+    if (filesItr->has_key_value("completed")) {
+      auto completed = filesItr->get_key_value("completed");
+
+      if (completed < 0 || completed > (*listItr)->size_chunks()) {
+        LT_LOG_LOAD_INVALID("invalid completed chunks value: %" PRIi64 ", resetting to 0", completed);
+        completed = 0;
+      }
+
+      (*listItr)->set_completed_chunks(completed);
+    }
   }
 }
 
