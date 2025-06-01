@@ -134,8 +134,7 @@ RequestList::choked() {
   m_queues.move_all_to(bucket_unordered, bucket_choked);
   m_queues.move_all_to(bucket_stalled, bucket_choked);
 
-  if (!m_delay_process_unordered.is_scheduled())
-    torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_remove_choked, timeout_remove_choked);
+  torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_delay_remove_choked, timeout_remove_choked);
 }
 
 void
@@ -169,6 +168,7 @@ RequestList::prepare_process_unordered(queues_type::iterator itr) {
 
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_process_unordered, timeout_process_unordered);
 
+  // TODO: Review if this should always be updated.
   m_last_unordered_position = unordered_size();
 }
 
