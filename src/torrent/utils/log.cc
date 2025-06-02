@@ -314,16 +314,16 @@ log_file_write(const std::shared_ptr<std::ofstream>& outfile, const char* data, 
 
   // Normal groups are nul-terminated strings.
   if (group >= LOG_NON_CASCADING) {
-    *outfile << this_thread::cached_seconds().count() << ' ' << data << std::endl;
+    *outfile << this_thread::cached_seconds().count() << ' ' << data << '\n';
   } else if (group >= 0) {
-    *outfile << this_thread::cached_seconds().count() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
+    *outfile << this_thread::cached_seconds().count() << ' ' << log_level_char[group % 6] << ' ' << data << '\n';
   } else if (group == -1) {
-    *outfile << "---DUMP---" << std::endl;
+    *outfile << "---DUMP---" << '\n';
     if (length != 0) {
       outfile->rdbuf()->sputn(data, length);
-      *outfile << std::endl;
+      *outfile << '\n';
     }
-    *outfile << "---END---" << std::endl;
+    *outfile << "---END---" << '\n';
   }
 }
 
