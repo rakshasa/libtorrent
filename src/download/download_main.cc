@@ -210,7 +210,7 @@ DownloadMain::start_initial_seeding() {
   if (!file_list()->is_done())
     return false;
 
-  m_initial_seeding.reset(new InitialSeeding(this));
+  m_initial_seeding = std::make_unique<InitialSeeding>(this);
   return true;
 }
 
