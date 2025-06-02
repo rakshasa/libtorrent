@@ -52,7 +52,7 @@ struct static_map_mapping_type {
   const char* find_key_end(const char* pos) const { return std::find_if(pos, key + max_key_size, &is_not_key_char); }
 
   uint32_t    index;
-  const char  key[max_key_size];
+  char        key[max_key_size];
 };
   
 struct static_map_entry_type {
