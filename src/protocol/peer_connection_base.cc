@@ -31,7 +31,7 @@
 
 namespace torrent {
 
-inline void
+static void
 log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
   if (!new_index && is_incore) {
     instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_TOUCHED, 1);

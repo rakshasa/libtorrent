@@ -10,7 +10,7 @@
 
 namespace torrent {
 
-constexpr uint32_t
+static constexpr uint32_t
 sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
   return
     (sa->sin6_addr.s6_addr[index * 4 + 0] << 24) +
@@ -19,7 +19,7 @@ sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
     (sa->sin6_addr.s6_addr[index * 4 + 3] << 0);
 }
 
-inline void
+static void
 sin6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
   sa->sin6_addr.s6_addr[index * 4 + 0] = (value >> 24);
   sa->sin6_addr.s6_addr[index * 4 + 1] = (value >> 16);
@@ -27,7 +27,7 @@ sin6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
   sa->sin6_addr.s6_addr[index * 4 + 3] = (value >> 0);
 }
 
-inline in6_addr
+static in6_addr
 sin6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr3) {
   uint32_t addr32[4];
   addr32[0] = htonl(addr0);

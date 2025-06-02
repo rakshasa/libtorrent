@@ -326,7 +326,7 @@ DownloadMain::receive_tracker_request() {
   m_tracker_controller.start_requesting();
 }
 
-bool
+static bool
 SocketAddressCompact_less(const SocketAddressCompact& a, const SocketAddressCompact& b) {
   return (a.addr < b.addr) || ((a.addr == b.addr) && (a.port < b.port));
 };

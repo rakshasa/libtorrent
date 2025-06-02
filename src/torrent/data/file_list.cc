@@ -28,7 +28,7 @@
 
 namespace torrent {
 
-void
+static void
 verify_file_list(const FileList* fl) {
   if (fl->empty())
     throw internal_error("verify_file_list() 1.", fl->data()->hash());
