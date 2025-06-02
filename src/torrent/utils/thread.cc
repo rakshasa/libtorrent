@@ -32,8 +32,7 @@ Thread::Thread() :
   m_scheduler->set_cached_time(m_cached_time);
 }
 
-Thread::~Thread() {
-}
+Thread::~Thread() = default;
 
 Thread*
 Thread::self() {

@@ -28,6 +28,7 @@
 
 namespace torrent {
 
+#if 0
 template<Download::ConnectionType type>
 PeerConnection<type>::~PeerConnection() {
 //   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
@@ -35,6 +36,10 @@ PeerConnection<type>::~PeerConnection() {
 
 //   priority_queue_erase(&taskScheduler, &m_taskSendChoke);
 }
+#else
+template<Download::ConnectionType type>
+PeerConnection<type>::~PeerConnection() = default;
+#endif
 
 template<Download::ConnectionType type>
 void
