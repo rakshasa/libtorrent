@@ -40,7 +40,7 @@ public:
     statistics_type(const Rate& up, const Rate& down) : up_rate(up), down_rate(down) { }
   };
 
-  DhtController() = default;
+  DhtController();
   ~DhtController();
 
   // Thread-safe:
