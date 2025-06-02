@@ -44,21 +44,20 @@ struct log_gz_output {
 
 using log_cache_list  = std::vector<log_cache_entry>;
 using log_child_list  = std::vector<std::pair<int, int>>;
-using log_slot_list   = std::vector<log_slot>;
-using log_output_list = std::vector<std::pair<std::string, log_slot>>;
 
-log_output_list log_outputs LIBTORRENT_EXPORT;
-log_child_list  log_children;
-log_cache_list  log_cache;
 log_group_list  log_groups;
-std::mutex      log_mutex;
+log_output_list log_outputs;
 
-const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
+static log_cache_list  log_cache;
+static log_child_list  log_children;
+static std::mutex      log_mutex;
+
+static const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
 
 // Removing logs always triggers a check if we got any un-used
 // log_output objects.
 
-void
+static void
 log_update_child_cache(int index) {
   auto first =
     std::find_if(log_children.begin(), log_children.end(), [index](const auto& pair) { return pair >= std::make_pair(index, 0); });
@@ -83,7 +82,7 @@ log_update_child_cache(int index) {
     log_update_child_cache(index);
 }
 
-void
+static void
 log_rebuild_cache() {
   std::for_each(log_groups.begin(), log_groups.end(), std::mem_fn(&log_group::clear_cached_outputs));
 
@@ -225,7 +224,7 @@ log_cleanup() {
   log_cache.clear();
 }
 
-log_output_list::iterator
+static log_output_list::iterator
 log_find_output_name(const char* name) {
   auto itr = log_outputs.begin();
   auto last = log_outputs.end();
@@ -308,7 +307,7 @@ log_remove_child([[maybe_unused]] int group, [[maybe_unused]] int child) {
   // Remove from all groups, then modify all outputs.
 }
 
-void
+static void
 log_file_write(const std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
 
@@ -327,7 +326,7 @@ log_file_write(const std::shared_ptr<std::ofstream>& outfile, const char* data, 
   }
 }
 
-void
+static void
 log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* data, size_t length, int group) {
   char buffer[64];
 

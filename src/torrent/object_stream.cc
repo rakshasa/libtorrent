@@ -15,7 +15,7 @@
 
 namespace torrent {
 
-bool
+static bool
 object_read_string(std::istream* input, std::string& str) {
   uint32_t size;
   *input >> size;
@@ -39,7 +39,7 @@ object_read_string(std::istream* input, std::string& str) {
   return !input->fail();
 }
 
-const char*
+static const char*
 object_read_bencode_c_value(const char* first, const char* last, int64_t& value) {
   if (first == last)
     return first;
@@ -266,7 +266,7 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
   throw torrent::bencode_error("Invalid bencode data.");
 }
 
-inline bool object_is_not_digit(char c) { return c < '0' || c > '9'; }
+static bool object_is_not_digit(char c) { return c < '0' || c > '9'; }
 
 const char*
 object_read_bencode_skip_c(const char* first, const char* last) {
@@ -324,7 +324,7 @@ object_read_bencode_skip_c(const char* first, const char* last) {
   throw torrent::bencode_error("Invalid bencode data.");
 }
 
-const char*
+static const char*
 object_read_bencode_raw_c(const char* first, const char* last, torrent::Object* object, char type) {
   const char* tmp = first;
   first = object_read_bencode_skip_c(first, last);
@@ -392,7 +392,7 @@ struct object_write_data_t {
   char* pos;
 };
 
-void
+static void
 object_write_bencode_c_string(object_write_data_t* output, const char* srcData, uint32_t srcLength) {
   while (srcLength != 0) {
     uint32_t len = std::min<uint32_t>(srcLength, std::distance(output->pos, output->buffer.second));
@@ -413,7 +413,7 @@ object_write_bencode_c_string(object_write_data_t* output, const char* srcData, 
   }
 }
 
-void
+static void
 object_write_bencode_c_char(object_write_data_t* output, char src) {
   if (output->pos == output->buffer.second) {
     output->buffer = output->writeFunc(output->data, output->buffer);
@@ -427,7 +427,7 @@ object_write_bencode_c_char(object_write_data_t* output, char src) {
 }
 
 // A new wheel. Look, how shiny and new.
-void
+static void
 object_write_bencode_c_value(object_write_data_t* output, int64_t src) {
   if (src == 0)
     return object_write_bencode_c_char(output, '0');
@@ -450,26 +450,26 @@ object_write_bencode_c_value(object_write_data_t* output, int64_t src) {
   object_write_bencode_c_string(output, first, 20 - std::distance(buffer, first));
 }
 
-inline void
+static void
 object_write_bencode_c_obj_value(object_write_data_t* output, int64_t value) {
   object_write_bencode_c_char(output, 'i');
   object_write_bencode_c_value(output, value);
   object_write_bencode_c_char(output, 'e');
 }
 
-inline void
+static void
 object_write_bencode_c_obj_string(object_write_data_t* output, const char* data, uint32_t size) {
   object_write_bencode_c_value(output, size);
   object_write_bencode_c_char(output, ':');
   object_write_bencode_c_string(output, data, size);
 }
 
-inline void
+static void
 object_write_bencode_c_obj_string(object_write_data_t* output, const std::string& str) {
   object_write_bencode_c_obj_string(output, str.c_str(), str.size());
 }
 
-void
+static void
 object_write_bencode_c_object(object_write_data_t* output, const Object* object, uint32_t skip_mask) {
   switch (object->type()) {
   case Object::TYPE_NONE: break;
@@ -762,7 +762,7 @@ static_map_read_bencode_c(const char* first,
   throw torrent::bencode_error("Invalid bencode data.");
 }
 
-void
+static void
 static_map_write_bencode_c_values(object_write_data_t* output,
                                  const static_map_entry_type* entry_values,
                                  const static_map_mapping_type* first_key,

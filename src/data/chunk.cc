@@ -47,14 +47,7 @@
 #include "chunk.h"
 #include "chunk_iterator.h"
 
-jmp_buf jmp_disk_full;
-
-void
-bus_handler(int sig, siginfo_t *si, void *vuctx)
-{
-    if (si->si_code == BUS_ADRERR)
-        longjmp(jmp_disk_full, 1);
-}
+static jmp_buf jmp_disk_full;
 
 namespace torrent {
 
@@ -237,7 +230,11 @@ bool
 Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
   struct sigaction sa, oldact;
   std::memset(&sa, 0, sizeof(sa));
-  sa.sa_sigaction = bus_handler;
+  sa.sa_sigaction = [](auto, auto si, auto) {
+    if (si->si_code == BUS_ADRERR)
+        longjmp(jmp_disk_full, 1);
+  };
+
   sa.sa_flags = SA_SIGINFO;
   sigfillset(&sa.sa_mask);
   sigaction(SIGBUS, &sa, &oldact);

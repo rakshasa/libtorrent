@@ -202,8 +202,10 @@ private:
 };
 
 using log_group_list = std::array<log_group, LOG_GROUP_MAX_SIZE>;
+using log_output_list = std::vector<std::pair<std::string, log_slot>>;
 
 extern log_group_list log_groups LIBTORRENT_EXPORT;
+extern log_output_list log_outputs LIBTORRENT_EXPORT;
 
 void log_initialize() LIBTORRENT_EXPORT;
 void log_cleanup() LIBTORRENT_EXPORT;

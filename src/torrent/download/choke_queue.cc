@@ -18,7 +18,7 @@
 
 namespace torrent {
 
-bool
+static bool
 choke_manager_less(choke_queue::value_type v1, choke_queue::value_type v2) {
   return v1.weight < v2.weight;
 };
@@ -420,7 +420,7 @@ choke_queue::move_connections(choke_queue* src, choke_queue* dest, [[maybe_unuse
 // Heuristics:
 //
 
-void
+static void
 choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator last,
                              uint32_t max, const uint32_t* weights, choke_queue::target_type* target) {
   // Sorting the connections from the lowest to highest value.
@@ -503,7 +503,7 @@ choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator 
 }
 
 template <typename Itr>
-bool range_is_contained(Itr first, Itr last, Itr lower_bound, Itr upper_bound) {
+static bool range_is_contained(Itr first, Itr last, Itr lower_bound, Itr upper_bound) {
   return first >= lower_bound && last <= upper_bound && first <= last;
 }
 
@@ -603,7 +603,7 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
 
 // Need to add the recently unchoked check here?
 
-void
+static void
 calculate_upload_choke(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     // Very crude version for now.
@@ -616,7 +616,7 @@ calculate_upload_choke(choke_queue::iterator first, choke_queue::iterator last) 
   }
 }
 
-void
+static void
 calculate_upload_unchoke(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     if (first->connection->is_down_local_unchoked()) {
@@ -644,7 +644,7 @@ calculate_upload_unchoke(choke_queue::iterator first, choke_queue::iterator last
 
 // Improved heuristics intended for seeding.
 
-void
+static void
 calculate_upload_choke_seed(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     int order = 1; // + first->connection->peer_info()->is_preferred();
@@ -655,7 +655,7 @@ calculate_upload_choke_seed(choke_queue::iterator first, choke_queue::iterator l
   }
 }
 
-void
+static void
 calculate_upload_unchoke_seed(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     int order = first->connection->peer_info()->is_preferred();
@@ -671,7 +671,7 @@ calculate_upload_unchoke_seed(choke_queue::iterator first, choke_queue::iterator
 
 // Order 0: Normal
 // Order 1: No choking of newly unchoked peers.
-void
+static void
 calculate_choke_upload_leech_experimental(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     // Don't choke a peer that hasn't had time to unchoke us.
@@ -694,7 +694,7 @@ calculate_choke_upload_leech_experimental(choke_queue::iterator first, choke_que
 
 // Order 0: Optimistic unchokes.
 // Order 1: Normal unchokes.
-void
+static void
 calculate_unchoke_upload_leech_experimental(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     // Consider checking for is_down_remote_unchoked().
@@ -726,7 +726,7 @@ calculate_unchoke_upload_leech_experimental(choke_queue::iterator first, choke_q
 
 // Fix this, but for now just use something simple.
 
-void
+static void
 calculate_download_choke(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     // Very crude version for now.
@@ -737,7 +737,7 @@ calculate_download_choke(choke_queue::iterator first, choke_queue::iterator last
   }
 }
 
-void
+static void
 calculate_download_unchoke(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
     // Very crude version for now.

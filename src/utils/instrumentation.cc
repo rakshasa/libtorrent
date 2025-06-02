@@ -6,7 +6,7 @@ namespace torrent {
 
 std::array<std::atomic_int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values;
 
-inline int64_t
+static int64_t
 instrumentation_fetch_and_clear(instrumentation_enum type) {
 #ifdef LT_INSTRUMENTATION
   return instrumentation_values[type].exchange(0);
