@@ -276,6 +276,6 @@ ProtocolBuffer<tmpl_size>::move_unused() {
   reset_position();
 }
 
-}
+} // namespace torrent
 
 #endif

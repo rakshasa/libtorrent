@@ -110,4 +110,4 @@ ConnectionManager::set_listen_backlog(int v) {
   m_listen_backlog = v;
 }
 
-}
+} // namespace torrent

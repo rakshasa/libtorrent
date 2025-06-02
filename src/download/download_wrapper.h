@@ -83,6 +83,6 @@ private:
   int                 m_connectionType{0};
 };
 
-}
+} // namespace torrent
 
 #endif

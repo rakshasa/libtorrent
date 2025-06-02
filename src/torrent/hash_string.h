@@ -104,6 +104,6 @@ operator <= (const HashString& one, const HashString& two) {
   return std::memcmp(one.begin(), two.begin(), HashString::size_data) <= 0;
 }
 
-}
+} // namespace torrent
 
 #endif

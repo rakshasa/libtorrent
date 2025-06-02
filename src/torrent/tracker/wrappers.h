@@ -104,6 +104,6 @@ TrackerControllerWrapper::operator<(const TrackerControllerWrapper& rhs) const {
   return this->get() < rhs.get();
 }
 
-} // namespace torrent
+} // namespace torrent::tracker
 
 #endif // LIBTORRENT_TRACKER_TRACKER_WRAPPER_H

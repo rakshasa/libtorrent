@@ -116,4 +116,4 @@ ThreadTracker::next_timeout() {
 //   }
 // }
 
-}
+} // namespace torrent

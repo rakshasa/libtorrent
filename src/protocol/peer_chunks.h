@@ -69,6 +69,6 @@ private:
   ThrottleNode        m_uploadThrottle{30};
 };
 
-}
+} // namespace torrent
 
 #endif

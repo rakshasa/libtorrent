@@ -73,6 +73,6 @@ private:
   bool                m_bySeeder{false};
 };
 
-}
+} // namespace torrent
 
 #endif

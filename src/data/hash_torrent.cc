@@ -198,4 +198,4 @@ HashTorrent::queue(bool quick) {
   }
 }
 
-}
+} // namespace torrent

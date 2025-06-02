@@ -166,6 +166,6 @@ public:
   virtual ~shutdown_exception() throw() {}
 };
 
-}
+} // namespace torrent
 
 #endif

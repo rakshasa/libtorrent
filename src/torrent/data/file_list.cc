@@ -723,4 +723,4 @@ FileList::reset_filesize(int64_t size) {
   open(false, open_no_create);
 }
 
-}
+} // namespace torrent

@@ -159,6 +159,6 @@ private:
   bool                m_networkUp{false};
 };
 
-}
+} // namespace torrent
 
 #endif

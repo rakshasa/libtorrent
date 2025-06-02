@@ -72,4 +72,4 @@ HashChunk::perform_part(Chunk::iterator itr, uint32_t length) {
   return length;
 }
 
-}
+} // namespace torrent

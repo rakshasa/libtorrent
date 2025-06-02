@@ -197,4 +197,4 @@ TrackerControllerWrapper::set_slots(slot_address_list success, slot_string failu
   m_ptr->slot_failure() = std::move(failure);
 }
 
-} // namespace torrent
+} // namespace torrent::tracker

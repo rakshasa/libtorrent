@@ -222,4 +222,4 @@ ConnectionList::set_max_size(size_type v) {
   //m_download->choke_group()->up_queue()->balance();
 }
 
-}
+} // namespace torrent

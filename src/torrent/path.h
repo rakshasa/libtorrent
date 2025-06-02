@@ -96,7 +96,7 @@ private:
   std::string        m_encoding;
 };
 
-}
+} // namespace torrent
 
 #endif
 

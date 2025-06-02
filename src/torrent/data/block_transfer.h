@@ -97,6 +97,6 @@ BlockTransfer::set_peer_info(key_type p) {
     m_peer_info->inc_transfer_counter();
 }
 
-}
+} // namespace torrent
 
 #endif

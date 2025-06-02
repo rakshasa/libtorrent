@@ -137,4 +137,4 @@ HandshakeEncryption::encrypt_vc_to_sync(const char* origHash) {
   peerEncrypt.crypt(m_sync, HandshakeEncryption::vc_length);
 }
 
-}
+} // namespace torrent

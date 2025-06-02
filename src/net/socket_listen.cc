@@ -128,4 +128,4 @@ socket_listen::m_open_port(int fd, sa_unique_ptr& sap, uint16_t port) {
   return true;
 }
 
-}
+} // namespace torrent

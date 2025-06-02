@@ -61,6 +61,6 @@ private:
   int          m_contacted;
 };
 
-}
+} // namespace torrent
 
 #endif

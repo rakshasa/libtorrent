@@ -502,6 +502,6 @@ Object::check_value_throw(const char* err_msg) const {
     throw bencode_error(err_msg);
 }
 
-}
+} // namespace torrent
 
 #endif

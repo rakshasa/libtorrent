@@ -873,4 +873,4 @@ static_map_write_bencode_c_wrap(object_write_t writeFunc,
   return output.writeFunc(output.data, object_buffer_t(output.buffer.first, output.pos));
 }
 
-}
+} // namespace torrent

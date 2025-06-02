@@ -174,4 +174,4 @@ ChunkManager::sync_all(int flags, uint64_t target) {
   m_lastFreed = itr - begin();
 }
 
-}
+} // namespace torrent

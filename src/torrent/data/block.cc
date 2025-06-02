@@ -426,4 +426,4 @@ Block::find_transfer(const PeerInfo* p) const {
     return *itr;
 }
 
-}
+} // namespace torrent

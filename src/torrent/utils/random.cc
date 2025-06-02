@@ -22,4 +22,4 @@ static random_uniform_template(T min, T max) {
 uint16_t random_uniform_uint16(uint16_t min, uint16_t max) { return random_uniform_template<uint16_t>(min, max); }
 uint32_t random_uniform_uint32(uint32_t min, uint32_t max) { return random_uniform_template<uint32_t>(min, max); }
 
-}
+} // namespace torrent

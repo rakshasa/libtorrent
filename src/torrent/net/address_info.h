@@ -64,6 +64,6 @@ ai_make_hint(int flags, int family, int socktype) {
   return aip;
 }
 
-}
+} // namespace torrent
 
 #endif

@@ -1211,4 +1211,4 @@ Handshake::event_error() {
   m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_socket_error);
 }
 
-}
+} // namespace torrent

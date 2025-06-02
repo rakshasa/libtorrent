@@ -75,4 +75,4 @@ SocketSet::reserve(size_t openMax) {
   base_type::reserve(openMax);
 }
 
-}
+} // namespace torrent

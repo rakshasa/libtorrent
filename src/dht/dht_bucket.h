@@ -161,6 +161,6 @@ DhtBucketChain::next() {
   return m_cur;
 }
 
-}
+} // namespace torrent
 
 #endif

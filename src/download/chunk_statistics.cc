@@ -160,4 +160,4 @@ ChunkStatistics::received_have_chunk(PeerChunks* pc, uint32_t index, uint32_t le
   }
 }
 
-}
+} // namespace torrent

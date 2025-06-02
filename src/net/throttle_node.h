@@ -83,6 +83,6 @@ private:
   slot_void           m_slot_activate;
 };
 
-}
+} // namespace torrent
 
 #endif

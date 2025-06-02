@@ -71,4 +71,4 @@ SocketDatagram::write_datagram_sa(const void* buffer, unsigned int length, socka
   return r;
 }
 
-}
+} // namespace torrent

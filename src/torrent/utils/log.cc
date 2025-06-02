@@ -380,4 +380,4 @@ log_open_gz_file_output(const char* name, const char* filename, bool append) {
   log_open_output(name, [outfile](auto d, auto l, auto g) { log_gz_file_write(outfile, d, l, g); });
 }
 
-}
+} // namespace torrent

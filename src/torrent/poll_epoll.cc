@@ -339,6 +339,6 @@ Poll::remove_and_close(Event* event) {
   close(event);
 }
 
-}
+} // namespace torrent
 
 #endif // USE_EPOLL

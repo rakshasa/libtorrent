@@ -72,4 +72,4 @@ PeerInfo::set_port(uint16_t port) {
   rak::socket_address::cast_from(m_address)->set_port(port);
 }
 
-}
+} // namespace torrent

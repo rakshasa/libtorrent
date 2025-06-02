@@ -93,4 +93,4 @@ Manager::remove_events(torrent::TrackerWorker* tracker_worker) {
   m_tracker_thread->cancel_callback_and_wait(tracker_worker);
 }
 
-} // namespace torrent
+} // namespace torrent::tracker

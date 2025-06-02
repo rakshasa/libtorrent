@@ -50,6 +50,6 @@ file_split(FileList* fileList, FileList::iterator position, uint64_t maxSize, co
 void
 file_split_all(FileList* fileList, uint64_t maxSize, const std::string& suffix) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

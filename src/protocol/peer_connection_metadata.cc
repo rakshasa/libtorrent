@@ -450,4 +450,4 @@ PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data,
   down_chunk_finished();
 }
 
-}
+} // namespace torrent

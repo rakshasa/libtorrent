@@ -150,4 +150,4 @@ instrumentation_reset() {
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_REMOVED);
 }
 
-}
+} // namespace torrent

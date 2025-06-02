@@ -146,6 +146,6 @@ private:
   group_container_type m_group_container;
 };
 
-}
+} // namespace torrent
 
 #endif

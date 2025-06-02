@@ -196,6 +196,6 @@ ProtocolExtension::id(int t) const {
   return m_idMap[t - 1];
 }
 
-}
+} // namespace torrent
 
 #endif

@@ -462,6 +462,6 @@ DhtTransaction::as_announce_peer() {
   return static_cast<DhtTransactionAnnouncePeer*>(this);
 }
 
-}
+} // namespace torrent
 
 #endif

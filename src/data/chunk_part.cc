@@ -61,4 +61,4 @@ ChunkPart::incore_length(uint32_t pos, uint32_t length) {
                   length);
 }
 
-}
+} // namespace torrent

@@ -96,6 +96,6 @@ private:
   iterator            m_splitActive;
 };
 
-}
+} // namespace torrent
 
 #endif

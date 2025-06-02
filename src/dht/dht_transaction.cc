@@ -266,4 +266,4 @@ DhtTransactionSearch::~DhtTransactionSearch() {
     delete m_search;
 }
 
-}
+} // namespace torrent

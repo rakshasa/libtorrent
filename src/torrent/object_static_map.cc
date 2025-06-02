@@ -69,4 +69,4 @@ find_key_match(const static_map_mapping_type* first, const static_map_mapping_ty
   return static_map_key_search_result(first, 0);
 }
 
-}
+} // namespace torrent

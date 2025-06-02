@@ -114,6 +114,6 @@ uint32_t tracker_next_timeout(const tracker::Tracker& tracker, int controller_fl
 uint32_t tracker_next_timeout_update(const tracker::Tracker& tracker);
 uint32_t tracker_next_timeout_promiscuous(const tracker::Tracker& tracker);
 
-}
+} // namespace torrent
 
 #endif

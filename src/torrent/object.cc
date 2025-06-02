@@ -264,5 +264,4 @@ Object object_create_normal(const raw_map& obj) {
   return result;
 }
 
-
-}
+} // namespace torrent

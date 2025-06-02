@@ -69,4 +69,4 @@ ThreadDisk::next_timeout() {
   return std::chrono::microseconds(10s);
 }
 
-}
+} // namespace torrent

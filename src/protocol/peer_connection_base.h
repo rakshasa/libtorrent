@@ -236,6 +236,6 @@ PeerConnectionBase::write_insert_poll_safe() {
   this_thread::poll()->insert_write(this);
 }
 
-}
+} // namespace torrent
 
 #endif

@@ -39,6 +39,6 @@ private:
 inline int  socket_listen::backlog() const { return m_backlog; }
 inline void socket_listen::set_slot_accepted(accepted_ftor&& ftor) { m_slot_accepted = std::move(ftor); }
 
-}
+} // namespace torrent
 
 #endif

@@ -451,4 +451,4 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
   }
 }
 
-}
+} // namespace torrent

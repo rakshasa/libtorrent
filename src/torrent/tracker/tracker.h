@@ -11,7 +11,7 @@ class TrackerTest;
 
 namespace torrent {
 class ThreadTracker;
-}
+} // namespace torrent
 
 namespace torrent::tracker {
 

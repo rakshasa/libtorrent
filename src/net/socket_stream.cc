@@ -58,4 +58,4 @@ SocketStream::write_stream_throws(const void* buf, uint32_t length) {
   return r;
 }
 
-}
+} // namespace torrent

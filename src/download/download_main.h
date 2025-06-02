@@ -174,6 +174,6 @@ private:
   utils::SchedulerEntry      m_task_tracker_request;
 };
 
-}
+} // namespace torrent
 
 #endif

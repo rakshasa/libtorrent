@@ -7,7 +7,7 @@
 
 namespace torrent {
 class TrackerDht;
-}
+} // namespace torrent
 
 namespace torrent::tracker {
 

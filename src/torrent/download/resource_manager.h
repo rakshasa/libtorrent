@@ -169,6 +169,6 @@ private:
   unsigned int        m_maxDownloadUnchoked{0};
 };
 
-}
+} // namespace torrent
 
 #endif

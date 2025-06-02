@@ -580,4 +580,4 @@ sa_pretty_address_str(const sockaddr* sa) {
   return sa_pretty_str(sa);
 }
 
-}
+} // namespace torrent

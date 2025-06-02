@@ -82,20 +82,20 @@ namespace net {
 class HttpGet;;
 class HttpStack;
 class Resolver;
-}
+} // namespace net
 
 namespace tracker {
 class DhtController;
 class Tracker;
-}
+} // namespace tracker
 
 namespace utils {
 class Scheduler;
 class SchedulerEntry;
 class Thread;
-}
+} // namespace utils
 
-}
+} // namespace torrent
 
 // This should only need to be set when compiling libtorrent.
 #ifdef SUPPORT_ATTRIBUTE_VISIBILITY
@@ -129,7 +129,7 @@ utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
 [[gnu::weak]] void event_remove_error(Event* event) LIBTORRENT_EXPORT;
 [[gnu::weak]] void event_remove_and_close(Event* event) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent::this_thread
 
 namespace torrent::main_thread {
 
@@ -138,7 +138,7 @@ std::thread::id         thread_id() LIBTORRENT_EXPORT;
 
 uint32_t                hash_queue_size() LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent::main_thread
 
 namespace torrent::net_thread {
 

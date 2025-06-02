@@ -58,6 +58,6 @@ private:
   utils::SchedulerEntry m_delay_checked;
 };
 
-}
+} // namespace torrent
 
 #endif

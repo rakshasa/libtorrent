@@ -50,7 +50,7 @@ private:
   fd_type             m_fd{invalid_fd};
 };
 
-}
+} // namespace torrent
 
 #endif
 

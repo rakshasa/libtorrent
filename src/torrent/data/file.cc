@@ -158,4 +158,4 @@ File::resize_file() {
   return true;
 }
 
-}
+} // namespace torrent

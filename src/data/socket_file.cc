@@ -153,5 +153,4 @@ SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) 
   return MemoryChunk(ptr, ptr + align, ptr + align + length, prot, flags);
 }
 
-}
-
+} // namespace torrent

@@ -110,4 +110,4 @@ hash_string_to_html_str(const HashString& hash) {
   return str;
 }
 
-}
+} // namespace torrent

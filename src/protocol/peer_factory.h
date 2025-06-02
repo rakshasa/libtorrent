@@ -46,6 +46,6 @@ PeerConnectionBase* createPeerConnectionSeed(bool encrypted);
 PeerConnectionBase* createPeerConnectionInitialSeed(bool encrypted);
 PeerConnectionBase* createPeerConnectionMetadata(bool encrypted);
 
-}
+} // namespace torrent
 
 #endif

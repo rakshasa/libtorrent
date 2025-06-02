@@ -99,4 +99,4 @@ Resolver::cancel(void* requester) {
   m_thread->cancel_callback_and_wait(requester);
 }
 
-} // namespace
+} // namespace torrent::net

@@ -745,4 +745,4 @@ template class PeerConnection<Download::CONNECTION_LEECH>;
 template class PeerConnection<Download::CONNECTION_SEED>;
 template class PeerConnection<Download::CONNECTION_INITIAL_SEED>;
 
-}
+} // namespace torrent

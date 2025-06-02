@@ -105,6 +105,6 @@ BlockFailed::reverse_max_element() {
   return std::max_element(rbegin(), rend(), &BlockFailed::compare_entries);
 }
 
-}
+} // namespace torrent
 
 #endif

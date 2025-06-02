@@ -462,4 +462,4 @@ DownloadMain::set_metadata_size(size_t size) {
   m_info->set_metadata_size(size);
 }
 
-}
+} // namespace torrent

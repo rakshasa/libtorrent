@@ -113,4 +113,4 @@ DownloadManager::find_main_obfuscated(const char* hash) {
     return (*itr)->main();
 }
 
-}
+} // namespace torrent

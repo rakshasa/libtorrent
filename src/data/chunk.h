@@ -88,6 +88,6 @@ Chunk::find_address(void* ptr) {
   return std::find_if(begin(), end(), [&](auto& part) { return part.has_address(ptr); });
 }
 
-}
+} // namespace torrent
 
 #endif

@@ -251,4 +251,4 @@ TransferList::retry_most_popular(BlockList* blockList, Chunk* chunk) {
   m_slot_completed(blockList->index());
 }
 
-}
+} // namespace torrent

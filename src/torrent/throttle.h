@@ -41,6 +41,6 @@ protected:
   ThrottleList*       m_throttleList;
 };
 
-}
+} // namespace torrent
 
 #endif

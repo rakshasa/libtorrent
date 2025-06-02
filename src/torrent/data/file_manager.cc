@@ -112,4 +112,4 @@ FileManager::close_least_active() {
   close(std::for_each(begin(), end(), FileManagerActivity()).m_file);
 }
 
-}
+} // namespace torrent

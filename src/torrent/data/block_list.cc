@@ -81,4 +81,4 @@ BlockList::do_all_failed() {
   std::for_each(begin(), end(), std::mem_fn(&Block::retry_transfer));
 }
 
-}
+} // namespace torrent

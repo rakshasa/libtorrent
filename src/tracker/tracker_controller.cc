@@ -628,4 +628,4 @@ TrackerController::receive_tracker_disabled(const tracker::Tracker& tb) {
     m_slot_tracker_disabled(tb);
 }
 
-}
+} // namespace torrent

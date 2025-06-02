@@ -393,4 +393,4 @@ PeerList::cull_peers(int flags) {
   return counter;
 }
 
-}
+} // namespace torrent
