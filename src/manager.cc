@@ -40,7 +40,7 @@ void event_remove_write(Event* event)     { utils::ThreadInternal::poll()->remov
 void event_remove_error(Event* event)     { utils::ThreadInternal::poll()->remove_error(event); }
 void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remove_and_close(event); }
 
-}
+} // namespace this_thread
 
 Manager::Manager()
   : m_chunk_manager(new ChunkManager),
@@ -146,4 +146,4 @@ Manager::receive_tick() {
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 30s);
 }
 
-}
+} // namespace torrent

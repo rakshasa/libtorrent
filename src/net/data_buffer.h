@@ -85,6 +85,6 @@ DataBuffer::set(char* data, char* end, bool owned) {
   m_owned = owned;
 }
 
-}
+} // namespace torrent
 
 #endif

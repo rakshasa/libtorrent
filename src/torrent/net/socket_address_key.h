@@ -121,6 +121,6 @@ socket_address_key::operator == (const socket_address_key& sa) const {
   return std::memcmp(this, &sa, sizeof(socket_address_key)) == 0;
 }
 
-}
+} // namespace torrent
 
 #endif

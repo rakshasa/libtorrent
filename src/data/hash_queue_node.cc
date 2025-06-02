@@ -62,4 +62,4 @@ HashQueueNode::call_willneed() {
   return m_chunk->remaining();
 }
 
-}
+} // namespace torrent

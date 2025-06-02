@@ -37,6 +37,6 @@ private:
   std::chrono::microseconds m_time_last_choke{};
 };
 
-}
+} // namespace torrent
 
 #endif

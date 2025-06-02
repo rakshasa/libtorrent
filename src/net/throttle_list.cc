@@ -232,4 +232,4 @@ ThrottleList::erase(ThrottleNode* node) {
   m_size--;
 }
 
-}
+} // namespace torrent

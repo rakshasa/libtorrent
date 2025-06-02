@@ -152,4 +152,4 @@ FileListIterator::backward_current_depth() {
   return *this;
 }
 
-}
+} // namespace torrent

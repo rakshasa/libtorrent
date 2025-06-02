@@ -13,7 +13,7 @@
 
 namespace torrent {
 class SignalInterrupt;
-}
+} // namespace torrent
 
 namespace torrent::utils {
 
@@ -157,6 +157,6 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
     interrupt();
 }
 
-}
+} // namespace torrent::utils
 
 #endif

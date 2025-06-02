@@ -369,4 +369,4 @@ DownloadWrapper::finished_download() {
   info()->mutable_down_rate()->reset_rate();
 }
 
-}
+} // namespace torrent

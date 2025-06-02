@@ -84,6 +84,6 @@ private:
   std::chrono::microseconds m_time_last_resolved{};
 };
 
-}
+} // namespace torrent
 
 #endif

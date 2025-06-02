@@ -131,4 +131,4 @@ ThrottleInternal::receive_quota(uint32_t quota, uint32_t fraction) {
   return used;
 }
 
-}
+} // namespace torrent

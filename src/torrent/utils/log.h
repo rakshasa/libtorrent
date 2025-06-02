@@ -227,6 +227,6 @@ void log_open_gz_file_output(const char* name, const char* filename, bool append
 
 inline void log_close_output_str(const std::string& name) { log_close_output(name.c_str()); }
 
-}
+} // namespace torrent
 
 #endif

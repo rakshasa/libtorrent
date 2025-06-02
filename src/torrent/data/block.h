@@ -140,6 +140,6 @@ Block::stalled(BlockTransfer* transfer) {
   transfer->block()->stalled_transfer(transfer);
 }
 
-}
+} // namespace torrent
 
 #endif

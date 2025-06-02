@@ -32,6 +32,6 @@ private:
   std::atomic_bool    m_poking{false};
 };
 
-}
+} // namespace torrent
 
 #endif // LIBTORRENT_UTILS_SIGNAL_INTERRUPT_H

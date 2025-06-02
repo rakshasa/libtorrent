@@ -292,4 +292,4 @@ Chunk::compare_buffer(const void* buffer, uint32_t position, uint32_t length) {
   return true;
 }
 
-}
+} // namespace torrent

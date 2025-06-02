@@ -170,6 +170,6 @@ private:
   DownloadWrapper*    m_ptr;
 };
 
-}
+} // namespace torrent
 
 #endif

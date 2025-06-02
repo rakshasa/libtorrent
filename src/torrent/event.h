@@ -34,6 +34,6 @@ inline bool Event::is_open() const { return file_descriptor() != -1; }
 inline int  Event::file_descriptor() const { return m_fileDesc; }
 inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }
 
-}
+} // namespace torrent
 
 #endif

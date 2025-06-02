@@ -142,6 +142,6 @@ File::unset_flags(int flags) {
   unset_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last| flag_attr_padding));
 }
 
-}
+} // namespace torrent
 
 #endif

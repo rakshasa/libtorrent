@@ -275,7 +275,7 @@ Thread::process_callbacks(bool only_interrupt) {
   }
 }
 
-}
+} // namespace torrent::utils
 
 namespace torrent::this_thread {
 
@@ -285,4 +285,4 @@ Poll*                     poll()           { return utils::ThreadInternal::poll(
 net::Resolver*            resolver()       { return utils::ThreadInternal::resolver(); }
 utils::Scheduler*         scheduler()      { return utils::ThreadInternal::scheduler(); }
 
-}
+} // namespace torrent::this_thread

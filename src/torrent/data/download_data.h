@@ -85,6 +85,6 @@ private:
   mutable slot_chunk_list_node_p m_slot_chunk_done;
 };
 
-}
+} // namespace torrent
 
 #endif // LIBTORRENT_DATA_DOWNLOAD_DATA_H

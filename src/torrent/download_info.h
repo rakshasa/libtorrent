@@ -168,6 +168,6 @@ private:
   mutable signal_string_type m_signal_tracker_failed;
 };
 
-}
+} // namespace torrent
 
 #endif

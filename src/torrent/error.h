@@ -76,6 +76,6 @@ const int e_last                                = 20;
 
 const char* strerror(int err) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

@@ -99,4 +99,4 @@ chunk_list_address_info(void* address) {
   return chunk_info_result();
 }
 
-}
+} // namespace torrent

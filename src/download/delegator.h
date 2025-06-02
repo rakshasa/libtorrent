@@ -49,6 +49,6 @@ private:
   slot_size          m_slot_chunk_size;
 };
 
-}
+} // namespace torrent
 
 #endif

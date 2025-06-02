@@ -135,6 +135,6 @@ SocketSet::erase(Event* s) {
   m_erased.push_back(idx);
 }
 
-}
+} // namespace torrent
 
 #endif

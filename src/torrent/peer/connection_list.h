@@ -122,6 +122,6 @@ private:
   queue_type          m_disconnectQueue;
 };
 
-}
+} // namespace torrent
 
 #endif

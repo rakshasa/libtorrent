@@ -141,6 +141,6 @@ group_entry::connection_unqueued(PeerConnectionBase* pcb) {
   m_queued.pop_back();
 }
 
-}
+} // namespace torrent
 
 #endif

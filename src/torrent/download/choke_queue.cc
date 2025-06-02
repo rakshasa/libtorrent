@@ -755,4 +755,4 @@ choke_queue::heuristics_type choke_queue::m_heuristics_list[HEURISTICS_MAX_SIZE]
   { &calculate_download_choke,                  &calculate_download_unchoke,    { 1, 1, 1, 1 }, { 1, 1, 1, 1 } },
 };
 
-}
+} // namespace torrent

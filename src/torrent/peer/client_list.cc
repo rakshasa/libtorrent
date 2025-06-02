@@ -312,4 +312,4 @@ ClientList::retrieve_unknown(ClientInfo* dest) const {
   std::memset(dest->mutable_upper_version(), 0, ClientInfo::max_version_size);
 }
 
-}
+} // namespace torrent

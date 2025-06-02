@@ -42,4 +42,4 @@ signal_bitfield::work() {
   }
 }
 
-}
+} // namespace torrent

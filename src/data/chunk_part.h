@@ -57,6 +57,6 @@ private:
   uint64_t            m_file_offset{0};
 };
 
-}
+} // namespace torrent
 
 #endif

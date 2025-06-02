@@ -128,6 +128,6 @@ DhtNode* DhtNodeList::add_node(DhtNode* n) {
   return n;
 }
 
-}
+} // namespace torrent
 
 #endif

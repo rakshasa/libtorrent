@@ -78,4 +78,4 @@ download_data::verify_wanted_chunks(const char* where) const {
     throw internal_error("Invalid download_data::wanted_chunks() value in " + std::string(where) + ".");
 }
 
-}
+} // namespace torrent

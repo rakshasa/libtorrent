@@ -207,6 +207,6 @@ ranges<RangesType>::create_union(const ranges& left, const ranges& right) {
   return result;
 }
 
-}
+} // namespace torrent
 
 #endif

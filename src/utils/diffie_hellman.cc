@@ -66,4 +66,4 @@ DiffieHellman::store_pub_key(unsigned char* dest, unsigned int length) {
     BN_bn2bin(pub_key, dest + length - BN_num_bytes(pub_key));
 }
 
-};
+} // namespace torrent

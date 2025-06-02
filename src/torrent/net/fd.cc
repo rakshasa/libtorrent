@@ -245,4 +245,4 @@ fd_set_v6only(int fd, bool state) {
   return true;
 }
 
-}
+} // namespace torrent

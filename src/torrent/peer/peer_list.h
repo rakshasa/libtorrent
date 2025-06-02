@@ -89,6 +89,6 @@ private:
   std::unique_ptr<AvailableList> m_available_list;
 };
 
-}
+} // namespace torrent
 
 #endif

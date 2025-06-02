@@ -36,6 +36,6 @@ private:
   std::atomic<bitfield_type>   m_bitfield{0};
 };
 
-}
+} // namespace torrent
 
 #endif

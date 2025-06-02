@@ -152,6 +152,6 @@ operator|(ChunkList::release_flags a, ChunkList::release_flags b) {
   return static_cast<ChunkList::release_flags>(static_cast<int>(a) | static_cast<int>(b));
 }
 
-}
+} // namespace torrent
 
 #endif

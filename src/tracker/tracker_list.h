@@ -141,6 +141,6 @@ private:
   slot_tracker        m_slot_tracker_disabled;
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -84,4 +84,4 @@ DhtTracker::prune(uint32_t maxAge) {
     throw internal_error("DhtTracker::prune did inconsistent peer pruning.");
 }
 
-}
+} // namespace torrent

@@ -80,6 +80,6 @@ protected:
   PeerInfo*            m_peerInfo;
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -46,6 +46,6 @@ private:
   wd_list             m_wd_list;
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -174,4 +174,4 @@ DhtBucket::build_full_cache() {
   m_fullCacheLength = pos - m_fullCache;
 }
 
-}
+} // namespace torrent

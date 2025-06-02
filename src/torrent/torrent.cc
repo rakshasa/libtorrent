@@ -242,4 +242,4 @@ download_set_priority(Download d, uint32_t pri) {
   manager->resource_manager()->set_priority(itr, pri);
 }
 
-}
+} // namespace torrent

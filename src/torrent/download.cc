@@ -548,4 +548,4 @@ Download::add_peer(const sockaddr* sa, int port) {
 
 DownloadMain* Download::main() { return m_ptr->main(); }
 
-}
+} // namespace torrent

@@ -209,6 +209,6 @@ ProtocolBase::write_extension(uint8_t id, uint32_t length) {
   m_buffer.write_8(id);
 }
 
-}
+} // namespace torrent
 
 #endif

@@ -116,6 +116,6 @@ find_key_match(const static_map_mapping_type* first, const static_map_mapping_ty
   return find_key_match(first, last, key, key + strlen(key));
 }
 
-}
+} // namespace torrent
 
 #endif

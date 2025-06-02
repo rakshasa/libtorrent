@@ -108,6 +108,6 @@ private:
   size_type           m_accounted{};
 };
 
-}
+} // namespace torrent
 
 #endif

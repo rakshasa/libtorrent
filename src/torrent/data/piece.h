@@ -71,6 +71,6 @@ private:
   uint32_t m_length{};
 };
 
-}
+} // namespace torrent
 
 #endif

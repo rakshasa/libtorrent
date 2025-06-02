@@ -107,4 +107,4 @@ Listen::event_error() {
     throw internal_error("Listener port received an error event: " + std::string(std::strerror(error)));
 }
 
-}
+} // namespace torrent

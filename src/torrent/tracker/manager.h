@@ -53,6 +53,6 @@ private:
   std::set<TrackerControllerWrapper> m_controllers;
 };
 
-}
+} // namespace torrent::tracker
 
 #endif // LIBTORRENT_TRACKER_MANAGER_H

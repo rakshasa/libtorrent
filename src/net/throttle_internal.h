@@ -47,6 +47,6 @@ private:
   utils::SchedulerEntry     m_task_tick;
 };
 
-}
+} // namespace torrent
 
 #endif

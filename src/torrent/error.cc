@@ -83,4 +83,4 @@ strerror(int err) {
   return errorStrings[err];
 }
 
-}
+} // namespace torrent

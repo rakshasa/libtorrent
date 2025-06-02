@@ -35,6 +35,6 @@ protected:
   static char*        m_nullBuffer;
 };
 
-}
+} // namespace torrent
 
 #endif // LIBTORRENT_SOCKET_BASE_H

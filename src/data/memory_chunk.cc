@@ -118,4 +118,4 @@ MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
   return msync(m_ptr + offset, length, flags) == 0;
 }
 
-}
+} // namespace torrent

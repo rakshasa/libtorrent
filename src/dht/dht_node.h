@@ -97,6 +97,6 @@ DhtNode::inactive() {
     m_recentlyInactive++;
 }
 
-}
+} // namespace torrent
 
 #endif

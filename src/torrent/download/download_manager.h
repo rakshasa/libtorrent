@@ -97,6 +97,6 @@ public:
   void                clear() LIBTORRENT_NO_EXPORT;
 };
 
-}
+} // namespace torrent
 
 #endif

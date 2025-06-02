@@ -64,6 +64,6 @@ fd_valid_flags(fd_flags flags) {
     !(flags & ~(fd_flag_all));
 }
 
-}
+} // namespace torrent
 
 #endif

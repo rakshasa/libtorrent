@@ -69,4 +69,4 @@ AddressList::parse_address_bencode(raw_list s) {
   }
 }
 
-}
+} // namespace torrent

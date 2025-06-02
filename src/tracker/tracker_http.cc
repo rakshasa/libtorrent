@@ -438,4 +438,4 @@ TrackerHttp::update_tracker_id(const std::string& id) {
   set_tracker_id(id);
 }
 
-}
+} // namespace torrent

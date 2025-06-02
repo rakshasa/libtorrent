@@ -552,4 +552,4 @@ resume_save_tracker_settings(Download download, Object& object) {
   }
 }
 
-}
+} // namespace torrent

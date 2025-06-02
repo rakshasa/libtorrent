@@ -82,6 +82,6 @@ private:
   value_type*         m_data{};
 };
 
-}
+} // namespace torrent
 
 #endif

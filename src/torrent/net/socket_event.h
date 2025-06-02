@@ -26,6 +26,6 @@ protected:
 inline const sockaddr* socket_event::socket_address() const { return m_socket_address.get(); }
 inline uint16_t        socket_event::socket_address_port() const { return sap_port(m_socket_address); }
 
-}
+} // namespace torrent
 
 #endif

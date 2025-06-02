@@ -11,7 +11,7 @@ namespace torrent {
 
 namespace tracker {
 class Manager;
-}
+} // namespace tracker
 
 struct TrackerSendEvent {
   tracker::Tracker                  tracker;

@@ -282,6 +282,6 @@ queue_buckets<Type, Constants>::move_all_to(int src_idx, int dst_idx) {
   move_to(src_idx, queue_at(src_idx).begin(), queue_at(src_idx).end(), dst_idx);
 }
 
-}
+} // namespace torrent
 
 #endif // LIBTORRENT_QUEUE_BUCKETS_H

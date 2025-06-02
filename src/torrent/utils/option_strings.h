@@ -74,6 +74,6 @@ const char*     option_as_string(option_enum opt_enum, unsigned int value) LIBTO
 
 torrent::Object option_list_strings(option_enum opt_enum) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

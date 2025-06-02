@@ -982,4 +982,4 @@ void
 PeerConnectionBase::receive_metadata_piece([[maybe_unused]] uint32_t piece, [[maybe_unused]] const char* data, [[maybe_unused]] uint32_t length) {
 }
 
-}
+} // namespace torrent

@@ -488,4 +488,4 @@ TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& 
     m_slot_scrape_failed(tracker, msg);
 }
 
-}
+} // namespace torrent

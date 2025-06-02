@@ -7,7 +7,7 @@ struct sockaddr;
 
 namespace rak {
   class socket_address;
-}
+} // namespace rak
 
 namespace torrent {
 
@@ -66,6 +66,6 @@ private:
   bool                m_ipv6_socket{};
 };
 
-}
+} // namespace torrent
 
 #endif

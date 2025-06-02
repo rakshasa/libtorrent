@@ -236,6 +236,6 @@ fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) {
   return std::get<0>(lhs) == std::get<0>(rhs) && sap_equal(std::get<1>(lhs), std::get<1>(rhs));
 }
 
-}
+} // namespace torrent
 
 #endif

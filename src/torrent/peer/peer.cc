@@ -57,4 +57,4 @@ Peer::disconnect(int flags) {
   m_ptr()->download()->connection_list()->erase(this, flags);
 }
 
-}
+} // namespace torrent

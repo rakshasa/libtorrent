@@ -123,7 +123,6 @@ unsigned int extents<Address, Value, Compare>::sizeof_data() const {
   return entry_size * range_map.size();
 }
 
-
-}
+} // namespace torrent
 
 #endif

@@ -118,4 +118,4 @@ Bitfield::unset_range(size_type first, size_type last) {
     unset(first++);
 }
 
-}
+} // namespace torrent

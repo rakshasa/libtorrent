@@ -49,4 +49,4 @@ log_open_log_buffer(const char* name) {
   return buffer;
 }
 
-}
+} // namespace torrent

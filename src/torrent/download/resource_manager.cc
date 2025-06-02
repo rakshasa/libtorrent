@@ -372,4 +372,4 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
   return change;
 }
 
-}
+} // namespace torrent

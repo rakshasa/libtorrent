@@ -32,6 +32,6 @@ private:
   uint32_t            m_skipLength;
 };
 
-}
+} // namespace torrent
 
 #endif
