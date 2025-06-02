@@ -294,7 +294,7 @@ Download::set_bitfield(bool allSet) {
 }
 
 void
-Download::set_bitfield(uint8_t* first, uint8_t* last) {
+Download::set_bitfield(const uint8_t* first, const uint8_t* last) {
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw input_error("Download::set_bitfield(...) Download in invalid state.");
 
