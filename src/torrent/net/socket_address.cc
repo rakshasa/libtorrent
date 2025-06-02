@@ -372,7 +372,7 @@ sin_from_c_sa(c_sa_unique_ptr sap) {
 }
 
 c_sin6_unique_ptr
-sin6_from_c_sa(sa_unique_ptr sap) {
+sin6_from_c_sa(c_sa_unique_ptr sap) {
   if (!sap_is_inet6(sap))
     throw internal_error("torrent::sin6_from_c_sa: sockaddr is nullptr or not inet6");
 
