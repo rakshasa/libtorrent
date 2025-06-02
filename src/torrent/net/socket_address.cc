@@ -348,7 +348,7 @@ sin6_to_v4mapped_in(const sockaddr_in* sin) {
 }
 
 sin_unique_ptr
-sin_from_sa(sa_unique_ptr&& sap) {
+sin_from_sa(sa_unique_ptr sap) {
   if (!sap_is_inet(sap))
     throw internal_error("torrent::sin_from_sa: sockaddr is nullptr or not inet");
 
@@ -356,7 +356,7 @@ sin_from_sa(sa_unique_ptr&& sap) {
 }
 
 sin6_unique_ptr
-sin6_from_sa(sa_unique_ptr&& sap) {
+sin6_from_sa(sa_unique_ptr sap) {
   if (!sap_is_inet6(sap))
     throw internal_error("torrent::sin6_from_sa: sockaddr is nullptr or not inet6");
 
@@ -364,7 +364,7 @@ sin6_from_sa(sa_unique_ptr&& sap) {
 }
 
 c_sin_unique_ptr
-sin_from_c_sa(c_sa_unique_ptr&& sap) {
+sin_from_c_sa(c_sa_unique_ptr sap) {
   if (!sap_is_inet(sap))
     throw internal_error("torrent::sin_from_c_sa: sockaddr is nullptr or not inet");
 
@@ -372,7 +372,7 @@ sin_from_c_sa(c_sa_unique_ptr&& sap) {
 }
 
 c_sin6_unique_ptr
-sin6_from_c_sa(sa_unique_ptr&& sap) {
+sin6_from_c_sa(sa_unique_ptr sap) {
   if (!sap_is_inet6(sap))
     throw internal_error("torrent::sin6_from_c_sa: sockaddr is nullptr or not inet6");
 

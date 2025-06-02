@@ -95,7 +95,7 @@ private:
 
 inline
 TrackerControllerWrapper::TrackerControllerWrapper(const HashString& info_hash, std::shared_ptr<TrackerController>&& controller) :
-  m_ptr(controller),
+  m_ptr(std::move(controller)),
   m_info_hash(info_hash) {
 }
 
