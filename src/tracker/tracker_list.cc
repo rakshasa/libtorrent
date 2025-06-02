@@ -385,7 +385,7 @@ TrackerList::randomize_group_entries() {
 }
 
 void
-TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
+TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
   LT_LOG("received %zu peers : requester:%p group:%u url:%s",
          l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
@@ -426,7 +426,7 @@ TrackerList::receive_success(tracker::Tracker&& tracker, AddressList* l) {
 }
 
 void
-TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) {
+TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
@@ -449,7 +449,7 @@ TrackerList::receive_failed(tracker::Tracker&& tracker, const std::string& msg) 
 }
 
 void
-TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
+TrackerList::receive_scrape_success(tracker::Tracker tracker) {
   LT_LOG("received scrape success : requester:%p group:%u url:%s",
          tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
@@ -472,7 +472,7 @@ TrackerList::receive_scrape_success(tracker::Tracker&& tracker) {
 }
 
 void
-TrackerList::receive_scrape_failed(tracker::Tracker&& tracker, const std::string& msg) {
+TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& msg) {
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 

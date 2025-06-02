@@ -20,7 +20,7 @@ socket_listen::set_backlog(int backlog) {
 }
 
 bool
-socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, uint16_t start_port, fd_flags open_flags) {
+socket_listen::open(sa_unique_ptr sap, uint16_t first_port, uint16_t last_port, uint16_t start_port, fd_flags open_flags) {
   if (is_open())
     throw internal_error("socket_listen::open: already open");
 

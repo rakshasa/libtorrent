@@ -99,11 +99,11 @@ public:
 
   // TODO: Make protected.
   // TODO: Replace with shared_ptr to TrackerWorker.
-  void                receive_success(tracker::Tracker&& tracker, AddressList* l);
-  void                receive_failed(tracker::Tracker&& tracker, const std::string& msg);
+  void                receive_success(tracker::Tracker tracker, AddressList* l);
+  void                receive_failed(tracker::Tracker tracker, const std::string& msg);
 
-  void                receive_scrape_success(tracker::Tracker&& tracker);
-  void                receive_scrape_failed(tracker::Tracker&& tracker, const std::string& msg);
+  void                receive_scrape_success(tracker::Tracker tracker);
+  void                receive_scrape_failed(tracker::Tracker tracker, const std::string& msg);
 
   // Used by libtorrent internally.
   slot_address_list&  slot_success()                          { return m_slot_success; }
