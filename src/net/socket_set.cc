@@ -40,8 +40,6 @@
 
 namespace torrent {
 
-const SocketSet::size_type SocketSet::npos;
-
 inline void
 SocketSet::_replace_with_last(size_type idx) {
   while (!base_type::empty() && base_type::back() == NULL)
