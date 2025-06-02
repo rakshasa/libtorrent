@@ -580,6 +580,9 @@ DhtRouter::delete_node(const DhtNodeList::accessor& itr) {
 
 void
 DhtRouter::bootstrap() {
+  if (!m_contacts.has_value())
+    return;
+
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
     // Currently discarding SOCK_DGRAM.
