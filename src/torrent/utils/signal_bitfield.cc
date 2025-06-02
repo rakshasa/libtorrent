@@ -7,8 +7,6 @@
 
 namespace torrent {
 
-const unsigned int signal_bitfield::max_size;
-
 // Only the thread owning this signal bitfield should add signals.
 unsigned int
 signal_bitfield::add_signal(const slot_type& slot) {
