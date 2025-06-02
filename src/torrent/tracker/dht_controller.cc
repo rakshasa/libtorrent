@@ -15,6 +15,8 @@
 
 namespace torrent::tracker {
 
+DhtController::DhtController() = default;
+
 DhtController::~DhtController() {
   stop();
 }
