@@ -335,7 +335,7 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
   if (group >= 0) {
     int buffer_length = snprintf(buffer, 64,
                                  (group >= LOG_NON_CASCADING) ? ("%" PRIi64 " ") : ("%" PRIi64 " %c "),
-                                 (int64_t)this_thread::cached_seconds().count(),
+                                 static_cast<int64_t>(this_thread::cached_seconds().count()),
                                  log_level_char[group % 6]);
 
     if (buffer_length > 0)
