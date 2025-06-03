@@ -399,7 +399,7 @@ FileList::open(bool hashing, int flags) {
       // Handle directory creation outside of open_file, so we can do
       // it here if necessary.
 
-      entry->set_flags_protected(File::flag_active);
+      entry->set_flags_protected(File::flag::active);
 
       if (!open_file(&*entry, lastPath, hashing, flags)) {
         // This needs to check if the error was due to open_no_create
@@ -417,7 +417,7 @@ FileList::open(bool hashing, int flags) {
 
   } catch (local_error& e) {
     for (auto& entry : *this) {
-      entry->unset_flags_protected(File::flag_active);
+      entry->unset_flags_protected(File::flag::active);
       manager->file_manager()->close(entry.get());
     }
 
@@ -459,7 +459,7 @@ FileList::close() {
   LT_LOG_FL(INFO, "Closing.", 0);
 
   for (auto& entry : *this) {
-    entry->unset_flags_protected(File::flag_active);
+    entry->unset_flags_protected(File::flag::active);
     manager->file_manager()->close(entry.get());
   }
 

@@ -34,13 +34,14 @@ public:
   // static constexpr int max_flag_size   = 0x10;
   // static constexpr int mask_base_flags = 0x10 - 1;
 
-  static constexpr int default_min_interval = 600;
-  static constexpr int min_min_interval     = 300;
-  static constexpr int max_min_interval     = 4 * 3600;
-
-  static constexpr int default_normal_interval = 1800;
-  static constexpr int min_normal_interval     = 600;
-  static constexpr int max_normal_interval     = 8 * 3600;
+  enum interval {
+    default_min    = 600,
+    min_min        = 300,
+    max_min        = 4 * 3600,
+    default_normal = 1800,
+    min_normal     = 600,
+    max_normal     = 8 * 3600,
+  };
 
   int                 flags() const              { return m_flags; }
 
@@ -119,7 +120,7 @@ TrackerState::success_time_next() const {
   if (m_success_counter == 0)
     return 0;
 
-  return m_success_time_last + std::max(m_normal_interval, static_cast<uint32_t>(min_normal_interval));
+  return m_success_time_last + std::max(m_normal_interval, static_cast<uint32_t>(interval::min_normal));
 }
 
 inline uint32_t
@@ -127,10 +128,10 @@ TrackerState::failed_time_next() const {
   if (m_failed_counter == 0)
     return 0;
 
-  if (m_min_interval > min_min_interval)
+  if (m_min_interval > interval::min_min)
     return m_failed_time_last + m_min_interval;
 
-  return m_failed_time_last + std::min(5 << std::min<uint32_t>(m_failed_counter - 1, 6), min_min_interval - 1);
+  return m_failed_time_last + std::min(5 << std::min<uint32_t>(m_failed_counter - 1, 6), interval::min_min - 1);
 }
 
 inline void
@@ -150,12 +151,12 @@ TrackerState::clear_stats() {
 
 inline void
 TrackerState::set_normal_interval(int v) {
-  m_normal_interval = std::min(std::max(min_normal_interval, v), max_normal_interval);
+  m_normal_interval = std::min<int>(std::max<int>(interval::min_normal, v), interval::max_normal);
 }
 
 inline void
 TrackerState::set_min_interval(int v) {
-  m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval);
+  m_min_interval = std::min<int>(std::max<int>(interval::min_min, v), interval::max_min);
 }
 
 } // namespace tracker

@@ -22,30 +22,34 @@ public:
   using port_type     = uint16_t;
   using priority_type = uint8_t;
 
-  static constexpr priority_type iptos_default     = 0;
-  static constexpr priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
-  static constexpr priority_type iptos_throughput  = IPTOS_THROUGHPUT;
-  static constexpr priority_type iptos_reliability = IPTOS_RELIABILITY;
+  enum iptos : priority_type {
+    def         = 0,
+    lowdelay    = IPTOS_LOWDELAY,
+    throughput  = IPTOS_THROUGHPUT,
+    reliability = IPTOS_RELIABILITY,
 
 #if defined IPTOS_MINCOST
-  static constexpr priority_type iptos_mincost     = IPTOS_MINCOST;
+    mincost     = IPTOS_MINCOST,
 #elif defined IPTOS_LOWCOST
-  static constexpr priority_type iptos_mincost     = IPTOS_LOWCOST;
+    mincost     = IPTOS_LOWCOST,
 #else
-  static constexpr priority_type iptos_mincost     = iptos_throughput;
+    mincost     = iptos::throughput,
 #endif
+  };
 
-  static constexpr uint32_t encryption_none             = 0;
-  static constexpr uint32_t encryption_allow_incoming   = (1 << 0);
-  static constexpr uint32_t encryption_try_outgoing     = (1 << 1);
-  static constexpr uint32_t encryption_require          = (1 << 2);
-  static constexpr uint32_t encryption_require_RC4      = (1 << 3);
-  static constexpr uint32_t encryption_enable_retry     = (1 << 4);
-  static constexpr uint32_t encryption_prefer_plaintext = (1 << 5);
+  enum encryption : uint32_t {
+    none             = 0,
+    allow_incoming   = (1 << 0),
+    try_outgoing     = (1 << 1),
+    require          = (1 << 2),
+    require_RC4      = (1 << 3),
+    enable_retry     = (1 << 4),
+    prefer_plaintext = (1 << 5),
 
   // Internal to libtorrent.
-  static constexpr uint32_t encryption_use_proxy        = (1 << 6);
-  static constexpr uint32_t encryption_retrying         = (1 << 7);
+    use_proxy        = (1 << 6),
+    retrying         = (1 << 7),
+  };
 
   enum {
     handshake_incoming           = 1,
@@ -56,7 +60,7 @@ public:
     handshake_dropped            = 6,
     handshake_failed             = 7,
     handshake_retry_plaintext    = 8,
-    handshake_retry_encrypted    = 9
+    handshake_retry_encrypted    = 9,
   };
 
   using slot_filter_type   = std::function<uint32_t(const sockaddr*)>;
@@ -134,10 +138,10 @@ private:
   size_type           m_size{0};
   size_type           m_maxSize{0};
 
-  priority_type       m_priority{iptos_throughput};
+  priority_type       m_priority{iptos::throughput};
   uint32_t            m_sendBufferSize{0};
   uint32_t            m_receiveBufferSize{0};
-  int                 m_encryptionOptions{encryption_none};
+  int                 m_encryptionOptions{encryption::none};
 
   sockaddr*           m_bindAddress;
   sockaddr*           m_localAddress;

@@ -62,8 +62,8 @@ TrackerTest::set_success(uint32_t counter, uint32_t time_last) {
   auto guard = lock_guard();
   state().m_success_counter = counter;
   state().m_success_time_last = time_last;
-  state().set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
-  state().set_min_interval(torrent::tracker::TrackerState::default_min_interval);
+  state().set_normal_interval(torrent::tracker::TrackerState::interval::default_normal);
+  state().set_min_interval(torrent::tracker::TrackerState::interval::default_min);
 }
 
 void
@@ -153,8 +153,8 @@ TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_pe
   } else {
     {
       auto guard = lock_guard();
-      state().set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
-      state().set_min_interval(torrent::tracker::TrackerState::default_min_interval);
+      state().set_normal_interval(torrent::tracker::TrackerState::interval::default_normal);
+      state().set_min_interval(torrent::tracker::TrackerState::interval::default_min);
     }
 
     if (m_slot_success)

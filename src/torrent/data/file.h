@@ -13,16 +13,16 @@ public:
 
   using range_type = std::pair<uint32_t, uint32_t>;
 
-  static constexpr int flag_active             = (1 << 0);
-  static constexpr int flag_create_queued      = (1 << 1);
-  static constexpr int flag_resize_queued      = (1 << 2);
-  static constexpr int flag_fallocate          = (1 << 3);
-  static constexpr int flag_previously_created = (1 << 4);
-
-  static constexpr int flag_prioritize_first   = (1 << 5);
-  static constexpr int flag_prioritize_last    = (1 << 6);
-
-  static constexpr int flag_attr_padding       = (1 << 7);
+  enum flag {
+    active             = (1 << 0),
+    create_queued      = (1 << 1),
+    resize_queued      = (1 << 2),
+    fallocate          = (1 << 3),
+    previously_created = (1 << 4),
+    prioritize_first   = (1 << 5),
+    prioritize_last    = (1 << 6),
+    attr_padding       = (1 << 7),
+  };
 
   File() =default;
   ~File();
@@ -33,10 +33,10 @@ public:
   bool                is_correct_size() const;
   bool                is_valid_position(uint64_t p) const;
 
-  bool                is_create_queued() const                 { return m_flags & flag_create_queued; }
-  bool                is_resize_queued() const                 { return m_flags & flag_resize_queued; }
-  bool                is_previously_created() const            { return m_flags & flag_previously_created; }
-  bool                is_padding() const                       { return m_flags & flag_attr_padding; }
+  bool                is_create_queued() const                 { return m_flags & flag::create_queued; }
+  bool                is_resize_queued() const                 { return m_flags & flag::resize_queued; }
+  bool                is_previously_created() const            { return m_flags & flag::previously_created; }
+  bool                is_padding() const                       { return m_flags & flag::attr_padding; }
 
   bool                has_flags(int flags)                     { return m_flags & flags; }
 
@@ -134,12 +134,12 @@ File::is_valid_position(uint64_t p) const {
 
 inline void
 File::set_flags(int flags) {
-  set_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last | flag_attr_padding));
+  set_flags_protected(flags & (flag::create_queued | flag::resize_queued | flag::fallocate | flag::prioritize_first | flag::prioritize_last | flag::attr_padding));
 }
 
 inline void
 File::unset_flags(int flags) {
-  unset_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last| flag_attr_padding));
+  unset_flags_protected(flags & (flag::create_queued | flag::resize_queued | flag::fallocate | flag::prioritize_first | flag::prioritize_last| flag::attr_padding));
 }
 
 }

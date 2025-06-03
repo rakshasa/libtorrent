@@ -70,7 +70,7 @@ resume_load_progress(Download download, const Object& object) {
 
       // If 'mtime' is erased, it means we should start hashing and
       // downloading the file as if it was a new torrent.
-      (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+      (*listItr)->set_flags(File::flag::create_queued | File::flag::resize_queued);
 
       download.update_range(Download::update_range_recheck | Download::update_range_clear,
                             (*listItr)->range().first, (*listItr)->range().second);
@@ -82,7 +82,7 @@ resume_load_progress(Download download, const Object& object) {
 
     // The default action when we have 'mtime' is not to create nor
     // resize the file.
-    (*listItr)->unset_flags(File::flag_create_queued | File::flag_resize_queued);
+    (*listItr)->unset_flags(File::flag::create_queued | File::flag::resize_queued);
 
     if (mtimeValue == ~int64_t{0} || mtimeValue == ~int64_t{1}) {
       // If 'mtime' is ~0 it means we haven't gotten around to
@@ -97,7 +97,7 @@ resume_load_progress(Download download, const Object& object) {
 
       if (mtimeValue == ~int64_t{0}) {
         LT_LOG_LOAD_FILE("file not created by client, file:create|resize range:clear|(recheck)", 0);
-        (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+        (*listItr)->set_flags(File::flag::create_queued | File::flag::resize_queued);
       } else {
         LT_LOG_LOAD_FILE("do not create file, file:- range:clear|(recheck)", 0);
       }
@@ -118,7 +118,7 @@ resume_load_progress(Download download, const Object& object) {
         LT_LOG_LOAD_FILE("file has the wrong size, file:resize range:clear|recheck", 0);
       }
 
-      (*listItr)->set_flags(File::flag_resize_queued);
+      (*listItr)->set_flags(File::flag::resize_queued);
       download.update_range(Download::update_range_clear | Download::update_range_recheck,
                             (*listItr)->range().first, (*listItr)->range().second);
       continue;
