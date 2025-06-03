@@ -4,6 +4,7 @@
 #include <cinttypes>
 #include <cstddef>
 #include <chrono>
+#include <functional>
 #include <thread>
 
 struct sockaddr;
@@ -79,6 +80,8 @@ class TrackerList;
 class TransferList;
 
 namespace net {
+class HttpGet;;
+class HttpStack;
 class Resolver;
 }
 
@@ -135,6 +138,18 @@ torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
 std::thread::id         thread_id() LIBTORRENT_EXPORT;
 
 uint32_t                hash_queue_size() LIBTORRENT_EXPORT;
+
+}
+
+namespace torrent::net_thread {
+
+torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
+std::thread::id         thread_id() LIBTORRENT_EXPORT;
+void                    callback(void* target, std::function<void ()>&& fn);
+void                    cancel_callback(void* target);
+void                    cancel_callback_and_wait(void* target);
+
+torrent::net::HttpStack* http_stack() LIBTORRENT_EXPORT;
 
 }
 

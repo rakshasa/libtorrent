@@ -36,7 +36,7 @@ ThreadDisk::init_thread() {
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
 
   m_hash_check_queue.slot_chunk_done() = [](auto hc, const auto& hv) {
-      thread_main()->hash_queue()->chunk_done(hc, hv);
+      ThreadMain::thread_main()->hash_queue()->chunk_done(hc, hv);
     };
 }
 

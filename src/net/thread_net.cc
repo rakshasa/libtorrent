@@ -4,12 +4,29 @@
 
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/http_stack.h"
 #include "torrent/net/resolver.h"
 #include "utils/instrumentation.h"
 
-using namespace std::chrono_literals;
-
 namespace torrent {
+
+class ThreadNetInternal {
+public:
+  static ThreadNet*      thread_net() { return ThreadNet::internal_thread_net(); }
+  static net::HttpStack* http_stack() { return ThreadNet::internal_thread_net()->http_stack(); }
+};
+
+namespace net_thread {
+
+torrent::utils::Thread*  thread()                                            { return ThreadNetInternal::thread_net(); }
+std::thread::id          thread_id()                                         { return ThreadNetInternal::thread_net()->thread_id(); }
+void                     callback(void* target, std::function<void ()>&& fn) { ThreadNetInternal::thread_net()->callback(target, std::move(fn)); }
+void                     cancel_callback(void* target)                       { ThreadNetInternal::thread_net()->cancel_callback(target); }
+void                     cancel_callback_and_wait(void* target)              { ThreadNetInternal::thread_net()->cancel_callback_and_wait(target); }
+
+torrent::net::HttpStack* http_stack() { return ThreadNetInternal::http_stack(); }
+
+}
 
 ThreadNet* ThreadNet::m_thread_net{nullptr};
 
@@ -19,7 +36,8 @@ void
 ThreadNet::create_thread() {
   auto thread = new ThreadNet;
 
-  thread->m_udns = std::make_unique<UdnsResolver>();
+  thread->m_http_stack = std::make_unique<net::HttpStack>(thread);
+  thread->m_udns       = std::make_unique<UdnsResolver>();
 
   m_thread_net = thread;
 }
