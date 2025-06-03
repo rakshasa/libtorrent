@@ -28,17 +28,17 @@ Manager* manager = NULL;
 
 namespace this_thread {
 
-LIBTORRENT_EXPORT void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
-LIBTORRENT_EXPORT void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
-LIBTORRENT_EXPORT void event_close_and_count(Event* event)  { utils::ThreadInternal::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
-LIBTORRENT_EXPORT void event_closed_and_count(Event* event) { utils::ThreadInternal::poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
-LIBTORRENT_EXPORT void event_insert_read(Event* event)      { utils::ThreadInternal::poll()->insert_read(event); }
-LIBTORRENT_EXPORT void event_insert_write(Event* event)     { utils::ThreadInternal::poll()->insert_write(event); }
-LIBTORRENT_EXPORT void event_insert_error(Event* event)     { utils::ThreadInternal::poll()->insert_error(event); }
-LIBTORRENT_EXPORT void event_remove_read(Event* event)      { utils::ThreadInternal::poll()->remove_read(event); }
-LIBTORRENT_EXPORT void event_remove_write(Event* event)     { utils::ThreadInternal::poll()->remove_write(event); }
-LIBTORRENT_EXPORT void event_remove_error(Event* event)     { utils::ThreadInternal::poll()->remove_error(event); }
-LIBTORRENT_EXPORT void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remove_and_close(event); }
+void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
+void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
+void event_close_and_count(Event* event)  { utils::ThreadInternal::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
+void event_closed_and_count(Event* event) { utils::ThreadInternal::poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
+void event_insert_read(Event* event)      { utils::ThreadInternal::poll()->insert_read(event); }
+void event_insert_write(Event* event)     { utils::ThreadInternal::poll()->insert_write(event); }
+void event_insert_error(Event* event)     { utils::ThreadInternal::poll()->insert_error(event); }
+void event_remove_read(Event* event)      { utils::ThreadInternal::poll()->remove_read(event); }
+void event_remove_write(Event* event)     { utils::ThreadInternal::poll()->remove_write(event); }
+void event_remove_error(Event* event)     { utils::ThreadInternal::poll()->remove_error(event); }
+void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remove_and_close(event); }
 
 }
 
