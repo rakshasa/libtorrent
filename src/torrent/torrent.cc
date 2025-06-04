@@ -70,7 +70,7 @@ initialize() {
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
 
   instrumentation_initialize();
-  // torrent::net::CurlStack::global_initialize();
+  torrent::net::CurlStack::global_initialize();
 
   manager = new Manager;
 
@@ -113,7 +113,7 @@ cleanup() {
   delete manager;
   manager = NULL;
 
-  // torrent::net::CurlStack::global_cleanup();
+  torrent::net::CurlStack::global_cleanup();
 }
 
 bool
