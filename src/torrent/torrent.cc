@@ -10,6 +10,7 @@
 #include "download/download_wrapper.h"
 #include "manager.h"
 #include "net/thread_net.h"
+#include "net/curl_stack.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
 #include "rak/string_manip.h"
@@ -58,7 +59,7 @@ calculate_reserved(uint32_t openMax) {
 void
 initialize_main_thread() {
   ThreadMain::create_thread();
-  thread_main()->init_thread();
+  ThreadMain::thread_main()->init_thread();
 }
 
 void
@@ -67,12 +68,13 @@ initialize() {
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
 
   instrumentation_initialize();
+  torrent::net::CurlStack::global_initialize();
 
   manager = new Manager;
 
   ThreadDisk::create_thread();
   ThreadNet::create_thread();
-  ThreadTracker::create_thread(thread_main());
+  ThreadTracker::create_thread(ThreadMain::thread_main());
 
   uint32_t maxFiles = calculate_max_open_files(this_thread::poll()->open_max());
 
@@ -80,11 +82,11 @@ initialize() {
   manager->file_manager()->set_max_open_files(maxFiles);
 
   thread_disk()->init_thread();
-  thread_net()->init_thread();
+  net_thread::thread()->init_thread();
   thread_tracker()->init_thread();
 
   thread_disk()->start_thread();
-  thread_net()->start_thread();
+  net_thread::thread()->start_thread();
   thread_tracker()->start_thread();
 }
 
@@ -100,14 +102,16 @@ cleanup() {
 
   thread_tracker()->stop_thread_wait();
   thread_disk()->stop_thread_wait();
-  thread_net()->stop_thread_wait();
+  net_thread::thread()->stop_thread_wait();
 
   delete thread_tracker();
   delete thread_disk();
-  delete thread_net();
+  delete net_thread::thread();
 
   delete manager;
   manager = NULL;
+
+  torrent::net::CurlStack::global_cleanup();
 }
 
 bool
@@ -122,7 +126,7 @@ is_inactive() {
 
 void
 set_main_thread_slots(std::function<void()> do_work) {
-  thread_main()->slot_do_work() = std::move(do_work);
+  ThreadMain::thread_main()->slot_do_work() = std::move(do_work);
 }
 
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
@@ -178,7 +182,7 @@ download_add(Object* object, uint32_t tracker_key) {
 
   std::string local_id = PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size());
 
-  download->set_hash_queue(thread_main()->hash_queue());
+  download->set_hash_queue(ThreadMain::thread_main()->hash_queue());
   download->initialize(infoHash, local_id, tracker_key);
 
   // Add trackers, etc, after setting the info hash so that log

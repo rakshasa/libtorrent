@@ -104,14 +104,6 @@ TrackerUdp::close() {
 }
 
 void
-TrackerUdp::disown() {
-  LT_LOG("disowning tracker : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-  close_directly();
-}
-
-void
 TrackerUdp::close_directly() {
   LT_LOG("closing directly : state:%s url:%s",
          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());

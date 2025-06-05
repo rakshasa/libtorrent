@@ -12,7 +12,7 @@
 #include "net/address_list.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/http.h"
+#include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/utils.h"
 #include "torrent/object_stream.h"
@@ -31,15 +31,14 @@
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags) :
-  TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags),
+TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags)
+  : TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags),
+    m_drop_deliminator(utils::uri_has_query(info.url)) {
 
-  // TODO: Change slot_factory to use thread_self poll.
-  m_get(Http::slot_factory()()),
-  m_drop_deliminator(utils::uri_has_query(info.url)) {
+  m_get = torrent::net_thread::http_stack()->create(info.url, nullptr);
 
-  m_get->signal_done().emplace_back([this] { receive_done(); });
-  m_get->signal_failed().emplace_back([this](const auto& str) { receive_signal_failed(str); });
+  m_get.add_done_slot([this] { receive_done(); });
+  m_get.add_failed_slot([this](const auto& str) { receive_signal_failed(str); });
 
   m_delay_scrape.slot() = [this] { delayed_send_scrape(); };
 }
@@ -138,11 +137,10 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
               option_as_string(OPTION_TRACKER_EVENT, new_state),
               parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
 
-  m_get->set_url(request_url);
-  m_get->set_stream(m_data.get());
-  m_get->set_timeout(2 * 60);
+  m_get.set_url(request_url);
+  m_get.set_stream(m_data.get());
 
-  m_get->start();
+  m_get.start();
 }
 
 void
@@ -188,11 +186,10 @@ TrackerHttp::delayed_send_scrape() {
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
 
-  m_get->set_url(request_url);
-  m_get->set_stream(m_data.get());
-  m_get->set_timeout(2 * 60);
+  m_get.set_url(request_url);
+  m_get.set_stream(m_data.get());
 
-  m_get->start();
+  m_get.start();
 }
 
 void
@@ -204,36 +201,6 @@ TrackerHttp::close() {
   m_requested_scrape = false;
 
   close_directly();
-}
-
-// TODO: Remove 'disown' mechanic when we rewrite http request handling.
-
-void
-TrackerHttp::disown() {
-  this_thread::scheduler()->erase(&m_delay_scrape);
-  m_requested_scrape = false;
-
-  if (m_data == nullptr) {
-    LT_LOG("disowning tracker (already closed) : state:%s url:%s",
-           option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-    m_slot_close();
-    return;
-  }
-
-  LT_LOG("disowning tracker : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-  m_slot_close();
-
-  m_get->set_delete_self();
-  m_get->set_delete_stream();
-  m_get->signal_done().clear();
-  m_get->signal_failed().clear();
-
-  // Allocate this dynamically, so that we don't need to do this here.
-  m_get = std::unique_ptr<Http>(Http::slot_factory()());
-  m_data.reset();
 }
 
 tracker_enum
@@ -257,8 +224,8 @@ TrackerHttp::close_directly() {
   // TODO: Replace m_slot_close with a ThreadWorker method.
   m_slot_close();
 
-  m_get->close();
-  m_get->set_stream(nullptr);
+  m_get.close();
+  m_get.set_stream(nullptr);
 
   m_data.reset();
 }

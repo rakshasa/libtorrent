@@ -5,6 +5,7 @@
 #include <signal.h>
 
 #include "data/thread_disk.h"
+#include "net/thread_net.h"
 #include "test/helpers/mock_function.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
@@ -107,6 +108,39 @@ TestFixtureWithMainAndTrackerThread::setUp() {
 void
 TestFixtureWithMainAndTrackerThread::tearDown() {
   torrent::thread_tracker()->stop_thread_wait();
+  delete torrent::thread_tracker();
+
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}
+
+void
+TestFixtureWithMainNetTrackerThread::setUp() {
+  test_fixture::setUp();
+
+  m_main_thread = TestMainThread::create();
+  m_main_thread->init_thread();
+
+  log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
+  log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
+
+  torrent::ThreadNet::create_thread();
+  torrent::ThreadTracker::create_thread(m_main_thread.get());
+
+  torrent::net_thread::thread()->init_thread();
+  torrent::thread_tracker()->init_thread();
+
+  torrent::net_thread::thread()->start_thread();
+  torrent::thread_tracker()->start_thread();
+}
+
+void
+TestFixtureWithMainNetTrackerThread::tearDown() {
+  torrent::thread_tracker()->stop_thread_wait();
+  torrent::net_thread::thread()->stop_thread_wait();
+
+  delete torrent::net_thread::thread();
   delete torrent::thread_tracker();
 
   m_main_thread.reset();

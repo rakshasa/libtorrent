@@ -5,7 +5,6 @@
 #include "net/address_list.h"
 #include "test/torrent/test_tracker_list.h"
 #include "test/torrent/test_tracker_list_features.h"
-#include "torrent/http.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerListFeatures);
 

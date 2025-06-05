@@ -3,7 +3,8 @@
 #include "test_http.h"
 
 #include <sstream>
-#include "torrent/http.h"
+
+// #include "torrent/http.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_http, "torrent");
 
@@ -30,146 +31,146 @@ private:
   bool* m_destroyed;
 };
 
-class TestHttp : public torrent::Http {
-public:
-  static const int flag_active = 0x1;
+// class TestHttp : public torrent::Http {
+// public:
+//   static const int flag_active = 0x1;
 
-  TestHttp(bool *destroyed = NULL) : m_flags(0), m_destroyed(destroyed) {}
-  virtual ~TestHttp() { if (m_destroyed) *m_destroyed = true; }
-  
-  virtual void start() { m_flags |= flag_active; }
-  virtual void close() { m_flags &= ~flag_active; }
+//   TestHttp(bool *destroyed = NULL) : m_flags(0), m_destroyed(destroyed) {}
+//   virtual ~TestHttp() { if (m_destroyed) *m_destroyed = true; }
 
-  bool trigger_signal_done();
-  bool trigger_signal_failed();
+//   virtual void start() { m_flags |= flag_active; }
+//   virtual void close() { m_flags &= ~flag_active; }
 
-private:
-  int m_flags;
-  bool* m_destroyed;
-};
+//   bool trigger_signal_done();
+//   bool trigger_signal_failed();
 
-bool
-TestHttp::trigger_signal_done() {
-  if (!(m_flags & flag_active))
-    return false;
+// private:
+//   int m_flags;
+//   bool* m_destroyed;
+// };
 
-  m_flags &= ~flag_active;
-  trigger_done();
-  return true;
-}
+// bool
+// TestHttp::trigger_signal_done() {
+//   if (!(m_flags & flag_active))
+//     return false;
 
-bool
-TestHttp::trigger_signal_failed() {
-  if (!(m_flags & flag_active))
-    return false;
+//   m_flags &= ~flag_active;
+//   trigger_done();
+//   return true;
+// }
 
-  m_flags &= ~flag_active;
-  trigger_failed("We Fail.");
-  return true;
-}
+// bool
+// TestHttp::trigger_signal_failed() {
+//   if (!(m_flags & flag_active))
+//     return false;
 
-TestHttp* create_test_http() { return new TestHttp; }
+//   m_flags &= ~flag_active;
+//   trigger_failed("We Fail.");
+//   return true;
+// }
 
-static void increment_value(int* value) { (*value)++; }
+// TestHttp* create_test_http() { return new TestHttp; }
 
-void
-test_http::test_basic() {
-  torrent::Http::slot_factory() = std::bind(&create_test_http);
+// static void increment_value(int* value) { (*value)++; }
 
-  auto http = torrent::Http::slot_factory()();
-  auto http_stream = std::make_unique<std::stringstream>();
+// void
+// test_http::test_basic() {
+//   torrent::Http::slot_factory() = std::bind(&create_test_http);
 
-  http->set_url("http://example.com");
-  CPPUNIT_ASSERT(http->url() == "http://example.com");
+//   auto http = torrent::Http::slot_factory()();
+//   auto http_stream = std::make_unique<std::stringstream>();
 
-  CPPUNIT_ASSERT(http->stream() == nullptr);
-  http->set_stream(http_stream.get());
-  CPPUNIT_ASSERT(http->stream() != nullptr);
+//   http->set_url("http://example.com");
+//   CPPUNIT_ASSERT(http->url() == "http://example.com");
 
-  CPPUNIT_ASSERT(http->timeout() == 0);
-  http->set_timeout(666);
-  CPPUNIT_ASSERT(http->timeout() == 666);
-  
-  delete http;
-}
+//   CPPUNIT_ASSERT(http->stream() == nullptr);
+//   http->set_stream(http_stream.get());
+//   CPPUNIT_ASSERT(http->stream() != nullptr);
 
-void
-test_http::test_done() {
-  HTTP_SETUP();
-  http->start();
+//   CPPUNIT_ASSERT(http->timeout() == 0);
+//   http->set_timeout(666);
+//   CPPUNIT_ASSERT(http->timeout() == 666);
 
-  CPPUNIT_ASSERT(test_http->trigger_signal_done());
+//   delete http;
+// }
 
-  // Check that we didn't delete...
+// void
+// test_http::test_done() {
+//   HTTP_SETUP();
+//   http->start();
 
-  CPPUNIT_ASSERT(done_counter == 1 && failed_counter == 0);
-  delete http;
-}
+//   CPPUNIT_ASSERT(test_http->trigger_signal_done());
 
-void
-test_http::test_failure() {
-  HTTP_SETUP();
-  http->start();
+//   // Check that we didn't delete...
 
-  CPPUNIT_ASSERT(test_http->trigger_signal_failed());
+//   CPPUNIT_ASSERT(done_counter == 1 && failed_counter == 0);
+//   delete http;
+// }
 
-  // Check that we didn't delete...
+// void
+// test_http::test_failure() {
+//   HTTP_SETUP();
+//   http->start();
 
-  CPPUNIT_ASSERT(done_counter == 0 && failed_counter == 1);
-  delete http;
-}
+//   CPPUNIT_ASSERT(test_http->trigger_signal_failed());
 
-void
-test_http::test_delete_on_done() {
-  HTTP_SETUP();
-  http->start();
-  http->set_delete_stream();
+//   // Check that we didn't delete...
 
-  CPPUNIT_ASSERT(!stream_destroyed);
-  CPPUNIT_ASSERT(!http_destroyed);
-  CPPUNIT_ASSERT(test_http->trigger_signal_done());
-  CPPUNIT_ASSERT(stream_destroyed);
-  CPPUNIT_ASSERT(!http_destroyed);
-  CPPUNIT_ASSERT(http->stream() == NULL);
+//   CPPUNIT_ASSERT(done_counter == 0 && failed_counter == 1);
+//   delete http;
+// }
 
-  stream_destroyed = false;
-  http_stream = new StringStream(&stream_destroyed);
-  http->set_stream(http_stream);
+// void
+// test_http::test_delete_on_done() {
+//   HTTP_SETUP();
+//   http->start();
+//   http->set_delete_stream();
 
-  http->start();
-  http->set_delete_self();
+//   CPPUNIT_ASSERT(!stream_destroyed);
+//   CPPUNIT_ASSERT(!http_destroyed);
+//   CPPUNIT_ASSERT(test_http->trigger_signal_done());
+//   CPPUNIT_ASSERT(stream_destroyed);
+//   CPPUNIT_ASSERT(!http_destroyed);
+//   CPPUNIT_ASSERT(http->stream() == NULL);
 
-  CPPUNIT_ASSERT(!stream_destroyed);
-  CPPUNIT_ASSERT(!http_destroyed);
-  CPPUNIT_ASSERT(test_http->trigger_signal_done());
-  CPPUNIT_ASSERT(stream_destroyed);
-  CPPUNIT_ASSERT(http_destroyed);
-}
+//   stream_destroyed = false;
+//   http_stream = new StringStream(&stream_destroyed);
+//   http->set_stream(http_stream);
 
-void
-test_http::test_delete_on_failure() {
-  HTTP_SETUP();
-  http->start();
-  http->set_delete_stream();
+//   http->start();
+//   http->set_delete_self();
 
-  CPPUNIT_ASSERT(!stream_destroyed);
-  CPPUNIT_ASSERT(!http_destroyed);
-  CPPUNIT_ASSERT(test_http->trigger_signal_failed());
-  CPPUNIT_ASSERT(stream_destroyed);
-  CPPUNIT_ASSERT(!http_destroyed);
-  CPPUNIT_ASSERT(http->stream() == NULL);
+//   CPPUNIT_ASSERT(!stream_destroyed);
+//   CPPUNIT_ASSERT(!http_destroyed);
+//   CPPUNIT_ASSERT(test_http->trigger_signal_done());
+//   CPPUNIT_ASSERT(stream_destroyed);
+//   CPPUNIT_ASSERT(http_destroyed);
+// }
 
-  stream_destroyed = false;
-  http_stream = new StringStream(&stream_destroyed);
-  http->set_stream(http_stream);
+// void
+// test_http::test_delete_on_failure() {
+//   HTTP_SETUP();
+//   http->start();
+//   http->set_delete_stream();
 
-  http->start();
-  http->set_delete_self();
+//   CPPUNIT_ASSERT(!stream_destroyed);
+//   CPPUNIT_ASSERT(!http_destroyed);
+//   CPPUNIT_ASSERT(test_http->trigger_signal_failed());
+//   CPPUNIT_ASSERT(stream_destroyed);
+//   CPPUNIT_ASSERT(!http_destroyed);
+//   CPPUNIT_ASSERT(http->stream() == NULL);
 
-  CPPUNIT_ASSERT(!stream_destroyed);
-  CPPUNIT_ASSERT(!http_destroyed);
-  CPPUNIT_ASSERT(test_http->trigger_signal_failed());
-  CPPUNIT_ASSERT(stream_destroyed);
-  CPPUNIT_ASSERT(http_destroyed);
-}
+//   stream_destroyed = false;
+//   http_stream = new StringStream(&stream_destroyed);
+//   http->set_stream(http_stream);
+
+//   http->start();
+//   http->set_delete_self();
+
+//   CPPUNIT_ASSERT(!stream_destroyed);
+//   CPPUNIT_ASSERT(!http_destroyed);
+//   CPPUNIT_ASSERT(test_http->trigger_signal_failed());
+//   CPPUNIT_ASSERT(stream_destroyed);
+//   CPPUNIT_ASSERT(http_destroyed);
+// }
 

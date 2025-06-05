@@ -72,16 +72,6 @@ TrackerList::close_all_excluding(int event_bitmap) {
 }
 
 void
-TrackerList::disown_all_including(int event_bitmap) {
-  LT_LOG("disowning all trackers with event bitmap: 0x%x", event_bitmap);
-
-  for (auto& tracker : *this) {
-    if ((event_bitmap & (1 << tracker.state().latest_event())))
-      tracker.get_worker()->disown();
-  }
-}
-
-void
 TrackerList::clear() {
   // Make sure the tracker_list is cleared before the trackers are deleted.
   auto list = std::move(*static_cast<base_type*>(this));
