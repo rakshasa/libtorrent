@@ -2,6 +2,7 @@
 
 #include "curl_stack.h"
 
+#include <algorithm>
 #include <cassert>
 #include <curl/multi.h>
 
