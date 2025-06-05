@@ -121,8 +121,6 @@ libtorrent_torrent_la_SOURCES = \
 	exceptions.h \
 	hash_string.cc \
 	hash_string.h \
-	http.cc \
-	http.h \
 	object.cc \
 	object.h \
 	object_raw_bencode.h \
@@ -226,7 +224,6 @@ libtorrent_torrent_include_HEADERS = \
 	exceptions.h \
 	event.h \
 	hash_string.h \
-	http.h \
 	object.h \
 	object_raw_bencode.h \
 	object_static_map.h \

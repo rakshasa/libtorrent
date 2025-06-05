@@ -3,7 +3,6 @@
 #include "test/torrent/test_tracker_list.h"
 
 #include "net/address_list.h"
-#include "torrent/http.h"
 #include "torrent/utils/uri_parser.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerList);

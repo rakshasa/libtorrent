@@ -2,11 +2,11 @@
 
 #include "net/curl_get.h"
 
-#include <curl/curl.h>
 #include <curl/easy.h>
 
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
+#include "utils/functional.h"
 
 namespace torrent::net {
 
@@ -95,12 +95,7 @@ CurlGet::retry_ipv6() {
   m_ipv6 = true;
 }
 
-void
-CurlGet::receive_timeout() {
-  return m_stack->transfer_done(m_handle, "Timed out");
-}
-
-curl_off_t
+int64_t
 CurlGet::size_done() {
   curl_off_t d = 0;
   curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &d);
@@ -108,12 +103,37 @@ CurlGet::size_done() {
   return d;
 }
 
-curl_off_t
+int64_t
 CurlGet::size_total() {
   curl_off_t d = 0;
   curl_easy_getinfo(m_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &d);
 
   return d;
+}
+
+void
+CurlGet::receive_timeout() {
+  return m_stack->transfer_done(m_handle, "Timed out");
+}
+
+void
+CurlGet::trigger_done() {
+  ::utils::slot_list_call(m_signal_done);
+
+  // if (should_delete_stream) {
+  //   delete m_stream;
+  //   m_stream = NULL;
+  // }
+}
+
+void
+CurlGet::trigger_failed(const std::string& message) {
+  ::utils::slot_list_call(m_signal_failed, message);
+
+  // if (should_delete_stream) {
+  //   delete m_stream;
+  //   m_stream = NULL;
+  // }
 }
 
 }
