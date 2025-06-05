@@ -9,15 +9,17 @@
 #include "torrent/exceptions.h"
 #include "utils/functional.h"
 
-namespace torrent::net {
-
-static size_t
-curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handle) {
-  if (!((CurlGet*)handle)->stream()->write((const char*)data, size * nmemb).fail())
+namespace {
+size_t
+curl_get_receive_write(const char* data, size_t size, size_t nmemb, torrent::net::CurlGet* handle) {
+  if (!handle->stream()->write(data, size * nmemb).fail())
     return size * nmemb;
   else
     return 0;
 }
+} // namespace
+
+namespace torrent::net {
 
 CurlGet::CurlGet(CurlStack* s)
   : m_stack(s) {
@@ -34,7 +36,7 @@ CurlGet::start() {
   if (is_busy())
     throw torrent::internal_error("Tried to call CurlGet::start on a busy object.");
 
-  if (m_stream == NULL)
+  if (m_stream == nullptr)
     throw torrent::internal_error("Tried to call CurlGet::start without a valid output stream.");
 
   if (!m_stack->is_running())
@@ -42,7 +44,7 @@ CurlGet::start() {
 
   m_handle = curl_easy_init();
 
-  if (m_handle == NULL)
+  if (m_handle == nullptr)
     throw torrent::internal_error("Call to curl_easy_init() failed.");
 
   curl_easy_setopt(m_handle, CURLOPT_URL,            m_url.c_str());
@@ -50,18 +52,18 @@ CurlGet::start() {
   curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,      this);
 
   if (m_timeout != 0) {
-    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, (long)60);
-    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        (long)m_timeout);
+    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, long{60});
+    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        static_cast<long>(m_timeout));
 
     // Normally libcurl should handle the timeout. But sometimes that doesn't
     // work right so we do a fallback timeout that just aborts the transfer.
     torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 5s + 1s*m_timeout);
   }
 
-  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE,   (long)1);
-  curl_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       (long)1);
-  curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, (long)1);
-  curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      (long)5);
+  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE,   long{1});
+  curl_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       long{1});
+  curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, long{1});
+  curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      long{5});
 
   curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE,      CURL_IPRESOLVE_WHATEVER);
 
@@ -82,7 +84,7 @@ CurlGet::close() {
   m_stack->remove_get(this);
 
   curl_easy_cleanup(m_handle);
-  m_handle = NULL;
+  m_handle = nullptr;
 }
 
 void
@@ -123,7 +125,7 @@ CurlGet::trigger_done() {
 
   // if (should_delete_stream) {
   //   delete m_stream;
-  //   m_stream = NULL;
+  //   m_stream = nullptr;
   // }
 }
 
@@ -133,8 +135,8 @@ CurlGet::trigger_failed(const std::string& message) {
 
   // if (should_delete_stream) {
   //   delete m_stream;
-  //   m_stream = NULL;
+  //   m_stream = nullptr;
   // }
 }
 
-}
+} // namespace torrent::net

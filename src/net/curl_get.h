@@ -51,7 +51,7 @@ private:
   friend class CurlStack;
 
   CurlGet(const CurlGet&) = delete;
-  void operator = (const CurlGet&) = delete;
+  CurlGet& operator=(const CurlGet&) = delete;
 
   void               receive_timeout();
 
