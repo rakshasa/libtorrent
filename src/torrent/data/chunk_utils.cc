@@ -38,15 +38,13 @@
 
 #include "chunk_utils.h"
 #include "download.h"
-#include "exceptions.h"
 
 #include "manager.h"
-#include "chunk_manager.h"
 
 #include "download/download_wrapper.h"
+#include "torrent/chunk_manager.h"
 #include "torrent/download/download_manager.h"
 
-#include "data/chunk.h"
 #include "data/chunk_list.h"
 
 namespace torrent {

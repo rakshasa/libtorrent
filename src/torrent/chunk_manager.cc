@@ -3,8 +3,6 @@
 #include "torrent/chunk_manager.h"
 
 #include <cassert>
-#include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 
 #include "data/chunk_list.h"

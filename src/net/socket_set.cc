@@ -36,9 +36,6 @@
 
 #include "config.h"
 
-#include <algorithm>
-#include <functional>
-
 #include "socket_set.h"
 
 namespace torrent {

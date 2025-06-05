@@ -38,7 +38,6 @@
 
 #include <algorithm>
 
-#include "exceptions.h"
 #include "path.h"
 
 namespace torrent {

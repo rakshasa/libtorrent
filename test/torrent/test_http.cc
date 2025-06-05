@@ -20,8 +20,8 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_http, "torrent");
   int failed_counter = 0;                                               \
                                                                         \
   http->set_stream(http_stream);                                        \
-  http->signal_done().push_back(std::bind(&increment_value, &done_counter)); \
-  http->signal_failed().push_back(std::bind(&increment_value, &failed_counter));
+  http->signal_done().emplace_back(std::bind(&increment_value, &done_counter)); \
+  http->signal_failed().emplace_back(std::bind(&increment_value, &failed_counter));
 
 class StringStream : public std::stringstream {
 public:

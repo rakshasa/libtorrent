@@ -2,20 +2,18 @@
 
 #include "directory_events.h"
 
-#include <string>
-#include <errno.h>
-#include <unistd.h>
 #include <algorithm>
+#include <string>
+#include <unistd.h>
 
 #ifdef USE_INOTIFY
 #include <sys/inotify.h>
 #endif
 
-#include "rak/error_number.h"
 #include "net/socket_fd.h"
+#include "rak/error_number.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
-#include "torrent/utils/thread.h"
 
 namespace torrent {
 

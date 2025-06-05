@@ -60,7 +60,6 @@ class Handshake;
 class HandshakeManager;
 class HashString;
 class Listen;
-class Manager;
 class MemoryChunk;
 class Object;
 class Path;

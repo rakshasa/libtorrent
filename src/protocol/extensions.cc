@@ -36,12 +36,10 @@
 
 #include "config.h"
 
-#include <limits>
-#include <stdarg.h>
+#include <cstdarg>
 
 #include <cstdio>
 
-#include "download/available_list.h"
 #include "download/download_main.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"

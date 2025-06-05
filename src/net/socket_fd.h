@@ -3,8 +3,6 @@
 
 #include <cstdint>
 
-#include <unistd.h>
-
 struct sockaddr;
 
 namespace rak {

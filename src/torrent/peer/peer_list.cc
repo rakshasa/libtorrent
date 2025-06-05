@@ -1,7 +1,6 @@
 #include "config.h"
 
 #include <algorithm>
-#include <functional>
 #include <rak/socket_address.h>
 
 #include "download/available_list.h"

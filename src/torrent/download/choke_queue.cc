@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
-#include <numeric>
 
 #include "protocol/peer_connection_base.h"
 #include "torrent/download/group_entry.h"

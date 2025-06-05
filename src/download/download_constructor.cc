@@ -5,15 +5,13 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <string.h>
 #include <rak/string_manip.h>
 
 #include "download/download_wrapper.h"
-#include "torrent/exceptions.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
+#include "torrent/exceptions.h"
 #include "torrent/tracker/dht_controller.h"
-#include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
 
 #include "manager.h"

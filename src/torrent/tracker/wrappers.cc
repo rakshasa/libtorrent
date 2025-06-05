@@ -4,7 +4,6 @@
 
 #include <utility>
 
-#include "torrent/utils/log.h"
 #include "tracker/tracker_list.h"
 #include "tracker/tracker_controller.h"
 

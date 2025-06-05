@@ -1,16 +1,12 @@
 #include "config.h"
 
-#include "socket_address.h"
-
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
 #include <sys/un.h>
 
-// TODO: Deprecate.
-#include "rak/socket_address.h"
-
 #include "torrent/exceptions.h"
+#include "torrent/net/socket_address.h"
 
 namespace torrent {
 

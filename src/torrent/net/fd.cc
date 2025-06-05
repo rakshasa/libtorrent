@@ -4,11 +4,9 @@
 
 #include <cerrno>
 #include <fcntl.h>
-#include <unistd.h>
 #include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <unistd.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"

@@ -1,10 +1,8 @@
 #include "config.h"
 
-#include <cerrno>
 #include <cstring>
 #include <netdb.h>
 #include <sstream>
-#include <unistd.h>
 
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
@@ -51,9 +49,9 @@ internal_error::initialize(const std::string& msg) {
 
   for (int i = 0; i < stack_size; ++i) {
     if (stack_symbol_names[i] != nullptr && stack_symbol_names[i] > (void*)0x1000)
-      output << stack_symbol_names[i] << std::endl;
+      output << stack_symbol_names[i] << '\n';
     else
-      output << "stack_symbol: nullptr" << std::endl;
+      output << "stack_symbol: nullptr" << '\n';
   }
 
   m_backtrace = output.str();

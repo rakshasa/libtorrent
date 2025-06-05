@@ -5,7 +5,6 @@
 #include <cassert>
 #include <cstring>
 #include <mutex>
-#include <signal.h>
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
@@ -32,8 +31,7 @@ Thread::Thread() :
   m_scheduler->set_cached_time(m_cached_time);
 }
 
-Thread::~Thread() {
-}
+Thread::~Thread() = default;
 
 Thread*
 Thread::self() {

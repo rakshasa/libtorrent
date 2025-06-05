@@ -3,12 +3,9 @@
 #include "net/socket_base.h"
 
 #include <cassert>
-#include <errno.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 
 #include "torrent/poll.h"
-#include "torrent/utils/thread.h"
 
 namespace torrent {
 

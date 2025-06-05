@@ -1,13 +1,11 @@
 #include "config.h"
 
-#include "data/block.h"
 #include "data/block_transfer.h"
 #include "download/download_main.h"
 #include "protocol/peer_chunks.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/download/choke_queue.h"
 
-#include "exceptions.h"
 #include "connection_list.h"
 #include "peer.h"
 #include "peer_info.h"

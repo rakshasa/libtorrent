@@ -2,9 +2,7 @@
 
 #include "socket_stream.h"
 
-#include <cerrno>
 #include <cstdio>
-#include <cstring>
 #include <rak/error_number.h>
 
 namespace torrent {

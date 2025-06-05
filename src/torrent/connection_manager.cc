@@ -1,13 +1,8 @@
 #include "config.h"
 
-#include <sys/types.h>
-
-#include "manager.h"
-#include "thread_main.h"
 #include "net/listen.h"
 #include "rak/socket_address.h"
 #include "torrent/connection_manager.h"
-#include "torrent/error.h"
 #include "torrent/exceptions.h"
 
 namespace torrent {

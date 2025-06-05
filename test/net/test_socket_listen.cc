@@ -390,7 +390,7 @@ TestSocketListen::test_accept() {
     std::vector<torrent::fd_sap_tuple> accepted_connections;
 
     sl->set_slot_accepted([&accepted_connections](int accept_fd, torrent::sa_unique_ptr sap) {
-        accepted_connections.push_back(torrent::fd_sap_tuple{accept_fd, std::move(sap)});
+        accepted_connections.emplace_back(accept_fd, std::move(sap));
       });
 
     // CPPUNIT_ASSERT(accepted_connections.size() > 0 && torrent::fd_sap_equal(accepted_connections[0], torrent::fd_sap_tuple{2000, torrent::sap_copy(sin6_1_5100)}));

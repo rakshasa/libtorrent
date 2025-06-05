@@ -6,7 +6,7 @@
 #include "helpers/test_utils.h"
 
 #include <functional>
-#include <signal.h>
+#include <csignal>
 
 #include "data/chunk_handle.h"
 #include "data/thread_disk.h"

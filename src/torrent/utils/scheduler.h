@@ -48,7 +48,7 @@ private:
   void                make_heap();
   void                push_heap();
 
-  std::atomic<std::thread::id> m_thread_id{};
+  std::atomic<std::thread::id> m_thread_id;
   time_type                    m_cached_time{};
 };
 

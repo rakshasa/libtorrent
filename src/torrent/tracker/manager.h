@@ -8,11 +8,6 @@
 #include <torrent/tracker/tracker.h>
 #include <torrent/tracker/wrappers.h>
 
-namespace torrent {
-class Manager;
-class ThreadTracker;
-}
-
 namespace torrent::tracker {
 
 struct TrackerListEvent {

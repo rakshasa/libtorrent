@@ -5,7 +5,6 @@
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
-#include "torrent/net/resolver.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {

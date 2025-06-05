@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <algorithm>
-#include <functional>
 #include <rak/string_manip.h>
 
 #include "client_list.h"
@@ -210,7 +209,7 @@ ClientList::insert(ClientInfo::id_type type, const char* key, const char* versio
   else
     std::memset(clientInfo.mutable_upper_version(), -1, ClientInfo::max_version_size);
 
-  return base_type::insert(end(), std::move(clientInfo));
+  return base_type::insert(end(), clientInfo);
 }
 
 ClientList::iterator

@@ -39,7 +39,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "block_transfer.h"
 #include "block_list.h"
 #include "exceptions.h"
 

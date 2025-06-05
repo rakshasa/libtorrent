@@ -36,11 +36,11 @@
 
 #include "config.h"
 
-#include <cstring>
 #include <algorithm>
-#include <functional>
-#include <csignal>
 #include <csetjmp>
+#include <csignal>
+#include <cstring>
+#include <functional>
 
 #include "torrent/exceptions.h"
 

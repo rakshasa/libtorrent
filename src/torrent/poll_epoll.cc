@@ -4,13 +4,10 @@
 
 #include "torrent/poll.h"
 
-#include <algorithm>
 #include <cassert>
 #include <cerrno>
-#include <unistd.h>
 #include <sys/epoll.h>
-#include <sys/time.h>
-#include <sys/types.h>
+#include <unistd.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/event.h"

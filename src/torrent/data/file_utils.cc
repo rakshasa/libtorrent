@@ -36,9 +36,6 @@
 
 #include "config.h"
 
-#include <cstring>
-#include <set>
-
 #include "exceptions.h"
 #include "file.h"
 #include "file_utils.h"

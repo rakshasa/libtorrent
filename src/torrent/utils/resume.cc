@@ -540,7 +540,7 @@ resume_save_tracker_settings(Download download, Object& object) {
   auto& dest         = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
   auto  tracker_list = download.main()->tracker_list();
 
-  for (auto tracker : *tracker_list) {
+  for (const auto& tracker : *tracker_list) {
     Object& trackerObject = dest.insert_key(tracker.url(), Object::create_map());
 
     trackerObject.insert_key("enabled", Object(static_cast<int64_t>(tracker.is_enabled())));
