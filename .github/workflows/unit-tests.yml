@@ -175,16 +175,7 @@ jobs:
           branch: edge
           arch: ${{matrix.platform}}
           packages: >
-            build-base \
-            automake \
-            autoconf \
-            cppunit-dev \
-            curl-dev \
-            libtool \
-            linux-headers \
-            openssl-dev \
-            pkgconf \
-            zlib-dev
+            build-base automake autoconf cppunit-dev curl-dev libtool linux-headers openssl-dev pkgconf zlib-dev
       - name: Compile and Test
         run: |
           autoreconf -fiv
