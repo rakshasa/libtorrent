@@ -26,6 +26,16 @@ CurlStack::~CurlStack() {
 }
 
 void
+CurlStack::global_initialize() {
+  curl_global_init(CURL_GLOBAL_ALL);
+}
+
+void
+CurlStack::global_cleanup() {
+  curl_global_cleanup();
+}
+
+void
 CurlStack::shutdown() {
   if (!m_running)
     return;
@@ -217,16 +227,6 @@ CurlStack::remove_get(CurlGet* get) {
   } else {
     m_active--;
   }
-}
-
-void
-CurlStack::global_initialize() {
-  curl_global_init(CURL_GLOBAL_ALL);
-}
-
-void
-CurlStack::global_cleanup() {
-  curl_global_cleanup();
 }
 
 // TODO: Is this function supposed to set a per-handle timeout, or is

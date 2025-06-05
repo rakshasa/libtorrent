@@ -92,11 +92,6 @@ TrackerDht::close() {
     manager->dht_controller()->cancel_announce(&info().info_hash, this);
 }
 
-void
-TrackerDht::disown() {
-  close();
-}
-
 tracker_enum
 TrackerDht::type() const {
   return TRACKER_DHT;

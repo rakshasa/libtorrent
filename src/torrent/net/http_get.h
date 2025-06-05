@@ -22,8 +22,15 @@ public:
   bool                is_valid() const { return m_curl_get != nullptr; }
 
   void                start();
+  void                close();
 
   std::string         url() const;
+  std::iostream*      stream();
+  uint32_t            timeout() const;
+
+  void                set_url(std::string url);
+  void                set_stream(std::iostream* str);
+  void                set_timeout(uint32_t seconds);
 
   int64_t             size_done() const;
   int64_t             size_total() const;

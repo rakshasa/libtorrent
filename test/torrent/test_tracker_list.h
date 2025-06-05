@@ -2,7 +2,7 @@
 #include "test/helpers/tracker_test.h"
 #include "torrent/download_info.h"
 
-class TestTrackerList : public TestFixtureWithMainAndTrackerThread {
+class TestTrackerList : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST_SUITE(TestTrackerList);
 
   CPPUNIT_TEST(test_basic);

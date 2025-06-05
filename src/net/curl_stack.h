@@ -46,6 +46,9 @@ public:
   CurlStack();
   ~CurlStack();
 
+  static void         global_initialize();
+  static void         global_cleanup();
+
   void                shutdown();
   bool                is_running() const                     { return m_running; }
 
@@ -75,9 +78,6 @@ public:
 
   long                dns_timeout() const                    { return m_dns_timeout; }
   void                set_dns_timeout(long timeout)          { m_dns_timeout = timeout; }
-
-  static void         global_initialize();
-  static void         global_cleanup();
 
   void                receive_action(CurlSocket* socket, int type);
 

@@ -39,7 +39,6 @@ public:
   void                send_event(torrent::tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
   void                close() override  { m_busy = false; m_open = false; m_requesting_state = -1; }
-  virtual void        disown() override { m_busy = false; m_open = false; m_requesting_state = -1; }
 
   static torrent::tracker::Tracker       new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
   static void                            insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker);

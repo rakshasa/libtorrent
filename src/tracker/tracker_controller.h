@@ -35,9 +35,6 @@ public:
 
   static constexpr int enable_dont_reset_stats = 0x1;
 
-  static constexpr int close_disown_stop       = 0x1 << tracker::TrackerState::EVENT_STOPPED;
-  static constexpr int close_disown_completed  = 0x1 << tracker::TrackerState::EVENT_COMPLETED;
-
   TrackerController(TrackerList* trackers);
   ~TrackerController();
 
@@ -66,7 +63,7 @@ public:
   void                send_completed_event();
   void                send_update_event();
 
-  void                close(int flags = close_disown_stop | close_disown_completed);
+  void                close();
 
   void                enable(int enable_flags = 0);
   void                disable();

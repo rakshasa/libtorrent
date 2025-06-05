@@ -26,9 +26,48 @@ HttpGet::start() {
   m_curl_get->start();
 }
 
+void
+HttpGet::close() {
+  m_curl_get->close();
+}
+
 std::string
 HttpGet::url() const {
   return m_curl_get->url();
+}
+
+std::iostream*
+HttpGet::stream() {
+  return m_curl_get->stream();
+}
+
+uint32_t
+HttpGet::timeout() const {
+  return m_curl_get->timeout();
+}
+
+void
+HttpGet::set_url(std::string url) {
+  if (m_curl_get->is_active())
+    throw torrent::internal_error("Cannot set stream while HttpGet is active.");
+
+  m_curl_get->set_url(std::move(url));
+}
+
+void
+HttpGet::set_stream(std::iostream* str) {
+  if (m_curl_get->is_active())
+    throw torrent::internal_error("Cannot set stream while HttpGet is active.");
+
+  m_curl_get->set_stream(str);
+}
+
+void
+HttpGet::set_timeout(uint32_t seconds) {
+  if (m_curl_get->is_active())
+    throw torrent::internal_error("Cannot set timeout while HttpGet is active.");
+
+  m_curl_get->set_timeout(seconds);
 }
 
 int64_t

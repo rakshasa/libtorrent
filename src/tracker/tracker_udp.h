@@ -35,7 +35,6 @@ public:
   void                send_scrape() override;
 
   void                close() override;
-  void                disown() override;
 
   tracker_enum        type() const override;
 
