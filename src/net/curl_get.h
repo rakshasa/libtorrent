@@ -3,6 +3,7 @@
 
 #include <iosfwd>
 #include <list>
+#include <string>
 #include <curl/curl.h>
 
 #include "torrent/utils/scheduler.h"
@@ -60,6 +61,7 @@ private:
   bool               m_active{};
   bool               m_ipv6;
 
+  // TODO: Use shared_ptr, or replace with std::function.
   std::string        m_url;
   std::iostream*     m_stream{};
 
