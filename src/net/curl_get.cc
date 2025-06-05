@@ -2,6 +2,7 @@
 
 #include "net/curl_get.h"
 
+#include <iostream>
 #include <curl/easy.h>
 
 #include "net/curl_stack.h"
