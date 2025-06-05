@@ -27,6 +27,8 @@ public:
   auto&               slot_do_work()        { return m_slot_do_work; }
 
 protected:
+  friend class ThreadMainInternal;
+
   ThreadMain() = default;
 
   void                      call_events() override;
@@ -35,14 +37,8 @@ protected:
   static ThreadMain*         m_thread_main;
 
   std::unique_ptr<HashQueue> m_hash_queue;
-
   std::function<void()>      m_slot_do_work;
 };
-
-// TODO: Remove.
-inline ThreadMain* thread_main() {
-  return ThreadMain::thread_main();
-}
 
 } // namespace torrent
 

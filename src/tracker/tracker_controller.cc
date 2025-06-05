@@ -263,11 +263,8 @@ TrackerController::send_update_event() {
 
 // Currently being used by send_event, fixme.
 void
-TrackerController::close(int flags) {
+TrackerController::close() {
   m_flags &= ~(flag_requesting | flag_promiscuous_mode);
-
-  if ((flags & (close_disown_stop | close_disown_completed)))
-    m_tracker_list->disown_all_including(close_disown_stop | close_disown_completed);
 
   m_tracker_list->close_all();
   this_thread::scheduler()->erase(&m_task_timeout);

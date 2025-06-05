@@ -84,8 +84,6 @@ protected:
   // ordered as it pertains to a single tracker's slot calls.
 
   virtual void        close() = 0;
-  // TODO: Replace with shared pointer.
-  virtual void        disown() = 0;
 
   std::function<void()>              m_slot_enabled;
   std::function<void()>              m_slot_disabled;

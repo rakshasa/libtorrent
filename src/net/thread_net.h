@@ -8,6 +8,10 @@ namespace torrent {
 
 class UdnsResolver;
 
+namespace net {
+class HttpStack;
+}
+
 class LIBTORRENT_EXPORT ThreadNet : public utils::Thread {
 public:
   ~ThreadNet() override;
@@ -21,24 +25,26 @@ public:
   void                cleanup_thread() override;
 
 protected:
+  friend class ThreadNetInternal;
+  friend class torrent::net::HttpStack;
   friend class torrent::net::Resolver;
 
   ThreadNet() = default;
 
+  static auto         internal_thread_net() { return m_thread_net; }
+
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 
-  UdnsResolver*             udns() const    { return m_udns.get(); }
+  net::HttpStack*     http_stack() const { return m_http_stack.get(); }
+  UdnsResolver*       udns() const       { return m_udns.get(); }
 
 private:
-  static ThreadNet*             m_thread_net;
+  static ThreadNet*   m_thread_net;
 
-  std::unique_ptr<UdnsResolver> m_udns;
+  std::unique_ptr<net::HttpStack> m_http_stack;
+  std::unique_ptr<UdnsResolver>   m_udns;
 };
-
-inline ThreadNet* thread_net() {
-  return ThreadNet::thread_net();
-}
 
 } // namespace torrent
 

@@ -3,22 +3,9 @@
 #include "test/torrent/test_tracker_list.h"
 
 #include "net/address_list.h"
-#include "torrent/http.h"
 #include "torrent/utils/uri_parser.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerList);
-
-class http_get : public torrent::Http {
-public:
-  ~http_get() = default;
-
-  // Start must never throw on bad input. Calling start/stop on an
-  // object in the wrong state should throw a torrent::internal_error.
-  void       start() { }
-  void       close() { }
-};
-
-torrent::Http* http_factory() { return new http_get; }
 
 void
 TestTrackerList::test_basic() {
@@ -148,8 +135,6 @@ TestTrackerList::test_find_url() {
 void
 TestTrackerList::test_can_scrape() {
   TRACKER_LIST_SETUP();
-
-  torrent::Http::slot_factory() = std::bind(&http_factory);
 
   tracker_list.insert_url(0, "http://example.com/announce");
   CPPUNIT_ASSERT(tracker_list.back().is_scrapable());

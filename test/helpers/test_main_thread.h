@@ -53,6 +53,14 @@ public:
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
+class TestFixtureWithMainNetTrackerThread : public test_fixture {
+public:
+  void setUp();
+  void tearDown();
+
+  std::unique_ptr<TestMainThread> m_main_thread;
+};
+
 class TestFixtureWithMockAndMainThread : public test_fixture {
 public:
   void setUp();

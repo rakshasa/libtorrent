@@ -6,6 +6,7 @@
 
 #include "torrent/object.h"
 #include "tracker/tracker_worker.h"
+#include "torrent/net/http_get.h"
 #include "torrent/tracker/tracker_state.h"
 #include "torrent/utils/scheduler.h"
 
@@ -24,7 +25,6 @@ public:
   void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
   void                close() override;
-  void                disown() override;
 
   tracker_enum        type() const override;
 
@@ -45,7 +45,7 @@ private:
 
   void                update_tracker_id(const std::string& id);
 
-  std::unique_ptr<Http>              m_get;
+  net::HttpGet                       m_get;
   std::unique_ptr<std::stringstream> m_data;
 
   bool                  m_drop_deliminator;
