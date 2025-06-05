@@ -9,6 +9,10 @@
 #include <openssl/dh.h>
 #include <openssl/bn.h>
 
+namespace {
+void dh_free(void* dh) { DH_free(static_cast<DH*>(dh)); }
+} // namespace
+
 namespace torrent {
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -28,7 +32,7 @@ static const BIGNUM* dh_get_pub_key(const DiffieHellman::dh_ptr& dh) {
 
 DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
                              const unsigned char *generator, int generatorLength) :
-  m_dh(DH_new(), [](auto dh){ DH_free(static_cast<DH*>(dh)); }) {
+  m_dh(DH_new(), &dh_free) {
 
   BIGNUM* dh_p = BN_bin2bn(prime, primeLength, nullptr);
   BIGNUM* dh_g = BN_bin2bn(generator, generatorLength, nullptr);
