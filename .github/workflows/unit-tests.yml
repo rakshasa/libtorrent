@@ -11,7 +11,9 @@ jobs:
     - name: Prepare
       run: |
         sudo apt-get update
-        sudo apt-get install -y libcppunit-dev
+        sudo apt-get install -y \
+          libcppunit-dev \
+          libcurl4-openssl-dev
     - uses: actions/checkout@v4
     - name: Run
       run: |
@@ -28,7 +30,11 @@ jobs:
     steps:
       - name: Prepare
         run: |
-          brew install automake cppunit libtool
+          brew install \
+            automake \
+            cppunit \
+            curl \
+            libtool
       - uses: actions/checkout@v4
       - name: Run
         run: |
@@ -46,7 +52,14 @@ jobs:
       - uses: vmactions/dragonflybsd-vm@v1
         with:
           prepare: |
-            pkg install -y automake autoconf cppunit libtool openssl pkgconf
+            pkg install -y \
+              automake \
+              autoconf \
+              cppunit \
+              curl \
+              libtool \
+              openssl \
+              pkgconf
           run: |
             autoreconf -fiv
             ./configure
@@ -62,7 +75,14 @@ jobs:
       - uses: vmactions/freebsd-vm@v1
         with:
           prepare: |
-            pkg install -y automake autoconf cppunit libtool openssl pkgconf
+            pkg install -y \
+              automake \
+              autoconf \
+              cppunit \
+              curl \
+              libtool \
+              openssl \
+              pkgconf
           run: |
             autoreconf -fiv
             ./configure
@@ -77,7 +97,14 @@ jobs:
       - uses: vmactions/netbsd-vm@v1
         with:
           prepare: |
-            /usr/sbin/pkg_add automake autoconf cppunit libtool openssl pkgconf
+            /usr/sbin/pkg_add \
+              automake \
+              autoconf \
+              cppunit \
+              curl \
+              libtool \
+              openssl \
+              pkgconf
           run: |
             autoreconf -fiv
             ./configure
@@ -93,7 +120,14 @@ jobs:
       - uses: vmactions/openbsd-vm@v1
         with:
           prepare: |
-            pkg_add automake autoconf-2.72p0 cppunit libtool openssl pkgconf
+            pkg_add \
+              automake \
+              autoconf-2.72p0 \
+              cppunit \
+              curl \
+              libtool \
+              openssl \
+              pkgconf
           run: |
             env AUTOCONF_VERSION=2.72 autoreconf -fiv
             ./configure
@@ -109,7 +143,14 @@ jobs:
       - uses: vmactions/omnios-vm@v1
         with:
           prepare: |
-            pkg install automake autoconf gcc14 libtool openssl pkg-config
+            pkg install \
+              automake \
+              autoconf \
+              curl \
+              gcc14 \
+              libtool \
+              openssl \
+              pkg-config
           run: |
             autoreconf -fiv
             ./configure
@@ -134,7 +175,16 @@ jobs:
           branch: edge
           arch: ${{matrix.platform}}
           packages: >
-            build-base automake autoconf cppunit-dev libtool linux-headers openssl-dev pkgconf zlib-dev
+            build-base \
+            automake \
+            autoconf \
+            cppunit-dev \
+            curl-dev \
+            libtool \
+            linux-headers \
+            openssl-dev \
+            pkgconf \
+            zlib-dev
       - name: Compile and Test
         run: |
           autoreconf -fiv
