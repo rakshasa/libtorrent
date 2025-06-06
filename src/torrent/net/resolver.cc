@@ -22,14 +22,12 @@ Resolver::init() {
 void
 Resolver::resolve_both(void* requester, const std::string& hostname, int family, both_callback&& callback) {
   net_thread::callback(requester, [this, requester, hostname, family, callback = std::move(callback)]() {
-      auto fn = [this, requester, callback = std::move(callback)](sin_shared_ptr sin, sin6_shared_ptr sin6, int err) {
-          m_thread->callback(requester, [sin, sin6, err, callback = std::move(callback)]() {
-              callback(sin, sin6, err);
-            });
-        };
+    auto fn = [this, requester, callback = std::move(callback)](sin_shared_ptr sin, sin6_shared_ptr sin6, int err) {
+      m_thread->callback(requester, std::bind(std::move(callback), sin, sin6, err));
+    };
 
-      ThreadNet::thread_net()->udns()->resolve(requester, hostname, family, fn);
-    });
+    ThreadNet::thread_net()->udns()->resolve(requester, hostname, family, fn);
+  });
 }
 
 void
@@ -56,9 +54,7 @@ Resolver::resolve_preferred(void* requester, const std::string& hostname, int fa
             }
           }
 
-          m_thread->callback(requester, [result, err, callback = std::move(callback)]() {
-              callback(result, err);
-            });
+          m_thread->callback(requester, std::bind(std::move(callback), result, err));
         };
 
       ThreadNet::thread_net()->udns()->resolve(requester, hostname, family, fn);
@@ -79,9 +75,7 @@ Resolver::resolve_specific(void* requester, const std::string& hostname, int fam
               result = sa_copy_in6(sin6.get());
           }
 
-          m_thread->callback(requester, [result, err, callback = std::move(callback)]() {
-              callback(result, err);
-            });
+          m_thread->callback(requester, std::bind(std::move(callback), result, err));
         };
 
       ThreadNet::thread_net()->udns()->resolve(requester, hostname, family, fn);
