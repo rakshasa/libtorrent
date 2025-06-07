@@ -63,8 +63,6 @@ PeerConnectionBase::~PeerConnectionBase() {
   delete m_up;
   delete m_down;
 
-  delete m_encryptBuffer;
-
   if (m_extensions != NULL && !m_extensions->is_default())
     delete m_extensions;
 
@@ -323,8 +321,8 @@ PeerConnectionBase::load_up_chunk() {
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
 
-  if (is_encrypted() && m_encryptBuffer == NULL) {
-    m_encryptBuffer = new EncryptBuffer();
+  if (is_encrypted() && m_encryptBuffer == nullptr) {
+    m_encryptBuffer = std::make_unique<EncryptBuffer>();
     m_encryptBuffer->reset();
   }
 
@@ -670,7 +668,7 @@ PeerConnectionBase::down_extension() {
 
 inline uint32_t
 PeerConnectionBase::up_chunk_encrypt(uint32_t quota) {
-  if (m_encryptBuffer == NULL)
+  if (m_encryptBuffer == nullptr)
     throw internal_error("PeerConnectionBase::up_chunk: m_encryptBuffer is NULL.");
 
   if (quota <= m_encryptBuffer->remaining())

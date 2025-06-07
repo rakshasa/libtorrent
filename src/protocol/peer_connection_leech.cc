@@ -472,12 +472,11 @@ PeerConnection<type>::fill_write_buffer() {
       up_chunk_release();
       m_peerChunks.upload_queue()->clear();
 
-      if (m_encryptBuffer != NULL) {
+      if (m_encryptBuffer != nullptr) {
         if (m_encryptBuffer->remaining())
           throw internal_error("Deleting encryptBuffer with encrypted data remaining.");
 
-        delete m_encryptBuffer;
-        m_encryptBuffer = NULL;
+        m_encryptBuffer = nullptr;
       }
 
     } else {
