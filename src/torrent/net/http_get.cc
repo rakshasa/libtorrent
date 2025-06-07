@@ -47,11 +47,11 @@ HttpGet::timeout() const {
 }
 
 void
-HttpGet::set_url(std::string url) {
+HttpGet::set_url(const std::string& url) {
   if (m_curl_get->is_active())
     throw torrent::internal_error("Cannot set stream while HttpGet is active.");
 
-  m_curl_get->set_url(std::move(url));
+  m_curl_get->set_url(url);
 }
 
 void

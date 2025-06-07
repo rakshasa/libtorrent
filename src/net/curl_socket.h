@@ -14,19 +14,19 @@ public:
   CurlSocket(int fd, CurlStack* stack) : m_stack(stack) { m_fileDesc = fd; }
   ~CurlSocket();
 
-  const char*        type_name() const { return "curl"; }
+  const char*        type_name() const override { return "curl"; }
 
   void               close();
 
-  static int         receive_socket(void* easy_handle, curl_socket_t fd, int what, void* userp, void* socketp);
+  static int         receive_socket(void* easy_handle, curl_socket_t fd, int what, CurlStack* stack, CurlSocket* socket);
 
 private:
-  CurlSocket(const CurlSocket&);
-  void operator = (const CurlSocket&);
+  CurlSocket(const CurlSocket&)                   = delete;
+  CurlSocket&        operator=(const CurlSocket&) = delete;
 
-  virtual void       event_read();
-  virtual void       event_write();
-  virtual void       event_error();
+  void               event_read() override;
+  void               event_write() override;
+  void               event_error() override;
 
   CurlStack*         m_stack;
 };

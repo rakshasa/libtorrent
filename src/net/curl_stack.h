@@ -81,7 +81,7 @@ public:
 
   void                receive_action(CurlSocket* socket, int type);
 
-  static int          set_timeout(void* handle, std::chrono::microseconds timeout, void* userp);
+  static int          set_timeout(void* handle, std::chrono::microseconds timeout, CurlStack* userp);
 
   void                transfer_done(void* handle, const char* msg);
 
@@ -91,7 +91,7 @@ protected:
 
 private:
   CurlStack(const CurlStack&) = delete;
-  void operator = (const CurlStack&) = delete;
+  CurlStack& operator=(const CurlStack&) = delete;
 
   void                receive_timeout();
 
