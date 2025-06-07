@@ -100,4 +100,4 @@ SignalInterrupt::event_error() {
   throw internal_error("SignalInterrupt::event_error() called, but not expected.");
 }
 
-}
+} // namespace torrent

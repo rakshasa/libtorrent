@@ -95,4 +95,4 @@ file_split_all(FileList* fileList, uint64_t maxSize, const std::string& suffix) 
       itr++;
 }
 
-}
+} // namespace torrent

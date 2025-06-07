@@ -412,4 +412,4 @@ TrackerUdp::process_error_output() {
   return true;
 }
 
-}
+} // namespace torrent

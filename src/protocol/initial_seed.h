@@ -83,6 +83,6 @@ private:
   std::unique_ptr<PeerInfo*[]> m_peerChunks;
 };
 
-}
+} // namespace torrent
 
 #endif

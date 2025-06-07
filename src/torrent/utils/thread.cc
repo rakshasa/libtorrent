@@ -275,14 +275,14 @@ Thread::process_callbacks(bool only_interrupt) {
   }
 }
 
-}
+} // namespace torrent::utils
 
 namespace torrent::this_thread {
 
-LIBTORRENT_EXPORT std::chrono::microseconds cached_time()    { return utils::ThreadInternal::cached_time(); }
-LIBTORRENT_EXPORT std::chrono::seconds      cached_seconds() { return utils::ThreadInternal::cached_seconds(); }
-LIBTORRENT_EXPORT Poll*                     poll()           { return utils::ThreadInternal::poll(); }
-LIBTORRENT_EXPORT net::Resolver*            resolver()       { return utils::ThreadInternal::resolver(); }
-LIBTORRENT_EXPORT utils::Scheduler*         scheduler()      { return utils::ThreadInternal::scheduler(); }
+std::chrono::microseconds cached_time()    { return utils::ThreadInternal::cached_time(); }
+std::chrono::seconds      cached_seconds() { return utils::ThreadInternal::cached_seconds(); }
+Poll*                     poll()           { return utils::ThreadInternal::poll(); }
+net::Resolver*            resolver()       { return utils::ThreadInternal::resolver(); }
+utils::Scheduler*         scheduler()      { return utils::ThreadInternal::scheduler(); }
 
-}
+} // namespace torrent::this_thread

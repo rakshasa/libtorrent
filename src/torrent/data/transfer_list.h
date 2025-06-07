@@ -80,6 +80,6 @@ private:
   uint32_t            m_failedCount{0};
 };
 
-}
+} // namespace torrent
 
 #endif

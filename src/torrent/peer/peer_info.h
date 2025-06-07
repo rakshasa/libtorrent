@@ -164,6 +164,6 @@ PeerInfo::dec_transfer_counter() {
   m_transferCounter--;
 }
 
-}
+} // namespace torrent
 
 #endif

@@ -37,6 +37,6 @@ private:
   utils::Thread* m_thread{nullptr};
 };
 
-}
+} // namespace torrent::net
 
 #endif

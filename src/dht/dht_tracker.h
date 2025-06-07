@@ -53,6 +53,6 @@ private:
   std::vector<uint32_t>  m_lastSeen;
 };
 
-}
+} // namespace torrent
 
 #endif

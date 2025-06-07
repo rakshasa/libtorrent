@@ -143,4 +143,4 @@ HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
   m_cv.notify_all();
 }
 
-}
+} // namespace torrent

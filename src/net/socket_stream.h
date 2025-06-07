@@ -94,6 +94,6 @@ SocketStream::write_stream(const void* buf, uint32_t length) {
   return ::send(m_fileDesc, buf, length, 0);
 }
 
-}
+} // namespace torrent
 
 #endif

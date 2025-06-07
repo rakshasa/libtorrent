@@ -18,12 +18,12 @@
 
 namespace torrent {
 
-bool
+static bool
 download_constructor_is_single_path(Object::map_type::const_reference v) {
   return v.first.rfind("name.", 0) == 0 && v.second.is_string();
 };
 
-bool
+static bool
 download_constructor_is_multi_path(Object::map_type::const_reference v) {
   return v.first.rfind("path.", 0) == 0 && v.second.is_list();
 };
@@ -451,4 +451,4 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
   }
 }
 
-}
+} // namespace torrent

@@ -11,6 +11,9 @@
 
 namespace torrent {
 
+template<>
+const DhtMessage::key_list_type DhtMessage::base_type::keys;
+
 DhtSearch::DhtSearch(const HashString& target, const DhtBucket& contacts)
   : base_type(dht_compare_closer(target)),
     m_next(end()),
@@ -263,4 +266,4 @@ DhtTransactionSearch::~DhtTransactionSearch() {
     delete m_search;
 }
 
-}
+} // namespace torrent

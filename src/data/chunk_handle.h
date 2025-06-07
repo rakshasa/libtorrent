@@ -39,6 +39,6 @@ private:
   rak::error_number   m_errorNumber;
 };
 
-}
+} // namespace torrent
 
 #endif

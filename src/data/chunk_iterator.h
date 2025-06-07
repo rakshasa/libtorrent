@@ -117,6 +117,6 @@ ChunkIterator::forward(uint32_t length) {
   return false;
 }
 
-}
+} // namespace torrent
 
 #endif

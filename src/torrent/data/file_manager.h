@@ -61,6 +61,6 @@ private:
   uint64_t            m_files_failed_counter{0};
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -284,4 +284,4 @@ InitialSeeding::unblock_all() {
     peer.second->unset_flags(PeerInfo::flag_blocked);
 }
 
-}
+} // namespace torrent

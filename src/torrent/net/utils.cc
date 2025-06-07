@@ -101,4 +101,4 @@ auto detect_local_sin6_addr() -> sin6_unique_ptr {
   return sa;
 }
 
-}
+} // namespace torrent

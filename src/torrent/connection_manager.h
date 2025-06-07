@@ -155,7 +155,7 @@ private:
   bool                m_prefer_ipv6{false};
 };
 
-}
+} // namespace torrent
 
 #endif
 

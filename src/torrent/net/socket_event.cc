@@ -26,4 +26,4 @@ socket_event::event_error() {
   throw internal_error("Called unsupported socket_event::event_error on type " + std::string(type_name()));
 }
 
-}
+} // namespace torrent

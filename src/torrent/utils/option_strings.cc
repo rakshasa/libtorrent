@@ -319,4 +319,4 @@ option_list_strings(option_enum opt_enum) {
   return Object::from_list(result);
 }
 
-}
+} // namespace torrent

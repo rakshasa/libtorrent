@@ -257,7 +257,7 @@ resume_load_bitfield(Download download, const Object& object) {
 
     LT_LOG_LOAD("restoring partial bitfield", 0);
 
-    download.set_bitfield((uint8_t*)(bitfield.c_str()), (uint8_t*)((bitfield.c_str() + bitfield.size())));
+    download.set_bitfield(reinterpret_cast<const uint8_t*>(bitfield.c_str()), (reinterpret_cast<const uint8_t*>(bitfield.c_str()) + bitfield.size()));
 
   } else if (object.has_key_value("bitfield")) {
     Object::value_type chunksDone = object.get_key_value("bitfield");
@@ -552,4 +552,4 @@ resume_save_tracker_settings(Download download, Object& object) {
   }
 }
 
-}
+} // namespace torrent

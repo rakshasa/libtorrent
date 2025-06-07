@@ -24,7 +24,7 @@ namespace torrent {
 ipv4_table PeerList::m_ipv4_table;
 
 // TODO: Clean up...
-bool
+static bool
 socket_address_less(const sockaddr* s1, const sockaddr* s2) {
   const rak::socket_address* sa1 = rak::socket_address::cast_from(s1);
   const rak::socket_address* sa2 = rak::socket_address::cast_from(s2);
@@ -124,7 +124,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   return peerInfo;
 }
 
-inline bool
+static bool
 socket_address_less_rak(const rak::socket_address& s1, const rak::socket_address& s2) {
   return socket_address_less(s1.c_sockaddr(), s2.c_sockaddr());
 }
@@ -393,4 +393,4 @@ PeerList::cull_peers(int flags) {
   return counter;
 }
 
-}
+} // namespace torrent

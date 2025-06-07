@@ -345,4 +345,4 @@ RequestList::calculate_pipe_size(uint32_t rate) {
   }
 }
 
-}
+} // namespace torrent

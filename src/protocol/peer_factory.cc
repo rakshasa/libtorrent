@@ -70,4 +70,4 @@ createPeerConnectionMetadata(bool encrypted) {
   return pc;
 }
 
-}
+} // namespace torrent

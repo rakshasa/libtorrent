@@ -72,6 +72,6 @@ struct chunk_info_result {
 
 chunk_info_result chunk_list_address_info(void* address) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

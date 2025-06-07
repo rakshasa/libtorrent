@@ -105,6 +105,6 @@ private:
   const char*         m_info{};
 };
 
-}
+} // namespace torrent
 
 #endif

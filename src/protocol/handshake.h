@@ -171,6 +171,6 @@ protected:
   Buffer              m_writeBuffer;
 };
 
-}
+} // namespace torrent
 
 #endif

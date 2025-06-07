@@ -65,6 +65,6 @@ private:
   std::condition_variable m_cv;
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -38,6 +38,6 @@ time_since_epoch() {
   return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
 }
 
-}
+} // namespace torrent::utils
 
 #endif // TORRENT_UTILS_CHRONO_H

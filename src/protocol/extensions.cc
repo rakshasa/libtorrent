@@ -425,4 +425,4 @@ ProtocolExtension::request_metadata_piece(const Piece* p) {
   return true;
 }
 
-}
+} // namespace torrent

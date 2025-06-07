@@ -137,4 +137,4 @@ void
 directory_events::event_error() {
 }
 
-}
+} // namespace torrent

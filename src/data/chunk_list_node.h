@@ -66,6 +66,6 @@ private:
   std::chrono::microseconds m_time_preloaded{};
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -12,7 +12,7 @@ class LIBTORRENT_EXPORT SignalInterrupt : public Event {
 public:
   using pair_type = std::pair<std::unique_ptr<SignalInterrupt>, std::unique_ptr<SignalInterrupt>>;
 
-  ~SignalInterrupt();
+  ~SignalInterrupt() override;
 
   static pair_type    create_pair();
 
@@ -20,9 +20,9 @@ public:
 
   void                poke();
 
-  void                event_read();
-  void                event_write();
-  void                event_error();
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
 
 private:
   SignalInterrupt() = delete;
@@ -32,6 +32,6 @@ private:
   std::atomic_bool    m_poking{false};
 };
 
-}
+} // namespace torrent
 
 #endif // LIBTORRENT_UTILS_SIGNAL_INTERRUPT_H

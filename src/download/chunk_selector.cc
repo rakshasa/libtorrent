@@ -285,4 +285,4 @@ ChunkSelector::advance_position() {
 //    (m_position = search_linear(&m_bitfield, &m_normalPriority, 0, position)) == invalid_chunk);
 }
 
-}
+} // namespace torrent

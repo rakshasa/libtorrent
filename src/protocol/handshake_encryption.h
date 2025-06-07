@@ -125,6 +125,6 @@ private:
   unsigned int        m_lengthIA{0};
 };
 
-}
+} // namespace torrent
 
 #endif

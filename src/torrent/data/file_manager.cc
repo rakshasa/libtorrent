@@ -95,21 +95,20 @@ FileManager::close(value_type file) {
   m_files_closed_counter++;
 }
 
-struct FileManagerActivity {
-  void operator ()(File* f) {
-    if (f->is_open() && f->last_touched() <= m_last) {
-      m_last = f->last_touched();
-      m_file = f;
+void
+FileManager::close_least_active() {
+  File* least = nullptr;
+  uint64_t last = std::numeric_limits<int64_t>::max();
+
+  for (auto f : *this) {
+    if (f->is_open() && f->last_touched() <= last) {
+      last = f->last_touched();
+      least = f;
     }
   }
 
-  uint64_t m_last{std::numeric_limits<int64_t>::max()};
-  File*    m_file{};
-};
-
-void
-FileManager::close_least_active() {
-  close(std::for_each(begin(), end(), FileManagerActivity()).m_file);
+  if (least)
+    close(least);
 }
 
-}
+} // namespace torrent

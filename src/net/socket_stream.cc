@@ -7,15 +7,6 @@
 
 namespace torrent {
 
-std::string
-int_to_string(int v) {
-  char buf[20];
-
-  std::snprintf(buf, 20, "%i", v);
-
-  return buf;
-}
-
 uint32_t
 SocketStream::read_stream_throws(void* buf, uint32_t length) {
   int r = read_stream(buf, length);
@@ -58,4 +49,4 @@ SocketStream::write_stream_throws(const void* buf, uint32_t length) {
   return r;
 }
 
-}
+} // namespace torrent

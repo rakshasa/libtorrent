@@ -80,6 +80,6 @@ public:
   void                retrieve_unknown(ClientInfo* dest) const;
 };
 
-}
+} // namespace torrent
 
 #endif

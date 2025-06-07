@@ -128,4 +128,4 @@ TrackerDht::receive_progress(int replied, int contacted) {
   m_contacted = contacted;
 }
 
-}
+} // namespace torrent

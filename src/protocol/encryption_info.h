@@ -65,6 +65,6 @@ private:
   RC4                 m_decrypt;
 };
 
-}
+} // namespace torrent
 
 #endif

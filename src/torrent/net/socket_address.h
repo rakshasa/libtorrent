@@ -57,14 +57,14 @@ sa_unique_ptr   sa_to_v4mapped_in(const sockaddr_in* sin) LIBTORRENT_EXPORT;
 sin_unique_ptr  sin_from_v4mapped_in6(const sockaddr_in6* sin6) LIBTORRENT_EXPORT;
 sin6_unique_ptr sin6_to_v4mapped_in(const sockaddr_in* sin) LIBTORRENT_EXPORT;
 
-sa_unique_ptr     sa_from_in(sin_unique_ptr&& sinp) LIBTORRENT_EXPORT;
-c_sa_unique_ptr   sa_from_in(c_sin_unique_ptr&& sinp) LIBTORRENT_EXPORT;
-sa_unique_ptr     sa_from_in6(sin6_unique_ptr&& sin6p) LIBTORRENT_EXPORT;
-c_sa_unique_ptr   sa_from_in6(c_sin6_unique_ptr&& sin6p) LIBTORRENT_EXPORT;
-sin_unique_ptr    sin_from_sa(sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
-sin6_unique_ptr   sin6_from_sa(sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
-c_sin_unique_ptr  sin_from_c_sa(c_sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
-c_sin6_unique_ptr sin6_from_c_sa(c_sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
+sa_unique_ptr     sa_from_in(sin_unique_ptr sinp) LIBTORRENT_EXPORT;
+c_sa_unique_ptr   sa_from_in(c_sin_unique_ptr sinp) LIBTORRENT_EXPORT;
+sa_unique_ptr     sa_from_in6(sin6_unique_ptr sin6p) LIBTORRENT_EXPORT;
+c_sa_unique_ptr   sa_from_in6(c_sin6_unique_ptr sin6p) LIBTORRENT_EXPORT;
+sin_unique_ptr    sin_from_sa(sa_unique_ptr sap) LIBTORRENT_EXPORT;
+sin6_unique_ptr   sin6_from_sa(sa_unique_ptr sap) LIBTORRENT_EXPORT;
+c_sin_unique_ptr  sin_from_c_sa(c_sa_unique_ptr sap) LIBTORRENT_EXPORT;
+c_sin6_unique_ptr sin6_from_c_sa(c_sa_unique_ptr sap) LIBTORRENT_EXPORT;
 
 void        sa_clear_inet6(sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
@@ -212,22 +212,22 @@ sa_to_v4mapped_in(const sockaddr_in* sin) {
 }
 
 inline sa_unique_ptr
-sa_from_in(sin_unique_ptr&& sinp) {
+sa_from_in(sin_unique_ptr sinp) {
   return sa_unique_ptr(reinterpret_cast<sockaddr*>(sinp.release()));
 }
 
 inline c_sa_unique_ptr
-sa_from_in(c_sin_unique_ptr&& sinp) {
+sa_from_in(c_sin_unique_ptr sinp) {
   return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sinp.release()));
 }
 
 inline sa_unique_ptr
-sa_from_in6(sin6_unique_ptr&& sin6p) {
+sa_from_in6(sin6_unique_ptr sin6p) {
   return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6p.release()));
 }
 
 inline c_sa_unique_ptr
-sa_from_in6(c_sin6_unique_ptr&& sin6p) {
+sa_from_in6(c_sin6_unique_ptr sin6p) {
   return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sin6p.release()));
 }
 
@@ -236,6 +236,6 @@ fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) {
   return std::get<0>(lhs) == std::get<0>(rhs) && sap_equal(std::get<1>(lhs), std::get<1>(rhs));
 }
 
-}
+} // namespace torrent
 
 #endif

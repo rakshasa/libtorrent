@@ -63,6 +63,6 @@ private:
   std::unique_ptr<PollInternal> m_internal;
 };
 
-}
+} // namespace torrent
 
 #endif

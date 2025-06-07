@@ -66,6 +66,6 @@ Download            download_find(const std::string& infohash) LIBTORRENT_EXPORT
 uint32_t            download_priority(Download d) LIBTORRENT_EXPORT;
 void                download_set_priority(Download d, uint32_t pri) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

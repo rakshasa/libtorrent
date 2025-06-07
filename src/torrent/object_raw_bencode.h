@@ -176,6 +176,6 @@ raw_bencode_equal_c_str(const tmpl_raw_object& left, const char* right) {
   return raw_bencode_equal(left, right, strlen(right));
 }
 
-}
+} // namespace torrent
 
 #endif

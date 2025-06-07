@@ -65,6 +65,6 @@ private:
 
 extern Manager* manager;
 
-}
+} // namespace torrent
 
 #endif

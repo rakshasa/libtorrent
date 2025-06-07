@@ -144,6 +144,6 @@ DhtRouter::make_token(const rak::socket_address* sa, char* buffer) {
   return raw_string(generate_token(sa, m_curToken, buffer), size_token);
 }
 
-}
+} // namespace torrent
 
 #endif

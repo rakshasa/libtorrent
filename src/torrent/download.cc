@@ -29,19 +29,6 @@
 
 namespace torrent {
 
-const int DownloadInfo::flag_open;
-const int DownloadInfo::flag_active;
-const int DownloadInfo::flag_accepting_new_peers;
-const int DownloadInfo::flag_accepting_seeders;
-const int DownloadInfo::flag_private;
-const int DownloadInfo::flag_meta_download;
-const int DownloadInfo::flag_pex_enabled;
-const int DownloadInfo::flag_pex_active;
-
-const int DownloadInfo::public_flags;
-
-const uint32_t DownloadInfo::unlimited;
-
 const DownloadInfo* Download::info() const { return m_ptr->info(); }
 const download_data* Download::data() const { return m_ptr->data(); }
 
@@ -307,7 +294,7 @@ Download::set_bitfield(bool allSet) {
 }
 
 void
-Download::set_bitfield(uint8_t* first, uint8_t* last) {
+Download::set_bitfield(const uint8_t* first, const uint8_t* last) {
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw input_error("Download::set_bitfield(...) Download in invalid state.");
 
@@ -561,4 +548,4 @@ Download::add_peer(const sockaddr* sa, int port) {
 
 DownloadMain* Download::main() { return m_ptr->main(); }
 
-}
+} // namespace torrent

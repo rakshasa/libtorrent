@@ -68,6 +68,6 @@ private:
   resource_manager_entry* m_last{};
 };
 
-}
+} // namespace torrent
 
 #endif

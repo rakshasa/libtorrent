@@ -16,4 +16,4 @@ Event::close_file_descriptor() {
   m_fileDesc = -1;
 }
 
-}
+} // namespace torrent

@@ -31,7 +31,7 @@
 
 namespace torrent {
 
-inline void
+static void
 log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
   if (!new_index && is_incore) {
     instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_TOUCHED, 1);
@@ -982,4 +982,4 @@ void
 PeerConnectionBase::receive_metadata_piece([[maybe_unused]] uint32_t piece, [[maybe_unused]] const char* data, [[maybe_unused]] uint32_t length) {
 }
 
-}
+} // namespace torrent

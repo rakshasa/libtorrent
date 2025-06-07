@@ -6,7 +6,7 @@
 
 namespace torrent::utils {
 
-inline bool
+static bool
 is_unreserved_uri_char(char c) {
   return
     (c >= 'A' && c <= 'Z') ||
@@ -15,7 +15,7 @@ is_unreserved_uri_char(char c) {
     c == '-' || c == '_' || c == '.' || c == '~';
 }
 
-inline bool
+static bool
 is_valid_uri_query_char(char c) {
   return
     (c >= 'A' && c <= 'Z') ||
@@ -26,7 +26,7 @@ is_valid_uri_query_char(char c) {
     c == '%';
 }
 
-inline bool
+static bool
 is_unreserved_uri_query_char(char c) {
   return
     (c >= 'A' && c <= 'Z') ||
@@ -36,23 +36,23 @@ is_unreserved_uri_query_char(char c) {
     c == ':' || c == '=' || c == '/' || c == '%';
 }
 
-inline bool
+static bool
 is_not_unreserved_uri_char(char c) {
   return !is_unreserved_uri_char(c);
 }
 
-inline bool
+static bool
 is_not_valid_uri_query_char(char c) {
   return !is_valid_uri_query_char(c);
 }
 
-inline bool
+static bool
 is_not_unreserved_uri_query_char(char c) {
   return !is_unreserved_uri_query_char(c);
 }
 
 template<typename Ftor>
-inline std::string::const_iterator
+static std::string::const_iterator
 uri_string_copy_until(std::string::const_iterator first, std::string::const_iterator last,
                       std::string& result, Ftor check) {
   std::string::const_iterator next = std::find_if(first, last, check);
@@ -61,7 +61,7 @@ uri_string_copy_until(std::string::const_iterator first, std::string::const_iter
   return next;
 }
 
-void
+static void
 uri_parse_throw_error(const char* error_msg, char invalid_char) {
   std::string error_str = std::string(error_msg);
   error_str += rak::value_to_hexchar<1>(invalid_char);
@@ -151,11 +151,6 @@ uri_parse_query_str(std::string query, uri_query_state& state) {
   }
 
   state.state = uri_state::state_valid;
-}
-
-void
-uri_parse_query_str(const char* query, uri_query_state& state) {
-  uri_parse_query_str(std::string(query), state);
 }
 
 std::string

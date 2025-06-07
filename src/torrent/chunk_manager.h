@@ -130,6 +130,6 @@ private:
   size_type           m_lastFreed{0};
 };
 
-}
+} // namespace torrent
 
 #endif

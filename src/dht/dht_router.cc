@@ -634,4 +634,4 @@ DhtRouter::bootstrap_bucket(const DhtBucket* bucket) {
   m_server.find_node(*bucket, contactId);
 }
 
-}
+} // namespace torrent

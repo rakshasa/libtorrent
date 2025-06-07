@@ -102,7 +102,7 @@ private:
   // m_end is const because it is used as key for the DhtRouter routing table
   // map, which would be inconsistent if m_end were changed carelessly.
   HashString          m_begin;
-  const HashString    m_end;
+  HashString          m_end;
 
   char                m_fullCache[num_nodes * 26];
 };
@@ -161,6 +161,6 @@ DhtBucketChain::next() {
   return m_cur;
 }
 
-}
+} // namespace torrent
 
 #endif

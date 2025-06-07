@@ -39,4 +39,4 @@ ai_each_inet_inet6_first(const char* nodename, const ai_sockaddr_func& lambda) {
   lambda(ai->ai_addr);
   return 0;
 }
-}
+} // namespace torrent

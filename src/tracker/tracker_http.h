@@ -55,6 +55,6 @@ private:
   utils::SchedulerEntry m_delay_scrape;
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -93,7 +93,7 @@ public:
   //
   // These must be called when is_open, !is_checked and !is_checking.
   void                set_bitfield(bool allSet);
-  void                set_bitfield(uint8_t* first, uint8_t* last);
+  void                set_bitfield(const uint8_t* first, const uint8_t* last);
 
   static constexpr int update_range_recheck = (1 << 0);
   static constexpr int update_range_clear   = (1 << 1);
@@ -170,6 +170,6 @@ private:
   DownloadWrapper*    m_ptr;
 };
 
-}
+} // namespace torrent
 
 #endif

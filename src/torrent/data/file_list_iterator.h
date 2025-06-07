@@ -131,6 +131,6 @@ file_list_collapsed_iterator::operator --(int) {
   return tmp;
 }
 
-}
+} // namespace torrent
 
 #endif

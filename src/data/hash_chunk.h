@@ -65,7 +65,7 @@ HashChunk::remaining() {
   return m_chunk.chunk()->chunk_size() - m_position;
 }
 
-}
+} // namespace torrent
 
 #endif
 

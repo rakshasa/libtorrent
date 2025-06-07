@@ -71,4 +71,4 @@ DhtNode::store_cache(Object* container) const {
   return container;
 }
 
-}
+} // namespace torrent

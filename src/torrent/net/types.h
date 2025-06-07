@@ -49,6 +49,6 @@ struct listen_result_type {
   sa_unique_ptr address;
 };
 
-}
+} // namespace torrent
 
 #endif

@@ -62,4 +62,4 @@ internal_error::initialize(const std::string& msg) {
 #endif
 }
 
-}
+} // namespace torrent

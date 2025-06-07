@@ -36,4 +36,4 @@ Rate::insert(rate_type bytes) {
   m_current += bytes;
 }
 
-}
+} // namespace torrent

@@ -125,6 +125,6 @@ RequestList::pipe_size() const {
   return queued_size() + stalled_size() + unordered_size() / 4;
 }
 
-}
+} // namespace torrent
 
 #endif

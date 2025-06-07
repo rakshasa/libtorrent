@@ -95,7 +95,7 @@ private:
 
 inline
 TrackerControllerWrapper::TrackerControllerWrapper(const HashString& info_hash, std::shared_ptr<TrackerController>&& controller) :
-  m_ptr(controller),
+  m_ptr(std::move(controller)),
   m_info_hash(info_hash) {
 }
 
@@ -104,6 +104,6 @@ TrackerControllerWrapper::operator<(const TrackerControllerWrapper& rhs) const {
   return this->get() < rhs.get();
 }
 
-} // namespace torrent
+} // namespace torrent::tracker
 
 #endif // LIBTORRENT_TRACKER_TRACKER_WRAPPER_H

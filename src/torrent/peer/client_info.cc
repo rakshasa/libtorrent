@@ -128,4 +128,4 @@ ClientInfo::equal_to(const ClientInfo& left, const ClientInfo& right) {
     std::memcmp(left.upper_version(), right.upper_version(), ClientInfo::max_version_size) == 0;
 }
 
-}
+} // namespace torrent

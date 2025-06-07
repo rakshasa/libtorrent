@@ -10,7 +10,7 @@
 
 namespace torrent {
 
-constexpr uint32_t
+static constexpr uint32_t
 sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
   return
     (sa->sin6_addr.s6_addr[index * 4 + 0] << 24) +
@@ -19,7 +19,7 @@ sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
     (sa->sin6_addr.s6_addr[index * 4 + 3] << 0);
 }
 
-inline void
+static void
 sin6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
   sa->sin6_addr.s6_addr[index * 4 + 0] = (value >> 24);
   sa->sin6_addr.s6_addr[index * 4 + 1] = (value >> 16);
@@ -27,7 +27,7 @@ sin6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
   sa->sin6_addr.s6_addr[index * 4 + 3] = (value >> 0);
 }
 
-inline in6_addr
+static in6_addr
 sin6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr3) {
   uint32_t addr32[4];
   addr32[0] = htonl(addr0);
@@ -348,7 +348,7 @@ sin6_to_v4mapped_in(const sockaddr_in* sin) {
 }
 
 sin_unique_ptr
-sin_from_sa(sa_unique_ptr&& sap) {
+sin_from_sa(sa_unique_ptr sap) {
   if (!sap_is_inet(sap))
     throw internal_error("torrent::sin_from_sa: sockaddr is nullptr or not inet");
 
@@ -356,7 +356,7 @@ sin_from_sa(sa_unique_ptr&& sap) {
 }
 
 sin6_unique_ptr
-sin6_from_sa(sa_unique_ptr&& sap) {
+sin6_from_sa(sa_unique_ptr sap) {
   if (!sap_is_inet6(sap))
     throw internal_error("torrent::sin6_from_sa: sockaddr is nullptr or not inet6");
 
@@ -364,7 +364,7 @@ sin6_from_sa(sa_unique_ptr&& sap) {
 }
 
 c_sin_unique_ptr
-sin_from_c_sa(c_sa_unique_ptr&& sap) {
+sin_from_c_sa(c_sa_unique_ptr sap) {
   if (!sap_is_inet(sap))
     throw internal_error("torrent::sin_from_c_sa: sockaddr is nullptr or not inet");
 
@@ -372,7 +372,7 @@ sin_from_c_sa(c_sa_unique_ptr&& sap) {
 }
 
 c_sin6_unique_ptr
-sin6_from_c_sa(sa_unique_ptr&& sap) {
+sin6_from_c_sa(c_sa_unique_ptr sap) {
   if (!sap_is_inet6(sap))
     throw internal_error("torrent::sin6_from_c_sa: sockaddr is nullptr or not inet6");
 
@@ -580,4 +580,4 @@ sa_pretty_address_str(const sockaddr* sa) {
   return sa_pretty_str(sa);
 }
 
-}
+} // namespace torrent

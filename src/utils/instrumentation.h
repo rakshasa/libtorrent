@@ -98,6 +98,6 @@ instrumentation_update([[maybe_unused]] instrumentation_enum type, [[maybe_unuse
 #endif
 }
 
-}
+} // namespace torrent
 
 #endif

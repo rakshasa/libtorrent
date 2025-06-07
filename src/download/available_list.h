@@ -97,6 +97,6 @@ private:
   AddressList         m_buffer;
 };
 
-}
+} // namespace torrent
 
 #endif

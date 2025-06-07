@@ -407,7 +407,7 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   return std::max(use_interval - since_last, 0);
 }
 
-TrackerList::iterator
+static TrackerList::iterator
 tracker_find_preferred(TrackerList::iterator first, TrackerList::iterator last, uint32_t* next_timeout) {
   auto preferred = last;
   uint32_t preferred_time_last = ~uint32_t();
@@ -628,4 +628,4 @@ TrackerController::receive_tracker_disabled(const tracker::Tracker& tb) {
     m_slot_tracker_disabled(tb);
 }
 
-}
+} // namespace torrent

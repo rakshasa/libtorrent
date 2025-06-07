@@ -67,6 +67,6 @@ typedef std::unique_ptr<log_buffer, std::function<void (log_buffer*)>> log_buffe
 
 log_buffer_ptr log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

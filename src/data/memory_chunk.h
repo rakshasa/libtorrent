@@ -132,6 +132,6 @@ MemoryChunk::is_incore(uint32_t offset, uint32_t length) {
   return std::find(begin, end, 0) == end;
 }
 
-}
+} // namespace torrent
 
 #endif

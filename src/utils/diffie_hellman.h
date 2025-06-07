@@ -35,6 +35,6 @@ private:
   int          m_size{0};
 };
 
-};
+} // namespace torrent
 
 #endif

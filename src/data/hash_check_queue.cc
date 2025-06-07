@@ -94,4 +94,4 @@ HashCheckQueue::perform() {
   }
 }
 
-}
+} // namespace torrent

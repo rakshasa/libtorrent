@@ -119,6 +119,6 @@ static_map_write_bencode_c_wrap(object_write_t writeFunc,
                                const static_map_mapping_type* first_key,
                                const static_map_mapping_type* last_key) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

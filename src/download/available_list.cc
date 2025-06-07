@@ -95,4 +95,4 @@ AvailableList::erase(const rak::socket_address& sa) {
   }
 }
 
-}
+} // namespace torrent

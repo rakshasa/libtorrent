@@ -75,6 +75,6 @@ void resume_save_addresses(Download download, Object& object) LIBTORRENT_EXPORT;
 void resume_load_tracker_settings(Download download, const Object& object) LIBTORRENT_EXPORT;
 void resume_save_tracker_settings(Download download, Object& object) LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent
 
 #endif

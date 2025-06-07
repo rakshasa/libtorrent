@@ -29,7 +29,7 @@
 
 namespace torrent {
 
-uint32_t
+static uint32_t
 calculate_max_open_files(uint32_t openMax) {
   if (openMax >= 8096)
     return 256;
@@ -43,7 +43,7 @@ calculate_max_open_files(uint32_t openMax) {
     return 4;
 }
 
-uint32_t
+static uint32_t
 calculate_reserved(uint32_t openMax) {
   if (openMax >= 8096)
     return 256;
@@ -243,4 +243,4 @@ download_set_priority(Download d, uint32_t pri) {
   manager->resource_manager()->set_priority(itr, pri);
 }
 
-}
+} // namespace torrent

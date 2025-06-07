@@ -120,4 +120,4 @@ Throttle::calculate_interval() const {
     return interval * 100000;
 }
 
-}
+} // namespace torrent

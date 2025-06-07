@@ -19,7 +19,7 @@ public:
   void set_backlog(int backlog);
   void set_slot_accepted(accepted_ftor&& ftor);
 
-  bool open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, uint16_t start_port, fd_flags open_flags);
+  bool open(sa_unique_ptr sap, uint16_t first_port, uint16_t last_port, uint16_t start_port, fd_flags open_flags);
   bool open_randomize(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, fd_flags open_flags);
   bool open_sequential(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, fd_flags open_flags);
   void close();
@@ -37,8 +37,8 @@ private:
 };
 
 inline int  socket_listen::backlog() const { return m_backlog; }
-inline void socket_listen::set_slot_accepted(accepted_ftor&& ftor) { m_slot_accepted = ftor; }
+inline void socket_listen::set_slot_accepted(accepted_ftor&& ftor) { m_slot_accepted = std::move(ftor); }
 
-}
+} // namespace torrent
 
 #endif

@@ -73,4 +73,4 @@ Path::as_string() const {
   return s;
 }
 
-}
+} // namespace torrent

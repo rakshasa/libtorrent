@@ -92,6 +92,6 @@ private:
   timer_type          m_span;
 };
 
-}
+} // namespace torrent
 
 #endif

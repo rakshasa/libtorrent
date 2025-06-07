@@ -422,4 +422,4 @@ ChunkList::find_address(void* ptr) {
   return chunk_address_result(end(), Chunk::iterator());
 }
 
-}
+} // namespace torrent

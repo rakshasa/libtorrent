@@ -43,12 +43,12 @@
 namespace torrent {
 
 // TODO: Move to src/utils.
-inline bool
+static bool
 hash_string_is_alnum(char c) {
   return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
 }
 
-inline bool
+static bool
 hash_string_is_hex(char c) {
   return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9');
 }
@@ -110,4 +110,4 @@ hash_string_to_html_str(const HashString& hash) {
   return str;
 }
 
-}
+} // namespace torrent

@@ -67,6 +67,6 @@ struct [[gnu::packed]] SocketAddressCompact6 {
   const char*         c_str() const { return reinterpret_cast<const char*>(this); }
 };
 
-}
+} // namespace torrent
 
 #endif

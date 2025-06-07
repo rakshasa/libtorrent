@@ -901,4 +901,4 @@ DhtServer::receive_timeout() {
   start_write();
 }
 
-}
+} // namespace torrent

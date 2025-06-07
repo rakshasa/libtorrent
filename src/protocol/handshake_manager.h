@@ -73,6 +73,6 @@ private:
   slot_download       m_slot_download_obfuscated;
 };
 
-}
+} // namespace torrent
 
 #endif

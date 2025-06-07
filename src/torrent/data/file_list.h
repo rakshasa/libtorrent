@@ -165,6 +165,6 @@ private:
   std::string         m_frozen_root_dir;
 };
 
-}
+} // namespace torrent
 
 #endif

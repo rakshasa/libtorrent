@@ -269,4 +269,4 @@ HandshakeManager::setup_socket(SocketFd fd) {
   return true;
 }
 
-}
+} // namespace torrent
