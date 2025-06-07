@@ -14,8 +14,8 @@ namespace torrent::net {
 
 int
 CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd, int what, void* userp, void* socketp) {
-  CurlStack* stack = (CurlStack*)userp;
-  CurlSocket* socket = (CurlSocket*)socketp;
+  auto stack = (CurlStack*)userp;
+  auto socket = (CurlSocket*)socketp;
 
   if (!stack->is_running())
     return 0;
@@ -33,12 +33,13 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
     return 0;
   }
 
-  if (socket == NULL) {
-    socket = stack->new_socket(fd);
-    torrent::this_thread::poll()->open(socket);
+  if (socket == nullptr) {
+    socket = new CurlSocket(fd, stack);
+    curl_multi_assign((CURLM*)stack->handle(), fd, socket);
 
     // No interface for libcurl to signal when it's interested in error events.
     // Assume that hence it must always be interested in them.
+    torrent::this_thread::poll()->open(socket);
     torrent::this_thread::poll()->insert_error(socket);
   }
 

@@ -64,7 +64,6 @@ CurlGet::start() {
   curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      (long)5);
 
   curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE,      CURL_IPRESOLVE_WHATEVER);
-
   curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
 
   m_ipv6 = false;
@@ -74,10 +73,10 @@ CurlGet::start() {
 
 void
 CurlGet::close() {
-  torrent::this_thread::scheduler()->erase(&m_task_timeout);
-
   if (!is_busy())
     return;
+
+  torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
   m_stack->remove_get(this);
 

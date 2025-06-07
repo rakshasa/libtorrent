@@ -29,7 +29,6 @@ public:
   uint32_t           timeout() const                 { return m_timeout; }
 
   // Make sure the output stream does not have any bad/failed bits set.
-  void               set_active(bool a)              { m_active = a; }
   void               set_url(const std::string& url) { m_url = url; }
   void               set_stream(std::iostream* str)  { m_stream = str; }
   void               set_timeout(uint32_t seconds)   { m_timeout = seconds; }
@@ -52,6 +51,9 @@ private:
 
   CurlGet(const CurlGet&) = delete;
   void operator = (const CurlGet&) = delete;
+
+  // TODO: Atomic?
+  void               set_active(bool a)              { m_active = a; }
 
   void               receive_timeout();
 
