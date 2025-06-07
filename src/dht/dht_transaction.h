@@ -74,7 +74,7 @@ class DhtTransactionAnnouncePeer;
 struct dht_compare_closer {
   dht_compare_closer(const HashString& target) : m_target(target) { }
 
-  bool operator () (const DhtNode* one, const DhtNode* two) const;
+  bool operator () (const std::unique_ptr<DhtNode>& one, const std::unique_ptr<DhtNode>& two) const;
 
   const HashString&               target() const   { return m_target; }
   raw_string                      target_raw_string() const { return raw_string(m_target.data(), HashString::size_data); }
@@ -87,11 +87,11 @@ struct dht_compare_closer {
 // and returns what nodes to contact with up to three concurrent transactions pending.
 // The map element is the DhtSearch object itself to allow the returned accessors
 // to know which search a given node belongs to.
-class DhtSearch : protected std::map<DhtNode*, DhtSearch*, dht_compare_closer> {
+class DhtSearch : protected std::map<std::unique_ptr<DhtNode>, DhtSearch*, dht_compare_closer> {
   friend class DhtTransactionSearch;
 
 public:
-  using base_type = std::map<DhtNode*, DhtSearch*, dht_compare_closer>;
+  using base_type = std::map<std::unique_ptr<DhtNode>, DhtSearch*, dht_compare_closer>;
 
   // Number of closest potential contact nodes to keep.
   static constexpr unsigned int max_contacts = 18;
@@ -110,7 +110,7 @@ public:
     accessor_wrapper() = default;
     accessor_wrapper(const T& itr) : T(itr) { }
 
-    DhtNode*                        node() const     { return (**this).first; }
+    const std::unique_ptr<DhtNode>& node() const     { return (**this).first; }
     DhtSearch*                      search() const   { return (**this).second; }
   };
 
@@ -165,7 +165,7 @@ private:
   DhtSearch(const DhtSearch&) = delete;
   DhtSearch& operator=(const DhtSearch&) = delete;
 
-  bool                 node_uncontacted(const DhtNode* node) const;
+  bool                 node_uncontacted(const std::unique_ptr<DhtNode>& node) const;
 
   HashString           m_target;
 };
@@ -422,7 +422,7 @@ DhtSearch::set_node_active(const_accessor& n, bool active) {
 }
 
 inline bool
-dht_compare_closer::operator () (const DhtNode* one, const DhtNode* two) const {
+dht_compare_closer::operator () (const std::unique_ptr<DhtNode>& one, const std::unique_ptr<DhtNode>& two) const {
   return DhtSearch::is_closer(*one, *two, m_target);
 }
 

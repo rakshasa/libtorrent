@@ -38,6 +38,7 @@
 #define LIBTORRENT_PROTOCOL_HANDSHAKE_ENCRYPTION_H
 
 #include <cstring>
+#include <memory>
 
 #include "encryption_info.h"
 
@@ -65,14 +66,12 @@ public:
   static const unsigned char vc_data[];
   static constexpr unsigned int  vc_length = 8;
 
-  HandshakeEncryption(int options) :
-    m_options(options)
-    {}
+  HandshakeEncryption(int options);
 
   bool                has_crypto_plain() const                     { return m_crypto & crypto_plain; }
   bool                has_crypto_rc4() const                       { return m_crypto & crypto_rc4; }
 
-  DiffieHellman*      key()                                        { return m_key; }
+  const auto&         key()                                        { return m_key; }
   EncryptionInfo*     info()                                       { return &m_info; }
 
   int                 options() const                              { return m_options; }
@@ -109,7 +108,7 @@ public:
   static bool         compare_vc(const void* buf);
 
 private:
-  DiffieHellman*      m_key{};
+  std::unique_ptr<DiffieHellman> m_key;
 
   // A pointer instead?
   EncryptionInfo      m_info;

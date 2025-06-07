@@ -193,7 +193,7 @@ protected:
   DataBuffer          m_extensionMessage;
   uint32_t            m_extensionOffset;
 
-  EncryptBuffer*      m_encryptBuffer{};
+  std::unique_ptr<EncryptBuffer> m_encryptBuffer;
   EncryptionInfo      m_encryption;
   ProtocolExtension*  m_extensions{};
 
