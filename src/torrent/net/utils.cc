@@ -34,8 +34,8 @@ auto detect_local_sin_addr() -> sin_unique_ptr {
   std::shared_ptr<void> _fd(nullptr, [fd](...){ fd_close(fd); });
 
   auto connectAddress = sin_make();
-  connectAddress.get()->sin_addr.s_addr = htonl(0x04000001);
-  connectAddress.get()->sin_port = 80;
+  connectAddress->sin_addr.s_addr = htonl(0x04000001);
+  connectAddress->sin_port = 80;
 
   if (!fd_connect(fd, reinterpret_cast<sockaddr*>(connectAddress.get())) && errno != EINPROGRESS) {
     LT_LOG_FD_ERROR("detect_local_sin_addr: connect failed");
@@ -72,10 +72,10 @@ auto detect_local_sin6_addr() -> sin6_unique_ptr {
   std::shared_ptr<void> _fd(nullptr, [fd](...){ fd_close(fd); });
 
   auto connectAddress = sin6_make();
-  connectAddress.get()->sin6_addr.s6_addr[0] = 0x20;
-  connectAddress.get()->sin6_addr.s6_addr[1] = 0x01;
-  connectAddress.get()->sin6_addr.s6_addr[15] = 0x01;
-  connectAddress.get()->sin6_port = 80;
+  connectAddress->sin6_addr.s6_addr[0] = 0x20;
+  connectAddress->sin6_addr.s6_addr[1] = 0x01;
+  connectAddress->sin6_addr.s6_addr[15] = 0x01;
+  connectAddress->sin6_port = 80;
 
   if (!fd_connect(fd, reinterpret_cast<sockaddr*>(connectAddress.get())) && errno != EINPROGRESS) {
     LT_LOG_FD_ERROR("detect_local_sin6_addr: connect failed");
