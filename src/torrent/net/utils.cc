@@ -30,14 +30,12 @@ auto detect_local_sin_addr() -> sin_unique_ptr {
     return sin_unique_ptr();
   }
 
-  // TODO: Check if unique_ptr works.
-  std::shared_ptr<void> _fd(nullptr, [fd](...){ fd_close(fd); });
-
   auto connectAddress = sin_make();
   connectAddress->sin_addr.s_addr = htonl(0x04000001);
   connectAddress->sin_port = 80;
 
   if (!fd_connect(fd, reinterpret_cast<sockaddr*>(connectAddress.get())) && errno != EINPROGRESS) {
+    fd_close(fd);
     LT_LOG_FD_ERROR("detect_local_sin_addr: connect failed");
     return sin_unique_ptr();
   }
@@ -48,14 +46,17 @@ auto detect_local_sin_addr() -> sin_unique_ptr {
   auto sa = sin_make();
 
   if (::getsockname(fd, reinterpret_cast<sockaddr*>(sa.get()), &socklen) != 0) {
+    fd_close(fd);
     LT_LOG_FD_ERROR("detect_local_sin_addr: getsockname failed");
     return sin_unique_ptr();
   }
   if (socklen != sizeof(sockaddr_in)) {
+    fd_close(fd);
     LT_LOG_FD("detect_local_sin_addr: getsockname failed, invalid socklen");
     return sin_unique_ptr();
   }
 
+  fd_close(fd);
   LT_LOG_FD_SIN("detect_local_sin_addr: success");
 
   return sa;
@@ -68,9 +69,6 @@ auto detect_local_sin6_addr() -> sin6_unique_ptr {
     return sin6_unique_ptr();
   }
 
-  // TODO: Check if unique_ptr works.
-  std::shared_ptr<void> _fd(nullptr, [fd](...){ fd_close(fd); });
-
   auto connectAddress = sin6_make();
   connectAddress->sin6_addr.s6_addr[0] = 0x20;
   connectAddress->sin6_addr.s6_addr[1] = 0x01;
@@ -78,6 +76,7 @@ auto detect_local_sin6_addr() -> sin6_unique_ptr {
   connectAddress->sin6_port = 80;
 
   if (!fd_connect(fd, reinterpret_cast<sockaddr*>(connectAddress.get())) && errno != EINPROGRESS) {
+    fd_close(fd);
     LT_LOG_FD_ERROR("detect_local_sin6_addr: connect failed");
     return sin6_unique_ptr();
   }
@@ -88,14 +87,17 @@ auto detect_local_sin6_addr() -> sin6_unique_ptr {
   auto sa = sin6_make();
 
   if (::getsockname(fd, reinterpret_cast<sockaddr*>(sa.get()), &socklen) != 0) {
+    fd_close(fd);
     LT_LOG_FD_ERROR("detect_local_sin6_addr: getsockname failed");
     return sin6_unique_ptr();
   }
   if (socklen != sizeof(sockaddr_in6)) {
+    fd_close(fd);
     LT_LOG_FD("detect_local_sin6_addr: getsockname failed, invalid socklen");
     return sin6_unique_ptr();
   }
 
+  fd_close(fd);
   LT_LOG_FD_SIN6("detect_local_sin6_addr: success");
 
   return sa;
