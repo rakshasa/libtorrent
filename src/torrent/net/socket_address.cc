@@ -134,10 +134,9 @@ sa_length(const sockaddr* sa) {
 
 sa_unique_ptr
 sa_make_unspec() {
-  sa_unique_ptr sa(new sockaddr);
+  sa_unique_ptr sa(new sockaddr{});
 
-  std::memset(sa.get(), 0, sizeof(sockaddr));
-  sa.get()->sa_family = AF_UNSPEC;
+  sa->sa_family = AF_UNSPEC;
 
   return sa;
 }
@@ -157,9 +156,8 @@ sa_make_unix(const std::string& pathname) {
   if (!pathname.empty())
     throw internal_error("torrent::sa_make_unix: function not implemented");
 
-  sun_unique_ptr sunp(new sockaddr_un);
+  sun_unique_ptr sunp(new sockaddr_un{});
 
-  std::memset(sunp.get(), 0, sizeof(sockaddr_un));
   sunp->sun_family = AF_UNIX;
   // TODO: verify length, copy pathname
 
@@ -293,18 +291,18 @@ sa_free(const sockaddr* sa) {
 
 sin_unique_ptr
 sin_make() {
-  sin_unique_ptr sa(new sockaddr_in);
-  std::memset(sa.get(), 0, sizeof(sockaddr_in));
-  sa.get()->sin_family = AF_INET;
+  sin_unique_ptr sa(new sockaddr_in{});
+
+  sa->sin_family = AF_INET;
 
   return sa;
 }
 
 sin6_unique_ptr
 sin6_make() {
-  sin6_unique_ptr sa(new sockaddr_in6);
-  std::memset(sa.get(), 0, sizeof(sockaddr_in6));
-  sa.get()->sin6_family = AF_INET6;
+  sin6_unique_ptr sa(new sockaddr_in6{});
+
+  sa->sin6_family = AF_INET6;
 
   return sa;
 }
@@ -381,7 +379,7 @@ sin6_from_c_sa(c_sa_unique_ptr sap) {
 
 void
 sa_clear_inet6(sockaddr_in6* sa) {
-  std::memset(sa, 0, sizeof(sockaddr_in6));
+  *sa = sockaddr_in6{};
   sa->sin6_family = AF_INET6;
 }
 
