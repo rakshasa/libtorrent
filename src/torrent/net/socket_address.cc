@@ -331,8 +331,8 @@ sin_from_v4mapped_in6(const sockaddr_in6* sin6) {
     throw internal_error("torrent::sin6_is_v4mapped: sockaddr_in6 is not v4mapped");
 
   sin_unique_ptr result = sin_make();
-  result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sin6, 3)));
-  result.get()->sin_port = sin6->sin6_port;
+  result->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sin6, 3)));
+  result->sin_port = sin6->sin6_port;
 
   return result;
 }
@@ -341,8 +341,8 @@ sin6_unique_ptr
 sin6_to_v4mapped_in(const sockaddr_in* sin) {
   sin6_unique_ptr result = sin6_make();
 
-  result.get()->sin6_addr = sin6_make_addr32(0, 0, 0xffff, ntohl(sin->sin_addr.s_addr));
-  result.get()->sin6_port = sin->sin_port;
+  result->sin6_addr = sin6_make_addr32(0, 0, 0xffff, ntohl(sin->sin_addr.s_addr));
+  result->sin6_port = sin->sin_port;
 
   return result;
 }
