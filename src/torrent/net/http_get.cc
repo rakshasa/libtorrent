@@ -15,7 +15,12 @@ namespace torrent::net {
 // TODO: Use Resolver for dns lookups?
 // TODO: Make thread-safe, lock various parts after start.
 
+// TODO: Start/close should set a bool in curl_get, which indicates we've added it to the callback queue.
+
 HttpGet::HttpGet() = default;
+
+// TODO: Consider the lifetime of stack, should we instead set it on start? Seems more reasonable.
+// TODO: Really should pass HttpGet to HttpStack.
 
 HttpGet::HttpGet(CurlStack* stack)
   : m_curl_get(std::make_shared<CurlGet>(stack)) {
@@ -79,6 +84,8 @@ int64_t
 HttpGet::size_total() const {
   return m_curl_get->size_total();
 }
+
+// TODO: Wrap in callbacks.
 
 void
 HttpGet::add_done_slot(const std::function<void()>& slot) {

@@ -21,9 +21,6 @@ public:
   bool               is_busy() const                 { return m_handle; }
   bool               is_using_ipv6()                 { return m_ipv6; }
 
-  void               start();
-  void               close();
-
   const std::string& url() const                     { return m_url; }
   std::iostream*     stream()                        { return m_stream; }
   uint32_t           timeout() const                 { return m_timeout; }
@@ -54,6 +51,9 @@ private:
 
   // TODO: Atomic?
   void               set_active(bool a)              { m_active = a; }
+
+  void               prepare_start();
+  void               cleanup();
 
   void               receive_timeout();
 

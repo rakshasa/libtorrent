@@ -2,6 +2,7 @@
 
 #include "net/curl_get.h"
 
+#include <cassert>
 #include <iostream>
 #include <curl/easy.h>
 
@@ -10,6 +11,8 @@
 #include "utils/functional.h"
 
 namespace torrent::net {
+
+// TODO: Seperate the thread-owned and public variables in different cachelines.
 
 static size_t
 curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handle) {
@@ -26,19 +29,32 @@ CurlGet::CurlGet(CurlStack* s)
 }
 
 CurlGet::~CurlGet() {
-  close();
+  assert(!is_busy() && "CurlGet::~CurlGet called while still busy.");
+
+  // TODO: We need to make it so that remove_get is called only from close and not dtor.
+  //
+  // Do we keep a vector of shared_ptr's of active CurlGet objects in stack?
+  //
+  // We can then check the use_count, if it is one during any point of the busy (in stack) lifetime, cancel the download.
+  // close();
 }
 
+// TODO: Modify this to be called from CurlStack so we have the shared_ptr.
+
+// TODO: When we add callback for start/close add an atomic_bool to indicate we've queued the
+// action, and use that to tell the user that the http_get is busy or not.
+
 void
-CurlGet::start() {
+CurlGet::prepare_start() {
   if (is_busy())
     throw torrent::internal_error("Tried to call CurlGet::start on a busy object.");
 
-  if (m_stream == NULL)
+  if (m_stream == nullptr)
     throw torrent::internal_error("Tried to call CurlGet::start without a valid output stream.");
 
-  if (!m_stack->is_running())
-    return;
+  // TODO: Remove this if we call from within CurlStack.
+  // if (!m_stack->is_running())
+  //   return; //////////////////
 
   m_handle = curl_easy_init();
 
@@ -67,21 +83,17 @@ CurlGet::start() {
   curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
 
   m_ipv6 = false;
-
-  m_stack->add_get(this);
 }
 
 void
-CurlGet::close() {
+CurlGet::cleanup() {
   if (!is_busy())
-    return;
+    throw torrent::internal_error("Tried to call CurlGet::close on a non-busy object.");
 
   torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
-  m_stack->remove_get(this);
-
   curl_easy_cleanup(m_handle);
-  m_handle = NULL;
+  m_handle = nullptr;
 }
 
 void

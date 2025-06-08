@@ -1,8 +1,11 @@
 #ifndef RTORRENT_CORE_CURL_STACK_H
 #define RTORRENT_CORE_CURL_STACK_H
 
+#include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
+#include <curl/curl.h>
 
 #include "torrent/utils/scheduler.h"
 
@@ -19,16 +22,16 @@ class CurlSocket;
 // we get most of the cache locality benefits of a vector with fast
 // removal of elements.
 
-class CurlStack : private std::vector<CurlGet*> {
+class CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
-  using base_type = std::vector<CurlGet*>;
+  using base_type = std::vector<std::shared_ptr<CurlGet>>;
 
   CurlStack();
   ~CurlStack();
 
-  bool                is_running() const;
+  // Thread-safe:
 
-  void                shutdown();
+  bool                is_running() const;
 
   unsigned int        active() const;
   unsigned int        max_active() const;
@@ -54,35 +57,45 @@ public:
   long                dns_timeout() const;
   void                set_dns_timeout(long timeout);
 
-  void                receive_action(CurlSocket* socket, int type);
+  // Not thread-safe, must be called from the owning thread:
+  void                shutdown();
+
+  void                start_get(std::shared_ptr<CurlGet> curl_get);
+  void                close_get(std::shared_ptr<CurlGet> curl_get);
 
 protected:
   friend class CurlGet;
   friend class CurlSocket;
 
+  void*               handle() const                         { return m_handle; }
+
+  // We need to lock when changing any of the values publically accessible. This means we don't need
+  // to lock when changing the underlying vector.
+
   void                lock() const                           { m_mutex.lock(); }
   auto                lock_guard() const                     { return std::scoped_lock(m_mutex); }
   void                unlock() const                         { m_mutex.unlock(); }
 
-  void                add_get(CurlGet* get);
-  void                remove_get(CurlGet* get);
+  void                add_get(std::shared_ptr<CurlGet> curl_get);
+  void                remove_get(std::shared_ptr<CurlGet> curl_get);
 
+  void                receive_action(CurlSocket* socket, int type);
   void                transfer_done(void* handle, const char* msg);
-
-  void*               handle() const                         { return m_handle; }
 
 private:
   CurlStack(const CurlStack&) = delete;
   void operator = (const CurlStack&) = delete;
+
+  base_type::iterator find_curl_handle(const CURL* curl_handle);
 
   static int          set_timeout(void*, long timeout_ms, void* userp);
 
   void                receive_timeout();
   bool                process_done_handle();
 
-  base_type::iterator find_curl_get(CurlGet* curl_get);
-
-  void*                          m_handle;
+  // Unprotected members, only changed in ways that are implicitly thread-safe. E.g. before any
+  // threads are started or only within the owning thread.
+  CURLM*                         m_handle;
   torrent::utils::SchedulerEntry m_task_timeout;
 
   // Use lock guard when accessing these members, and when modifying the underlying vector.
