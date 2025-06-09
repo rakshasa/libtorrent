@@ -7,7 +7,6 @@
 #include <vector>
 #include <torrent/common.h>
 #include <torrent/path.h>
-#include <torrent/data/file.h>
 #include <torrent/data/download_data.h>
 
 namespace torrent {
@@ -57,7 +56,7 @@ public:
   using base_type::at;
   using base_type::operator[];
 
-  FileList() = default;
+  FileList();
   ~FileList();
 
   bool                is_open() const                                 { return m_is_open; }

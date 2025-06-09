@@ -46,6 +46,7 @@
 #include "torrent/download/download_manager.h"
 
 #include "data/chunk_list.h"
+#include "data/file.h"
 
 namespace torrent {
 

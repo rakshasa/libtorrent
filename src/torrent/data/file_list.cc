@@ -42,6 +42,8 @@ verify_file_list(const FileList* fl) {
       throw internal_error("verify_file_list() 3.", fl->data()->hash());
 }
 
+FileList::FileList() = default;
+
 FileList::~FileList() {
   // Can we skip close()?
   close();
