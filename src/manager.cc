@@ -43,15 +43,15 @@ void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remov
 } // namespace this_thread
 
 Manager::Manager()
-  : m_chunk_manager(new ChunkManager),
-    m_connection_manager(new ConnectionManager),
-    m_download_manager(new DownloadManager),
-    m_file_manager(new FileManager),
-    m_handshake_manager(new HandshakeManager),
-    m_resource_manager(new ResourceManager),
+  : m_chunk_manager(std::make_unique<ChunkManager>()),
+    m_connection_manager(std::make_unique<ConnectionManager>()),
+    m_download_manager(std::make_unique<DownloadManager>()),
+    m_file_manager(std::make_unique<FileManager>()),
+    m_handshake_manager(std::make_unique<HandshakeManager>()),
+    m_resource_manager(std::make_unique<ResourceManager>()),
 
-    m_client_list(new ClientList),
-    m_dht_controller(new tracker::DhtController),
+    m_client_list(std::make_unique<ClientList>()),
+    m_dht_controller(std::make_unique<tracker::DhtController>()),
 
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
