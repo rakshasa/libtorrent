@@ -28,19 +28,14 @@ DhtSearch::~DhtSearch() {
   // case.
   assert(!m_pending && "DhtSearch::~DhtSearch called with pending transactions.");
   assert(m_concurrency == 3 && "DhtSearch::~DhtSearch called with invalid concurrency limit.");
-
-  for (auto& [node, _] : *this)
-    delete node;
 }
 
 bool
 DhtSearch::add_contact(const HashString& id, const rak::socket_address* sa) {
-  auto n = new DhtNode(id, sa);
-  bool added = emplace(n, this).second;
+  auto n = std::make_unique<DhtNode>(id, sa);
+  bool added = emplace(std::move(n), this).second;
 
-  if (!added)
-    delete n;
-  else
+  if (added)
     m_restart = true;
 
   return added;
@@ -72,7 +67,7 @@ DhtSearch::add_contacts(const DhtBucket& contacts) {
 // Check if a node has been contacted yet.  This is the case if it is not currently
 // being contacted, nor has it been found to be good or bad.
 bool
-DhtSearch::node_uncontacted(const DhtNode* node) const {
+DhtSearch::node_uncontacted(const std::unique_ptr<DhtNode>& node) const {
   return !node->is_active() && !node->is_good() && !node->is_bad();
 }
 
@@ -106,7 +101,6 @@ DhtSearch::trim(bool final) {
     // If we have all we need, delete current node unless it is
     // currently being contacted.
     if (!itr.node()->is_active() && needClosest <= 0 && (!itr.node()->is_good() || needGood <= 0)) {
-      delete itr.node();
       erase(itr++);
       continue;
     }
