@@ -17,23 +17,29 @@ namespace torrent::net {
 
 // TODO: Start/close should set a bool in curl_get, which indicates we've added it to the callback queue.
 
-HttpGet::HttpGet() = default;
+HttpGet::HttpGet() :
+    m_curl_get(std::make_shared<CurlGet>()) {
+}
 
-// TODO: Consider the lifetime of stack, should we instead set it on start? Seems more reasonable.
-// TODO: Really should pass HttpGet to HttpStack.
+HttpGet::HttpGet(const std::string& url, std::iostream* s) :
+    m_curl_get(std::make_shared<CurlGet>()) {
 
-HttpGet::HttpGet(CurlStack* stack)
-  : m_curl_get(std::make_shared<CurlGet>(stack)) {
+  m_curl_get->set_url(url);
+  m_curl_get->set_stream(s);
+  m_curl_get->set_timeout(5 * 60); // Default to 5 minutes.
 }
 
 void
-HttpGet::start() {
-  m_curl_get->start();
+HttpGet::start(CurlStack* stack) {
+  stack->start_get(m_curl_get);
 }
 
 void
 HttpGet::close() {
-  m_curl_get->close();
+  auto curl_stack = m_curl_get->curl_stack();
+
+  if (curl_stack != nullptr)
+    curl_stack->close_get(m_curl_get);
 }
 
 std::string
@@ -53,24 +59,24 @@ HttpGet::timeout() const {
 
 void
 HttpGet::set_url(std::string url) {
-  if (m_curl_get->is_active())
-    throw torrent::internal_error("Cannot set stream while HttpGet is active.");
+  if (m_curl_get->is_busy())
+    throw torrent::internal_error("Cannot set stream while HttpGet is busy.");
 
   m_curl_get->set_url(std::move(url));
 }
 
 void
 HttpGet::set_stream(std::iostream* str) {
-  if (m_curl_get->is_active())
-    throw torrent::internal_error("Cannot set stream while HttpGet is active.");
+  if (m_curl_get->is_busy())
+    throw torrent::internal_error("Cannot set stream while HttpGet is busy.");
 
   m_curl_get->set_stream(str);
 }
 
 void
 HttpGet::set_timeout(uint32_t seconds) {
-  if (m_curl_get->is_active())
-    throw torrent::internal_error("Cannot set timeout while HttpGet is active.");
+  if (m_curl_get->is_busy())
+    throw torrent::internal_error("Cannot set timeout while HttpGet is busy.");
 
   m_curl_get->set_timeout(seconds);
 }

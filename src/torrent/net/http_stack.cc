@@ -23,9 +23,10 @@ HttpStack::~HttpStack() = default;
 // TODO: Make thread-safe.
 // TODO: Change from iostream to buffer / self-owned stream.
 
+// TODO: No need for this create function, just use HttpGet directly.
 HttpGet
 HttpStack::create(const std::string& url, std::iostream* s) {
-  auto http_get = HttpGet(m_stack.get());
+  auto http_get = HttpGet();
 
   http_get.curl_get()->set_url(url);
   http_get.curl_get()->set_stream(s);

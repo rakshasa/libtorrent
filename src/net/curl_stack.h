@@ -71,16 +71,12 @@ protected:
 
   // We need to lock when changing any of the values publically accessible. This means we don't need
   // to lock when changing the underlying vector.
-
   void                lock() const                           { m_mutex.lock(); }
   auto                lock_guard() const                     { return std::scoped_lock(m_mutex); }
   void                unlock() const                         { m_mutex.unlock(); }
 
   void                add_get(std::shared_ptr<CurlGet> curl_get);
   void                remove_get(std::shared_ptr<CurlGet> curl_get);
-
-  void                receive_action(CurlSocket* socket, int type);
-  void                transfer_done(void* handle, const char* msg);
 
 private:
   CurlStack(const CurlStack&) = delete;
@@ -91,7 +87,9 @@ private:
   static int          set_timeout(void*, long timeout_ms, void* userp);
 
   void                receive_timeout();
+
   bool                process_done_handle();
+  void                process_transfer_done(CURL* handle, const char* msg);
 
   // Unprotected members, only changed in ways that are implicitly thread-safe. E.g. before any
   // threads are started or only within the owning thread.

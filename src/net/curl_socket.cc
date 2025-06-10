@@ -14,9 +14,12 @@ namespace torrent::net {
 
 int
 CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd, int what, void* userp, void* socketp) {
-  auto stack = (CurlStack*)userp;
-  auto socket = (CurlSocket*)socketp;
+  auto stack = static_cast<CurlStack*>(userp);
+  auto socket = static_cast<CurlSocket*>(socketp);
 
+  // TODO: Keep track of CurlSocket's in CurlStack?
+
+  // If !stack->is_running(), do strict cleanup?
   if (!stack->is_running())
     return 0;
 
@@ -71,17 +74,29 @@ CurlSocket::close() {
 
 void
 CurlSocket::event_read() {
-  return m_stack->receive_action(this, CURL_CSELECT_IN);
+  return handle_action(CURL_CSELECT_IN);
 }
 
 void
 CurlSocket::event_write() {
-  return m_stack->receive_action(this, CURL_CSELECT_OUT);
+  return handle_action(CURL_CSELECT_OUT);
 }
 
 void
 CurlSocket::event_error() {
-  return m_stack->receive_action(this, CURL_CSELECT_ERR);
+  return handle_action(CURL_CSELECT_ERR);
+}
+
+void
+CurlSocket::handle_action(int ev_bitmask) {
+  int count{};
+  auto code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
+
+  if (code != CURLM_OK)
+    throw torrent::internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action.");
+
+  while (m_stack->process_done_handle())
+    ; // Do nothing.
 }
 
 }

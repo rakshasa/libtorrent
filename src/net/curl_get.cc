@@ -22,41 +22,57 @@ curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handle) {
     return 0;
 }
 
-CurlGet::CurlGet(CurlStack* s)
-  : m_stack(s) {
-
+CurlGet::CurlGet() {
   m_task_timeout.slot() = [this]() { receive_timeout(); };
 }
 
 CurlGet::~CurlGet() {
+  // CurlStack keeps a shared_ptr to this object, so it will only be destroyed once it is removed
+  // from the stack.
   assert(!is_busy() && "CurlGet::~CurlGet called while still busy.");
-
-  // TODO: We need to make it so that remove_get is called only from close and not dtor.
-  //
-  // Do we keep a vector of shared_ptr's of active CurlGet objects in stack?
-  //
-  // We can then check the use_count, if it is one during any point of the busy (in stack) lifetime, cancel the download.
-  // close();
 }
 
-// TODO: Modify this to be called from CurlStack so we have the shared_ptr.
+void
+CurlGet::set_url(const std::string& url) {
+  if (is_busy())
+    throw torrent::internal_error("Tried to call CurlGet::set_url on a busy object.");
+
+  m_url = url;
+}
+
+// Make sure the output stream does not have any bad/failed bits set.
+//
+// TODO: Make the stream into something you pass to CurlGet, as a unique_ptr, and then have a way to
+// receive it in a thread-safe way on success.
+void
+CurlGet::set_stream(std::iostream* str) {
+  if (is_busy())
+    throw torrent::internal_error("Tried to call CurlGet::set_stream on a busy object.");
+
+  m_stream = str;
+}
+
+void
+CurlGet::set_timeout(uint32_t seconds) {
+  if (is_busy())
+    throw torrent::internal_error("Tried to call CurlGet::set_timeout on a busy object.");
+
+  m_timeout = seconds;
+}
 
 // TODO: When we add callback for start/close add an atomic_bool to indicate we've queued the
 // action, and use that to tell the user that the http_get is busy or not.
 
 void
-CurlGet::prepare_start() {
+CurlGet::prepare_start(CurlStack* stack) {
   if (is_busy())
     throw torrent::internal_error("Tried to call CurlGet::start on a busy object.");
 
   if (m_stream == nullptr)
     throw torrent::internal_error("Tried to call CurlGet::start without a valid output stream.");
 
-  // TODO: Remove this if we call from within CurlStack.
-  // if (!m_stack->is_running())
-  //   return; //////////////////
-
   m_handle = curl_easy_init();
+  m_stack = stack;
 
   if (m_handle == NULL)
     throw torrent::internal_error("Call to curl_easy_init() failed.");
@@ -68,10 +84,6 @@ CurlGet::prepare_start() {
   if (m_timeout != 0) {
     curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, (long)60);
     curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        (long)m_timeout);
-
-    // Normally libcurl should handle the timeout. But sometimes that doesn't
-    // work right so we do a fallback timeout that just aborts the transfer.
-    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 5s + 1s*m_timeout);
   }
 
   curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE,   (long)1);
@@ -86,14 +98,42 @@ CurlGet::prepare_start() {
 }
 
 void
-CurlGet::cleanup() {
-  if (!is_busy())
-    throw torrent::internal_error("Tried to call CurlGet::close on a non-busy object.");
+CurlGet::activate() {
+  auto guard = lock_guard();
 
-  torrent::this_thread::scheduler()->erase(&m_task_timeout);
+  if (curl_multi_add_handle(m_stack, m_handle) != CURLM_OK)
+    throw torrent::internal_error("Error calling curl_multi_add_handle.");
+
+  // Normally libcurl should handle the timeout. But sometimes that doesn't
+  // work right so we do a fallback timeout that just aborts the transfer.
+  //
+  // TODO: Verify this is still needed, as it was added to work around during early libcurl
+  // versions.
+  if (m_timeout != 0)
+    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 5s + 1s*m_timeout);
+
+  m_active = true;
+}
+
+void
+CurlGet::cleanup() {
+  auto guard = lock_guard();
+
+  if (m_handle == nullptr)
+    throw torrent::internal_error("CurlGet::cleanup() called on a null m_handle.");
+
+  if (m_active) {
+    if (curl_multi_remove_handle(m_handle, m_handle) > 0)
+      throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle.");
+
+    torrent::this_thread::scheduler()->erase(&m_task_timeout);
+    m_active = false;
+  }
 
   curl_easy_cleanup(m_handle);
+
   m_handle = nullptr;
+  m_stack = nullptr;
 }
 
 void
@@ -125,7 +165,8 @@ CurlGet::size_total() {
 
 void
 CurlGet::receive_timeout() {
-  return m_stack->transfer_done(m_handle, "Timed out");
+  // return m_stack->transfer_done(m_handle, "Timed out");
+  throw internal_error("CurlGet::receive_timeout() called, however this was a hack to work around libcurl not handling timeouts correctly.");
 }
 
 void

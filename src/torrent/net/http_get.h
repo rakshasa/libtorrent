@@ -2,7 +2,9 @@
 #define LIBTORRENT_TORRENT_NET_HTTP_GET_H
 
 #include <functional>
+#include <iosfwd>
 #include <memory>
+#include <string>
 #include <thread>
 #include <torrent/common.h>
 
@@ -14,14 +16,15 @@ class CurlStack;
 class LIBTORRENT_EXPORT HttpGet {
 public:
   HttpGet();
-  HttpGet(CurlStack* stack);
+  HttpGet(const std::string& url, std::iostream* s);
   ~HttpGet() = default;
+
   HttpGet(const HttpGet&) = default;
   HttpGet& operator=(const HttpGet&) = default;
 
   bool                is_valid() const { return m_curl_get != nullptr; }
 
-  void                start();
+  void                start(CurlStack* stack);
   void                close();
 
   std::string         url() const;
