@@ -8,6 +8,7 @@
 #include "net/curl_stack.h"
 #include "net/thread_net.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/http_stack.h"
 #include "torrent/utils/thread.h"
 
 namespace torrent::net {
@@ -30,8 +31,8 @@ HttpGet::HttpGet(const std::string& url, std::iostream* s) :
 }
 
 void
-HttpGet::start(CurlStack* stack) {
-  stack->start_get(m_curl_get);
+HttpGet::start(HttpStack* stack) {
+  stack->curl_stack()->start_get(m_curl_get);
 }
 
 void

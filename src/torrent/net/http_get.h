@@ -12,11 +12,12 @@ namespace torrent::net {
 
 class CurlGet;
 class CurlStack;
+class HttpStack;
 
 class LIBTORRENT_EXPORT HttpGet {
 public:
   HttpGet();
-  HttpGet(const std::string& url, std::iostream* s);
+  HttpGet(const std::string& url, std::iostream* s = nullptr);
   ~HttpGet() = default;
 
   HttpGet(const HttpGet&) = default;
@@ -24,7 +25,7 @@ public:
 
   bool                is_valid() const { return m_curl_get != nullptr; }
 
-  void                start(CurlStack* stack);
+  void                start(HttpStack* stack);
   void                close();
 
   std::string         url() const;

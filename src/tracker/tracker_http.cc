@@ -35,7 +35,7 @@ TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags)
   : TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags),
     m_drop_deliminator(utils::uri_has_query(info.url)) {
 
-  m_get = torrent::net_thread::http_stack()->create(info.url, nullptr);
+  m_get = net::HttpGet(info.url);
 
   m_get.add_done_slot([this] { receive_done(); });
   m_get.add_failed_slot([this](const auto& str) { receive_signal_failed(str); });
@@ -140,7 +140,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   m_get.set_url(request_url);
   m_get.set_stream(m_data.get());
 
-  m_get.start();
+  m_get.start(torrent::net_thread::http_stack());
 }
 
 void
@@ -189,7 +189,7 @@ TrackerHttp::delayed_send_scrape() {
   m_get.set_url(request_url);
   m_get.set_stream(m_data.get());
 
-  m_get.start();
+  m_get.start(torrent::net_thread::http_stack());
 }
 
 void

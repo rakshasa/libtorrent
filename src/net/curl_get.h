@@ -91,37 +91,37 @@ private:
   std::list<std::function<void(const std::string&)>> m_signal_failed;
 };
 
-bool
+inline bool
 CurlGet::is_active() const {
   auto guard = lock_guard();
   return m_active;
 }
 
-bool
+inline bool
 CurlGet::is_busy() const {
   auto guard = lock_guard();
   return m_handle != nullptr;
 }
 
-bool
+inline bool
 CurlGet::is_using_ipv6() const {
   auto guard = lock_guard();
   return m_ipv6;
 }
 
-const std::string&
+inline const std::string&
 CurlGet::url() const {
   auto guard = lock_guard();
   return m_url;
 }
 
-std::iostream*
+inline std::iostream*
 CurlGet::stream() {
   auto guard = lock_guard();
   return m_stream;
 }
 
-uint32_t
+inline uint32_t
 CurlGet::timeout() const {
   auto guard = lock_guard();
   return m_timeout;

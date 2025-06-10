@@ -114,121 +114,121 @@ private:
   long                m_dns_timeout{60};
 };
 
-bool
+inline bool
 CurlStack::is_running() const {
   auto guard = lock_guard();
   return m_running;
 }
 
-unsigned int
+inline unsigned int
 CurlStack::active() const {
   auto guard = lock_guard();
   return m_active;
 }
 
-unsigned int
+inline unsigned int
 CurlStack::max_active() const {
   auto guard = lock_guard();
   return m_max_active;
 }
 
-void
+inline void
 CurlStack::set_max_active(unsigned int a) {
   auto guard = lock_guard();
   m_max_active = a;
 }
 
-const std::string&
+inline const std::string&
 CurlStack::user_agent() const {
   auto guard = lock_guard();
   return m_user_agent;
 }
 
-const std::string&
+inline const std::string&
 CurlStack::http_proxy() const {
   auto guard = lock_guard();
   return m_http_proxy;
 }
 
-const std::string&
+inline const std::string&
 CurlStack::bind_address() const {
   auto guard = lock_guard();
   return m_bind_address;
 }
 
-const std::string&
+inline const std::string&
 CurlStack::http_capath() const {
   auto guard = lock_guard();
   return m_http_ca_path;
 }
 
-const std::string&
+inline const std::string&
 CurlStack::http_cacert() const {
   auto guard = lock_guard();
   return m_http_ca_cert;
 }
 
-void
+inline void
 CurlStack::set_user_agent(const std::string& s) {
   auto guard = lock_guard();
   m_user_agent = s;
 }
 
-void
+inline void
 CurlStack::set_http_proxy(const std::string& s) {
   auto guard = lock_guard();
   m_http_proxy = s;
 }
 
-void
+inline void
 CurlStack::set_bind_address(const std::string& s) {
   auto guard = lock_guard();
   m_bind_address = s;
 }
 
-void
+inline void
 CurlStack::set_http_capath(const std::string& s) {
   auto guard = lock_guard();
   m_http_ca_path = s;
 }
 
-void
+inline void
 CurlStack::set_http_cacert(const std::string& s) {
   auto guard = lock_guard();
   m_http_ca_cert = s;
 }
 
-bool
+inline bool
 CurlStack::ssl_verify_host() const {
   auto guard = lock_guard();
   return m_ssl_verify_host;
 }
 
-bool
+inline bool
 CurlStack::ssl_verify_peer() const {
   auto guard = lock_guard();
   return m_ssl_verify_peer;
 }
 
-void
+inline void
 CurlStack::set_ssl_verify_host(bool s) {
   auto guard = lock_guard();
   m_ssl_verify_host = s;
 }
 
-void
+inline void
 CurlStack::set_ssl_verify_peer(bool s) {
   auto guard = lock_guard();
   m_ssl_verify_peer = s;
 }
 
-long
+inline long
 CurlStack::dns_timeout() const {
   auto guard = lock_guard();
   return m_dns_timeout;
 }
 
-void
+inline void
 CurlStack::set_dns_timeout(long timeout) {
   auto guard = lock_guard();
   m_dns_timeout = timeout;
