@@ -34,8 +34,10 @@ CurlGet::~CurlGet() {
 
 void
 CurlGet::set_url(const std::string& url) {
-  if (is_busy())
-    throw torrent::internal_error("Tried to call CurlGet::set_url on a busy object.");
+  auto guard = lock_guard();
+
+  if (m_handle != nullptr)
+    throw torrent::internal_error("CurlGet::set_url(...) called on a busy object.");
 
   m_url = url;
 }
@@ -46,16 +48,20 @@ CurlGet::set_url(const std::string& url) {
 // receive it in a thread-safe way on success.
 void
 CurlGet::set_stream(std::iostream* str) {
-  if (is_busy())
-    throw torrent::internal_error("Tried to call CurlGet::set_stream on a busy object.");
+  auto guard = lock_guard();
+
+  if (m_handle != nullptr)
+    throw torrent::internal_error("CurlGet::set_stream(...) called on a busy object.");
 
   m_stream = str;
 }
 
 void
 CurlGet::set_timeout(uint32_t seconds) {
-  if (is_busy())
-    throw torrent::internal_error("Tried to call CurlGet::set_timeout on a busy object.");
+  auto guard = lock_guard();
+
+  if (m_handle != nullptr)
+    throw torrent::internal_error("CurlGet::set_timeout(...) called on a busy object.");
 
   m_timeout = seconds;
 }
@@ -65,16 +71,16 @@ CurlGet::set_timeout(uint32_t seconds) {
 
 void
 CurlGet::prepare_start(CurlStack* stack) {
-  if (is_busy())
-    throw torrent::internal_error("Tried to call CurlGet::start on a busy object.");
+  if (m_handle != nullptr)
+    throw torrent::internal_error("CurlGet::prepare_start(...) called on a busy object.");
 
   if (m_stream == nullptr)
-    throw torrent::internal_error("Tried to call CurlGet::start without a valid output stream.");
+    throw torrent::internal_error("CurlGet::prepare_start(...) called with a null stream.");
 
   m_handle = curl_easy_init();
   m_stack = stack;
 
-  if (m_handle == NULL)
+  if (m_handle == nullptr)
     throw torrent::internal_error("Call to curl_easy_init() failed.");
 
   curl_easy_setopt(m_handle, CURLOPT_URL,            m_url.c_str());
@@ -82,14 +88,14 @@ CurlGet::prepare_start(CurlStack* stack) {
   curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,      this);
 
   if (m_timeout != 0) {
-    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, (long)60);
-    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        (long)m_timeout);
+    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 60l);
+    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        static_cast<long>(m_timeout));
   }
 
-  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE,   (long)1);
-  curl_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       (long)1);
-  curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, (long)1);
-  curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      (long)5);
+  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE,   1l);
+  curl_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       1l);
+  curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1l);
+  curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
 
   curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE,      CURL_IPRESOLVE_WHATEVER);
   curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
@@ -99,9 +105,8 @@ CurlGet::prepare_start(CurlStack* stack) {
 
 void
 CurlGet::activate() {
-  auto guard = lock_guard();
-
   CURLMcode code = curl_multi_add_handle(m_stack->handle(), m_handle);
+
   if (code != CURLM_OK)
     throw torrent::internal_error("CurlGet::activate() error calling curl_multi_add_handle: " + std::string(curl_multi_strerror(code)));
 
@@ -118,13 +123,12 @@ CurlGet::activate() {
 
 void
 CurlGet::cleanup() {
-  auto guard = lock_guard();
-
   if (m_handle == nullptr)
     throw torrent::internal_error("CurlGet::cleanup() called on a null m_handle.");
 
   if (m_active) {
     CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
+
     if (code != CURLM_OK)
       throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
 
@@ -170,6 +174,8 @@ CurlGet::receive_timeout() {
   // return m_stack->transfer_done(m_handle, "Timed out");
   throw internal_error("CurlGet::receive_timeout() called, however this was a hack to work around libcurl not handling timeouts correctly.");
 }
+
+// TODO: Verify slots are handled while CurlGet and CurlStack are unlocked.
 
 void
 CurlGet::trigger_done() {

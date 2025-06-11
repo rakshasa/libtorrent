@@ -56,39 +56,38 @@ CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
   if (!is_running())
     throw torrent::internal_error("Tried to start CurlGet while CurlStack is not running.");
 
-  {
-    auto guard = lock_guard();
+  auto guard = lock_guard();
+  auto guard_get = curl_get->lock_guard();
 
-    curl_get->prepare_start(this);
+  curl_get->prepare_start(this);
 
-    if (!m_user_agent.empty())
-      curl_easy_setopt(curl_get->handle(), CURLOPT_USERAGENT, m_user_agent.c_str());
+  if (!m_user_agent.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_USERAGENT, m_user_agent.c_str());
 
-    if (!m_http_proxy.empty())
-      curl_easy_setopt(curl_get->handle(), CURLOPT_PROXY, m_http_proxy.c_str());
+  if (!m_http_proxy.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_PROXY, m_http_proxy.c_str());
 
-    if (!m_bind_address.empty())
-      curl_easy_setopt(curl_get->handle(), CURLOPT_INTERFACE, m_bind_address.c_str());
+  if (!m_bind_address.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_INTERFACE, m_bind_address.c_str());
 
-    if (!m_http_ca_path.empty())
-      curl_easy_setopt(curl_get->handle(), CURLOPT_CAPATH, m_http_ca_path.c_str());
+  if (!m_http_ca_path.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_CAPATH, m_http_ca_path.c_str());
 
-    if (!m_http_ca_cert.empty())
-      curl_easy_setopt(curl_get->handle(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
+  if (!m_http_ca_cert.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
 
-    curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYHOST, m_ssl_verify_host ? 2l : 0l);
-    curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
-    curl_easy_setopt(curl_get->handle(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
+  curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYHOST, m_ssl_verify_host ? 2l : 0l);
+  curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
+  curl_easy_setopt(curl_get->handle(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
 
-    base_type::push_back(curl_get);
+  base_type::push_back(curl_get);
 
-    if (m_active >= m_max_active)
-      return;
+  if (m_active >= m_max_active)
+    return;
 
-    m_active++;
+  m_active++;
 
-    curl_get->activate();
-  }
+  curl_get->activate();
 }
 
 // TODO: We are currently requiring close to be called before activating the next download. This
@@ -96,18 +95,20 @@ CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
 
 void
 CurlStack::close_get(std::shared_ptr<CurlGet> curl_get) {
-  // TODO: Check is_running, if not return success.
+  { auto guard_get = curl_get->lock_guard();
 
-  if (!curl_get->is_active())
-    throw torrent::internal_error("Tried to close CurlGet that is not active.");
+    if (!curl_get->is_active_no_locking())
+      throw torrent::internal_error("Tried to close CurlGet that is not active.");
 
-  auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
+    auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
 
-  if (itr == base_type::end())
-    throw torrent::internal_error("Could not find CurlGet in CurlStack::remove_get().");
+    if (itr == base_type::end())
+      throw torrent::internal_error("Could not find CurlGet in CurlStack::remove_get().");
 
-  base_type::erase(itr);
-  curl_get->cleanup();
+    // TODO: Need to lock stack too?
+    base_type::erase(itr);
+    curl_get->cleanup();
+  }
 
   {
     auto guard = lock_guard();
@@ -120,7 +121,7 @@ CurlStack::close_get(std::shared_ptr<CurlGet> curl_get) {
       return;
     }
 
-    itr = std::find_if(base_type::begin(), base_type::end(), [](auto& curl_get) {
+    auto itr = std::find_if(base_type::begin(), base_type::end(), [](auto& curl_get) {
         return !curl_get->is_active();
       });
 

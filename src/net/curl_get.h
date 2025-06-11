@@ -50,15 +50,18 @@ public:
 protected:
   friend class CurlStack;
 
+  // CurlStack is responsible for locking.
+  bool               is_active_no_locking() const    { return m_active; }
+
+  void               prepare_start(CurlStack* stack);
+  void               activate();
+  void               cleanup();
+
   // We need to lock when changing any of the values publically accessible. This means we don't need
   // to lock when changing the underlying vector.
   void               lock() const                    { m_mutex.lock(); }
   auto               lock_guard() const              { return std::scoped_lock(m_mutex); }
   void               unlock() const                  { m_mutex.unlock(); }
-
-  void               prepare_start(CurlStack* stack);
-  void               activate();
-  void               cleanup();
 
   void               receive_timeout();
 
