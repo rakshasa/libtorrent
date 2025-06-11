@@ -231,21 +231,29 @@ Poll::close(Event* event) {
 
   m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
-  // Shouldn't be needed anymore.
-  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr)
-    if (itr->udata == event)
-      itr->udata = nullptr;
-
+  // No need to touch m_events as we unset the read/write/error flags in m_internal->m_events using
+  // remove_read/write/error.
   auto last_itr = std::remove_if(m_internal->m_changes.get(),
                                  m_internal->m_changes.get() + m_internal->m_changed_events,
                                  [event](const struct kevent& ke) { return ke.udata == event; });
 
   m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
+
+  // Clear the event list just in case we open a new socket with the
+  // same fd while in the middle of calling Poll::perform.
+  //
+  // Removed.
+  //
+  // Shouldn't be needed as we unset the read/write/error flags in m_internal->m_events using
+  // remove_read/write/error.
 }
 
 void
-Poll::closed(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "closed event", 0);
+Poll::cleanup_closed(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "cleanup_closed event", 0);
+
+  if (m_internal->event_mask(event) != 0)
+    throw internal_error("Poll::cleanup_closed(...) called but the file descriptor is active");
 
   // Kernel removes closed FDs automatically, so just clear the mask
   // and remove it from pending calls.  Don't touch if the FD was
@@ -253,16 +261,16 @@ Poll::closed(Event* event) {
   if (m_internal->m_table[event->file_descriptor()].second == event)
     m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
-  // Shouldn't be needed anymore.
-  for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr)
-    if (itr->udata == event)
-      itr->udata = nullptr;
-
   auto last_itr = std::remove_if(m_internal->m_changes.get(),
                                  m_internal->m_changes.get() + m_internal->m_changed_events,
                                  [event](const struct kevent& ke) { return ke.udata == event; });
 
   m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
+
+  // Clear the event list just in case we open a new socket with the
+  // same fd while in the middle of calling Poll::perform.
+  //
+  // Removed.
 }
 
 bool
@@ -341,6 +349,15 @@ Poll::remove_and_close(Event* event) {
   // remove_error(event);
 
   close(event);
+}
+
+void
+Poll::remove_and_cleanup_closed(Event* event) {
+  remove_read(event);
+  remove_write(event);
+  // remove_error(event);
+
+  cleanup_closed(event);
 }
 
 }

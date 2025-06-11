@@ -13,149 +13,169 @@
 namespace torrent::net {
 
 CurlStack::CurlStack() {
-  m_handle = (void*)curl_multi_init();
+  m_handle = curl_multi_init();
   m_task_timeout.slot() = [this]() { receive_timeout(); };
 
-  curl_multi_setopt((CURLM*)m_handle, CURLMOPT_TIMERDATA, this);
-  curl_multi_setopt((CURLM*)m_handle, CURLMOPT_TIMERFUNCTION, &CurlStack::set_timeout);
-  curl_multi_setopt((CURLM*)m_handle, CURLMOPT_SOCKETDATA, this);
-  curl_multi_setopt((CURLM*)m_handle, CURLMOPT_SOCKETFUNCTION, &CurlSocket::receive_socket);
+  curl_multi_setopt(m_handle, CURLMOPT_TIMERDATA, this);
+  curl_multi_setopt(m_handle, CURLMOPT_TIMERFUNCTION, &CurlStack::set_timeout);
+  curl_multi_setopt(m_handle, CURLMOPT_SOCKETDATA, this);
+  curl_multi_setopt(m_handle, CURLMOPT_SOCKETFUNCTION, &CurlSocket::receive_socket);
 }
 
 CurlStack::~CurlStack() {
   assert(!m_running && "CurlStack::~CurlStack() called while still running.");
 }
 
-void
-CurlStack::global_initialize() {
-  curl_global_init(CURL_GLOBAL_ALL);
-}
-
-void
-CurlStack::global_cleanup() {
-  curl_global_cleanup();
-}
-
+// TODO: We do not ever call shutdown.
 void
 CurlStack::shutdown() {
-  if (!m_running)
-    return;
+  assert(is_running() && "CurlStack::shutdown() called while not running.");
 
-  m_running = false;
-
-  while (!empty())
-    front()->close();
-
-  curl_multi_cleanup((CURLM*)m_handle);
-
-  torrent::this_thread::scheduler()->erase(&m_task_timeout);
-}
-
-CurlGet*
-CurlStack::new_object() {
-  return new CurlGet(this);
-}
-
-CurlSocket*
-CurlStack::new_socket(int fd) {
-  if (!m_running)
-    throw torrent::internal_error("CurlStack::new_socket() called when not running.");
-
-  CurlSocket* socket = new CurlSocket(fd, this);
-  curl_multi_assign((CURLM*)m_handle, fd, socket);
-  return socket;
-}
-
-void
-CurlStack::receive_action(CurlSocket* socket, int events) {
-  CURLMcode code;
-
-  do {
-    int count;
-#if (LIBCURL_VERSION_NUM >= 0x071003)
-    code = curl_multi_socket_action((CURLM*)m_handle,
-                                    socket != NULL ? socket->file_descriptor() : CURL_SOCKET_TIMEOUT,
-                                    events,
-                                    &count);
-#else
-    code = curl_multi_socket((CURLM*)m_handle,
-                             socket != NULL ? socket->file_descriptor() : CURL_SOCKET_TIMEOUT,
-                             &count);
-#endif
-
-    if (code > 0)
-      throw torrent::internal_error("Error calling curl_multi_socket_action.");
-
-    // Socket might be removed when cleaning handles below, future
-    // calls should not use it.
-    socket = NULL;
-    events = 0;
-
-    if ((unsigned int)count != size()) {
-      while (process_done_handle())
-        ; // Do nothing.
-
-      if (empty())
-        torrent::this_thread::scheduler()->erase(&m_task_timeout);
-    }
-
-  } while (code == CURLM_CALL_MULTI_PERFORM);
-}
-
-bool
-CurlStack::process_done_handle() {
-  int remaining_msgs = 0;
-  CURLMsg* msg = curl_multi_info_read((CURLM*)m_handle, &remaining_msgs);
-
-  if (msg == NULL)
-    return false;
-
-  if (msg->msg != CURLMSG_DONE)
-    throw torrent::internal_error("CurlStack::receive_action() msg->msg != CURLMSG_DONE.");
-
-  if (msg->data.result == CURLE_COULDNT_RESOLVE_HOST) {
-    iterator itr = std::find_if(begin(), end(), [&msg](CurlGet* get) { return get->handle() == msg->easy_handle; });
-
-    if (itr == end())
-      throw torrent::internal_error("Could not find CurlGet when calling CurlStack::receive_action.");
-
-    if (!(*itr)->is_using_ipv6()) {
-      (*itr)->retry_ipv6();
-
-      if (curl_multi_add_handle((CURLM*)m_handle, (*itr)->handle()) > 0)
-        throw torrent::internal_error("Error calling curl_multi_add_handle.");
-    }
-
-  } else {
-    transfer_done(msg->easy_handle,
-                  msg->data.result == CURLE_OK ? NULL : curl_easy_strerror(msg->data.result));
+  { auto guard = lock_guard();
+    m_running = false;
   }
 
-  return remaining_msgs != 0;
+  while (!base_type::empty())
+    close_get(base_type::back());
+
+  curl_multi_cleanup(m_handle);
+
+  { auto guard = lock_guard();
+
+    m_handle = nullptr;
+    torrent::this_thread::scheduler()->erase(&m_task_timeout);
+  }
 }
 
 void
-CurlStack::transfer_done(void* handle, const char* msg) {
-  iterator itr = std::find_if(begin(), end(), [&handle](CurlGet* get) { return get->handle() == handle; });
+CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
+  if (curl_get == nullptr)
+    throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
 
-  if (itr == end())
+  // TODO: When this is made into a callback, add a bool to indicate that we have queued the
+  // callbacks for start/close.
+
+  // TODO: Check is_running, if not return error. Do not throw internal_error.
+  if (!is_running())
+    throw torrent::internal_error("CurlStack::start_get() called while not running.");
+
+  auto guard = std::scoped_lock(m_mutex, curl_get->mutex());
+
+  curl_get->prepare_start(this);
+
+  if (!m_user_agent.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_USERAGENT, m_user_agent.c_str());
+
+  if (!m_http_proxy.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_PROXY, m_http_proxy.c_str());
+
+  if (!m_bind_address.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_INTERFACE, m_bind_address.c_str());
+
+  if (!m_http_ca_path.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_CAPATH, m_http_ca_path.c_str());
+
+  if (!m_http_ca_cert.empty())
+    curl_easy_setopt(curl_get->handle(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
+
+  curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYHOST, m_ssl_verify_host ? 2l : 0l);
+  curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
+  curl_easy_setopt(curl_get->handle(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
+
+  base_type::push_back(curl_get);
+
+  if (m_active >= m_max_active)
+    return;
+
+  m_active++;
+
+  curl_get->activate();
+}
+
+// TODO: We are currently requiring close to be called before activating the next download. This
+// should happen after transfer_done.
+
+void
+CurlStack::close_get(std::shared_ptr<CurlGet> curl_get) {
+  { auto guard_get = curl_get->lock_guard();
+
+    if (!curl_get->is_active_no_locking())
+      throw torrent::internal_error("Tried to close CurlGet that is not active.");
+
+    auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
+
+    if (itr == base_type::end())
+      throw torrent::internal_error("Could not find CurlGet in CurlStack::remove_get().");
+
+    // TODO: Need to lock stack too?
+    base_type::erase(itr);
+    curl_get->cleanup();
+  }
+
+  {
+    auto guard = lock_guard();
+
+    if (!m_running)
+      return;
+
+    if (m_active > m_max_active) {
+      m_active--;
+      return;
+    }
+
+    auto itr = std::find_if(base_type::begin(), base_type::end(), [](auto& curl_get) {
+        return !curl_get->is_active();
+      });
+
+    if (itr == base_type::end()) {
+      m_active--;
+      return;
+    }
+
+    (*itr)->activate();
+  }
+}
+
+CurlStack::base_type::iterator
+CurlStack::find_curl_handle(const CURL* curl_handle) {
+  auto itr = std::find_if(base_type::begin(), base_type::end(), [curl_handle](const std::shared_ptr<CurlGet>& curl_get) {
+    return curl_get->handle() == curl_handle;
+  });
+
+  if (itr == base_type::end())
     throw torrent::internal_error("Could not find CurlGet with the right easy_handle.");
 
-  if (msg == NULL)
-    (*itr)->trigger_done();
+  return itr;
+}
+
+int
+CurlStack::set_timeout(void*, long timeout_ms, void* userp) {
+  CurlStack* stack = static_cast<CurlStack*>(userp);
+
+  if (timeout_ms == -1)
+    torrent::this_thread::scheduler()->erase(&stack->m_task_timeout);
   else
-    (*itr)->trigger_failed(msg);
+    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&stack->m_task_timeout, std::chrono::milliseconds(timeout_ms));
+
+  return 0;
 }
 
 void
 CurlStack::receive_timeout() {
-  receive_action(NULL, 0);
+  int count{};
+  auto code = curl_multi_socket_action(m_handle, CURL_SOCKET_TIMEOUT, 0, &count);
+
+  if (code != CURLM_OK)
+    throw torrent::internal_error("CurlStack::receive_timeout() error calling curl_multi_socket_action.");
+
+  while (process_done_handle())
+    ; // Do nothing.
 
   if (!empty() && !m_task_timeout.is_scheduled()) {
     // Sometimes libcurl forgets to reset the timeout. Try to poll the value in that case, or use 10
     // seconds max.
     long timeout_ms;
-    curl_multi_timeout((CURLM*)m_handle, &timeout_ms);
+    curl_multi_timeout(m_handle, &timeout_ms);
 
     auto timeout = std::max<std::chrono::microseconds>(std::chrono::milliseconds(timeout_ms), 10s);
 
@@ -163,81 +183,59 @@ CurlStack::receive_timeout() {
   }
 }
 
-void
-CurlStack::add_get(CurlGet* get) {
-  if (!m_user_agent.empty())
-    curl_easy_setopt(get->handle(), CURLOPT_USERAGENT, m_user_agent.c_str());
+// TODO: Check if curl_get is still active.
 
-  if (!m_http_proxy.empty())
-    curl_easy_setopt(get->handle(), CURLOPT_PROXY, m_http_proxy.c_str());
+bool
+CurlStack::process_done_handle() {
+  int remaining_msgs{};
 
-  if (!m_bind_address.empty())
-    curl_easy_setopt(get->handle(), CURLOPT_INTERFACE, m_bind_address.c_str());
+  CURLMsg* msg = curl_multi_info_read(m_handle, &remaining_msgs);
 
-  if (!m_http_ca_path.empty())
-    curl_easy_setopt(get->handle(), CURLOPT_CAPATH, m_http_ca_path.c_str());
+  if (msg == nullptr)
+    return false;
 
-  if (!m_http_ca_cert.empty())
-    curl_easy_setopt(get->handle(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
+  if (msg->msg != CURLMSG_DONE)
+    throw torrent::internal_error("CurlStack::process_done_handle() msg->msg != CURLMSG_DONE.");
 
-  curl_easy_setopt(get->handle(), CURLOPT_SSL_VERIFYHOST, (long)(m_ssl_verify_host ? 2 : 0));
-  curl_easy_setopt(get->handle(), CURLOPT_SSL_VERIFYPEER, (long)(m_ssl_verify_peer ? 1 : 0));
-  curl_easy_setopt(get->handle(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
+  // TODO: Search if handle is still in the stack, and if not, assume it was closed and clean up. (check is_active)
 
-  base_type::push_back(get);
+  if (msg->data.result == CURLE_COULDNT_RESOLVE_HOST) {
+    auto itr = find_curl_handle(static_cast<CURL*>(msg->easy_handle));
 
-  if (m_active >= m_max_active)
-    return;
+    if (!(*itr)->is_using_ipv6()) {
+      (*itr)->retry_ipv6();
 
-  m_active++;
-  get->set_active(true);
+      CURLMcode code = curl_multi_remove_handle(m_handle, (*itr)->handle());
 
-  if (curl_multi_add_handle((CURLM*)m_handle, get->handle()) > 0)
-    throw torrent::internal_error("Error calling curl_multi_add_handle.");
+      if (code != CURLM_OK)
+        throw torrent::internal_error("CurlStack::process_done_handle() curl_multi_add_handle failed: " + std::string(curl_multi_strerror(code)));
 
-#if (LIBCURL_VERSION_NUM < 0x071000)
-  receive_timeout();
-#endif
-}
-
-void
-CurlStack::remove_get(CurlGet* get) {
-  iterator itr = std::find(begin(), end(), get);
-
-  if (itr == end())
-    throw torrent::internal_error("Could not find CurlGet when calling CurlStack::remove.");
-
-  base_type::erase(itr);
-
-  // The CurlGet object was never activated, so we just skip this one.
-  if (!get->is_active())
-    return;
-
-  get->set_active(false);
-
-  if (curl_multi_remove_handle((CURLM*)m_handle, get->handle()) > 0)
-    throw torrent::internal_error("Error calling curl_multi_remove_handle.");
-
-  if (m_active == m_max_active &&
-      (itr = std::find_if(begin(), end(), [](CurlGet* get) { return !get->is_active(); })) != end()) {
-    (*itr)->set_active(true);
-
-    if (curl_multi_add_handle((CURLM*)m_handle, (*itr)->handle()) > 0)
-      throw torrent::internal_error("Error calling curl_multi_add_handle.");
-
-  } else {
-    m_active--;
+      return remaining_msgs != 0;
+    }
   }
+
+  if (msg->data.result == CURLE_OK)
+    process_transfer_done(msg->easy_handle, nullptr);
+  else
+    process_transfer_done(msg->easy_handle, curl_easy_strerror(msg->data.result));
+
+  if (base_type::empty())
+    torrent::this_thread::scheduler()->erase(&m_task_timeout);
+
+  return remaining_msgs != 0;
 }
 
-// TODO: Is this function supposed to set a per-handle timeout, or is
-// it the shortest timeout amongst all handles?
-int
-CurlStack::set_timeout([[maybe_unused]] void* handle, std::chrono::microseconds timeout, void* userp) {
-  CurlStack* stack = (CurlStack*)userp;
+void
+CurlStack::process_transfer_done(CURL* handle, const char* msg) {
+  auto itr = find_curl_handle(handle);
 
-  torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&stack->m_task_timeout, timeout);
-  return 0;
+  // TODO: Lock-guard.
+
+  // Don't use trigger_* here...
+  if (msg == nullptr)
+    (*itr)->trigger_done();
+  else
+    (*itr)->trigger_failed(msg);
 }
 
-}
+} // namespace torrent::net

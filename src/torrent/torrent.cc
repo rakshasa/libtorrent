@@ -2,6 +2,8 @@
 
 #include "torrent/torrent.h"
 
+#include <curl/curl.h>
+
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/thread_disk.h"
@@ -10,7 +12,6 @@
 #include "download/download_wrapper.h"
 #include "manager.h"
 #include "net/thread_net.h"
-#include "net/curl_stack.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
 #include "rak/string_manip.h"
@@ -68,7 +69,7 @@ initialize() {
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
 
   instrumentation_initialize();
-  torrent::net::CurlStack::global_initialize();
+  curl_global_init(CURL_GLOBAL_ALL);
 
   manager = new Manager;
 
@@ -111,7 +112,7 @@ cleanup() {
   delete manager;
   manager = NULL;
 
-  torrent::net::CurlStack::global_cleanup();
+  curl_global_cleanup();
 }
 
 bool

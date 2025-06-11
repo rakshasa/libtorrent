@@ -58,6 +58,8 @@ ThreadNet::cleanup_thread() {
   m_thread_net = nullptr;
 
   m_udns.reset();
+
+  // TODO: Cleanup http stack.
 }
 
 void

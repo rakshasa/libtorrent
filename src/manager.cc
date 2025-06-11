@@ -31,7 +31,7 @@ namespace this_thread {
 void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
 void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
 void event_close_and_count(Event* event)  { utils::ThreadInternal::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
-void event_closed_and_count(Event* event) { utils::ThreadInternal::poll()->closed(event); manager->connection_manager()->dec_socket_count(); }
+void event_closed_and_count(Event* event) { utils::ThreadInternal::poll()->cleanup_closed(event); manager->connection_manager()->dec_socket_count(); }
 void event_insert_read(Event* event)      { utils::ThreadInternal::poll()->insert_read(event); }
 void event_insert_write(Event* event)     { utils::ThreadInternal::poll()->insert_write(event); }
 void event_insert_error(Event* event)     { utils::ThreadInternal::poll()->insert_error(event); }

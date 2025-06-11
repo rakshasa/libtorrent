@@ -20,19 +20,13 @@ HttpStack::HttpStack(utils::Thread* thread)
 
 HttpStack::~HttpStack() = default;
 
+void
+HttpStack::start_get(HttpGet& http_get) {
+  m_stack->start_get(http_get.curl_get());
+}
+
 // TODO: Make thread-safe.
 // TODO: Change from iostream to buffer / self-owned stream.
-
-HttpGet
-HttpStack::create(const std::string& url, std::iostream* s) {
-  auto http_get = HttpGet(m_stack.get());
-
-  http_get.curl_get()->set_url(url);
-  http_get.curl_get()->set_stream(s);
-  http_get.curl_get()->set_timeout(5 * 60);
-
-  return http_get;
-}
 
 unsigned int
 HttpStack::active() const {

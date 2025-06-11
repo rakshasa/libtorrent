@@ -15,7 +15,7 @@ public:
   HttpStack(utils::Thread* thread);
   ~HttpStack();
 
-  HttpGet             create(const std::string& url, std::iostream* s);
+  void                start_get(HttpGet& http_get);
 
   unsigned int        active() const;
   unsigned int        max_active() const;
