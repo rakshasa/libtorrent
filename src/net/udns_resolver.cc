@@ -93,7 +93,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       query->error_sin = EAI_NONAME;
 
       auto lock = std::scoped_lock(m_mutex);
-      m_malformed_queries.insert({requester, std::move(query)});
+      m_malformed_queries.emplace(requester, std::move(query));
 
       return;
     }
@@ -118,7 +118,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       query->error_sin = EAI_NONAME;
 
       auto lock = std::scoped_lock(m_mutex);
-      m_malformed_queries.insert({requester, std::move(query)});
+      m_malformed_queries.emplace(requester, std::move(query));
 
       return;
     }
@@ -127,7 +127,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
   LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
 
   auto lock = std::scoped_lock(m_mutex);
-  m_queries.insert({requester, std::move(query)});
+  m_queries.emplace(requester, std::move(query));
 }
 
 void
