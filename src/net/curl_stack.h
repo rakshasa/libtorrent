@@ -91,14 +91,13 @@ private:
   bool                process_done_handle();
   void                process_transfer_done(CURL* handle, const char* msg);
 
-  // Unprotected members, only changed in ways that are implicitly thread-safe. E.g. before any
-  // threads are started or only within the owning thread.
-  CURLM*                         m_handle;
-  torrent::utils::SchedulerEntry m_task_timeout;
-
-  // Use lock guard when accessing these members, and when modifying the underlying vector.
   mutable std::mutex  m_mutex;
 
+  // Unprotected members, only changed in ways that are implicitly thread-safe. E.g. before any
+  // threads are started or only within the owning thread.
+  CURLM*              m_handle{};
+
+  // Use lock guard when accessing these members, and when modifying the underlying vector.
   bool                m_running{true};
   unsigned int        m_active{0};
   unsigned int        m_max_active{32};
@@ -112,6 +111,8 @@ private:
   bool                m_ssl_verify_host{true};
   bool                m_ssl_verify_peer{true};
   long                m_dns_timeout{60};
+
+  torrent::utils::SchedulerEntry m_task_timeout;
 };
 
 inline bool

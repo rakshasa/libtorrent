@@ -18,9 +18,7 @@ namespace torrent::net {
 
 // TODO: Start/close should set a bool in curl_get, which indicates we've added it to the callback queue.
 
-HttpGet::HttpGet() :
-    m_curl_get(std::make_shared<CurlGet>()) {
-}
+HttpGet::HttpGet() = default;
 
 HttpGet::HttpGet(const std::string& url, std::iostream* s) :
     m_curl_get(std::make_shared<CurlGet>()) {
@@ -57,6 +55,8 @@ uint32_t
 HttpGet::timeout() const {
   return m_curl_get->timeout();
 }
+
+// TODO: Move the checks to CurlGet.
 
 void
 HttpGet::set_url(std::string url) {

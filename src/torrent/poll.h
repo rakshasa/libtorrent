@@ -31,7 +31,7 @@ public:
   // More efficient interface when closing the file descriptor.
   // Automatically removes the event from all polls.
   // Event::get_fd() may or may not be closed already.
-  void                closed(Event* event);
+  void                cleanup_closed(Event* event);
 
   // Functions for checking whetever the Event is listening to r/w/e?
   bool                in_read(Event* event);
@@ -49,6 +49,7 @@ public:
   void                remove_error(Event* event);
 
   void                remove_and_close(Event* event);
+  void                remove_and_cleanup_closed(Event* event);
 
   // Add one for HUP? Or would that be in event?
 

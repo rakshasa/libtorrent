@@ -29,14 +29,9 @@ CurlStack::~CurlStack() {
 // TODO: We do not ever call shutdown.
 void
 CurlStack::shutdown() {
-  {
-    auto guard = lock_guard();
+  assert(is_running() && "CurlStack::shutdown() called while not running.");
 
-    if (!m_running)
-      return;
-
-    // TODO: This needs to be done after all CurlGet objects have been closed and cleaned up, as
-    // CurlSocket check is_running.
+  { auto guard = lock_guard();
     m_running = false;
   }
 
@@ -45,7 +40,11 @@ CurlStack::shutdown() {
 
   curl_multi_cleanup(m_handle);
 
-  torrent::this_thread::scheduler()->erase(&m_task_timeout);
+  { auto guard = lock_guard();
+
+    m_handle = nullptr;
+    torrent::this_thread::scheduler()->erase(&m_task_timeout);
+  }
 }
 
 void
@@ -53,7 +52,9 @@ CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
   // TODO: When this is made into a callback, add a bool to indicate that we have queued the
   // callbacks for start/close.
 
-  // TODO: Check is_running?
+  // TODO: Check is_running, if not return error.
+  if (!is_running())
+    throw torrent::internal_error("Tried to start CurlGet while CurlStack is not running.");
 
   {
     auto guard = lock_guard();
@@ -95,6 +96,8 @@ CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
 
 void
 CurlStack::close_get(std::shared_ptr<CurlGet> curl_get) {
+  // TODO: Check is_running, if not return success.
+
   if (!curl_get->is_active())
     throw torrent::internal_error("Tried to close CurlGet that is not active.");
 
@@ -108,6 +111,9 @@ CurlStack::close_get(std::shared_ptr<CurlGet> curl_get) {
 
   {
     auto guard = lock_guard();
+
+    if (!m_running)
+      return;
 
     if (m_active > m_max_active) {
       m_active--;
@@ -179,6 +185,7 @@ CurlStack::receive_timeout() {
 bool
 CurlStack::process_done_handle() {
   int remaining_msgs{};
+
   CURLMsg* msg = curl_multi_info_read(m_handle, &remaining_msgs);
 
   if (msg == nullptr)
@@ -195,8 +202,10 @@ CurlStack::process_done_handle() {
     if (!(*itr)->is_using_ipv6()) {
       (*itr)->retry_ipv6();
 
-      if (curl_multi_add_handle(m_handle, (*itr)->handle()) > 0)
-        throw torrent::internal_error("Error calling curl_multi_add_handle.");
+      CURLMcode code = curl_multi_remove_handle(m_handle, (*itr)->handle());
+
+      if (code != CURLM_OK)
+        throw torrent::internal_error("CurlStack::process_done_handle() curl_multi_add_handle failed: " + std::string(curl_multi_strerror(code)));
 
       return remaining_msgs != 0;
     }

@@ -43,6 +43,11 @@ TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags)
   m_delay_scrape.slot() = [this] { delayed_send_scrape(); };
 }
 
+TrackerHttp::~TrackerHttp() {
+  close_directly();
+  this_thread::scheduler()->erase(&m_delay_scrape);
+}
+
 bool
 TrackerHttp::is_busy() const {
   return m_data != nullptr;

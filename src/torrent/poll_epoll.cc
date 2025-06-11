@@ -220,24 +220,29 @@ Poll::close(Event* event) {
 
   // Clear the event list just in case we open a new socket with the
   // same fd while in the middle of calling Poll::perform.
-  for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr)
-    if (itr->data.fd == event->file_descriptor())
-      itr->events = 0;
+  //
+  // Removed.
+  //
+  // Shouldn't be needed as we unset the read/write/error flags in m_internal->m_events using
+  // remove_read/write/error.
 }
 
 void
-Poll::closed(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "closed event", 0);
+Poll::cleanup_closed(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "cleanup_closed event", 0);
+
+  if (m_internal->event_mask(event) != 0)
+    throw internal_error("Poll::cleanup_closed(...) called but the file descriptor is active");
 
   // Kernel removes closed FDs automatically, so just clear the mask and remove it from pending calls.
   // Don't touch if the FD was re-used before we received the close notification.
   if (m_internal->m_table[event->file_descriptor()].second == event)
     m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
-  // for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
-  //   if (itr->data.fd == event->file_descriptor())
-  //     itr->events = 0;
-  // }
+  // Clear the event list just in case we open a new socket with the
+  // same fd while in the middle of calling Poll::perform.
+  //
+  // Removed.
 }
 
 bool
@@ -337,6 +342,15 @@ Poll::remove_and_close(Event* event) {
   remove_error(event);
 
   close(event);
+}
+
+void
+Poll::remove_and_cleanup_closed(Event* event) {
+  remove_read(event);
+  remove_write(event);
+  remove_error(event);
+
+  cleanup_closed(event);
 }
 
 } // namespace torrent

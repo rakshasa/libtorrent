@@ -14,23 +14,26 @@ namespace torrent::net {
 
 int
 CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd, int what, void* userp, void* socketp) {
+  // TODO: Verify this is called in the correct thread.
+
   auto stack = static_cast<CurlStack*>(userp);
   auto socket = static_cast<CurlSocket*>(socketp);
 
   // TODO: Keep track of CurlSocket's in CurlStack?
 
   // If !stack->is_running(), do strict cleanup?
-  if (!stack->is_running())
-    return 0;
+  // if (!stack->is_running())
+  //   return 0;
+
+  assert(stack->is_running() && "CurlSocket::receive_socket(...) !stack->is_running()");
 
   if (what == CURL_POLL_REMOVE) {
+    if (socket == nullptr)
+      return 0;
+
     // We also probably need the special code here as we're not
     // guaranteed that the fd will be closed, afaik.
-    if (socket != NULL)
-      socket->close();
-
-    // TODO: Consider the possibility that we'll need to set the
-    // fd-associated pointer curl holds to NULL.
+    socket->close();
 
     delete socket;
     return 0;
@@ -38,10 +41,8 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
 
   if (socket == nullptr) {
     socket = new CurlSocket(fd, stack);
-    curl_multi_assign((CURLM*)stack->handle(), fd, socket);
+    curl_multi_assign(stack->handle(), fd, socket);
 
-    // No interface for libcurl to signal when it's interested in error events.
-    // Assume that hence it must always be interested in them.
     torrent::this_thread::poll()->open(socket);
     torrent::this_thread::poll()->insert_error(socket);
   }
@@ -68,7 +69,9 @@ CurlSocket::close() {
   if (m_fileDesc == -1)
     throw torrent::internal_error("CurlSocket::close() m_fileDesc == -1.");
 
-  torrent::this_thread::poll()->closed(this);
+  torrent::this_thread::poll()->remove_and_cleanup_closed(this);
+
+  m_stack = nullptr;
   m_fileDesc = -1;
 }
 
@@ -89,13 +92,19 @@ CurlSocket::event_error() {
 
 void
 CurlSocket::handle_action(int ev_bitmask) {
+  assert(m_fileDesc != -1 && "CurlSocket::handle_action(...) m_fileDesc != -1.");
+  assert(m_stack != nullptr && "CurlSocket::handle_action(...) m_stack != nullptr.");
+
+  // Processing might deallocate this CurlSocket.
+  auto stack = m_stack;
+
   int count{};
-  auto code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
+  CURLMcode code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
 
   if (code != CURLM_OK)
-    throw torrent::internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action.");
+    throw torrent::internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
 
-  while (m_stack->process_done_handle())
+  while (stack->process_done_handle())
     ; // Do nothing.
 }
 

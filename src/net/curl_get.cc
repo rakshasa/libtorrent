@@ -101,8 +101,9 @@ void
 CurlGet::activate() {
   auto guard = lock_guard();
 
-  if (curl_multi_add_handle(m_stack, m_handle) != CURLM_OK)
-    throw torrent::internal_error("Error calling curl_multi_add_handle.");
+  CURLMcode code = curl_multi_add_handle(m_stack->handle(), m_handle);
+  if (code != CURLM_OK)
+    throw torrent::internal_error("CurlGet::activate() error calling curl_multi_add_handle: " + std::string(curl_multi_strerror(code)));
 
   // Normally libcurl should handle the timeout. But sometimes that doesn't
   // work right so we do a fallback timeout that just aborts the transfer.
@@ -123,8 +124,9 @@ CurlGet::cleanup() {
     throw torrent::internal_error("CurlGet::cleanup() called on a null m_handle.");
 
   if (m_active) {
-    if (curl_multi_remove_handle(m_handle, m_handle) > 0)
-      throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle.");
+    CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
+    if (code != CURLM_OK)
+      throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
 
     torrent::this_thread::scheduler()->erase(&m_task_timeout);
     m_active = false;
