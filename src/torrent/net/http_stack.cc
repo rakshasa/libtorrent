@@ -69,27 +69,27 @@ HttpStack::http_cacert() const {
 }
 
 void
-HttpStack::set_user_agent(std::string s) {
+HttpStack::set_user_agent(const std::string& s) {
   m_stack->set_user_agent(s);
 }
 
 void
-HttpStack::set_http_proxy(std::string s) {
+HttpStack::set_http_proxy(const std::string& s) {
   m_stack->set_http_proxy(s);
 }
 
 void
-HttpStack::set_bind_address(std::string s) {
+HttpStack::set_bind_address(const std::string& s) {
   m_stack->set_bind_address(s);
 }
 
 void
-HttpStack::set_http_capath(std::string s) {
+HttpStack::set_http_capath(const std::string& s) {
   m_stack->set_http_capath(s);
 }
 
 void
-HttpStack::set_http_cacert(std::string s) {
+HttpStack::set_http_cacert(const std::string& s) {
   m_stack->set_http_cacert(s);
 }
 

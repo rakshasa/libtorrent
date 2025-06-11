@@ -10,17 +10,20 @@
 #include "torrent/exceptions.h"
 #include "utils/functional.h"
 
-namespace torrent::net {
-
-// TODO: Seperate the thread-owned and public variables in different cachelines.
-
-static size_t
-curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handle) {
-  if (!((CurlGet*)handle)->stream()->write((const char*)data, size * nmemb).fail())
+namespace {
+size_t
+curl_get_receive_write(const char* data, size_t size, size_t nmemb, torrent::net::CurlGet* handle) {
+  if (!handle->stream()->write(data, size * nmemb).fail())
     return size * nmemb;
   else
     return 0;
 }
+
+} // namespace
+
+namespace torrent::net {
+
+// TODO: Seperate the thread-owned and public variables in different cachelines.
 
 CurlGet::CurlGet() {
   m_task_timeout.slot() = [this]() { receive_timeout(); };
@@ -183,7 +186,7 @@ CurlGet::trigger_done() {
 
   // if (should_delete_stream) {
   //   delete m_stream;
-  //   m_stream = NULL;
+  //   m_stream = nullptr;
   // }
 }
 
@@ -193,8 +196,8 @@ CurlGet::trigger_failed(const std::string& message) {
 
   // if (should_delete_stream) {
   //   delete m_stream;
-  //   m_stream = NULL;
+  //   m_stream = nullptr;
   // }
 }
 
-}
+} // namespace torrent::net

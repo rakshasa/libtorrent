@@ -48,7 +48,7 @@ CurlStack::shutdown() {
 }
 
 void
-CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
+CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
   if (curl_get == nullptr)
     throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
 
@@ -96,7 +96,7 @@ CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
 // should happen after transfer_done.
 
 void
-CurlStack::close_get(std::shared_ptr<CurlGet> curl_get) {
+CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
   { auto guard_get = curl_get->lock_guard();
 
     if (!curl_get->is_active_no_locking())
@@ -149,9 +149,7 @@ CurlStack::find_curl_handle(const CURL* curl_handle) {
 }
 
 int
-CurlStack::set_timeout(void*, long timeout_ms, void* userp) {
-  CurlStack* stack = static_cast<CurlStack*>(userp);
-
+CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
   if (timeout_ms == -1)
     torrent::this_thread::scheduler()->erase(&stack->m_task_timeout);
   else

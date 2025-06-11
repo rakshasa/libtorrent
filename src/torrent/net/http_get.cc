@@ -54,7 +54,7 @@ HttpGet::timeout() const {
 // TODO: Move the checks to CurlGet.
 
 void
-HttpGet::set_url(std::string url) {
+HttpGet::set_url(const std::string& url) {
   if (m_curl_get->is_busy())
     throw torrent::internal_error("Cannot set stream while HttpGet is busy.");
 
@@ -99,4 +99,4 @@ HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
   m_curl_get->signal_failed().push_back(slot);
 }
 
-}
+} // namespace torrent::net

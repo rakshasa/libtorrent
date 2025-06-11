@@ -72,7 +72,7 @@ protected:
 
 private:
   CurlGet(const CurlGet&) = delete;
-  void operator = (const CurlGet&) = delete;
+  CurlGet& operator=(const CurlGet&) = delete;
 
   mutable std::mutex  m_mutex;
 
@@ -133,6 +133,6 @@ CurlGet::timeout() const {
   return m_timeout;
 }
 
-}
+} // namespace torrent::net
 
 #endif

@@ -25,7 +25,7 @@ void                     cancel_callback_and_wait(void* target)              { T
 
 torrent::net::HttpStack* http_stack() { return ThreadNetInternal::http_stack(); }
 
-}
+} // namespace net_thread
 
 ThreadNet* ThreadNet::m_thread_net{nullptr};
 

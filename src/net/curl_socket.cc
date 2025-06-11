@@ -13,11 +13,8 @@
 namespace torrent::net {
 
 int
-CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd, int what, void* userp, void* socketp) {
+CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd, int what, CurlStack* stack, CurlSocket* socket) {
   // TODO: Verify this is called in the correct thread.
-
-  auto stack = static_cast<CurlStack*>(userp);
-  auto socket = static_cast<CurlSocket*>(socketp);
 
   // TODO: Keep track of CurlSocket's in CurlStack?
 
@@ -108,4 +105,4 @@ CurlSocket::handle_action(int ev_bitmask) {
     ; // Do nothing.
 }
 
-}
+} // namespace torrent::net
