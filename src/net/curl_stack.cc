@@ -49,15 +49,17 @@ CurlStack::shutdown() {
 
 void
 CurlStack::start_get(std::shared_ptr<CurlGet> curl_get) {
+  if (curl_get == nullptr)
+    throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
+
   // TODO: When this is made into a callback, add a bool to indicate that we have queued the
   // callbacks for start/close.
 
-  // TODO: Check is_running, if not return error.
+  // TODO: Check is_running, if not return error. Do not throw internal_error.
   if (!is_running())
-    throw torrent::internal_error("Tried to start CurlGet while CurlStack is not running.");
+    throw torrent::internal_error("CurlStack::start_get() called while not running.");
 
-  auto guard = lock_guard();
-  auto guard_get = curl_get->lock_guard();
+  auto guard = std::scoped_lock(m_mutex, curl_get->mutex());
 
   curl_get->prepare_start(this);
 

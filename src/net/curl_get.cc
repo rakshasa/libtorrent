@@ -116,7 +116,7 @@ CurlGet::activate() {
   // TODO: Verify this is still needed, as it was added to work around during early libcurl
   // versions.
   if (m_timeout != 0)
-    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 5s + 1s*m_timeout);
+    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 1min + 1s*m_timeout);
 
   m_active = true;
 }

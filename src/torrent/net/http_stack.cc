@@ -20,6 +20,11 @@ HttpStack::HttpStack(utils::Thread* thread)
 
 HttpStack::~HttpStack() = default;
 
+void
+HttpStack::start_get(HttpGet& http_get) {
+  m_stack->start_get(http_get.curl_get());
+}
+
 // TODO: Make thread-safe.
 // TODO: Change from iostream to buffer / self-owned stream.
 

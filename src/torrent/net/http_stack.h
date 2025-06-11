@@ -15,6 +15,8 @@ public:
   HttpStack(utils::Thread* thread);
   ~HttpStack();
 
+  void                start_get(HttpGet& http_get);
+
   unsigned int        active() const;
   unsigned int        max_active() const;
   void                set_max_active(unsigned int a);

@@ -3,6 +3,7 @@
 
 #include <iosfwd>
 #include <list>
+#include <mutex>
 #include <string>
 #include <curl/curl.h>
 
@@ -62,6 +63,7 @@ protected:
   void               lock() const                    { m_mutex.lock(); }
   auto               lock_guard() const              { return std::scoped_lock(m_mutex); }
   void               unlock() const                  { m_mutex.unlock(); }
+  auto&              mutex() const                   { return m_mutex; }
 
   void               receive_timeout();
 
@@ -72,14 +74,15 @@ private:
   CurlGet(const CurlGet&) = delete;
   void operator = (const CurlGet&) = delete;
 
+  mutable std::mutex  m_mutex;
+
+  // TODO: Consider locking requirements.
   CURL*              m_handle{};
   CurlStack*         m_stack;
 
   bool               m_ipv6;
 
   torrent::utils::SchedulerEntry m_task_timeout;
-
-  mutable std::mutex  m_mutex;
 
   // When you change timeout to a different type, update curl_get.cc where it multiplies 1s*m_timeout.
 

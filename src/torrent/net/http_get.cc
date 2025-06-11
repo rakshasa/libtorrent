@@ -29,11 +29,6 @@ HttpGet::HttpGet(const std::string& url, std::iostream* s) :
 }
 
 void
-HttpGet::start(HttpStack* stack) {
-  stack->curl_stack()->start_get(m_curl_get);
-}
-
-void
 HttpGet::close() {
   auto curl_stack = m_curl_get->curl_stack();
 

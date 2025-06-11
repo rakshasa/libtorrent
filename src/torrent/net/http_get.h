@@ -25,7 +25,6 @@ public:
 
   bool                is_valid() const { return m_curl_get != nullptr; }
 
-  void                start(HttpStack* stack);
   void                close();
 
   std::string         url() const;

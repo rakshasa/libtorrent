@@ -145,7 +145,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   m_get.set_url(request_url);
   m_get.set_stream(m_data.get());
 
-  m_get.start(torrent::net_thread::http_stack());
+  torrent::net_thread::http_stack()->start_get(m_get);
 }
 
 void
@@ -194,7 +194,7 @@ TrackerHttp::delayed_send_scrape() {
   m_get.set_url(request_url);
   m_get.set_stream(m_data.get());
 
-  m_get.start(torrent::net_thread::http_stack());
+  torrent::net_thread::http_stack()->start_get(m_get);
 }
 
 void
