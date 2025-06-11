@@ -40,8 +40,8 @@ public:
   const DownloadMain* main() const                            { return m_main.get(); }
   HashTorrent*        hash_checker()                          { return m_hash_checker.get(); }
 
-  Object*             bencode()                               { return m_bencode.get(); }
-  void                set_bencode(Object* o)                  { m_bencode.reset(o); }
+  Object*             bencode()                               { return m_bencode; }
+  void                set_bencode(Object* o)                  { m_bencode = o; }
 
   HashQueue*          hash_queue()                            { return m_hash_queue; }
   void                set_hash_queue(HashQueue* q)            { m_hash_queue = q; }
@@ -74,7 +74,7 @@ private:
   void                finished_download();
 
   std::unique_ptr<DownloadMain> m_main;
-  std::unique_ptr<Object>       m_bencode;
+  Object*                       m_bencode;
   std::unique_ptr<HashTorrent>  m_hash_checker;
   HashQueue*                    m_hash_queue;
 
