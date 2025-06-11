@@ -65,7 +65,7 @@ public:
 
   have_queue_type*    have_queue()                               { return &m_haveQueue; }
 
-  InitialSeeding*     initial_seeding()                          { return m_initial_seeding.get(); }
+  const auto&         initial_seeding() const                    { return m_initial_seeding; }
   bool                start_initial_seeding();
   void                initial_seeding_done(PeerConnectionBase* pcb);
 

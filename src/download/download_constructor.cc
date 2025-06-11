@@ -132,20 +132,20 @@ DownloadConstructor::parse_info(const Object& b) {
 }
 
 void
-DownloadConstructor::parse_tracker(const Object& b) {
+DownloadConstructor::parse_tracker(const std::unique_ptr<Object>& b) {
   const Object::list_type* announce_list = NULL;
 
-  if (b.has_key_list("announce-list") &&
+  if (b->has_key_list("announce-list") &&
 
       // Some torrent makers create empty/invalid 'announce-list'
       // entries while still having valid 'announce'.
-      !(announce_list = &b.get_key_list("announce-list"))->empty() &&
+      !(announce_list = &b->get_key_list("announce-list"))->empty() &&
       std::any_of(announce_list->begin(), announce_list->end(), std::mem_fn(&Object::is_list))) {
     for (const auto& group : *announce_list) {
       add_tracker_group(group);
     }
-  } else if (b.has_key("announce")) {
-    add_tracker_single(b.get_key("announce"), 0);
+  } else if (b->has_key("announce")) {
+    add_tracker_single(b->get_key("announce"), 0);
 
   } else if (!manager->dht_controller()->is_valid() || m_download->info()->is_private()) {
     throw bencode_error("Could not find any trackers");
@@ -154,8 +154,8 @@ DownloadConstructor::parse_tracker(const Object& b) {
   if (manager->dht_controller()->is_valid() && !m_download->info()->is_private())
     m_download->main()->tracker_list()->insert_url(m_download->main()->tracker_list()->size_group(), "dht://");
 
-  if (manager->dht_controller()->is_valid() && b.has_key_list("nodes")) {
-    for (const auto& node : b.get_key_list("nodes")) {
+  if (manager->dht_controller()->is_valid() && b->has_key_list("nodes")) {
+    for (const auto& node : b->get_key_list("nodes")) {
       add_dht_node(node);
     }
   }

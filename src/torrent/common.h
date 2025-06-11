@@ -157,7 +157,7 @@ void                    callback(void* target, std::function<void ()>&& fn);
 void                    cancel_callback(void* target);
 void                    cancel_callback_and_wait(void* target);
 
-torrent::net::HttpStack* http_stack() LIBTORRENT_EXPORT;
+const std::unique_ptr<torrent::net::HttpStack>& http_stack() LIBTORRENT_EXPORT;
 
 } // namespace torrent::net_thread
 

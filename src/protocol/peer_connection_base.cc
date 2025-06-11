@@ -335,7 +335,7 @@ PeerConnectionBase::load_up_chunk() {
 
   // Also check if we've already preloaded in the recent past, even
   // past unmaps.
-  ChunkManager* cm = manager->chunk_manager();
+  const auto& cm = manager->chunk_manager();
   uint32_t preloadSize = m_upChunk.chunk()->chunk_size() - m_upPiece.offset();
 
   if (cm->preload_type() == 0 ||

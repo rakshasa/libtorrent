@@ -63,8 +63,7 @@ public:
 
   void                set_pex_enabled(bool enabled);
 
-  Object*             bencode();
-  const Object*       bencode() const;
+  const std::unique_ptr<Object>& bencode() const;
 
   tracker::TrackerControllerWrapper       tracker_controller();
   const tracker::TrackerControllerWrapper c_tracker_controller() const;

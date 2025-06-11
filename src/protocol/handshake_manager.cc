@@ -255,7 +255,7 @@ HandshakeManager::setup_socket(SocketFd fd) {
   if (!fd.set_nonblock())
     return false;
 
-  ConnectionManager* m = manager->connection_manager();
+  const auto& m = manager->connection_manager();
 
   if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
     return false;

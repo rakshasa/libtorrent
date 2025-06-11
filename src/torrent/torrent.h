@@ -2,6 +2,7 @@
 #define LIBTORRENT_TORRENT_H
 
 #include <list>
+#include <memory>
 #include <string>
 #include <torrent/common.h>
 #include <torrent/download.h>
@@ -21,13 +22,13 @@ bool                is_initialized() LIBTORRENT_EXPORT;
 
 void                set_main_thread_slots(std::function<void()> do_work) LIBTORRENT_EXPORT;
 
-ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
-ClientList*         client_list() LIBTORRENT_EXPORT;
-ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
-FileManager*        file_manager() LIBTORRENT_EXPORT;
-ResourceManager*    resource_manager() LIBTORRENT_EXPORT;
+const std::unique_ptr<ChunkManager>&       chunk_manager() LIBTORRENT_EXPORT;
+const std::unique_ptr<ClientList>&         client_list() LIBTORRENT_EXPORT;
+const std::unique_ptr<ConnectionManager>&  connection_manager() LIBTORRENT_EXPORT;
+const std::unique_ptr<FileManager>&        file_manager() LIBTORRENT_EXPORT;
+const std::unique_ptr<ResourceManager>&    resource_manager() LIBTORRENT_EXPORT;
 
-tracker::DhtController* dht_controller() LIBTORRENT_EXPORT;
+const std::unique_ptr<tracker::DhtController>& dht_controller() LIBTORRENT_EXPORT;
 
 uint32_t            total_handshakes() LIBTORRENT_EXPORT;
 
@@ -53,7 +54,7 @@ EncodingList*       encoding_list() LIBTORRENT_EXPORT;
 // is done by 'download_remove'.
 //
 // Might consider redesigning that...
-Download            download_add(Object* s, uint32_t tracker_key) LIBTORRENT_EXPORT;
+Download            download_add(std::unique_ptr<Object> s, uint32_t tracker_key) LIBTORRENT_EXPORT;
 void                download_remove(Download d) LIBTORRENT_EXPORT;
 
 // Add all downloads to dlist. The client is responsible for clearing
