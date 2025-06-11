@@ -22,17 +22,17 @@ public:
   void               event_write() override;
   void               event_error() override;
 
-  static int         receive_socket(void* easy_handle, curl_socket_t fd, int what, void* userp, void* socketp);
+  static int         receive_socket(void* easy_handle, curl_socket_t fd, int what, CurlStack* userp, CurlSocket* socketp);
 
 private:
-  CurlSocket(const CurlSocket&);
-  void operator = (const CurlSocket&);
+  CurlSocket(const CurlSocket&) = delete;
+  CurlSocket& operator=(const CurlSocket&) = delete;
 
   void               handle_action(int ev_bitmask);
 
   CurlStack*         m_stack{};
 };
 
-}
+} // namespace torrent::net
 
 #endif

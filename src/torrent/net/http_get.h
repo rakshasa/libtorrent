@@ -31,7 +31,7 @@ public:
   std::iostream*      stream();
   uint32_t            timeout() const;
 
-  void                set_url(std::string url);
+  void                set_url(const std::string& url);
   void                set_stream(std::iostream* str);
   void                set_timeout(uint32_t seconds);
 

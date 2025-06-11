@@ -10,7 +10,7 @@ class UdnsResolver;
 
 namespace net {
 class HttpStack;
-}
+} // namespace net
 
 class LIBTORRENT_EXPORT ThreadNet : public utils::Thread {
 public:

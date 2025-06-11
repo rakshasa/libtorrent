@@ -27,11 +27,11 @@ public:
   std::string         http_capath() const;
   std::string         http_cacert() const;
 
-  void                set_user_agent(std::string s);
-  void                set_http_proxy(std::string s);
-  void                set_bind_address(std::string s);
-  void                set_http_capath(std::string s);
-  void                set_http_cacert(std::string s);
+  void                set_user_agent(const std::string& s);
+  void                set_http_proxy(const std::string& s);
+  void                set_bind_address(const std::string& s);
+  void                set_http_capath(const std::string& s);
+  void                set_http_cacert(const std::string& s);
 
   bool                ssl_verify_host() const;
   bool                ssl_verify_peer() const;

@@ -21,7 +21,7 @@ std::thread::id         thread_id()       { return torrent::ThreadMainInternal::
 // TODO: Not thread safe.
 uint32_t                hash_queue_size() { return torrent::ThreadMainInternal::thread_main()->hash_queue()->size(); }
 
-} // namespace torrent::main_thread
+} // namespace main_thread
 
 ThreadMain* ThreadMain::m_thread_main{nullptr};
 

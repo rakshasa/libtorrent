@@ -150,6 +150,6 @@ void                    cancel_callback_and_wait(void* target);
 
 torrent::net::HttpStack* http_stack() LIBTORRENT_EXPORT;
 
-}
+} // namespace torrent::net_thread
 
 #endif

@@ -60,8 +60,8 @@ public:
   // Not thread-safe, must be called from the owning thread:
   void                shutdown();
 
-  void                start_get(std::shared_ptr<CurlGet> curl_get);
-  void                close_get(std::shared_ptr<CurlGet> curl_get);
+  void                start_get(const std::shared_ptr<CurlGet>& curl_get);
+  void                close_get(const std::shared_ptr<CurlGet>& curl_get);
 
 protected:
   friend class CurlGet;
@@ -80,11 +80,11 @@ protected:
 
 private:
   CurlStack(const CurlStack&) = delete;
-  void operator = (const CurlStack&) = delete;
+  CurlStack operator=(const CurlStack&) = delete;
 
   base_type::iterator find_curl_handle(const CURL* curl_handle);
 
-  static int          set_timeout(void*, long timeout_ms, void* userp);
+  static int          set_timeout(void*, long timeout_ms, CurlStack* stack);
 
   void                receive_timeout();
 
@@ -235,6 +235,6 @@ CurlStack::set_dns_timeout(long timeout) {
   m_dns_timeout = timeout;
 }
 
-}
+} // namespace torrent::net
 
 #endif
