@@ -1,4 +1,4 @@
-#import "helpers/test_fixture.h"
+#include "helpers/test_fixture.h"
 
 class test_http : public test_fixture {
   CPPUNIT_TEST_SUITE(test_http);
