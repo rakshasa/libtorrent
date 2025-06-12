@@ -177,28 +177,34 @@ DhtServer::ping(const HashString& id, const rak::socket_address* sa) {
 // Contact nodes in given bucket and ask for their nodes closest to target.
 void
 DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
-  auto search = DhtSearch(target, contacts);
+  auto search = new DhtSearch(target, contacts);
 
-  auto n = search.get_contact();
-  while (n != search.end()) {
+  auto n = search->get_contact();
+  while (n != search->end()) {
     add_transaction(new DhtTransactionFindNode(n), packet_prio_low);
-    n = search.get_contact();
+    n = search->get_contact();
   }
+
+  // This shouldn't happen, it means we had no contactable nodes at all.
+  if (!search->start())
+    delete search;
 }
 
 void
 DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker) {
-  auto announce = DhtAnnounce(infoHash, tracker, contacts);
-  auto n        = announce.get_contact();
+  auto announce = new DhtAnnounce(infoHash, tracker, contacts);
+  auto n        = announce->get_contact();
 
-  while (n != announce.end()) {
+  while (n != announce->end()) {
     add_transaction(new DhtTransactionFindNode(n), packet_prio_high);
-    n = announce.get_contact();
+    n = announce->get_contact();
   }
 
   // This can only happen if all nodes we know are bad.
-  if (announce.start())
-    announce.update_status();
+  if (!announce->start())
+    delete announce;
+  else
+    announce->update_status();
 }
 
 void
