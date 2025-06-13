@@ -47,6 +47,8 @@ public:
 
   Piece()  = default;
   ~Piece() = default;
+  Piece(const Piece&) = default;
+  Piece& operator=(const Piece&) = default;
 
   Piece(uint32_t index, uint32_t offset, uint32_t length) :
     m_index(index), m_offset(offset), m_length(length) {}
