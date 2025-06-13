@@ -241,11 +241,11 @@ class DhtTransactionPacket {
 public:
   // transaction packet
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
-    : m_sa(*s), m_id(id), m_transaction(t) { build_buffer(d); };
+    : m_sa(*s), m_id(id), m_transaction(t) { build_buffer(d); }
 
   // non-transaction packet
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
-    : m_sa(*s), m_id(-this_thread::cached_seconds().count()) { build_buffer(d); };
+    : m_sa(*s), m_id(-this_thread::cached_seconds().count()) { build_buffer(d); }
 
   ~DhtTransactionPacket() = default;
 
