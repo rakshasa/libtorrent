@@ -36,9 +36,9 @@ class handshake_error : public network_error {
 public:
   handshake_error(int type, int error) : m_type(type), m_error(error) {}
 
-  virtual const char* what() const throw()  { return "Handshake error"; }
-  virtual int         type() const throw()  { return m_type; }
-  virtual int         error() const throw() { return m_error; }
+  const char* what() const noexcept override  { return "Handshake error"; }
+  int         type() const noexcept           { return m_type; }
+  int         error() const noexcept          { return m_error; }
 
 private:
   int     m_type;
