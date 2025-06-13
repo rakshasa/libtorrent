@@ -316,6 +316,7 @@ PeerConnectionMetadata::event_write() {
 
         m_up->set_state(ProtocolWrite::MSG);
 
+	[[fallthrough]];
       case ProtocolWrite::MSG:
         if (!m_up->buffer()->consume(m_up->throttle()->node_used_unthrottled(write_stream_throws(m_up->buffer()->position(),
                                                                                                  m_up->buffer()->remaining()))))
@@ -330,6 +331,7 @@ PeerConnectionMetadata::event_write() {
 
         m_up->set_state(ProtocolWrite::WRITE_EXTENSION);
 
+	[[fallthrough]];
       case ProtocolWrite::WRITE_EXTENSION:
         if (!up_extension())
           return;

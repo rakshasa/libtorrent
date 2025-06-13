@@ -22,7 +22,7 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
   // in progress.
 
   // TODO: What if the hash failed? Don't want data from that peer again.
-  if (affinity >= 0) {
+  if (affinity > 0) {
     for (BlockList* itr : m_transfers) {
       if (new_transfers.size() >= maxPieces)
         return new_transfers;
