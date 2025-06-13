@@ -80,7 +80,7 @@ bool extents<Address, Value, Compare>::defined(key_type address) {
 //////////////////////////////////////////////////////////////////////
 template <class Address, class Value, class Compare >
 typename extents<Address, Value, Compare>::key_type extents<Address, Value, Compare>::get_matching_key(key_type address_start, key_type address_end) {
-  key_type key;
+  key_type key{};
   bool defined = false;
   auto iter = range_map.upper_bound(address_start);
   if( iter != range_map.begin() ) { iter--; } 
