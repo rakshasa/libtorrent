@@ -668,6 +668,7 @@ restart:
       if (m_state != READ_ENC_SYNC)
         goto restart;
 
+      [[fallthrough]];
     case READ_ENC_SYNC:
       if (!read_encryption_sync())
         break;
@@ -675,10 +676,12 @@ restart:
       if (m_state != READ_ENC_SKEY)
         goto restart;
 
+      [[fallthrough]];
     case READ_ENC_SKEY:
       if (!read_encryption_skey())
         break;
 
+      [[fallthrough]];
     case READ_ENC_NEGOT:
       if (!read_encryption_negotiation())
         break;
@@ -686,6 +689,7 @@ restart:
       if (m_state != READ_ENC_PAD)
         goto restart;
 
+      [[fallthrough]];
     case READ_ENC_PAD:
       if (m_readPos) {
         LT_LOG_EXTRA_DEBUG_SA(m_address, "event_read : READ_ENC_PAD : m_readPos:%" PRIu32, m_readPos)
@@ -705,6 +709,7 @@ restart:
       if (m_state != READ_ENC_IA)
         goto restart;
 
+      [[fallthrough]];
     case READ_ENC_IA:
       LT_LOG_EXTRA_DEBUG_SA(m_address, "event_read : READ_ENC_IA", 0)
 
@@ -721,6 +726,7 @@ restart:
 
       m_state = READ_INFO;
 
+      [[fallthrough]];
     case READ_INFO:
       if (!read_info())
         break;
@@ -728,6 +734,7 @@ restart:
       if (m_state != READ_PEER)
         goto restart;
 
+      [[fallthrough]];
     case READ_PEER:
       if (!read_peer())
         break;
@@ -736,6 +743,7 @@ restart:
       if (m_state != READ_MESSAGE)
         goto restart;
 
+      [[fallthrough]];
     case READ_MESSAGE:
     case POST_HANDSHAKE:
       // For meta-downloads, we aren't interested in the bitfield or
@@ -806,6 +814,7 @@ restart:
         break;
       }
 
+      [[fallthrough]];
     case READ_BITFIELD:
     case READ_EXT:
     case READ_PORT:
@@ -893,6 +902,7 @@ Handshake::event_write() {
         break;
       }
 
+      [[fallthrough]];
     case PROXY_DONE:
       // If there's any bytes remaining, it means we got a reply from
       // the other side before our proxy connect command was finished

@@ -17,7 +17,6 @@ ChunkPart::clear() {
   default:
   case MAPPED_STATIC:
     throw internal_error("ChunkPart::clear() only MAPPED_MMAP supported.");
-    break;
   }
 
   m_chunk.clear();
