@@ -44,7 +44,7 @@ mock_clear(bool ignore_assert) {
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint32);
 
   mock_compare_map<torrent::Event>::values.clear();
-};
+}
 
 void
 mock_init() {
