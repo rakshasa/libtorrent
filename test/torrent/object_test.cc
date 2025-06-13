@@ -8,7 +8,9 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectTest);
 
-void object_test_return_void() { }
+namespace {
+[[maybe_unused]] void object_test_return_void() { }
+} // namespace
 
 // template <typename Ret>
 // struct object_void_wrapper {

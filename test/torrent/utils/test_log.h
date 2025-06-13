@@ -14,7 +14,7 @@ class test_log : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
+  void setUp() override;
 
   void test_basic();
   void test_output_open();

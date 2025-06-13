@@ -26,7 +26,7 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_http, "torrent");
 class StringStream : public std::stringstream {
 public:
   StringStream(bool *destroyed) : m_destroyed(destroyed) {}
-  ~StringStream() { *m_destroyed = true; }
+  ~StringStream() override { *m_destroyed = true; }
 private:
   bool* m_destroyed;
 };

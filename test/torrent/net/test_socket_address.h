@@ -22,9 +22,6 @@ class test_socket_address : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp() {}
-  void tearDown() {}
-
   void test_sa_is_any();
   void test_sa_is_broadcast();
 
