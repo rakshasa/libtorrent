@@ -20,10 +20,14 @@
 #include "utils/functional.h"
 #include "utils/sha1.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_info(LOG_TORRENT_INFO, this->info(), "download", log_fmt, __VA_ARGS__);
-#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                             \
-  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->info(), "storage_errors", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_fmt, ...)                                                        \
+  do {                                                                                   \
+    lt_log_print_info(LOG_TORRENT_INFO, this->info(), "download", log_fmt, __VA_ARGS__); \
+  } while (false)
+#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                                                               \
+  do {                                                                                                    \
+    lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->info(), "storage_errors", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

@@ -19,8 +19,10 @@
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_fmt, ...)                                                        \
+  do {                                                                                   \
+    lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

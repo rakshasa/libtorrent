@@ -12,10 +12,14 @@
 #include "torrent/utils/log.h"
 #include "torrent/utils/random.h"
 
-#define MOCK_CLEANUP_MAP(MOCK_FUNC) \
-  CPPUNIT_ASSERT_MESSAGE("expected mock function calls not completed for '" #MOCK_FUNC "'", mock_cleanup_map(&MOCK_FUNC) || ignore_assert);
-#define MOCK_LOG(log_fmt, ...)                                          \
-  lt_log_print(torrent::LOG_MOCK_CALLS, "%s: " log_fmt, __func__, __VA_ARGS__);
+#define MOCK_CLEANUP_MAP(MOCK_FUNC)                                                                                                           \
+  do {                                                                                                                                        \
+    CPPUNIT_ASSERT_MESSAGE("expected mock function calls not completed for '" #MOCK_FUNC "'", mock_cleanup_map(&MOCK_FUNC) || ignore_assert); \
+  } while (false)
+#define MOCK_LOG(log_fmt, ...)                                                    \
+  do {                                                                            \
+    lt_log_print(torrent::LOG_MOCK_CALLS, "%s: " log_fmt, __func__, __VA_ARGS__); \
+  } while (false)
 
 void
 mock_clear(bool ignore_assert) {

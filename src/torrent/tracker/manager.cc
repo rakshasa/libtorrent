@@ -13,8 +13,10 @@
 #include "tracker/tracker_list.h"
 #include "tracker/tracker_worker.h"
 
-#define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
-  lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker::manager", log_fmt, __VA_ARGS__);
+#define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                                               \
+  do {                                                                                    \
+    lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker::manager", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent::tracker {
 

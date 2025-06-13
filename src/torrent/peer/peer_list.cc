@@ -13,10 +13,14 @@
 #include "peer_info.h"
 #include "peer_list.h"
 
-#define LT_LOG_EVENTS(log_fmt, ...)                                     \
-  lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list", log_fmt, __VA_ARGS__);
-#define LT_LOG_ADDRESS(log_fmt, ...)                                    \
-  lt_log_print_info(LOG_PEER_LIST_ADDRESS, m_info, "peer_list", log_fmt, __VA_ARGS__);
+#define LT_LOG_EVENTS(log_fmt, ...)                                                     \
+  do {                                                                                  \
+    lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list", log_fmt, __VA_ARGS__); \
+  } while (false)
+#define LT_LOG_ADDRESS(log_fmt, ...)                                                     \
+  do {                                                                                   \
+    lt_log_print_info(LOG_PEER_LIST_ADDRESS, m_info, "peer_list", log_fmt, __VA_ARGS__); \
+  } while (false)
 #define LT_LOG_SA_FMT "'%s:%" PRIu16 "'"
 
 namespace torrent {

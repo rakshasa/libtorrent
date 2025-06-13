@@ -315,7 +315,7 @@ object_read_bencode_skip_c(const char* first, const char* last) {
 
     default:
       first = object_read_bencode_c_string(first, last).end();
-    };
+    }
 
     if (stack_itr == stack)
       return first;
@@ -349,7 +349,7 @@ object_read_bencode_raw_c(const char* first, const char* last, torrent::Object* 
     break;
   default:
     *object = obj;
-  };
+  }
 
   return first;
 }
@@ -756,7 +756,7 @@ static_map_read_bencode_c(const char* first,
     }
     default:
       throw internal_error("static_map_read_bencode_c: key_search.first->key[base] returned invalid character.");
-    };
+    }
   }
   
   throw torrent::bencode_error("Invalid bencode data.");

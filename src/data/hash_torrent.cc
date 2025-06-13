@@ -7,8 +7,10 @@
 
 #include "hash_torrent.h"
 
-#define LT_LOG_THIS(log_level, log_fmt, ...)                            \
-  lt_log_print_data(LOG_STORAGE_##log_level, m_chunk_list->data(), "hash_torrent", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_level, log_fmt, ...)                                                                \
+  do {                                                                                                      \
+    lt_log_print_data(LOG_STORAGE_##log_level, m_chunk_list->data(), "hash_torrent", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

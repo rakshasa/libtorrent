@@ -11,8 +11,10 @@
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
-  lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
+#define LT_LOG_DATA(data, log_level, log_fmt, ...)                                        \
+  do {                                                                                    \
+    lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

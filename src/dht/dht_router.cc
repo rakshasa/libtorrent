@@ -14,8 +14,10 @@
 #include "torrent/utils/log.h"
 #include "utils/sha1.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_hash(torrent::LOG_DHT_ROUTER, this->id(), "dht_router", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_fmt, ...)                                                               \
+  do {                                                                                          \
+    lt_log_print_hash(torrent::LOG_DHT_ROUTER, this->id(), "dht_router", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

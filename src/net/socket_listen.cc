@@ -6,8 +6,10 @@
 #include "torrent/utils/log.h"
 #include "torrent/utils/random.h"
 
-#define LT_LOG_SAP(log_fmt, sap, ...)                                   \
-  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, sap_pretty_str(sap).c_str(), __VA_ARGS__);
+#define LT_LOG_SAP(log_fmt, sap, ...)                                                                      \
+  do {                                                                                                     \
+    lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, sap_pretty_str(sap).c_str(), __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

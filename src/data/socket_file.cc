@@ -10,8 +10,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define LT_LOG_ERROR(log_fmt, ...)                                      \
-  lt_log_print(LOG_STORAGE, "socket_file->%i: " log_fmt, m_fd, __VA_ARGS__);
+#define LT_LOG_ERROR(log_fmt, ...)                                             \
+  do {                                                                         \
+    lt_log_print(LOG_STORAGE, "socket_file->%i: " log_fmt, m_fd, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

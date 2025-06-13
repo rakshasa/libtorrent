@@ -7,8 +7,10 @@
 
 #include "dht_node.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_hash(torrent::LOG_DHT_NODE, this->id(), "dht_node", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_fmt, ...)                                                           \
+  do {                                                                                      \
+    lt_log_print_hash(torrent::LOG_DHT_NODE, this->id(), "dht_node", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 
