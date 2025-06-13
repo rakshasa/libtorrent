@@ -12,7 +12,7 @@ class CurlStack;
 class CurlSocket : public torrent::Event {
 public:
   CurlSocket(int fd, CurlStack* stack) : m_stack(stack) { m_fileDesc = fd; }
-  ~CurlSocket();
+  ~CurlSocket() override;
 
   const char*        type_name() const override { return "curl_socket"; }
 
