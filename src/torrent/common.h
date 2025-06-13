@@ -79,7 +79,7 @@ class TrackerList;
 class TransferList;
 
 namespace net {
-class HttpGet;;
+class HttpGet;
 class HttpStack;
 class Resolver;
 } // namespace net

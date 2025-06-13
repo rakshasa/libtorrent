@@ -21,7 +21,7 @@ namespace torrent {
 static bool
 choke_manager_less(choke_queue::value_type v1, choke_queue::value_type v2) {
   return v1.weight < v2.weight;
-};
+}
 
 static inline bool
 should_connection_unchoke(choke_queue* cq, PeerConnectionBase* pcb) {

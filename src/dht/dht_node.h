@@ -36,7 +36,7 @@ public:
   unsigned int                age() const                { return this_thread::cached_seconds().count() - m_lastSeen; }
   bool                        is_good() const            { return m_recentlyActive; }
   bool                        is_questionable() const    { return !m_recentlyActive; }
-  bool                        is_bad() const             { return m_recentlyInactive >= max_failed_replies; };
+  bool                        is_bad() const             { return m_recentlyInactive >= max_failed_replies; }
   bool                        is_active() const          { return m_lastSeen; }
 
   // Update is called once every 15 minutes.
