@@ -22,12 +22,12 @@ void resource_error::initialize(const std::string& msg) { m_msg = msg; }
 void input_error::initialize(const std::string& msg) { m_msg = msg; }
 
 const char*
-connection_error::what() const throw() {
+connection_error::what() const noexcept {
   return std::strerror(m_errno);
 }
 
 const char*
-address_info_error::what() const throw() {
+address_info_error::what() const noexcept {
   return ::gai_strerror(m_errno);
 }
 

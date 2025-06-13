@@ -55,8 +55,8 @@ class dht_error : public network_error {
 public:
   dht_error(int code, const char* message) : m_message(message), m_code(code) {}
 
-  virtual int          code() const throw()   { return m_code; }
-  virtual const char*  what() const throw()   { return m_message; }
+  int          code() const noexcept { return m_code; }
+  const char*  what() const noexcept override { return m_message; }
 
 private:
   const char*  m_message;

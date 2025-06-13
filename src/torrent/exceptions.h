@@ -33,8 +33,8 @@ public:
   internal_error(const std::string& msg) { initialize(msg); }
   virtual ~internal_error() throw() {}
 
-  virtual const char* what() const throw() { return m_msg.c_str(); }
-  const std::string&  backtrace() const throw() { return m_backtrace; }
+  const char*        what() const noexcept override { return m_msg.c_str(); }
+  const std::string& backtrace() const noexcept { return m_backtrace; }
 
 private:
   // Use this function for breaking on throws.
@@ -57,7 +57,7 @@ public:
   communication_error(const std::string& msg) { initialize(msg); }
   virtual ~communication_error() throw() {}
 
-  virtual const char* what() const throw() { return m_msg.c_str(); }
+  const char* what() const noexcept override { return m_msg.c_str(); }
 
 private:
   // Use this function for breaking on throws.
@@ -71,7 +71,7 @@ public:
   connection_error(int err) : m_errno(err) {}
   virtual ~connection_error() throw() {}
 
-  virtual const char* what() const throw();
+  const char* what() const noexcept override;
 
   int get_errno() const { return m_errno; }
 
@@ -84,7 +84,7 @@ public:
   address_info_error(int err) : m_errno(err) {}
   virtual ~address_info_error() throw() {}
 
-  virtual const char* what() const throw();
+  const char* what() const noexcept override;
 
   int get_errno() const { return m_errno; }
 
@@ -114,7 +114,7 @@ public:
   storage_error(const std::string& msg) { initialize(msg); }
   virtual ~storage_error() throw() {}
 
-  virtual const char* what() const throw() { return m_msg.c_str(); }
+  const char* what() const noexcept override { return m_msg.c_str(); }
 
 private:
   // Use this function for breaking on throws.
@@ -129,7 +129,7 @@ public:
   resource_error(const std::string& msg) { initialize(msg); }
   virtual ~resource_error() throw() {}
 
-  virtual const char* what() const throw() { return m_msg.c_str(); }
+  const char* what() const noexcept override { return m_msg.c_str(); }
 
 private:
   // Use this function for breaking on throws.
@@ -144,7 +144,7 @@ public:
   input_error(const std::string& msg) { initialize(msg); }
   virtual ~input_error() throw() {}
 
-  virtual const char* what() const throw() { return m_msg.c_str(); }
+  const char* what() const noexcept override { return m_msg.c_str(); }
 
 private:
   // Use this function for breaking on throws.
