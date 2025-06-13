@@ -187,7 +187,7 @@ ResourceManager::group_index_of(const std::string& name) {
 
 void
 ResourceManager::set_priority(iterator itr, uint16_t pri) {
-  LT_LOG_ITR("set priority: %" PRIu16, 0)
+  LT_LOG_ITR("set priority: %" PRIu16, 0);
 
   itr->set_priority(pri);
 }

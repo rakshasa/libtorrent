@@ -241,7 +241,7 @@ RequestList::downloading(const Piece& piece) {
 
   default:
     goto downloading_error;
-  };
+  }
 
   // We received an invalid piece length, propably zero length due to
   // the peer not being able to transfer the requested piece.

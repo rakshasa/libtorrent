@@ -40,7 +40,7 @@ HandshakeManager::clear() {
     h->destroy_connection();
 
     delete h;
-  };
+  }
   base_type::clear();
 }
 

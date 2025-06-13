@@ -157,7 +157,9 @@ choke_queue::rebuild_containers(container_type* queued, container_type* unchoked
 void
 choke_queue::balance() {
   LT_LOG_THIS("balancing queue: heuristics:%i currently_unchoked:%" PRIu32 " max_unchoked:%" PRIu32,
-              m_heuristics, m_currently_unchoked, m_maxUnchoked)
+              m_heuristics,
+              m_currently_unchoked,
+              m_maxUnchoked);
 
   // Return if no balancing is needed. Don't return if is_unlimited()
   // as we might have just changed the value and have interested that

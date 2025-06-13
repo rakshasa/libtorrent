@@ -293,7 +293,7 @@ TrackerUdp::event_read() {
 
   default:
     return;
-  };
+  }
 }
 
 void

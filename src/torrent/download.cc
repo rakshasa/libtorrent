@@ -500,7 +500,7 @@ Download::set_connection_type(ConnectionType t) {
     break;
   default:
     throw input_error("torrent::Download::set_connection_type(...) received an unknown type.");
-  };
+  }
 
   m_ptr->set_connection_type(t);
 }
