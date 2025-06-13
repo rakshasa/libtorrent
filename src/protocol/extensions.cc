@@ -378,7 +378,7 @@ ProtocolExtension::parse_ut_metadata() {
 
     m_connection->receive_metadata_piece(message[key_piece].as_value(), NULL, 0);
     break;
-  };
+  }
 
   return true;
 }
