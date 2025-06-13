@@ -18,14 +18,16 @@
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_hash_check_queue, "data");
 
+namespace {
 pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
-static void
+void
 chunk_done(done_chunks_type* done_chunks, torrent::HashChunk* hash_chunk, const torrent::HashString& hash_value) {
   pthread_mutex_lock(&done_chunks_lock);
   (*done_chunks)[hash_chunk->handle().index()] = hash_value;
   pthread_mutex_unlock(&done_chunks_lock);
 }
+} // namespace
 
 torrent::HashString
 hash_for_index(uint32_t index) {

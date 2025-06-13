@@ -8,6 +8,21 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerListFeatures);
 
+namespace {
+[[maybe_unused]] bool
+verify_did_internal_error(std::function<void ()> func, bool should_throw) {
+  bool did_throw = false;
+
+  try {
+    func();
+  } catch (torrent::internal_error& e) {
+    did_throw = true;
+  }
+
+  return should_throw == did_throw;
+}
+} // namespace
+
 void
 TestTrackerListFeatures::test_new_peers() {
   TRACKER_LIST_SETUP();
@@ -188,19 +203,6 @@ TestTrackerListFeatures::test_count_active() {
 
 // Add separate functions for sending state to multiple trackers...
 
-
-bool
-verify_did_internal_error(std::function<void ()> func, bool should_throw) {
-  bool did_throw = false;
-
-  try {
-    func();
-  } catch (torrent::internal_error& e) {
-    did_throw = true;
-  }
-
-  return should_throw == did_throw;
-}
 
 void
 TestTrackerListFeatures::test_request_safeguard() {

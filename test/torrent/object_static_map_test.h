@@ -22,9 +22,6 @@ class ObjectStaticMapTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp() {}
-  void tearDown() {}
-
   void test_basics();
   void test_write();
 

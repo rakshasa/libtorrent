@@ -116,7 +116,7 @@ struct mock_function_type<void, Args...> {
 
 template<typename R, typename... Args>
 bool
-mock_cleanup_map(R fn[[gnu::unused]](Args...)) {
+mock_cleanup_map(R fn(Args...)) {
   return mock_function_type<R, Args...>::type::cleanup(reinterpret_cast<void*>(fn));
 }
 

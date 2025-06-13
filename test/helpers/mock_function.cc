@@ -17,6 +17,7 @@
 #define MOCK_LOG(log_fmt, ...)                                          \
   lt_log_print(torrent::LOG_MOCK_CALLS, "%s: " log_fmt, __func__, __VA_ARGS__);
 
+namespace {
 void
 mock_clear(bool ignore_assert) {
   MOCK_CLEANUP_MAP(torrent::fd__accept);
@@ -45,6 +46,7 @@ mock_clear(bool ignore_assert) {
 
   mock_compare_map<torrent::Event>::values.clear();
 }
+} // namespace
 
 void
 mock_init() {
