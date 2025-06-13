@@ -46,8 +46,6 @@ private:
 };
 
 class handshake_succeeded : public network_error {
-public:
-  using network_error::network_error;
 };
 
 Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
