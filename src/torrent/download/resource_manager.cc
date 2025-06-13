@@ -14,10 +14,14 @@
 #include "choke_queue.h"
 #include "resource_manager.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(LOG_TORRENT_INFO, "resource_manager", log_fmt, __VA_ARGS__);
-#define LT_LOG_ITR(log_fmt, ...)                                        \
-  lt_log_print_info(LOG_TORRENT_INFO, itr->download()->info(), "resource_manager", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_fmt, ...)                                                       \
+  do {                                                                                  \
+    lt_log_print_subsystem(LOG_TORRENT_INFO, "resource_manager", log_fmt, __VA_ARGS__); \
+  } while (false)
+#define LT_LOG_ITR(log_fmt, ...)                                                                            \
+  do {                                                                                                      \
+    lt_log_print_info(LOG_TORRENT_INFO, itr->download()->info(), "resource_manager", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 
@@ -187,7 +191,7 @@ ResourceManager::group_index_of(const std::string& name) {
 
 void
 ResourceManager::set_priority(iterator itr, uint16_t pri) {
-  LT_LOG_ITR("set priority: %" PRIu16, 0)
+  LT_LOG_ITR("set priority: %" PRIu16, 0);
 
   itr->set_priority(pri);
 }

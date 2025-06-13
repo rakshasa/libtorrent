@@ -57,6 +57,6 @@ public:
     operator delete(p, std::align_val_t(LT_SMP_CACHE_BYTES));
   }
 };
-}; // namespace rak
+} // namespace rak
 
 #endif // namespace rak

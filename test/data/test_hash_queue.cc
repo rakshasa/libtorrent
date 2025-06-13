@@ -20,7 +20,8 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_hash_queue, "data");
 
 typedef std::map<int, torrent::HashString> done_chunks_type;
 
-static void
+namespace {
+void
 chunk_done(torrent::ChunkList* chunk_list, done_chunks_type* done_chunks, torrent::ChunkHandle handle, const char* hash_value) {
   if (hash_value != NULL)
     (*done_chunks)[handle.index()] = *torrent::HashString::cast_from(hash_value);
@@ -34,9 +35,10 @@ check_for_chunk_done(torrent::HashQueue* hash_queue, done_chunks_type* done_chun
   return done_chunks->find(index) != done_chunks->end();
 }
 
-static void
+void
 fill_queue() {
 }
+} // namespace
 
 #define SETUP_HASH_QUEUE()                                              \
   done_chunks_type done_chunks;                                         \

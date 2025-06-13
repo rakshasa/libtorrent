@@ -16,8 +16,10 @@
 #include "torrent/event.h"
 
 // TODO: Add new log category.
-#define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
-  lt_log_print(LOG_SOCKET_##log_level, "kqueue->%s(%i) : " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
+#define LT_LOG_EVENT(event, log_level, log_fmt, ...)                                                                              \
+  do {                                                                                                                            \
+    lt_log_print(LOG_SOCKET_##log_level, "kqueue->%s(%i) : " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

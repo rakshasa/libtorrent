@@ -16,13 +16,18 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG_SA(sa, log_fmt, ...)                                     \
-  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
-#define LT_LOG_SAP(sa, log_fmt, ...)                                 \
-  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sap_addr_str(sa).c_str(), __VA_ARGS__);
-#define LT_LOG_SA_C(sa, log_fmt, ...)                                   \
-  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, \
-               reinterpret_cast<const rak::socket_address*>(sa)->address_str().c_str(), __VA_ARGS__);
+#define LT_LOG_SA(sa, log_fmt, ...)                                                                                      \
+  do {                                                                                                                   \
+    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__); \
+  } while (false)
+#define LT_LOG_SAP(sa, log_fmt, ...)                                                                                  \
+  do {                                                                                                                \
+    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sap_addr_str(sa).c_str(), __VA_ARGS__); \
+  } while (false)
+#define LT_LOG_SA_C(sa, log_fmt, ...)                                                                                                                                \
+  do {                                                                                                                                                               \
+    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, reinterpret_cast<const rak::socket_address*>(sa)->address_str().c_str(), __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 
@@ -40,7 +45,7 @@ HandshakeManager::clear() {
     h->destroy_connection();
 
     delete h;
-  };
+  }
   base_type::clear();
 }
 

@@ -329,7 +329,7 @@ DownloadMain::receive_tracker_request() {
 static bool
 SocketAddressCompact_less(const SocketAddressCompact& a, const SocketAddressCompact& b) {
   return (a.addr < b.addr) || ((a.addr == b.addr) && (a.port < b.port));
-};
+}
 
 void
 DownloadMain::do_peer_exchange() {

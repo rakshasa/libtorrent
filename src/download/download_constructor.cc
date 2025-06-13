@@ -21,12 +21,12 @@ namespace torrent {
 static bool
 download_constructor_is_single_path(Object::map_type::const_reference v) {
   return v.first.rfind("name.", 0) == 0 && v.second.is_string();
-};
+}
 
 static bool
 download_constructor_is_multi_path(Object::map_type::const_reference v) {
   return v.first.rfind("path.", 0) == 0 && v.second.is_list();
-};
+}
 
 void
 DownloadConstructor::initialize(Object& b) {

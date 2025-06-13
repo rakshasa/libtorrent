@@ -26,8 +26,10 @@
 
 #include "manager.h"
 
-#define LT_LOG_PIECE_EVENTS(log_fmt, ...)                               \
-  lt_log_print_info(LOG_PROTOCOL_PIECE_EVENTS, this->download()->info(), "piece_events", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+#define LT_LOG_PIECE_EVENTS(log_fmt, ...)                                                                                                              \
+  do {                                                                                                                                                 \
+    lt_log_print_info(LOG_PROTOCOL_PIECE_EVENTS, this->download()->info(), "piece_events", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

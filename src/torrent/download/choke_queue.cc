@@ -13,15 +13,17 @@
 #include "torrent/utils/log.h"
 
 // TODO: Add a different logging category.
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(LOG_TORRENT_INFO, "choke_queue", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_fmt, ...)                                                  \
+  do {                                                                             \
+    lt_log_print_subsystem(LOG_TORRENT_INFO, "choke_queue", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 
 static bool
 choke_manager_less(choke_queue::value_type v1, choke_queue::value_type v2) {
   return v1.weight < v2.weight;
-};
+}
 
 static inline bool
 should_connection_unchoke(choke_queue* cq, PeerConnectionBase* pcb) {
@@ -157,7 +159,9 @@ choke_queue::rebuild_containers(container_type* queued, container_type* unchoked
 void
 choke_queue::balance() {
   LT_LOG_THIS("balancing queue: heuristics:%i currently_unchoked:%" PRIu32 " max_unchoked:%" PRIu32,
-              m_heuristics, m_currently_unchoked, m_maxUnchoked)
+              m_heuristics,
+              m_currently_unchoked,
+              m_maxUnchoked);
 
   // Return if no balancing is needed. Don't return if is_unlimited()
   // as we might have just changed the value and have interested that

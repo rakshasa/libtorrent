@@ -6,20 +6,26 @@
 #include <torrent/net/socket_address.h>
 #include <torrent/utils/log.h>
 
-#define LT_LOG_ERROR(log_fmt)                                           \
-  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " (errno:%i message:'%s')", \
-               errno, std::strerror(errno));
-#define LT_LOG_FD(log_fmt)                                              \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd);
-#define LT_LOG_FD_ERROR(log_fmt)                                        \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (errno:%i message:'%s')", \
-               fd, errno, std::strerror(errno));
-#define LT_LOG_FD_SIN(log_fmt)                                        \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (address:%s)", \
-               fd, sin_pretty_str(sa.get()).c_str());
-#define LT_LOG_FD_SIN6(log_fmt)                                       \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (address:%s)", \
-               fd, sin6_pretty_str(sa.get()).c_str());
+#define LT_LOG_ERROR(log_fmt)                                                                                \
+  do {                                                                                                       \
+    lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " (errno:%i message:'%s')", errno, std::strerror(errno)); \
+  } while (false)
+#define LT_LOG_FD(log_fmt)                                   \
+  do {                                                       \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd); \
+  } while (false)
+#define LT_LOG_FD_ERROR(log_fmt)                                                                                     \
+  do {                                                                                                               \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (errno:%i message:'%s')", fd, errno, std::strerror(errno)); \
+  } while (false)
+#define LT_LOG_FD_SIN(log_fmt)                                                                                 \
+  do {                                                                                                         \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (address:%s)", fd, sin_pretty_str(sa.get()).c_str()); \
+  } while (false)
+#define LT_LOG_FD_SIN6(log_fmt)                                                                                 \
+  do {                                                                                                          \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " (address:%s)", fd, sin6_pretty_str(sa.get()).c_str()); \
+  } while (false)
 
 namespace torrent {
 

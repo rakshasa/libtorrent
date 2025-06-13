@@ -22,12 +22,15 @@
 
 #include "manager.h"
 
-#define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_http", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
+#define LT_LOG(log_fmt, ...)                                                                                                                    \
+  do {                                                                                                                                          \
+    lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_http", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__); \
+  } while (false)
 
-#define LT_LOG_DUMP(log_dump_data, log_dump_size, log_fmt, ...)         \
-  lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, \
-                         "tracker_http", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
+#define LT_LOG_DUMP(log_dump_data, log_dump_size, log_fmt, ...)                                                                                                                \
+  do {                                                                                                                                                                         \
+    lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, "tracker_http", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

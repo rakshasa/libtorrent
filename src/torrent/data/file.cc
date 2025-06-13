@@ -11,17 +11,6 @@
 
 namespace torrent {
 
-const int File::flag_active;
-const int File::flag_create_queued;
-const int File::flag_resize_queued;
-const int File::flag_fallocate;
-const int File::flag_previously_created;
-
-const int File::flag_prioritize_first;
-const int File::flag_prioritize_last;
-
-const int File::flag_attr_padding;
-
 File::~File() {
   assert((is_padding() || !is_open()) && "File::~File() called on an open file.");
 }

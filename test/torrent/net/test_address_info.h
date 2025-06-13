@@ -10,9 +10,6 @@ class test_address_info : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp() {}
-  void tearDown() {}
-
   void test_basic();
   void test_numericserv();
   void test_helpers();

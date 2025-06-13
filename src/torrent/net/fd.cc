@@ -12,34 +12,50 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG(log_fmt, ...)                                    \
-  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__);
-#define LT_LOG_FLAG(log_fmt)                                            \
-  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x", flags);
-#define LT_LOG_FLAG_ERROR(log_fmt)                                      \
-  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
-               flags, errno, std::strerror(errno));
-#define LT_LOG_FD(log_fmt)                                      \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd);
-#define LT_LOG_FD_ERROR(log_fmt)                                        \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", \
-               fd, errno, std::strerror(errno));
-#define LT_LOG_FD_SOCKADDR(log_fmt)                                   \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s", \
-               fd, sa_pretty_str(sa).c_str());
-#define LT_LOG_FD_SOCKADDR_ERROR(log_fmt)                               \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s errno:%i message:'%s'", \
-               fd, sa_pretty_str(sa).c_str(), errno, std::strerror(errno));
-#define LT_LOG_FD_FLAG(log_fmt)                                         \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x", fd, flags);
-#define LT_LOG_FD_FLAG_ERROR(log_fmt)                                   \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
-               fd, flags, errno, std::strerror(errno));
-#define LT_LOG_FD_VALUE(log_fmt, value)                                 \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i", fd, (int)value);
-#define LT_LOG_FD_VALUE_ERROR(log_fmt, value)                           \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i errno:%i message:'%s'", \
-               fd, (int)value, errno, std::strerror(errno));
+#define LT_LOG(log_fmt, ...)                                      \
+  do {                                                            \
+    lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__); \
+  } while (false)
+#define LT_LOG_FLAG(log_fmt)                                                \
+  do {                                                                      \
+    lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x", flags); \
+  } while (false)
+#define LT_LOG_FLAG_ERROR(log_fmt)                                                                                             \
+  do {                                                                                                                         \
+    lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x errno:%i message:'%s'", flags, errno, std::strerror(errno)); \
+  } while (false)
+#define LT_LOG_FD(log_fmt)                                   \
+  do {                                                       \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd); \
+  } while (false)
+#define LT_LOG_FD_ERROR(log_fmt)                                                                                     \
+  do {                                                                                                               \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", fd, errno, std::strerror(errno)); \
+  } while (false)
+#define LT_LOG_FD_SOCKADDR(log_fmt)                                                                     \
+  do {                                                                                                  \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s", fd, sa_pretty_str(sa).c_str()); \
+  } while (false)
+#define LT_LOG_FD_SOCKADDR_ERROR(log_fmt)                                                                                                                  \
+  do {                                                                                                                                                     \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s errno:%i message:'%s'", fd, sa_pretty_str(sa).c_str(), errno, std::strerror(errno)); \
+  } while (false)
+#define LT_LOG_FD_FLAG(log_fmt)                                                     \
+  do {                                                                              \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x", fd, flags); \
+  } while (false)
+#define LT_LOG_FD_FLAG_ERROR(log_fmt)                                                                                                  \
+  do {                                                                                                                                 \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%i message:'%s'", fd, flags, errno, std::strerror(errno)); \
+  } while (false)
+#define LT_LOG_FD_VALUE(log_fmt, value)                                                \
+  do {                                                                                 \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i", fd, (int)value); \
+  } while (false)
+#define LT_LOG_FD_VALUE_ERROR(log_fmt, value)                                                                                             \
+  do {                                                                                                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i errno:%i message:'%s'", fd, (int)value, errno, std::strerror(errno)); \
+  } while (false)
 
 namespace torrent {
 

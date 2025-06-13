@@ -7,6 +7,7 @@
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_uri_parser, "torrent/utils");
 
+namespace {
 void
 test_print_uri_state(torrent::utils::uri_state state) {
   lt_log_print(torrent::LOG_MOCK_CALLS, "state.uri: %s", state.uri.c_str());
@@ -15,6 +16,7 @@ test_print_uri_state(torrent::utils::uri_state state) {
   lt_log_print(torrent::LOG_MOCK_CALLS, "state.query: %s", state.query.c_str());
   lt_log_print(torrent::LOG_MOCK_CALLS, "state.fragment: %s", state.fragment.c_str());
 }
+} // namespace
 
 void
 test_uri_parser::test_basic() {

@@ -19,8 +19,10 @@
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_fmt, ...)                                                        \
+  do {                                                                                   \
+    lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 
@@ -55,8 +57,8 @@ class dht_error : public network_error {
 public:
   dht_error(int code, const char* message) : m_message(message), m_code(code) {}
 
-  virtual int          code() const throw()   { return m_code; }
-  virtual const char*  what() const throw()   { return m_message; }
+  int          code() const noexcept { return m_code; }
+  const char*  what() const noexcept override { return m_message; }
 
 private:
   const char*  m_message;

@@ -222,7 +222,7 @@ class DhtMessage : public static_map_type<dht_keys, key_LAST> {
 public:
   using base_type = static_map_type<dht_keys, key_LAST>;
 
-  DhtMessage() : data_end(data) {};
+  DhtMessage() : data_end(data) {}
 
   // Must be big enough to hold one of the possible variable-sized reply data.
   // Currently either:
@@ -241,11 +241,11 @@ class DhtTransactionPacket {
 public:
   // transaction packet
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
-    : m_sa(*s), m_id(id), m_transaction(t) { build_buffer(d); };
+    : m_sa(*s), m_id(id), m_transaction(t) { build_buffer(d); }
 
   // non-transaction packet
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
-    : m_sa(*s), m_id(-this_thread::cached_seconds().count()) { build_buffer(d); };
+    : m_sa(*s), m_id(-this_thread::cached_seconds().count()) { build_buffer(d); }
 
   ~DhtTransactionPacket() = default;
 

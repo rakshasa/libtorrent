@@ -24,8 +24,10 @@
 #include "object.h"
 #include "throttle.h"
 
-#define LT_LOG_THIS(log_level, log_fmt, ...)                         \
-  lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
+#define LT_LOG_THIS(log_level, log_fmt, ...)                                                     \
+  do {                                                                                           \
+    lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 
@@ -500,7 +502,7 @@ Download::set_connection_type(ConnectionType t) {
     break;
   default:
     throw input_error("torrent::Download::set_connection_type(...) received an unknown type.");
-  };
+  }
 
   m_ptr->set_connection_type(t);
 }

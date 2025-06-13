@@ -13,8 +13,10 @@
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG(log_fmt, ...)                                \
-  lt_log_print_subsystem(LOG_NET_DNS, "dns", log_fmt, __VA_ARGS__);
+#define LT_LOG(log_fmt, ...)                                          \
+  do {                                                                \
+    lt_log_print_subsystem(LOG_NET_DNS, "dns", log_fmt, __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 

@@ -20,10 +20,14 @@
 #include "initial_seed.h"
 #include "peer_connection_leech.h"
 
-#define LT_LOG_NETWORK_ERRORS(log_fmt, ...)                              \
-  lt_log_print_info(LOG_PROTOCOL_NETWORK_ERRORS, this->download()->info(), "network_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
-#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                              \
-  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->download()->info(), "storage_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+#define LT_LOG_NETWORK_ERRORS(log_fmt, ...)                                                                                                                \
+  do {                                                                                                                                                     \
+    lt_log_print_info(LOG_PROTOCOL_NETWORK_ERRORS, this->download()->info(), "network_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__); \
+  } while (false)
+#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                                                                                                                \
+  do {                                                                                                                                                     \
+    lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->download()->info(), "storage_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__); \
+  } while (false)
 
 namespace torrent {
 
@@ -569,6 +573,7 @@ PeerConnection<type>::event_write() {
 
         m_up->set_state(ProtocolWrite::MSG);
 
+	[[fallthrough]];
       case ProtocolWrite::MSG:
         if (!m_up->buffer()->consume(m_up->throttle()->node_used_unthrottled(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()))))
           return;
@@ -593,6 +598,7 @@ PeerConnection<type>::event_write() {
           break;
         }
 
+	[[fallthrough]];
       case ProtocolWrite::WRITE_PIECE:
         if (!up_chunk())
           return;
