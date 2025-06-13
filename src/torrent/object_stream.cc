@@ -71,7 +71,7 @@ object_read_bencode_c_string(const char* first, const char* last) {
   // Set the most-significant bit so that if there are no numbers in
   // the input it will fail the length check, while "0" will shift the
   // bit out.
-  unsigned int length = 0x1 << (std::numeric_limits<unsigned int>::digits - 1);
+  unsigned int length = 0x1U << (std::numeric_limits<unsigned int>::digits - 1);
 
   while (first != last && *first >= '0' && *first <= '9')
     length = length * 10 + (*first++ - '0');
@@ -534,7 +534,6 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
     break;
   case Object::TYPE_DICT_KEY:
     throw torrent::bencode_error("Cannot bencode internal dict_key type.");
-    break;
   }
 }
 
