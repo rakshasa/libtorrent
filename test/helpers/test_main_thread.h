@@ -31,40 +31,40 @@ private:
 
 class TestFixtureWithMainThread : public test_fixture {
 public:
-  void setUp();
-  void tearDown();
+  void setUp() override;
+  void tearDown() override;
 
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
 class TestFixtureWithMainAndDiskThread : public test_fixture {
 public:
-  void setUp();
-  void tearDown();
+  void setUp() override;
+  void tearDown() override;
 
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
 class TestFixtureWithMainAndTrackerThread : public test_fixture {
 public:
-  void setUp();
-  void tearDown();
+  void setUp() override;
+  void tearDown() override;
 
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
 class TestFixtureWithMainNetTrackerThread : public test_fixture {
 public:
-  void setUp();
-  void tearDown();
+  void setUp() override;
+  void tearDown() override;
 
   std::unique_ptr<TestMainThread> m_main_thread;
 };
 
 class TestFixtureWithMockAndMainThread : public test_fixture {
 public:
-  void setUp();
-  void tearDown();
+  void setUp() override;
+  void tearDown() override;
 
   std::unique_ptr<TestMainThread> m_main_thread;
 };

@@ -27,6 +27,7 @@ CPPUNIT_REGISTRY_ADD_TO_DEFAULT("data");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("net");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("tracker");
 
+namespace {
 void
 do_test_panic(int signum) {
   signal(signum, SIG_DFL);
@@ -64,6 +65,7 @@ register_signal_handlers() {
     exit(-1);
   }
 }
+} // namespace
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
   register_signal_handlers();

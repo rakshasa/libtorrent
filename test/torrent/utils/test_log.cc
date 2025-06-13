@@ -14,20 +14,23 @@
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_log, "torrent/utils");
 
-namespace torrent {
-typedef std::vector<std::pair<std::string, log_slot> > log_output_list;
-extern log_output_list log_outputs;
-}
-
-const char* expected_output = NULL;
+namespace {
+const char* expected_output = nullptr;
 unsigned int output_mask;
 
-static void
+void
 test_output(const char* output, unsigned int length, unsigned int mask) {
   CPPUNIT_ASSERT_MESSAGE("'" + std::string(output) + "' != '" + std::string(expected_output) + "'",
                          std::strcmp(output, expected_output) == 0);
   CPPUNIT_ASSERT_MESSAGE("'" + std::string(output) + "'", std::strlen(output) == length);
   output_mask |= mask;
+}
+
+} // namespace
+
+namespace torrent {
+typedef std::vector<std::pair<std::string, log_slot> > log_output_list;
+extern log_output_list log_outputs;
 }
 
 #define LTUNIT_ASSERT_OUTPUT(group, mask, expected, ...) \

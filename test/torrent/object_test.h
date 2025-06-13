@@ -12,9 +12,6 @@ class ObjectTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp() {}
-  void tearDown() {}
-
   void test_basic();
   void test_flags();
   void test_merge();
