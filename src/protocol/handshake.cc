@@ -845,15 +845,15 @@ restart:
       return event_write();
     }
 
-  } catch (handshake_succeeded& e) {
-    m_manager->receive_succeeded(this);
+} catch (const handshake_succeeded&) {
+  m_manager->receive_succeeded(this);
 
-  } catch (handshake_error& e) {
-    m_manager->receive_failed(this, e.type(), e.error());
+} catch (const handshake_error& e) {
+  m_manager->receive_failed(this, e.type(), e.error());
 
-  } catch (network_error& e) {
-    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_read_error);
-  }
+} catch (const network_error&) {
+  m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_read_error);
+}
 }
 
 bool
@@ -956,13 +956,13 @@ Handshake::event_write() {
         this_thread::poll()->remove_write(this);
     }
 
-  } catch (handshake_succeeded& e) {
+  } catch (const handshake_succeeded&) {
     m_manager->receive_succeeded(this);
 
-  } catch (handshake_error& e) {
+  } catch (const handshake_error& e) {
     m_manager->receive_failed(this, e.type(), e.error());
 
-  } catch (network_error& e) {
+  } catch (const network_error&) {
     m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_write_error);
   }
 }

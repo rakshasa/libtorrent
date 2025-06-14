@@ -124,7 +124,9 @@ template <typename map_type>
 bool static_map_read_bencode(map_type& map, const char* str) {
   try {
     return torrent::static_map_read_bencode(str, str + strlen(str), map) == str + strlen(str);
-  } catch (torrent::bencode_error&) { return false; }
+  } catch (const torrent::bencode_error&) {
+    return false;
+  }
 }
 
 template <typename map_type>
@@ -132,7 +134,9 @@ bool static_map_read_bencode_exception(map_type& map, const char* str) {
   try {
     torrent::static_map_read_bencode(str, str + strlen(str), map);
     return false;
-  } catch (torrent::bencode_error&) { return true; }
+  } catch (const torrent::bencode_error&) {
+    return true;
+  }
 }
 
 void
@@ -196,7 +200,7 @@ bool static_map_write_bencode(map_type map, const char* original) {
                                                      map).first;
     return std::strncmp(buffer, original, std::distance(buffer, last)) == 0;
 
-  } catch (torrent::bencode_error& e) {
+  } catch (const torrent::bencode_error&) {
     return false;
   }
 }

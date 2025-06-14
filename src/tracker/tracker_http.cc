@@ -379,7 +379,7 @@ TrackerHttp::process_success(const Object& object) {
       else if (object.get_key("peers").is_list())
         l.parse_address_normal(object.get_key_list("peers"));
 
-    } catch (bencode_error& e) {
+    } catch (const bencode_error& e) {
       return receive_failed(e.what());
     }
   }

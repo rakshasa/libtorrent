@@ -249,7 +249,7 @@ ProtocolExtension::read_done() {
       throw internal_error("ProtocolExtension::read_done called with invalid extension type.");
     }
 
-  } catch (bencode_error& e) {
+  } catch (const bencode_error&) {
     // Ignore malformed messages.
     // DEBUG:
 //     throw internal_error("ProtocolExtension::read_done '" + std::string(m_read, std::distance(m_read, m_readPos)) + "'");

@@ -253,20 +253,20 @@ PeerConnectionMetadata::event_read() {
 
   // Exception handlers:
 
-  } catch (close_connection& e) {
+  } catch (const close_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (blocked_connection& e) {
+  } catch (const blocked_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (network_error& e) {
+  } catch (const network_error&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (storage_error& e) {
+  } catch (const storage_error& e) {
     LT_LOG_STORAGE_ERRORS("read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
-  } catch (base_error& e) {
+  } catch (const base_error& e) {
     std::stringstream s;
     s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
 
@@ -341,20 +341,20 @@ PeerConnectionMetadata::event_write() {
 
     } while (true);
 
-  } catch (close_connection& e) {
+  } catch (const close_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (blocked_connection& e) {
+  } catch (const blocked_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (network_error& e) {
+  } catch (const network_error&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (storage_error& e) {
+  } catch (const storage_error& e) {
     LT_LOG_STORAGE_ERRORS("read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
-  } catch (base_error& e) {
+  } catch (const base_error& e) {
     std::stringstream s;
     s << "Connection write fd(" << get_fd().get_fd() << ',' << m_up->get_state() << ',' << m_up->last_command() << ") \"" << e.what() << '"';
 

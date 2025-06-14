@@ -94,7 +94,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     CppUnit::CompilerOutputter outputter( &result, std::cerr );
     outputter.write();
 
-  } catch ( std::invalid_argument &e ) { // Test path not resolved
+  } catch (const std::invalid_argument& e) { // Test path not resolved
     std::cerr  <<  std::endl <<  "ERROR: "  <<  e.what() << std::endl;
     return 1;
   }
