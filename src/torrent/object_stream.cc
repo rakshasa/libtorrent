@@ -26,7 +26,7 @@ object_read_string(std::istream* input, std::string& str) {
   try {
   	str.resize(size);
 
-  } catch (std::length_error& e) {
+  } catch (const std::length_error&) {
     return false;
   }
 

@@ -27,7 +27,7 @@ verify_did_internal_error(std::function<unsigned int ()> func, bool should_throw
 
   try {
     func();
-  } catch (torrent::internal_error& e) {
+  } catch (const torrent::internal_error&) {
     did_throw = true;
   }
 

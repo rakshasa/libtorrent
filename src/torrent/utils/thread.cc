@@ -164,7 +164,7 @@ Thread::event_loop() {
       m_flags &= ~flag_polling;
     }
 
-  } catch (shutdown_exception& e) {
+  } catch (const shutdown_exception&) {
     lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
 

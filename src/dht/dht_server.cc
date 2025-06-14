@@ -114,7 +114,7 @@ DhtServer::start(int port) {
     if (!get_fd().bind(sa))
       throw resource_error("Could not bind datagram socket.");
 
-  } catch (torrent::base_error& e) {
+  } catch (const torrent::base_error&) {
     get_fd().close();
     get_fd().clear();
     throw;
@@ -362,7 +362,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
     // Mark node responsive only if all processing was successful, without errors.
     m_router->node_replied(id, sa);
 
-  } catch (std::exception& e) {
+  } catch (const std::exception&) {
     drop_packet(itr->second->packet());
     delete itr->second;
     m_transactions.erase(itr);
@@ -633,7 +633,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
     try {
       find_node_next(transaction->as_find_node());
 
-    } catch (std::exception& e) {
+    } catch (const std::exception&) {
       if (!quick) {
         drop_packet(transaction->packet());
         delete itr->second;
@@ -697,7 +697,7 @@ DhtServer::event_read() {
       // packet at all, so we don't throw an error to prevent bounce loops.
       try {
         static_map_read_bencode(buffer, buffer + read, message);
-      } catch (bencode_error& e) {
+      } catch (const bencode_error&) {
         continue;
       }
 
@@ -759,7 +759,7 @@ DhtServer::event_read() {
     // If node was querying us, reply with error packet, otherwise mark the node as "query failed",
     // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
     // to other nodes.
-    } catch (bencode_error& e) {
+    } catch (const bencode_error& e) {
       if ((type == 'r' || type == 'e') && nodeId != NULL) {
         m_router->node_inactive(*nodeId, &sa);
       } else {
@@ -768,14 +768,13 @@ DhtServer::event_read() {
         create_error(message, &sa, dht_error_protocol, message.data_end);
       }
 
-    } catch (dht_error& e) {
+    } catch (const dht_error& e) {
       if ((type == 'r' || type == 'e') && nodeId != NULL)
         m_router->node_inactive(*nodeId, &sa);
       else
         create_error(message, &sa, e.code(), e.what());
 
-    } catch (network_error& e) {
-
+    } catch (const network_error&) {
     }
   }
 
@@ -823,7 +822,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
       if (static_cast<unsigned int>(written) != packet->length())
         throw network_error();
 
-    } catch (network_error& e) {
+    } catch (const network_error&) {
       // Couldn't write packet, maybe something wrong with node address or routing, so mark node as bad.
       if (packet->has_transaction()) {
         auto itr = m_transactions.find(transactionKey);

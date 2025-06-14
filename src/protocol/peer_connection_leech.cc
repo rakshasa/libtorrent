@@ -432,23 +432,23 @@ PeerConnection<type>::event_read() {
 
   // Exception handlers:
 
-  } catch (close_connection& e) {
+  } catch (const close_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (blocked_connection& e) {
+  } catch (const blocked_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (network_error& e) {
+  } catch (const network_error& e) {
     LT_LOG_NETWORK_ERRORS("%s network read error: %s",
                           rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
                           e.what());
     m_download->connection_list()->erase(this, 0);
 
-  } catch (storage_error& e) {
+  } catch (const storage_error& e) {
     LT_LOG_NETWORK_ERRORS("storage read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
-  } catch (base_error& e) {
+  } catch (const base_error& e) {
     std::stringstream s;
     s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
     s << " '" << rak::copy_escape_html(reinterpret_cast<char*>(m_down->buffer()->begin()), reinterpret_cast<char*>(m_down->buffer()->position())) << "'";
@@ -615,23 +615,23 @@ PeerConnection<type>::event_write() {
 
     } while (true);
 
-  } catch (close_connection& e) {
+  } catch (const close_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (blocked_connection& e) {
+  } catch (const blocked_connection&) {
     m_download->connection_list()->erase(this, 0);
 
-  } catch (network_error& e) {
+  } catch (const network_error& e) {
     LT_LOG_NETWORK_ERRORS("%s write error: %s",
                           rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
                           e.what());
     m_download->connection_list()->erase(this, 0);
 
-  } catch (storage_error& e) {
+  } catch (const storage_error& e) {
     LT_LOG_STORAGE_ERRORS("write error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
-  } catch (base_error& e) {
+  } catch (const base_error& e) {
     std::stringstream s;
     s << "Connection write fd(" << get_fd().get_fd() << ',' << m_up->get_state() << ',' << m_up->last_command() << ") \"" << e.what() << '"';
 

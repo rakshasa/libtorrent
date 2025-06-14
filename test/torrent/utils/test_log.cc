@@ -79,7 +79,7 @@ test_log::test_output_open() {
 
   // try {
   //   torrent::log_open_output("test_output_1", torrent::log_slot());
-  // } catch (torrent::input_error& e) {
+  // } catch (const torrent::input_error&) {
   //   return;
   // }
 

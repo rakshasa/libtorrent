@@ -112,11 +112,11 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   try {
     initialize_custom();
 
-  } catch (close_connection& e) {
+  } catch (const close_connection&) {
     // The handshake manager closes the socket for us.
-    m_peerInfo = NULL;
-    m_download = NULL;
-    m_extensions = NULL;
+    m_peerInfo   = nullptr;
+    m_download   = nullptr;
+    m_extensions = nullptr;
 
     get_fd().clear();
     return;

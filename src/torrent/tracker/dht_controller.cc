@@ -61,7 +61,7 @@ DhtController::initialize(const Object& dhtCache) {
   try {
     m_router = std::make_unique<DhtRouter>(dhtCache, bind_address);
 
-  } catch (torrent::local_error& e) {
+  } catch (const torrent::local_error& e) {
     LT_LOG_THIS("initialization failed (error:%s)", e.what());
   }
 }
@@ -79,7 +79,7 @@ DhtController::start(ConnectionManager::port_type port) {
     m_router->start(port);
     return true;
 
-  } catch (torrent::local_error& e) {
+  } catch (const torrent::local_error& e) {
     LT_LOG_THIS("start failed (error:%s)", e.what());
     return false;
   }

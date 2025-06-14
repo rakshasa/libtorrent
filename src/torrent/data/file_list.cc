@@ -417,7 +417,7 @@ FileList::open(bool hashing, int flags) {
       lastPath = *entry->path();
     }
 
-  } catch (local_error& e) {
+  } catch (const local_error& e) {
     for (auto& entry : *this) {
       entry->unset_flags_protected(File::flag_active);
       manager->file_manager()->close(entry.get());

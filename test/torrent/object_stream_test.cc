@@ -29,7 +29,7 @@ bool object_write_bencode(const torrent::Object& obj, const char* original) {
     char* last = torrent::object_write_bencode(buffer, buffer + 1024, &obj).first;
     return std::strncmp(buffer, original, std::distance(buffer, last)) == 0;
 
-  } catch (torrent::bencode_error& e) {
+  } catch (const torrent::bencode_error&) {
     return false;
   }
 }
@@ -40,7 +40,7 @@ bool object_stream_read_skip(const char* input) {
     return
       torrent::object_read_bencode_c(input, input + strlen(input), &tmp) == input + strlen(input) &&
       torrent::object_read_bencode_skip_c(input, input + strlen(input)) == input + strlen(input);
-  } catch (torrent::bencode_error& e) {
+  } catch (const torrent::bencode_error&) {
     return false;
   }
 }
@@ -51,14 +51,14 @@ bool object_stream_read_skip_catch(const char* input) {
     torrent::object_read_bencode_c(input, input + strlen(input), &tmp);
     std::cout << "(N)";
     return false;
-  } catch (torrent::bencode_error& e) {
+  } catch (const torrent::bencode_error&) {
   }
 
   try {
     torrent::object_read_bencode_skip_c(input, input + strlen(input));
     std::cout << "(S)";
     return false;
-  } catch (torrent::bencode_error& e) {
+  } catch (const torrent::bencode_error&) {
     return true;
   }
 }
