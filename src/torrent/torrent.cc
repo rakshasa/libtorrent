@@ -157,10 +157,10 @@ encoding_list() {
 
 Download
 download_add(Object* object, uint32_t tracker_key) {
-  auto download = std::make_unique<DownloadWrapper>();
+  auto download = new DownloadWrapper;
 
   DownloadConstructor ctor;
-  ctor.set_download(download.get());
+  ctor.set_download(download);
   ctor.set_encoding_list(manager->encoding_list());
 
   ctor.initialize(*object);
@@ -196,10 +196,10 @@ download_add(Object* object, uint32_t tracker_key) {
   // Consider move as much as possible into this function
   // call. Anything that won't cause possible torrent creation errors
   // go in there.
-  manager->initialize_download(download.get());
+  manager->initialize_download(download);
 
   download->set_bencode(object);
-  return Download(download.release());
+  return Download(download);
 }
 
 void

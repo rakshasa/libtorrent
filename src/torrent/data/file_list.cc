@@ -592,7 +592,7 @@ FileList::create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot)
   if (offset + length > m_torrent_size)
     throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
-  auto chunk = std::make_unique<Chunk>();
+  auto chunk = new Chunk;
 
   auto itr = std::find_if(begin(), end(), [offset](const value_type& file) {
       return file->is_valid_position(offset);
@@ -620,7 +620,7 @@ FileList::create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot)
   if (chunk->empty())
     return NULL;
 
-  return chunk.release();
+  return chunk;
 }
 
 Chunk*

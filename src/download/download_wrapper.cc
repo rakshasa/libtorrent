@@ -28,7 +28,7 @@
 namespace torrent {
 
 DownloadWrapper::DownloadWrapper()
-  : m_main(new DownloadMain) {
+  : m_main(std::make_unique<DownloadMain>()) {
 
   m_main->delay_download_done().slot()       = [this] { data()->call_download_done(); };
   m_main->delay_partially_done().slot()      = [this] { data()->call_partially_done(); };
