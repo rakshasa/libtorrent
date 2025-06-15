@@ -54,9 +54,7 @@ socket_address_key::is_comparable_sockaddr(const sockaddr* sa) {
 
 inline socket_address_key
 socket_address_key::from_sockaddr(const sockaddr* sa) {
-  socket_address_key result;
-
-  std::memset(&result, 0, sizeof(socket_address_key));
+  socket_address_key result{};
 
   result.m_family = AF_UNSPEC;
 
@@ -85,9 +83,7 @@ socket_address_key::from_sockaddr(const sockaddr* sa) {
 
 inline socket_address_key
 socket_address_key::from_sin_addr(const sockaddr_in& sa) {
-  socket_address_key result;
-
-  std::memset(&result, 0, sizeof(socket_address_key));
+  socket_address_key result{};
 
   result.m_family = AF_INET;
   result.m_addr.s_addr = ntohl(sa.sin_addr.s_addr);
@@ -97,9 +93,7 @@ socket_address_key::from_sin_addr(const sockaddr_in& sa) {
 
 inline socket_address_key
 socket_address_key::from_sin6_addr(const sockaddr_in6& sa) {
-  socket_address_key result;
-
-  std::memset(&result, 0, sizeof(socket_address_key));
+  socket_address_key result{};
 
   result.m_family = AF_INET6;
   result.m_addr6 = sa.sin6_addr;
