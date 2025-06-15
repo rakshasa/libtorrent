@@ -37,8 +37,8 @@ CurlStack::shutdown() {
     m_running = false;
   }
 
-  while (!m_list.empty())
-    close_get(m_list.back());
+  while (!base_type::empty())
+    close_get(base_type::back());
 
   curl_multi_cleanup(m_handle);
 
@@ -83,7 +83,7 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
     curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
     curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
 
-    m_list.push_back(curl_get);
+    base_type::push_back(curl_get);
 
     if (m_active >= m_max_active)
       return;
@@ -106,12 +106,12 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
     if (!curl_get->is_active_unsafe())
       throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not active.");
 
-    auto itr = std::find(m_list.begin(), m_list.end(), curl_get);
+    auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
 
-    if (itr == m_list.end())
+    if (itr == base_type::end())
       throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not in the stack.");
 
-    m_list.erase(itr);
+    base_type::erase(itr);
     curl_get->cleanup_unsafe();
   }
 
@@ -126,11 +126,11 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
       return;
     }
 
-    auto itr = std::find_if(m_list.begin(), m_list.end(), [](auto& curl_get) {
+    auto itr = std::find_if(base_type::begin(), base_type::end(), [](auto& curl_get) {
         return !curl_get->is_active();
       });
 
-    if (itr == m_list.end()) {
+    if (itr == base_type::end()) {
       m_active--;
       return;
     }
@@ -145,11 +145,11 @@ CurlStack::base_type::iterator
 CurlStack::find_curl_handle(const CURL* curl_handle) {
   // TODO: assert is owning thread.
 
-  auto itr = std::find_if(m_list.begin(), m_list.end(), [curl_handle](const std::shared_ptr<CurlGet>& curl_get) {
+  auto itr = std::find_if(base_type::begin(), base_type::end(), [curl_handle](auto& curl_get) {
     return curl_get->handle_unsafe() == curl_handle;
   });
 
-  if (itr == m_list.end())
+  if (itr == base_type::end())
     throw torrent::internal_error("Could not find CurlGet with the right easy_handle.");
 
   return itr;
@@ -227,7 +227,7 @@ CurlStack::process_done_handle() {
   else
     (*itr)->trigger_failed(curl_easy_strerror(msg->data.result));
 
-  if (m_list.empty())
+  if (base_type::empty())
     torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
   return remaining_msgs != 0;

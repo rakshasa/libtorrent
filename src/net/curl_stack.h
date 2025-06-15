@@ -15,14 +15,15 @@ namespace torrent::net {
 class CurlGet;
 class CurlSocket;
 
-class CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
+// Since std::hardware_destructive_interference_size only got added in gcc 12.1, we use 256 which
+// should be more than enough.
+
+class alignas(256) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
   using base_type = std::vector<std::shared_ptr<CurlGet>>;
 
   CurlStack();
   ~CurlStack();
-
-  // Thread-safe:
 
   bool                is_running() const;
 
@@ -50,7 +51,6 @@ public:
   long                dns_timeout() const;
   void                set_dns_timeout(long timeout);
 
-  // Not thread-safe, must be called from the owning thread:
   void                shutdown();
 
   void                start_get(const std::shared_ptr<CurlGet>& curl_get);
@@ -60,7 +60,7 @@ protected:
   friend class CurlGet;
   friend class CurlSocket;
 
-  void*               handle() const                         { return m_handle; }
+  CURLM*              handle() const                         { return m_handle; }
 
   // We need to lock when changing any of the values publically accessible.
   void                lock() const                           { m_mutex.lock(); }
@@ -77,11 +77,6 @@ private:
 
   void                receive_timeout();
   bool                process_done_handle();
-
-  // Since std::hardware_destructive_interference_size only got added in gcc 12.1, we use a hack to
-  // align the base_type vector.
-  std::mutex          _aligner;
-  base_type           m_list;
 
   // Unprotected members (including base_type vector), only changed in ways that are implicitly
   // thread-safe. E.g. before any threads are started or only within the owning thread.
