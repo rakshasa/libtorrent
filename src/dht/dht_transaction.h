@@ -222,8 +222,6 @@ class DhtMessage : public static_map_type<dht_keys, key_LAST> {
 public:
   using base_type = static_map_type<dht_keys, key_LAST>;
 
-  DhtMessage() : data_end(data) {};
-
   // Must be big enough to hold one of the possible variable-sized reply data.
   // Currently either:
   // - error message (size doesn't really matter, it'll be truncated at worst)
@@ -233,7 +231,7 @@ public:
   // - transaction ID (3 bytes)
   static constexpr size_t data_size = 64;
   char data[data_size];
-  char* data_end;
+  char* data_end{data};
 };
 
 // Class holding transaction data to be transmitted.

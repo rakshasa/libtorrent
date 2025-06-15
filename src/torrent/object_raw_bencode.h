@@ -23,7 +23,7 @@ public:
   using const_iterator = const char*;
   using size_type      = uint32_t;
 
-  raw_object() : m_data(), m_size() {}
+  raw_object() = default;
   raw_object(value_type* src_data, size_type src_size) : m_data(src_data), m_size(src_size) {}
 
   bool        empty() const { return m_size == 0; }
@@ -38,8 +38,8 @@ public:
   bool operator != (const raw_object& rhs) const { return m_size != rhs.m_size || std::memcmp(m_data, rhs.m_data, m_size) != 0; }
 
 protected:
-  iterator  m_data;
-  size_type m_size;
+  iterator  m_data{};
+  size_type m_size{};
 };
 
 #define RAW_BENCODE_SET_USING                   \

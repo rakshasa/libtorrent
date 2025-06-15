@@ -15,8 +15,7 @@ template<> struct PeerConnectionData<Download::CONNECTION_LEECH> { };
 template<> struct PeerConnectionData<Download::CONNECTION_SEED> { };
 
 template<> struct PeerConnectionData<Download::CONNECTION_INITIAL_SEED> {
-  PeerConnectionData() : lastIndex(~uint32_t()) { }
-  uint32_t lastIndex;
+  uint32_t lastIndex{~uint32_t{}};
   uint32_t bytesLeft;
 };
 

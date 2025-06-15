@@ -27,8 +27,6 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
-  ThrottleList();
-
   bool                is_enabled() const             { return m_enabled; }
 
   bool                is_active(const ThrottleNode* node) const;
@@ -83,17 +81,17 @@ private:
 
   uint32_t            m_rateAdded{0};
 
-  uint32_t            m_minChunkSize;
-  uint32_t            m_maxChunkSize;
+  uint32_t            m_minChunkSize{2 << 10};
+  uint32_t            m_maxChunkSize{16 << 10};
 
-  Rate                m_rateSlow;
+  Rate                m_rateSlow{60};
 
   // [m_splitActive,end> contains nodes that are inactive and need
   // more quote, sorted from the most urgent
   // node. [begin,m_splitActive> holds nodes with a large enough quota
   // to transmit, but are blocking. These are sorted from the longest
   // blocking node.
-  iterator            m_splitActive;
+  iterator            m_splitActive{end()};
 };
 
 } // namespace torrent
