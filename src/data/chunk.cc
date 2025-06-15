@@ -236,8 +236,7 @@ Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
-  struct sigaction sa, oldact;
-  std::memset(&sa, 0, sizeof(sa));
+  struct sigaction sa{}, oldact;
   sa.sa_sigaction = &bus_handler;
   sa.sa_flags = SA_SIGINFO;
   sigfillset(&sa.sa_mask);

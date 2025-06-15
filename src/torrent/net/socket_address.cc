@@ -234,8 +234,7 @@ sa_copy_addr(const sockaddr* sa, uint16_t port) {
 
 sa_unique_ptr
 sa_copy_addr_in(const sockaddr_in* sa, uint16_t port) {
-  sa_unique_ptr result(reinterpret_cast<sockaddr*>(new sockaddr_in));
-  std::memset(result.get(), 0, sizeof(sockaddr_in));
+  sa_unique_ptr result(reinterpret_cast<sockaddr*>(new sockaddr_in{}));
   reinterpret_cast<sockaddr_in*>(result.get())->sin_family = AF_INET;
   reinterpret_cast<sockaddr_in*>(result.get())->sin_addr = sa->sin_addr;
   reinterpret_cast<sockaddr_in*>(result.get())->sin_port = htons(port);
@@ -244,8 +243,7 @@ sa_copy_addr_in(const sockaddr_in* sa, uint16_t port) {
 
 sa_unique_ptr
 sa_copy_addr_in6(const sockaddr_in6* sa, uint16_t port) {
-  sa_unique_ptr result(reinterpret_cast<sockaddr*>(new sockaddr_in6));
-  std::memset(result.get(), 0, sizeof(sockaddr_in6));
+  sa_unique_ptr result(reinterpret_cast<sockaddr*>(new sockaddr_in6{}));
   reinterpret_cast<sockaddr_in6*>(result.get())->sin6_family = AF_INET6;
   std::memcpy(&reinterpret_cast<sockaddr_in6*>(result.get())->sin6_addr, &sa->sin6_addr, sizeof(in6_addr));
   reinterpret_cast<sockaddr_in6*>(result.get())->sin6_port = htons(port);

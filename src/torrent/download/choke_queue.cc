@@ -173,8 +173,7 @@ choke_queue::balance() {
   container_type queued;
   container_type unchoked;
 
-  group_stats gs;
-  std::memset(&gs, 0, sizeof(group_stats));
+  group_stats gs{};
 
   gs = prepare_weights(gs);
   gs = retrieve_connections(gs, &queued, &unchoked);
@@ -251,8 +250,7 @@ choke_queue::cycle(uint32_t quota) {
   queued.clear();
   unchoked.clear();
 
-  group_stats gs;
-  std::memset(&gs, 0, sizeof(group_stats));
+  group_stats gs{};
 
   gs = prepare_weights(gs);
   gs = retrieve_connections(gs, &queued, &unchoked);
