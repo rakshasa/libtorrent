@@ -18,57 +18,54 @@ public:
   CurlGet();
   ~CurlGet();
 
-  bool               is_active() const;
-  bool               is_busy() const;
-  bool               is_using_ipv6() const;
+  bool                is_stacked() const;
+  bool                is_active() const;
+  bool                is_using_ipv6() const;
+
+  CurlStack*          curl_stack() const;
 
   // TODO: Don't allow getting the stream.
-  const std::string& url() const;
-  std::iostream*     stream();
-  uint32_t           timeout() const;
+  const std::string&  url() const;
+  std::iostream*      stream();
+  uint32_t            timeout() const;
 
   // Make sure the output stream does not have any bad/failed bits set.
-  void               set_url(const std::string& url);
-  void               set_stream(std::iostream* str);
+  void                set_url(const std::string& url);
+  void                set_stream(std::iostream* str);
   // TODO: Change to std::chrono.
-  void               set_timeout(uint32_t seconds);
+  void                set_timeout(uint32_t seconds);
 
-  void               retry_ipv6();
-
-  int64_t            size_done();
-  int64_t            size_total();
-
-  // TODO: This isn't thread-safe, and HttpGet needs to be fixed.
-  CURL*              handle()                        { return m_handle; }
-  CurlStack*         curl_stack()                    { return m_stack; }
+  int64_t             size_done();
+  int64_t             size_total();
 
   // The owner of the Http object must close it as soon as possible
   // after receiving the signal, as the implementation may allocate
   // limited resources during its lifetime.
-  auto&              signal_done()                   { return m_signal_done; }
-  auto&              signal_failed()                 { return m_signal_failed; }
+  void                add_done_slot(const std::function<void()>& slot);
+  void                add_failed_slot(const std::function<void(const std::string&)>& slot);
 
 protected:
   friend class CurlStack;
 
-  // CurlStack is responsible for locking.
-  bool               is_active_no_locking() const    { return m_active; }
-
-  void               prepare_start(CurlStack* stack);
-  void               activate();
-  void               cleanup();
-
   // We need to lock when changing any of the values publically accessible. This means we don't need
   // to lock when changing the underlying vector.
-  void               lock() const                    { m_mutex.lock(); }
-  auto               lock_guard() const              { return std::scoped_lock(m_mutex); }
-  void               unlock() const                  { m_mutex.unlock(); }
-  auto&              mutex() const                   { return m_mutex; }
+  void                lock() const                    { m_mutex.lock(); }
+  auto                lock_guard() const              { return std::scoped_lock(m_mutex); }
+  void                unlock() const                  { m_mutex.unlock(); }
+  auto&               mutex() const                   { return m_mutex; }
 
-  void               receive_timeout();
+  bool                is_active_unsafe() const        { return m_active; }
+  auto                handle_unsafe() const           { return m_handle; }
 
-  void               trigger_done();
-  void               trigger_failed(const std::string& message);
+  void                prepare_start_unsafe(CurlStack* stack);
+  void                activate_unsafe();
+  void                cleanup_unsafe();
+
+  // TODO: No locking required?
+  void                retry_ipv6();
+
+  void                trigger_done();
+  void                trigger_failed(const std::string& message);
 
 private:
   CurlGet(const CurlGet&) = delete;
@@ -76,26 +73,31 @@ private:
 
   mutable std::mutex  m_mutex;
 
-  // TODO: Consider locking requirements.
-  CURL*              m_handle{};
-  CurlStack*         m_stack;
+  CURL*               m_handle{};
+  CurlStack*          m_stack;
 
-  bool               m_ipv6;
+  bool                m_ipv6;
 
   torrent::utils::SchedulerEntry m_task_timeout;
 
   // When you change timeout to a different type, update curl_get.cc where it multiplies 1s*m_timeout.
 
-  bool               m_active{};
-  uint32_t           m_timeout{};
+  bool                m_active{};
+  uint32_t            m_timeout{};
 
-  std::string        m_url;
+  std::string         m_url;
   // TODO: Use shared_ptr, or replace with std::function.
-  std::iostream*     m_stream{};
+  std::iostream*      m_stream{};
 
   std::list<std::function<void()>>                   m_signal_done;
   std::list<std::function<void(const std::string&)>> m_signal_failed;
 };
+
+inline bool
+CurlGet::is_stacked() const {
+  auto guard = lock_guard();
+  return m_handle != nullptr;
+}
 
 inline bool
 CurlGet::is_active() const {
@@ -104,15 +106,15 @@ CurlGet::is_active() const {
 }
 
 inline bool
-CurlGet::is_busy() const {
-  auto guard = lock_guard();
-  return m_handle != nullptr;
-}
-
-inline bool
 CurlGet::is_using_ipv6() const {
   auto guard = lock_guard();
   return m_ipv6;
+}
+
+inline CurlStack*
+CurlGet::curl_stack() const {
+  auto guard = lock_guard();
+  return m_stack;
 }
 
 inline const std::string&

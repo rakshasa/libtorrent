@@ -38,6 +38,7 @@ public:
   int64_t             size_done() const;
   int64_t             size_total() const;
 
+  // Can only be changed while HttpGet is not in the http stack.
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
 

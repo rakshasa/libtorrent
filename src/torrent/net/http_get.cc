@@ -55,24 +55,24 @@ HttpGet::timeout() const {
 
 void
 HttpGet::set_url(const std::string& url) {
-  if (m_curl_get->is_busy())
-    throw torrent::internal_error("Cannot set stream while HttpGet is busy.");
+  if (m_curl_get->is_stacked())
+    throw torrent::internal_error("Cannot set stream while HttpGet is stacked.");
 
   m_curl_get->set_url(std::move(url));
 }
 
 void
 HttpGet::set_stream(std::iostream* str) {
-  if (m_curl_get->is_busy())
-    throw torrent::internal_error("Cannot set stream while HttpGet is busy.");
+  if (m_curl_get->is_stacked())
+    throw torrent::internal_error("Cannot set stream while HttpGet is stacked.");
 
   m_curl_get->set_stream(str);
 }
 
 void
 HttpGet::set_timeout(uint32_t seconds) {
-  if (m_curl_get->is_busy())
-    throw torrent::internal_error("Cannot set timeout while HttpGet is busy.");
+  if (m_curl_get->is_stacked())
+    throw torrent::internal_error("Cannot set timeout while HttpGet is stacked.");
 
   m_curl_get->set_timeout(seconds);
 }
@@ -91,12 +91,18 @@ HttpGet::size_total() const {
 
 void
 HttpGet::add_done_slot(const std::function<void()>& slot) {
-  m_curl_get->signal_done().push_back(slot);
+  if (m_curl_get->is_stacked())
+    throw torrent::internal_error("Cannot add done slot while HttpGet is stacked.");
+
+  m_curl_get->add_done_slot(slot);
 }
 
 void
 HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
-  m_curl_get->signal_failed().push_back(slot);
+  if (m_curl_get->is_stacked())
+    throw torrent::internal_error("Cannot add failed slot while HttpGet is stacked.");
+
+  m_curl_get->add_failed_slot(slot);
 }
 
 } // namespace torrent::net

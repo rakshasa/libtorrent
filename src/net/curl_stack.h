@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <mutex>
+#include <new>
 #include <string>
 #include <vector>
 #include <curl/curl.h>
@@ -14,15 +15,7 @@ namespace torrent::net {
 class CurlGet;
 class CurlSocket;
 
-// By using a deque instead of vector we allow for cheaper removal of
-// the oldest elements, those that will be first in the in the
-// deque.
-//
-// This should fit well with the use-case of a http stack, thus
-// we get most of the cache locality benefits of a vector with fast
-// removal of elements.
-
-class CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
+class alignas(std::hardware_destructive_interference_size) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
   using base_type = std::vector<std::shared_ptr<CurlGet>>;
 
@@ -69,14 +62,10 @@ protected:
 
   void*               handle() const                         { return m_handle; }
 
-  // We need to lock when changing any of the values publically accessible. This means we don't need
-  // to lock when changing the underlying vector.
+  // We need to lock when changing any of the values publically accessible.
   void                lock() const                           { m_mutex.lock(); }
   auto                lock_guard() const                     { return std::scoped_lock(m_mutex); }
   void                unlock() const                         { m_mutex.unlock(); }
-
-  void                add_get(std::shared_ptr<CurlGet> curl_get);
-  void                remove_get(std::shared_ptr<CurlGet> curl_get);
 
 private:
   CurlStack(const CurlStack&) = delete;
@@ -87,15 +76,14 @@ private:
   static int          set_timeout(void*, long timeout_ms, CurlStack* stack);
 
   void                receive_timeout();
-
   bool                process_done_handle();
-  void                process_transfer_done(CURL* handle, const char* msg);
+
+  // Unprotected members (including base_type vector), only changed in ways that are implicitly
+  // thread-safe. E.g. before any threads are started or only within the owning thread.
+  CURLM*                m_handle{};
+  utils::SchedulerEntry m_task_timeout;
 
   mutable std::mutex  m_mutex;
-
-  // Unprotected members, only changed in ways that are implicitly thread-safe. E.g. before any
-  // threads are started or only within the owning thread.
-  CURLM*              m_handle{};
 
   // Use lock guard when accessing these members, and when modifying the underlying vector.
   bool                m_running{true};
@@ -111,8 +99,6 @@ private:
   bool                m_ssl_verify_host{true};
   bool                m_ssl_verify_peer{true};
   long                m_dns_timeout{60};
-
-  torrent::utils::SchedulerEntry m_task_timeout;
 };
 
 inline bool
