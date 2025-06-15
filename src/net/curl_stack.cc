@@ -29,9 +29,11 @@ CurlStack::~CurlStack() {
 // TODO: We do not ever call shutdown.
 void
 CurlStack::shutdown() {
-  assert(is_running() && "CurlStack::shutdown() called while not running.");
+  // TODO: assert is owning thread.
 
   { auto guard = lock_guard();
+
+    assert(m_running && "CurlStack::shutdown() called while not running.");
     m_running = false;
   }
 
@@ -40,56 +42,56 @@ CurlStack::shutdown() {
 
   curl_multi_cleanup(m_handle);
 
-  { auto guard = lock_guard();
-
-    m_handle = nullptr;
-    torrent::this_thread::scheduler()->erase(&m_task_timeout);
-  }
+  m_handle = nullptr;
+  torrent::this_thread::scheduler()->erase(&m_task_timeout);
 }
 
 void
 CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
+  // TODO: assert is owning thread.
+
   if (curl_get == nullptr)
     throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
 
   // TODO: When this is made into a callback, add a bool to indicate that we have queued the
   // callbacks for start/close.
 
-  // TODO: Check is_running, if not return error. Do not throw internal_error.
-  if (!is_running())
-    throw torrent::internal_error("CurlStack::start_get() called while not running.");
+  { auto guard = std::scoped_lock(m_mutex, curl_get->mutex());
 
-  auto guard = std::scoped_lock(m_mutex, curl_get->mutex());
+    // TODO: Check is_running, if not return error. Do not throw internal_error.
+    if (!m_running)
+      throw torrent::internal_error("CurlStack::start_get() called while not running.");
 
-  curl_get->prepare_start(this);
+    curl_get->prepare_start_unsafe(this);
 
-  if (!m_user_agent.empty())
-    curl_easy_setopt(curl_get->handle(), CURLOPT_USERAGENT, m_user_agent.c_str());
+    if (!m_user_agent.empty())
+      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_USERAGENT, m_user_agent.c_str());
 
-  if (!m_http_proxy.empty())
-    curl_easy_setopt(curl_get->handle(), CURLOPT_PROXY, m_http_proxy.c_str());
+    if (!m_http_proxy.empty())
+      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_PROXY, m_http_proxy.c_str());
 
-  if (!m_bind_address.empty())
-    curl_easy_setopt(curl_get->handle(), CURLOPT_INTERFACE, m_bind_address.c_str());
+    if (!m_bind_address.empty())
+      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_INTERFACE, m_bind_address.c_str());
 
-  if (!m_http_ca_path.empty())
-    curl_easy_setopt(curl_get->handle(), CURLOPT_CAPATH, m_http_ca_path.c_str());
+    if (!m_http_ca_path.empty())
+      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_CAPATH, m_http_ca_path.c_str());
 
-  if (!m_http_ca_cert.empty())
-    curl_easy_setopt(curl_get->handle(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
+    if (!m_http_ca_cert.empty())
+      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
 
-  curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYHOST, m_ssl_verify_host ? 2l : 0l);
-  curl_easy_setopt(curl_get->handle(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
-  curl_easy_setopt(curl_get->handle(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
+    curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_SSL_VERIFYHOST, m_ssl_verify_host ? 2l : 0l);
+    curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
+    curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
 
-  base_type::push_back(curl_get);
+    base_type::push_back(curl_get);
 
-  if (m_active >= m_max_active)
-    return;
+    if (m_active >= m_max_active)
+      return;
 
-  m_active++;
+    m_active++;
 
-  curl_get->activate();
+    curl_get->activate_unsafe();
+  }
 }
 
 // TODO: We are currently requiring close to be called before activating the next download. This
@@ -97,19 +99,20 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
 
 void
 CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
+  // TODO: assert is owning thread.
+
   { auto guard_get = curl_get->lock_guard();
 
-    if (!curl_get->is_active_no_locking())
-      throw torrent::internal_error("Tried to close CurlGet that is not active.");
+    if (!curl_get->is_active_unsafe())
+      throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not active.");
 
     auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
 
     if (itr == base_type::end())
-      throw torrent::internal_error("Could not find CurlGet in CurlStack::remove_get().");
+      throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not in the stack.");
 
-    // TODO: Need to lock stack too?
     base_type::erase(itr);
-    curl_get->cleanup();
+    curl_get->cleanup_unsafe();
   }
 
   {
@@ -132,14 +135,18 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
       return;
     }
 
-    (*itr)->activate();
+    auto guard_get = (*itr)->lock_guard();
+
+    (*itr)->activate_unsafe();
   }
 }
 
 CurlStack::base_type::iterator
 CurlStack::find_curl_handle(const CURL* curl_handle) {
-  auto itr = std::find_if(base_type::begin(), base_type::end(), [curl_handle](const std::shared_ptr<CurlGet>& curl_get) {
-    return curl_get->handle() == curl_handle;
+  // TODO: assert is owning thread.
+
+  auto itr = std::find_if(base_type::begin(), base_type::end(), [curl_handle](auto& curl_get) {
+    return curl_get->handle_unsafe() == curl_handle;
   });
 
   if (itr == base_type::end())
@@ -150,6 +157,9 @@ CurlStack::find_curl_handle(const CURL* curl_handle) {
 
 int
 CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
+  // TODO: assert is owning thread.
+
+  // TODO: We really shouldn't need to lock this, keep it in a separate cacheline.
   if (timeout_ms == -1)
     torrent::this_thread::scheduler()->erase(&stack->m_task_timeout);
   else
@@ -197,13 +207,13 @@ CurlStack::process_done_handle() {
 
   // TODO: Search if handle is still in the stack, and if not, assume it was closed and clean up. (check is_active)
 
-  if (msg->data.result == CURLE_COULDNT_RESOLVE_HOST) {
-    auto itr = find_curl_handle(static_cast<CURL*>(msg->easy_handle));
+  auto itr = find_curl_handle(msg->easy_handle);
 
+  if (msg->data.result == CURLE_COULDNT_RESOLVE_HOST) {
     if (!(*itr)->is_using_ipv6()) {
       (*itr)->retry_ipv6();
 
-      CURLMcode code = curl_multi_remove_handle(m_handle, (*itr)->handle());
+      CURLMcode code = curl_multi_remove_handle(m_handle, (*itr)->handle_unsafe());
 
       if (code != CURLM_OK)
         throw torrent::internal_error("CurlStack::process_done_handle() curl_multi_add_handle failed: " + std::string(curl_multi_strerror(code)));
@@ -213,27 +223,14 @@ CurlStack::process_done_handle() {
   }
 
   if (msg->data.result == CURLE_OK)
-    process_transfer_done(msg->easy_handle, nullptr);
+    (*itr)->trigger_done();
   else
-    process_transfer_done(msg->easy_handle, curl_easy_strerror(msg->data.result));
+    (*itr)->trigger_failed(curl_easy_strerror(msg->data.result));
 
   if (base_type::empty())
     torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
   return remaining_msgs != 0;
-}
-
-void
-CurlStack::process_transfer_done(CURL* handle, const char* msg) {
-  auto itr = find_curl_handle(handle);
-
-  // TODO: Lock-guard.
-
-  // Don't use trigger_* here...
-  if (msg == nullptr)
-    (*itr)->trigger_done();
-  else
-    (*itr)->trigger_failed(msg);
 }
 
 } // namespace torrent::net
