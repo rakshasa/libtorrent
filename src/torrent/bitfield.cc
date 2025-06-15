@@ -28,21 +28,20 @@ Bitfield::set_size_set(size_type s) {
 
 void
 Bitfield::allocate() {
-  if (m_data != NULL)
+  if (m_data != nullptr)
     return;
 
-  m_data = new value_type[size_bytes()];
+  m_data = std::make_unique<value_type[]>(size_bytes());
 
   instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, static_cast<int64_t>(size_bytes()));
 }
 
 void
 Bitfield::unallocate() {
-  if (m_data == NULL)
+  if (m_data == nullptr)
     return;
 
-  delete [] m_data;
-  m_data = NULL;
+  m_data = nullptr;
 
   instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, -static_cast<int64_t>(size_bytes()));
 }
@@ -54,7 +53,7 @@ Bitfield::update() {
 
   m_set = 0;
 
-  iterator itr = m_data;
+  iterator itr = m_data.get();
   iterator last = end();
 
   while (itr + sizeof(unsigned int) <= last) {
@@ -74,11 +73,11 @@ Bitfield::copy(const Bitfield& bf) {
   m_size = bf.m_size;
   m_set = bf.m_set;
 
-  if (bf.m_data == NULL) {
-    m_data = NULL;
+  if (bf.m_data == nullptr) {
+    m_data = nullptr;
   } else {
     allocate();
-    std::memcpy(m_data, bf.m_data, size_bytes());
+    std::copy_n(bf.m_data.get(), size_bytes(), m_data.get());
   }
 }
 
@@ -93,7 +92,7 @@ void
 Bitfield::set_all() {
   m_set = m_size;
 
-  std::memset(m_data, ~value_type(), size_bytes());
+  std::fill_n(m_data.get(), size_bytes(), ~value_type{});
   clear_tail();
 }
 
@@ -101,7 +100,7 @@ void
 Bitfield::unset_all() {
   m_set = 0;
 
-  std::memset(m_data, value_type(), size_bytes());
+  std::fill_n(m_data.get(), size_bytes(), value_type{});
 }
 
 // Quick hack. Speed improvements would require that m_set is kept
