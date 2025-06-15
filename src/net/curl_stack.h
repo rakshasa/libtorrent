@@ -15,7 +15,7 @@ namespace torrent::net {
 class CurlGet;
 class CurlSocket;
 
-class alignas(std::hardware_destructive_interference_size) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
+class CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
   using base_type = std::vector<std::shared_ptr<CurlGet>>;
 
@@ -77,6 +77,11 @@ private:
 
   void                receive_timeout();
   bool                process_done_handle();
+
+  // Since std::hardware_destructive_interference_size only got added in gcc 12.1, we use a hack to
+  // align the base_type vector.
+  std::mutex          _aligner;
+  base_type           m_list;
 
   // Unprotected members (including base_type vector), only changed in ways that are implicitly
   // thread-safe. E.g. before any threads are started or only within the owning thread.
