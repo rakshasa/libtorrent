@@ -21,9 +21,9 @@ namespace torrent::utils {
 thread_local Thread* Thread::m_self{nullptr};
 
 Thread::Thread() :
-  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
-  m_poll(Poll::create()),
-  m_scheduler(std::make_unique<Scheduler>()) {
+    m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+    m_poll(Poll::create()),
+    m_scheduler(new Scheduler) {
 
   std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
 

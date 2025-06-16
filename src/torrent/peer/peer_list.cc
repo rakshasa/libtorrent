@@ -53,7 +53,7 @@ socket_address_less(const sockaddr* s1, const sockaddr* s2) {
 //
 
 PeerList::PeerList() :
-    m_available_list(std::make_unique<AvailableList>()) {
+    m_available_list(new AvailableList) {
 }
 
 PeerList::~PeerList() {
