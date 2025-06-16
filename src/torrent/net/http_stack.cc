@@ -14,7 +14,7 @@
 namespace torrent::net {
 
 HttpStack::HttpStack(utils::Thread* thread) :
-    m_stack(std::make_unique<net::CurlStack>(thread)) {
+    m_stack(new CurlStack(thread)) {
 }
 
 HttpStack::~HttpStack() = default;
