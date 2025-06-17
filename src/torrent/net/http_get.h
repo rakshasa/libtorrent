@@ -34,7 +34,10 @@ public:
   int64_t             size_total() const;
 
   // Calling reset or add_*_slot is not allowed while the HttpGet is in the stack.
+  //
+  // Reset does not clear slots.
   void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
+
   void                set_timeout(uint32_t seconds);
 
   void                add_done_slot(const std::function<void()>& slot);
