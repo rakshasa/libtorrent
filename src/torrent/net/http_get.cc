@@ -14,23 +14,32 @@
 namespace torrent::net {
 
 // TODO: Use Resolver for dns lookups?
-// TODO: Make thread-safe, lock various parts after start.
-
 // TODO: Start/close should set a bool in curl_get, which indicates we've added it to the callback queue.
 
 HttpGet::HttpGet() = default;
 
-HttpGet::HttpGet(const std::string& url, std::iostream* s) :
-    m_curl_get(std::make_shared<CurlGet>()) {
+HttpGet::HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream) :
+    m_curl_get(std::make_shared<CurlGet>(url, stream)) {
+}
 
-  m_curl_get->set_url(url);
-  m_curl_get->set_stream(s);
-  m_curl_get->set_timeout(5 * 60); // Default to 5 minutes.
+HttpGet::~HttpGet() {
+  // TODO: Need to automatically handle cleanup if is_stacked and this is the last externally-owned
+  // shared_ptr.
+
+  // auto guard = m_curl_get->lock_guard();
+
+  // if (m_curl_get.use_count() == 2 && m_curl_get->is_stacked()) {
+  //   auto curl_stack = m_curl_get->curl_stack();
+  // }
+
+  // m_curl_get.reset()
 }
 
 void
 HttpGet::close() {
   auto curl_stack = m_curl_get->curl_stack();
+
+  // TODO: Callback to thread.
 
   if (curl_stack != nullptr)
     curl_stack->close_get(m_curl_get);
@@ -41,40 +50,9 @@ HttpGet::url() const {
   return m_curl_get->url();
 }
 
-std::iostream*
-HttpGet::stream() {
-  return m_curl_get->stream();
-}
-
 uint32_t
 HttpGet::timeout() const {
   return m_curl_get->timeout();
-}
-
-// TODO: Move the checks to CurlGet.
-
-void
-HttpGet::set_url(const std::string& url) {
-  if (m_curl_get->is_stacked())
-    throw torrent::internal_error("Cannot set stream while HttpGet is stacked.");
-
-  m_curl_get->set_url(std::move(url));
-}
-
-void
-HttpGet::set_stream(std::iostream* str) {
-  if (m_curl_get->is_stacked())
-    throw torrent::internal_error("Cannot set stream while HttpGet is stacked.");
-
-  m_curl_get->set_stream(str);
-}
-
-void
-HttpGet::set_timeout(uint32_t seconds) {
-  if (m_curl_get->is_stacked())
-    throw torrent::internal_error("Cannot set timeout while HttpGet is stacked.");
-
-  m_curl_get->set_timeout(seconds);
 }
 
 int64_t
@@ -87,20 +65,31 @@ HttpGet::size_total() const {
   return m_curl_get->size_total();
 }
 
-// TODO: Wrap in callbacks.
+void
+HttpGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
+  if (m_curl_get == nullptr)
+    m_curl_get = std::make_shared<CurlGet>();
+
+  m_curl_get->reset(url, std::move(stream));
+}
+
+void
+HttpGet::set_timeout(uint32_t seconds) {
+  m_curl_get->set_timeout(seconds);
+}
 
 void
 HttpGet::add_done_slot(const std::function<void()>& slot) {
-  if (m_curl_get->is_stacked())
-    throw torrent::internal_error("Cannot add done slot while HttpGet is stacked.");
+  if (m_curl_get == nullptr)
+    throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
 
   m_curl_get->add_done_slot(slot);
 }
 
 void
 HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
-  if (m_curl_get->is_stacked())
-    throw torrent::internal_error("Cannot add failed slot while HttpGet is stacked.");
+  if (m_curl_get == nullptr)
+    throw torrent::internal_error("HttpGet::add_failed_slot() called on an invalid HttpGet object.");
 
   m_curl_get->add_failed_slot(slot);
 }

@@ -3,6 +3,7 @@
 
 #include <iosfwd>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <curl/curl.h>
@@ -15,7 +16,7 @@ class CurlStack;
 
 class CurlGet {
 public:
-  CurlGet();
+  CurlGet(const std::string& url = "", std::shared_ptr<std::ostream> stream = nullptr);
   ~CurlGet();
 
   bool                is_stacked() const;
@@ -24,25 +25,26 @@ public:
 
   CurlStack*          curl_stack() const;
 
-  // TODO: Don't allow getting the stream.
   const std::string&  url() const;
-  std::iostream*      stream();
   uint32_t            timeout() const;
-
-  // Make sure the output stream does not have any bad/failed bits set.
-  void                set_url(const std::string& url);
-  void                set_stream(std::iostream* str);
-  // TODO: Change to std::chrono.
-  void                set_timeout(uint32_t seconds);
 
   int64_t             size_done();
   int64_t             size_total();
 
-  // The owner of the Http object must close it as soon as possible
-  // after receiving the signal, as the implementation may allocate
-  // limited resources during its lifetime.
+  void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
+
+  void                set_timeout(uint32_t seconds);
+  void                set_was_started();
+
+  // The owner of the Http object must close it as soon as possible after receiving the signal, as
+  // the implementation may allocate limited resources during its lifetime.
+  //
+  // These slots should not directly modify the CurlGet or CurlStack, and instead use callbacks,
+  // etc, for such actions.
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
+
+  // TODO: Add add_deleted_slot, or a list of threads to remove callbacks from?
 
 protected:
   friend class CurlStack;
@@ -71,23 +73,25 @@ private:
   CurlGet(const CurlGet&) = delete;
   CurlGet& operator=(const CurlGet&) = delete;
 
+  static size_t       receive_write(const char* data, size_t size, size_t nmemb, CurlGet* handle);
+
   mutable std::mutex  m_mutex;
 
   CURL*               m_handle{};
-  CurlStack*          m_stack;
-
-  bool                m_ipv6;
-
-  torrent::utils::SchedulerEntry m_task_timeout;
-
-  // When you change timeout to a different type, update curl_get.cc where it multiplies 1s*m_timeout.
+  CurlStack*          m_stack{};
 
   bool                m_active{};
-  uint32_t            m_timeout{};
+  bool                m_was_started{};
+  bool                m_ipv6{};
 
-  std::string         m_url;
-  // TODO: Use shared_ptr, or replace with std::function.
-  std::iostream*      m_stream{};
+  // When you change timeout to a different type, update curl_get.cc where it multiplies
+  // 1s*m_timeout.
+
+  std::string                   m_url;
+  std::shared_ptr<std::ostream> m_stream;
+  uint32_t                      m_timeout{5 * 60};
+
+  utils::SchedulerEntry         m_task_timeout;
 
   std::list<std::function<void()>>                   m_signal_done;
   std::list<std::function<void(const std::string&)>> m_signal_failed;
@@ -121,12 +125,6 @@ inline const std::string&
 CurlGet::url() const {
   auto guard = lock_guard();
   return m_url;
-}
-
-inline std::iostream*
-CurlGet::stream() {
-  auto guard = lock_guard();
-  return m_stream;
 }
 
 inline uint32_t

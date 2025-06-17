@@ -3,7 +3,6 @@
 
 #include <functional>
 #include <memory>
-#include <thread>
 #include <torrent/common.h>
 
 namespace torrent::net {
@@ -52,7 +51,6 @@ private:
   HttpStack(const HttpStack&) = delete;
   HttpStack& operator=(const HttpStack&) = delete;
 
-  utils::Thread*             m_thread{nullptr};
   std::unique_ptr<CurlStack> m_stack;
 };
 

@@ -9,11 +9,14 @@
 #include "net/curl_get.h"
 #include "net/curl_socket.h"
 #include "torrent/exceptions.h"
+#include "torrent/utils/thread.h"
 
 namespace torrent::net {
 
-CurlStack::CurlStack() {
-  m_handle = curl_multi_init();
+CurlStack::CurlStack(utils::Thread* thread) :
+    m_thread(thread),
+    m_handle(curl_multi_init()) {
+
   m_task_timeout.slot() = [this]() { receive_timeout(); };
 
   curl_multi_setopt(m_handle, CURLMOPT_TIMERDATA, this);
@@ -23,13 +26,13 @@ CurlStack::CurlStack() {
 }
 
 CurlStack::~CurlStack() {
-  assert(!m_running && "CurlStack::~CurlStack() called while still running.");
+  assert(!is_running() && "CurlStack::~CurlStack() called while still running.");
 }
 
 // TODO: We do not ever call shutdown.
 void
 CurlStack::shutdown() {
-  // TODO: assert is owning thread.
+  //assert(std::this_thread::get_id() == m_thread->thread_id());
 
   { auto guard = lock_guard();
 
@@ -48,7 +51,7 @@ CurlStack::shutdown() {
 
 void
 CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
-  // TODO: assert is owning thread.
+  //assert(std::this_thread::get_id() == m_thread->thread_id());
 
   if (curl_get == nullptr)
     throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
@@ -99,7 +102,7 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
 
 void
 CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
-  // TODO: assert is owning thread.
+  //assert(std::this_thread::get_id() == m_thread->thread_id());
 
   { auto guard_get = curl_get->lock_guard();
 
@@ -143,8 +146,6 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
 
 CurlStack::base_type::iterator
 CurlStack::find_curl_handle(const CURL* curl_handle) {
-  // TODO: assert is owning thread.
-
   auto itr = std::find_if(base_type::begin(), base_type::end(), [curl_handle](auto& curl_get) {
     return curl_get->handle_unsafe() == curl_handle;
   });
@@ -157,9 +158,8 @@ CurlStack::find_curl_handle(const CURL* curl_handle) {
 
 int
 CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
-  // TODO: assert is owning thread.
+  //assert(std::this_thread::get_id() == m_thread->thread_id());
 
-  // TODO: We really shouldn't need to lock this, keep it in a separate cacheline.
   if (timeout_ms == -1)
     torrent::this_thread::scheduler()->erase(&stack->m_task_timeout);
   else
@@ -170,6 +170,8 @@ CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
 
 void
 CurlStack::receive_timeout() {
+  //assert(std::this_thread::get_id() == m_thread->thread_id());
+
   int count{};
   auto code = curl_multi_socket_action(m_handle, CURL_SOCKET_TIMEOUT, 0, &count);
 

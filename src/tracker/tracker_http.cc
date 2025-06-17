@@ -35,7 +35,7 @@ TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags)
   : TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags),
     m_drop_deliminator(utils::uri_has_query(info.url)) {
 
-  m_get = net::HttpGet(info.url);
+  m_get.reset(info.url, nullptr);
 
   m_get.add_done_slot([this] { receive_done(); });
   m_get.add_failed_slot([this](const auto& str) { receive_signal_failed(str); });
@@ -136,14 +136,12 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   m_data = std::make_unique<std::stringstream>();
 
   std::string request_url = s.str();
+  m_get.reset(request_url, m_data);
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
               option_as_string(OPTION_TRACKER_EVENT, new_state),
               parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
-
-  m_get.set_url(request_url);
-  m_get.set_stream(m_data.get());
 
   torrent::net_thread::http_stack()->start_get(m_get);
 }
@@ -163,7 +161,6 @@ TrackerHttp::send_scrape() {
   }
 
   LT_LOG("scrape requested : url:%s", info().url.c_str());
-
   this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
@@ -185,15 +182,12 @@ TrackerHttp::delayed_send_scrape() {
 
   request_prefix(&s, utils::uri_generate_scrape_url(info().url));
 
-  m_data = std::make_unique<std::stringstream>();
-
   std::string request_url = s.str();
 
+  m_data = std::make_unique<std::stringstream>();
+  m_get.reset(request_url, m_data);
+
   LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
-
-  m_get.set_url(request_url);
-  m_get.set_stream(m_data.get());
-
   torrent::net_thread::http_stack()->start_get(m_get);
 }
 
@@ -230,8 +224,6 @@ TrackerHttp::close_directly() {
   m_slot_close();
 
   m_get.close();
-  m_get.set_stream(nullptr);
-
   m_data.reset();
 }
 

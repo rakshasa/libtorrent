@@ -17,8 +17,8 @@ class HttpStack;
 class LIBTORRENT_EXPORT HttpGet {
 public:
   HttpGet();
-  HttpGet(const std::string& url, std::iostream* s = nullptr);
-  ~HttpGet() = default;
+  HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream);
+  ~HttpGet();
 
   HttpGet(const HttpGet&) = default;
   HttpGet& operator=(const HttpGet&) = default;
@@ -28,17 +28,18 @@ public:
   void                close();
 
   std::string         url() const;
-  std::iostream*      stream();
   uint32_t            timeout() const;
-
-  void                set_url(const std::string& url);
-  void                set_stream(std::iostream* str);
-  void                set_timeout(uint32_t seconds);
 
   int64_t             size_done() const;
   int64_t             size_total() const;
 
-  // Can only be changed while HttpGet is not in the http stack.
+  // Calling reset or add_*_slot is not allowed while the HttpGet is in the stack.
+  //
+  // Reset does not clear slots.
+  void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
+
+  void                set_timeout(uint32_t seconds);
+
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
 
