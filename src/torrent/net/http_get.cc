@@ -22,6 +22,19 @@ HttpGet::HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream) :
     m_curl_get(std::make_shared<CurlGet>(url, stream)) {
 }
 
+HttpGet::~HttpGet() {
+  // TODO: Need to automatically handle cleanup if is_stacked and this is the last externally-owned
+  // shared_ptr.
+
+  // auto guard = m_curl_get->lock_guard();
+
+  // if (m_curl_get.use_count() == 2 && m_curl_get->is_stacked()) {
+  //   auto curl_stack = m_curl_get->curl_stack();
+  // }
+
+  // m_curl_get.reset()
+}
+
 void
 HttpGet::close() {
   auto curl_stack = m_curl_get->curl_stack();

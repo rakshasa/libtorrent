@@ -18,7 +18,7 @@ class LIBTORRENT_EXPORT HttpGet {
 public:
   HttpGet();
   HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream);
-  ~HttpGet() = default;
+  ~HttpGet();
 
   HttpGet(const HttpGet&) = default;
   HttpGet& operator=(const HttpGet&) = default;
