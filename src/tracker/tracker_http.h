@@ -47,7 +47,7 @@ private:
   void                update_tracker_id(const std::string& id);
 
   net::HttpGet                       m_get;
-  std::unique_ptr<std::stringstream> m_data;
+  std::shared_ptr<std::stringstream> m_data;
 
   bool                  m_drop_deliminator;
   std::string           m_current_tracker_id;

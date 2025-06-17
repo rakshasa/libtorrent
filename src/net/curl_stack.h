@@ -15,14 +15,13 @@ namespace torrent::net {
 class CurlGet;
 class CurlSocket;
 
-// Since std::hardware_destructive_interference_size only got added in gcc 12.1, we use 256 which
-// should be more than enough.
+// Since std::hardware_destructive_interference_size only got added in gcc 12.1
 
-class alignas(256) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
+class alignas(LT_SMP_CACHE_BYTES) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
   using base_type = std::vector<std::shared_ptr<CurlGet>>;
 
-  CurlStack();
+  CurlStack(utils::Thread* thread);
   ~CurlStack();
 
   bool                is_running() const;
@@ -56,6 +55,8 @@ public:
   void                start_get(const std::shared_ptr<CurlGet>& curl_get);
   void                close_get(const std::shared_ptr<CurlGet>& curl_get);
 
+  utils::Thread*      thread() const                         { return m_thread; }
+
 protected:
   friend class CurlGet;
   friend class CurlSocket;
@@ -80,6 +81,7 @@ private:
 
   // Unprotected members (including base_type vector), only changed in ways that are implicitly
   // thread-safe. E.g. before any threads are started or only within the owning thread.
+  utils::Thread*        m_thread{};
   CURLM*                m_handle{};
   utils::SchedulerEntry m_task_timeout;
 

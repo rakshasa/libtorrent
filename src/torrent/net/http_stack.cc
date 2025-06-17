@@ -13,15 +13,21 @@
 
 namespace torrent::net {
 
-HttpStack::HttpStack(utils::Thread* thread)
-  : m_thread(thread),
-    m_stack(std::make_unique<net::CurlStack>()) {
+HttpStack::HttpStack(utils::Thread* thread) :
+    m_stack(std::make_unique<net::CurlStack>(thread)) {
 }
 
 HttpStack::~HttpStack() = default;
 
 void
 HttpStack::start_get(HttpGet& http_get) {
+  if (!http_get.is_valid())
+    throw torrent::internal_error("HttpStack::start_get() called with an invalid HttpGet object.");
+
+  http_get.curl_get()->set_was_started();
+
+  // TODO: Callback to thread.
+
   m_stack->start_get(http_get.curl_get());
 }
 
