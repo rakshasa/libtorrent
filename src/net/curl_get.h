@@ -3,6 +3,7 @@
 
 #include <iosfwd>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <curl/curl.h>
