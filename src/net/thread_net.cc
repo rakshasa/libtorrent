@@ -19,6 +19,7 @@ namespace net_thread {
 
 torrent::utils::Thread*  thread()                                            { return ThreadNetInternal::thread_net(); }
 std::thread::id          thread_id()                                         { return ThreadNetInternal::thread_net()->thread_id(); }
+
 void                     callback(void* target, std::function<void ()>&& fn) { ThreadNetInternal::thread_net()->callback(target, std::move(fn)); }
 void                     cancel_callback(void* target)                       { ThreadNetInternal::thread_net()->cancel_callback(target); }
 void                     cancel_callback_and_wait(void* target)              { ThreadNetInternal::thread_net()->cancel_callback_and_wait(target); }

@@ -25,6 +25,13 @@ public:
 
   bool                is_valid() const { return m_curl_get != nullptr; }
 
+  // TODO: Figure out if we need to require close to be called outside of done/failed_slot.
+  //
+  // TODO: Likely should use callback to close in owning thread, so that it gets handled after
+  // processing all slots. This however causes issues if we want to immediatly reuse the HttpGet.
+  //
+  // Should reset clear the callbacks?
+
   void                close();
 
   std::string         url() const;
@@ -40,6 +47,7 @@ public:
 
   void                set_timeout(uint32_t seconds);
 
+  // TODO: Add a closed_slot.
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
 

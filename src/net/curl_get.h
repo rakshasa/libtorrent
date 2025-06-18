@@ -35,6 +35,7 @@ public:
 
   void                set_timeout(uint32_t seconds);
   void                set_was_started();
+  [[nodiscard]] bool  set_was_closed();
 
   // The owner of the Http object must close it as soon as possible after receiving the signal, as
   // the implementation may allocate limited resources during its lifetime.
@@ -57,9 +58,10 @@ protected:
   auto&               mutex() const                   { return m_mutex; }
 
   bool                is_active_unsafe() const        { return m_active; }
+  bool                is_closing_unsafe() const       { return m_was_closed; }
   auto                handle_unsafe() const           { return m_handle; }
 
-  void                prepare_start_unsafe(CurlStack* stack);
+  [[nodiscard]] bool  prepare_start_unsafe(CurlStack* stack);
   void                activate_unsafe();
   void                cleanup_unsafe();
 
@@ -82,6 +84,7 @@ private:
 
   bool                m_active{};
   bool                m_was_started{};
+  bool                m_was_closed{};
   bool                m_ipv6{};
 
   // When you change timeout to a different type, update curl_get.cc where it multiplies

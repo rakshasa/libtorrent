@@ -279,10 +279,18 @@ Thread::process_callbacks(bool only_interrupt) {
 
 namespace torrent::this_thread {
 
-std::chrono::microseconds cached_time()    { return utils::ThreadInternal::cached_time(); }
-std::chrono::seconds      cached_seconds() { return utils::ThreadInternal::cached_seconds(); }
-Poll*                     poll()           { return utils::ThreadInternal::poll(); }
-net::Resolver*            resolver()       { return utils::ThreadInternal::resolver(); }
-utils::Scheduler*         scheduler()      { return utils::ThreadInternal::scheduler(); }
+torrent::utils::Thread*   thread()                                            { return utils::ThreadInternal::thread(); }
+std::thread::id           thread_id()                                         { return utils::ThreadInternal::thread_id(); }
+
+std::chrono::microseconds cached_time()                                       { return utils::ThreadInternal::cached_time(); }
+std::chrono::seconds      cached_seconds()                                    { return utils::ThreadInternal::cached_seconds(); }
+
+void                      callback(void* target, std::function<void ()>&& fn) { utils::ThreadInternal::callback(target, std::move(fn)); }
+void                      cancel_callback(void* target)                       { utils::ThreadInternal::cancel_callback(target); }
+void                      cancel_callback_and_wait(void* target)              { utils::ThreadInternal::cancel_callback_and_wait(target); }
+
+Poll*                     poll()                                              { return utils::ThreadInternal::poll(); }
+net::Resolver*            resolver()                                          { return utils::ThreadInternal::resolver(); }
+utils::Scheduler*         scheduler()                                         { return utils::ThreadInternal::scheduler(); }
 
 } // namespace torrent::this_thread
