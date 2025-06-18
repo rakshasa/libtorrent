@@ -7,6 +7,7 @@
 #include <cstring>
 #include <cinttypes>
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 // Unique key for the socket address, excluding port numbers, etc.
 
