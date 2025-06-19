@@ -24,7 +24,7 @@ void                     callback(void* target, std::function<void ()>&& fn) { T
 void                     cancel_callback(void* target)                       { ThreadNetInternal::thread_net()->cancel_callback(target); }
 void                     cancel_callback_and_wait(void* target)              { ThreadNetInternal::thread_net()->cancel_callback_and_wait(target); }
 
-torrent::net::HttpStack* http_stack() { return ThreadNetInternal::http_stack(); }
+torrent::net::HttpStack* http_stack()                                        { return ThreadNetInternal::http_stack(); }
 
 } // namespace net_thread
 
@@ -58,9 +58,10 @@ void
 ThreadNet::cleanup_thread() {
   m_thread_net = nullptr;
 
-  m_udns.reset();
+  m_http_stack->shutdown();
 
-  // TODO: Cleanup http stack.
+  // TODO: Should be a shutdown method in UdnsResolver, rather using reset.
+  m_udns.reset();
 }
 
 void

@@ -14,6 +14,8 @@ public:
   HttpStack(utils::Thread* thread);
   ~HttpStack();
 
+  void                shutdown();
+
   void                start_get(HttpGet& http_get);
 
   unsigned int        active() const;
