@@ -37,12 +37,21 @@ HttpGet::~HttpGet() {
 
 void
 HttpGet::close() {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::close() called on an invalid HttpGet object.");
+
+  auto curl_get = m_curl_get;
   auto curl_stack = m_curl_get->curl_stack();
 
-  // TODO: Callback to thread.
+  if (curl_stack == nullptr)
+    return;
 
-  if (curl_stack != nullptr)
-    curl_stack->close_get(m_curl_get);
+  if (!m_curl_get->set_was_closed())
+    return;
+
+  curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get]() {
+      curl_stack->close_get(curl_get);
+    });
 }
 
 std::string
@@ -83,7 +92,14 @@ HttpGet::add_done_slot(const std::function<void()>& slot) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
 
-  m_curl_get->add_done_slot(slot);
+  auto curl_get = m_curl_get;
+  auto thread = this_thread::thread();
+
+  m_curl_get->add_done_slot([curl_get, thread, slot]() {
+      thread->callback(curl_get.get(), [slot]() {
+          slot();
+        });
+    });
 }
 
 void
@@ -91,7 +107,14 @@ HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_failed_slot() called on an invalid HttpGet object.");
 
-  m_curl_get->add_failed_slot(slot);
+  auto curl_get = m_curl_get;
+  auto thread = this_thread::thread();
+
+  m_curl_get->add_failed_slot([curl_get, thread, slot](const std::string& error) {
+      thread->callback(curl_get.get(), [slot, error]() {
+          slot(error);
+        });
+    });
 }
 
 } // namespace torrent::net

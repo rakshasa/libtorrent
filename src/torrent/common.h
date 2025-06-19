@@ -109,8 +109,16 @@ class Thread;
 // TODO: Add the other torrent threads as namespaces.
 namespace torrent::this_thread {
 
+torrent::utils::Thread*   thread() LIBTORRENT_EXPORT;
+std::thread::id           thread_id() LIBTORRENT_EXPORT;
+
 std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
 std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
+
+void                      callback(void* target, std::function<void ()>&& fn);
+void                      cancel_callback(void* target);
+void                      cancel_callback_and_wait(void* target);
+
 Poll*                     poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
 utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
@@ -144,6 +152,7 @@ namespace torrent::net_thread {
 
 torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
 std::thread::id         thread_id() LIBTORRENT_EXPORT;
+
 void                    callback(void* target, std::function<void ()>&& fn);
 void                    cancel_callback(void* target);
 void                    cancel_callback_and_wait(void* target);

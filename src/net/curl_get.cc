@@ -64,6 +64,7 @@ CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   m_url = url;
   m_stream = std::move(stream);
   m_was_started = false;
+  m_was_closed = false;
   m_ipv6 = false;
 }
 
@@ -87,10 +88,21 @@ CurlGet::set_was_started() {
   m_was_started = true;
 }
 
-// TODO: When we add callback for start/close add an atomic_bool to indicate we've queued the
-// action, and use that to tell the user that the http_get is busy or not.
+bool
+CurlGet::set_was_closed() {
+  auto guard = lock_guard();
 
-void
+  if (m_was_closed)
+    throw torrent::internal_error("CurlGet::set_was_closed() called on a closed object.");
+
+  if (!m_was_started)
+    return false;
+
+  m_was_closed = true;
+  return true;
+}
+
+bool
 CurlGet::prepare_start_unsafe(CurlStack* stack) {
   if (m_handle != nullptr)
     throw torrent::internal_error("CurlGet::prepare_start(...) called on a stacked object.");
@@ -100,6 +112,9 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
   if (!m_was_started)
     throw torrent::internal_error("CurlGet::prepare_start(...) called on an object that was not started.");
+
+  if (m_was_closed)
+    return false;
 
   m_handle = curl_easy_init();
   m_stack = stack;
@@ -124,6 +139,8 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
   curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE,      CURL_IPRESOLVE_WHATEVER);
   curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
+
+  return true;
 }
 
 void

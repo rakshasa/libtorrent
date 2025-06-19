@@ -32,7 +32,7 @@ CurlStack::~CurlStack() {
 // TODO: We do not ever call shutdown.
 void
 CurlStack::shutdown() {
-  //assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(std::this_thread::get_id() == m_thread->thread_id());
 
   { auto guard = lock_guard();
 
@@ -51,13 +51,10 @@ CurlStack::shutdown() {
 
 void
 CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
-  //assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(std::this_thread::get_id() == m_thread->thread_id());
 
   if (curl_get == nullptr)
     throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
-
-  // TODO: When this is made into a callback, add a bool to indicate that we have queued the
-  // callbacks for start/close.
 
   { auto guard = std::scoped_lock(m_mutex, curl_get->mutex());
 
@@ -65,7 +62,8 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
     if (!m_running)
       throw torrent::internal_error("CurlStack::start_get() called while not running.");
 
-    curl_get->prepare_start_unsafe(this);
+    if (!curl_get->prepare_start_unsafe(this))
+      return; // CurlGet was already closed.
 
     if (!m_user_agent.empty())
       curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_USERAGENT, m_user_agent.c_str());
@@ -97,12 +95,9 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
   }
 }
 
-// TODO: We are currently requiring close to be called before activating the next download. This
-// should happen after transfer_done.
-
 void
 CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
-  //assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(std::this_thread::get_id() == m_thread->thread_id());
 
   { auto guard_get = curl_get->lock_guard();
 
@@ -158,7 +153,7 @@ CurlStack::find_curl_handle(const CURL* curl_handle) {
 
 int
 CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
-  //assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(std::this_thread::get_id() == stack->m_thread->thread_id());
 
   if (timeout_ms == -1)
     torrent::this_thread::scheduler()->erase(&stack->m_task_timeout);
@@ -170,7 +165,7 @@ CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
 
 void
 CurlStack::receive_timeout() {
-  //assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(std::this_thread::get_id() == m_thread->thread_id());
 
   int count{};
   auto code = curl_multi_socket_action(m_handle, CURL_SOCKET_TIMEOUT, 0, &count);
@@ -181,7 +176,12 @@ CurlStack::receive_timeout() {
   while (process_done_handle())
     ; // Do nothing.
 
-  if (!empty() && !m_task_timeout.is_scheduled()) {
+  if (base_type::empty()) {
+    torrent::this_thread::scheduler()->erase(&m_task_timeout);
+    return;
+  }
+
+  if (!m_task_timeout.is_scheduled()) {
     // Sometimes libcurl forgets to reset the timeout. Try to poll the value in that case, or use 10
     // seconds max.
     long timeout_ms;
@@ -211,6 +211,11 @@ CurlStack::process_done_handle() {
 
   auto itr = find_curl_handle(msg->easy_handle);
 
+  // TODO: Lock CurlGet here, do the retry or retrieve the slots, instead of using trigger_*.
+
+  if ((*itr)->is_closing_unsafe())
+    return remaining_msgs != 0;
+
   if (msg->data.result == CURLE_COULDNT_RESOLVE_HOST) {
     if (!(*itr)->is_using_ipv6()) {
       (*itr)->retry_ipv6();
@@ -228,9 +233,6 @@ CurlStack::process_done_handle() {
     (*itr)->trigger_done();
   else
     (*itr)->trigger_failed(curl_easy_strerror(msg->data.result));
-
-  if (base_type::empty())
-    torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
   return remaining_msgs != 0;
 }
