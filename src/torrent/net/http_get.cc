@@ -22,25 +22,13 @@ HttpGet::HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream) :
     m_curl_get(std::make_shared<CurlGet>(url, stream)) {
 }
 
-HttpGet::~HttpGet() {
-  // TODO: Need to automatically handle cleanup if is_stacked and this is the last externally-owned
-  // shared_ptr.
-
-  // auto guard = m_curl_get->lock_guard();
-
-  // if (m_curl_get.use_count() == 2 && m_curl_get->is_stacked()) {
-  //   auto curl_stack = m_curl_get->curl_stack();
-  // }
-
-  // m_curl_get.reset()
-}
+HttpGet::~HttpGet() = default;
 
 void
 HttpGet::close() {
   if (!is_valid())
     throw torrent::internal_error("HttpGet::close() called on an invalid HttpGet object.");
 
-  auto curl_get = m_curl_get;
   auto curl_stack = m_curl_get->curl_stack();
 
   if (curl_stack == nullptr)
@@ -49,8 +37,13 @@ HttpGet::close() {
   if (!m_curl_get->set_was_closed())
     return;
 
-  curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get]() {
-      curl_stack->close_get(curl_get);
+  auto curl_get_weak = std::weak_ptr<CurlGet>(m_curl_get);
+
+  curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get_weak]() {
+      auto curl_get = curl_get_weak.lock();
+
+      if (curl_get)
+        curl_stack->close_get(curl_get);
     });
 }
 
@@ -92,11 +85,10 @@ HttpGet::add_done_slot(const std::function<void()>& slot) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
 
-  auto curl_get = m_curl_get;
   auto thread = this_thread::thread();
 
-  m_curl_get->add_done_slot([curl_get, thread, slot]() {
-      thread->callback(curl_get.get(), [slot]() {
+  m_curl_get->add_done_slot([thread, slot]() {
+      thread->callback(nullptr, [slot]() {
           slot();
         });
     });
@@ -107,11 +99,10 @@ HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_failed_slot() called on an invalid HttpGet object.");
 
-  auto curl_get = m_curl_get;
   auto thread = this_thread::thread();
 
-  m_curl_get->add_failed_slot([curl_get, thread, slot](const std::string& error) {
-      thread->callback(curl_get.get(), [slot, error]() {
+  m_curl_get->add_failed_slot([thread, slot](const std::string& error) {
+      thread->callback(nullptr, [slot, error]() {
           slot(error);
         });
     });

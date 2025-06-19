@@ -47,9 +47,11 @@ public:
 
   void                set_timeout(uint32_t seconds);
 
-  // TODO: Add a closed_slot.
+  // The slots add callbacks to the calling thread when triggered, and all slots will remain in the
+  // thread's callback queue even if the underlying CurlGet is closed or deleted.
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
+  // TODO: Add a closed_slot.
 
   bool                operator<(const HttpGet& other) const;
   bool                operator==(const HttpGet& other) const;

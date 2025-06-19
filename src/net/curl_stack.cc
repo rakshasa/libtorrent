@@ -29,7 +29,6 @@ CurlStack::~CurlStack() {
   assert(!is_running() && "CurlStack::~CurlStack() called while still running.");
 }
 
-// TODO: We do not ever call shutdown.
 void
 CurlStack::shutdown() {
   assert(std::this_thread::get_id() == m_thread->thread_id());
