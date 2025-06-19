@@ -29,12 +29,15 @@ HttpStack::start_get(HttpGet& http_get) {
   if (!http_get.is_valid())
     throw torrent::internal_error("HttpStack::start_get() called with an invalid HttpGet object.");
 
-  auto curl_get = http_get.curl_get();
+  http_get.curl_get()->set_was_started();
 
-  curl_get->set_was_started();
+  auto curl_get_weak = std::weak_ptr<CurlGet>(http_get.curl_get());
 
-  m_stack->thread()->callback(http_get.curl_get().get(), [stack = m_stack.get(), curl_get]() {
-      stack->start_get(curl_get);
+  m_stack->thread()->callback(nullptr, [stack = m_stack.get(), curl_get_weak]() {
+      auto curl_get = curl_get_weak.lock();
+
+      if (curl_get)
+        stack->start_get(curl_get);
     });
 }
 
