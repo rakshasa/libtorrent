@@ -80,6 +80,16 @@ Block::~Block() {
   delete m_failedList;
 }
 
+bool
+Block::is_finished() const {
+  return m_leader != nullptr && m_leader->is_finished();
+}
+
+bool
+Block::is_transfering() const {
+  return m_leader != nullptr && !m_leader->is_finished();
+}
+
 BlockTransfer*
 Block::insert(PeerInfo* peerInfo) {
   if (find_queued(peerInfo) || find_transfer(peerInfo))
@@ -279,6 +289,14 @@ Block::transfer_dissimilar(BlockTransfer* transfer) {
   transfer->set_state(BlockTransfer::STATE_ERASED);
   transfer->set_position(0);
   transfer->set_block(NULL);
+}
+
+void
+Block::stalled(BlockTransfer* transfer) {
+  if (!transfer->is_valid())
+    return;
+
+  transfer->block()->stalled_transfer(transfer);
 }
 
 void

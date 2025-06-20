@@ -1,8 +1,9 @@
 #ifndef LIBTORRENT_DOWNLOAD_CHOKE_STATUS_H
 #define LIBTORRENT_DOWNLOAD_CHOKE_STATUS_H
 
+#include <chrono>
+
 #include <torrent/common.h>
-#include <torrent/utils/chrono.h>
 
 namespace torrent {
 

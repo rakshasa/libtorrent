@@ -2,7 +2,6 @@
 #define LIBTORRENT_FILE_H
 
 #include <torrent/common.h>
-#include <torrent/exceptions.h>
 #include <torrent/path.h>
 
 namespace torrent {

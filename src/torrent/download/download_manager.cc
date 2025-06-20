@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-
+#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 
 #include "download/download_wrapper.h"

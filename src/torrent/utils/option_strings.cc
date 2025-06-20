@@ -9,6 +9,7 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
+#include "torrent/peer/peer_info.h"
 #include "torrent/utils/option_strings.h"
 
 namespace torrent {

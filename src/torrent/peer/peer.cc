@@ -13,6 +13,7 @@
 
 namespace torrent {
 
+bool Peer::is_incoming() const             { return peer_info()->is_incoming(); }
 bool Peer::is_encrypted() const            { return c_ptr()->is_encrypted(); }
 bool Peer::is_obfuscated() const           { return c_ptr()->is_obfuscated(); }
 
@@ -30,6 +31,10 @@ bool Peer::is_banned() const               { return m_peerInfo->failed_counter()
 void Peer::set_snubbed(bool v)             { m_ptr()->set_upload_snubbed(v); }
 void Peer::set_banned(bool v)              { m_peerInfo->set_failed_counter(v ? 64 : 0); }
 
+const HashString& Peer::id() const         { return peer_info()->id(); }
+const char*       Peer::options() const    { return peer_info()->options(); }
+const sockaddr*   Peer::address() const    { return peer_info()->socket_address(); }
+
 const Rate*       Peer::down_rate() const  { return c_ptr()->c_peer_chunks()->download_throttle()->rate(); }
 const Rate*       Peer::up_rate() const    { return c_ptr()->c_peer_chunks()->upload_throttle()->rate(); }
 const Rate*       Peer::peer_rate() const  { return c_ptr()->c_peer_chunks()->peer_rate(); }
@@ -39,6 +44,8 @@ const Bitfield*   Peer::bitfield() const   { return c_ptr()->c_peer_chunks()->bi
 uint32_t Peer::incoming_queue_size() const { return c_ptr()->request_list()->queued_size(); }
 uint32_t Peer::outgoing_queue_size() const { return c_ptr()->c_peer_chunks()->upload_queue()->size(); }
 uint32_t Peer::chunks_done() const         { return c_ptr()->c_peer_chunks()->bitfield()->size_set(); }
+
+uint32_t Peer::failed_counter() const      { return peer_info()->failed_counter(); }
 
 const BlockTransfer*
 Peer::transfer() const {

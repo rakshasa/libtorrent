@@ -5,11 +5,12 @@
 #include <limits>
 #include <numeric>
 
-#include "torrent/exceptions.h"
-#include "torrent/download/choke_group.h"
-#include "torrent/utils/log.h"
 #include "download/download_main.h"
 #include "protocol/peer_connection_base.h"
+#include "torrent/download/choke_group.h"
+#include "torrent/download_info.h"
+#include "torrent/exceptions.h"
+#include "torrent/utils/log.h"
 
 #include "choke_queue.h"
 #include "resource_manager.h"

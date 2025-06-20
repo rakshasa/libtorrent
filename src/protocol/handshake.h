@@ -7,7 +7,6 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/utils/scheduler.h"
-#include "utils/sha1.h"
 
 #include "handshake_encryption.h"
 

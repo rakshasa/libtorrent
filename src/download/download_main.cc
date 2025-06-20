@@ -20,6 +20,7 @@
 #include "torrent/download.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
@@ -242,6 +243,11 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
 
   // And close the current connection.
   throw close_connection();
+}
+
+bool
+DownloadMain::want_pex_msg() {
+  return m_info->is_pex_active() && m_peerList.available_list()->want_more();
 }
 
 void

@@ -2,11 +2,10 @@
 #define LIBTORRENT_BLOCK_TRANSFER_H
 
 #include <cassert>
+#include <cstdlib>
 #include <torrent/common.h>
-#include <torrent/exceptions.h>
 #include <torrent/data/piece.h>
 #include <torrent/peer/peer_info.h>
-#include <cstdlib>
 
 namespace torrent {
 
