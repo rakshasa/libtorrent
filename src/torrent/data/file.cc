@@ -5,6 +5,7 @@
 
 #include "data/socket_file.h"
 
+#include "exceptions.h"
 #include "file.h"
 #include "file_manager.h"
 #include "manager.h"

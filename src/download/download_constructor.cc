@@ -10,6 +10,7 @@
 #include "download/download_wrapper.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
+#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/tracker/dht_controller.h"
 #include "tracker/tracker_list.h"

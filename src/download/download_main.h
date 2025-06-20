@@ -5,12 +5,11 @@
 #include <utility>
 
 #include "data/chunk_handle.h"
-#include "download/available_list.h"
 #include "download/delegator.h"
+#include "net/address_list.h"
 #include "net/data_buffer.h"
-#include "torrent/download_info.h"
-#include "torrent/download/group_entry.h"
 #include "torrent/data/file_list.h"
+#include "torrent/download/group_entry.h"
 #include "torrent/peer/peer_list.h"
 #include "torrent/tracker/wrappers.h"
 #include "torrent/utils/scheduler.h"
@@ -87,7 +86,7 @@ public:
 
   DataBuffer          get_ut_pex(bool initial)                   { return (initial ? m_ut_pex_initial : m_ut_pex_delta).clone(); }
 
-  bool                want_pex_msg()                             { return m_info->is_pex_active() && m_peerList.available_list()->want_more(); }
+  bool                want_pex_msg();
 
   void                set_metadata_size(size_t s);
 

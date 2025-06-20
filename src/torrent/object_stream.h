@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_OBJECT_STREAM_H
 #define LIBTORRENT_OBJECT_STREAM_H
 
-#include <ios>
+#include <iosfwd>
 #include <string>
 #include <torrent/common.h>
 

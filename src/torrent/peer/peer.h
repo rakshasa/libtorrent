@@ -3,7 +3,6 @@
 
 #include <string>
 #include <torrent/common.h>
-#include <torrent/peer/peer_info.h>
 
 namespace torrent {
 
@@ -24,7 +23,7 @@ public:
   Peer& operator=(const Peer&) = delete;
 
   // Does not check if it has been removed from the download.
-  bool                 is_incoming() const                { return peer_info()->is_incoming(); }
+  bool                 is_incoming() const;
   bool                 is_encrypted() const;
   bool                 is_obfuscated() const;
 
@@ -42,9 +41,9 @@ public:
   void                 set_snubbed(bool v);
   void                 set_banned(bool v);
 
-  const HashString&    id() const                         { return peer_info()->id(); }
-  const char*          options() const                    { return peer_info()->options(); }
-  const sockaddr*      address() const                    { return peer_info()->socket_address(); }
+  const HashString&    id() const;
+  const char*          options() const;
+  const sockaddr*      address() const;
 
   const Rate*          down_rate() const;
   const Rate*          up_rate() const;
@@ -59,7 +58,7 @@ public:
 
   uint32_t             chunks_done() const;
 
-  uint32_t             failed_counter() const             { return peer_info()->failed_counter(); }
+  uint32_t             failed_counter() const;
 
   void                 disconnect(int flags);
 

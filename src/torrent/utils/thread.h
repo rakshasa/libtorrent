@@ -8,7 +8,6 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <torrent/common.h>
-#include <torrent/utils/chrono.h>
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {

@@ -18,6 +18,7 @@
 #include "thread_main.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download/resource_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"

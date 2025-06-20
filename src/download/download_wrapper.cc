@@ -11,6 +11,7 @@
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/tracker/manager.h"

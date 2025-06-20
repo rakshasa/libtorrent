@@ -1,10 +1,10 @@
 #ifndef LIBTORRENT_BLOCK_H
 #define LIBTORRENT_BLOCK_H
 
-#include <vector>
-#include <torrent/common.h>
-#include <torrent/data/block_transfer.h>
 #include <cstdlib>
+#include <torrent/common.h>
+#include <torrent/data/piece.h>
+#include <vector>
 
 namespace torrent {
 
@@ -35,8 +35,8 @@ public:
   Block& operator=(Block&&) = default;
 
   bool                      is_stalled() const                           { return m_notStalled == 0; }
-  bool                      is_finished() const                          { return m_leader != NULL && m_leader->is_finished(); }
-  bool                      is_transfering() const                       { return m_leader != NULL && !m_leader->is_finished(); }
+  bool                      is_finished() const;
+  bool                      is_transfering() const;
 
   bool                      is_peer_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
   bool                      is_peer_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
@@ -80,7 +80,7 @@ public:
   bool                      completed(BlockTransfer* transfer);
   void                      retry_transfer();
 
-  static inline void        stalled(BlockTransfer* transfer);
+  static void               stalled(BlockTransfer* transfer);
   void                      stalled_transfer(BlockTransfer* transfer);
 
   void                      change_leader(BlockTransfer* transfer);
@@ -130,14 +130,6 @@ Block::find(const PeerInfo* p) const {
     return transfer;
   else
     return find_transfer(p);
-}
-
-inline void
-Block::stalled(BlockTransfer* transfer) {
-  if (!transfer->is_valid())
-    return;
-
-  transfer->block()->stalled_transfer(transfer);
 }
 
 } // namespace torrent

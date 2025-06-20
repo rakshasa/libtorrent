@@ -18,6 +18,7 @@
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 #include "utils/diffie_hellman.h"
+#include "utils/sha1.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \

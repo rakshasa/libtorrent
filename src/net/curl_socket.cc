@@ -6,7 +6,6 @@
 #include <curl/multi.h>
 #include <torrent/poll.h>
 #include <torrent/exceptions.h>
-#include <torrent/utils/thread.h>
 
 #include "net/curl_stack.h"
 

@@ -8,7 +8,6 @@
 #include "torrent/object.h"
 #include "torrent/object_static_map.h"
 
-#include "torrent/download_info.h"
 #include "net/address_list.h"
 #include "net/data_buffer.h"
 

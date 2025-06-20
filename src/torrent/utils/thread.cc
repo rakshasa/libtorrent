@@ -8,8 +8,9 @@
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
-#include "torrent/poll.h"
 #include "torrent/net/resolver.h"
+#include "torrent/poll.h"
+#include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"

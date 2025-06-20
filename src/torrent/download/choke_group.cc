@@ -5,6 +5,7 @@
 #include <numeric>
 
 #include "download/download_main.h"
+#include "download_info.h"
 
 namespace torrent {
 
