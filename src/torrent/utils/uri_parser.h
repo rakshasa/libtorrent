@@ -39,8 +39,7 @@ struct uri_query_state : public uri_base_state {
 
 class uri_error : public ::torrent::input_error {
 public:
-  uri_error(const char* msg) : ::torrent::input_error(msg) {}
-  uri_error(const std::string& msg) : ::torrent::input_error(msg) {}
+  using input_error::input_error;
 };
 
 void uri_parse_str(std::string uri, uri_state& state) LIBTORRENT_EXPORT;
