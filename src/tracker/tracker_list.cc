@@ -260,7 +260,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   TrackerInfo tracker_info;
   tracker_info.info_hash = m_info->hash();
   tracker_info.obfuscated_hash = m_info->hash_obfuscated();
-  tracker_info.local_id = m_info->local_id(),
+  tracker_info.local_id = m_info->local_id();
   tracker_info.url = url;
   tracker_info.key = m_key;
 
