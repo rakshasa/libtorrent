@@ -175,7 +175,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
   for (auto& transfer : *blockList) {
 
     if (transfer.failed_list() == NULL)
-      transfer.set_failed_list(new BlockFailed());
+      transfer.set_failed_list(std::make_unique<BlockFailed>());
 
     auto failedItr = std::find_if(transfer.failed_list()->begin(), transfer.failed_list()->end(), transfer_list_compare_data(chunk, transfer.piece()));
 

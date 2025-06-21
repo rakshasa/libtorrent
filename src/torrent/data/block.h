@@ -25,14 +25,14 @@ public:
     STATE_INVALID
   };
 
-  Block() = default;
+  Block();
   ~Block();
 
   // Only allow move constructions
   Block(const Block&) = delete;
   Block& operator=(const Block&) = delete;
-  Block(Block&&) = default;
-  Block& operator=(Block&&) = default;
+  Block(Block&&) noexcept;
+  Block& operator=(Block&&) noexcept;
 
   bool                      is_stalled() const                           { return m_notStalled == 0; }
   bool                      is_finished() const;
@@ -86,8 +86,8 @@ public:
   void                      change_leader(BlockTransfer* transfer);
   void                      failed_leader();
 
-  BlockFailed*              failed_list()                                { return m_failedList; }
-  void                      set_failed_list(BlockFailed* f)              { m_failedList = f; }
+  const auto&               failed_list() const                          { return m_failedList; }
+  void                      set_failed_list(std::unique_ptr<BlockFailed> f);
 
   static void               create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& piece);
 
@@ -113,7 +113,7 @@ private:
 
   BlockTransfer*            m_leader{};
 
-  BlockFailed*              m_failedList{};
+  std::unique_ptr<BlockFailed> m_failedList;
 };
 
 inline BlockTransfer*
