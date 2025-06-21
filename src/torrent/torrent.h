@@ -2,6 +2,7 @@
 #define LIBTORRENT_TORRENT_H
 
 #include <list>
+#include <memory>
 #include <string>
 #include <torrent/common.h>
 #include <torrent/download.h>
@@ -53,7 +54,7 @@ EncodingList*       encoding_list() LIBTORRENT_EXPORT;
 // is done by 'download_remove'.
 //
 // Might consider redesigning that...
-Download            download_add(Object* s, uint32_t tracker_key) LIBTORRENT_EXPORT;
+Download            download_add(std::unique_ptr<Object> s, uint32_t tracker_key) LIBTORRENT_EXPORT;
 void                download_remove(Download d) LIBTORRENT_EXPORT;
 
 // Add all downloads to dlist. The client is responsible for clearing

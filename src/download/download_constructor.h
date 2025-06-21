@@ -2,6 +2,7 @@
 #define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
 
 #include <list>
+#include <memory>
 
 #include "torrent/object.h"
 
@@ -17,7 +18,7 @@ class DownloadConstructor {
 public:
   void                initialize(Object& b);
 
-  void                parse_tracker(const Object& b);
+  void                parse_tracker(const std::unique_ptr<Object>& b);
 
   void                set_download(DownloadWrapper* d)         { m_download = d; }
   void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }

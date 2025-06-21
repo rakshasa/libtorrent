@@ -156,7 +156,7 @@ encoding_list() {
 }
 
 Download
-download_add(Object* object, uint32_t tracker_key) {
+download_add(std::unique_ptr<Object> object, uint32_t tracker_key) {
   auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
@@ -188,7 +188,7 @@ download_add(Object* object, uint32_t tracker_key) {
 
   // Add trackers, etc, after setting the info hash so that log
   // entries look sane.
-  ctor.parse_tracker(*object);
+  ctor.parse_tracker(object);
 
   // Default PeerConnection factory functions.
   download->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
@@ -198,7 +198,7 @@ download_add(Object* object, uint32_t tracker_key) {
   // go in there.
   manager->initialize_download(download.get());
 
-  download->set_bencode(object);
+  download->set_bencode(std::move(object));
   return Download(download.release());
 }
 
