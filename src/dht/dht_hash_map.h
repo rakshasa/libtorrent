@@ -119,8 +119,7 @@ public:
 
 };
 
-class DhtTrackerList : public std::unordered_map<HashString, DhtTracker*, hashstring_hash> {
-};
+using DhtTrackerList = std::unordered_map<HashString, DhtTracker*, hashstring_hash>;
 
 inline
 DhtNode* DhtNodeList::add_node(DhtNode* n) {
