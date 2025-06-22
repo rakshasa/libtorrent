@@ -14,7 +14,6 @@
 namespace torrent::net {
 
 // TODO: Use Resolver for dns lookups?
-// TODO: Start/close should set a bool in curl_get, which indicates we've added it to the callback queue.
 
 HttpGet::HttpGet() = default;
 
@@ -47,6 +46,14 @@ HttpGet::close() {
     });
 }
 
+void
+HttpGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
+  if (m_curl_get == nullptr)
+    m_curl_get = std::make_shared<CurlGet>();
+
+  m_curl_get->reset(url, std::move(stream));
+}
+
 std::string
 HttpGet::url() const {
   return m_curl_get->url();
@@ -68,14 +75,6 @@ HttpGet::size_total() const {
 }
 
 void
-HttpGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
-  if (m_curl_get == nullptr)
-    m_curl_get = std::make_shared<CurlGet>();
-
-  m_curl_get->reset(url, std::move(stream));
-}
-
-void
 HttpGet::set_timeout(uint32_t seconds) {
   m_curl_get->set_timeout(seconds);
 }
@@ -87,8 +86,8 @@ HttpGet::add_done_slot(const std::function<void()>& slot) {
 
   auto thread = this_thread::thread();
 
-  m_curl_get->add_done_slot([thread, slot]() {
-      thread->callback(nullptr, [slot]() {
+  m_curl_get->add_done_slot([thread, slot, curl_get = m_curl_get.get()]() {
+      thread->callback(curl_get, [slot]() {
           slot();
         });
     });
@@ -101,11 +100,19 @@ HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
 
   auto thread = this_thread::thread();
 
-  m_curl_get->add_failed_slot([thread, slot](const std::string& error) {
-      thread->callback(nullptr, [slot, error]() {
+  m_curl_get->add_failed_slot([thread, slot, curl_get = m_curl_get.get()](const std::string& error) {
+      thread->callback(curl_get, [slot, error]() {
           slot(error);
         });
     });
+}
+
+void
+HttpGet::cancel_slot_callbacks(utils::Thread* thread) {
+  if (m_curl_get == nullptr)
+    throw torrent::internal_error("HttpGet::cancel_callbacks() called on an invalid HttpGet object.");
+
+  thread->cancel_callback(m_curl_get.get());
 }
 
 } // namespace torrent::net

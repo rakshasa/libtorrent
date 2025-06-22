@@ -211,26 +211,26 @@ CurlGet::retry_ipv6() {
 
 void
 CurlGet::trigger_done() {
-  m_mutex.lock();
+  auto guard = lock_guard();
 
-  auto signal_done = m_signal_done;
   torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
-  m_mutex.unlock();
+  if (m_was_closed)
+    return;
 
-  ::utils::slot_list_call(signal_done);
+  ::utils::slot_list_call(m_signal_done);
 }
 
 void
 CurlGet::trigger_failed(const std::string& message) {
-  m_mutex.lock();
+  auto guard = lock_guard();
 
-  auto signal_failed = m_signal_failed;
   torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
-  m_mutex.unlock();
+  if (m_was_closed)
+    return;
 
-  ::utils::slot_list_call(signal_failed, message);
+  ::utils::slot_list_call(m_signal_failed, message);
 }
 
 size_t

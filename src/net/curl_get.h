@@ -42,6 +42,12 @@ public:
   //
   // These slots should not directly modify the CurlGet or CurlStack, and instead use callbacks,
   // etc, for such actions.
+  //
+  // The slots should be non-blocking and the CurlGet object will remain locked during the call, and
+  // as such cannot be modified.
+  //
+  // The slots won't be called after set_was_closed() is called.
+
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
 
