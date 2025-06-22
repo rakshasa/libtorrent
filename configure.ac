@@ -1,4 +1,4 @@
-AC_INIT([[libtorrent]],[[0.15.4]],[[sundell.software@gmail.com]])
+AC_INIT([[libtorrent]],[[0.15.5]],[[sundell.software@gmail.com]])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIRS([scripts])
@@ -6,8 +6,8 @@ AM_INIT_AUTOMAKE([serial-tests subdir-objects foreign])
 
 LT_INIT([[disable-static]])
 
-AC_DEFINE([[PEER_NAME]], [["-lt0F04-"]], [[Identifier that is part of the default peer id.]])
-AC_DEFINE([[PEER_VERSION]], [["lt\x0F\x04"]], [[4 byte client and version identifier for DHT.]])
+AC_DEFINE([[PEER_NAME]], [["-lt0F05-"]], [[Identifier that is part of the default peer id.]])
+AC_DEFINE([[PEER_VERSION]], [["lt\x0F\x05"]], [[4 byte client and version identifier for DHT.]])
 
 LIBTORRENT_CURRENT=25
 LIBTORRENT_REVISION=0
