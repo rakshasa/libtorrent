@@ -34,24 +34,26 @@ public:
 
   void                close();
 
+  // Calling reset is not allowed while the HttpGet is in the stack. Does not clear slots or callbacks.
+  void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
+
   std::string         url() const;
   uint32_t            timeout() const;
 
   int64_t             size_done() const;
   int64_t             size_total() const;
 
-  // Calling reset or add_*_slot is not allowed while the HttpGet is in the stack.
-  //
-  // Reset does not clear slots.
-  void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
-
   void                set_timeout(uint32_t seconds);
 
   // The slots add callbacks to the calling thread when triggered, and all slots will remain in the
   // thread's callback queue even if the underlying CurlGet is closed or deleted.
+  //
+  // Calling add_*_slot is not allowed while the HttpGet is in the stack.
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
   // TODO: Add a closed_slot.
+
+  void                cancel_slot_callbacks(utils::Thread* thread);
 
   bool                operator<(const HttpGet& other) const;
   bool                operator==(const HttpGet& other) const;
