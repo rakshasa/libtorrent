@@ -50,6 +50,8 @@
 
 namespace torrent {
 
+Block::Block() = default;
+
 Block::~Block() {
   if (m_state != STATE_INCOMPLETE && m_state != STATE_COMPLETED)
     throw internal_error("Block dtor with 'm_state != STATE_INCOMPLETE && m_state != STATE_COMPLETED'");
@@ -76,9 +78,10 @@ Block::~Block() {
 
   if (m_notStalled != 0)
     throw internal_error("Block::clear() m_stalled != 0.");
-
-  delete m_failedList;
 }
+
+Block::Block(Block&&) noexcept = default;
+Block& Block::operator=(Block&&) noexcept = default;
 
 bool
 Block::is_finished() const {
@@ -337,6 +340,11 @@ Block::failed_leader() {
 
   if (m_failedList != NULL)
     m_failedList->set_current(BlockFailed::invalid_index);
+}
+
+void
+Block::set_failed_list(std::unique_ptr<BlockFailed> f) {
+  m_failedList = std::move(f);
 }
 
 void
