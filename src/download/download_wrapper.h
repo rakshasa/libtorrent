@@ -41,7 +41,7 @@ public:
   HashTorrent*        hash_checker()                          { return m_hash_checker.get(); }
 
   Object*             bencode()                               { return m_bencode.get(); }
-  void                set_bencode(Object* o)                  { m_bencode.reset(o); }
+  void                set_bencode(std::unique_ptr<Object> o)  { m_bencode = std::move(o); }
 
   HashQueue*          hash_queue()                            { return m_hash_queue; }
   void                set_hash_queue(HashQueue* q)            { m_hash_queue = q; }
