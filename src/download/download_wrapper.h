@@ -38,7 +38,7 @@ public:
 
   DownloadMain*       main()                                  { return m_main.get(); }
   const DownloadMain* main() const                            { return m_main.get(); }
-  HashTorrent*        hash_checker()                          { return m_hash_checker.get(); }
+  const auto&         hash_checker() const                    { return m_hash_checker; }
 
   Object*             bencode()                               { return m_bencode.get(); }
   void                set_bencode(Object* o)                  { m_bencode.reset(o); }

@@ -46,10 +46,9 @@ public:
 protected:
   friend class HttpGet;
 
-  CurlStack*          curl_stack() { return m_stack.get(); }
+  const auto&         curl_stack() const { return m_stack; }
 
 private:
-  HttpStack() = delete;
   HttpStack(const HttpStack&) = delete;
   HttpStack& operator=(const HttpStack&) = delete;
 
