@@ -50,7 +50,7 @@ FileListIterator::is_file() const {
 
 bool
 FileListIterator::is_empty() const {
-  return (*m_position)->path()->size() == 0;
+  return (*m_position)->path()->empty();
 }
 
 bool

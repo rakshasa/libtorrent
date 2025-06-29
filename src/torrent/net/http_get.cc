@@ -3,6 +3,7 @@
 #include "torrent/net/http_get.h"
 
 #include <cassert>
+#include <utility>
 
 #include "net/curl_get.h"
 #include "net/curl_stack.h"
@@ -17,7 +18,7 @@ namespace torrent::net {
 HttpGet::HttpGet() = default;
 
 HttpGet::HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream) :
-    m_curl_get(new CurlGet(url, stream)) {
+    m_curl_get(new CurlGet(url, std::move(stream))) {
 }
 
 HttpGet::~HttpGet() = default;
