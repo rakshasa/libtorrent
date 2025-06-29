@@ -25,7 +25,8 @@ public:
   void                event_error() override;
 
 private:
-  SignalInterrupt() = delete;
+  SignalInterrupt(const SignalInterrupt&) = delete;
+  SignalInterrupt& operator=(const SignalInterrupt&) = delete;
   SignalInterrupt(int fd);
 
   SignalInterrupt*    m_other;
