@@ -12,7 +12,7 @@ namespace torrent {
 class ThreadNetInternal {
 public:
   static ThreadNet*      thread_net() { return ThreadNet::internal_thread_net(); }
-  static net::HttpStack* http_stack() { return ThreadNet::internal_thread_net()->http_stack(); }
+  static const auto&     http_stack() { return ThreadNet::internal_thread_net()->http_stack(); }
 };
 
 namespace net_thread {
@@ -24,7 +24,7 @@ void                     callback(void* target, std::function<void ()>&& fn) { T
 void                     cancel_callback(void* target)                       { ThreadNetInternal::thread_net()->cancel_callback(target); }
 void                     cancel_callback_and_wait(void* target)              { ThreadNetInternal::thread_net()->cancel_callback_and_wait(target); }
 
-torrent::net::HttpStack* http_stack()                                        { return ThreadNetInternal::http_stack(); }
+const std::unique_ptr<torrent::net::HttpStack>& http_stack()                 { return ThreadNetInternal::http_stack(); }
 
 } // namespace net_thread
 

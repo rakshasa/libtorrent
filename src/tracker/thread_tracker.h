@@ -30,7 +30,7 @@ public:
   void                  init_thread() override;
   void                  cleanup_thread() override;
 
-  tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
+  const auto&           tracker_manager() { return m_tracker_manager; }
 
   // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 

@@ -131,13 +131,13 @@ set_main_thread_slots(std::function<void()> do_work) {
   ThreadMain::thread_main()->slot_do_work() = std::move(do_work);
 }
 
-ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
-ClientList*        client_list() { return manager->client_list(); }
-ConnectionManager* connection_manager() { return manager->connection_manager(); }
-FileManager*       file_manager() { return manager->file_manager(); }
-ResourceManager*   resource_manager() { return manager->resource_manager(); }
+const std::unique_ptr<ChunkManager>&      chunk_manager() { return manager->chunk_manager(); }
+const std::unique_ptr<ClientList>&        client_list() { return manager->client_list(); }
+const std::unique_ptr<ConnectionManager>& connection_manager() { return manager->connection_manager(); }
+const std::unique_ptr<FileManager>&       file_manager() { return manager->file_manager(); }
+const std::unique_ptr<ResourceManager>&   resource_manager() { return manager->resource_manager(); }
 
-tracker::DhtController* dht_controller() { return manager->dht_controller(); }
+const std::unique_ptr<tracker::DhtController>& dht_controller() { return manager->dht_controller(); }
 
 uint32_t
 total_handshakes() {
@@ -157,7 +157,7 @@ encoding_list() {
 }
 
 Download
-download_add(Object* object, uint32_t tracker_key) {
+download_add(std::unique_ptr<Object> object, uint32_t tracker_key) {
   auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
@@ -189,7 +189,7 @@ download_add(Object* object, uint32_t tracker_key) {
 
   // Add trackers, etc, after setting the info hash so that log
   // entries look sane.
-  ctor.parse_tracker(*object);
+  ctor.parse_tracker(object);
 
   // Default PeerConnection factory functions.
   download->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
@@ -199,7 +199,7 @@ download_add(Object* object, uint32_t tracker_key) {
   // go in there.
   manager->initialize_download(download.get());
 
-  download->set_bencode(object);
+  download->set_bencode(std::move(object));
   return Download(download.release());
 }
 

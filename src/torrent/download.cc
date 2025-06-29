@@ -189,12 +189,7 @@ Download::set_pex_enabled(bool enabled) {
     m_ptr->info()->unset_flags(DownloadInfo::flag_pex_enabled);
 }
 
-Object*
-Download::bencode() {
-  return m_ptr->bencode();
-}
-
-const Object*
+const std::unique_ptr<Object>&
 Download::bencode() const {
   return m_ptr->bencode();
 }

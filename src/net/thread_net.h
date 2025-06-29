@@ -36,8 +36,8 @@ protected:
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 
-  net::HttpStack*     http_stack() const { return m_http_stack.get(); }
-  UdnsResolver*       udns() const       { return m_udns.get(); }
+  const auto&         http_stack() const { return m_http_stack; }
+  const auto&         udns() const       { return m_udns; }
 
 private:
   static ThreadNet*   m_thread_net;
