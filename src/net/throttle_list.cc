@@ -109,7 +109,7 @@ uint32_t
 ThrottleList::node_quota(ThrottleNode* node) {
   if (!m_enabled) {
     // Returns max for signed integer to ensure we don't overflow
-    // claculations.
+    // calculations.
     return std::numeric_limits<int32_t>::max();
 
   } else if (!is_active(node)) {

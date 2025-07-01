@@ -16,12 +16,19 @@ class CurlStack;
 
 class CurlGet {
 public:
+  enum resolve_type {
+    RESOLVE_NONE,
+    RESOLVE_WHATEVER,
+    RESOLVE_IPV4,
+    RESOLVE_IPV6
+  };
+
   CurlGet(const std::string& url = "", std::shared_ptr<std::ostream> stream = nullptr);
   ~CurlGet();
 
   bool                is_stacked() const;
   bool                is_active() const;
-  bool                is_using_ipv6() const;
+  bool                is_closing() const;
 
   CurlStack*          curl_stack() const;
 
@@ -36,6 +43,9 @@ public:
   void                set_timeout(uint32_t seconds);
   void                set_was_started();
   [[nodiscard]] bool  set_was_closed();
+
+  void                set_initial_resolve(resolve_type type);
+  void                set_retry_resolve(resolve_type type);
 
   // The owner of the Http object must close it as soon as possible after receiving the signal, as
   // the implementation may allocate limited resources during its lifetime.
@@ -71,8 +81,7 @@ protected:
   void                activate_unsafe();
   void                cleanup_unsafe();
 
-  // TODO: No locking required?
-  void                retry_ipv6();
+  bool                retry_resolve();
 
   void                trigger_done();
   void                trigger_failed(const std::string& message);
@@ -91,7 +100,10 @@ private:
   bool                m_active{};
   bool                m_was_started{};
   bool                m_was_closed{};
-  bool                m_ipv6{};
+
+  resolve_type        m_initial_resolve{RESOLVE_WHATEVER};
+  resolve_type        m_retry_resolve{RESOLVE_NONE};
+  bool                m_retrying_resolve{};
 
   // When you change timeout to a different type, update curl_get.cc where it multiplies
   // 1s*m_timeout.
@@ -119,9 +131,9 @@ CurlGet::is_active() const {
 }
 
 inline bool
-CurlGet::is_using_ipv6() const {
+CurlGet::is_closing() const {
   auto guard = lock_guard();
-  return m_ipv6;
+  return m_was_closed;
 }
 
 inline CurlStack*

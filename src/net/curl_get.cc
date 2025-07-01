@@ -65,7 +65,6 @@ CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   m_stream = std::move(stream);
   m_was_started = false;
   m_was_closed = false;
-  m_ipv6 = false;
 }
 
 void
@@ -102,6 +101,29 @@ CurlGet::set_was_closed() {
   return true;
 }
 
+void
+CurlGet::set_initial_resolve(resolve_type type) {
+  auto guard = lock_guard();
+
+  if (m_handle != nullptr || m_was_started)
+    throw torrent::internal_error("CurlGet::set_initial_resolve(...) called on a stacked or started object.");
+
+  if (type == RESOLVE_NONE)
+    throw torrent::internal_error("CurlGet::set_initial_resolve(...) called with RESOLVE_NONE, which is not allowed.");
+
+  m_initial_resolve = type;
+}
+
+void
+CurlGet::set_retry_resolve(resolve_type type) {
+  auto guard = lock_guard();
+
+  if (m_handle != nullptr || m_was_started)
+    throw torrent::internal_error("CurlGet::set_retry_resolve(...) called on a stacked or started object.");
+
+  m_retry_resolve = type;
+}
+
 bool
 CurlGet::prepare_start_unsafe(CurlStack* stack) {
   if (m_handle != nullptr)
@@ -118,7 +140,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
   m_handle = curl_easy_init();
   m_stack = stack;
-  m_ipv6 = false;
+  m_retrying_resolve = false;
 
   if (m_handle == nullptr)
     throw torrent::internal_error("Call to curl_easy_init() failed.");
@@ -136,9 +158,21 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   curl_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       1l);
   curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1l);
   curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
-
-  curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE,      CURL_IPRESOLVE_WHATEVER);
   curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
+
+  switch (m_initial_resolve) {
+  case RESOLVE_IPV4:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    break;
+  case RESOLVE_IPV6:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+    break;
+  case RESOLVE_WHATEVER:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
+    break;
+  case RESOLVE_NONE:
+    throw torrent::internal_error("CurlGet::prepare_start_unsafe() called with m_initial_resolve set to RESOLVE_NONE.");
+  }
 
   return true;
 }
@@ -177,6 +211,7 @@ CurlGet::cleanup_unsafe() {
 
   m_handle = nullptr;
   m_stack = nullptr;
+  m_retrying_resolve = false;
 }
 
 // Slots can be added at any time, however once trigger_* is called, it will make a copy of the
@@ -193,20 +228,38 @@ CurlGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
   m_signal_failed.push_back(slot);
 }
 
-void
-CurlGet::retry_ipv6() {
+bool
+CurlGet::retry_resolve() {
   auto guard = lock_guard();
 
   if (m_handle == nullptr)
     throw torrent::internal_error("CurlGet::retry_ipv6() called on a null m_handle.");
 
-  CURL* new_handle = curl_easy_duphandle(m_handle);
+  if (m_retrying_resolve || m_retry_resolve == RESOLVE_NONE)
+    return false;
 
-  curl_easy_setopt(new_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
-  curl_easy_cleanup(m_handle);
+  CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
 
-  m_handle = new_handle;
-  m_ipv6 = true;
+  if (code != CURLM_OK)
+    throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
+
+  m_retrying_resolve = true;
+
+  switch (m_retry_resolve) {
+  case RESOLVE_IPV4:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    break;
+  case RESOLVE_IPV6:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+    break;
+  case RESOLVE_WHATEVER:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
+    break;
+  case RESOLVE_NONE:
+    throw torrent::internal_error("CurlGet::retry_resolve() called with m_retry_resolve set to RESOLVE_NONE.");
+  }
+
+  return true;
 }
 
 void
