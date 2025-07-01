@@ -79,7 +79,7 @@ TrackerList::clear() {
 
 void
 TrackerList::clear_stats() {
-  std::for_each(begin(), end(), [](auto tracker) { tracker.clear_stats(); });
+  std::for_each(begin(), end(), std::mem_fn(&tracker::Tracker::clear_stats));
 }
 
 void

@@ -390,7 +390,7 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
 
 void
 Block::remove_erased_transfers() {
-  auto split = std::stable_partition(m_transfers.begin(), m_transfers.end(), [](auto block) { return !block->is_erased(); });
+  auto split = std::stable_partition(m_transfers.begin(), m_transfers.end(), std::not_fn(std::mem_fn(&BlockTransfer::is_erased)));
 
   std::for_each(split, m_transfers.end(), [this](auto block) { invalidate_transfer(block); });
   m_transfers.erase(split, m_transfers.end());

@@ -47,8 +47,8 @@ DhtBucket::remove_node(DhtNode* n) {
 
 void
 DhtBucket::count() {
-  m_good = std::count_if(begin(), end(), [](auto dht) { return dht->is_good(); });
-  m_bad  = std::count_if(begin(), end(), [](auto dht) { return dht->is_bad(); });
+  m_good = std::count_if(begin(), end(), std::mem_fn(&DhtNode::is_good));
+  m_bad  = std::count_if(begin(), end(), std::mem_fn(&DhtNode::is_bad));
 }
 
 // Called every 15 minutes for housekeeping.
