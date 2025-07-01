@@ -218,14 +218,14 @@ Object object_create_normal(const raw_list& obj) {
   raw_list::iterator last = obj.end();
 
   while (first != last) {
-    auto new_entry = result.as_list().insert(result.as_list().end(), Object());
+    auto& new_entry = result.as_list().emplace_back();
 
-    first = object_read_bencode_c(first, last, &*new_entry, 128);
+    first = object_read_bencode_c(first, last, &new_entry, 128);
 
     // The unordered flag is inherited also from list elements who
     // have been marked as unordered, though e.g. unordered strings
     // in the list itself does not cause this flag to be set.
-    if (new_entry->flags() & Object::flag_unordered)
+    if (new_entry.flags() & Object::flag_unordered)
       result.set_internal_flags(Object::flag_unordered);
   }
 

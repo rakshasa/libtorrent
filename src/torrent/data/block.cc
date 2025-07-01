@@ -97,18 +97,17 @@ Block::insert(PeerInfo* peerInfo) {
 
   m_notStalled++;
 
-  auto itr = m_queued.insert(m_queued.end(), new BlockTransfer());
+  auto block = new BlockTransfer;
+  block->set_peer_info(peerInfo);
+  block->set_block(this);
+  block->set_piece(m_piece);
+  block->set_state(BlockTransfer::STATE_QUEUED);
+  block->set_request_time(this_thread::cached_seconds().count());
+  block->set_position(0);
+  block->set_stall(0);
+  block->set_failed_index(BlockFailed::invalid_index);
 
-  (*itr)->set_peer_info(peerInfo);
-  (*itr)->set_block(this);
-  (*itr)->set_piece(m_piece);
-  (*itr)->set_state(BlockTransfer::STATE_QUEUED);
-  (*itr)->set_request_time(this_thread::cached_seconds().count());
-  (*itr)->set_position(0);
-  (*itr)->set_stall(0);
-  (*itr)->set_failed_index(BlockFailed::invalid_index);
-
-  return (*itr);
+  return m_queued.emplace_back(block);
 }
   
 void
@@ -193,7 +192,7 @@ Block::transfering(BlockTransfer* transfer) {
     throw internal_error("Block::transfering(...) not queued.");
 
   m_queued.erase(itr);
-  m_transfers.insert(m_transfers.end(), transfer);
+  m_transfers.push_back(transfer);
 
   // If this block already has an active transfer, make this transfer
   // skip the piece. If this transfer gets ahead of the currently
