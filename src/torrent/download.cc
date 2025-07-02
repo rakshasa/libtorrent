@@ -3,7 +3,6 @@
 #include <cinttypes>
 #include <numeric>
 
-#include "data/block.h"
 #include "data/block_list.h"
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
