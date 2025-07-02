@@ -86,10 +86,13 @@ ConnectionManager::filter(const sockaddr* sa) {
   if (m_block_ipv6 && sa_is_inet6(sa))
     return 0;
 
-  if (!m_slot_filter)
-    return 1;
-  else
+  if (m_block_ipv4in6 && sa_is_v4mapped(sa))
+    return 0;
+
+  if (m_slot_filter)
     return m_slot_filter(sa);
+
+  return 1;
 }
 
 bool
