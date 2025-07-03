@@ -11,12 +11,7 @@
 
 namespace torrent {
 
-// 1/5 of the available memory should be enough for the client. If
-// the client really requires alot more memory it should call this
-// itself.
-ChunkManager::ChunkManager() :
-    m_maxMemoryUsage((estimate_max_memory_usage() * 4) / 5) {
-}
+ChunkManager::ChunkManager() = default;
 
 ChunkManager::~ChunkManager() {
   assert(m_memoryUsage == 0 && "ChunkManager::~ChunkManager() m_memoryUsage != 0.");

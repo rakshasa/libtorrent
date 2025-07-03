@@ -111,7 +111,10 @@ private:
   void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
 
   uint64_t            m_memoryUsage{0};
-  uint64_t            m_maxMemoryUsage;
+  // 1/5 of the available memory should be enough for the client. If
+  // the client really requires alot more memory it should call this
+  // itself.
+  uint64_t            m_maxMemoryUsage{(estimate_max_memory_usage() * 4) / 5};
 
   uint32_t            m_memoryBlockCount{0};
 
