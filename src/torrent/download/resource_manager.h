@@ -110,8 +110,8 @@ public:
 
   void                push_group(const std::string& name);
 
-  iterator            find(DownloadMain* d);
-  iterator            find_throw(DownloadMain* d);
+  iterator            find(const DownloadMain* d);
+  iterator            find_throw(const DownloadMain* d);
   iterator            find_group_end(uint16_t group);
 
   unsigned int            group_size() const                    { return choke_base_type::size(); }
@@ -125,7 +125,7 @@ public:
   group_iterator          group_begin() { return choke_base_type::begin(); }
   group_iterator          group_end()   { return choke_base_type::end(); }
 
-  resource_manager_entry& entry_at(DownloadMain* d) { return *find_throw(d); }
+  resource_manager_entry& entry_at(const DownloadMain* d) { return *find_throw(d); }
 
   static void         set_priority(iterator itr, uint16_t pri);
   void                set_group(iterator itr, uint16_t grp);

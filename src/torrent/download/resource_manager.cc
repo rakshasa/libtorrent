@@ -138,12 +138,12 @@ ResourceManager::push_group(const std::string& name) {
 }
 
 ResourceManager::iterator
-ResourceManager::find(DownloadMain* d) {
+ResourceManager::find(const DownloadMain* d) {
   return std::find_if(begin(), end(), [d](value_type e) { return d == e.download(); });
 }
 
 ResourceManager::iterator
-ResourceManager::find_throw(DownloadMain* d) {
+ResourceManager::find_throw(const DownloadMain* d) {
   auto itr = find(d);
 
   if (itr == end())
