@@ -243,7 +243,7 @@ public:
                                  uint32_t maxDepth = ~uint32_t());
 
   // Internal:
-  void                swap_same_type(Object& left, Object& right) noexcept;
+  static void         swap_same_type(Object& left, Object& right) noexcept;
 
  private:
   bool                check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }

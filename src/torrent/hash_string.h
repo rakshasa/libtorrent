@@ -25,7 +25,7 @@ public:
 
   static constexpr size_type size_data = 20;
 
-  size_type           size() const                      { return size_data; }
+  static size_type    size()                            { return size_data; }
 
   iterator            begin()                           { return m_data; }
   const_iterator      begin() const                     { return m_data; }

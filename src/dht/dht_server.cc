@@ -342,7 +342,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
 
     // If we contact a node but its ID is not the one we expect, ignore the reply
     // to prevent interference from rogue nodes.
-    if ((id != transaction->id() && transaction->id() != m_router->zero_id))
+    if ((id != transaction->id() && transaction->id() != torrent::DhtRouter::zero_id))
       return;
 
     switch (transaction->type()) {
@@ -621,7 +621,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
   // throttling, so don't blame the remote node for not replying.
   // Finally, if we haven't received anything whatsoever so far, assume the entire
   // network is down and so we can't blame the node either.
-  if (!quick && m_networkUp && transaction->packet() == NULL && transaction->id() != m_router->zero_id)
+  if (!quick && m_networkUp && transaction->packet() == NULL && transaction->id() != torrent::DhtRouter::zero_id)
     m_router->node_inactive(transaction->id(), transaction->address());
 
   if (transaction->type() == DhtTransaction::DHT_FIND_NODE) {
@@ -763,8 +763,8 @@ DhtServer::event_read() {
       if ((type == 'r' || type == 'e') && nodeId != NULL) {
         m_router->node_inactive(*nodeId, &sa);
       } else {
-        snprintf(message.data_end, message.data + message.data_size - message.data_end - 1, "Malformed packet: %s", e.what());
-        message.data[message.data_size - 1] = '\0';
+        snprintf(message.data_end, message.data + torrent::DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
+        message.data[torrent::DhtMessage::data_size - 1] = '\0';
         create_error(message, &sa, dht_error_protocol, message.data_end);
       }
 

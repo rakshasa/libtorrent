@@ -145,7 +145,7 @@ private:
   void                make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) LIBTORRENT_NO_EXPORT;
 
   Chunk*              create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot) LIBTORRENT_NO_EXPORT;
-  MemoryChunk         create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) LIBTORRENT_NO_EXPORT;
+  MemoryChunk         create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) const LIBTORRENT_NO_EXPORT;
 
   download_data       m_data;
 

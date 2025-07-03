@@ -19,7 +19,7 @@ public:
 
   ThrottleInternal*   create_slave();
 
-  bool                is_root()         { return m_flags & flag_root; }
+  bool                is_root() const   { return m_flags & flag_root; }
 
   void                enable();
   void                disable();

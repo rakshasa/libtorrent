@@ -103,7 +103,7 @@ public:
   const_reference     operator [] (size_type n) const { return base_type::operator[](n); }
 
 private:
-  inline bool         should_add(PeerChunks* pc);
+  inline bool         should_add(PeerChunks* pc) const;
   size_type           m_complete{};
   size_type           m_accounted{};
 };

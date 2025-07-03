@@ -547,12 +547,12 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
 }
 
 MemoryChunk
-FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) {
+FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) const {
   offset -= (*itr)->offset();
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
   if ((*itr)->is_padding())
-    return SocketFile().create_padding_chunk(length, prot, MemoryChunk::map_shared);
+    return SocketFile::create_padding_chunk(length, prot, MemoryChunk::map_shared);
 
   if (static_cast<int64_t>(offset) < 0)
     throw internal_error("FileList::chunk_part(...) caught a negative offset", data()->hash());

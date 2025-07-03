@@ -58,7 +58,7 @@ private:
   bool                process_announce_output();
   bool                process_error_output();
 
-  bool                parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const;
+  static bool         parse_udp_url(const std::string& url, hostname_type& hostname, int& port);
 
   bool                m_resolver_requesting{false};
   bool                m_sending_announce{false};

@@ -20,6 +20,8 @@ class PeerConnectionBase;
 class HandshakeManager : private rak::unordered_vector<Handshake*> {
 public:
   using base_type = rak::unordered_vector<Handshake*>;
+  using base_type::size;
+
   using size_type = uint32_t;
 
   using slot_download = std::function<DownloadMain*(const char*)>;
@@ -32,7 +34,6 @@ public:
   HandshakeManager() = default;
   ~HandshakeManager() { clear(); }
 
-  size_type           size() const { return base_type::size(); }
   size_type           size_info(DownloadMain* info) const;
 
   void                clear();
@@ -56,7 +57,7 @@ public:
   void                receive_failed(Handshake* h, int message, int error);
   void                receive_timeout(Handshake* h);
 
-  ProtocolExtension*  default_extensions() const                        { return &DefaultExtensions; }
+  static ProtocolExtension*  default_extensions()                       { return &DefaultExtensions; }
 
 private:
   HandshakeManager(const HandshakeManager&) = delete;
@@ -65,7 +66,7 @@ private:
   void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryptionOptions);
   void                erase(Handshake* handshake);
 
-  bool                setup_socket(SocketFd fd);
+  static bool         setup_socket(SocketFd fd);
 
   static ProtocolExtension DefaultExtensions;
 

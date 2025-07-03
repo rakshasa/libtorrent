@@ -45,7 +45,7 @@ HashTorrent::clear() {
 }
 
 bool
-HashTorrent::is_checked() {
+HashTorrent::is_checked() const {
   // When closed the chunk list is empty. Position can be equal to
   // chunk list for a short while as we have outstanding chunks, so
   // check the latter.

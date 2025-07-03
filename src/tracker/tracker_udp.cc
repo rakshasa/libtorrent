@@ -81,7 +81,7 @@ TrackerUdp::send_scrape() {
 }
 
 bool
-TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const {
+TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) {
   if (std::sscanf(url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
       port > 0 && port < (1 << 16))
     return true;

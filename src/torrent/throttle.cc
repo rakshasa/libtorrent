@@ -38,7 +38,7 @@ Throttle::create_slave() {
 }
 
 bool
-Throttle::is_throttled() {
+Throttle::is_throttled() const {
   return m_maxRate != 0 && m_maxRate < UINT_MAX;
 }
 

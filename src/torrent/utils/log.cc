@@ -35,7 +35,7 @@ struct log_gz_output {
   log_gz_output(const char* filename, bool append) :
       gz_file(gzopen(filename, append ? "a" : "w"), gzclose) {}
 
-  bool is_valid() { return gz_file != Z_NULL; }
+  bool is_valid() const { return gz_file != Z_NULL; }
 
   // bool set_buffer(unsigned size) { return gzbuffer(gz_file.get(), size) == 0; }
 

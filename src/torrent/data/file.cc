@@ -125,7 +125,7 @@ File::set_match_depth(File* left, File* right) {
 }
 
 bool
-File::resize_file() {
+File::resize_file() const {
   if (is_padding())
     return true;
 

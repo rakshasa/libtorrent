@@ -83,7 +83,7 @@ public:
   priority_type       priority() const                        { return m_priority; }
   uint32_t            send_buffer_size() const                { return m_sendBufferSize; }
   uint32_t            receive_buffer_size() const             { return m_receiveBufferSize; }
-  uint32_t            encryption_options()                    { return m_encryptionOptions; }
+  uint32_t            encryption_options() const              { return m_encryptionOptions; }
 
   void                set_max_size(size_type s)               { m_maxSize = s; }
   void                set_priority(priority_type p)           { m_priority = p; }

@@ -62,7 +62,7 @@ public:
 
   uint32_t            get_index() const;
 
-  HashChunk*          get_chunk()                   { return m_chunk; }
+  HashChunk*          get_chunk() const             { return m_chunk; }
   bool                get_willneed() const          { return m_willneed; }
 
   bool                perform_remaining(bool force) { return m_chunk->perform(m_chunk->remaining(), force); }

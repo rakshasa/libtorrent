@@ -417,12 +417,12 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
 
     if (raw_bencode_equal_c_str(tag, "xt")) {
       // url-encoded hash as per magnet URN specs
-      if (decoded.length() == hash.size_data) {
+      if (decoded.length() == torrent::HashString::size_data) {
         hash = *HashString::cast_from(decoded);
         hashValid = true;
 
       // hex-encoded hash as per BEP 0009
-      } else if (decoded.length() == hash.size_data * 2) {
+      } else if (decoded.length() == torrent::HashString::size_data * 2) {
         std::string::iterator hexItr = decoded.begin();
         for (HashString::iterator itr = hash.begin(), last = hash.end(); itr != last; itr++, hexItr += 2)
           *itr = (rak::hexchar_to_value(*hexItr) << 4) + rak::hexchar_to_value(*(hexItr + 1));

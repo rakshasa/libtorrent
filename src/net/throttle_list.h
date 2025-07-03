@@ -53,7 +53,7 @@ public:
   uint32_t            max_chunk_size() const         { return m_maxChunkSize; }
   void                set_max_chunk_size(uint32_t v) { m_maxChunkSize = v; }
 
-  uint32_t            node_quota(ThrottleNode* node);
+  uint32_t            node_quota(ThrottleNode* node) const;
   uint32_t            node_used(ThrottleNode* node, uint32_t used);  // both node_used functions
   uint32_t            node_used_unthrottled(uint32_t used);          // return the "used" argument
   void                node_deactivate(ThrottleNode* node);

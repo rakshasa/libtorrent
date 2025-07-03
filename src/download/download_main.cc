@@ -413,14 +413,14 @@ DownloadMain::do_peer_exchange() {
   removed.reserve(m_ut_pex_list.size());
   std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), current.begin(), current.end(), std::back_inserter(removed), SocketAddressCompact_less);
 
-  if (current.size() > m_info->max_size_pex_list()) {
+  if (current.size() > torrent::DownloadInfo::max_size_pex_list()) {
     // This test is only correct as long as we have a constant max
     // size.
-    if (added.size() < current.size() - m_info->max_size_pex_list())
+    if (added.size() < current.size() - torrent::DownloadInfo::max_size_pex_list())
       throw internal_error("DownloadMain::do_peer_exchange() added.size() < current.size() - m_info->max_size_pex_list().");
 
     // Randomize this:
-    added.erase(added.end() - (current.size() - m_info->max_size_pex_list()), added.end());
+    added.erase(added.end() - (current.size() - torrent::DownloadInfo::max_size_pex_list()), added.end());
 
     // Create the new m_ut_pex_list by removing any 'removed'
     // addresses from the original list and then adding the new

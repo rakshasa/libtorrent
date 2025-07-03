@@ -41,7 +41,7 @@ public:
 
   static bool         open_socket_pair(int& fd1, int& fd2);
 
-  void                close();
+  void                close() const;
   void                clear() { m_fd = -1; }
 
   bool                bind(const rak::socket_address& sa);

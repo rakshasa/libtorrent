@@ -58,7 +58,7 @@ request_list_constants::destroy<BlockTransfer*>(BlockTransfer*& obj) {
 struct request_list_same_piece {
   request_list_same_piece(const Piece& p) : m_piece(p) {}
 
-  bool operator () (const BlockTransfer* d) {
+  bool operator () (const BlockTransfer* d) const {
     return
       m_piece.index() == d->piece().index() &&
       m_piece.offset() == d->piece().offset();

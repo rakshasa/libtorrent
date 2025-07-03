@@ -15,7 +15,7 @@ public:
 
   Throttle*           create_slave();
 
-  bool                is_throttled();
+  bool                is_throttled() const;
 
   // 0 == UNLIMITED.
   uint64_t            max_rate() const { return m_maxRate; }

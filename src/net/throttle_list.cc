@@ -106,7 +106,7 @@ ThrottleList::update_quota(uint32_t quota) {
 }
 
 uint32_t
-ThrottleList::node_quota(ThrottleNode* node) {
+ThrottleList::node_quota(ThrottleNode* node) const {
   if (!m_enabled) {
     // Returns max for signed integer to ensure we don't overflow
     // calculations.

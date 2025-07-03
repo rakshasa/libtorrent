@@ -82,8 +82,8 @@ public:
   Object*             store_cache(Object* container) const;
 
   // Create and verify a token. Tokens are valid between 15-30 minutes from creation.
-  raw_string          make_token(const rak::socket_address* sa, char* buffer);
-  bool                token_valid(raw_string token, const rak::socket_address* sa);
+  raw_string          make_token(const rak::socket_address* sa, char* buffer) const;
+  bool                token_valid(raw_string token, const rak::socket_address* sa) const;
 
   tracker::DhtController::statistics_type get_statistics() const;
   void                                    reset_statistics()  { m_server.reset_statistics(); }
@@ -119,7 +119,7 @@ private:
   void                receive_timeout_bootstrap();
 
   // buffer needs to hold an SHA1 hash (20 bytes), not just the token (8 bytes)
-  char*               generate_token(const rak::socket_address* sa, int token, char buffer[20]);
+  static char*        generate_token(const rak::socket_address* sa, int token, char buffer[20]);
 
   utils::SchedulerEntry m_task_timeout;
 
@@ -140,7 +140,7 @@ private:
 };
 
 inline raw_string
-DhtRouter::make_token(const rak::socket_address* sa, char* buffer) {
+DhtRouter::make_token(const rak::socket_address* sa, char* buffer) const {
   return raw_string(generate_token(sa, m_curToken, buffer), size_token);
 }
 

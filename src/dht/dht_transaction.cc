@@ -67,7 +67,7 @@ DhtSearch::add_contacts(const DhtBucket& contacts) {
 // Check if a node has been contacted yet.  This is the case if it is not currently
 // being contacted, nor has it been found to be good or bad.
 bool
-DhtSearch::node_uncontacted(const std::unique_ptr<DhtNode>& node) const {
+DhtSearch::node_uncontacted(const std::unique_ptr<DhtNode>& node) {
   return !node->is_active() && !node->is_good() && !node->is_bad();
 }
 
