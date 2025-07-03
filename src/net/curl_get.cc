@@ -4,6 +4,8 @@
 
 #include <cassert>
 #include <iostream>
+#include <utility>
+
 #include <curl/easy.h>
 
 #include "net/curl_stack.h"
@@ -12,8 +14,8 @@
 
 namespace torrent::net {
 
-CurlGet::CurlGet(const std::string& url, std::shared_ptr<std::ostream> stream) :
-    m_url(url),
+CurlGet::CurlGet(std::string url, std::shared_ptr<std::ostream> stream) :
+    m_url(std::move(url)),
     m_stream(std::move(stream)) {
 
   m_task_timeout.slot() = [this]() {
