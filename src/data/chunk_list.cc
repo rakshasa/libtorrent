@@ -347,7 +347,7 @@ ChunkList::sync_options(ChunkListNode* node, sync_flags flags) {
 // Using a rather simple algorithm for now. This should really be more
 // robust against holes withing otherwise compact ranges and take into
 // consideration chunk size.
-inline ChunkList::Queue::iterator
+ChunkList::Queue::iterator
 ChunkList::seek_range(Queue::iterator first, Queue::iterator last) {
   uint32_t prevIndex = (*first)->index();
 

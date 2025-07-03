@@ -122,7 +122,7 @@ SocketFile::allocate(uint64_t size, int flags) const {
 }
 
 MemoryChunk
-SocketFile::create_padding_chunk(uint32_t length, int prot, int flags) const {
+SocketFile::create_padding_chunk(uint32_t length, int prot, int flags) {
   flags |= MemoryChunk::map_anon;
 
   auto ptr = static_cast<char*>(mmap(NULL, length, prot, flags, -1, 0));

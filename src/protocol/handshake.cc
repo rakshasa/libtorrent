@@ -57,7 +57,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_downloadThrottle(manager->download_throttle()->throttle_list()),
 
   m_encryption(encryptionOptions),
-  m_extensions(m->default_extensions()) {
+  m_extensions(torrent::HandshakeManager::default_extensions()) {
 
   set_fd(fd);
 
@@ -1064,7 +1064,7 @@ Handshake::prepare_peer_info() {
     if (m_peerInfo == NULL)
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_no_peer_info);
 
-    if (m_peerInfo->failed_counter() > m_manager->max_failed)
+    if (m_peerInfo->failed_counter() > torrent::HandshakeManager::max_failed)
       throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_toomanyfailed);
 
     m_peerInfo->set_flags(PeerInfo::flag_handshake);

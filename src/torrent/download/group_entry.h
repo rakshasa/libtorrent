@@ -52,8 +52,8 @@ class PeerConnectionBase;
 struct weighted_connection {
   weighted_connection(PeerConnectionBase* pcb, uint32_t w) : connection(pcb), weight(w) {}
 
-  bool operator == (const PeerConnectionBase* pcb) { return pcb == connection; }
-  bool operator != (const PeerConnectionBase* pcb) { return pcb != connection; }
+  bool operator == (const PeerConnectionBase* pcb) const { return pcb == connection; }
+  bool operator != (const PeerConnectionBase* pcb) const { return pcb != connection; }
 
   PeerConnectionBase* connection;
   uint32_t            weight;

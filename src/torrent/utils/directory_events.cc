@@ -22,7 +22,7 @@ directory_events::open() {
   if (m_fileDesc != -1)
     return true;
 
-  rak::error_number::current().clear_global();
+  rak::error_number::clear_global();
 
 #ifdef USE_INOTIFY
   m_fileDesc = inotify_init();

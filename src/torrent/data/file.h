@@ -37,7 +37,7 @@ public:
   bool                is_previously_created() const            { return m_flags & flag_previously_created; }
   bool                is_padding() const                       { return m_flags & flag_attr_padding; }
 
-  bool                has_flags(int flags)                     { return m_flags & flags; }
+  bool                has_flags(int flags) const               { return m_flags & flags; }
 
   void                set_flags(int flags);
   void                unset_flags(int flags);
@@ -104,7 +104,7 @@ private:
   File(const File&) = delete;
   File& operator=(const File&) = delete;
 
-  bool                resize_file();
+  bool                resize_file() const;
 
   int                 m_fd{-1};
   int                 m_protection{0};

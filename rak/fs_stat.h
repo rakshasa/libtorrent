@@ -65,9 +65,9 @@ public:
   bool                       update(const char* fn)               { return FS_STAT_FN; }
   bool                       update(const std::string& filename)  { return update(filename.c_str()); }
 
-  blocksize_type             blocksize()                          { return FS_STAT_BLOCK_SIZE; }
-  blockcount_type            blocks_avail()                       { return m_stat.f_bavail; }
-  int64_t                    bytes_avail()                        { return (int64_t) blocksize() * m_stat.f_bavail; }
+  blocksize_type             blocksize() const                    { return FS_STAT_BLOCK_SIZE; }
+  blockcount_type            blocks_avail() const                 { return m_stat.f_bavail; }
+  int64_t                    bytes_avail() const                  { return (int64_t) blocksize() * m_stat.f_bavail; }
 
 private:
   fs_stat_type               m_stat;

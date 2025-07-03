@@ -266,7 +266,7 @@ ResourceManager::receive_download_unchoke(int num) {
 }
 
 int
-ResourceManager::retrieve_upload_can_unchoke() {
+ResourceManager::retrieve_upload_can_unchoke() const {
   if (m_maxUploadUnchoked == 0)
     return std::numeric_limits<int>::max();
 
@@ -274,7 +274,7 @@ ResourceManager::retrieve_upload_can_unchoke() {
 }
 
 int
-ResourceManager::retrieve_download_can_unchoke() {
+ResourceManager::retrieve_download_can_unchoke() const {
   if (m_maxDownloadUnchoked == 0)
     return std::numeric_limits<int>::max();
 

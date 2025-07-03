@@ -73,7 +73,7 @@ public:
 
   uint32_t            receive_success(const tracker::Tracker& tracker, address_list* l);
   void                receive_failure(const tracker::Tracker& tracker, const std::string& msg);
-  void                receive_scrape(const tracker::Tracker& tracker);
+  void                receive_scrape(const tracker::Tracker& tracker) const;
 
   void                receive_tracker_enabled(const tracker::Tracker& tb);
   void                receive_tracker_disabled(const tracker::Tracker& tb);

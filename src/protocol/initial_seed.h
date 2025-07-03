@@ -70,8 +70,8 @@ private:
 
   uint32_t            find_next(bool secondary, PeerConnectionBase* pcb);
 
-  bool                valid_peer(PeerInfo* peer);
-  void                clear_peer(PeerInfo* peer);
+  static bool         valid_peer(PeerInfo* peer);
+  static void         clear_peer(PeerInfo* peer);
   void                chunk_complete(uint32_t index, PeerConnectionBase* pcb);
 
   void                complete(PeerConnectionBase* pcb);

@@ -41,8 +41,6 @@ public:
 
   tracker_enum        type() const override;
 
-  void                get_status(char* buffer, int length);
-
   state_type          get_dht_state() const            { return m_dht_state; }
   void                set_dht_state(state_type state)  { m_dht_state = state; }
 

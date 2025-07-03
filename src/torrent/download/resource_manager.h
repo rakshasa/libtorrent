@@ -127,7 +127,7 @@ public:
 
   resource_manager_entry& entry_at(DownloadMain* d) { return *find_throw(d); }
 
-  void                set_priority(iterator itr, uint16_t pri);
+  static void         set_priority(iterator itr, uint16_t pri);
   void                set_group(iterator itr, uint16_t grp);
 
   // When setting this, make sure you choke peers, else change
@@ -144,8 +144,8 @@ public:
   void                receive_upload_unchoke(int num);
   void                receive_download_unchoke(int num);
 
-  int                 retrieve_upload_can_unchoke();
-  int                 retrieve_download_can_unchoke();
+  int                 retrieve_upload_can_unchoke() const;
+  int                 retrieve_download_can_unchoke() const;
 
   void                receive_tick();
 

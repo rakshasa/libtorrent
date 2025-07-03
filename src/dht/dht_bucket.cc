@@ -83,7 +83,7 @@ void
 DhtBucket::get_mid_point(HashString* middle) const {
   *middle = m_end;
 
-  for (unsigned int i=0; i<m_begin.size(); i++)
+  for (unsigned int i=0; i<torrent::HashString::size(); i++)
     if (m_begin[i] != m_end[i]) {
       (*middle)[i] = (static_cast<uint8_t>(m_begin[i]) + static_cast<uint8_t>(m_end[i])) / 2;
       break;
@@ -95,7 +95,7 @@ DhtBucket::get_random_id(HashString* rand_id) const {
 
   // Generate a random ID between m_begin and m_end.
   // Since m_end - m_begin = 2^n - 1, we can do a bitwise AND operation.
-  for (unsigned int i=0; i<(*rand_id).size(); i++)
+  for (unsigned int i=0; i<torrent::HashString::size(); i++)
     (*rand_id)[i] = m_begin[i] + (random() & (m_end[i] - m_begin[i]));
 
 #ifdef USE_EXTRA_DEBUG
@@ -113,7 +113,7 @@ DhtBucket::split(const HashString& id) {
 
   // Set m_begin = mid_range + 1
   int carry = 1;
-  for (unsigned int i = mid_range.size(); i>0; i--) {
+  for (unsigned int i = torrent::HashString::size(); i>0; i--) {
     unsigned int sum = static_cast<uint8_t>(mid_range[i - 1]) + carry;
     m_begin[i - 1]   = static_cast<uint8_t>(sum);
     carry = sum >> 8;

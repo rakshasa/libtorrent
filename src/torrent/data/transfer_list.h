@@ -64,7 +64,7 @@ public:
   slot_peer_info&     slot_corrupt()   { return m_slot_corrupt; }
 
 private:
-  unsigned int        update_failed(BlockList* blockList, Chunk* chunk);
+  static unsigned int update_failed(BlockList* blockList, Chunk* chunk);
   void                mark_failed_peers(BlockList* blockList, Chunk* chunk);
 
   void                retry_most_popular(BlockList* blockList, Chunk* chunk);

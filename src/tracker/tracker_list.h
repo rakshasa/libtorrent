@@ -74,8 +74,8 @@ public:
 
   void                send_scrape(tracker::Tracker& tracker);
 
-  DownloadInfo*       info()                                  { return m_info; }
-  int                 state()                                 { return m_state; }
+  const DownloadInfo* info() const                            { return m_info; }
+  int                 state() const                           { return m_state; }
   uint32_t            key() const                             { return m_key; }
 
   int32_t             numwant() const                         { return m_numwant; }

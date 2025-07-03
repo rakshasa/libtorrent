@@ -119,10 +119,10 @@ private:
 
   Queue::iterator     partition_optimize(Queue::iterator first, Queue::iterator last, int weight, int maxDistance, bool dontSkip);
 
-  inline Queue::iterator seek_range(Queue::iterator first, Queue::iterator last);
+  static Queue::iterator seek_range(Queue::iterator first, Queue::iterator last);
   inline bool            check_node(ChunkListNode* node);
 
-  std::pair<int,bool> sync_options(ChunkListNode* node, sync_flags flags);
+  static std::pair<int,bool> sync_options(ChunkListNode* node, sync_flags flags);
 
   download_data*      m_data{};
   ChunkManager*       m_manager{};

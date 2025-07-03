@@ -474,7 +474,7 @@ DhtRouter::generate_token(const rak::socket_address* sa, int token, char buffer[
 }
 
 bool
-DhtRouter::token_valid(raw_string token, const rak::socket_address* sa) {
+DhtRouter::token_valid(raw_string token, const rak::socket_address* sa) const {
   if (token.size() != size_token)
     return false;
 
@@ -626,7 +626,7 @@ DhtRouter::bootstrap_bucket(const DhtBucket* bucket) {
 
   if (bucket == this->bucket()) {
     contactId = id();
-    contactId[contactId.size() - 1] ^= 1;
+    contactId[torrent::HashString::size() - 1] ^= 1;
   } else {
     bucket->get_random_id(&contactId);
   }

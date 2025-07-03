@@ -144,7 +144,7 @@ SocketFd::open_socket_pair(int& fd1, int& fd2) {
 }
 
 void
-SocketFd::close() {
+SocketFd::close() const {
   if (::close(m_fd) && errno == EBADF)
     throw internal_error("SocketFd::close() called on an invalid file descriptor");
 }

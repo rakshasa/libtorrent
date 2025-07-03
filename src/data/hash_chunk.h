@@ -23,7 +23,7 @@ public:
 
   ChunkHandle*        chunk()                                 { return &m_chunk; }
   ChunkHandle&        handle()                                { return m_chunk; }
-  uint32_t            remaining();
+  uint32_t            remaining() const;
 
   void                set_chunk(ChunkHandle h);
 
@@ -38,7 +38,7 @@ private:
   HashChunk(const HashChunk&) = delete;
   HashChunk& operator=(const HashChunk&) = delete;
 
-  inline uint32_t     remaining_part(Chunk::iterator itr, uint32_t pos);
+  static uint32_t     remaining_part(Chunk::iterator itr, uint32_t pos);
   uint32_t            perform_part(Chunk::iterator itr, uint32_t length);
 
   uint32_t            m_position;
@@ -58,7 +58,7 @@ HashChunk::remaining_part(Chunk::iterator itr, uint32_t pos) {
 }
 
 inline uint32_t
-HashChunk::remaining() {
+HashChunk::remaining() const {
   if (!m_chunk.is_loaded())
     throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
 

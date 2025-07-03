@@ -594,7 +594,7 @@ TrackerController::receive_failure(const tracker::Tracker& tracker, const std::s
 }
 
 void
-TrackerController::receive_scrape([[maybe_unused]] const tracker::Tracker& tracker) {
+TrackerController::receive_scrape([[maybe_unused]] const tracker::Tracker& tracker) const {
   if (!(m_flags & flag_active)) {
     return;
   }

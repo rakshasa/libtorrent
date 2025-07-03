@@ -56,8 +56,7 @@ ChunkPart::incore_length(uint32_t pos, uint32_t length) {
   uint32_t dist = std::distance(begin, std::find(begin, end, 0));
 
   // This doesn't properly account for alignment when calculating the length.
-  return std::min(dist ? (dist * m_chunk.page_size() - m_chunk.page_align()) : 0,
-                  length);
+  return std::min(dist ? (dist * MemoryChunk::page_size() - m_chunk.page_align()) : 0, length);
 }
 
 } // namespace torrent

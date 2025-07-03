@@ -62,7 +62,7 @@ InitialSeeding::~InitialSeeding() {
   unblock_all();
 }
 
-inline bool
+bool
 InitialSeeding::valid_peer(PeerInfo* peer) {
   return peer > chunk_done;
 }

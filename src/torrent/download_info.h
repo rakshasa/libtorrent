@@ -107,7 +107,7 @@ public:
   uint32_t            max_size_pex() const                         { return m_max_size_pex; }
   void                set_max_size_pex(uint32_t b)                 { m_max_size_pex = b; }
 
-  uint32_t            max_size_pex_list() const                    { return 200; }
+  static uint32_t     max_size_pex_list()                          { return 200; }
 
   // Unix epoche, 0 == unknown.
   uint32_t            creation_date() const                        { return m_creation_date; }

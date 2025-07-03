@@ -83,7 +83,7 @@ private:
     SocketAddressCompact _addr;
 
     HashString&          id()          { return *HashString::cast_from(_id); }
-    rak::socket_address  address()     { return rak::socket_address(_addr); }
+    rak::socket_address  address() const { return rak::socket_address(_addr); }
   };
 
   using packet_queue   = std::deque<DhtTransactionPacket*>;

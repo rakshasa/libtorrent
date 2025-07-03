@@ -241,7 +241,7 @@ download_set_priority(Download d, uint32_t pri) {
   if (pri > 1024)
     throw internal_error("torrent::download_set_priority(...) received an invalid priority.");
 
-  manager->resource_manager()->set_priority(itr, pri);
+  ResourceManager::set_priority(itr, pri);
 }
 
 } // namespace torrent
