@@ -17,8 +17,8 @@ namespace torrent::net {
 
 HttpGet::HttpGet() = default;
 
-HttpGet::HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream) :
-    m_curl_get(new CurlGet(url, std::move(stream))) {
+HttpGet::HttpGet(std::string url, std::shared_ptr<std::ostream> stream) :
+    m_curl_get(new CurlGet(std::move(url), std::move(stream))) {
 }
 
 HttpGet::~HttpGet() = default;

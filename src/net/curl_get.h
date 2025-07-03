@@ -23,7 +23,7 @@ public:
     RESOLVE_IPV6
   };
 
-  CurlGet(const std::string& url = "", std::shared_ptr<std::ostream> stream = nullptr);
+  CurlGet(std::string url = "", std::shared_ptr<std::ostream> stream = nullptr);
   ~CurlGet();
 
   bool                is_stacked() const;

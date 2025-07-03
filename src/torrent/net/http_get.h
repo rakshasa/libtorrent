@@ -17,7 +17,7 @@ class HttpStack;
 class LIBTORRENT_EXPORT HttpGet {
 public:
   HttpGet();
-  HttpGet(const std::string& url, std::shared_ptr<std::ostream> stream);
+  HttpGet(std::string url, std::shared_ptr<std::ostream> stream);
   ~HttpGet();
 
   HttpGet(const HttpGet&) = default;
