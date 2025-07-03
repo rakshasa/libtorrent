@@ -585,7 +585,7 @@ DhtRouter::bootstrap() {
       if (sa != nullptr)
         contact(sa.get(), m_contacts->back().second);
     };
-    this_thread::resolver()->resolve_specific(this, m_contacts->back().first.c_str(), rak::socket_address::pf_inet, f);
+    this_thread::resolver()->resolve_specific(this, m_contacts->back().first, rak::socket_address::pf_inet, f);
 
     m_contacts->pop_back();
   }
