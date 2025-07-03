@@ -13,6 +13,7 @@
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
 #include "torrent/data/file.h"
+#include "torrent/data/transfer_list.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
@@ -224,7 +225,11 @@ Download::peer_list() const {
   return m_ptr->main()->peer_list();
 }
 
-const TransferList*
+TransferList&
+Download::transfer_list() {
+  return m_ptr->main()->delegator()->transfer_list();
+}
+const TransferList&
 Download::transfer_list() const {
   return m_ptr->main()->delegator()->transfer_list();
 }
@@ -245,7 +250,7 @@ Download::bytes_done() const {
 
   Delegator* d = m_ptr->main()->delegator();
 
-  for (auto itr1 : *d->transfer_list())
+  for (auto itr1 : d->transfer_list())
     for (const auto& itr2 : *itr1)
       if (itr2.is_finished())
         a += itr2.piece().length();

@@ -332,7 +332,7 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   object.erase_key("uncertain_pieces");
   object.erase_key("uncertain_pieces.timestamp");
 
-  const TransferList::completed_list_type& completedList = download.transfer_list()->completed_list();
+  const TransferList::completed_list_type& completedList = download.transfer_list().completed_list();
 
   auto itr = std::find_if(completedList.begin(), completedList.end(), [](const auto& v) {
       return this_thread::cached_time() - 15min <= std::chrono::microseconds(v.first);

@@ -4,6 +4,7 @@
 #include "torrent/data/block.h"
 #include "torrent/data/block_list.h"
 #include "torrent/data/block_transfer.h"
+#include "torrent/data/transfer_list.h"
 #include "protocol/peer_chunks.h"
 
 #include "delegator.h"
@@ -23,23 +24,23 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
 
   // TODO: What if the hash failed? Don't want data from that peer again.
   if (affinity >= 0) {
-    for (BlockList* itr : m_transfers) {
+    for (auto list : transfer_list()) {
       if (new_transfers.size() >= maxPieces)
         return new_transfers;
 
-      if (affinity == itr->index())
-        delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
+      if (affinity == list->index())
+        delegate_from_blocklist(new_transfers, maxPieces, list, peerInfo);
     }
   }
 
   // Prioritize full seeders
   if (peerChunks->is_seeder()) {
-    for (BlockList* itr : m_transfers) {
+    for (auto list : transfer_list()) {
       if (new_transfers.size() >= maxPieces)
         return new_transfers;
 
-      if (itr->by_seeder())
-        delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
+      if (list->by_seeder())
+        delegate_from_blocklist(new_transfers, maxPieces, list, peerInfo);
     }
 
     // Create new high priority pieces.
@@ -52,24 +53,24 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
     return new_transfers;
 
   // Find existing high priority pieces.
-  for (BlockList* itr : m_transfers) {
+  for (auto list : transfer_list()) {
     if (new_transfers.size() >= maxPieces)
       return new_transfers;
 
-    if (itr->priority() == PRIORITY_HIGH && peerChunks->bitfield()->get(itr->index()))
-      delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
+    if (list->priority() == PRIORITY_HIGH && peerChunks->bitfield()->get(list->index()))
+      delegate_from_blocklist(new_transfers, maxPieces, list, peerInfo);
   }
 
   // Create new high priority pieces.
   delegate_new_chunks(new_transfers, maxPieces, peerChunks, true);
 
   // Find existing normal priority pieces.
-  for (BlockList* itr : m_transfers) {
+  for (auto list : transfer_list()) {
     if (new_transfers.size() >= maxPieces)
       return new_transfers;
 
-    if (itr->priority() == PRIORITY_NORMAL && peerChunks->bitfield()->get(itr->index()))
-      delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
+    if (list->priority() == PRIORITY_NORMAL && peerChunks->bitfield()->get(list->index()))
+      delegate_from_blocklist(new_transfers, maxPieces, list, peerInfo);
   }
 
   // Create new normal priority pieces.
@@ -84,12 +85,12 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
   // No more than 4 per piece.
   uint16_t overlapped = 5;
 
-  for (BlockList* itr : m_transfers) {
+  for (auto list : transfer_list()) {
     if (new_transfers.size() >= maxPieces)
       return new_transfers;
 
-    if (peerChunks->bitfield()->get(itr->index()) && itr->priority() != PRIORITY_OFF) {
-      for (auto bl_itr = itr->begin(); bl_itr != itr->end() && overlapped != 0; bl_itr++) {
+    if (peerChunks->bitfield()->get(list->index()) && list->priority() != PRIORITY_OFF) {
+      for (auto bl_itr = list->begin(); bl_itr != list->end() && overlapped != 0; bl_itr++) {
         if (new_transfers.size() >= maxPieces || bl_itr->size_not_stalled() >= overlapped)
           break;
 

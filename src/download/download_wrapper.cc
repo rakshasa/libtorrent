@@ -11,6 +11,7 @@
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
+#include "torrent/data/transfer_list.h"
 #include "torrent/download_info.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
@@ -185,7 +186,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       bool was_partial = data()->wanted_chunks() != 0;
 
       m_main->file_list()->mark_completed(handle.index());
-      m_main->delegator()->transfer_list()->hash_succeeded(handle.index(), handle.chunk());
+      m_main->delegator()->transfer_list().hash_succeeded(handle.index(), handle.chunk());
       m_main->update_endgame();
 
       if (m_main->file_list()->is_done()) {
@@ -203,7 +204,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
 
     } else {
       // This needs to ensure the chunk is still valid.
-      m_main->delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
+      m_main->delegator()->transfer_list().hash_failed(handle.index(), handle.chunk());
     }
   }
 

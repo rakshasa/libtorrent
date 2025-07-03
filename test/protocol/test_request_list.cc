@@ -7,6 +7,7 @@
 #include "protocol/request_list.h"
 #include "rak/socket_address.h"
 #include "test/helpers/test_main_thread.h"
+#include "torrent/data/transfer_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/peer/peer_info.h"
 
@@ -23,14 +24,14 @@ transfer_list_void() {
 }
 
 static void
-transfer_list_completed(torrent::TransferList* transfer_list, uint32_t index) {
-  torrent::TransferList::iterator itr = transfer_list->find(index);
+transfer_list_completed(torrent::TransferList& transfer_list, uint32_t index) {
+  torrent::TransferList::iterator itr = transfer_list.find(index);
 
-  // std::cout << "list_completed:" << index << " found: " << (itr != transfer_list->end()) << std::endl;
+  // std::cout << "list_completed:" << index << " found: " << (itr != transfer_list.end()) << std::endl;
 
-  CPPUNIT_ASSERT(itr != transfer_list->end());
+  CPPUNIT_ASSERT(itr != transfer_list.end());
 
-  transfer_list->erase(itr);
+  transfer_list.erase(itr);
 }
 
 struct RequestListGuard {
@@ -40,7 +41,7 @@ struct RequestListGuard {
       return;
 
     request_list->clear();
-    request_list->delegator()->transfer_list()->clear();
+    request_list->delegator()->transfer_list().clear();
   }
 
   bool                  completed{false};
@@ -51,10 +52,10 @@ struct RequestListGuard {
   auto delegator = std::make_unique<torrent::Delegator>();              \
   delegator->slot_chunk_find() = std::bind(&fpc_prefix ## _find_peer_chunk, std::placeholders::_1, std::placeholders::_2); \
   delegator->slot_chunk_size() = std::bind(&chunk_index_size, std::placeholders::_1); \
-  delegator->transfer_list()->slot_canceled()  = std::bind(&transfer_list_void); \
-  delegator->transfer_list()->slot_queued()    = std::bind(&transfer_list_void); \
-  delegator->transfer_list()->slot_completed() = std::bind(&transfer_list_completed, delegator->transfer_list(), std::placeholders::_1); \
-  delegator->transfer_list()->slot_corrupt()   = std::bind(&transfer_list_void);
+  delegator->transfer_list().slot_canceled()  = std::bind(&transfer_list_void); \
+  delegator->transfer_list().slot_queued()    = std::bind(&transfer_list_void); \
+  delegator->transfer_list().slot_completed() = [&delegator](auto c) { return transfer_list_completed(delegator->transfer_list(), c); }; \
+  delegator->transfer_list().slot_corrupt()   = std::bind(&transfer_list_void);
 
 // Set bitfield size...
 #define SETUP_PEER_CHUNKS()                                             \
@@ -87,7 +88,7 @@ struct RequestListGuard {
   CPPUNIT_ASSERT(piece_1 && piece_2 && piece_3);
 
 #define CLEAR_TRANSFERS(fpc_prefix)             \
-  delegator->transfer_list()->clear();          \
+  delegator->transfer_list().clear();          \
   request_list_guard.completed = true;
 
 //

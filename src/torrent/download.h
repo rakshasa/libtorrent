@@ -72,7 +72,9 @@ public:
   FileList*           file_list() const;
   PeerList*           peer_list();
   const PeerList*     peer_list() const;
-  const TransferList* transfer_list() const;
+
+  TransferList& transfer_list();
+  const TransferList& transfer_list() const;
 
   ConnectionList*       connection_list();
   const ConnectionList* connection_list() const;
