@@ -229,7 +229,7 @@ public:
   void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); _map().erase(k); }
 
   Object&             insert_front(const Object& b)                  { check_throw(TYPE_LIST); return *_list().insert(_list().begin(), b); }
-  Object&             insert_back(const Object& b)                   { check_throw(TYPE_LIST); return *_list().insert(_list().end(), b); }
+  Object&             insert_back(const Object& b)                   { check_throw(TYPE_LIST); return _list().emplace_back(b); }
 
   // Copy and merge operations:
   Object&             move(Object& b) noexcept;

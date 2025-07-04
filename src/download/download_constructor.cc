@@ -288,7 +288,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
   file_list->set_multi_file(true);
 
   file_list->initialize(torrent_size, chunk_size);
-  file_list->split(file_list->begin(), &*split_list.begin(), &*split_list.end());
+  file_list->split(file_list->begin(), &split_list.front(), &split_list.back());
   file_list->update_paths(file_list->begin(), file_list->end());
 }
 

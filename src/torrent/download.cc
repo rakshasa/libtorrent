@@ -257,7 +257,7 @@ Download::chunks_hashed() const {
 
 const uint8_t*
 Download::chunks_seen() const {
-  return !m_ptr->main()->chunk_statistics()->empty() ? &*m_ptr->main()->chunk_statistics()->begin() : NULL;
+  return !m_ptr->main()->chunk_statistics()->empty() ? &m_ptr->main()->chunk_statistics()->front() : NULL;
 }
 
 void
