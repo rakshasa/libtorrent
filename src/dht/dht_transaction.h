@@ -146,8 +146,8 @@ public:
 
 protected:
   void                 trim(bool final);
-  void                 node_status(const_accessor& n, bool success);
-  void                 set_node_active(const_accessor& n, bool active);
+  void                 node_status(const std::unique_ptr<DhtNode>& n, bool success);
+  static void          set_node_active(const std::unique_ptr<DhtNode>& n, bool active);
 
   // Statistics about contacted nodes.
   unsigned int         m_pending{0};
@@ -415,8 +415,8 @@ DhtSearch::is_closer(const HashString& one, const HashString& two, const HashStr
 }
 
 inline void
-DhtSearch::set_node_active(const_accessor& n, bool active) {
-  n.node()->m_lastSeen = active;
+DhtSearch::set_node_active(const std::unique_ptr<DhtNode>& n, bool active) {
+  n->m_lastSeen = active;
 }
 
 inline bool
