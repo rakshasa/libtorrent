@@ -131,7 +131,7 @@ DhtSearch::get_contact() {
   if (ret == end())
     return ret;
 
-  set_node_active(ret, true);
+  set_node_active(ret.node(), true);
   m_pending++;
   m_contacted++;
 
@@ -145,16 +145,16 @@ DhtSearch::get_contact() {
 }
 
 void
-DhtSearch::node_status(const_accessor& n, bool success) {
-  if (n == end() || !n.node()->is_active())
+DhtSearch::node_status(const std::unique_ptr<DhtNode>& n, bool success) {
+  if (!n->is_active())
     throw internal_error("DhtSearch::node_status called for invalid/inactive node.");
 
   if (success) {
-    n.node()->set_good();
+    n->set_good();
     m_replied++;
 
   } else {
-    n.node()->set_bad();
+    n->set_bad();
   }
 
   m_pending--;
@@ -199,8 +199,8 @@ DhtAnnounce::start_announce() {
   m_replied = 0;
   m_tracker->set_dht_state(TrackerDht::state_announcing);
 
-  for (const_accessor itr(begin()); itr != end(); ++itr)
-    set_node_active(itr, true);
+  for (const auto& [node, _] : *this)
+    set_node_active(node, true);
 
   return const_accessor(begin());
 }
@@ -248,7 +248,7 @@ DhtTransactionSearch::complete(bool success) {
   if (!m_hasQuickTimeout)
     m_search->m_concurrency--;
 
-  m_search->node_status(m_node, success);
+  m_search->node_status(m_node.node(), success);
   m_node = m_search->end();
 }
 
