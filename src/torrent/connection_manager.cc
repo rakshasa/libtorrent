@@ -1,9 +1,11 @@
 #include "config.h"
 
+#include "torrent/connection_manager.h"
+
 #include "net/listen.h"
 #include "rak/socket_address.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/socket_address.h"
 
 namespace torrent {
 
@@ -78,10 +80,19 @@ ConnectionManager::set_proxy_address(const sockaddr* sa) {
 
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
-  if (!m_slot_filter)
-    return 1;
-  else
+  if (m_block_ipv4 && sa_is_inet(sa))
+    return 0;
+
+  if (m_block_ipv6 && sa_is_inet6(sa))
+    return 0;
+
+  if (m_block_ipv4in6 && sa_is_v4mapped(sa))
+    return 0;
+
+  if (m_slot_filter)
     return m_slot_filter(sa);
+
+  return 1;
 }
 
 bool
