@@ -121,14 +121,15 @@ public:
   // For internal usage.
   Listen*             listen()            { return m_listen; }
 
-  bool                is_block_ipv4() const  { return m_block_ipv4; }
-  void                set_block_ipv4(bool v) { m_block_ipv4 = v; }
+  bool                is_block_ipv4() const    { return m_block_ipv4; }
+  bool                is_block_ipv6() const    { return m_block_ipv6; }
+  bool                is_block_ipv4in6() const { return m_block_ipv4in6; }
+  bool                is_prefer_ipv6() const   { return m_prefer_ipv6; }
 
-  bool                is_block_ipv6() const  { return m_block_ipv6; }
-  void                set_block_ipv6(bool v) { m_block_ipv6 = v; }
-
-  bool                is_prefer_ipv6() const  { return m_prefer_ipv6; }
-  void                set_prefer_ipv6(bool v) { m_prefer_ipv6 = v; }
+  void                set_block_ipv4(bool v)   { m_block_ipv4 = v; }
+  void                set_block_ipv6(bool v)   { m_block_ipv6 = v; }
+  void                set_block_ipv4in6(bool v) { m_block_ipv4in6 = v; }
+  void                set_prefer_ipv6(bool v)  { m_prefer_ipv6 = v; }
 
 private:
   size_type           m_size{0};
@@ -152,6 +153,7 @@ private:
 
   bool                m_block_ipv4{false};
   bool                m_block_ipv6{false};
+  bool                m_block_ipv4in6{false};
   bool                m_prefer_ipv6{false};
 };
 

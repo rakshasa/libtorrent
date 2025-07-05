@@ -123,9 +123,7 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
       return;
     }
 
-    auto itr = std::find_if(base_type::begin(), base_type::end(), [](auto& curl_get) {
-        return !curl_get->is_active();
-      });
+    auto itr = std::find_if_not(base_type::begin(), base_type::end(), std::mem_fn(&CurlGet::is_active));
 
     if (itr == base_type::end()) {
       m_active--;
