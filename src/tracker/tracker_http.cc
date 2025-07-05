@@ -93,6 +93,10 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   if (!tracker_id.empty())
     s << "&trackerid=" << rak::copy_escape_html(tracker_id);
 
+  //
+  // TODO: Make all connection_manager related calls thread-safe.
+  //
+
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
   if (localAddress->is_address_any()) {
@@ -136,7 +140,25 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   m_data = std::make_unique<std::stringstream>();
 
   std::string request_url = s.str();
+
   m_get.reset(request_url, m_data);
+
+  bool is_block_ipv4 = manager->connection_manager()->is_block_ipv4();
+  bool is_block_ipv6 = manager->connection_manager()->is_block_ipv6();
+  bool is_prefer_ipv6 = manager->connection_manager()->is_prefer_ipv6();
+
+  // If both IPv4 and IPv6 are blocked, we cannot send the request.
+  //
+  // TODO: Properly handle this case without throwing an error.
+
+  if (is_block_ipv4 && is_block_ipv6)
+    throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
+  else if (is_block_ipv4)
+    m_get.use_ipv6();
+  else if (is_block_ipv6)
+    m_get.use_ipv4();
+  else if (is_prefer_ipv6)
+    m_get.prefer_ipv6();
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,

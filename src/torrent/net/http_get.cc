@@ -80,6 +80,24 @@ HttpGet::set_timeout(uint32_t seconds) {
 }
 
 void
+HttpGet::use_ipv4() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV4);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_NONE);
+}
+
+void
+HttpGet::use_ipv6() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV6);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_NONE);
+}
+
+void
+HttpGet::prefer_ipv6() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV6);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_IPV4);
+}
+
+void
 HttpGet::add_done_slot(const std::function<void()>& slot) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
