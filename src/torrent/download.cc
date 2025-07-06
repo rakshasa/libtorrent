@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <cinttypes>
+#include <numeric>
 
 #include "data/block.h"
 #include "data/block_list.h"
@@ -241,16 +242,13 @@ Download::connection_list() const {
 
 uint64_t
 Download::bytes_done() const {
-  uint64_t a = 0;
+  uint64_t a = m_ptr->main()->file_list()->completed_bytes();
 
-  Delegator* d = m_ptr->main()->delegator();
-
-  for (auto itr1 : *d->transfer_list())
-    for (const auto& itr2 : *itr1)
-      if (itr2.is_finished())
-        a += itr2.piece().length();
-
-  return a + m_ptr->main()->file_list()->completed_bytes();
+  for (auto list : *m_ptr->main()->delegator()->transfer_list())
+    a += std::accumulate(list->begin(), list->end(), uint64_t{}, [](auto sum, const auto& t) {
+      return t.is_finished() ? sum + t.piece().length() : sum;
+    });
+  return a;
 }
 
 uint32_t

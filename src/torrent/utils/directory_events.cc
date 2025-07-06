@@ -87,10 +87,10 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   if (result == -1)
     throw input_error("Call to inotify_add_watch(...) failed: " + std::string(rak::error_number::current().c_str()));
 
-  auto itr = m_wd_list.insert(m_wd_list.end(), watch_descriptor());
-  itr->descriptor = result;
-  itr->path = path + (*path.rbegin() != '/' ? "/" : "");
-  itr->slot = slot;
+  auto& wd = m_wd_list.emplace_back();
+  wd.descriptor = result;
+  wd.path = path + (path.back() != '/' ? "/" : "");
+  wd.slot = slot;
 
 #else
   throw input_error("No support for inotify.");
