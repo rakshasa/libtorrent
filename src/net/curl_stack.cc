@@ -210,21 +210,13 @@ CurlStack::process_done_handle() {
 
   // TODO: Lock CurlGet here, do the retry or retrieve the slots, instead of using trigger_*.
 
-  if ((*itr)->is_closing_unsafe())
+  // Strictly not needed as the following conditions will also return false if the handle is
+  // closing.
+  if ((*itr)->is_closing())
     return remaining_msgs != 0;
 
-  if (msg->data.result == CURLE_COULDNT_RESOLVE_HOST) {
-    if (!(*itr)->is_using_ipv6()) {
-      (*itr)->retry_ipv6();
-
-      CURLMcode code = curl_multi_remove_handle(m_handle, (*itr)->handle_unsafe());
-
-      if (code != CURLM_OK)
-        throw torrent::internal_error("CurlStack::process_done_handle() curl_multi_add_handle failed: " + std::string(curl_multi_strerror(code)));
-
-      return remaining_msgs != 0;
-    }
-  }
+  if (msg->data.result == CURLE_COULDNT_RESOLVE_HOST && (*itr)->retry_resolve())
+    return remaining_msgs != 0;
 
   if (msg->data.result == CURLE_OK)
     (*itr)->trigger_done();
