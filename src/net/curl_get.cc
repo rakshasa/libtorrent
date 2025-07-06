@@ -160,6 +160,11 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
   curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
 
+  // Note that if the url has a numeric IP address, libcurl will not respect the CURLOPT_IPRESOLVE
+  // option.
+  //
+  // We need to make CurlGet fail on numeric urls which do not match the resolve type.
+
   switch (m_initial_resolve) {
   case RESOLVE_IPV4:
     curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
