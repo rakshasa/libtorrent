@@ -31,14 +31,20 @@ AC_DEFUN([CHECK_ATOMIC], [
       AC_MSG_RESULT([yes])
     ],[
       AC_MSG_RESULT([no])
-      ATOMIC_LIBS=-latomic
       AC_MSG_CHECKING([whether std::atomic needs -latomic])
+
+      OLD_LIBS="$LIBS"
+      LIBS="$LIBS -latomic"
+
       AC_LINK_IFELSE([AC_LANG_SOURCE([_CHECK_ATOMIC_testbody])],[
           AC_MSG_RESULT([yes])
         ],[
           AC_MSG_RESULT([no])
           AC_MSG_FAILURE([cannot figure out how to use std::atomic])
         ])
+
+      LIBS="$OLD_LIBS"
+      ATOMIC_LIBS="-latomic"
     ])
 
   AC_LANG_POP
