@@ -260,4 +260,24 @@ DhtTransactionSearch::~DhtTransactionSearch() {
     delete m_search;
 }
 
+DhtTransaction::transaction_type
+DhtTransactionPing::type() const {
+  return DHT_PING;
+}
+
+DhtTransaction::transaction_type
+DhtTransactionFindNode::type() const {
+  return DHT_FIND_NODE;
+}
+
+DhtTransaction::transaction_type
+DhtTransactionGetPeers::type() const {
+  return DHT_GET_PEERS;
+}
+
+DhtTransaction::transaction_type
+DhtTransactionAnnouncePeer::type() const {
+  return DHT_ANNOUNCE_PEER;
+}
+
 } // namespace torrent

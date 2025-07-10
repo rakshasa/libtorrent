@@ -7,6 +7,11 @@
 
 namespace torrent {
 
+const char*
+Event::type_name() const {
+  return "default";
+}
+
 void
 Event::close_file_descriptor() {
   if (!is_open())
