@@ -18,7 +18,7 @@ class PeerConnectionBase;
 
 class LIBTORRENT_EXPORT Peer {
 public:
-  virtual ~Peer() = default;
+  virtual ~Peer();
   Peer(const Peer&) = delete;
   Peer& operator=(const Peer&) = delete;
 

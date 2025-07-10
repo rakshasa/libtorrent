@@ -289,7 +289,7 @@ public:
     DHT_ANNOUNCE_PEER,
   };
 
-  virtual transaction_type    type() = 0;
+  virtual transaction_type    type() const = 0;
   virtual bool                is_search()          { return false; }
 
   // Key to uniquely identify a transaction with given per-node transaction id.
@@ -365,7 +365,7 @@ public:
   DhtTransactionPing(const HashString& id, const rak::socket_address* sa) 
     : DhtTransaction(-1, 30, id, sa) { }
 
-  transaction_type            type() override              { return DHT_PING; }
+  transaction_type            type() const override;
 };
 
 class DhtTransactionFindNode : public DhtTransactionSearch {
@@ -373,7 +373,7 @@ public:
   DhtTransactionFindNode(DhtSearch::const_accessor& node)
     : DhtTransactionSearch(4, 30, node) { }
 
-  transaction_type           type() override               { return DHT_FIND_NODE; }
+  transaction_type           type() const override;
 };
 
 class DhtTransactionGetPeers : public DhtTransactionSearch {
@@ -381,7 +381,7 @@ public:
   DhtTransactionGetPeers(DhtSearch::const_accessor& node)
     : DhtTransactionSearch(-1, 30, node) { }
 
-  transaction_type           type() override               { return DHT_GET_PEERS; }
+  transaction_type           type() const override;
 };
 
 class DhtTransactionAnnouncePeer : public DhtTransaction {
@@ -394,7 +394,7 @@ public:
       m_infoHash(infoHash),
       m_token(token) { }
 
-  transaction_type type() override     { return DHT_ANNOUNCE_PEER; }
+  transaction_type type() const override;
 
   const HashString&        info_hash() { return m_infoHash; }
   raw_string               info_hash_raw_string() const { return raw_string(m_infoHash.data(), HashString::size_data); }
