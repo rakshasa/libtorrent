@@ -50,7 +50,7 @@ ConnectionList::want_connection([[maybe_unused]] PeerInfo* p, Bitfield* bitfield
 }
 
 PeerConnectionBase*
-ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, const EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)
     return NULL;
 
@@ -142,7 +142,7 @@ ConnectionList::erase_remaining(iterator pos, int flags) {
 
 void
 ConnectionList::erase_seeders() {
-  erase_remaining(std::partition(begin(), end(), [](Peer* p) { return p->c_ptr()->is_not_seeder(); }),
+  erase_remaining(std::partition(begin(), end(), [](auto p) { return p->c_ptr()->is_not_seeder(); }),
                   disconnect_unwanted);
 }
 

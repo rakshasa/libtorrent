@@ -310,7 +310,7 @@ DownloadConstructor::create_path(const Object::list_type& plist, const std::stri
 }
 
 inline Path
-DownloadConstructor::choose_path(std::list<Path>* pathList) {
+DownloadConstructor::choose_path(std::list<Path>* pathList) const {
   for (const auto& encoding : *m_encodingList) {
     auto itr = std::find_if(pathList->begin(), pathList->end(), [&encoding](const Path& p) {
       return strcasecmp(p.encoding().c_str(), encoding.c_str()) == 0;

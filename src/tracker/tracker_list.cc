@@ -286,8 +286,8 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   insert(group, tracker::Tracker(std::shared_ptr<TrackerWorker>(worker)));
 }
 
-TrackerList::iterator
-TrackerList::find_url(const std::string& url) {
+TrackerList::const_iterator
+TrackerList::find_url(const std::string& url) const {
   return std::find_if(begin(), end(), [&url](const auto& tracker) { return tracker.url() == url; });
 }
 
