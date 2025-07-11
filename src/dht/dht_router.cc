@@ -513,7 +513,7 @@ DhtRouter::split_bucket(const DhtBucketList::iterator& itr, DhtNode* node) {
     throw internal_error("DhtRouter::split_bucket router ID ended up in wrong bucket.");
 
   // Insert new bucket with iterator hint = just before current bucket.
-  auto other = m_routingTable.emplace_hint(itr, newBucket->id_range_end(), newBucket);
+  auto other = m_routingTable.try_emplace(itr, newBucket->id_range_end(), newBucket);
 
   // Check that the bucket we're not adding the node to isn't empty.
   if (other->second->is_in_range(node->id())) {
