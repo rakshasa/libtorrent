@@ -28,8 +28,7 @@ public:
   void                clear_quota()                   { m_quota = 0; }
   void                set_quota(uint32_t q)           { m_quota = q; }
 
-  iterator            list_iterator()                 { return m_listIterator; }
-  const_iterator      list_iterator() const           { return m_listIterator; }
+  iterator            list_iterator() const           { return m_listIterator; }
   void                set_list_iterator(iterator itr) { m_listIterator = itr; }
 
   void                activate()                      { if (m_slot_activate) m_slot_activate(); }

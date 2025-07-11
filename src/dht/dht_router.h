@@ -42,7 +42,7 @@ public:
   void                start(int port);
   void                stop();
 
-  bool                is_active()                        { return m_server.is_active(); }
+  bool                is_active() const                  { return m_server.is_active(); }
 
   // Pass NULL to cancel_announce to cancel all announces for the tracker.
   void                announce(const HashString& info_hash, TrackerDht* tracker);
@@ -65,7 +65,7 @@ public:
   DhtNode*            get_node(const HashString& id);
 
   // Search for node with given address in O(n), disregarding the port.
-  DhtNode*            find_node(const rak::socket_address* sa);
+  DhtNode*            find_node(const rak::socket_address* sa) const;
 
   // Whenever a node queries us, replies, or is confirmed inactive (no reply) or
   // invalid (reply with wrong ID), we need to update its status.
@@ -76,7 +76,7 @@ public:
 
   // Store compact node information (26 bytes) for nodes closest to the
   // given ID in the given buffer, return new buffer end.
-  raw_string          get_closest_nodes(const HashString& id)  { return find_bucket(id)->second->full_bucket(); }
+  raw_string          get_closest_nodes(const HashString& id) { return find_bucket(id)->second->full_bucket(); }
 
   // Store DHT cache in the given container.
   Object*             store_cache(Object* container) const;
@@ -110,7 +110,7 @@ private:
 
   void                store_closest_nodes(const HashString& id, DhtBucket* bucket);
 
-  DhtBucketList::iterator split_bucket(const DhtBucketList::iterator& itr, DhtNode* node);
+  DhtBucketList::iterator split_bucket(const DhtBucketList::iterator& itr, const DhtNode* node);
 
   void                bootstrap();
   void                bootstrap_bucket(const DhtBucket* bucket);

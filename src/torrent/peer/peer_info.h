@@ -105,7 +105,7 @@ public:
   // Internal to libTorrent:
   //
 
-  PeerConnectionBase* connection()                          { return m_connection; }
+  PeerConnectionBase* connection() const                    { return m_connection; }
 
   void                inc_transfer_counter();
   void                dec_transfer_counter();
