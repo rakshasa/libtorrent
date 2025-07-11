@@ -14,7 +14,7 @@ public:
   int                 file_descriptor() const;
 
   // TODO: Require all to define their own typename.
-  virtual const char* type_name() const { return "default"; }
+  virtual const char* type_name() const;
 
   // TODO: Make these protected.
   virtual void        event_read() = 0;

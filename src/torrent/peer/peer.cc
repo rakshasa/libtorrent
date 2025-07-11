@@ -13,6 +13,8 @@
 
 namespace torrent {
 
+Peer::~Peer() = default;
+
 bool Peer::is_incoming() const             { return peer_info()->is_incoming(); }
 bool Peer::is_encrypted() const            { return c_ptr()->is_encrypted(); }
 bool Peer::is_obfuscated() const           { return c_ptr()->is_obfuscated(); }

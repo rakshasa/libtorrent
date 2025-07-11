@@ -10,6 +10,8 @@
 
 namespace torrent {
 
+SocketDatagram::~SocketDatagram() = default;
+
 int
 SocketDatagram::read_datagram(void* buffer, unsigned int length, rak::socket_address* sa) {
   if (length == 0)

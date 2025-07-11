@@ -6,6 +6,8 @@
 
 namespace torrent {
 
+SocketStream::~SocketStream() = default;
+
 uint32_t
 SocketStream::read_stream_throws(void* buf, uint32_t length) {
   int r = read_stream(buf, length);

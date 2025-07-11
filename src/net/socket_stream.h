@@ -47,6 +47,8 @@ namespace torrent {
 
 class SocketStream : public SocketBase {
 public:
+  ~SocketStream() override;
+
   int                 read_stream(void* buf, uint32_t length);
   int                 write_stream(const void* buf, uint32_t length);
 

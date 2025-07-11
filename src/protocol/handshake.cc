@@ -31,6 +31,11 @@
 #define LT_LOG_EXTRA_DEBUG_SA(sa, log_fmt, ...)
 #endif
 
+namespace {
+class handshake_succeeded : public torrent::network_error {
+};
+}  // namespace
+
 namespace torrent {
 
 class handshake_error : public network_error {
@@ -44,9 +49,6 @@ public:
 private:
   int     m_type;
   int     m_error;
-};
-
-class handshake_succeeded : public network_error {
 };
 
 Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :

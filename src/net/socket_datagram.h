@@ -7,6 +7,7 @@ namespace torrent {
 
 class SocketDatagram : public SocketBase {
 public:
+  ~SocketDatagram() override;
 
   // TODO: Make two seperate functions depending on whetever sa is
   // used.
