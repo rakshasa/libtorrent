@@ -46,8 +46,8 @@ public:
   HashQueue*          hash_queue()                            { return m_hash_queue; }
   void                set_hash_queue(HashQueue* q)            { m_hash_queue = q; }
 
-  const std::string&  complete_hash()                            { return m_hash; }
-  const char*         chunk_hash(unsigned int index)             { return m_hash.c_str() + 20 * index; }
+  const std::string&  complete_hash() const                   { return m_hash; }
+  const char*         chunk_hash(unsigned int index) const    { return m_hash.c_str() + 20 * index; }
   void                set_complete_hash(const std::string& hash) { m_hash = hash; }
 
   int                 connection_type() const                 { return m_connectionType; }

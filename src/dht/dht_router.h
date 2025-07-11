@@ -42,7 +42,7 @@ public:
   void                start(int port);
   void                stop();
 
-  bool                is_active()                        { return m_server.is_active(); }
+  bool                is_active() const                  { return m_server.is_active(); }
 
   // Pass NULL to cancel_announce to cancel all announces for the tracker.
   void                announce(const HashString& info_hash, TrackerDht* tracker);

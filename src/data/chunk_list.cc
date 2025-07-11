@@ -26,7 +26,7 @@ struct chunk_list_earliest_modified {
 };
 
 inline bool
-ChunkList::is_queued(ChunkListNode* node) {
+ChunkList::is_queued(const ChunkListNode* node) const {
   return std::find(m_queue.begin(), m_queue.end(), node) != m_queue.end();
 }
 
