@@ -16,7 +16,7 @@ public:
 
   void                shutdown();
 
-  void                start_get(HttpGet& http_get);
+  void                start_get(const HttpGet& http_get);
 
   unsigned int        size() const;
 

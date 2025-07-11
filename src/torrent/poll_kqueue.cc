@@ -29,7 +29,7 @@ public:
   static constexpr uint32_t flag_write = (1 << 1);
   static constexpr uint32_t flag_error = (1 << 2);
 
-  inline uint32_t     event_mask(Event* e);
+  inline uint32_t     event_mask(const Event* e);
   inline void         set_event_mask(Event* e, uint32_t m);
 
   void                flush_events();
@@ -47,7 +47,7 @@ public:
 };
 
 inline uint32_t
-PollInternal::event_mask(Event* e) {
+PollInternal::event_mask(const Event* e) {
   assert(e->file_descriptor() != -1);
 
   Table::value_type entry = m_table[e->file_descriptor()];

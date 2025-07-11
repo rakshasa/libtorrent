@@ -82,7 +82,7 @@ public:
   void                set_numwant(int32_t n)                  { m_numwant = n; }
 
   iterator            find(const tracker::Tracker& tb)        { return std::find(begin(), end(), tb); }
-  iterator            find_url(const std::string& url);
+  const_iterator      find_url(const std::string& url) const;
 
   iterator            find_next_to_request(iterator itr);
 

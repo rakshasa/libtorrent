@@ -52,7 +52,7 @@ namespace torrent {
 
 std::vector<vm_mapping>
 chunk_list_mapping(Download* download) {
-  ChunkList* chunk_list = download->ptr()->main()->chunk_list();
+  auto chunk_list = download->ptr()->main()->chunk_list();
 
   std::vector<vm_mapping> mappings;
 

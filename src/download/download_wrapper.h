@@ -46,8 +46,8 @@ public:
   HashQueue*          hash_queue()                            { return m_hash_queue; }
   void                set_hash_queue(HashQueue* q)            { m_hash_queue = q; }
 
-  const std::string&  complete_hash()                            { return m_hash; }
-  const char*         chunk_hash(unsigned int index)             { return m_hash.c_str() + 20 * index; }
+  const std::string&  complete_hash() const                   { return m_hash; }
+  const char*         chunk_hash(unsigned int index) const    { return m_hash.c_str() + 20 * index; }
   void                set_complete_hash(const std::string& hash) { m_hash = hash; }
 
   int                 connection_type() const                 { return m_connectionType; }
@@ -63,7 +63,7 @@ public:
   void                check_chunk_hash(ChunkHandle handle, bool hashing);
 
   void                receive_storage_error(const std::string& str);
-  uint32_t            receive_tracker_success(AddressList* l);
+  uint32_t            receive_tracker_success(const AddressList* l);
   void                receive_tracker_failed(const std::string& msg);
 
   void                receive_tick(uint32_t ticks);

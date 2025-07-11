@@ -46,7 +46,7 @@ public:
   DhtBucket*          bucket() const             { return m_bucket; }
   DhtBucket*          set_bucket(DhtBucket* b)   { m_bucket = b; return b; }
 
-  bool                is_in_range(const DhtBucket* b) { return b->is_in_range(*this); }
+  bool                is_in_range(const DhtBucket* b) const { return b->is_in_range(*this); }
 
   // Store compact node information (26 bytes address, port and ID) in the given
   // buffer and return pointer to end of stored information.

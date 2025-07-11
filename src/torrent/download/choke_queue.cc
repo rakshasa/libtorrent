@@ -24,7 +24,7 @@ choke_manager_less(choke_queue::value_type v1, choke_queue::value_type v2) {
 }
 
 static inline bool
-should_connection_unchoke(choke_queue* cq, PeerConnectionBase* pcb) {
+should_connection_unchoke(const choke_queue* cq, const PeerConnectionBase* pcb) {
   return pcb->should_connection_unchoke(cq);
 }
 
@@ -148,7 +148,7 @@ choke_queue::rebuild_containers(container_type* queued, container_type* unchoked
   queued->clear();
   unchoked->clear();
 
-  for (auto& group : m_group_container) {
+  for (auto group : m_group_container) {
     queued->insert(queued->end(), group->queued()->begin(), group->queued()->end());
     unchoked->insert(unchoked->end(), group->unchoked()->begin(), group->unchoked()->end());
   }
@@ -436,7 +436,7 @@ choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator 
 
   for (uint32_t i = 0; i < choke_queue::order_max_size; i++) {
     target[i].first = 0;
-    target[i + 1].second = std::find_if(target[i].second, last, [i](auto& v) {
+    target[i + 1].second = std::find_if(target[i].second, last, [i](const auto& v) {
       return (i * choke_queue::order_base + (choke_queue::order_base - 1)) < v.weight;
     });
 

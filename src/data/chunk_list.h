@@ -104,15 +104,15 @@ public:
   slot_chunk_index&   slot_create_hashing_chunk() { return m_slot_create_hashing_chunk; }
   slot_value&         slot_free_diskspace()       { return m_slot_free_diskspace; }
 
-  using chunk_address_result = std::pair<iterator, Chunk::iterator>;
+  using chunk_address_result = std::pair<const_iterator, Chunk::const_iterator>;
 
-  chunk_address_result find_address(void* ptr);
+  chunk_address_result find_address(void* ptr) const;
 
 private:
   ChunkList(const ChunkList&) = delete;
   ChunkList& operator=(const ChunkList&) = delete;
 
-  inline bool         is_queued(ChunkListNode* node);
+  inline bool         is_queued(const ChunkListNode* node) const;
 
   inline void         clear_chunk(ChunkListNode* node, release_flags flags);
   inline bool         sync_chunk(ChunkListNode* node, std::pair<int,bool> options);

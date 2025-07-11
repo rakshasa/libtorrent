@@ -301,10 +301,10 @@ PeerList::disconnected(PeerInfo* p, int flags) {
 
   range_type range = base_type::equal_range(sock_key);
 
-  auto itr = std::find_if(range.first, range.second, [p](auto& v) { return p == v.second; });
+  auto itr = std::find_if(range.first, range.second, [p](const auto& v) { return p == v.second; });
 
   if (itr == range.second) {
-    if (std::none_of(base_type::begin(), base_type::end(), [p](auto& v){ return p == v.second; }))
+    if (std::none_of(base_type::begin(), base_type::end(), [p](const auto& v){ return p == v.second; }))
       throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist.");
     else
       throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");

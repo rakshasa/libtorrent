@@ -71,8 +71,10 @@ public:
   bool                has_crypto_plain() const                     { return m_crypto & crypto_plain; }
   bool                has_crypto_rc4() const                       { return m_crypto & crypto_rc4; }
 
-  const auto&         key()                                        { return m_key; }
-  EncryptionInfo*     info()                                       { return &m_info; }
+  const auto&         key() const                                  { return m_key; }
+
+  auto                info()                                       { return &m_info; }
+  auto                info() const                                 { return &m_info; }
 
   int                 options() const                              { return m_options; }
 

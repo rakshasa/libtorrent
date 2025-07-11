@@ -40,8 +40,8 @@ public:
   entry_type*         values() { return m_values; }
   const entry_type*   values() const { return m_values; }
 
-  Object&             operator [] (key_type key)        { return m_values[key].object; }
-  const Object&       operator [] (key_type key) const  { return m_values[key].object; }
+  Object&             operator [] (const key_type& key)        { return m_values[key].object; }
+  const Object&       operator [] (const key_type& key) const  { return m_values[key].object; }
 
 private:
   value_list_type m_values;

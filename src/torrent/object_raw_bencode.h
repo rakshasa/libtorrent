@@ -24,7 +24,7 @@ public:
   using size_type      = uint32_t;
 
   raw_object() = default;
-  raw_object(value_type* src_data, size_type src_size) : m_data(src_data), m_size(src_size) {}
+  raw_object(const value_type* src_data, size_type src_size) : m_data(src_data), m_size(src_size) {}
 
   bool        empty() const { return m_size == 0; }
   size_type   size() const { return m_size; }
@@ -38,8 +38,8 @@ public:
   bool operator != (const raw_object& rhs) const { return m_size != rhs.m_size || std::memcmp(m_data, rhs.m_data, m_size) != 0; }
 
 protected:
-  iterator  m_data{};
-  size_type m_size{};
+  const_iterator m_data{};
+  size_type      m_size{};
 };
 
 #define RAW_BENCODE_SET_USING                   \
@@ -64,7 +64,7 @@ public:
   RAW_BENCODE_SET_USING
 
   raw_bencode() = default;
-  raw_bencode(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
+  raw_bencode(const value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   bool        is_empty() const      { return m_size == 0; }
   bool        is_value() const      { return m_size >= 3 && m_data[0] >= 'i'; }
@@ -86,7 +86,7 @@ public:
   RAW_BENCODE_SET_USING
 
   raw_string() = default;
-  raw_string(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
+  raw_string(const value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   std::string as_string() const { return std::string(m_data, m_size); }
 
@@ -100,7 +100,7 @@ public:
   RAW_BENCODE_SET_USING
 
   raw_list() = default;
-  raw_list(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
+  raw_list(const value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   static raw_list from_c_str(const char* str) { return raw_list(str, std::strlen(str)); }
 };
@@ -111,7 +111,7 @@ public:
   RAW_BENCODE_SET_USING
 
   raw_map() = default;
-  raw_map(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
+  raw_map(const value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 };
 
 //

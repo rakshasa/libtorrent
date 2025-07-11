@@ -86,7 +86,7 @@ public:
   void                release_connection();
   void                destroy_connection();
 
-  const void*         unread_data()                 { return m_readBuffer.position(); }
+  const void*         unread_data() const           { return m_readBuffer.position(); }
   uint32_t            unread_size() const           { return m_readBuffer.remaining(); }
 
   std::chrono::microseconds initialized_time() const { return m_initialized_time; }
@@ -98,7 +98,7 @@ public:
   HandshakeEncryption* encryption()                 { return &m_encryption; }
   ProtocolExtension*   extensions()                  { return m_extensions; }
 
-  int                 retry_options();
+  int                 retry_options() const;
 
 protected:
   void                read_done();
