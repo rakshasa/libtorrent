@@ -56,7 +56,7 @@ public:
 
   data_type           at_memory(uint32_t offset, iterator part);
 
-  iterator            find_address(void* ptr);
+  const_iterator      find_address(void* ptr) const;
 
   // Check how much of the chunk is incore from pos.
   bool                is_incore(uint32_t pos, uint32_t length = ~uint32_t());
@@ -83,9 +83,9 @@ Chunk::at_position(uint32_t pos, iterator itr) {
   return itr;
 }
 
-inline Chunk::iterator
-Chunk::find_address(void* ptr) {
-  return std::find_if(begin(), end(), [&](auto& part) { return part.has_address(ptr); });
+inline Chunk::const_iterator
+Chunk::find_address(void* ptr) const {
+  return std::find_if(begin(), end(), [&](const auto& part) { return part.has_address(ptr); });
 }
 
 } // namespace torrent

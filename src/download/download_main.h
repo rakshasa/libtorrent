@@ -51,8 +51,8 @@ public:
   const class choke_group* c_choke_group() const                   { return m_choke_group; }
   void                     set_choke_group(class choke_group* grp) { m_choke_group = grp; }
 
-  tracker::TrackerControllerWrapper tracker_controller()           { return m_tracker_controller; }
-  TrackerList*                      tracker_list()                 { return m_tracker_list; }
+  auto&               tracker_controller()                       { return m_tracker_controller; }
+  TrackerList*        tracker_list()                             { return m_tracker_list; }
 
   DownloadInfo*       info()                                     { return m_info; }
 
@@ -69,7 +69,7 @@ public:
   bool                start_initial_seeding();
   void                initial_seeding_done(PeerConnectionBase* pcb);
 
-  ConnectionList*     connection_list()                          { return m_connectionList; }
+  auto                connection_list() const                    { return m_connectionList; }
   FileList*           file_list()                                { return &m_fileList; }
   PeerList*           peer_list()                                { return &m_peerList; }
 
@@ -84,9 +84,9 @@ public:
   group_entry*        up_group_entry()                           { return &m_up_group_entry; }
   group_entry*        down_group_entry()                         { return &m_down_group_entry; }
 
-  DataBuffer          get_ut_pex(bool initial)                   { return (initial ? m_ut_pex_initial : m_ut_pex_delta).clone(); }
+  DataBuffer          get_ut_pex(bool initial) const             { return (initial ? m_ut_pex_initial : m_ut_pex_delta).clone(); }
 
-  bool                want_pex_msg();
+  bool                want_pex_msg() const;
 
   void                set_metadata_size(size_t s);
 
@@ -109,7 +109,7 @@ public:
 
   void                receive_connect_peers();
   void                receive_chunk_done(unsigned int index);
-  void                receive_corrupt_chunk(PeerInfo* peerInfo);
+  void                receive_corrupt_chunk(PeerInfo* peerInfo) const;
 
   void                receive_tracker_success();
   void                receive_tracker_request();
