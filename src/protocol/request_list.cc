@@ -327,7 +327,7 @@ RequestList::is_interested_in_active() const {
 }
 
 uint32_t
-RequestList::calculate_pipe_size(uint32_t rate) {
+RequestList::calculate_pipe_size(uint32_t rate) const {
   // Change into KB.
   rate /= 1024;
 

@@ -256,7 +256,7 @@ public:
 
   virtual transaction_type type() const = 0;
 
-  virtual bool        is_search()               { return false; }
+  virtual bool        is_search() const         { return false; }
 
   key_type            key(int id) const         { return key(m_socket_address.get(), id); }
   static key_type     key(const sockaddr* sa, int id);
@@ -301,9 +301,9 @@ class DhtTransactionSearch : public DhtTransaction {
 public:
   ~DhtTransactionSearch() override;
 
-  bool                       is_search() override         { return true; }
+  bool                       is_search() const override   { return true; }
 
-  DhtSearch::const_accessor  node()                       { return m_node; }
+  DhtSearch::const_accessor  node() const                 { return m_node; }
   DhtSearch*                 search()                     { return m_search; }
 
   void                       set_stalled();
@@ -358,9 +358,9 @@ public:
 
   transaction_type type() const override;
 
-  const HashString&        info_hash() { return m_infoHash; }
+  const HashString&        info_hash() const { return m_infoHash; }
   raw_string               info_hash_raw_string() const { return raw_string(m_infoHash.data(), HashString::size_data); }
-  raw_string               token()     { return m_token; }
+  raw_string               token() const     { return m_token; }
 
 private:
   HashString m_infoHash;
