@@ -67,7 +67,7 @@ public:
   void                write_len(In start, unsigned int len);
 
   iterator            begin()                       { return m_buffer; }
-  iterator            position()                    { return m_position; }
+  iterator            position() const              { return m_position; }
   iterator            end()                         { return m_end; }
 
   size_type           size_position() const         { return m_position - m_buffer; }

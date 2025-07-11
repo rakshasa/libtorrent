@@ -114,7 +114,7 @@ class DhtBucketChain {
 public:
   DhtBucketChain(const DhtBucket* b) : m_restart(b), m_cur(b) { }
 
-  const DhtBucket*          bucket()                          { return m_cur; }
+  const DhtBucket*          bucket() const                    { return m_cur; }
   const DhtBucket*          next();
 
 private:

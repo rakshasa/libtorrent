@@ -160,7 +160,7 @@ private:
 
   unsigned int        total_weight() const;
 
-  int                 balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up);
+  int                 balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) const;
 
   unsigned int        m_currentlyUploadUnchoked{0};
   unsigned int        m_currentlyDownloadUnchoked{0};

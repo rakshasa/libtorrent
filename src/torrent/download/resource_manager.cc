@@ -313,7 +313,7 @@ ResourceManager::total_weight() const {
 }
 
 int
-ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) {
+ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) const {
   int change = 0;
 
   if (max_unchoked == 0) {

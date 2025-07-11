@@ -62,7 +62,7 @@ public:
 
   void                 transfer_dissimilar();
 
-  bool                 is_downloading()                   { return m_transfer != NULL; }
+  bool                 is_downloading() const             { return m_transfer != NULL; }
   bool                 is_interested_in_active() const;
 
   const Piece&         next_queued_piece() const          { return m_queues.front(bucket_queued)->piece(); }

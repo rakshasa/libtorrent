@@ -112,7 +112,7 @@ private:
   ChunkList(const ChunkList&) = delete;
   ChunkList& operator=(const ChunkList&) = delete;
 
-  inline bool         is_queued(ChunkListNode* node);
+  inline bool         is_queued(const ChunkListNode* node) const;
 
   inline void         clear_chunk(ChunkListNode* node, release_flags flags);
   inline bool         sync_chunk(ChunkListNode* node, std::pair<int,bool> options);
