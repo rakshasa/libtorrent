@@ -618,7 +618,7 @@ DhtRouter::bootstrap() {
   auto itr = m_routingTable.begin();
   std::advance(itr, random() % m_routingTable.size());
 
-  if (itr->second != bucket() && itr != m_routingTable.end())
+  if (itr != m_routingTable.end() && itr->second != bucket())
     bootstrap_bucket(itr->second);
 }
 
