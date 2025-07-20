@@ -397,7 +397,7 @@ DownloadMain::do_peer_exchange() {
     if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
       auto buffer = new char[message->length()];
       memcpy(buffer, message->data(), message->length());
-      message->set(buffer, buffer + message->length(), true);
+      message->set(buffer, message->length(), true);
     }
 
     pcb->do_peer_exchange();
