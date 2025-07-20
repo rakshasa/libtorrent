@@ -306,10 +306,9 @@ ResourceManager::receive_tick() {
 unsigned int
 ResourceManager::total_weight() const {
   // TODO: This doesn't take into account inactive downloads.
-  unsigned int total = 0;
-  for (const auto& resource : *this)
-    total += resource.priority();
-  return total;
+  return std::accumulate(begin(), end(), 0u, [](auto sum, const auto& resource) {
+    return sum + resource.priority();
+  });
 }
 
 int
