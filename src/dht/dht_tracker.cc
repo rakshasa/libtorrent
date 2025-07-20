@@ -47,7 +47,7 @@ DhtTracker::get_peers(unsigned int maxPeers) {
     throw internal_error("DhtTracker::BencodeAddress is packed incorrectly.");
 
   auto first = m_peers.begin();
-  auto last  = m_peers.end();
+  auto last  = std::prev(m_peers.end());
 
   // If we have more than max_peers, randomly return block of peers.
   // The peers in overlapping blocks get picked twice as often, but
