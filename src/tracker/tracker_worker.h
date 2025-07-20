@@ -67,7 +67,7 @@ protected:
 
   bool                is_busy_not_scrape() const;
 
-  std::string         tracker_id() const                    { return m_tracker_id; }
+  const auto&         tracker_id() const                    { return m_tracker_id; }
   void                set_tracker_id(const std::string& id) { m_tracker_id = id; }
 
   uint32_t            group() const                         { return m_group; }

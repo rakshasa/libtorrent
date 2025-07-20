@@ -117,7 +117,7 @@ void
 ResourceManager::push_group(const std::string& name) {
   if (name.empty() ||
       std::any_of(choke_base_type::begin(), choke_base_type::end(),
-                  [name](choke_group* g) { return name == g->name(); }))
+                  [name](auto g) { return name == g->name(); }))
     throw input_error("Duplicate name for choke group.");
 
   choke_base_type::push_back(new choke_group());
@@ -152,8 +152,8 @@ ResourceManager::find_throw(const DownloadMain* d) {
   return itr;
 }
 
-ResourceManager::iterator
-ResourceManager::find_group_end(uint16_t group) {
+ResourceManager::const_iterator
+ResourceManager::find_group_end(uint16_t group) const {
   return std::find_if(begin(), end(), [group](value_type v) { return group < v.group(); });
 }
 
@@ -167,7 +167,7 @@ ResourceManager::group_at(uint16_t grp) {
 
 choke_group*
 ResourceManager::group_at_name(const std::string& name) {
-  auto itr = std::find_if(choke_base_type::begin(), choke_base_type::end(), [name](choke_group* g) { return name == g->name(); });
+  auto itr = std::find_if(choke_base_type::begin(), choke_base_type::end(), [name](auto g) { return name == g->name(); });
 
   if (itr == choke_base_type::end())
     throw input_error("Choke group not found.");
@@ -178,7 +178,7 @@ ResourceManager::group_at_name(const std::string& name) {
 int
 ResourceManager::group_index_of(const std::string& name) {
   auto itr = std::find_if(choke_base_type::begin(), choke_base_type::end(),
-                          [name](choke_group* g) { return name == g->name(); });
+                          [name](auto g) { return name == g->name(); });
 
   if (itr == choke_base_type::end())
     throw input_error("Choke group not found.");
@@ -313,7 +313,7 @@ ResourceManager::total_weight() const {
 }
 
 int
-ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) {
+ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) const {
   int change = 0;
 
   if (max_unchoked == 0) {
