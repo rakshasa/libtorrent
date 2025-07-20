@@ -166,17 +166,17 @@ ProtocolExtension::generate_handshake_message() {
 
 inline DataBuffer
 ProtocolExtension::build_bencode(size_t maxLength, const char* format, ...) {
-  auto b = new char[maxLength];
+  auto b = std::make_unique<char[]>(maxLength);
 
   va_list args;
   va_start(args, format);
-  unsigned int length = vsnprintf(b, maxLength, format, args);
+  unsigned int length = vsnprintf(b.get(), maxLength, format, args);
   va_end(args);
 
   if (length > maxLength)
     throw internal_error("ProtocolExtension::build_bencode wrote past buffer.");
 
-  return DataBuffer(b, length);
+  return DataBuffer(b.release(), length);
 }
 
 DataBuffer
