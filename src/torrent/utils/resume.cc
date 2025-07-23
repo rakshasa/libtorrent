@@ -519,10 +519,10 @@ resume_load_tracker_settings(Download download, const Object& object) {
     if (tracker_list->find_url(map.first) != tracker_list->end())
       continue;
 
-    download.main()->tracker_list()->insert_url(map.second.get_key_value("group"), map.first);
+    tracker_list->insert_url(map.second.get_key_value("group"), map.first);
   }
 
-  for (auto tracker : *tracker_list) {
+  for (auto& tracker : *tracker_list) {
     if (!src.has_key_map(tracker.url()))
       continue;
 
@@ -538,9 +538,8 @@ resume_load_tracker_settings(Download download, const Object& object) {
 void
 resume_save_tracker_settings(Download download, Object& object) {
   auto& dest         = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
-  auto  tracker_list = download.main()->tracker_list();
 
-  for (const auto& tracker : *tracker_list) {
+  for (const auto& tracker : *download.main()->tracker_list()) {
     Object& trackerObject = dest.insert_key(tracker.url(), Object::create_map());
 
     trackerObject.insert_key("enabled", Object(static_cast<int64_t>(tracker.is_enabled())));
