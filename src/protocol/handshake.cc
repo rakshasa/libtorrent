@@ -34,11 +34,8 @@
 namespace {
 class handshake_succeeded : public torrent::network_error {
 };
-}  // namespace
 
-namespace torrent {
-
-class handshake_error : public network_error {
+class handshake_error : public torrent::network_error {
 public:
   handshake_error(int type, int error) : m_type(type), m_error(error) {}
 
@@ -51,6 +48,9 @@ private:
   int     m_error;
 };
 
+} // namespace
+
+namespace torrent {
 Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_manager(m),
 

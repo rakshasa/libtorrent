@@ -22,6 +22,23 @@
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
 
+namespace {
+// Error in DHT protocol, avoids std::string ctor from communication_error
+class dht_error : public torrent::network_error {
+public:
+  dht_error(int code, const char* message) :
+      m_message(message), m_code(code) {}
+
+  int         code() const noexcept { return m_code; }
+  const char* what() const noexcept override { return m_message; }
+
+private:
+  const char* m_message;
+  int         m_code;
+};
+
+} // namespace
+
 namespace torrent {
 
 // List of all possible keys we need/support in a DHT message.
@@ -48,19 +65,6 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
   { key_t,          "t*S" },
   { key_v,          "v*" },
   { key_y,          "y*S" },
-};
-
-// Error in DHT protocol, avoids std::string ctor from communication_error
-class dht_error : public network_error {
-public:
-  dht_error(int code, const char* message) : m_message(message), m_code(code) {}
-
-  int          code() const noexcept { return m_code; }
-  const char*  what() const noexcept override { return m_message; }
-
-private:
-  const char*  m_message;
-  int          m_code;
 };
 
 DhtServer::DhtServer(DhtRouter* router) :

@@ -22,6 +22,31 @@ void resource_error::initialize(const std::string& msg) { m_msg = msg; }
 void input_error::initialize(const std::string& msg) { m_msg = msg; }
 
 const char*
+internal_error::what() const noexcept {
+  return m_msg.c_str();
+}
+
+const char*
+input_error::what() const noexcept {
+  return m_msg.c_str();
+}
+
+const char*
+resource_error::what() const noexcept {
+  return m_msg.c_str();
+}
+
+const char*
+storage_error::what() const noexcept {
+  return m_msg.c_str();
+}
+
+const char*
+communication_error::what() const noexcept {
+  return m_msg.c_str();
+}
+
+const char*
 connection_error::what() const noexcept {
   return std::strerror(m_errno);
 }

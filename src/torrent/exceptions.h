@@ -30,7 +30,7 @@ public:
     initialize(std::string(msg) + " [#" + hash_string_to_hex_str(hash) + "]"); }
   internal_error(const std::string& msg) { initialize(msg); }
 
-  const char*        what() const noexcept override { return m_msg.c_str(); }
+  const char*        what() const noexcept override;
   const std::string& backtrace() const noexcept { return m_backtrace; }
 
 private:
@@ -51,7 +51,7 @@ public:
   communication_error(const char* msg)        { initialize(msg); }
   communication_error(const std::string& msg) { initialize(msg); }
 
-  const char* what() const noexcept override { return m_msg.c_str(); }
+  const char* what() const noexcept override;
 
 private:
   // Use this function for breaking on throws.
@@ -99,7 +99,7 @@ public:
   storage_error(const char* msg)       { initialize(msg); }
   storage_error(const std::string& msg) { initialize(msg); }
 
-  const char* what() const noexcept override { return m_msg.c_str(); }
+  const char* what() const noexcept override;
 
 private:
   // Use this function for breaking on throws.
@@ -113,7 +113,7 @@ public:
   resource_error(const char* msg) { initialize(msg); }
   resource_error(const std::string& msg) { initialize(msg); }
 
-  const char* what() const noexcept override { return m_msg.c_str(); }
+  const char* what() const noexcept override;
 
 private:
   // Use this function for breaking on throws.
@@ -127,7 +127,7 @@ public:
   input_error(const char* msg) { initialize(msg); }
   input_error(const std::string& msg) { initialize(msg); }
 
-  const char* what() const noexcept override { return m_msg.c_str(); }
+  const char* what() const noexcept override;
 
 private:
   // Use this function for breaking on throws.
@@ -138,8 +138,7 @@ private:
 
 class LIBTORRENT_EXPORT bencode_error : public input_error {
 public:
-  bencode_error(const char* msg) : input_error(msg) {}
-  bencode_error(const std::string& msg) : input_error(msg) {}
+  using input_error::input_error;
 };
 
 class LIBTORRENT_EXPORT shutdown_exception : public base_error {
