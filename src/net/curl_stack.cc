@@ -136,8 +136,8 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
   }
 }
 
-CurlStack::base_type::iterator
-CurlStack::find_curl_handle(const CURL* curl_handle) {
+CurlStack::base_type::const_iterator
+CurlStack::find_curl_handle(const CURL* curl_handle) const {
   auto itr = std::find_if(base_type::begin(), base_type::end(), [curl_handle](auto& curl_get) {
     return curl_get->handle_unsafe() == curl_handle;
   });

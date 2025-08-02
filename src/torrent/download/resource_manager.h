@@ -94,6 +94,7 @@ public:
   using choke_base_type = std::vector<choke_group*>;
   using value_type      = base_type::value_type;
   using iterator        = base_type::iterator;
+  using const_iterator  = base_type::const_iterator;
 
   using group_iterator = choke_base_type::iterator;
 
@@ -112,20 +113,20 @@ public:
 
   iterator            find(const DownloadMain* d);
   iterator            find_throw(const DownloadMain* d);
-  iterator            find_group_end(uint16_t group);
+  const_iterator      find_group_end(uint16_t group) const;
 
-  unsigned int            group_size() const                    { return choke_base_type::size(); }
-  choke_group*            group_back()                          { return choke_base_type::back(); }
+  unsigned int        group_size() const                        { return choke_base_type::size(); }
+  choke_group*        group_back()                              { return choke_base_type::back(); }
 
-  choke_group*            group_at(uint16_t grp);
-  choke_group*            group_at_name(const std::string& name);
+  choke_group*        group_at(uint16_t grp);
+  choke_group*        group_at_name(const std::string& name);
 
-  int                     group_index_of(const std::string& name);
+  int                 group_index_of(const std::string& name);
 
-  group_iterator          group_begin() { return choke_base_type::begin(); }
-  group_iterator          group_end()   { return choke_base_type::end(); }
+  group_iterator      group_begin() { return choke_base_type::begin(); }
+  group_iterator      group_end()   { return choke_base_type::end(); }
 
-  resource_manager_entry& entry_at(const DownloadMain* d) { return *find_throw(d); }
+  auto&               entry_at(const DownloadMain* d)           { return *find_throw(d); }
 
   static void         set_priority(iterator itr, uint16_t pri);
   void                set_group(iterator itr, uint16_t grp);
@@ -160,7 +161,7 @@ private:
 
   unsigned int        total_weight() const;
 
-  int                 balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up);
+  int                 balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) const;
 
   unsigned int        m_currentlyUploadUnchoked{0};
   unsigned int        m_currentlyDownloadUnchoked{0};

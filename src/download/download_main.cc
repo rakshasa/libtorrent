@@ -246,7 +246,7 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
 }
 
 bool
-DownloadMain::want_pex_msg() {
+DownloadMain::want_pex_msg() const {
   return m_info->is_pex_active() && m_peerList.available_list()->want_more();
 }
 
@@ -269,7 +269,7 @@ DownloadMain::receive_chunk_done(unsigned int index) {
 }
 
 void
-DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
+DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) const {
   peerInfo->set_failed_counter(peerInfo->failed_counter() + 1);
 
   // Just use some very primitive heuristics here to decide if we're

@@ -290,7 +290,7 @@ public:
   };
 
   virtual transaction_type    type() const = 0;
-  virtual bool                is_search()          { return false; }
+  virtual bool                is_search() const    { return false; }
 
   // Key to uniquely identify a transaction with given per-node transaction id.
   using key_type = uint64_t;
@@ -300,8 +300,8 @@ public:
   static bool                 key_match(key_type key, const rak::socket_address* sa);
 
   // Node ID and address.
-  const HashString&           id()                 { return m_id; }
-  const rak::socket_address*  address()            { return &m_sa; }
+  const HashString&           id() const                { return m_id; }
+  const rak::socket_address*  address() const           { return &m_sa; }
 
   int                         timeout() const           { return m_timeout; }
   int                         quick_timeout() const     { return m_quickTimeout; }
@@ -339,9 +339,9 @@ class DhtTransactionSearch : public DhtTransaction {
 public:
   ~DhtTransactionSearch() override;
 
-  bool                       is_search() override         { return true; }
+  bool                       is_search() const override   { return true; }
 
-  DhtSearch::const_accessor  node()                       { return m_node; }
+  DhtSearch::const_accessor  node() const                 { return m_node; }
   DhtSearch*                 search()                     { return m_search; }
 
   void                       set_stalled();
@@ -396,9 +396,9 @@ public:
 
   transaction_type type() const override;
 
-  const HashString&        info_hash() { return m_infoHash; }
+  const HashString&        info_hash() const { return m_infoHash; }
   raw_string               info_hash_raw_string() const { return raw_string(m_infoHash.data(), HashString::size_data); }
-  raw_string               token()     { return m_token; }
+  raw_string               token() const     { return m_token; }
 
 private:
   HashString m_infoHash;
