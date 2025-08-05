@@ -496,8 +496,15 @@ DhtServer::add_packet(DhtTransactionPacket* packet, int priority) {
 
 void
 DhtServer::drop_packet(DhtTransactionPacket* packet) {
-    m_highQueue.erase(std::remove(m_highQueue.begin(), m_highQueue.end(), packet), m_highQueue.end());
-    m_lowQueue.erase(std::remove(m_lowQueue.begin(), m_lowQueue.end(), packet), m_lowQueue.end());
+  m_highQueue.erase(std::remove(m_highQueue.begin(), m_highQueue.end(), packet), m_highQueue.end());
+  m_lowQueue.erase(std::remove(m_lowQueue.begin(), m_lowQueue.end(), packet), m_lowQueue.end());
+
+  if (m_highQueue.empty() && m_lowQueue.empty()) {
+    this_thread::poll()->remove_write(this);
+
+    if (m_uploadThrottle->is_throttled(&m_uploadNode))
+      m_uploadThrottle->erase(&m_uploadNode);
+  }
 }
 
 void
@@ -799,7 +806,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
       transactionKey = packet->transaction()->key(packet->id());
 
     // Make sure its transaction hasn't timed out yet, if it has/had one
-    // and don't bother sending non-transaction packets (replies) after 
+    // and don't bother sending non-transaction packets (replies) after
     // more than 15 seconds in the queue.
     if (packet->has_failed() || packet->age() > 15) {
       delete packet;
@@ -864,8 +871,10 @@ DhtServer::event_write() {
   if (quota == 0 || !process_queue(m_highQueue, &quota) || !process_queue(m_lowQueue, &quota)) {
     this_thread::poll()->remove_write(this);
     m_uploadThrottle->node_deactivate(&m_uploadNode);
+    return;
+  }
 
-  } else if (m_highQueue.empty() && m_lowQueue.empty()) {
+  if (m_highQueue.empty() && m_lowQueue.empty()) {
     this_thread::poll()->remove_write(this);
     m_uploadThrottle->erase(&m_uploadNode);
   }

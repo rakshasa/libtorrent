@@ -32,9 +32,10 @@ public:
 
   const char*         type_name() const override         { return "dht"; }
 
+  bool                is_active() const                  { return get_fd().is_valid(); }
+
   void                start(int port);
   void                stop();
-  bool                is_active() const                  { return get_fd().is_valid(); }
 
   unsigned int        queries_received() const           { return m_queriesReceived; }
   unsigned int        queries_sent() const               { return m_queriesSent; }
