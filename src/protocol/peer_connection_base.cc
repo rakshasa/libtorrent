@@ -756,7 +756,7 @@ PeerConnectionBase::up_extension() {
       auto buffer = new char[m_extensionMessage.length()];
 
       m_encryption.encrypt(m_extensionMessage.data(), buffer, m_extensionMessage.length());
-      m_extensionMessage.set(buffer, buffer + m_extensionMessage.length(), true);
+      m_extensionMessage.set_data(buffer, m_extensionMessage.length(), true);
     }
 
     m_extensionOffset = 0;
