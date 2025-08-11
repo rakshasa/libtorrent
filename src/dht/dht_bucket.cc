@@ -61,8 +61,8 @@ DhtBucket::update() {
   m_fullCacheLength = 0;
 }
 
-DhtBucket::iterator
-DhtBucket::find_replacement_candidate(bool onlyOldest) {
+DhtBucket::const_iterator
+DhtBucket::find_replacement_candidate(bool onlyOldest) const {
   auto oldest     = end();
   auto oldestTime = std::numeric_limits<unsigned int>::max();
 

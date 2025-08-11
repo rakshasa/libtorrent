@@ -62,7 +62,7 @@ public:
 
   void                 transfer_dissimilar();
 
-  bool                 is_downloading()                   { return m_transfer != NULL; }
+  bool                 is_downloading() const             { return m_transfer != NULL; }
   bool                 is_interested_in_active() const;
 
   const Piece&         next_queued_piece() const          { return m_queues.front(bucket_queued)->piece(); }
@@ -77,7 +77,7 @@ public:
   size_t               choked_size() const                { return m_queues.queue_size(bucket_choked); }
 
   uint32_t             pipe_size() const;
-  uint32_t             calculate_pipe_size(uint32_t rate);
+  uint32_t             calculate_pipe_size(uint32_t rate) const;
 
   Delegator*           delegator()                       { return m_delegator; }
   void                 set_delegator(Delegator* d)       { m_delegator = d; }

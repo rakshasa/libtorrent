@@ -74,8 +74,8 @@ public:
   void                set_max_slots(uint32_t s) { m_max_slots = s; }
   void                set_min_slots(uint32_t s) { m_min_slots = s; }
 
-  const container_type* queued()   { return &m_queued; }
-  const container_type* unchoked() { return &m_unchoked; }
+  const container_type* queued() const   { return &m_queued; }
+  const container_type* unchoked() const { return &m_unchoked; }
 
 protected:
   friend class choke_queue;
