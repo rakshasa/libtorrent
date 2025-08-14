@@ -21,16 +21,16 @@ public:
   using resolver_callback = std::function<void(sin_shared_ptr, sin6_shared_ptr, int)>;
 
   struct Query {
-    void*             requester;
+    void*             requester{};
     std::string       hostname;
-    int               family;
+    int               family{};
     resolver_callback callback;
 
-    UdnsResolver*     parent;
-    bool              canceled{false};
-    bool              deleted{false};
-    ::dns_query*      a4_query{nullptr};
-    ::dns_query*      a6_query{nullptr};
+    UdnsResolver*     parent{};
+    bool              canceled{};
+    bool              deleted{};
+    ::dns_query*      a4_query{};
+    ::dns_query*      a6_query{};
 
     sin_shared_ptr    result_sin;
     sin6_shared_ptr   result_sin6;
@@ -46,6 +46,8 @@ public:
   const char*         type_name() const override { return "udns"; }
 
   // Callback must happen in thread_net and cannot call back into the resolver.
+  //
+  // If the hostname is a numeric address, it will result in the callback being called immediately.
   void                resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback);
 
   // Cancel may block if the resolver received the response and is calling the callback.
@@ -61,6 +63,8 @@ protected:
   std::unique_ptr<Query> erase_query(query_map::iterator itr);
   query_map::iterator    find_query(Query* query);
   query_map::iterator    find_malformed_query(Query* query);
+
+  bool                try_resolve_numeric(std::unique_ptr<Query>& query);
 
   void                process_canceled();
   void                process_timeouts();
