@@ -142,7 +142,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<Query>& query) {
   hints.ai_socktype = SOCK_STREAM; // Not used, but required.
   hints.ai_flags = AI_NUMERICHOST;
 
-  int ret = getaddrinfo(query->hostname.c_str(), nullptr, &hints, &result);
+  int ret = ::getaddrinfo(query->hostname.c_str(), nullptr, &hints, &result);
 
   if (ret == EAI_NONAME)
     return false; // No numeric address found.
@@ -161,6 +161,8 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<Query>& query) {
   } else {
     throw internal_error("getaddrinfo returned unsupported family");
   }
+
+  ::freeaddrinfo(result);
 
   if (query->family != AF_UNSPEC && query->family != result->ai_family)
     throw internal_error("getaddrinfo returned address with unexpected family");
