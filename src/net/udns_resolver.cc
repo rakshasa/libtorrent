@@ -79,6 +79,9 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
   query->callback = std::move(callback);
   query->parent = this;
 
+  if (try_resolve_numeric(query))
+    return;
+
   if (family == AF_INET || family == AF_UNSPEC) {
     query->a4_query = ::dns_submit_a4(m_ctx, hostname.c_str(), 0, a4_callback_wrapper, query.get());
 
@@ -130,6 +133,49 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
   auto lock = std::scoped_lock(m_mutex);
   m_queries.insert({requester, std::move(query)});
+}
+
+bool
+UdnsResolver::try_resolve_numeric(std::unique_ptr<Query>& query) {
+  addrinfo hints{};
+  addrinfo* result;
+
+  hints.ai_family = query->family;
+  hints.ai_socktype = SOCK_STREAM; // Not used, but required.
+  hints.ai_flags = AI_NUMERICHOST;
+
+  int ret = ::getaddrinfo(query->hostname.c_str(), nullptr, &hints, &result);
+
+  if (ret == EAI_NONAME)
+    return false; // No numeric address found.
+
+  if (ret != 0)
+    throw internal_error("getaddrinfo failed: " + std::string(gai_strerror(ret)));
+
+  LT_LOG("resolving : numeric found : requester:%p name:%s family:%d", query->requester, query->hostname.c_str(), query->family);
+
+  if (result->ai_family == AF_INET) {
+    query->result_sin = sin_copy(reinterpret_cast<sockaddr_in*>(result->ai_addr));
+    query->error_sin = 0;
+  } else if (result->ai_family == AF_INET6) {
+    query->result_sin6 = sin6_copy(reinterpret_cast<sockaddr_in6*>(result->ai_addr));
+    query->error_sin6 = 0;
+  } else {
+    throw internal_error("getaddrinfo returned unsupported family");
+  }
+
+  ::freeaddrinfo(result);
+
+  if (query->family != AF_UNSPEC && query->family != result->ai_family)
+    throw internal_error("getaddrinfo returned address with unexpected family");
+
+  auto requester = query->requester;
+
+  auto lock = std::scoped_lock(m_mutex);
+  auto itr = m_queries.emplace(requester, std::move(query));
+
+  process_result(itr);
+  return true;
 }
 
 void
