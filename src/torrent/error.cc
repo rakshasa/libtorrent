@@ -77,7 +77,7 @@ static constexpr std::array<const char*, e_last + 1> errorStrings{
 
 const char*
 strerror(int err) {
-  if (err < 0 || err > e_last)
+  if (err < 0 || err >= e_last)
     return "Unknown error";
   
   return errorStrings[err];
