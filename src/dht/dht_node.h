@@ -1,30 +1,25 @@
 #ifndef LIBTORRENT_DHT_NODE_H
 #define LIBTORRENT_DHT_NODE_H
 
-
-#include <rak/socket_address.h>
-
+#include "dht/dht_bucket.h"
+#include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
-
-#include "dht_bucket.h"
 
 namespace torrent {
 
 class DhtBucket;
 
 class DhtNode : public HashString {
+public:
   friend class DhtSearch;
 
-public:
   // A node is considered bad if it failed to reply to this many queries.
   static constexpr unsigned int max_failed_replies = 5;
 
-  DhtNode(const HashString& id, const rak::socket_address* sa);
+  DhtNode(const HashString& id, const sockaddr* sa);
   DhtNode(const std::string& id, const Object& cache);
   ~DhtNode() = default;
-  DhtNode(const DhtNode&) = delete;
-  DhtNode& operator=(const DhtNode&) = delete;
 
   const HashString&           id() const                 { return *this; }
   raw_string                  id_raw_string() const      { return raw_string(data(), size_data); }
@@ -60,6 +55,9 @@ public:
   Object*                     store_cache(Object* container) const;
 
 private:
+  DhtNode(const DhtNode&) = delete;
+  DhtNode& operator=(const DhtNode&) = delete;
+
   void                        set_good();
   void                        set_bad();
 
@@ -93,7 +91,7 @@ inline void
 DhtNode::inactive() {
   if (m_recentlyInactive + 1 == max_failed_replies)
     set_bad();
-  else 
+  else
     m_recentlyInactive++;
 }
 

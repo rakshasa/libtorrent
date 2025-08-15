@@ -32,7 +32,7 @@ DhtSearch::~DhtSearch() {
 
 bool
 DhtSearch::add_contact(const HashString& id, const rak::socket_address* sa) {
-  auto n = std::make_unique<DhtNode>(id, sa);
+  auto n = std::make_unique<DhtNode>(id, sa->c_sockaddr());
   bool added = emplace(std::move(n), this).second;
 
   if (added)

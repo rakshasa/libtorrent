@@ -21,8 +21,8 @@ namespace torrent {
 
 HashString DhtRouter::zero_id;
 
-DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
-  DhtNode(zero_id, sa),  // actual ID is set later
+DhtRouter::DhtRouter(const Object& cache, const sockaddr* sa) :
+  DhtNode(zero_id, sa), // actual ID is set later
   m_server(this),
   m_curToken(random()),
   m_prevToken(random()) {
@@ -52,7 +52,7 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
     sha.final_c(data());
   }
 
-  LT_LOG_THIS("creating (address:%s)", sa->pretty_address_str().c_str());
+  LT_LOG_THIS("creating : address:%s", sa_pretty_address_str(sa).c_str());
 
   set_bucket(new DhtBucket(zero_id, ones_id));
   m_routingTable.emplace(bucket()->id_range_end(), bucket());
@@ -60,7 +60,7 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
   if (cache.has_key("nodes")) {
     const Object::map_type& nodes = cache.get_key_map("nodes");
 
-    LT_LOG_THIS("adding nodes (size:%zu)", nodes.size());
+    LT_LOG_THIS("adding nodes : size:%zu", nodes.size());
 
     for (const auto& [id, node] : nodes) {
       if (id.length() != HashString::size_data)
@@ -72,11 +72,13 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
 
   if (m_nodes.size() < num_bootstrap_complete) {
     m_contacts.emplace();
+
     if (cache.has_key("contacts")) {
       for (const auto& contact : cache.get_key_list("contacts")) {
         auto litr = contact.as_list().begin();
         auto host = litr->as_string();
         auto port = std::next(litr)->as_value();
+
         m_contacts->emplace_back(std::move(host), port);
       }
     }
@@ -257,7 +259,7 @@ DhtRouter::node_replied(const HashString& id, const rak::socket_address* sa) {
       return NULL;
 
     // New node, create it. It's a good node (it replied!) so add it to a bucket.
-    node = m_nodes.add_node(new DhtNode(id, sa));
+    node = m_nodes.add_node(new DhtNode(id, sa->c_sockaddr()));
 
     if (!add_node_to_bucket(node))   // deletes the node if it fails
       return NULL;

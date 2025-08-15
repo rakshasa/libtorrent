@@ -1,33 +1,32 @@
 #include "config.h"
 
+#include "dht/dht_node.h"
+
 #include "torrent/object.h"
 #include "torrent/utils/log.h"
-
-#include "net/address_list.h" // For SA.
-
-#include "dht_node.h"
+#include "net/address_list.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_hash(torrent::LOG_DHT_NODE, this->id(), "dht_node", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
-DhtNode::DhtNode(const HashString& id, const rak::socket_address* sa) :
-  HashString(id),
-  m_socketAddress(*sa),
-  m_lastSeen(0) {
+DhtNode::DhtNode(const HashString& id, const sockaddr* sa)
+  : HashString(id),
+    m_socketAddress(*rak::socket_address::cast_from(sa)),
+    m_lastSeen(0) {
 
   // TODO: Change this to use the id hash similar to how peer info
   // hash'es are logged.
-  LT_LOG_THIS("created (address:%s)", sa->pretty_address_str().c_str());
+  LT_LOG_THIS("created : address:%s", m_socketAddress.pretty_address_str().c_str());
 
   // if (sa->family() != rak::socket_address::af_inet &&
   //     (sa->family() != rak::socket_address::af_inet6 || !sa->sa_inet6()->is_any()))
   //   throw resource_error("Address not af_inet or in6addr_any");
 }
 
-DhtNode::DhtNode(const std::string& id, const Object& cache) :
-    HashString(*HashString::cast_from(id.c_str())),
+DhtNode::DhtNode(const std::string& id, const Object& cache)
+  : HashString(*HashString::cast_from(id.c_str())),
     m_lastSeen(cache.get_key_value("t")) {
 
   // TODO: Check how DHT handles inet6.
