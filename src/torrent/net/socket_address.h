@@ -34,6 +34,7 @@ void            sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_make_unspec() LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_make_inet() LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_make_inet6() LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_make_inet6_any() LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_make_unix(const std::string& pathname) LIBTORRENT_EXPORT;
 
 sa_unique_ptr   sa_convert(const sockaddr* sa) LIBTORRENT_EXPORT;
@@ -49,6 +50,7 @@ sin6_unique_ptr sin6_copy(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 sin_unique_ptr  sin_make() LIBTORRENT_EXPORT;
 sin6_unique_ptr sin6_make() LIBTORRENT_EXPORT;
+sin6_unique_ptr sin6_make_any() LIBTORRENT_EXPORT;
 
 sa_unique_ptr   sa_from_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_to_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;

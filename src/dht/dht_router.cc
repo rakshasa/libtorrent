@@ -52,7 +52,7 @@ DhtRouter::DhtRouter(const Object& cache, const sockaddr* sa) :
     sha.final_c(data());
   }
 
-  LT_LOG_THIS("creating : address:%s", sa_pretty_address_str(sa).c_str());
+  LT_LOG_THIS("creating : address:%s", sa_pretty_str(sa).c_str());
 
   set_bucket(new DhtBucket(zero_id, ones_id));
   m_routingTable.emplace(bucket()->id_range_end(), bucket());

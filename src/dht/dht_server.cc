@@ -16,6 +16,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
@@ -86,12 +87,10 @@ DhtServer::DhtServer(DhtRouter* router) :
 DhtServer::~DhtServer() {
   stop();
 
-  for (const auto& packet : m_highQueue) {
+  for (const auto& packet : m_highQueue)
     delete packet;
-  }
-  for (const auto& packet : m_lowQueue) {
+  for (const auto& packet : m_lowQueue)
     delete packet;
-  }
 
   manager->connection_manager()->dec_socket_count();
 }
@@ -100,23 +99,25 @@ void
 DhtServer::start(int port) {
   try {
     if (!get_fd().open_datagram() || !get_fd().set_nonblock())
-      throw resource_error("Could not allocate datagram socket.");
+      throw resource_error("could not allocate datagram socket");
 
     if (!get_fd().set_reuse_address(true))
-      throw resource_error("Could not set listening port to reuse address.");
+      throw resource_error("could not set listening port to reuse address");
 
-    rak::socket_address sa = *m_router->address();
+    auto bind_address = sa_copy(m_router->address()->c_sockaddr());
 
-    if (sa.family() == rak::socket_address::af_unspec)
-      sa.sa_inet6()->clear();
+    if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
+      throw resource_error("invalid address family for DHT server");
 
-    sa.set_port(port);
+    // TODO: Use current listen port.
 
-    LT_LOG_THIS("starting (address:%s)", sa.pretty_address_str().c_str());
+    sap_set_port(bind_address, port);
+
+    LT_LOG_THIS("starting : address:%s", sap_pretty_str(bind_address).c_str());
 
     // Figure out how to bind to both inet and inet6.
-    if (!get_fd().bind(sa))
-      throw resource_error("Could not bind datagram socket.");
+    if (!get_fd().bind_sa(bind_address.get()))
+      throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
 
   } catch (const torrent::base_error&) {
     get_fd().close();

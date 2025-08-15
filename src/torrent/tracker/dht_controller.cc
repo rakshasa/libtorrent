@@ -55,7 +55,14 @@ void
 DhtController::initialize(const Object& dhtCache) {
   auto bind_address = manager->connection_manager()->bind_address();
 
-  LT_LOG_THIS("initializing : bind_address:%s", sa_pretty_address_str(bind_address).c_str());
+  sa_unique_ptr tmp_sa;
+
+  if (bind_address->sa_family == AF_UNSPEC) {
+    tmp_sa = sa_make_inet6_any();
+    bind_address = tmp_sa.get();
+  }
+
+  LT_LOG_THIS("initializing : %s", sa_pretty_str(bind_address).c_str());
 
   if (m_router != NULL)
     throw internal_error("DhtController::initialize called with DHT already active.");
@@ -70,7 +77,7 @@ DhtController::initialize(const Object& dhtCache) {
 
 bool
 DhtController::start(ConnectionManager::port_type port) {
-  LT_LOG_THIS("starting (port:%d)", port);
+  LT_LOG_THIS("starting : port:%d", port);
 
   if (m_router == nullptr)
     throw internal_error("DhtController::start called without initializing first.");
@@ -82,7 +89,7 @@ DhtController::start(ConnectionManager::port_type port) {
     return true;
 
   } catch (const torrent::local_error& e) {
-    LT_LOG_THIS("start failed (error:%s)", e.what());
+    LT_LOG_THIS("start failed : %s", e.what());
     return false;
   }
 }
