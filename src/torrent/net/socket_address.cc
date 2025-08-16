@@ -147,6 +147,11 @@ sa_make_inet() {
 }
 
 sa_unique_ptr
+sa_make_inet_any() {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin_make_any().release()));
+}
+
+sa_unique_ptr
 sa_make_inet6() {
   return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_make().release()));
 }
@@ -297,6 +302,16 @@ sin_make() {
   sin_unique_ptr sa(new sockaddr_in{});
 
   sa->sin_family = AF_INET;
+
+  return sa;
+}
+
+sin_unique_ptr
+sin_make_any() {
+  sin_unique_ptr sa(new sockaddr_in{});
+
+  sa->sin_family = AF_INET;
+  sa->sin_addr.s_addr = htonl(INADDR_ANY);
 
   return sa;
 }
