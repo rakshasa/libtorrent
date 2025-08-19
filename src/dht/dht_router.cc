@@ -86,13 +86,13 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
 DhtRouter::~DhtRouter() {
   assert(!is_active() && "DhtRouter::~DhtRouter() called while still active.");
 
-  for (auto& route : m_routingTable)
+  for (const auto& route : m_routingTable)
     delete route.second;
 
-  for (auto& tracker : m_trackers)
+  for (const auto& tracker : m_trackers)
     delete tracker.second;
 
-  for (auto& node : m_nodes)
+  for (const auto& node : m_nodes)
     delete node.second;
 }
 
@@ -162,7 +162,7 @@ DhtRouter::want_node(const HashString& id) {
 
   // We are always interested in more nodes for our own bucket (causing it
   // to be split if full); in other buckets only if there's space.
-  DhtBucket* b = find_bucket(id)->second;
+  auto b = find_bucket(id)->second;
   return b == bucket() || b->has_space();
 }
 
@@ -305,7 +305,7 @@ DhtRouter::node_inactive(const HashString& id, const rak::socket_address* sa) {
 // node ID, that means the address of the original ID is invalid now.
 void
 DhtRouter::node_invalid(const HashString& id) {
-  DhtNode* node = get_node(id);
+  auto node = get_node(id);
 
   if (node == NULL || node == this)
     return;
@@ -491,7 +491,7 @@ DhtRouter::token_valid(raw_string token, const rak::socket_address* sa) const {
 }
 
 DhtNode*
-DhtRouter::find_node(const rak::socket_address* sa) {
+DhtRouter::find_node(const rak::socket_address* sa) const {
   for (const auto& [id, node] : m_nodes)
     if (node->address()->sa_inet()->address_n() == sa->sa_inet()->address_n())
       return node;
@@ -500,7 +500,7 @@ DhtRouter::find_node(const rak::socket_address* sa) {
 }
 
 DhtRouter::DhtBucketList::iterator
-DhtRouter::split_bucket(const DhtBucketList::iterator& itr, DhtNode* node) {
+DhtRouter::split_bucket(const DhtBucketList::iterator& itr, const DhtNode* node) {
   // Split bucket. Current bucket keeps the upper half thus keeping the
   // map key valid, new bucket is the lower half of the original bucket.
   DhtBucket* newBucket = itr->second->split(id());
@@ -536,7 +536,7 @@ DhtRouter::add_node_to_bucket(DhtNode* node) {
 
   while (itr->second->is_full()) {
     // Bucket is full. If there are any bad nodes, remove the oldest.
-    DhtBucket::iterator nodeItr = itr->second->find_replacement_candidate();
+    auto nodeItr = itr->second->find_replacement_candidate();
     if (nodeItr == itr->second->end())
       throw internal_error("DhtBucket::find_candidate returned no node.");
 

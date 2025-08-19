@@ -29,15 +29,15 @@ public:
   difference_type     move_end(difference_type v)   { m_end += v; return v; }
 
   uint8_t             read_8()                      { return *m_position++; }
-  uint8_t             peek_8()                      { return *m_position; }
+  uint8_t             peek_8() const                { return *m_position; }
   uint16_t            read_16();
-  uint16_t            peek_16();
+  uint16_t            peek_16() const;
   uint32_t            read_32();
-  uint32_t            peek_32();
+  uint32_t            peek_32() const;
   uint64_t            read_64()                     { return read_int<uint64_t>(); }
-  uint64_t            peek_64()                     { return peek_int<uint64_t>(); }
+  uint64_t            peek_64() const               { return peek_int<uint64_t>(); }
 
-  uint8_t             peek_8_at(size_type pos)      { return *(m_position + pos); }
+  uint8_t             peek_8_at(size_type pos) const { return *(m_position + pos); }
 
   template <typename Out>
   void                read_range(Out first, Out last);
@@ -49,7 +49,7 @@ public:
   inline T            read_int();
 
   template <typename T>
-  inline T            peek_int();
+  inline T            peek_int() const;
 
   void                write_8(uint8_t v)            { *m_end++ = v; validate_end(); }
   void                write_16(uint16_t v);
@@ -67,7 +67,7 @@ public:
   void                write_len(In start, unsigned int len);
 
   iterator            begin()                       { return m_buffer; }
-  iterator            position()                    { return m_position; }
+  iterator            position() const              { return m_position; }
   iterator            end()                         { return m_end; }
 
   size_type           size_position() const         { return m_position - m_buffer; }
@@ -126,7 +126,7 @@ ProtocolBuffer<tmpl_size>::read_16() {
 
 template <uint16_t tmpl_size>
 inline uint16_t
-ProtocolBuffer<tmpl_size>::peek_16() {
+ProtocolBuffer<tmpl_size>::peek_16() const {
 #ifndef USE_ALIGNED
   return ntohs(*reinterpret_cast<uint16_t*>(m_position));
 #else
@@ -149,7 +149,7 @@ ProtocolBuffer<tmpl_size>::read_32() {
 
 template <uint16_t tmpl_size>
 inline uint32_t
-ProtocolBuffer<tmpl_size>::peek_32() {
+ProtocolBuffer<tmpl_size>::peek_32() const {
 #ifndef USE_ALIGNED
   return ntohl(*reinterpret_cast<uint32_t*>(m_position));
 #else
@@ -172,7 +172,7 @@ ProtocolBuffer<tmpl_size>::read_int() {
 template <uint16_t tmpl_size>
 template <typename T>
 inline T
-ProtocolBuffer<tmpl_size>::peek_int() {
+ProtocolBuffer<tmpl_size>::peek_int() const {
   T t = T();
 
   for (iterator itr = m_position, last = m_position + sizeof(T); itr != last; ++itr)
