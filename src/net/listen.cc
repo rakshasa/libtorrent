@@ -14,32 +14,26 @@
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress) {
+Listen::open(uint16_t first, uint16_t last, int backlog, const sockaddr* bind_address) {
   close();
 
   if (first == 0 || first > last)
-    throw input_error("Tried to open listening port with an invalid range.");
+    throw input_error("Tried to open listening port with an invalid range");
 
-  auto bind_address = bindAddress->c_sockaddr();
+  if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
+    throw input_error("Listening socket must be inet or inet6 address type");
 
-  if (bind_address->sa_family != AF_UNSPEC &&
-      bind_address->sa_family != AF_INET &&
-      bind_address->sa_family != AF_INET6)
-    throw input_error("Listening socket must be unspec, inet or inet6.");
+  fd_flags open_flags = fd_flag_nonblock | fd_flag_reuse_address;
 
-  int fd = fd_open(fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address);
+  if (bind_address->sa_family == AF_INET)
+    open_flags |= fd_flag_v4only;
+
+  int fd = fd_open(fd_flag_stream | open_flags);
 
   if (fd == -1)
     throw resource_error("Could not open socket for listening: " + std::string(strerror(errno)));
 
-  sa_unique_ptr try_address;
-
-  if (bind_address->sa_family != AF_UNSPEC)
-    try_address = sa_copy(bind_address);
-  else if (m_ipv6_socket)
-    try_address = sa_make_inet6_any();
-  else
-    try_address = sa_make_inet_any();
+  sa_unique_ptr try_address = sa_copy(bind_address);
 
   // bool failed_to_bind_udp{};
 
@@ -71,10 +65,10 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
 
   } while (first++ < last);
 
-  // This needs to be done if local_error is thrown too...
   fd_close(fd);
 
-  lt_log_print(LOG_CONNECTION_LISTEN, "failed to find a suitable listen port");
+  lt_log_print(LOG_CONNECTION_LISTEN, "failed to find a suitable listen port : last error : %s",
+               std::strerror(errno));
   return false;
 }
 

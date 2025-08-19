@@ -3,7 +3,6 @@
 
 #include <cinttypes>
 #include <functional>
-#include <rak/socket_address.h>
 
 #include "socket_base.h"
 #include "socket_fd.h"
@@ -16,7 +15,7 @@ public:
 
   ~Listen() override { close(); }
 
-  bool                open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress);
+  bool                open(uint16_t first, uint16_t last, int backlog, const sockaddr* bind_address);
   void                close();
 
   bool                is_open() const { return get_fd().is_valid(); }
