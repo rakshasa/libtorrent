@@ -227,20 +227,21 @@ DhtNode*
 DhtRouter::node_queried(const HashString& id, const rak::socket_address* sa) {
   DhtNode* node = get_node(id);
 
-  if (node == NULL) {
+  if (node == nullptr) {
     if (want_node(id))
       m_server.ping(id, sa);
 
-    return NULL;
+    return nullptr;
   }
 
   // If we know the ID but the address is different, don't set the original node
   // active, but neither use this new address to prevent rogue nodes from polluting
   // our routing table with fake source addresses.
-  if (node->address()->sa_inet()->address_n() != sa->sa_inet()->address_n())
-    return NULL;
+  if (!sa_equal_addr(node->address(), sa->c_sockaddr()))
+    return nullptr;
 
   node->queried();
+
   if (node->is_good())
     node->bucket()->touch();
 
@@ -265,7 +266,7 @@ DhtRouter::node_replied(const HashString& id, const rak::socket_address* sa) {
       return NULL;
   }
 
-  if (node->address()->sa_inet()->address_n() != sa->sa_inet()->address_n())
+  if (!sa_equal_addr(node->address(), sa->c_sockaddr()))
     return NULL;
 
   node->replied();
@@ -287,7 +288,7 @@ DhtRouter::node_inactive(const HashString& id, const rak::socket_address* sa) {
   // however it can also be called if a node replied with an malformed response packet,
   // so check that the address matches so that a rogue node cannot cause other nodes
   // to be considered bad by sending malformed packets.
-  if (itr.node()->address()->sa_inet()->address_n() != sa->sa_inet()->address_n())
+  if (!sa_equal_addr(itr.node()->address(), sa->c_sockaddr()))
     return NULL;
 
   itr.node()->inactive();
@@ -432,7 +433,7 @@ DhtRouter::receive_timeout() {
     // do send a query, until we find a better node. However, give it a last
     // chance just before deleting it.
     if (node->is_questionable() && (!node->is_bad() || node->age() >= timeout_remove_node))
-      m_server.ping(node->id(), node->address());
+      m_server.ping(node->id(), rak::socket_address::cast_from(node->address()));
   }
 
   // If bucket isn't full yet or hasn't received replies/queries from
@@ -495,7 +496,7 @@ DhtRouter::token_valid(raw_string token, const rak::socket_address* sa) const {
 DhtNode*
 DhtRouter::find_node(const rak::socket_address* sa) {
   for (const auto& [id, node] : m_nodes)
-    if (node->address()->sa_inet()->address_n() == sa->sa_inet()->address_n())
+    if (sa_equal_addr(node->address(), sa->c_sockaddr()))
       return node;
 
   return nullptr;
@@ -602,7 +603,7 @@ DhtRouter::bootstrap() {
   // out bad nodes as early as possible and make room for fresh nodes.
   for (auto node : *bucket())
     if (!node->is_good())
-      m_server.ping(node->id(), node->address());
+      m_server.ping(node->id(), rak::socket_address::cast_from(node->address()));
 
   // Also bootstrap a random bucket, if there are others.
   if (m_routingTable.size() < 2)

@@ -31,6 +31,7 @@ struct [[gnu::packed]] SocketAddressCompact {
   SocketAddressCompact() = default;
   SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
   SocketAddressCompact(const rak::socket_address_inet* sa) : addr(sa->address_n()), port(sa->port_n()) {}
+  SocketAddressCompact(const sockaddr_in* sin) : addr(sin->sin_addr.s_addr), port(sin->sin_port) {}
 
   operator rak::socket_address () const {
     rak::socket_address sa;
