@@ -147,8 +147,23 @@ sa_make_inet() {
 }
 
 sa_unique_ptr
+sa_make_inet_any() {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin_make_any().release()));
+}
+
+sa_unique_ptr
+sa_make_inet_h(uint32_t addr, uint16_t port) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin_make_any_h(addr, port).release()));
+}
+
+sa_unique_ptr
 sa_make_inet6() {
   return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_make().release()));
+}
+
+sa_unique_ptr
+sa_make_inet6_any() {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_make_any().release()));
 }
 
 sa_unique_ptr
@@ -296,11 +311,42 @@ sin_make() {
   return sa;
 }
 
+sin_unique_ptr
+sin_make_any() {
+  sin_unique_ptr sa(new sockaddr_in{});
+
+  sa->sin_family = AF_INET;
+  sa->sin_addr.s_addr = htonl(INADDR_ANY);
+
+  return sa;
+}
+
+sin_unique_ptr
+sin_make_any_h(uint32_t addr, uint16_t port) {
+  sin_unique_ptr sa(new sockaddr_in{});
+
+  sa->sin_family = AF_INET;
+  sa->sin_addr.s_addr = htonl(addr);
+  sa->sin_port = htons(port);
+
+  return sa;
+}
+
 sin6_unique_ptr
 sin6_make() {
   sin6_unique_ptr sa(new sockaddr_in6{});
 
   sa->sin6_family = AF_INET6;
+
+  return sa;
+}
+
+sin6_unique_ptr
+sin6_make_any() {
+  sin6_unique_ptr sa(new sockaddr_in6{});
+
+  sa->sin6_family = AF_INET6;
+  sa->sin6_addr = in6addr_any;
 
   return sa;
 }

@@ -36,7 +36,7 @@ public:
   // A node ID of all zero.
   static HashString zero_id;
 
-  DhtRouter(const Object& cache, const rak::socket_address* sa);
+  DhtRouter(const Object& cache, const sockaddr* sa);
   ~DhtRouter();
 
   void                start(int port);

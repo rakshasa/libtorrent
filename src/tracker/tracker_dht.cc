@@ -6,6 +6,11 @@
 #include "manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/tracker/dht_controller.h"
+#include "torrent/utils/log.h"
+#include "torrent/utils/option_strings.h"
+
+#define LT_LOG(log_fmt, ...)                                            \
+  lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_dht", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
 namespace torrent {
 
@@ -47,6 +52,9 @@ TrackerDht::lock_and_status() const {
 
 void
 TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
+  LT_LOG("sending event : state:%s dht_state:%s replied:%d contacted:%d",
+         option_as_string(OPTION_TRACKER_EVENT, new_state), states[m_dht_state], m_replied, m_contacted);
+
   close();
 
   if (m_dht_state != state_idle) {

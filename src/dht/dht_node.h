@@ -1,72 +1,72 @@
 #ifndef LIBTORRENT_DHT_NODE_H
 #define LIBTORRENT_DHT_NODE_H
 
-
-#include <rak/socket_address.h>
-
+#include "dht/dht_bucket.h"
+#include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
-
-#include "dht_bucket.h"
+#include "torrent/net/types.h"
 
 namespace torrent {
 
 class DhtBucket;
 
 class DhtNode : public HashString {
+public:
   friend class DhtSearch;
 
-public:
   // A node is considered bad if it failed to reply to this many queries.
   static constexpr unsigned int max_failed_replies = 5;
 
-  DhtNode(const HashString& id, const rak::socket_address* sa);
+  DhtNode(const HashString& id, const sockaddr* sa);
   DhtNode(const std::string& id, const Object& cache);
   ~DhtNode() = default;
-  DhtNode(const DhtNode&) = delete;
-  DhtNode& operator=(const DhtNode&) = delete;
 
-  const HashString&           id() const                 { return *this; }
-  raw_string                  id_raw_string() const      { return raw_string(data(), size_data); }
-  const rak::socket_address*  address() const            { return &m_socketAddress; }
-  void                        set_address(const rak::socket_address* sa) { m_socketAddress = *sa; }
+  const HashString&   id() const                 { return *this; }
+  raw_string          id_raw_string() const      { return raw_string(data(), size_data); }
+
+  const sockaddr*     address() const            { return m_socket_address.get(); }
+  void                set_address(const sockaddr* sa);
 
   // For determining node quality.
-  unsigned int                last_seen() const          { return m_lastSeen; }
-  unsigned int                age() const                { return this_thread::cached_seconds().count() - m_lastSeen; }
-  bool                        is_good() const            { return m_recentlyActive; }
-  bool                        is_questionable() const    { return !m_recentlyActive; }
-  bool                        is_bad() const             { return m_recentlyInactive >= max_failed_replies; }
-  bool                        is_active() const          { return m_lastSeen; }
+  unsigned int        last_seen() const          { return m_last_seen; }
+  unsigned int        age() const                { return this_thread::cached_seconds().count() - m_last_seen; }
+  bool                is_good() const            { return m_recently_active; }
+  bool                is_questionable() const    { return !m_recently_active; }
+  bool                is_bad() const             { return m_recently_inactive >= max_failed_replies; }
+  bool                is_active() const          { return m_last_seen; }
 
   // Update is called once every 15 minutes.
-  void                        update()                   { m_recentlyActive = age() < 15 * 60; }
+  void                update()                   { m_recently_active = age() < 15 * 60; }
 
   // Called when node replies to us, queries us, or fails to reply.
-  void                        replied()                  { set_good(); }
-  void                        queried()                  { if (m_lastSeen) set_good(); }
-  void                        inactive();
+  void                replied()                  { set_good(); }
+  void                queried()                  { if (m_last_seen) set_good(); }
+  void                inactive();
 
-  DhtBucket*                  bucket() const             { return m_bucket; }
-  DhtBucket*                  set_bucket(DhtBucket* b)   { m_bucket = b; return b; }
+  DhtBucket*          bucket() const             { return m_bucket; }
+  DhtBucket*          set_bucket(DhtBucket* b)   { m_bucket = b; return b; }
 
-  bool                        is_in_range(const DhtBucket* b) { return b->is_in_range(*this); }
+  bool                is_in_range(const DhtBucket* b) { return b->is_in_range(*this); }
 
   // Store compact node information (26 bytes address, port and ID) in the given
   // buffer and return pointer to end of stored information.
-  char*                       store_compact(char* buffer) const;
+  char*               store_compact(char* buffer) const;
 
   // Store node cache in the given container object and return it.
-  Object*                     store_cache(Object* container) const;
+  Object*             store_cache(Object* container) const;
 
 private:
-  void                        set_good();
-  void                        set_bad();
+  DhtNode(const DhtNode&) = delete;
+  DhtNode& operator=(const DhtNode&) = delete;
 
-  rak::socket_address m_socketAddress;
-  unsigned int        m_lastSeen;
-  bool                m_recentlyActive{};
-  unsigned int        m_recentlyInactive{};
+  void                set_good();
+  void                set_bad();
+
+  sa_unique_ptr       m_socket_address;
+  unsigned int        m_last_seen{};
+  bool                m_recently_active{};
+  unsigned int        m_recently_inactive{};
   DhtBucket*          m_bucket{};
 };
 
@@ -75,9 +75,9 @@ DhtNode::set_good() {
   if (m_bucket != NULL && !is_good())
     m_bucket->node_now_good(is_bad());
 
-  m_lastSeen = this_thread::cached_seconds().count();
-  m_recentlyInactive = 0;
-  m_recentlyActive = true;
+  m_last_seen = this_thread::cached_seconds().count();
+  m_recently_inactive = 0;
+  m_recently_active = true;
 }
 
 inline void
@@ -85,16 +85,16 @@ DhtNode::set_bad() {
   if (m_bucket != NULL && !is_bad())
     m_bucket->node_now_bad(is_good());
 
-  m_recentlyInactive = max_failed_replies;
-  m_recentlyActive = false;
+  m_recently_inactive = max_failed_replies;
+  m_recently_active = false;
 }
 
 inline void
 DhtNode::inactive() {
-  if (m_recentlyInactive + 1 == max_failed_replies)
+  if (m_recently_inactive + 1 == max_failed_replies)
     set_bad();
-  else 
-    m_recentlyInactive++;
+  else
+    m_recently_inactive++;
 }
 
 } // namespace torrent

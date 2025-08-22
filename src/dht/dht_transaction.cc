@@ -7,6 +7,7 @@
 #include "dht/dht_bucket.h"
 #include "torrent/exceptions.h"
 #include "torrent/object_stream.h"
+#include "torrent/net/socket_address.h"
 #include "tracker/tracker_dht.h"
 
 namespace torrent {
@@ -31,7 +32,7 @@ DhtSearch::~DhtSearch() {
 }
 
 bool
-DhtSearch::add_contact(const HashString& id, const rak::socket_address* sa) {
+DhtSearch::add_contact(const HashString& id, const sockaddr* sa) {
   auto n = std::make_unique<DhtNode>(id, sa);
   bool added = emplace(std::move(n), this).second;
 
@@ -215,10 +216,10 @@ DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
   memcpy(m_data.get(), buffer, m_length);
 }
 
-DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString& id, const rak::socket_address* sa)
+DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString& id, const sockaddr* sa)
   : m_id(id),
     m_hasQuickTimeout(quick_timeout > 0),
-    m_sa(*sa),
+    m_sa(*rak::socket_address::cast_from(sa)),
     m_timeout(this_thread::cached_seconds().count() + timeout),
     m_quickTimeout(this_thread::cached_seconds().count() + quick_timeout) {
 }

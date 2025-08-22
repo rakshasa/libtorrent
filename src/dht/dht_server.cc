@@ -16,6 +16,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
@@ -86,12 +87,10 @@ DhtServer::DhtServer(DhtRouter* router) :
 DhtServer::~DhtServer() {
   stop();
 
-  for (const auto& packet : m_highQueue) {
+  for (const auto& packet : m_highQueue)
     delete packet;
-  }
-  for (const auto& packet : m_lowQueue) {
+  for (const auto& packet : m_lowQueue)
     delete packet;
-  }
 
   manager->connection_manager()->dec_socket_count();
 }
@@ -100,23 +99,23 @@ void
 DhtServer::start(int port) {
   try {
     if (!get_fd().open_datagram() || !get_fd().set_nonblock())
-      throw resource_error("Could not allocate datagram socket.");
+      throw resource_error("could not allocate datagram socket");
 
     if (!get_fd().set_reuse_address(true))
-      throw resource_error("Could not set listening port to reuse address.");
+      throw resource_error("could not set listening port to reuse address");
 
-    rak::socket_address sa = *m_router->address();
+    auto bind_address = sa_copy(m_router->address());
 
-    if (sa.family() == rak::socket_address::af_unspec)
-      sa.sa_inet6()->clear();
+    if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
+      throw resource_error("invalid address family for DHT server");
 
-    sa.set_port(port);
+    sap_set_port(bind_address, port);
 
-    LT_LOG_THIS("starting (address:%s)", sa.pretty_address_str().c_str());
+    LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
 
     // Figure out how to bind to both inet and inet6.
-    if (!get_fd().bind(sa))
-      throw resource_error("Could not bind datagram socket.");
+    if (!get_fd().bind_sa(bind_address.get()))
+      throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
 
   } catch (const torrent::base_error&) {
     get_fd().close();
@@ -174,8 +173,9 @@ void
 DhtServer::ping(const HashString& id, const rak::socket_address* sa) {
   // No point pinging a node that we're already contacting otherwise.
   auto itr = m_transactions.lower_bound(DhtTransaction::key(sa, 0));
+
   if (itr == m_transactions.end() || !DhtTransaction::key_match(itr->first, sa))
-    add_transaction(new DhtTransactionPing(id, sa), packet_prio_low);
+    add_transaction(new DhtTransactionPing(id, sa->c_sockaddr()), packet_prio_low);
 }
 
 // Contact nodes in given bucket and ask for their nodes closest to target.
@@ -414,10 +414,8 @@ DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, raw_string n
             std::back_inserter(list));
 
   for (auto& node : list) {
-    if (node.id() != m_router->id()) {
-      rak::socket_address sa = node.address();
-      transaction->search()->add_contact(node.id(), &sa);
-    }
+    if (node.id() != m_router->id())
+      transaction->search()->add_contact(node.id(), node.address().c_sockaddr());
   }
 
   find_node_next(transaction);
@@ -434,7 +432,7 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtM
 
   if (response[key_r_token].is_raw_string())
     add_transaction(new DhtTransactionAnnouncePeer(transaction->id(),
-                                                   transaction->address(),
+                                                   transaction->address()->c_sockaddr(),
                                                    announce->target(),
                                                    response[key_r_token].as_raw_string()),
                     packet_prio_low);
@@ -445,10 +443,12 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtM
 void
 DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   int priority = packet_prio_low;
+
   if (transaction->search()->is_announce())
     priority = packet_prio_high;
 
   auto node = transaction->search()->get_contact();
+
   while (node != transaction->search()->end()) {
     add_transaction(new DhtTransactionFindNode(node), priority);
     node = transaction->search()->get_contact();
@@ -458,6 +458,7 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
     return;
 
   auto announce = static_cast<DhtAnnounce*>(transaction->search());
+
   if (announce->complete()) {
     // We have found the 8 closest nodes to the info hash. Retrieve peers
     // from them and announce to them.

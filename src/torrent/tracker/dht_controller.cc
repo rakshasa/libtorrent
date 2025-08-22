@@ -4,14 +4,14 @@
 
 #include "dht/dht_router.h"
 #include "src/manager.h"
-#include <torrent/connection_manager.h>
+#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
-
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(torrent::LOG_DHT_MANAGER, "dht_manager", log_fmt, __VA_ARGS__);
+#define LT_LOG(log_fmt, ...)                                            \
+  lt_log_print_subsystem(torrent::LOG_DHT, "dht_controller", log_fmt, __VA_ARGS__);
 
 namespace torrent::tracker {
 
@@ -51,9 +51,16 @@ DhtController::port() {
 
 void
 DhtController::initialize(const Object& dhtCache) {
-  auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+  auto bind_address = manager->connection_manager()->bind_address();
 
-  LT_LOG_THIS("initializing (bind_address:%s)", bind_address->pretty_address_str().c_str());
+  sa_unique_ptr tmp_sa;
+
+  if (bind_address->sa_family == AF_UNSPEC) {
+    tmp_sa = sa_make_inet6_any();
+    bind_address = tmp_sa.get();
+  }
+
+  LT_LOG("initializing : %s", sa_pretty_str(bind_address).c_str());
 
   if (m_router != NULL)
     throw internal_error("DhtController::initialize called with DHT already active.");
@@ -62,13 +69,13 @@ DhtController::initialize(const Object& dhtCache) {
     m_router = std::make_unique<DhtRouter>(dhtCache, bind_address);
 
   } catch (const torrent::local_error& e) {
-    LT_LOG_THIS("initialization failed (error:%s)", e.what());
+    LT_LOG("initialization failed : %s", e.what());
   }
 }
 
 bool
 DhtController::start(ConnectionManager::port_type port) {
-  LT_LOG_THIS("starting (port:%d)", port);
+  LT_LOG("starting : port:%d", port);
 
   if (m_router == nullptr)
     throw internal_error("DhtController::start called without initializing first.");
@@ -80,7 +87,7 @@ DhtController::start(ConnectionManager::port_type port) {
     return true;
 
   } catch (const torrent::local_error& e) {
-    LT_LOG_THIS("start failed (error:%s)", e.what());
+    LT_LOG("start failed : %s", e.what());
     return false;
   }
 }
@@ -90,7 +97,7 @@ DhtController::stop() {
   if (!m_router)
     return;
 
-  LT_LOG_THIS("stopping", 0);
+  LT_LOG("stopping", 0);
   m_router->stop();
 }
 

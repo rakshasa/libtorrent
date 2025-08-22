@@ -104,7 +104,7 @@ Download::start(int flags) {
     info->set_uploaded_baseline(info->up_rate()->total());
     info->set_completed_baseline(m_ptr->main()->file_list()->completed_bytes());
 
-    lt_log_print_info(LOG_TRACKER_INFO, info,
+    lt_log_print_info(LOG_TRACKER_EVENTS, info,
                       "download", "Setting new baseline on start: uploaded:%" PRIu64 " completed:%" PRIu64 ".",
                       info->uploaded_baseline(), info->completed_baseline());
   }

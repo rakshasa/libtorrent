@@ -109,13 +109,6 @@ constexpr const char* option_list_log_group[] = {
   "info",
   "debug",
 
-  "dht_critical",
-  "dht_error",
-  "dht_warn",
-  "dht_notice",
-  "dht_info",
-  "dht_debug",
-
   "peer_critical",
   "peer_error",
   "peer_warn",
@@ -144,13 +137,6 @@ constexpr const char* option_list_log_group[] = {
   "thread_info",
   "thread_debug",
 
-  "tracker_critical",
-  "tracker_error",
-  "tracker_warn",
-  "tracker_notice",
-  "tracker_info",
-  "tracker_debug",
-
   "torrent_critical",
   "torrent_error",
   "torrent_warn",
@@ -167,8 +153,10 @@ constexpr const char* option_list_log_group[] = {
   "connection_hanshake",
   "connection_listen",
 
+  "dht",
   "dht_all",
-  "dht_manager",
+  "dht_error",
+  "dht_controller",
   "dht_node",
   "dht_router",
   "dht_server",
@@ -259,7 +247,7 @@ option_find_string(option_enum opt_enum, const char* name) {
     } while (*++itr != NULL);
   }
 
-  throw input_error("Invalid option name.");
+  throw input_error("invalid option name : enum:" + std::to_string(opt_enum) + " name:'" + std::string(name) + "'");
 }
 
 const char*
@@ -286,8 +274,8 @@ option_to_string_or_throw(option_enum opt_enum, unsigned int value, const char* 
 
   if (result == NULL)
     throw input_error(not_found);
-  else
-    return result;
+
+  return result;
 }
 
 const char*
@@ -295,9 +283,9 @@ option_as_string(option_enum opt_enum, unsigned int value) {
   const char* result = option_to_string(opt_enum, value, NULL);
 
   if (result == NULL)
-    throw input_error("Invalid option value.");
-  else
-    return result;
+    throw input_error("invalid option value : enum:" + std::to_string(opt_enum) + " value:" + std::to_string(value));
+
+  return result;
 }
 
 torrent::Object

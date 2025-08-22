@@ -1,15 +1,13 @@
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include "tracker/tracker_http.h"
 
 #include <iomanip>
 #include <sstream>
 #include <utility>
-#include <rak/string_manip.h>
 
 #include "net/address_list.h"
+#include "rak/string_manip.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
@@ -257,7 +255,7 @@ TrackerHttp::receive_done() {
 
   LT_LOG("received reply", 0);
 
-  if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
+  if (lt_log_is_valid(LOG_TRACKER_DUMP)) {
     std::string dump = m_data->str();
     LT_LOG_DUMP(dump.c_str(), dump.size(), "tracker reply", 0);
   }
@@ -317,7 +315,7 @@ TrackerHttp::receive_failed(const std::string& msg) {
 
   LT_LOG("received failure : msg:%s", msg.c_str());
 
-  if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
+  if (lt_log_is_valid(LOG_TRACKER_DUMP)) {
     std::string dump = m_data->str();
     LT_LOG_DUMP(dump.c_str(), dump.size(), "received failure", 0);
   }
