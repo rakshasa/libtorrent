@@ -2,6 +2,8 @@
 
 #include "listen.h"
 
+#include <tuple>
+
 #include "manager.h"
 #include "rak/socket_address.h"
 #include "torrent/connection_manager.h"
@@ -13,6 +15,29 @@
 
 namespace torrent {
 
+static std::tuple<int, int>
+listen_fd_open(const sockaddr* bind_address) {
+  fd_flags open_flags = fd_flag_nonblock | fd_flag_reuse_address;
+
+  if (bind_address->sa_family == AF_INET)
+    open_flags |= fd_flag_v4only;
+
+  int stream_fd = fd_open(fd_flag_stream | open_flags);
+
+  if (stream_fd == -1)
+    throw resource_error("Could not open stream socket for listening: " + std::string(strerror(errno)));
+
+  int datagram_fd = fd_open(fd_flag_datagram | open_flags);
+
+  if (datagram_fd == -1) {
+    fd_close(stream_fd);
+    throw resource_error("Could not open datagram socket for listening: " + std::string(strerror(errno)));
+  }
+
+  return std::make_tuple(stream_fd, datagram_fd);
+}
+
+
 bool
 Listen::open(uint16_t first, uint16_t last, int backlog, const sockaddr* bind_address) {
   close();
@@ -23,35 +48,37 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const sockaddr* bind_ad
   if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
     throw input_error("Listening socket must be inet or inet6 address type");
 
-  fd_flags open_flags = fd_flag_nonblock | fd_flag_reuse_address;
-
-  if (bind_address->sa_family == AF_INET)
-    open_flags |= fd_flag_v4only;
-
-  int fd = fd_open(fd_flag_stream | open_flags);
-
-  if (fd == -1)
-    throw resource_error("Could not open socket for listening: " + std::string(strerror(errno)));
-
   sa_unique_ptr try_address = sa_copy(bind_address);
 
-  // bool failed_to_bind_udp{};
+  auto [stream_fd, datagram_fd] = listen_fd_open(bind_address);
 
   do {
     sa_set_port(try_address.get(), first);
 
-    if (!fd_bind(fd, try_address.get()))
+    if (!fd_bind(stream_fd, try_address.get()))
       continue;
 
-    // TODO: Quick try to bind udp socket here.
+    // Try to bind the datagram socket to the same port to verify DHT availability.
+    if (!fd_bind(datagram_fd, try_address.get())) {
+      lt_log_print(LOG_CONNECTION_LISTEN, "failed to bind datagram socket on port %" PRIu64 " to verify DHT availability : %s",
+                   first, std::strerror(errno));
 
-    if (!fd_listen(fd, backlog)) {
-      fd_close(fd);
+      fd_close(stream_fd);
+      fd_close(datagram_fd);
+
+      std::tie(stream_fd, datagram_fd) = listen_fd_open(bind_address);
+      continue;
+    }
+
+    fd_close(datagram_fd);
+
+    if (!fd_listen(stream_fd, backlog)) {
+      fd_close(stream_fd);
       throw resource_error("Could not listen on socket: " + std::string(strerror(errno)));
     }
 
     m_port = first;
-    m_fileDesc = fd;
+    m_fileDesc = stream_fd;
 
     manager->connection_manager()->inc_socket_count();
 
@@ -65,7 +92,8 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const sockaddr* bind_ad
 
   } while (first++ < last);
 
-  fd_close(fd);
+  fd_close(stream_fd);
+  fd_close(datagram_fd);
 
   lt_log_print(LOG_CONNECTION_LISTEN, "failed to find a suitable listen port : last error : %s",
                std::strerror(errno));

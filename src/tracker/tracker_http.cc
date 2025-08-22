@@ -5,9 +5,9 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
-#include <rak/string_manip.h>
 
 #include "net/address_list.h"
+#include "rak/string_manip.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
