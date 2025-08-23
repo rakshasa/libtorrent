@@ -20,8 +20,9 @@ DhtTracker::add_peer(uint32_t addr, uint16_t port) {
       m_peers[i].peer.port = compact.port;
       m_lastSeen[i] = this_thread::cached_seconds().count();
       return;
+    }
 
-    } else if (m_lastSeen[i] < minSeen) {
+    if (m_lastSeen[i] < minSeen) {
       minSeen = m_lastSeen[i];
       oldest = i;
     }
@@ -31,12 +32,12 @@ DhtTracker::add_peer(uint32_t addr, uint16_t port) {
   if (size() < max_size) {
     m_peers.emplace_back(compact);
     m_lastSeen.push_back(this_thread::cached_seconds().count());
+    return;
+  }
 
   // Peer doesn't exist and table is full: replace oldest peer.
-  } else {
-    m_peers[oldest] = compact;
-    m_lastSeen[oldest] = this_thread::cached_seconds().count();
-  }
+  m_peers[oldest] = compact;
+  m_lastSeen[oldest] = this_thread::cached_seconds().count();
 }
 
 // Return compact info as bencoded string (8 bytes per peer) for up to 30 peers,

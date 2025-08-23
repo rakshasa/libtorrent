@@ -68,8 +68,8 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
   { key_y,          "y*S" },
 };
 
-DhtServer::DhtServer(DhtRouter* router) :
-    m_router(router),
+DhtServer::DhtServer(DhtRouter* router)
+  : m_router(router),
     m_uploadThrottle(manager->upload_throttle()->throttle_list()),
     m_downloadThrottle(manager->download_throttle()->throttle_list()) {
 
@@ -743,7 +743,7 @@ DhtServer::event_read() {
       }
 
       // Sanity check the returned transaction ID.
-      if ((type == 'r' || type == 'e') && 
+      if ((type == 'r' || type == 'e') &&
           (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() != 1))
         throw dht_error(dht_error_protocol, "Invalid transaction ID type/length.");
 
