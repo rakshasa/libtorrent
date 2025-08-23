@@ -87,6 +87,9 @@ TrackerDht::send_scrape() {
 
 void
 TrackerDht::close() {
+  LT_LOG("closing event : dht_state:%s replied:%d contacted:%d",
+         states[m_dht_state], m_replied, m_contacted);
+
   m_slot_close();
 
   if (m_dht_state != state_idle)
@@ -100,6 +103,9 @@ TrackerDht::type() const {
 
 void
 TrackerDht::receive_peers(raw_list peers) {
+  LT_LOG("received peers : dht_state:%s replied:%d contacted:%d raw_peers_size:%" PRIu32,
+         states[m_dht_state], m_replied, m_contacted, peers.size());
+
   if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_peers called while not busy.");
 
@@ -108,6 +114,9 @@ TrackerDht::receive_peers(raw_list peers) {
 
 void
 TrackerDht::receive_success() {
+  LT_LOG("received success : dht_state:%s replied:%d contacted:%d peers:%zu",
+         states[m_dht_state], m_replied, m_contacted, m_peers.size());
+
   if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_success called while not busy.");
 
@@ -118,6 +127,9 @@ TrackerDht::receive_success() {
 
 void
 TrackerDht::receive_failed(const char* msg) {
+  LT_LOG("received failure : dht_state:%s replied:%d contacted:%d msg:%s",
+         states[m_dht_state], m_replied, m_contacted, msg);
+
   if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_failed called while not busy.");
 
@@ -129,6 +141,9 @@ TrackerDht::receive_failed(const char* msg) {
 
 void
 TrackerDht::receive_progress(int replied, int contacted) {
+  LT_LOG("received progress : dht_state:%s replied:%d contacted:%d",
+         states[m_dht_state], replied, contacted);
+
   if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_status called while not busy.");
 
