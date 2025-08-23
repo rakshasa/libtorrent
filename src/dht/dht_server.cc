@@ -547,7 +547,7 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const rak
       break;
   }
 
-  auto packet = new DhtTransactionPacket(transaction->address(), query, tID, transaction);
+  auto packet = new DhtTransactionPacket(transaction->address()->c_sockaddr(), query, tID, transaction);
   transaction->set_packet(packet);
   add_packet(packet, priority);
 
@@ -561,7 +561,7 @@ DhtServer::create_response(const DhtMessage& req, const rak::socket_address* sa,
   reply[key_y] = raw_bencode::from_c_str("1:r");
   reply[key_v] = raw_bencode("4:" PEER_VERSION, 6);
 
-  add_packet(new DhtTransactionPacket(sa, reply), packet_prio_reply);
+  add_packet(new DhtTransactionPacket(sa->c_sockaddr(), reply), packet_prio_reply);
 }
 
 void
@@ -576,7 +576,7 @@ DhtServer::create_error(const DhtMessage& req, const rak::socket_address* sa, in
   error[key_e_0] = num;
   error[key_e_1] = raw_string::from_c_str(msg);
 
-  add_packet(new DhtTransactionPacket(sa, error), packet_prio_reply);
+  add_packet(new DhtTransactionPacket(sa->c_sockaddr(), error), packet_prio_reply);
 }
 
 int
@@ -823,7 +823,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
     queue.pop_front();
 
     try {
-      int written = write_datagram(packet->c_str(), packet->length(), packet->address());
+      int written = write_datagram_sa(packet->c_str(), packet->length(), packet->address());
 
       if (written == -1)
         throw network_error();

@@ -206,6 +206,25 @@ DhtAnnounce::start_announce() {
   return const_accessor(begin());
 }
 
+//
+// DhtTransactionPacket:
+//
+
+DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
+  : m_socket_address(sa_copy(s)),
+    m_id(id),
+    m_transaction(t) {
+
+  build_buffer(d);
+}
+
+DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d)
+  : m_socket_address(sa_copy(s)),
+    m_id(-this_thread::cached_seconds().count()) {
+
+  build_buffer(d);
+}
+
 void
 DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
   char buffer[1500];  // If the message would exceed an Ethernet frame, something went very wrong.

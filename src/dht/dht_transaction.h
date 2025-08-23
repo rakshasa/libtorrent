@@ -202,41 +202,37 @@ public:
 class DhtTransactionPacket {
 public:
   // transaction packet
-  DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
-    : m_sa(*s), m_id(id), m_transaction(t) { build_buffer(d); }
-
+  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, DhtTransaction* t);
   // non-transaction packet
-  DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
-    : m_sa(*s), m_id(-this_thread::cached_seconds().count()) { build_buffer(d); }
-
+  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d);
   ~DhtTransactionPacket() = default;
 
-  bool                        has_transaction() const   { return m_id >= -1; }
-  bool                        has_failed() const        { return m_id == -1; }
-  void                        set_failed()              { m_id = -1; }
+  bool                has_transaction() const   { return m_id >= -1; }
+  bool                has_failed() const        { return m_id == -1; }
+  void                set_failed()              { m_id = -1; }
 
-  const rak::socket_address*  address() const           { return &m_sa; }
-  rak::socket_address*        address()                 { return &m_sa; }
+  const auto*         address() const           { return m_socket_address.get(); }
+  auto*               address()                 { return m_socket_address.get(); }
 
-  const char*                 c_str() const             { return m_data.get(); }
-  size_t                      length() const            { return m_length; }
+  const char*         c_str() const             { return m_data.get(); }
+  size_t              length() const            { return m_length; }
 
-  int                         id() const                { return m_id; }
-  int                         age() const               { return has_transaction() ? 0 : this_thread::cached_seconds().count() + m_id; }
-  const DhtTransaction*       transaction() const       { return m_transaction; }
-  DhtTransaction*             transaction()             { return m_transaction; }
+  int                 id() const                { return m_id; }
+  int                 age() const               { return has_transaction() ? 0 : this_thread::cached_seconds().count() + m_id; }
+  const auto*         transaction() const       { return m_transaction; }
+  auto*               transaction()             { return m_transaction; }
 
 private:
   DhtTransactionPacket(const DhtTransactionPacket&) = delete;
   DhtTransactionPacket& operator=(const DhtTransactionPacket&) = delete;
 
-  void                        build_buffer(const DhtMessage& data);
+  void                build_buffer(const DhtMessage& data);
 
-  rak::socket_address         m_sa;
-  std::unique_ptr<char[]>     m_data;
-  size_t                      m_length;
-  int                         m_id;
-  DhtTransaction*             m_transaction{};
+  sa_unique_ptr           m_socket_address;
+  std::unique_ptr<char[]> m_data;
+  size_t                  m_length{};
+  int                     m_id{};
+  DhtTransaction*         m_transaction{};
 };
 
 // DHT Transaction classes. DhtTransaction and DhtTransactionSearch
