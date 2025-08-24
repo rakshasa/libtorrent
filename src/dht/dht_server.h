@@ -8,7 +8,6 @@
 #include "dht/dht_transaction.h"
 #include "net/socket_datagram.h"
 #include "net/throttle_node.h"
-#include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
 #include "torrent/utils/scheduler.h"
@@ -45,7 +44,7 @@ public:
   void                reset_statistics();
 
   // Contact a node to see if it replies. Set id=0 if unknown.
-  void                ping(const HashString& id, const rak::socket_address* sa);
+  void                ping(const HashString& id, const sockaddr* sa);
 
   // Do a find_node search with the given contacts as starting point for the
   // search.
@@ -83,8 +82,7 @@ private:
     char                 _id[20];
     SocketAddressCompact _addr;
 
-    HashString&          id()          { return *HashString::cast_from(_id); }
-    rak::socket_address  address() const { return rak::socket_address(_addr); }
+    HashString&          id()            { return *HashString::cast_from(_id); }
   };
 
   using packet_queue   = std::deque<DhtTransactionPacket*>;
@@ -109,9 +107,9 @@ private:
 
   void                start_write();
 
-  void                process_query(const HashString& id, const rak::socket_address* sa, const DhtMessage& req);
-  void                process_response(const HashString& id, const rak::socket_address* sa, const DhtMessage& req);
-  void                process_error(const rak::socket_address* sa, const DhtMessage& error);
+  void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
+  void                process_response(const HashString& id, const sockaddr* sa, const DhtMessage& req);
+  void                process_error(const sockaddr* sa, const DhtMessage& error);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, raw_string nodes);
   void                parse_get_peers_reply(DhtTransactionGetPeers* t, const DhtMessage& res);
@@ -120,13 +118,13 @@ private:
 
   void                add_packet(DhtTransactionPacket* packet, int priority);
   void                drop_packet(DhtTransactionPacket* packet);
-  void                create_query(transaction_itr itr, int tID, const rak::socket_address* sa, int priority);
-  void                create_response(const DhtMessage& req, const rak::socket_address* sa, DhtMessage& reply);
-  void                create_error(const DhtMessage& req, const rak::socket_address* sa, int num, const char* msg);
+  void                create_query(transaction_itr itr, int tID, const sockaddr* sa, int priority);
+  void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
+  void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
 
   void                create_find_node_response(const DhtMessage& arg, DhtMessage& reply);
-  void                create_get_peers_response(const DhtMessage& arg, const rak::socket_address* sa, DhtMessage& reply);
-  void                create_announce_peer_response(const DhtMessage& arg, const rak::socket_address* sa, DhtMessage& reply);
+  void                create_get_peers_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
+  void                create_announce_peer_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
 
   int                 add_transaction(DhtTransaction* t, int priority);
 

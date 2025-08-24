@@ -170,12 +170,12 @@ DhtServer::reset_statistics() {
 
 // Ping a node whose ID we know.
 void
-DhtServer::ping(const HashString& id, const rak::socket_address* sa) {
+DhtServer::ping(const HashString& id, const sockaddr* sa) {
   // No point pinging a node that we're already contacting otherwise.
   auto itr = m_transactions.lower_bound(DhtTransaction::key(sa, 0));
 
   if (itr == m_transactions.end() || !DhtTransaction::key_match(itr->first, sa))
-    add_transaction(new DhtTransactionPing(id, sa->c_sockaddr()), packet_prio_low);
+    add_transaction(new DhtTransactionPing(id, sa), packet_prio_low);
 }
 
 // Contact nodes in given bucket and ask for their nodes closest to target.
@@ -240,7 +240,7 @@ DhtServer::update() {
 }
 
 void
-DhtServer::process_query(const HashString& id, const rak::socket_address* sa, const DhtMessage& msg) {
+DhtServer::process_query(const HashString& id, const sockaddr* sa, const DhtMessage& msg) {
   m_queriesReceived++;
   m_networkUp = true;
 
@@ -279,7 +279,7 @@ DhtServer::create_find_node_response(const DhtMessage& req, DhtMessage& reply) {
 }
 
 void
-DhtServer::create_get_peers_response(const DhtMessage& req, const rak::socket_address* sa, DhtMessage& reply) {
+DhtServer::create_get_peers_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply) {
   reply[key_r_token] = m_router->make_token(sa, reply.data_end);
   reply.data_end += reply[key_r_token].as_raw_string().size();
 
@@ -307,7 +307,7 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const rak::socket_ad
 }
 
 void
-DhtServer::create_announce_peer_response(const DhtMessage& req, const rak::socket_address* sa, [[maybe_unused]] DhtMessage& reply) {
+DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* sa, [[maybe_unused]] DhtMessage& reply) {
   raw_string info_hash = req[key_a_infoHash].as_raw_string();
 
   if (info_hash.size() < HashString::size_data)
@@ -316,12 +316,16 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const rak::socke
   if (!m_router->token_valid(req[key_a_token].as_raw_string(), sa))
     throw dht_error(dht_error_protocol, "Token invalid.");
 
+  if (!sa_is_inet(sa))
+    throw internal_error("DhtServer::create_announce_peer_response called with non-inet address.");
+
   DhtTracker* tracker = m_router->get_tracker(*HashString::cast_from(info_hash.data()), true);
-  tracker->add_peer(sa->sa_inet()->address_n(), req[key_a_port].as_value());
+
+  tracker->add_peer(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, req[key_a_port].as_value());
 }
 
 void
-DhtServer::process_response(const HashString& id, const rak::socket_address* sa, const DhtMessage& response) {
+DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtMessage& response) {
   int  transactionId = static_cast<unsigned char>(response[key_t].as_raw_string().data()[0]);
   auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
@@ -381,7 +385,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
 }
 
 void
-DhtServer::process_error(const rak::socket_address* sa, const DhtMessage& error) {
+DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
   int  transactionId = static_cast<unsigned char>(error[key_t].as_raw_string().data()[0]);
   auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
@@ -415,7 +419,7 @@ DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, raw_string n
 
   for (auto& node : list) {
     if (node.id() != m_router->id())
-      transaction->search()->add_contact(node.id(), node.address().c_sockaddr());
+      transaction->search()->add_contact(node.id(), sa_make_inet_n(node._addr.addr, node._addr.port).get());
   }
 
   find_node_next(transaction);
@@ -432,7 +436,7 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtM
 
   if (response[key_r_token].is_raw_string())
     add_transaction(new DhtTransactionAnnouncePeer(transaction->id(),
-                                                   transaction->address()->c_sockaddr(),
+                                                   transaction->address(),
                                                    announce->target(),
                                                    response[key_r_token].as_raw_string()),
                     packet_prio_low);
@@ -509,7 +513,7 @@ DhtServer::drop_packet(DhtTransactionPacket* packet) {
 }
 
 void
-DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const rak::socket_address* sa, int priority) {
+DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const sockaddr* sa, int priority) {
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
 
@@ -547,7 +551,7 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const rak
       break;
   }
 
-  auto packet = new DhtTransactionPacket(transaction->address()->c_sockaddr(), query, tID, transaction);
+  auto packet = new DhtTransactionPacket(transaction->address(), query, tID, transaction);
   transaction->set_packet(packet);
   add_packet(packet, priority);
 
@@ -555,17 +559,17 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const rak
 }
 
 void
-DhtServer::create_response(const DhtMessage& req, const rak::socket_address* sa, DhtMessage& reply) {
+DhtServer::create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply) {
   reply[key_r_id] = m_router->id_raw_string();
   reply[key_t] = req[key_t];
   reply[key_y] = raw_bencode::from_c_str("1:r");
   reply[key_v] = raw_bencode("4:" PEER_VERSION, 6);
 
-  add_packet(new DhtTransactionPacket(sa->c_sockaddr(), reply), packet_prio_reply);
+  add_packet(new DhtTransactionPacket(sa, reply), packet_prio_reply);
 }
 
 void
-DhtServer::create_error(const DhtMessage& req, const rak::socket_address* sa, int num, const char* msg) {
+DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg) {
   DhtMessage error;
 
   if (req[key_t].is_raw_string() && req[key_t].as_raw_string().size() < 67)
@@ -576,7 +580,7 @@ DhtServer::create_error(const DhtMessage& req, const rak::socket_address* sa, in
   error[key_e_0] = num;
   error[key_e_1] = raw_string::from_c_str(msg);
 
-  add_packet(new DhtTransactionPacket(sa->c_sockaddr(), error), packet_prio_reply);
+  add_packet(new DhtTransactionPacket(sa, error), packet_prio_reply);
 }
 
 int
@@ -683,24 +687,28 @@ DhtServer::event_read() {
 
   while (true) {
     Object request;
-    rak::socket_address sa;
     int type = '?';
     DhtMessage message;
     const HashString* nodeId = NULL;
 
+    sockaddr_in6 sa_raw{};
+    sockaddr* sa = reinterpret_cast<sockaddr*>(&sa_raw);
+
     try {
       char buffer[2048];
-      int32_t read = read_datagram(buffer, sizeof(buffer), &sa);
+      int32_t read = read_datagram_sa(buffer, sizeof(buffer), sa, sizeof(sa_raw));
 
       if (read < 0)
         break;
 
       // We can currently only process mapped-IPv4 addresses, not real IPv6.
       // Translate them to an af_inet socket_address.
-      if (sa.family() == rak::socket_address::af_inet6)
-        sa = sa.sa_inet6()->normalize_address();
+      if (sa_is_v4mapped(sa)) {
+        auto sa_unmapped = sin_from_v4mapped_in6(&sa_raw);
+        *reinterpret_cast<sockaddr_in*>(&sa_raw) = *sa_unmapped.get();
+      }
 
-      if (sa.family() != rak::socket_address::af_inet)
+      if (sa->sa_family != AF_INET)
         continue;
 
       total += read;
@@ -753,15 +761,15 @@ DhtServer::event_read() {
 
       switch (type) {
         case 'q':
-          process_query(*nodeId, &sa, message);
+          process_query(*nodeId, sa, message);
           break;
 
         case 'r':
-          process_response(*nodeId, &sa, message);
+          process_response(*nodeId, sa, message);
           break;
 
         case 'e':
-          process_error(&sa, message);
+          process_error(sa, message);
           break;
 
         default:
@@ -773,18 +781,18 @@ DhtServer::event_read() {
     // to other nodes.
     } catch (const bencode_error& e) {
       if ((type == 'r' || type == 'e') && nodeId != NULL) {
-        m_router->node_inactive(*nodeId, &sa);
+        m_router->node_inactive(*nodeId, sa);
       } else {
         snprintf(message.data_end, message.data + torrent::DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
         message.data[torrent::DhtMessage::data_size - 1] = '\0';
-        create_error(message, &sa, dht_error_protocol, message.data_end);
+        create_error(message, sa, dht_error_protocol, message.data_end);
       }
 
     } catch (const dht_error& e) {
       if ((type == 'r' || type == 'e') && nodeId != NULL)
-        m_router->node_inactive(*nodeId, &sa);
+        m_router->node_inactive(*nodeId, sa);
       else
-        create_error(message, &sa, e.code(), e.what());
+        create_error(message, sa, e.code(), e.what());
 
     } catch (const network_error&) {
     }

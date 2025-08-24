@@ -20,8 +20,8 @@ DhtNode::DhtNode(const HashString& id, const sockaddr* sa)
   // hash'es are logged.
   LT_LOG_THIS("created : address:%s", sa_pretty_str(sa).c_str());
 
-  // if (sa->family() != rak::socket_address::af_inet &&
-  //     (sa->family() != rak::socket_address::af_inet6 || !sa->sa_inet6()->is_any()))
+  // if (sa->family() != AF_INET &&
+  //     (sa->family() != AF_INET6 || !sa->sa_inet6()->is_any()))
   //   throw resource_error("Address not af_inet or in6addr_any");
 }
 
