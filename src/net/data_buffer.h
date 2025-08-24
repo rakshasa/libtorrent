@@ -45,43 +45,58 @@ namespace torrent {
 // Recipient must call clear() when done with the buffer.
 struct DataBuffer {
   DataBuffer() = default;
-  DataBuffer(char* data, char* end)   : m_data(data), m_end(end) {}
+  DataBuffer(char* data, size_t size) :
+      m_data(data), m_size(size) {}
 
-  DataBuffer          clone() const        { DataBuffer d = *this; d.m_owned = false; return d; }
-  DataBuffer          release()            { DataBuffer d = *this; set(NULL, NULL, false); return d; }
+  DataBuffer          clone() const;
+  DataBuffer          release();
 
   char*               data() const         { return m_data; }
-  char*               end() const          { return m_end; }
+  char*               end() const          { return m_data + m_size; }
 
   bool                owned() const        { return m_owned; }
-  bool                empty() const        { return m_data == NULL; }
-  size_t              length() const       { return m_end - m_data; }
+  bool                empty() const        { return m_data == nullptr; }
+  size_t              length() const       { return m_size; }
 
   void                clear();
-  void                set(char* data, char* end, bool owned);
+  void                set_data(char* data, size_t size, bool owned);
 
 private:
   char*               m_data{};
-  char*               m_end{};
+  size_t              m_size{};
 
   // Used to indicate if buffer held by PCB is its own and needs to be
   // deleted after transmission (false if shared with other connections).
   bool                m_owned{true};
 };
 
+inline DataBuffer
+DataBuffer::clone() const {
+  DataBuffer d = *this;
+  d.m_owned = false;
+  return d;
+}
+
+inline DataBuffer
+DataBuffer::release() {
+  set_data(nullptr, 0, false);
+  return *this;
+}
+
 inline void
 DataBuffer::clear() {
   if (!empty() && m_owned)
     delete[] m_data;
 
-  m_data = m_end = NULL;
+  m_data  = nullptr;
+  m_size   = 0;
   m_owned = false;
 }
 
 inline void
-DataBuffer::set(char* data, char* end, bool owned) {
+DataBuffer::set_data(char* data, size_t size, bool owned) {
   m_data = data;
-  m_end = end;
+  m_size = size;
   m_owned = owned;
 }
 
