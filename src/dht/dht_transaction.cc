@@ -206,6 +206,25 @@ DhtAnnounce::start_announce() {
   return const_accessor(begin());
 }
 
+//
+// DhtTransactionPacket:
+//
+
+DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
+  : m_socket_address(sa_copy(s)),
+    m_id(id),
+    m_transaction(t) {
+
+  build_buffer(d);
+}
+
+DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d)
+  : m_socket_address(sa_copy(s)),
+    m_id(-this_thread::cached_seconds().count()) {
+
+  build_buffer(d);
+}
+
 void
 DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
   char buffer[1500];  // If the message would exceed an Ethernet frame, something went very wrong.
@@ -219,7 +238,7 @@ DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
 DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString& id, const sockaddr* sa)
   : m_id(id),
     m_hasQuickTimeout(quick_timeout > 0),
-    m_sa(*rak::socket_address::cast_from(sa)),
+    m_socket_address(sa_copy(sa)),
     m_timeout(this_thread::cached_seconds().count() + timeout),
     m_quickTimeout(this_thread::cached_seconds().count() + quick_timeout) {
 }
@@ -227,6 +246,22 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
 DhtTransaction::~DhtTransaction() {
   if (m_packet != NULL)
     m_packet->set_failed();
+}
+
+DhtTransaction::key_type
+DhtTransaction::key(const sockaddr* sa, int id) {
+  if (!sa_is_inet(sa))
+    throw internal_error("DhtTransaction::key called with non-inet address.");
+
+  return (static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr) << 32) + id;
+}
+
+bool
+DhtTransaction::key_match(key_type key, const sockaddr* sa) {
+  if (!sa_is_inet(sa))
+    throw internal_error("DhtTransaction::key_match called with non-inet address.");
+
+  return (key >> 32) == static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
 }
 
 void

@@ -202,41 +202,37 @@ public:
 class DhtTransactionPacket {
 public:
   // transaction packet
-  DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
-    : m_sa(*s), m_id(id), m_transaction(t) { build_buffer(d); }
-
+  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, DhtTransaction* t);
   // non-transaction packet
-  DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
-    : m_sa(*s), m_id(-this_thread::cached_seconds().count()) { build_buffer(d); }
-
+  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d);
   ~DhtTransactionPacket() = default;
 
-  bool                        has_transaction() const   { return m_id >= -1; }
-  bool                        has_failed() const        { return m_id == -1; }
-  void                        set_failed()              { m_id = -1; }
+  bool                has_transaction() const   { return m_id >= -1; }
+  bool                has_failed() const        { return m_id == -1; }
+  void                set_failed()              { m_id = -1; }
 
-  const rak::socket_address*  address() const           { return &m_sa; }
-  rak::socket_address*        address()                 { return &m_sa; }
+  const auto*         address() const           { return m_socket_address.get(); }
+  auto*               address()                 { return m_socket_address.get(); }
 
-  const char*                 c_str() const             { return m_data.get(); }
-  size_t                      length() const            { return m_length; }
+  const char*         c_str() const             { return m_data.get(); }
+  size_t              length() const            { return m_length; }
 
-  int                         id() const                { return m_id; }
-  int                         age() const               { return has_transaction() ? 0 : this_thread::cached_seconds().count() + m_id; }
-  const DhtTransaction*       transaction() const       { return m_transaction; }
-  DhtTransaction*             transaction()             { return m_transaction; }
+  int                 id() const                { return m_id; }
+  int                 age() const               { return has_transaction() ? 0 : this_thread::cached_seconds().count() + m_id; }
+  const auto*         transaction() const       { return m_transaction; }
+  auto*               transaction()             { return m_transaction; }
 
 private:
   DhtTransactionPacket(const DhtTransactionPacket&) = delete;
   DhtTransactionPacket& operator=(const DhtTransactionPacket&) = delete;
 
-  void                        build_buffer(const DhtMessage& data);
+  void                build_buffer(const DhtMessage& data);
 
-  rak::socket_address         m_sa;
-  std::unique_ptr<char[]>     m_data;
-  size_t                      m_length;
-  int                         m_id;
-  DhtTransaction*             m_transaction{};
+  sa_unique_ptr           m_socket_address;
+  std::unique_ptr<char[]> m_data;
+  size_t                  m_length{};
+  int                     m_id{};
+  DhtTransaction*         m_transaction{};
 };
 
 // DHT Transaction classes. DhtTransaction and DhtTransactionSearch
@@ -253,29 +249,28 @@ public:
     DHT_ANNOUNCE_PEER,
   };
 
-  virtual transaction_type    type() const = 0;
-  virtual bool                is_search()          { return false; }
-
   // Key to uniquely identify a transaction with given per-node transaction id.
   using key_type = uint64_t;
 
-  key_type                    key(int id) const    { return key(&m_sa, id); }
-  static key_type             key(const rak::socket_address* sa, int id);
-  static bool                 key_match(key_type key, const rak::socket_address* sa);
+  virtual transaction_type type() const = 0;
 
-  // Node ID and address.
-  const HashString&           id()                 { return m_id; }
-  const rak::socket_address*  address()            { return &m_sa; }
+  virtual bool        is_search()               { return false; }
 
-  int                         timeout() const           { return m_timeout; }
-  int                         quick_timeout() const     { return m_quickTimeout; }
-  bool                        has_quick_timeout() const { return m_hasQuickTimeout; }
+  key_type            key(int id) const         { return key(m_socket_address.get(), id); }
+  static key_type     key(const sockaddr* sa, int id);
+  static bool         key_match(key_type key, const sockaddr* sa);
 
-  DhtTransactionPacket*       packet() const       { return m_packet; }
-  void                        set_packet(DhtTransactionPacket* p) { m_packet = p; }
+  const HashString&   id()                      { return m_id; }
+  const auto*         address()                 { return m_socket_address.get(); }
+
+  int                 timeout() const           { return m_timeout; }
+  int                 quick_timeout() const     { return m_quickTimeout; }
+  bool                has_quick_timeout() const { return m_hasQuickTimeout; }
+
+  auto*               packet() const                      { return m_packet; }
+  void                set_packet(DhtTransactionPacket* p) { m_packet = p; }
 
   DhtTransactionSearch*       as_search();
-
   DhtTransactionPing*         as_ping();
   DhtTransactionFindNode*     as_find_node();
   DhtTransactionGetPeers*     as_get_peers();
@@ -293,7 +288,7 @@ private:
   DhtTransaction(const DhtTransaction&) = delete;
   DhtTransaction& operator=(const DhtTransaction&) = delete;
 
-  rak::socket_address    m_sa;
+  sa_unique_ptr          m_socket_address;
   int                    m_timeout;
   int                    m_quickTimeout;
   DhtTransactionPacket*  m_packet{};
@@ -386,16 +381,6 @@ DhtSearch::set_node_active(const std::unique_ptr<DhtNode>& n, bool active) {
 inline bool
 dht_compare_closer::operator () (const std::unique_ptr<DhtNode>& one, const std::unique_ptr<DhtNode>& two) const {
   return DhtSearch::is_closer(*one, *two, m_target);
-}
-
-inline DhtTransaction::key_type
-DhtTransaction::key(const rak::socket_address* sa, int id) {
-  return (static_cast<uint64_t>(sa->sa_inet()->address_n()) << 32) + id;
-}
-
-inline bool
-DhtTransaction::key_match(key_type key, const rak::socket_address* sa) {
-  return (key >> 32) == sa->sa_inet()->address_n();
 }
 
 // These could (should?) check that the type matches, or use dynamic_cast if we have RTTI.

@@ -5,11 +5,11 @@
 namespace torrent {
 
 void
-DhtTracker::add_peer(uint32_t addr, uint16_t port) {
+DhtTracker::add_peer(uint32_t addr_n, uint16_t port) {
   if (port == 0)
     return;
 
-  SocketAddressCompact compact(addr, port);
+  SocketAddressCompact compact(addr_n, port);
 
   unsigned int oldest = 0;
   uint32_t minSeen = ~uint32_t();

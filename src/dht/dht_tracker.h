@@ -27,7 +27,7 @@ public:
   bool                empty() const                { return m_peers.empty(); }
   size_t              size() const                 { return m_peers.size(); }
 
-  void                add_peer(uint32_t addr, uint16_t port);
+  void                add_peer(uint32_t addr_n, uint16_t port);
   raw_list            get_peers(unsigned int maxPeers = max_peers);
 
   // Remove old announces from the tracker that have not reannounced for

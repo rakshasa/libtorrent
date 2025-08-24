@@ -1,10 +1,9 @@
-#ifndef LIBTORRENT_DHT_ROUTER_H
-#define LIBTORRENT_DHT_ROUTER_H
+#ifndef LIBTORRENT_DHT_DHT_ROUTER_H
+#define LIBTORRENT_DHT_DHT_ROUTER_H
 
 #include "dht/dht_node.h"
 #include "dht/dht_hash_map.h"
 #include "dht/dht_server.h"
-#include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object.h"
 #include "torrent/net/types.h"
@@ -65,13 +64,13 @@ public:
   DhtNode*            get_node(const HashString& id);
 
   // Search for node with given address in O(n), disregarding the port.
-  DhtNode*            find_node(const rak::socket_address* sa);
+  DhtNode*            find_node(const sockaddr* sa);
 
   // Whenever a node queries us, replies, or is confirmed inactive (no reply) or
   // invalid (reply with wrong ID), we need to update its status.
-  DhtNode*            node_queried(const HashString& id, const rak::socket_address* sa);
-  DhtNode*            node_replied(const HashString& id, const rak::socket_address* sa);
-  DhtNode*            node_inactive(const HashString& id, const rak::socket_address* sa);
+  DhtNode*            node_queried(const HashString& id, const sockaddr* sa);
+  DhtNode*            node_replied(const HashString& id, const sockaddr* sa);
+  DhtNode*            node_inactive(const HashString& id, const sockaddr* sa);
   void                node_invalid(const HashString& id);
 
   // Store compact node information (26 bytes) for nodes closest to the
@@ -82,8 +81,8 @@ public:
   Object*             store_cache(Object* container) const;
 
   // Create and verify a token. Tokens are valid between 15-30 minutes from creation.
-  raw_string          make_token(const rak::socket_address* sa, char* buffer) const;
-  bool                token_valid(raw_string token, const rak::socket_address* sa) const;
+  raw_string          make_token(const sockaddr* sa, char* buffer) const;
+  bool                token_valid(raw_string token, const sockaddr* sa) const;
 
   tracker::DhtController::statistics_type get_statistics() const;
   void                                    reset_statistics()  { m_server.reset_statistics(); }
@@ -119,7 +118,7 @@ private:
   void                receive_timeout_bootstrap();
 
   // buffer needs to hold an SHA1 hash (20 bytes), not just the token (8 bytes)
-  static char*        generate_token(const rak::socket_address* sa, int token, char buffer[20]);
+  static char*        generate_token(const sockaddr* sa, int token, char buffer[20]);
 
   utils::SchedulerEntry m_task_timeout;
 
@@ -140,7 +139,7 @@ private:
 };
 
 inline raw_string
-DhtRouter::make_token(const rak::socket_address* sa, char* buffer) const {
+DhtRouter::make_token(const sockaddr* sa, char* buffer) const {
   return raw_string(generate_token(sa, m_curToken, buffer), size_token);
 }
 

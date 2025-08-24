@@ -52,6 +52,17 @@ SocketDatagram::write_datagram(const void* buffer, unsigned int length, rak::soc
 }
 
 int
+SocketDatagram::read_datagram_sa(void* buffer, unsigned int length, sockaddr* from_sa, unsigned int from_length) {
+  if (length == 0)
+    throw internal_error("Tried to receive buffer length 0");
+
+  if (from_sa == nullptr)
+    throw internal_error("Tried to receive datagram with NULL sockaddr pointer");
+
+  return ::recvfrom(m_fileDesc, buffer, length, 0, from_sa, &from_length);
+}
+
+int
 SocketDatagram::write_datagram_sa(const void* buffer, unsigned int length, sockaddr* sa) {
   if (length == 0)
     throw internal_error("Tried to send buffer length 0");
