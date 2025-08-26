@@ -5,7 +5,7 @@
 #include "download/delegator.h"
 #include "protocol/peer_chunks.h"
 #include "protocol/request_list.h"
-#include "rak/socket_address.h"
+#include "test/helpers/network.h"
 #include "test/helpers/test_main_thread.h"
 #include "torrent/exceptions.h"
 #include "torrent/peer/peer_info.h"
@@ -58,8 +58,7 @@ struct RequestListGuard {
 
 // Set bitfield size...
 #define SETUP_PEER_CHUNKS()                                             \
-  rak::socket_address peer_info_address;                                \
-  auto peer_info = std::make_unique<torrent::PeerInfo>(peer_info_address.c_sockaddr()); \
+  auto peer_info = std::make_unique<torrent::PeerInfo>(wrap_ai_get_first_sa("1.2.3.4", "5000").get()); \
   auto peer_chunks = std::make_unique<torrent::PeerChunks>();           \
   peer_chunks->set_peer_info(peer_info.get());
 
