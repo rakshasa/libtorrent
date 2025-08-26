@@ -210,10 +210,10 @@ DhtAnnounce::start_announce() {
 // DhtTransactionPacket:
 //
 
-DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
+DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, std::shared_ptr<DhtTransaction> t)
   : m_socket_address(sa_copy(s)),
     m_id(id),
-    m_transaction(t) {
+    m_transaction(std::move(t)) {
 
   build_buffer(d);
 }
@@ -232,6 +232,7 @@ DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
 
   m_length = result.second - buffer;
   m_data   = std::make_unique<char[]>(m_length);
+
   memcpy(m_data.get(), buffer, m_length);
 }
 

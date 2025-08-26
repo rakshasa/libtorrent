@@ -85,11 +85,11 @@ private:
     HashString&          id()            { return *HashString::cast_from(_id); }
   };
 
-  using packet_queue   = std::deque<DhtTransactionPacket*>;
+  using packet_queue   = std::deque<std::shared_ptr<DhtTransactionPacket>>;
   using node_info_list = std::list<compact_node_info>;
 
   // Pending transactions.
-  using transaction_map = std::map<DhtTransaction::key_type, DhtTransaction*>;
+  using transaction_map = std::map<DhtTransaction::key_type, std::shared_ptr<DhtTransaction>>;
   using transaction_itr = transaction_map::iterator;
 
   // DHT transaction names for given transaction type.
@@ -116,8 +116,9 @@ private:
 
   void                find_node_next(DhtTransactionSearch* t);
 
-  void                add_packet(DhtTransactionPacket* packet, int priority);
+  void                add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority);
   void                drop_packet(DhtTransactionPacket* packet);
+
   void                create_query(transaction_itr itr, int tID, const sockaddr* sa, int priority);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
@@ -126,7 +127,7 @@ private:
   void                create_get_peers_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
   void                create_announce_peer_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
 
-  int                 add_transaction(DhtTransaction* t, int priority);
+  int                 add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority);
 
   // This returns the iterator after the given one or end()
   transaction_itr     failed_transaction(transaction_itr itr, bool quick);

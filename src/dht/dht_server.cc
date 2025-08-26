@@ -87,11 +87,6 @@ DhtServer::DhtServer(DhtRouter* router)
 DhtServer::~DhtServer() {
   stop();
 
-  for (const auto& packet : m_highQueue)
-    delete packet;
-  for (const auto& packet : m_lowQueue)
-    delete packet;
-
   manager->connection_manager()->dec_socket_count();
 }
 
@@ -175,7 +170,7 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
   auto itr = m_transactions.lower_bound(DhtTransaction::key(sa, 0));
 
   if (itr == m_transactions.end() || !DhtTransaction::key_match(itr->first, sa))
-    add_transaction(new DhtTransactionPing(id, sa), packet_prio_low);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionPing(id, sa)), packet_prio_low);
 }
 
 // Contact nodes in given bucket and ask for their nodes closest to target.
@@ -185,7 +180,7 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
 
   auto n = search->get_contact();
   while (n != search->end()) {
-    add_transaction(new DhtTransactionFindNode(n), packet_prio_low);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(n)), packet_prio_low);
     n = search->get_contact();
   }
 
@@ -200,7 +195,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, Track
   auto n        = announce->get_contact();
 
   while (n != announce->end()) {
-    add_transaction(new DhtTransactionFindNode(n), packet_prio_high);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(n)), packet_prio_high);
     n = announce->get_contact();
   }
 
@@ -221,7 +216,6 @@ DhtServer::cancel_announce(const HashString* info_hash, const TrackerDht* tracke
 
       if ((info_hash == nullptr || announce->target() == *info_hash) && (tracker == nullptr || announce->tracker() == tracker)) {
         drop_packet(itr->second->packet());
-        delete itr->second;
         m_transactions.erase(itr++);
         continue;
       }
@@ -342,7 +336,8 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
 
   // Make sure transaction is erased even if an exception is thrown.
   try {
-    DhtTransaction* transaction = itr->second;
+    auto& transaction = itr->second;
+
 #ifdef USE_EXTRA_DEBUG
     if (DhtTransaction::key(sa, transactionId) != transaction->key(transactionId))
       throw internal_error("DhtServer::process_response key mismatch.");
@@ -372,7 +367,6 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
 
   } catch (const std::exception&) {
     drop_packet(itr->second->packet());
-    delete itr->second;
     m_transactions.erase(itr);
 
     m_errorsCaught++;
@@ -380,7 +374,6 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
   }
 
   drop_packet(itr->second->packet());
-  delete itr->second;
   m_transactions.erase(itr);
 }
 
@@ -401,7 +394,6 @@ DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
   // few error messages are acceptable. So we do nothing and pretend the query never happened.
 
   drop_packet(itr->second->packet());
-  delete itr->second;
   m_transactions.erase(itr);
 }
 
@@ -435,10 +427,10 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtM
     announce->receive_peers(response[key_r_values].as_raw_list());
 
   if (response[key_r_token].is_raw_string())
-    add_transaction(new DhtTransactionAnnouncePeer(transaction->id(),
-                                                   transaction->address(),
-                                                   announce->target(),
-                                                   response[key_r_token].as_raw_string()),
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionAnnouncePeer(transaction->id(),
+                                                                                   transaction->address(),
+                                                                                   announce->target(),
+                                                                                   response[key_r_token].as_raw_string())),
                     packet_prio_low);
 
   announce->update_status();
@@ -454,7 +446,7 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   auto node = transaction->search()->get_contact();
 
   while (node != transaction->search()->end()) {
-    add_transaction(new DhtTransactionFindNode(node), priority);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(node)), priority);
     node = transaction->search()->get_contact();
   }
 
@@ -467,31 +459,31 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
     // We have found the 8 closest nodes to the info hash. Retrieve peers
     // from them and announce to them.
     for (node = announce->start_announce(); node != announce->end(); ++node)
-      add_transaction(new DhtTransactionGetPeers(node), packet_prio_high);
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(node)), packet_prio_high);
   }
 
   announce->update_status();
 }
 
 void
-DhtServer::add_packet(DhtTransactionPacket* packet, int priority) {
+DhtServer::add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority) {
   switch (priority) {
     // High priority packets are for important queries, and quite small.
     // They're added to front of high priority queue and thus will be the
     // next packets sent.
     case packet_prio_high:
-      m_highQueue.push_front(packet);
+      m_highQueue.push_front(std::move(packet));
       break;
 
     // Low priority query packets are added to the back of the high priority
     // queue and will be sent when all high priority packets have been transmitted.
     case packet_prio_low:
-      m_highQueue.push_back(packet);
+      m_highQueue.push_back(std::move(packet));
       break;
 
     // Reply packets will be processed after all of our own packets have been send.
     case packet_prio_reply:
-      m_lowQueue.push_back(packet);
+      m_lowQueue.push_back(std::move(packet));
       break;
 
     default:
@@ -501,8 +493,10 @@ DhtServer::add_packet(DhtTransactionPacket* packet, int priority) {
 
 void
 DhtServer::drop_packet(DhtTransactionPacket* packet) {
-  m_highQueue.erase(std::remove(m_highQueue.begin(), m_highQueue.end(), packet), m_highQueue.end());
-  m_lowQueue.erase(std::remove(m_lowQueue.begin(), m_lowQueue.end(), packet), m_lowQueue.end());
+  m_highQueue.erase(std::remove_if(m_highQueue.begin(), m_highQueue.end(), [packet](auto& p) { return p.get() == packet; }),
+                    m_highQueue.end());
+  m_lowQueue.erase(std::remove_if(m_lowQueue.begin(), m_lowQueue.end(), [packet](auto& p) { return p.get() == packet; }),
+                   m_lowQueue.end());
 
   if (m_highQueue.empty() && m_lowQueue.empty()) {
     this_thread::poll()->remove_write(this);
@@ -525,7 +519,8 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
   *query.data_end++ = ':';
   *query.data_end++ = tID;
 
-  DhtTransaction* transaction = itr->second;
+  auto& transaction = itr->second;
+
   query[key_q] = raw_string::from_c_str(queries[transaction->type()]);
   query[key_y] = raw_bencode::from_c_str("1:q");
   query[key_v] = raw_bencode("4:" PEER_VERSION, 6);
@@ -551,7 +546,8 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
       break;
   }
 
-  auto packet = new DhtTransactionPacket(transaction->address(), query, tID, transaction);
+  auto packet = std::make_shared<DhtTransactionPacket>(transaction->address(), query, tID, transaction);
+
   transaction->set_packet(packet);
   add_packet(packet, priority);
 
@@ -565,7 +561,7 @@ DhtServer::create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage
   reply[key_y] = raw_bencode::from_c_str("1:r");
   reply[key_v] = raw_bencode("4:" PEER_VERSION, 6);
 
-  add_packet(new DhtTransactionPacket(sa, reply), packet_prio_reply);
+  add_packet(std::make_shared<DhtTransactionPacket>(sa, reply), packet_prio_reply);
 }
 
 void
@@ -580,11 +576,11 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
   error[key_e_0] = num;
   error[key_e_1] = raw_string::from_c_str(msg);
 
-  add_packet(new DhtTransactionPacket(sa, error), packet_prio_reply);
+  add_packet(std::make_shared<DhtTransactionPacket>(sa, error), packet_prio_reply);
 }
 
 int
-DhtServer::add_transaction(DhtTransaction* transaction, int priority) {
+DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority) {
   // Try random transaction ID. This is to make it less likely that we reuse
   // a transaction ID from an earlier transaction which timed out and we forgot
   // about it, so that if the node replies after the timeout it's less likely
@@ -605,10 +601,8 @@ DhtServer::add_transaction(DhtTransaction* transaction, int priority) {
     id = static_cast<uint8_t>(id + 1);
 
     // Give up after trying all possible IDs. This should never happen.
-    if (id == rnd) {
-      delete transaction;
+    if (id == rnd)
       return -1;
-    }
 
     // Transaction ID wrapped around, reset iterator.
     if (id == 0)
@@ -619,7 +613,6 @@ DhtServer::add_transaction(DhtTransaction* transaction, int priority) {
   insertItr = m_transactions.insert(insertItr, std::make_pair(transaction->key(id), transaction));
 
   create_query(insertItr, id, transaction->address(), priority);
-
   start_write();
 
   return id;
@@ -629,7 +622,7 @@ DhtServer::add_transaction(DhtTransaction* transaction, int priority) {
 // transaction (except if it was only the quick timeout).
 DhtServer::transaction_itr
 DhtServer::failed_transaction(transaction_itr itr, bool quick) {
-  DhtTransaction* transaction = itr->second;
+  auto transaction = itr->second;
 
   // If it was a known node, remember that it didn't reply, unless the transaction
   // is only stalled (had quick timeout, but not full timeout).  Also if the
@@ -652,7 +645,6 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
     } catch (const std::exception&) {
       if (!quick) {
         drop_packet(transaction->packet());
-        delete itr->second;
         m_transactions.erase(itr);
       }
 
@@ -665,7 +657,6 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
   } else {
     drop_packet(transaction->packet());
-    delete itr->second;
     m_transactions.erase(itr++);
     return itr;
   }
@@ -673,10 +664,8 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
 void
 DhtServer::clear_transactions() {
-  for (auto& transaction : m_transactions) {
+  for (auto& transaction : m_transactions)
     drop_packet(transaction.second->packet());
-    delete transaction.second;
-  }
 
   m_transactions.clear();
 }
@@ -809,8 +798,9 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
   uint32_t used = 0;
 
   while (!queue.empty()) {
-    DhtTransactionPacket* packet = queue.front();
+    auto packet = queue.front();
     DhtTransaction::key_type transactionKey = 0;
+
     if(packet->has_transaction())
       transactionKey = packet->transaction()->key(packet->id());
 
@@ -818,7 +808,6 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
     // and don't bother sending non-transaction packets (replies) after
     // more than 15 seconds in the queue.
     if (packet->has_failed() || packet->age() > 15) {
-      delete packet;
       queue.pop_front();
       continue;
     }
@@ -856,11 +845,10 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
     if (packet->has_transaction()) {
       // here transaction can be already deleted by failed_transaction.
       auto itr = m_transactions.find(transactionKey);
+
       if (itr != m_transactions.end())
         packet->transaction()->set_packet(NULL);
     }
-
-    delete packet;
   }
 
   m_uploadThrottle->node_used(&m_uploadNode, used);
