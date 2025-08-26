@@ -1,9 +1,8 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "test/helpers/test_fixture.h"
 
-#include "protocol/request_list.h"
-
-class TestRequestList : public CppUnit::TestFixture {
+class TestRequestList : public test_fixture {
   CPPUNIT_TEST_SUITE(TestRequestList);
+
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_single_request);
   CPPUNIT_TEST(test_single_canceled);
@@ -15,9 +14,6 @@ class TestRequestList : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp() override {}
-  void tearDown() override {}
-
   void test_basic();
 
   void test_single_request();
