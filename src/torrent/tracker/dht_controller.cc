@@ -7,6 +7,7 @@
 #include <torrent/connection_manager.h>
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
 
@@ -50,6 +51,13 @@ DhtController::port() {
 void
 DhtController::initialize(const Object& dhtCache) {
   auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+
+  sa_unique_ptr tmp_sa;
+
+  if (bind_address->family() == AF_UNSPEC) {
+    tmp_sa = sa_make_inet6();
+    bind_address = rak::socket_address::cast_from(tmp_sa.get());
+  }
 
   LT_LOG_THIS("initializing (bind_address:%s)", bind_address->pretty_address_str().c_str());
 

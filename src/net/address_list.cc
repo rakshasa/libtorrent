@@ -40,8 +40,8 @@ AddressList::parse_address_compact(raw_string s) {
     throw internal_error("ConnectionList::AddressList::parse_address_compact(...) bad struct size.");
 
   std::copy(reinterpret_cast<const SocketAddressCompact*>(s.data()),
-	    reinterpret_cast<const SocketAddressCompact*>(s.data() + s.size() - s.size() % sizeof(SocketAddressCompact)),
-	    std::back_inserter(*this));
+            reinterpret_cast<const SocketAddressCompact*>(s.data() + s.size() - s.size() % sizeof(SocketAddressCompact)),
+            std::back_inserter(*this));
 }
 
 void
@@ -59,14 +59,12 @@ AddressList::parse_address_bencode(raw_list s) {
   if (sizeof(const SocketAddressCompact) != 6)
     throw internal_error("AddressList::parse_address_bencode(...) bad struct size.");
 
-  for (raw_list::const_iterator itr = s.begin();
-       itr + 2 + sizeof(SocketAddressCompact) <= s.end();
-       itr += sizeof(SocketAddressCompact)) {
+  for (auto itr = s.begin(); itr + 2 + sizeof(SocketAddressCompact) <= s.end(); itr += sizeof(SocketAddressCompact)) {
     if (*itr++ != '6' || *itr++ != ':')
       break;
 
-    insert(end(), *reinterpret_cast<const SocketAddressCompact*>(s.data()));
+    insert(end(), *reinterpret_cast<const SocketAddressCompact*>(itr));
   }
 }
 
-}
+} // namespace torrent

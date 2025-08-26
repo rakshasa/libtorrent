@@ -18,6 +18,7 @@
 #include "torrent/poll.h"
 #include "torrent/object_static_map.h"
 #include "torrent/throttle.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
@@ -103,18 +104,17 @@ DhtServer::start(int port) {
     if (!get_fd().set_reuse_address(true))
       throw resource_error("Could not set listening port to reuse address.");
 
-    rak::socket_address sa = *m_router->address();
+    auto bind_address = sa_copy(m_router->address()->c_sockaddr());
 
-    if (sa.family() == rak::socket_address::af_unspec)
-      sa.sa_inet6()->clear();
+    if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
+      throw resource_error("invalid address family for DHT server");
 
-    sa.set_port(port);
+    sap_set_port(bind_address, port);
 
-    LT_LOG_THIS("starting (address:%s)", sa.pretty_address_str().c_str());
+    LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
 
-    // Figure out how to bind to both inet and inet6.
-    if (!get_fd().bind(sa))
-      throw resource_error("Could not bind datagram socket.");
+    if (!get_fd().bind_sa(bind_address.get()))
+      throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
 
   } catch (torrent::base_error& e) {
     get_fd().close();

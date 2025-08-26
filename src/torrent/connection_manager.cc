@@ -9,6 +9,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/error.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/socket_address.h"
 
 namespace torrent {
 
@@ -91,7 +92,18 @@ ConnectionManager::filter(const sockaddr* sa) {
 
 bool
 ConnectionManager::listen_open(port_type begin, port_type end) {
-  if (!m_listen->open(begin, end, m_listen_backlog, rak::socket_address::cast_from(m_bindAddress)))
+  sa_unique_ptr bind_address;
+
+  if (m_bindAddress->sa_family == AF_INET || m_bindAddress->sa_family == AF_INET6)
+    bind_address = sa_copy(m_bindAddress);
+  else if (m_block_ipv6)
+    bind_address = sa_make_inet();
+  else
+    bind_address = sa_make_inet6();
+
+  // TODO: Add blocking of ipv4 on socket level.
+
+  if (!m_listen->open(begin, end, m_listen_backlog, bind_address.get()))
     return false;
 
   m_listen_port = m_listen->port();
