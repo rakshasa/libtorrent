@@ -202,7 +202,7 @@ public:
 class DhtTransactionPacket {
 public:
   // transaction packet
-  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, DhtTransaction* t);
+  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, std::shared_ptr<DhtTransaction> t);
   // non-transaction packet
   DhtTransactionPacket(const sockaddr* s, const DhtMessage& d);
   ~DhtTransactionPacket() = default;
@@ -219,8 +219,9 @@ public:
 
   int                 id() const                { return m_id; }
   int                 age() const               { return has_transaction() ? 0 : this_thread::cached_seconds().count() + m_id; }
-  const auto*         transaction() const       { return m_transaction; }
-  auto*               transaction()             { return m_transaction; }
+
+  const auto*         transaction() const       { return m_transaction.get(); }
+  auto*               transaction()             { return m_transaction.get(); }
 
 private:
   DhtTransactionPacket(const DhtTransactionPacket&) = delete;
@@ -232,7 +233,8 @@ private:
   std::unique_ptr<char[]> m_data;
   size_t                  m_length{};
   int                     m_id{};
-  DhtTransaction*         m_transaction{};
+
+  std::shared_ptr<DhtTransaction> m_transaction;
 };
 
 // DHT Transaction classes. DhtTransaction and DhtTransactionSearch
@@ -267,8 +269,8 @@ public:
   int                 quick_timeout() const     { return m_quickTimeout; }
   bool                has_quick_timeout() const { return m_hasQuickTimeout; }
 
-  auto*               packet() const                      { return m_packet; }
-  void                set_packet(DhtTransactionPacket* p) { m_packet = p; }
+  auto*               packet() const                                      { return m_packet.get(); }
+  void                set_packet(std::shared_ptr<DhtTransactionPacket> p) { m_packet = std::move(p); }
 
   DhtTransactionSearch*       as_search();
   DhtTransactionPing*         as_ping();
@@ -291,7 +293,8 @@ private:
   sa_unique_ptr          m_socket_address;
   int                    m_timeout;
   int                    m_quickTimeout;
-  DhtTransactionPacket*  m_packet{};
+
+  std::shared_ptr<DhtTransactionPacket> m_packet;
 };
 
 class DhtTransactionSearch : public DhtTransaction {
