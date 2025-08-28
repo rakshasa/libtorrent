@@ -36,6 +36,11 @@ HttpGet::close() {
   if (!m_curl_get->set_was_closed())
     return;
 
+  if (std::this_thread::get_id() == curl_stack->thread()->thread_id()) {
+    curl_stack->close_get(m_curl_get);
+    return;
+  }
+
   curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get = m_curl_get]() {
       curl_stack->close_get(curl_get);
     });

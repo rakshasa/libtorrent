@@ -32,6 +32,8 @@ public:
   //
   // Should reset clear the callbacks?
 
+  // Close() does not immediately close it sends a callback to thread_net, so any calls to this
+  // HttpGet not allowed while on stack will throw internal_error.
   void                close();
 
   // Calling reset is not allowed while the HttpGet is in the stack. Does not clear slots or callbacks.
