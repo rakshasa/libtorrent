@@ -78,14 +78,14 @@ public:
   DownloadManager(const DownloadManager&) = default;
   DownloadManager& operator=(const DownloadManager&) = default;
 
-  iterator            find(const std::string& hash);
-  iterator            find(const HashString& hash);
-  iterator            find(DownloadInfo* info);
+  const_iterator      find(const std::string& hash) const;
+  const_iterator      find(const HashString& hash) const;
+  const_iterator      find(DownloadInfo* info) const;
 
-  iterator            find_chunk_list(ChunkList* cl);
+  const_iterator      find_chunk_list(ChunkList* cl) const;
 
-  DownloadMain*       find_main(const char* hash);
-  DownloadMain*       find_main_obfuscated(const char* hash);
+  DownloadMain*       find_main(const char* hash) const;
+  DownloadMain*       find_main_obfuscated(const char* hash) const;
 
   //
   // Don't export:

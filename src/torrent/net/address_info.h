@@ -37,7 +37,7 @@ int ai_each_inet_inet6_first(const char* nodename, const ai_sockaddr_func& lambd
 // Safe conversion from unique_ptr arguments:
 //
 
-inline void aip_clear(ai_unique_ptr& aip) { *aip = addrinfo{}; }
+inline void aip_clear(const ai_unique_ptr& aip) { *aip = addrinfo{}; }
 
 inline int aip_get_addrinfo(const char* nodename, const char* servname, const ai_unique_ptr& hints, ai_unique_ptr& res) { return ai_get_addrinfo(nodename, servname, hints.get(), res); }
 inline int aip_get_addrinfo(const char* nodename, const char* servname, const c_ai_unique_ptr& hints, ai_unique_ptr& res) { return ai_get_addrinfo(nodename, servname, hints.get(), res); }
