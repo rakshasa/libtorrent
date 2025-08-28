@@ -17,8 +17,8 @@ namespace torrent::net {
 
 HttpGet::HttpGet() = default;
 
-HttpGet::HttpGet(std::string url, std::shared_ptr<std::ostream> stream) :
-    m_curl_get(new CurlGet(std::move(url), std::move(stream))) {
+HttpGet::HttpGet(std::string url, std::shared_ptr<std::ostream> stream)
+  : m_curl_get(new CurlGet(std::move(url), std::move(stream))) {
 }
 
 HttpGet::~HttpGet() = default;
@@ -36,13 +36,8 @@ HttpGet::close() {
   if (!m_curl_get->set_was_closed())
     return;
 
-  auto curl_get_weak = std::weak_ptr<CurlGet>(m_curl_get);
-
-  curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get_weak]() {
-      auto curl_get = curl_get_weak.lock();
-
-      if (curl_get)
-        curl_stack->close_get(curl_get);
+  curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get = m_curl_get]() {
+      curl_stack->close_get(curl_get);
     });
 }
 
