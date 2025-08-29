@@ -28,20 +28,31 @@ HttpGet::close() {
   if (!is_valid())
     throw torrent::internal_error("HttpGet::close() called on an invalid HttpGet object.");
 
-  auto curl_stack = m_curl_get->curl_stack();
+  CurlGet::close_and_cancel_callbacks(m_curl_get, nullptr);
+}
 
-  if (curl_stack == nullptr)
-    return;
+void
+HttpGet::close_and_cancel_callbacks(utils::Thread* thread) {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::close_and_cancel_callbacks() called on an invalid HttpGet object.");
 
-  if (std::this_thread::get_id() == curl_stack->thread()->thread_id())
-    throw torrent::internal_error("HttpGet::close() called from the same thread as the CurlStack.");
+  CurlGet::close_and_cancel_callbacks(m_curl_get, thread);
+}
 
-  if (!m_curl_get->set_was_closed())
-    return;
+void
+HttpGet::wait_for_close() {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::wait_for_close() called on an invalid HttpGet object.");
 
-  curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get = m_curl_get]() {
-      curl_stack->close_get(curl_get);
-    });
+  m_curl_get->wait_for_close();
+}
+
+bool
+HttpGet::try_wait_for_close() {
+  if (!is_valid())
+    return false;
+
+  return m_curl_get->try_wait_for_close();
 }
 
 void
@@ -121,14 +132,6 @@ HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
           slot(error);
         });
     });
-}
-
-void
-HttpGet::cancel_slot_callbacks(utils::Thread* thread) {
-  if (m_curl_get == nullptr)
-    throw torrent::internal_error("HttpGet::cancel_callbacks() called on an invalid HttpGet object.");
-
-  thread->cancel_callback(m_curl_get.get());
 }
 
 } // namespace torrent::net

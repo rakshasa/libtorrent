@@ -25,16 +25,14 @@ public:
 
   bool                is_valid() const { return m_curl_get != nullptr; }
 
-  // TODO: Figure out if we need to require close to be called outside of done/failed_slot.
-  //
-  // TODO: Likely should use callback to close in owning thread, so that it gets handled after
-  // processing all slots. This however causes issues if we want to immediatly reuse the HttpGet.
-  //
-  // Should reset clear the callbacks?
-
-  // Close() does not immediately close it sends a callback to thread_net, so any calls to this
-  // HttpGet not allowed while on stack will throw internal_error.
+  // close() and close_and_cancel_callbacks() do not immediately close as they send a callback to
+  // thread_net. Some functions throw internal_error if they don't wait for close to finish.
   void                close();
+  void                close_and_cancel_callbacks(utils::Thread* thread);
+
+  // Always call before reset() if the HttpGet is being reused.
+  void                wait_for_close();
+  bool                try_wait_for_close();
 
   // Calling reset is not allowed while the HttpGet is in the stack. Does not clear slots or callbacks.
   void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
@@ -58,8 +56,6 @@ public:
   void                add_done_slot(const std::function<void()>& slot);
   void                add_failed_slot(const std::function<void(const std::string&)>& slot);
   // TODO: Add a closed_slot.
-
-  void                cancel_slot_callbacks(utils::Thread* thread);
 
   bool                operator<(const HttpGet& other) const;
   bool                operator==(const HttpGet& other) const;
