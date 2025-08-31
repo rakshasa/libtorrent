@@ -799,7 +799,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
 
   while (!queue.empty()) {
     auto packet = queue.front();
-    DhtTransaction::key_type transactionKey = 0;
+    DhtTransaction::key_type transactionKey = {};
 
     if(packet->has_transaction())
       transactionKey = packet->transaction()->key(packet->id());
