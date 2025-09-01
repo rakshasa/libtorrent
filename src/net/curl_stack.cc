@@ -112,6 +112,8 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
     curl_get->cleanup_unsafe();
   }
 
+  curl_get->notify_closed();
+
   {
     auto guard = lock_guard();
 
@@ -222,6 +224,8 @@ CurlStack::process_done_handle() {
     (*itr)->trigger_done();
   else
     (*itr)->trigger_failed(curl_easy_strerror(msg->data.result));
+
+  // TODO: Should start next download here rather than in close_get.
 
   return remaining_msgs != 0;
 }

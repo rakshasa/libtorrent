@@ -139,6 +139,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
 
   std::string request_url = s.str();
 
+  m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
 
   bool is_block_ipv4 = manager->connection_manager()->is_block_ipv4();
@@ -205,6 +206,8 @@ TrackerHttp::delayed_send_scrape() {
   std::string request_url = s.str();
 
   m_data = std::make_unique<std::stringstream>();
+
+  m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
@@ -241,10 +244,7 @@ TrackerHttp::close_directly() {
          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   m_slot_close();
-
-  m_get.close();
-  m_get.cancel_slot_callbacks(this_thread::thread());
-
+  m_get.close_and_cancel_callbacks(this_thread::thread());
   m_data.reset();
 }
 

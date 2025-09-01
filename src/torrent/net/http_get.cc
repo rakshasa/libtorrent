@@ -17,8 +17,8 @@ namespace torrent::net {
 
 HttpGet::HttpGet() = default;
 
-HttpGet::HttpGet(std::string url, std::shared_ptr<std::ostream> stream) :
-    m_curl_get(new CurlGet(std::move(url), std::move(stream))) {
+HttpGet::HttpGet(std::string url, std::shared_ptr<std::ostream> stream)
+  : m_curl_get(new CurlGet(std::move(url), std::move(stream))) {
 }
 
 HttpGet::~HttpGet() = default;
@@ -28,22 +28,31 @@ HttpGet::close() {
   if (!is_valid())
     throw torrent::internal_error("HttpGet::close() called on an invalid HttpGet object.");
 
-  auto curl_stack = m_curl_get->curl_stack();
+  CurlGet::close_and_cancel_callbacks(m_curl_get, nullptr);
+}
 
-  if (curl_stack == nullptr)
-    return;
+void
+HttpGet::close_and_cancel_callbacks(utils::Thread* thread) {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::close_and_cancel_callbacks() called on an invalid HttpGet object.");
 
-  if (!m_curl_get->set_was_closed())
-    return;
+  CurlGet::close_and_cancel_callbacks(m_curl_get, thread);
+}
 
-  auto curl_get_weak = std::weak_ptr<CurlGet>(m_curl_get);
+void
+HttpGet::wait_for_close() {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::wait_for_close() called on an invalid HttpGet object.");
 
-  curl_stack->thread()->callback(m_curl_get.get(), [curl_stack, curl_get_weak]() {
-      auto curl_get = curl_get_weak.lock();
+  m_curl_get->wait_for_close();
+}
 
-      if (curl_get)
-        curl_stack->close_get(curl_get);
-    });
+bool
+HttpGet::try_wait_for_close() {
+  if (!is_valid())
+    return false;
+
+  return m_curl_get->try_wait_for_close();
 }
 
 void
@@ -123,14 +132,6 @@ HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
           slot(error);
         });
     });
-}
-
-void
-HttpGet::cancel_slot_callbacks(utils::Thread* thread) {
-  if (m_curl_get == nullptr)
-    throw torrent::internal_error("HttpGet::cancel_callbacks() called on an invalid HttpGet object.");
-
-  thread->cancel_callback(m_curl_get.get());
 }
 
 } // namespace torrent::net

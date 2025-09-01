@@ -5,11 +5,11 @@
 #include <cassert>
 #include <iostream>
 #include <utility>
-
 #include <curl/easy.h>
 
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
+#include "torrent/utils/thread.h"
 #include "utils/functional.h"
 
 namespace torrent::net {
@@ -61,12 +61,36 @@ CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   auto guard = lock_guard();
 
   if (m_handle != nullptr)
-    throw torrent::internal_error("CurlGet::set_url(...) called on a stacked object.");
+    throw torrent::internal_error("CurlGet::reset() called on a stacked object.");
 
   m_url = url;
   m_stream = std::move(stream);
   m_was_started = false;
   m_was_closed = false;
+}
+
+void
+CurlGet::wait_for_close() {
+  std::unique_lock<std::mutex> guard(m_mutex);
+
+  if (!m_was_closed)
+    throw torrent::internal_error("CurlGet::wait_for_close() called on an object that is not closing.");
+
+  if (m_handle != nullptr)
+    m_cond_closed.wait(guard, [this] { return m_handle == nullptr; });
+}
+
+bool
+CurlGet::try_wait_for_close() {
+  std::unique_lock<std::mutex> guard(m_mutex);
+
+  if (!m_was_closed)
+    return false;
+
+  if (m_handle != nullptr)
+    m_cond_closed.wait(guard, [this] { return m_handle == nullptr; });
+
+  return true;
 }
 
 void
@@ -124,6 +148,34 @@ CurlGet::set_retry_resolve(resolve_type type) {
     throw torrent::internal_error("CurlGet::set_retry_resolve(...) called on a stacked or started object.");
 
   m_retry_resolve = type;
+}
+
+void
+CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread, bool wait) {
+  auto self = curl_get.get();
+
+  std::unique_lock<std::mutex> guard(self->m_mutex);
+
+  if (self->m_was_closed)
+    throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an already closing object.");
+
+  if (thread != nullptr)
+    thread->cancel_callback(self);
+
+  if (self->m_stack == nullptr)
+    return;
+
+  assert(std::this_thread::get_id() != self->m_stack->thread()->thread_id());
+  assert(thread != self->m_stack->thread());
+
+  self->m_was_closed = true;
+
+  self->m_stack->thread()->callback_interrupt_pollling(self, [curl_stack = self->m_stack, curl_get]() {
+      curl_stack->close_get(curl_get);
+    });
+
+  if (wait && self->m_handle == nullptr)
+    self->m_cond_closed.wait(guard, [self] { return self->m_handle == nullptr; });
 }
 
 bool

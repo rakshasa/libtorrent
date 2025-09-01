@@ -1,6 +1,7 @@
 #ifndef RTORRENT_CORE_CURL_GET_H
 #define RTORRENT_CORE_CURL_GET_H
 
+#include <condition_variable>
 #include <iosfwd>
 #include <list>
 #include <memory>
@@ -26,6 +27,9 @@ public:
   CurlGet(std::string url = "", std::shared_ptr<std::ostream> stream = nullptr);
   ~CurlGet();
 
+  static void         close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread);
+  static void         close_and_wait(const std::shared_ptr<CurlGet>& curl_get);
+
   bool                is_stacked() const;
   bool                is_active() const;
   bool                is_closing() const;
@@ -39,6 +43,9 @@ public:
   int64_t             size_total();
 
   void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
+
+  void                wait_for_close();
+  bool                try_wait_for_close();
 
   void                set_timeout(uint32_t seconds);
   void                set_was_started();
@@ -66,10 +73,12 @@ public:
 protected:
   friend class CurlStack;
 
+  static void         close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread, bool wait);
+
   // We need to lock when changing any of the values publically accessible. This means we don't need
   // to lock when changing the underlying vector.
   void                lock() const                    { m_mutex.lock(); }
-  auto                lock_guard() const              { return std::scoped_lock(m_mutex); }
+  auto                lock_guard() const              { return std::lock_guard(m_mutex); }
   void                unlock() const                  { m_mutex.unlock(); }
   auto&               mutex() const                   { return m_mutex; }
 
@@ -82,6 +91,8 @@ protected:
   void                cleanup_unsafe();
 
   bool                retry_resolve();
+
+  void                notify_closed()                 { m_cond_closed.notify_all(); }
 
   void                trigger_done();
   void                trigger_failed(const std::string& message);
@@ -112,11 +123,22 @@ private:
   std::shared_ptr<std::ostream> m_stream;
   uint32_t                      m_timeout{5 * 60};
 
+  std::condition_variable       m_cond_closed;
   utils::SchedulerEntry         m_task_timeout;
 
   std::list<std::function<void()>>                   m_signal_done;
   std::list<std::function<void(const std::string&)>> m_signal_failed;
 };
+
+inline void
+CurlGet::close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread) {
+  close(curl_get, thread, false);
+}
+
+inline void
+CurlGet::close_and_wait(const std::shared_ptr<CurlGet>& curl_get) {
+  close(curl_get, nullptr, true);
+}
 
 inline bool
 CurlGet::is_stacked() const {
