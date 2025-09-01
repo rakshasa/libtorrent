@@ -61,7 +61,7 @@ CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   auto guard = lock_guard();
 
   if (m_handle != nullptr)
-    throw torrent::internal_error("CurlGet::set_url(...) called on a stacked object.");
+    throw torrent::internal_error("CurlGet::reset() called on a stacked object.");
 
   m_url = url;
   m_stream = std::move(stream);
@@ -76,7 +76,7 @@ CurlGet::wait_for_close() {
   if (!m_was_closed)
     throw torrent::internal_error("CurlGet::wait_for_close() called on an object that is not closing.");
 
-  if (m_handle == nullptr)
+  if (m_handle != nullptr)
     m_cond_closed.wait(guard, [this] { return m_handle == nullptr; });
 }
 
@@ -87,7 +87,7 @@ CurlGet::try_wait_for_close() {
   if (!m_was_closed)
     return false;
 
-  if (m_handle == nullptr)
+  if (m_handle != nullptr)
     m_cond_closed.wait(guard, [this] { return m_handle == nullptr; });
 
   return true;
