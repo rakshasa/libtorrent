@@ -1,3 +1,0 @@
-FIXME LATER:
-
-Caught exception from libtorrent: Connection write fd(68,0,6) "ProtocolBuffer tried to write beyond scope of the buffer"
