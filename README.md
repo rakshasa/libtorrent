@@ -33,6 +33,13 @@ Donate to rTorrent development
 
 Help keep rTorrent development going by donating to its creator.
 
+BUILD DEPENDENCIES
+--------
+Ubuntu, for example
+```
+sudo apt install make curl-libcurlpp-dev autoconf
+```
+
 BUILDING
 --------
 
