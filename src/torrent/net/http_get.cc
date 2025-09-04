@@ -24,19 +24,19 @@ HttpGet::HttpGet(std::string url, std::shared_ptr<std::ostream> stream)
 HttpGet::~HttpGet() = default;
 
 void
-HttpGet::close() {
+HttpGet::close_and_keep_callbacks() {
   if (!is_valid())
     throw torrent::internal_error("HttpGet::close() called on an invalid HttpGet object.");
 
-  CurlGet::close_and_cancel_callbacks(m_curl_get, nullptr);
+  CurlGet::close_and_keep_callbacks(m_curl_get);
 }
 
 void
-HttpGet::close_and_cancel_callbacks(utils::Thread* thread) {
+HttpGet::close_and_cancel_callbacks(utils::Thread* callback_thread) {
   if (!is_valid())
     throw torrent::internal_error("HttpGet::close_and_cancel_callbacks() called on an invalid HttpGet object.");
 
-  CurlGet::close_and_cancel_callbacks(m_curl_get, thread);
+  CurlGet::close_and_cancel_callbacks(m_curl_get, callback_thread);
 }
 
 void
