@@ -151,7 +151,7 @@ CurlGet::set_retry_resolve(resolve_type type) {
 }
 
 void
-CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread, bool wait) {
+CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback_thread, bool wait) {
   auto self = curl_get.get();
 
   std::unique_lock<std::mutex> guard(self->m_mutex);
@@ -159,14 +159,14 @@ CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread, 
   if (self->m_was_closed)
     throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an already closing object.");
 
-  if (thread != nullptr)
-    thread->cancel_callback(self);
+  if (callback_thread != nullptr)
+    callback_thread->cancel_callback(self);
 
   if (self->m_stack == nullptr)
     return;
 
   assert(std::this_thread::get_id() != self->m_stack->thread()->thread_id());
-  assert(thread != self->m_stack->thread());
+  assert(callback_thread != self->m_stack->thread());
 
   self->m_was_closed = true;
 
@@ -189,8 +189,10 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   if (!m_was_started)
     throw torrent::internal_error("CurlGet::prepare_start(...) called on an object that was not started.");
 
-  if (m_was_closed)
+  if (m_was_closed) {
+    m_prepare_canceled = true;
     return false;
+  }
 
   m_handle = curl_easy_init();
   m_stack = stack;
@@ -253,23 +255,28 @@ CurlGet::activate_unsafe() {
 
 void
 CurlGet::cleanup_unsafe() {
-  if (m_handle == nullptr)
-    throw torrent::internal_error("CurlGet::cleanup() called on a null m_handle.");
+  if (m_handle != nullptr) {
+    if (m_active) {
+      CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
 
-  if (m_active) {
-    CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
+      if (code != CURLM_OK)
+        throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
 
-    if (code != CURLM_OK)
-      throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
+      torrent::this_thread::scheduler()->erase(&m_task_timeout);
+      m_active = false;
+    }
 
-    torrent::this_thread::scheduler()->erase(&m_task_timeout);
-    m_active = false;
+    curl_easy_cleanup(m_handle);
+
+    m_handle = nullptr;
+    m_stack = nullptr;
+
+  } else {
+    if (!m_prepare_canceled)
+      throw torrent::internal_error("CurlGet::cleanup() called on an object that has no m_handle yet m_prepare_canceled is false.");
   }
 
-  curl_easy_cleanup(m_handle);
-
-  m_handle = nullptr;
-  m_stack = nullptr;
+  m_prepare_canceled = false;
   m_retrying_resolve = false;
 }
 
