@@ -157,26 +157,17 @@ CurlStack::activate_next_or_decrement() {
     return;
   }
 
-  auto itr = base_type::begin();
+  for (auto get : *this) {
+    auto guard_get = get->lock_guard();
 
-  while (true) {
-    itr = std::find_if_not(itr, base_type::end(), std::mem_fn(&CurlGet::is_active));
-
-    if (itr == base_type::end()) {
-      m_active--;
-      return;
-    }
-
-    auto guard_get = (*itr)->lock_guard();
-
-    if ((*itr)->is_closing_unsafe()) {
-      itr++;
+    if (get->is_active_unsafe() || get->is_closing_unsafe())
       continue;
-    }
 
-    (*itr)->activate_unsafe();
+    get->activate_unsafe();
     return;
   }
+
+  m_active--;
 }
 
 void
