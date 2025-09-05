@@ -77,9 +77,6 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_uri_parser.h
 
 LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
-	torrent/test_http.cc \
-	torrent/test_http.h \
-	\
 	torrent/object_test.cc \
 	torrent/object_test.h \
 	torrent/object_test_utils.cc \
