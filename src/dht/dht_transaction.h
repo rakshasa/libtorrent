@@ -252,7 +252,7 @@ public:
   };
 
   // Key to uniquely identify a transaction with given per-node transaction id.
-  using key_type = uint64_t;
+  using key_type = std::array<uint8_t, 20>;
 
   virtual transaction_type type() const = 0;
 
