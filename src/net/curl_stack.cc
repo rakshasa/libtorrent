@@ -61,6 +61,7 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
     if (!m_running)
       throw torrent::internal_error("CurlStack::start_get() called while not running.");
 
+    // TODO: This might cause a race condition on cleanup_unsafe while not active?
     if (!curl_get->prepare_start_unsafe(this))
       return; // CurlGet was already closed.
 
@@ -98,44 +99,29 @@ void
 CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
+  bool was_active{};
+
   { auto guard_get = curl_get->lock_guard();
 
-    if (!curl_get->is_active_unsafe())
-      throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not active.");
+    if (!curl_get->is_prepare_canceled_unsafe()) {
+      if (curl_get->is_active_unsafe())
+        was_active = true;
 
-    auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
+      auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
 
-    if (itr == base_type::end())
-      throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not in the stack.");
+      if (itr == base_type::end())
+        throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not in the stack.");
 
-    base_type::erase(itr);
+      base_type::erase(itr);
+    }
+
     curl_get->cleanup_unsafe();
   }
 
   curl_get->notify_closed();
 
-  {
-    auto guard = lock_guard();
-
-    if (!m_running)
-      return;
-
-    if (m_active > m_max_active) {
-      m_active--;
-      return;
-    }
-
-    auto itr = std::find_if_not(base_type::begin(), base_type::end(), std::mem_fn(&CurlGet::is_active));
-
-    if (itr == base_type::end()) {
-      m_active--;
-      return;
-    }
-
-    auto guard_get = (*itr)->lock_guard();
-
-    (*itr)->activate_unsafe();
-  }
+  if (was_active)
+    activate_next_or_decrement();
 }
 
 CurlStack::base_type::iterator
@@ -160,6 +146,28 @@ CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
     torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&stack->m_task_timeout, std::chrono::milliseconds(timeout_ms));
 
   return 0;
+}
+
+void
+CurlStack::activate_next_or_decrement() {
+  auto guard = lock_guard();
+
+  if (!m_running || m_active > m_max_active) {
+    m_active--;
+    return;
+  }
+
+  for (auto get : *this) {
+    auto guard_get = get->lock_guard();
+
+    if (get->is_active_unsafe() || get->is_closing_unsafe())
+      continue;
+
+    get->activate_unsafe();
+    return;
+  }
+
+  m_active--;
 }
 
 void

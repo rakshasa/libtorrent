@@ -25,10 +25,11 @@ public:
 
   bool                is_valid() const { return m_curl_get != nullptr; }
 
-  // close() and close_and_cancel_callbacks() do not immediately close as they send a callback to
-  // thread_net. Some functions throw internal_error if they don't wait for close to finish.
-  void                close();
-  void                close_and_cancel_callbacks(utils::Thread* thread);
+  // close_and_keep_callbacks() and close_and_cancel_callbacks() do not immediately close as they
+  // use callbacks to thread_net. Some functions throw internal_error if they don't wait for close
+  // to finish.
+  void                close_and_keep_callbacks();
+  void                close_and_cancel_callbacks(utils::Thread* callback_thread);
 
   // Always call before reset() if the HttpGet is being reused.
   void                wait_for_close();

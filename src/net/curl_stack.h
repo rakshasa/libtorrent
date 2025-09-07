@@ -76,6 +76,7 @@ private:
 
   static int          set_timeout(void*, long timeout_ms, CurlStack* stack);
 
+  void                activate_next_or_decrement();
   void                receive_timeout();
   bool                process_done_handle();
 
