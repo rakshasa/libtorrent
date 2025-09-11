@@ -20,6 +20,11 @@ public:
   // TODO: Http bind address should be moved here.
   // TODO: Move helper functions in rtorrent manager here.
 
+  // Http stack has an independent bind address setting.
+  //
+  // We should set the main http bind address in set_bind_address, and have special handling if it
+  // is overridden by the user.
+
   auto                bind_address() const                    { return m_bind_address; }
   std::string         bind_address_str() const;
   void                set_bind_address(const sockaddr* sa);

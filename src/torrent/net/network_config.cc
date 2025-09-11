@@ -3,6 +3,7 @@
 #include "torrent/net/network_config.h"
 
 #include "torrent/exceptions.h"
+#include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
@@ -25,6 +26,8 @@ NetworkConfig::bind_address_str() const {
   return sa_addr_str(m_bind_address.get());
 }
 
+// TODO: Move all management tasks here.
+
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
@@ -35,9 +38,14 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
 
   auto guard = lock_guard();
 
+  LT_LOG_NOTICE("bind address : %s", sa_pretty_str(sa).c_str());
+
   m_bind_address = sa_copy(sa);
 
-  LT_LOG_NOTICE("bind address : %s", sa_pretty_str(m_bind_address.get()).c_str());
+  if (sa_is_any(sa))
+    torrent::net_thread::http_stack()->set_bind_address(std::string());
+  else
+    torrent::net_thread::http_stack()->set_bind_address(sa_addr_str(sa).c_str());
 
   // TODO: Warning if not matching block/prefer
 }
@@ -58,9 +66,9 @@ NetworkConfig::set_local_address(const sockaddr* sa) {
 
   auto guard = lock_guard();
 
-  m_local_address = sa_copy(sa);
+  LT_LOG_NOTICE("local address : %s", sa_pretty_str(sa).c_str());
 
-  LT_LOG_NOTICE("local address : %s", sa_pretty_str(m_local_address.get()).c_str());
+  m_local_address = sa_copy(sa);
 }
 
 std::string
@@ -79,9 +87,9 @@ NetworkConfig::set_proxy_address(const sockaddr* sa) {
 
   auto guard = lock_guard();
 
-  m_proxy_address = sa_copy(sa);
+  LT_LOG_NOTICE("proxy address : %s", sa_pretty_str(sa).c_str());
 
-  LT_LOG_NOTICE("proxy address : %s", sa_pretty_str(m_proxy_address.get()).c_str());
+  m_proxy_address = sa_copy(sa);
 }
 
 } // namespace torrent::net
