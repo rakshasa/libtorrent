@@ -62,7 +62,7 @@ public:
 
   // Return candidate for replacement (a bad node or the oldest node); may
   // return end() unless has_space() is true.
-  iterator            find_replacement_candidate(bool onlyOldest = false);
+  const_iterator      find_replacement_candidate(bool onlyOldest = false) const;
 
   // Split the bucket in two and redistribute nodes. Returned bucket is the
   // lower half, "this" bucket keeps the upper half.   Sets parent/child so
@@ -114,7 +114,7 @@ class DhtBucketChain {
 public:
   DhtBucketChain(const DhtBucket* b) : m_restart(b), m_cur(b) { }
 
-  const DhtBucket*          bucket()                          { return m_cur; }
+  const DhtBucket*          bucket() const                    { return m_cur; }
   const DhtBucket*          next();
 
 private:
