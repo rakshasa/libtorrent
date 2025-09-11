@@ -18,7 +18,6 @@ namespace torrent::tracker {
 DhtController::DhtController() = default;
 
 DhtController::~DhtController() {
-  auto lock = std::lock_guard(m_lock);
   stop();
 }
 
