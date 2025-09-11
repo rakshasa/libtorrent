@@ -10,6 +10,7 @@
 #include "torrent/download_info.h"
 #include "torrent/error.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
@@ -117,19 +118,34 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
     return;
 
   SocketFd fd;
-  const rak::socket_address* bindAddress = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
   const rak::socket_address* connectAddress = &sa;
 
-  if (rak::socket_address::cast_from(manager->connection_manager()->proxy_address())->is_valid()) {
-    connectAddress = rak::socket_address::cast_from(manager->connection_manager()->proxy_address());
+  auto proxy_address = config::network_config()->proxy_address();
+
+  if (proxy_address->sa_family != AF_UNSPEC) {
+    connectAddress = rak::socket_address::cast_from(proxy_address.get());
     encryption_options |= ConnectionManager::encryption_use_proxy;
   }
 
-  if (!fd.open_stream() ||
-      !setup_socket(fd) ||
-      (bindAddress->is_bindable() && !fd.bind(*bindAddress)) ||
-      !fd.connect(*connectAddress)) {
+  auto prepare_fd = [&]() {
+      if (!fd.open_stream())
+        return false;
 
+      if (!setup_socket(fd))
+        return false;
+
+      auto bind_address = config::network_config()->bind_address();
+
+      if (bind_address->sa_family != AF_UNSPEC && !fd.bind_sa(bind_address.get()))
+        return false;
+
+      if (!fd.connect(*connectAddress))
+        return false;
+
+      return true;
+    };
+
+  if (!prepare_fd()) {
     if (fd.is_valid())
       fd.close();
 
