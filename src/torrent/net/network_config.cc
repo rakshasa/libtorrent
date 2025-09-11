@@ -42,6 +42,7 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
 
   m_bind_address = sa_copy(sa);
 
+  // TODO: This should bind to inet/inet6 and only empty string on unspec.
   if (sa_is_any(sa))
     torrent::net_thread::http_stack()->set_bind_address(std::string());
   else
