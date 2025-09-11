@@ -21,12 +21,15 @@ public:
   // TODO: Move helper functions in rtorrent manager here.
 
   auto                bind_address() const                    { return m_bind_address; }
+  std::string         bind_address_str() const;
   void                set_bind_address(const sockaddr* sa);
 
   auto                local_address() const                   { return m_local_address; }
+  std::string         local_address_str() const;
   void                set_local_address(const sockaddr* sa);
 
   auto                proxy_address() const                   { return m_proxy_address; }
+  std::string         proxy_address_str() const;
   void                set_proxy_address(const sockaddr* sa);
 
 protected:

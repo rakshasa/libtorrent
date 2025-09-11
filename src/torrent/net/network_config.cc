@@ -19,13 +19,19 @@ NetworkConfig::NetworkConfig() {
   m_proxy_address = sa_make_unspec();
 }
 
+std::string
+NetworkConfig::bind_address_str() const {
+  auto guard = lock_guard();
+  return sa_addr_str(m_bind_address.get());
+}
+
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
-  if (sa == nullptr)
-    throw internal_error("Tried to set a null bind address.");
-
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set a bind address that is not an unspec/inet address.");
+
+  if (sa_port(sa) != 0)
+    throw input_error("Tried to set a bind address with a non-zero port.");
 
   auto guard = lock_guard();
 
@@ -36,13 +42,19 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
   // TODO: Warning if not matching block/prefer
 }
 
+std::string
+NetworkConfig::local_address_str() const {
+  auto guard = lock_guard();
+  return sa_addr_str(m_local_address.get());
+}
+
 void
 NetworkConfig::set_local_address(const sockaddr* sa) {
-  if (sa == nullptr)
-    throw internal_error("Tried to set a null local address.");
-
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set a local address that is not an unspec/inet address.");
+
+  if (sa_port(sa) != 0)
+    throw input_error("Tried to set a local address with a non-zero port.");
 
   auto guard = lock_guard();
 
@@ -51,13 +63,19 @@ NetworkConfig::set_local_address(const sockaddr* sa) {
   LT_LOG_NOTICE("local address : %s", sa_pretty_str(m_local_address.get()).c_str());
 }
 
+std::string
+NetworkConfig::proxy_address_str() const {
+  auto guard = lock_guard();
+  return sa_pretty_str(m_proxy_address.get());
+}
+
 void
 NetworkConfig::set_proxy_address(const sockaddr* sa) {
-  if (sa == nullptr)
-    throw internal_error("Tried to set a null proxy address.");
-
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set a proxy address that is not an unspec/inet address.");
+
+  if (sa_port(sa) == 0)
+    throw input_error("Tried to set a proxy address with a zero port.");
 
   auto guard = lock_guard();
 
