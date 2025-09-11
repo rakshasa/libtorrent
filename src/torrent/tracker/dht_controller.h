@@ -55,7 +55,7 @@ public:
 
   // Main thread:
 
-  void                initialize(const Object& dhtCache);
+  void                initialize(const Object& dht_cache);
 
   bool                start(uint16_t port);
   void                stop();
@@ -68,7 +68,7 @@ public:
   void                add_node(const std::string& host, int port);
   void                add_node(const sockaddr* sa, int port);
 
-  statistics_type     get_statistics() const;
+  statistics_type     get_statistics();
   void                reset_statistics();
 
   void                set_upload_throttle(Throttle* t);

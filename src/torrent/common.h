@@ -81,6 +81,7 @@ class TransferList;
 namespace net {
 class HttpGet;
 class HttpStack;
+class NetworkConfig;
 class Resolver;
 } // namespace net
 
@@ -106,7 +107,12 @@ class Thread;
   #define LIBTORRENT_EXPORT
 #endif
 
-// TODO: Add the other torrent threads as namespaces.
+namespace torrent::config {
+
+torrent::net::NetworkConfig* network_config() LIBTORRENT_EXPORT;
+
+} // namespace torrent::config
+
 namespace torrent::this_thread {
 
 torrent::utils::Thread*   thread() LIBTORRENT_EXPORT;
@@ -122,8 +128,6 @@ void                      cancel_callback_and_wait(void* target);
 Poll*                     poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
 utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
-
-// TODO: Add callbacks.
 
 [[gnu::weak]] void event_open(Event* event) LIBTORRENT_EXPORT;
 [[gnu::weak]] void event_open_and_count(Event* event) LIBTORRENT_EXPORT;

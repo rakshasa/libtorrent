@@ -544,8 +544,8 @@ sin6_equal_addr(const sockaddr_in6* lhs, const sockaddr_in6* rhs) {
 
 std::string
 sa_addr_str(const sockaddr* sa) {
-  if (sa == NULL)
-    return "unspec";
+  if (sa == nullptr)
+    return "null";
 
   switch (sa->sa_family) {
   case AF_INET:
@@ -583,7 +583,7 @@ sin6_addr_str(const sockaddr_in6* sa) {
 std::string
 sa_pretty_str(const sockaddr* sa) {
   if (sa == nullptr)
-    return "nullptr";
+    return "null";
 
   switch (sa->sa_family) {
   case AF_INET:
