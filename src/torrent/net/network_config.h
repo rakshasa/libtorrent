@@ -17,6 +17,9 @@ public:
   // post-change handling is done. This would include closing and reopening listening sockets,
   // resetting connections, restarting dht, etc.
 
+  // TODO: Http bind address should be moved here.
+  // TODO: Move helper functions in rtorrent manager here.
+
   auto                bind_address() const                    { return m_bind_address; }
   void                set_bind_address(const sockaddr* sa);
 
