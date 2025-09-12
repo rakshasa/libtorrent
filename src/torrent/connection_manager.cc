@@ -56,6 +56,11 @@ ConnectionManager::filter(const sockaddr* sa) {
 }
 
 bool
+ConnectionManager::is_listen_open() const {
+  return m_listen->is_open();
+}
+
+bool
 ConnectionManager::listen_open(port_type begin, port_type end) {
   // TODO: Make this a helper function in NetworkConfig.
   auto bind_address = config::network_config()->bind_address();

@@ -94,6 +94,8 @@ public:
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
 
+  bool                is_listen_open() const;
+
   bool                listen_open(port_type begin, port_type end);
   void                listen_close();
 

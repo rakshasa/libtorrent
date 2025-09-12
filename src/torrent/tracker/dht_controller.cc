@@ -11,7 +11,7 @@
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print_subsystem(torrent::LOG_DHT, "dht_controller", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(torrent::LOG_DHT_CONTROLLER, "dht_controller", log_fmt, __VA_ARGS__);
 
 namespace torrent::tracker {
 
