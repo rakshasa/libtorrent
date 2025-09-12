@@ -65,6 +65,10 @@ jobs:
         run: |
           make install DESTDIR=$PREFIX
 
+      - name: Move things to where the package tool can access
+        run: |
+          mv -v $PREFIX $BASE_PREFIX
+
       # Secret Sauce
       - uses: jiro4989/build-deb-action@v4
         with:
@@ -73,12 +77,12 @@ jobs:
           maintainer: ${{ env.MAINTAINER }}
           version: ${{ github.ref }} # refs/tags/v*.*.*
           arch: 'amd64' # optional
-          depends: 'git, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
+          depends: 'libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
           pre_depends: 'libc6 (>= 2.2.1)' # optional
           desc: ${{ env.DESC }} # optional
-          homepage: 'https://github.com/beadon/rtorrent' # optional
-          section: 'unknown'   # optional
-          priority: 'required' # optional
+          homepage: 'https://github.com/rakshasa/libtorrent' # optional
+          section: 'lib'   # optional
+          priority: 'optional' # optional
         id: build
 
       # Check a created deb file
