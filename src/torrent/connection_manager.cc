@@ -77,10 +77,10 @@ ConnectionManager::listen_open(port_type begin, port_type end) {
 
   // TODO: Add blocking of ipv4 on socket level.
 
-  if (!m_listen->open(begin, end, m_listen_backlog, bind_address.get()))
+  if (!m_listen->open(begin, end, config::network_config()->listen_backlog(), bind_address.get()))
     return false;
 
-  m_listen_port = m_listen->port();
+  config::network_config()->set_listen_port(m_listen->port());
 
   return true;
 }
@@ -92,13 +92,10 @@ ConnectionManager::listen_close() {
 
 void
 ConnectionManager::set_listen_backlog(int v) {
-  if (v < 1 || v >= (1 << 16))
-    throw input_error("backlog value out of bounds");
-
   if (m_listen->is_open())
     throw input_error("backlog value must be set before listen port is opened");
 
-  m_listen_backlog = v;
+  config::network_config()->set_listen_backlog(v);
 }
 
 } // namespace torrent

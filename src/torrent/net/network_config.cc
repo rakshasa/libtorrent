@@ -20,6 +20,12 @@ NetworkConfig::NetworkConfig() {
   m_proxy_address = sa_make_unspec();
 }
 
+c_sa_shared_ptr
+NetworkConfig::bind_address() const {
+  auto guard = lock_guard();
+  return m_bind_address;
+}
+
 std::string
 NetworkConfig::bind_address_str() const {
   auto guard = lock_guard();
@@ -51,6 +57,12 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
   // TODO: Warning if not matching block/prefer
 }
 
+c_sa_shared_ptr
+NetworkConfig::local_address() const {
+  auto guard = lock_guard();
+  return m_local_address;
+}
+
 std::string
 NetworkConfig::local_address_str() const {
   auto guard = lock_guard();
@@ -72,6 +84,12 @@ NetworkConfig::set_local_address(const sockaddr* sa) {
   m_local_address = sa_copy(sa);
 }
 
+c_sa_shared_ptr
+NetworkConfig::proxy_address() const {
+  auto guard = lock_guard();
+  return m_proxy_address;
+}
+
 std::string
 NetworkConfig::proxy_address_str() const {
   auto guard = lock_guard();
@@ -91,6 +109,49 @@ NetworkConfig::set_proxy_address(const sockaddr* sa) {
   LT_LOG_NOTICE("proxy address : %s", sa_pretty_str(sa).c_str());
 
   m_proxy_address = sa_copy(sa);
+}
+
+uint16_t
+NetworkConfig::listen_port() const {
+  auto guard = lock_guard();
+  return m_listen_port;
+}
+
+uint16_t
+NetworkConfig::listen_port_or_throw() const {
+  auto guard = lock_guard();
+
+  if (m_listen_port == 0)
+    throw internal_error("Tried to get listen port but it is not set.");
+
+  return m_listen_port;
+}
+
+int
+NetworkConfig::listen_backlog() const {
+  auto guard = lock_guard();
+  return m_listen_backlog;
+}
+
+void
+NetworkConfig::set_listen_port(uint16_t port) {
+  if (port == 0)
+    throw input_error("Tried to set a listen port to zero.");
+
+  auto guard = lock_guard();
+  m_listen_port = port;
+}
+
+void
+NetworkConfig::set_listen_backlog(int backlog) {
+  if (backlog < 1)
+    throw input_error("Tried to set a listen backlog less than 1.");
+
+  if (backlog > (1 << 16))
+    throw input_error("Tried to set a listen backlog greater than 65536.");
+
+  auto guard = lock_guard();
+  m_listen_backlog = backlog;
 }
 
 } // namespace torrent::net

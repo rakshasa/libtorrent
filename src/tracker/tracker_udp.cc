@@ -348,7 +348,7 @@ TrackerUdp::prepare_announce_input() {
   m_write_buffer->write_32_n(local_addr);
   m_write_buffer->write_32(info().key);
   m_write_buffer->write_32(parameters.numwant);
-  m_write_buffer->write_16(manager->connection_manager()->listen_port());
+  m_write_buffer->write_16(config::network_config()->listen_port_or_throw());
 
   if (m_write_buffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
