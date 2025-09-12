@@ -252,8 +252,8 @@ void
 Poll::cleanup_closed(Event* event) {
   LT_LOG_EVENT(event, DEBUG, "cleanup_closed event", 0);
 
-  if (m_internal->event_mask(event) != 0)
-    throw internal_error("Poll::cleanup_closed(...) called but the file descriptor is active");
+  // if (m_internal->event_mask(event) != 0)
+  //   throw internal_error("Poll::cleanup_closed(...) called but the file descriptor is active");
 
   // Kernel removes closed FDs automatically, so just clear the mask
   // and remove it from pending calls.  Don't touch if the FD was
@@ -349,15 +349,6 @@ Poll::remove_and_close(Event* event) {
   // remove_error(event);
 
   close(event);
-}
-
-void
-Poll::remove_and_cleanup_closed(Event* event) {
-  remove_read(event);
-  remove_write(event);
-  // remove_error(event);
-
-  cleanup_closed(event);
 }
 
 }

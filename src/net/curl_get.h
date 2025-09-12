@@ -27,7 +27,8 @@ public:
   CurlGet(std::string url = "", std::shared_ptr<std::ostream> stream = nullptr);
   ~CurlGet();
 
-  static void         close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread);
+  static void         close_and_keep_callbacks(const std::shared_ptr<CurlGet>& curl_get);
+  static void         close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback_thread);
   static void         close_and_wait(const std::shared_ptr<CurlGet>& curl_get);
 
   bool                is_stacked() const;
@@ -82,8 +83,10 @@ protected:
   void                unlock() const                  { m_mutex.unlock(); }
   auto&               mutex() const                   { return m_mutex; }
 
-  bool                is_active_unsafe() const        { return m_active; }
-  bool                is_closing_unsafe() const       { return m_was_closed; }
+  bool                is_active_unsafe() const           { return m_active; }
+  bool                is_prepare_canceled_unsafe() const { return m_prepare_canceled; }
+  bool                is_closing_unsafe() const          { return m_was_closed; }
+
   auto                handle_unsafe() const           { return m_handle; }
 
   [[nodiscard]] bool  prepare_start_unsafe(CurlStack* stack);
@@ -109,6 +112,7 @@ private:
   CurlStack*          m_stack{};
 
   bool                m_active{};
+  bool                m_prepare_canceled{};
   bool                m_was_started{};
   bool                m_was_closed{};
 
@@ -129,6 +133,11 @@ private:
   std::list<std::function<void()>>                   m_signal_done;
   std::list<std::function<void(const std::string&)>> m_signal_failed;
 };
+
+inline void
+CurlGet::close_and_keep_callbacks(const std::shared_ptr<CurlGet>& curl_get) {
+  close(curl_get, nullptr, false);
+}
 
 inline void
 CurlGet::close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread) {
