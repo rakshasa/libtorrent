@@ -106,7 +106,7 @@ ProtocolExtension::generate_handshake_message() {
   if ((manager->connection_manager()->encryption_options() & ConnectionManager::encryption_allow_incoming) != 0)
     message[key_e] = (manager->connection_manager()->encryption_options() & ConnectionManager::encryption_require) != 0;
 
-  message[key_p] = config::network_config()->listen_port();
+  message[key_p] = config::network_config()->listen_port_or_throw();
   message[key_v] = raw_string::from_c_str("libTorrent " VERSION);
   message[key_reqq] = 2048;  // maximum request queue size
 
