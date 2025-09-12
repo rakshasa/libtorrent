@@ -15,7 +15,7 @@ env:
   CXXFLAGS: '-O3'
 
 jobs:
-  build-linux-packages:
+  build-linux-debian-package:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
