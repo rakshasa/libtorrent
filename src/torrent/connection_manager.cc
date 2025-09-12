@@ -6,26 +6,16 @@
 #include "rak/socket_address.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/net/network_config.h"
 
 namespace torrent {
 
 ConnectionManager::ConnectionManager() :
-  m_bindAddress((new rak::socket_address())->c_sockaddr()),
-  m_localAddress((new rak::socket_address())->c_sockaddr()),
-  m_proxyAddress((new rak::socket_address())->c_sockaddr()),
   m_listen(new Listen) {
-
-  rak::socket_address::cast_from(m_bindAddress)->clear();
-  rak::socket_address::cast_from(m_localAddress)->clear();
-  rak::socket_address::cast_from(m_proxyAddress)->clear();
 }
 
 ConnectionManager::~ConnectionManager() {
   delete m_listen;
-
-  delete m_bindAddress;
-  delete m_localAddress;
-  delete m_proxyAddress;
 }
 
 bool
@@ -48,36 +38,6 @@ ConnectionManager::set_encryption_options(uint32_t options) {
   m_encryptionOptions = options;
 }
 
-void
-ConnectionManager::set_bind_address(const sockaddr* sa) {
-  const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
-
-  if (rsa->family() != rak::socket_address::af_inet)
-    throw input_error("Tried to set a bind address that is not an af_inet address.");
-
-  rak::socket_address::cast_from(m_bindAddress)->copy(*rsa, rsa->length());
-}
-
-void
-ConnectionManager::set_local_address(const sockaddr* sa) {
-  const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
-
-  if (rsa->family() != rak::socket_address::af_inet)
-    throw input_error("Tried to set a local address that is not an af_inet address.");
-
-  rak::socket_address::cast_from(m_localAddress)->copy(*rsa, rsa->length());
-}
-
-void
-ConnectionManager::set_proxy_address(const sockaddr* sa) {
-  const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
-
-  if (rsa->family() != rak::socket_address::af_inet)
-    throw input_error("Tried to set a proxy address that is not an af_inet address.");
-
-  rak::socket_address::cast_from(m_proxyAddress)->copy(*rsa, rsa->length());
-}
-
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
   if (m_block_ipv4 && sa_is_inet(sa))
@@ -97,14 +57,23 @@ ConnectionManager::filter(const sockaddr* sa) {
 
 bool
 ConnectionManager::listen_open(port_type begin, port_type end) {
-  sa_unique_ptr bind_address;
+  // TODO: Make this a helper function in NetworkConfig.
+  auto bind_address = config::network_config()->bind_address();
 
-  if (m_bindAddress->sa_family == AF_INET || m_bindAddress->sa_family == AF_INET6)
-    bind_address = sa_copy(m_bindAddress);
-  else if (m_block_ipv6)
-    bind_address = sa_make_inet_any();
-  else
-    bind_address = sa_make_inet6_any();
+  switch (bind_address->sa_family) {
+  case AF_UNSPEC:
+    if (m_block_ipv6)
+      bind_address = sa_make_inet_any();
+    else
+      bind_address = sa_make_inet6_any();
+
+    break;
+  case AF_INET:
+  case AF_INET6:
+    break;
+  default:
+    throw input_error("invalid bind address family");
+  }
 
   // TODO: Add blocking of ipv4 on socket level.
 

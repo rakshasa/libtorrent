@@ -4,10 +4,10 @@
 
 #include "dht/dht_router.h"
 #include "src/manager.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/net/network_config.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -23,58 +23,52 @@ DhtController::~DhtController() {
 
 bool
 DhtController::is_valid() {
-  auto lock = std::scoped_lock(m_lock);
-
+  auto lock = std::lock_guard(m_lock);
   return m_router != nullptr;
 }
 
 bool
 DhtController::is_active() {
-  auto lock = std::scoped_lock(m_lock);
-
+  auto lock = std::lock_guard(m_lock);
   return m_router && m_router->is_active();
 }
 
 bool
 DhtController::is_receiving_requests() {
-  auto lock = std::scoped_lock(m_lock);
-
+  auto lock = std::lock_guard(m_lock);
   return m_receive_requests;
 }
 
 uint16_t
 DhtController::port() {
-  auto lock = std::scoped_lock(m_lock);
-
+  auto lock = std::lock_guard(m_lock);
   return m_port;
 }
 
 void
-DhtController::initialize(const Object& dhtCache) {
-  auto bind_address = manager->connection_manager()->bind_address();
+DhtController::initialize(const Object& dht_cache) {
+  auto lock = std::lock_guard(m_lock);
+  auto bind_address = config::network_config()->bind_address();
 
-  sa_unique_ptr tmp_sa;
+  if (bind_address->sa_family == AF_UNSPEC)
+    bind_address = sa_make_inet6_any();
 
-  if (bind_address->sa_family == AF_UNSPEC) {
-    tmp_sa = sa_make_inet6_any();
-    bind_address = tmp_sa.get();
-  }
-
-  LT_LOG("initializing : %s", sa_pretty_str(bind_address).c_str());
+  LT_LOG("initializing : %s", sa_pretty_str(bind_address.get()).c_str());
 
   if (m_router != NULL)
     throw internal_error("DhtController::initialize called with DHT already active.");
 
   try {
-    m_router = std::make_unique<DhtRouter>(dhtCache, bind_address);
-
+    m_router = std::make_unique<DhtRouter>(dht_cache, bind_address.get());
   } catch (const torrent::local_error& e) {
     LT_LOG("initialization failed : %s", e.what());
   }
 }
 
 bool
-DhtController::start(ConnectionManager::port_type port) {
+DhtController::start(uint16_t port) {
+  auto lock = std::lock_guard(m_lock);
+
   LT_LOG("starting : port:%d", port);
 
   if (m_router == nullptr)
@@ -84,16 +78,18 @@ DhtController::start(ConnectionManager::port_type port) {
 
   try {
     m_router->start(port);
-    return true;
-
   } catch (const torrent::local_error& e) {
     LT_LOG("start failed : %s", e.what());
     return false;
   }
+
+  return true;
 }
 
 void
 DhtController::stop() {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     return;
 
@@ -103,25 +99,30 @@ DhtController::stop() {
 
 void
 DhtController::set_receive_requests(bool state) {
-  auto lock = std::scoped_lock(m_lock);
-
+  auto lock = std::lock_guard(m_lock);
   m_receive_requests = state;
 }
 
 void
 DhtController::add_node(const sockaddr* sa, int port) {
+  auto lock = std::lock_guard(m_lock);
+
   if (m_router)
     m_router->contact(sa, port);
 }
 
 void
 DhtController::add_node(const std::string& host, int port) {
+  auto lock = std::lock_guard(m_lock);
+
   if (m_router)
     m_router->add_contact(host, port);
 }
 
 Object*
 DhtController::store_cache(Object* container) {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     throw internal_error("DhtController::store_cache called but DHT not initialized.");
 
@@ -129,7 +130,9 @@ DhtController::store_cache(Object* container) {
 }
 
 DhtController::statistics_type
-DhtController::get_statistics() const {
+DhtController::get_statistics() {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     throw internal_error("DhtController::get_statistics called but DHT not initialized.");
 
@@ -138,6 +141,8 @@ DhtController::get_statistics() const {
 
 void
 DhtController::reset_statistics() {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     throw internal_error("DhtController::reset_statistics called but DHT not initialized.");
 
@@ -148,6 +153,8 @@ DhtController::reset_statistics() {
 
 void
 DhtController::set_upload_throttle(Throttle* t) {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     throw internal_error("DhtController::set_upload_throttle() called but DHT not initialized.");
 
@@ -159,6 +166,8 @@ DhtController::set_upload_throttle(Throttle* t) {
 
 void
 DhtController::set_download_throttle(Throttle* t) {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     throw internal_error("DhtController::set_download_throttle() called but DHT not initialized.");
 
@@ -170,6 +179,8 @@ DhtController::set_download_throttle(Throttle* t) {
 
 void
 DhtController::announce(const HashString& info_hash, TrackerDht* tracker) {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     throw internal_error("DhtController::announce called but DHT not initialized.");
 
@@ -178,6 +189,8 @@ DhtController::announce(const HashString& info_hash, TrackerDht* tracker) {
 
 void
 DhtController::cancel_announce(const HashString* info_hash, const torrent::TrackerDht* tracker) {
+  auto lock = std::lock_guard(m_lock);
+
   if (!m_router)
     throw internal_error("DhtController::cancel_announce called but DHT not initialized.");
 

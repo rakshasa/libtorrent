@@ -9,6 +9,7 @@
 #include "net/address_list.h"
 #include "rak/error_number.h"
 #include "torrent/connection_manager.h"
+#include "torrent/net/network_config.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
@@ -216,13 +217,14 @@ TrackerUdp::start_announce() {
     return receive_failed("could not open UDP socket");
   }
 
-  auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+  auto bind_address = config::network_config()->bind_address();
 
-  if (bind_address->is_bindable() && !get_fd().bind(*bind_address)) {
-    LT_LOG("failed to bind socket to udp address : address:%s error:'%s'",
-           bind_address->pretty_address_str().c_str(), rak::error_number::current().c_str());
+  if (bind_address->sa_family != AF_UNSPEC && !get_fd().bind_sa(bind_address.get())) {
+    auto pretty_addr = sa_pretty_str(bind_address.get());
 
-    return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() +
+    LT_LOG("failed to bind socket to udp address : address:%s error:'%s'", pretty_addr.c_str(), rak::error_number::current().c_str());
+
+    return receive_failed("failed to bind socket to udp address '" + pretty_addr +
                           "' with error '" + rak::error_number::current().c_str() + "'");
   }
 
@@ -336,12 +338,12 @@ TrackerUdp::prepare_announce_input() {
   m_write_buffer->write_64(parameters.uploaded_adjusted);
   m_write_buffer->write_32(m_send_state);
 
-  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
-
   uint32_t local_addr = 0;
 
-  if (localAddress->family() == rak::socket_address::af_inet)
-    local_addr = localAddress->sa_inet()->address_n();
+  auto local_address = config::network_config()->local_address();
+
+  if (local_address->sa_family == AF_INET)
+    local_addr = reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr;
 
   m_write_buffer->write_32_n(local_addr);
   m_write_buffer->write_32(info().key);

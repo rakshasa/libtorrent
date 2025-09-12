@@ -66,7 +66,7 @@ initialize_main_thread() {
 
 void
 initialize() {
-  if (manager != NULL)
+  if (manager != nullptr)
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
 
   instrumentation_initialize();
