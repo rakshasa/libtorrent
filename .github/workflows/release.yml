@@ -1,0 +1,92 @@
+name: release
+
+on:
+    push:
+      tags:
+        - 'v*.*.*'
+
+env:
+  APP_NAME: 'libtorrent'
+  MAINTAINER: 'beadon'
+  DESC: 'LibTorrent is a BitTorrent library written in C++ for *nix, with a focus on high performance and good code. The library differentiates itself from other implementations by transferring directly from file pages to the network stack.'
+  VERSION: ${{ github.ref_name }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BASE_PREFIX: ".debpkg/"
+  CXXFLAGS: '-O3'
+
+jobs:
+  build-linux-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set prefix
+        run: |
+            export RUNNER_TEMP="${{ runner.temp }}"
+            echo "PREFIX=$RUNNER_TEMP/$BASE_PREFIX" >> $GITHUB_ENV
+
+      - name: Update to latest packages
+        run: |
+            sudo apt-get update
+       
+      - name: Install Dependencies
+        run: |
+         # Skip installing pacakge docs {makes the man-db trigger much faster) 
+         # (I disabled `/doc` and `/info` too, just in case.)
+         sudo tee /etc/dpkg/dpkg.cfg.d/01_nodoc > /dev/null << 'EOF'
+         path-exclude /usr/share/doc/*
+         path-exclude /usr/share/man/*
+         path-exclude /usr/share/info/*
+         EOF
+         sudo apt-get install --no-install-recommends -y \
+           libcurl4-openssl-dev
+
+
+    ## Fetch the libtorrent current repo
+      - uses: actions/checkout@v5
+        with:
+          repository : ${{ github.repository }}
+          ref: ''
+          fetch-depth: 1
+
+      - name: Create package build directory
+        run: |
+         mkdir -v -p $PREFIX
+        
+      - name: Build libtorrent
+        run: |
+          autoreconf -ivf
+          ./configure
+          export CORES=`nproc --all`
+          export BUILD_THREADS=`expr $CORES - 1`
+          echo "Building with $BUILD_THREADS threads in make"
+          make -j$BUILD_THREADS
+
+      - name: Finish libtorrent install to package build directory
+        run: |
+          make install DESTDIR=$PREFIX
+
+      # Secret Sauce
+      - uses: jiro4989/build-deb-action@v4
+        with:
+          package: ${{ env.APP_NAME }}
+          package_root: ${{ env.BASE_PREFIX }}
+          maintainer: ${{ env.MAINTAINER }}
+          version: ${{ github.ref }} # refs/tags/v*.*.*
+          arch: 'amd64' # optional
+          depends: 'git, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
+          pre_depends: 'libc6 (>= 2.2.1)' # optional
+          desc: ${{ env.DESC }} # optional
+          homepage: 'https://github.com/beadon/rtorrent' # optional
+          section: 'unknown'   # optional
+          priority: 'required' # optional
+        id: build
+
+      # Check a created deb file
+      - name: Check a path of deb file
+        run: ls ${{ steps.build.outputs.file_name }}
+
+      - name: Release with Notes
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ./*.deb
