@@ -11,7 +11,7 @@
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print_subsystem(torrent::LOG_DHT, "dht_controller", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(torrent::LOG_DHT_CONTROLLER, "dht_controller", log_fmt, __VA_ARGS__);
 
 namespace torrent::tracker {
 
@@ -56,7 +56,7 @@ DhtController::initialize(const Object& dht_cache) {
   LT_LOG("initializing : %s", sa_pretty_str(bind_address.get()).c_str());
 
   if (m_router != NULL)
-    throw internal_error("DhtController::initialize called with DHT already active.");
+    throw internal_error("DhtController::initialize() called with DHT already active.");
 
   try {
     m_router = std::make_unique<DhtRouter>(dht_cache, bind_address.get());
@@ -66,18 +66,23 @@ DhtController::initialize(const Object& dht_cache) {
 }
 
 bool
-DhtController::start(uint16_t port) {
+DhtController::start() {
   auto lock = std::lock_guard(m_lock);
+
+  if (m_router == nullptr)
+    throw internal_error("DhtController::start() called without initializing first.");
+
+  auto port = config::network_config()->override_dht_port();
+
+  if (port == 0)
+    port = config::network_config()->listen_port_or_throw();
 
   LT_LOG("starting : port:%d", port);
 
-  if (m_router == nullptr)
-    throw internal_error("DhtController::start called without initializing first.");
-
-  m_port = port;
-
   try {
     m_router->start(port);
+    m_port = port;
+
   } catch (const torrent::local_error& e) {
     LT_LOG("start failed : %s", e.what());
     return false;
@@ -94,7 +99,9 @@ DhtController::stop() {
     return;
 
   LT_LOG("stopping", 0);
+
   m_router->stop();
+  m_port = 0;
 }
 
 void
@@ -124,7 +131,7 @@ DhtController::store_cache(Object* container) {
   auto lock = std::lock_guard(m_lock);
 
   if (!m_router)
-    throw internal_error("DhtController::store_cache called but DHT not initialized.");
+    throw internal_error("DhtController::store_cache() called but DHT not initialized.");
 
   return m_router->store_cache(container);
 }
@@ -134,7 +141,7 @@ DhtController::get_statistics() {
   auto lock = std::lock_guard(m_lock);
 
   if (!m_router)
-    throw internal_error("DhtController::get_statistics called but DHT not initialized.");
+    throw internal_error("DhtController::get_statistics() called but DHT not initialized.");
 
   return m_router->get_statistics();
 }
@@ -144,7 +151,7 @@ DhtController::reset_statistics() {
   auto lock = std::lock_guard(m_lock);
 
   if (!m_router)
-    throw internal_error("DhtController::reset_statistics called but DHT not initialized.");
+    throw internal_error("DhtController::reset_statistics() called but DHT not initialized.");
 
   m_router->reset_statistics();
 }
@@ -182,7 +189,7 @@ DhtController::announce(const HashString& info_hash, TrackerDht* tracker) {
   auto lock = std::lock_guard(m_lock);
 
   if (!m_router)
-    throw internal_error("DhtController::announce called but DHT not initialized.");
+    throw internal_error("DhtController::announce() called but DHT not initialized.");
 
   m_router->announce(info_hash, tracker);
 }
@@ -192,7 +199,7 @@ DhtController::cancel_announce(const HashString* info_hash, const torrent::Track
   auto lock = std::lock_guard(m_lock);
 
   if (!m_router)
-    throw internal_error("DhtController::cancel_announce called but DHT not initialized.");
+    throw internal_error("DhtController::cancel_announce() called but DHT not initialized.");
 
   m_router->cancel_announce(info_hash, tracker);
 }

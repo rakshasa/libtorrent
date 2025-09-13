@@ -57,6 +57,8 @@ std::string uri_generate_scrape_url(std::string uri) LIBTORRENT_EXPORT;
 bool uri_can_scrape(const std::string& uri) LIBTORRENT_EXPORT;
 bool uri_has_query(const std::string& uri) LIBTORRENT_EXPORT;
 
+std::string uri_escape_html(const char* first, const char* last) LIBTORRENT_EXPORT;
+
 } // namespace torrent::utils
 
 #endif

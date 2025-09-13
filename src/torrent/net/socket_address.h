@@ -87,6 +87,8 @@ bool        sa_equal_addr(const sockaddr* lhs, const sockaddr* rhs) LIBTORRENT_E
 bool        sin_equal_addr(const sockaddr_in* lhs, const sockaddr_in* rhs) LIBTORRENT_EXPORT;
 bool        sin6_equal_addr(const sockaddr_in6* lhs, const sockaddr_in6* rhs) LIBTORRENT_EXPORT;
 
+bool        sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) LIBTORRENT_EXPORT;
+
 std::string sa_addr_str(const sockaddr* sa) LIBTORRENT_EXPORT;
 std::string sin_addr_str(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 std::string sin6_addr_str(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
