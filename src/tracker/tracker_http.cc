@@ -115,10 +115,8 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   if (parameters.numwant >= 0 && new_state != tracker::TrackerState::EVENT_STOPPED)
     s << "&numwant=" << parameters.numwant;
 
-  if (manager->connection_manager()->listen_port())
-    s << "&port=" << manager->connection_manager()->listen_port();
-
-  s << "&uploaded=" << parameters.uploaded_adjusted
+  s << "&port=" << config::network_config()->listen_port_or_throw()
+    << "&uploaded=" << parameters.uploaded_adjusted
     << "&downloaded=" << parameters.completed_adjusted
     << "&left=" << parameters.download_left;
 

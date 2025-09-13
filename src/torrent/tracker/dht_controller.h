@@ -51,13 +51,14 @@ public:
 
   void                set_receive_requests(bool state);
 
+  // TODO: This is the active port, move this to NetworkConfig? (or make this unavailable)
   uint16_t            port();
 
   // Main thread:
 
   void                initialize(const Object& dht_cache);
 
-  bool                start(uint16_t port);
+  bool                start();
   void                stop();
 
   // Store DHT cache in the given container and return the container.
