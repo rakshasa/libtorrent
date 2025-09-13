@@ -2,7 +2,7 @@
 
 #include "torrent/utils/uri_parser.h"
 
-#include <iterator>
+#include <algorithm>
 
 namespace torrent::utils {
 
