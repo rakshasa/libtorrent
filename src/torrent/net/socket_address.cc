@@ -542,6 +542,34 @@ sin6_equal_addr(const sockaddr_in6* lhs, const sockaddr_in6* rhs) {
   return std::equal(lhs->sin6_addr.s6_addr, lhs->sin6_addr.s6_addr + 16, rhs->sin6_addr.s6_addr);
 }
 
+bool
+sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) {
+  if (lhs->sa_family != AF_INET && lhs->sa_family != AF_INET6)
+    throw internal_error("torrent::sa_less() lhs sockaddr is not inet or inet6");
+
+  if (rhs->sa_family != AF_INET && rhs->sa_family != AF_INET6)
+    throw internal_error("torrent::sa_less() rhs sockaddr is not inet or inet6");
+
+  if (lhs->sa_family != rhs->sa_family)
+    return lhs->sa_family == AF_INET;
+
+  if (lhs->sa_family == AF_INET) {
+    const sockaddr_in* lsin = reinterpret_cast<const sockaddr_in*>(lhs);
+    const sockaddr_in* rsin = reinterpret_cast<const sockaddr_in*>(rhs);
+
+    if (lsin->sin_addr.s_addr != rsin->sin_addr.s_addr)
+      return ntohl(lsin->sin_addr.s_addr) < ntohl(rsin->sin_addr.s_addr);
+
+    return ntohs(lsin->sin_port) < ntohs(rsin->sin_port);
+
+  } else {
+    const sockaddr_in6* lsin6 = reinterpret_cast<const sockaddr_in6*>(lhs);
+    const sockaddr_in6* rsin6 = reinterpret_cast<const sockaddr_in6*>(rhs);
+
+    return std::memcmp(&lsin6->sin6_addr, &rsin6->sin6_addr, sizeof(in6_addr)) < 0;
+  }
+}
+
 std::string
 sa_addr_str(const sockaddr* sa) {
   if (sa == nullptr)
