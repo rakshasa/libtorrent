@@ -7,14 +7,15 @@
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
 #include "manager.h"
-#include "rak/string_manip.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/uri_parser.h"
 
 #include "extensions.h"
 #include "initial_seed.h"
@@ -439,9 +440,7 @@ PeerConnection<type>::event_read() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (const network_error& e) {
-    LT_LOG_NETWORK_ERRORS("%s network read error: %s",
-                          rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
-                          e.what());
+    LT_LOG_NETWORK_ERRORS("network read error: %s : %s", sa_pretty_str(m_peerInfo->socket_address()).c_str(), e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (const storage_error& e) {
@@ -451,7 +450,7 @@ PeerConnection<type>::event_read() {
   } catch (const base_error& e) {
     std::stringstream s;
     s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
-    s << " '" << rak::copy_escape_html(reinterpret_cast<char*>(m_down->buffer()->begin()), reinterpret_cast<char*>(m_down->buffer()->position())) << "'";
+    s << " '" << utils::uri_escape_html(reinterpret_cast<char*>(m_down->buffer()->begin()), reinterpret_cast<char*>(m_down->buffer()->position())) << "'";
 
     throw internal_error(s.str());
   }

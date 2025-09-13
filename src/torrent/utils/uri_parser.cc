@@ -1,12 +1,12 @@
 #include "config.h"
 
-#include <torrent/utils/uri_parser.h>
+#include "torrent/utils/uri_parser.h"
 
-#include "rak/string_manip.h"
+#include <iterator>
 
 namespace torrent::utils {
 
-static bool
+static inline bool
 is_unreserved_uri_char(char c) {
   return
     (c >= 'A' && c <= 'Z') ||
@@ -15,7 +15,7 @@ is_unreserved_uri_char(char c) {
     c == '-' || c == '_' || c == '.' || c == '~';
 }
 
-static bool
+static inline bool
 is_valid_uri_query_char(char c) {
   return
     (c >= 'A' && c <= 'Z') ||
@@ -26,7 +26,7 @@ is_valid_uri_query_char(char c) {
     c == '%';
 }
 
-static bool
+static inline bool
 is_unreserved_uri_query_char(char c) {
   return
     (c >= 'A' && c <= 'Z') ||
@@ -36,23 +36,35 @@ is_unreserved_uri_query_char(char c) {
     c == ':' || c == '=' || c == '/' || c == '%';
 }
 
-static bool
+static inline bool
 is_not_unreserved_uri_char(char c) {
   return !is_unreserved_uri_char(c);
 }
 
-static bool
+static inline bool
 is_not_valid_uri_query_char(char c) {
   return !is_valid_uri_query_char(c);
 }
 
-static bool
+static inline bool
 is_not_unreserved_uri_query_char(char c) {
   return !is_unreserved_uri_query_char(c);
 }
 
+template <int pos, typename Value>
+static inline char
+value_to_hexchar(Value v) {
+  v >>= pos * 4;
+  v &= 0xf;
+
+  if (v < 0xA)
+    return '0' + v;
+  else
+    return 'A' + v - 0xA;
+}
+
 template<typename Ftor>
-static std::string::const_iterator
+static inline std::string::const_iterator
 uri_string_copy_until(std::string::const_iterator first, std::string::const_iterator last,
                       std::string& result, Ftor check) {
   std::string::const_iterator next = std::find_if(first, last, check);
@@ -61,11 +73,11 @@ uri_string_copy_until(std::string::const_iterator first, std::string::const_iter
   return next;
 }
 
-static void
+static inline void
 uri_parse_throw_error(const char* error_msg, char invalid_char) {
   std::string error_str = std::string(error_msg);
-  error_str += rak::value_to_hexchar<1>(invalid_char);
-  error_str += rak::value_to_hexchar<0>(invalid_char);
+  error_str += value_to_hexchar<1>(invalid_char);
+  error_str += value_to_hexchar<0>(invalid_char);
 
   throw uri_error(error_str);
 }
@@ -141,8 +153,8 @@ uri_parse_query_str(std::string query, uri_query_state& state) {
 
     if (first != last && *first++ != '&') {
       std::string invalid_hex;
-      invalid_hex += rak::value_to_hexchar<1>(*--first);
-      invalid_hex += rak::value_to_hexchar<0>(*first);
+      invalid_hex += value_to_hexchar<1>(*--first);
+      invalid_hex += value_to_hexchar<0>(*first);
 
       throw uri_error("query element contains invalid character 0x" + invalid_hex);
     }
@@ -186,6 +198,30 @@ uri_has_query(const std::string& uri) {
     return false;
 
   return uri.find('/', delim_options) == std::string::npos;
+}
+
+std::string
+uri_escape_html(const char* first, const char* last) {
+  std::string result;
+  result.reserve(std::distance(first, last) * 3);
+
+  while (first != last) {
+    if ((*first >= 'A' && *first <= 'Z') ||
+        (*first >= 'a' && *first <= 'z') ||
+        (*first >= '0' && *first <= '9') ||
+        *first == '-') {
+      result.push_back(*first);
+
+    } else {
+      result.push_back('%');
+      result.push_back(value_to_hexchar<1>(*first));
+      result.push_back(value_to_hexchar<0>(*first));
+    }
+
+    ++first;
+  }
+
+  return result;
 }
 
 } // namespace torrent::utils
