@@ -621,9 +621,7 @@ PeerConnection<type>::event_write() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (const network_error& e) {
-    LT_LOG_NETWORK_ERRORS("%s write error: %s",
-                          rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
-                          e.what());
+    LT_LOG_NETWORK_ERRORS("network write error: %s : %s", sa_pretty_str(m_peerInfo->socket_address()).c_str(), e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (const storage_error& e) {
@@ -655,7 +653,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   // Disconnect seeds when we are seeding (but not for initial seeding
   // so that we keep accurate chunk statistics until that is done).
   if (m_peerChunks.bitfield()->is_all_set()) {
-    if (type == Download::CONNECTION_SEED || 
+    if (type == Download::CONNECTION_SEED ||
         (type != Download::CONNECTION_INITIAL_SEED && m_download->file_list()->is_done()))
       throw close_connection();
 
@@ -677,7 +675,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
     if (m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
       m_sendInterested = !m_downInterested;
       m_downInterested = true;
-      
+
       // Ensure we get inserted into the choke manager queue in case
       // the peer keeps us unchoked even though we've said we're not
       // interested.
