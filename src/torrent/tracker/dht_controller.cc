@@ -72,8 +72,10 @@ DhtController::start() {
   if (m_router == nullptr)
     throw internal_error("DhtController::start() called without initializing first.");
 
-  // TODO: Check if we have an override of dht port.
-  auto port = config::network_config()->listen_port_or_throw();
+  auto port = config::network_config()->override_dht_port();
+
+  if (port == 0)
+    port = config::network_config()->listen_port_or_throw();
 
   LT_LOG("starting : port:%d", port);
 

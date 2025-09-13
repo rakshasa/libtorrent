@@ -133,6 +133,18 @@ NetworkConfig::listen_backlog() const {
   return m_listen_backlog;
 }
 
+uint16_t
+NetworkConfig::override_dht_port() const {
+  auto guard = lock_guard();
+  return m_override_dht_port;
+}
+
+void
+NetworkConfig::set_override_dht_port(uint16_t port) {
+  auto guard = lock_guard();
+  m_override_dht_port = port;
+}
+
 void
 NetworkConfig::set_listen_port(uint16_t port) {
   if (port == 0)

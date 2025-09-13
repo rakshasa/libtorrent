@@ -42,6 +42,9 @@ public:
   uint16_t            listen_port_or_throw() const;
   int                 listen_backlog() const;
 
+  uint16_t            override_dht_port() const;
+  void                set_override_dht_port(uint16_t port);
+
 protected:
   friend class torrent::ConnectionManager;
 
@@ -63,6 +66,7 @@ private:
 
   uint16_t            m_listen_port{0};
   int                 m_listen_backlog{SOMAXCONN};
+  uint16_t            m_override_dht_port{0};
 };
 
 } // namespace torrent::net
