@@ -578,10 +578,10 @@ sa_less(const sockaddr* lhs, const sockaddr* rhs) {
 bool
 sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) {
   if (lhs->sa_family != AF_INET && lhs->sa_family != AF_INET6)
-    throw internal_error("torrent::sa_less() lhs sockaddr is not inet or inet6");
+    throw internal_error("torrent::sa_less_addr() lhs sockaddr is not inet or inet6");
 
   if (rhs->sa_family != AF_INET && rhs->sa_family != AF_INET6)
-    throw internal_error("torrent::sa_less() rhs sockaddr is not inet or inet6");
+    throw internal_error("torrent::sa_less_addr() rhs sockaddr is not inet or inet6");
 
   if (lhs->sa_family != rhs->sa_family)
     return lhs->sa_family == AF_INET;
