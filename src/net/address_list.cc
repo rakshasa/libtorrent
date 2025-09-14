@@ -1,36 +1,63 @@
 #include "config.h"
 
-#include <algorithm>
-
 #include "address_list.h"
 
+#include <algorithm>
+#include <arpa/inet.h>
+
+#include "torrent/net/socket_address.h"
+
 namespace torrent {
+
+void
+AddressList::sort() {
+  std::sort(begin(), end(), [](auto& a, auto& b) { return sa_less(&a.sa, &b.sa); });
+}
+
+void
+AddressList::sort_and_unique() {
+  sort();
+  erase(std::unique(begin(), end(), [](auto& a, auto& b) { return sa_equal(&a.sa, &b.sa); }),
+        end());
+}
 
 void
 AddressList::parse_address_normal(const Object::list_type& b) {
   for (const auto& obj : b) {
     if (!obj.is_map())
-      return;
+      continue;
     if (!obj.has_key_string("ip"))
-      return;
+      continue;
     if (!obj.has_key_value("port"))
-      return;
+      continue;
 
-    rak::socket_address sa;
-    sa.clear();
-
-    if (!sa.set_address_str(obj.get_key_string("ip")))
-      return;
-
+    auto& addr = obj.get_key_string("ip");
     auto port = obj.get_key_value("port");
 
     if (port <= 0 || port >= (1 << 16))
-      return;
+      continue;
 
-    sa.set_port(port);
+    sa_inet_union sa{};
 
-    if (sa.is_valid())
-      this->push_back(sa);
+    if (inet_pton(AF_INET, addr.c_str(), &sa.inet.sin_addr)) {
+      if (sa.inet.sin_addr.s_addr == htonl(INADDR_ANY))
+        continue;
+
+      sa.inet.sin_family = AF_INET;
+      sa.inet.sin_port = htons(port);
+
+    } else if (inet_pton(AF_INET6, addr.c_str(), &sa.inet6.sin6_addr)) {
+      if (IN6_IS_ADDR_UNSPECIFIED(&sa.inet6.sin6_addr))
+        continue;
+
+      sa.inet6.sin6_family = AF_INET6;
+      sa.inet6.sin6_port = htons(port);
+
+    } else {
+      continue;
+    }
+
+    this->push_back(sa);
   }
 }
 

@@ -284,7 +284,7 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 
 void
 DownloadMain::add_peer(const rak::socket_address& sa) {
-  m_slot_start_handshake(sa, this);
+  m_slot_start_handshake(sa.c_sockaddr(), this);
 }
 
 void
@@ -305,10 +305,10 @@ DownloadMain::receive_connect_peers() {
          manager->connection_manager()->can_connect() &&
          connection_list()->size() < connection_list()->min_size() &&
          connection_list()->size() + m_slot_count_handshakes(this) < connection_list()->max_size()) {
-    rak::socket_address sa = peer_list()->available_list()->pop_random();
+    auto sa = peer_list()->available_list()->pop_random();
 
-    if (connection_list()->find(sa.c_sockaddr()) == connection_list()->end())
-      m_slot_start_handshake(sa, this);
+    if (connection_list()->find(&sa.sa) == connection_list()->end())
+      m_slot_start_handshake(&sa.sa, this);
   }
 }
 

@@ -8,6 +8,7 @@
 #include "download/delegator.h"
 #include "net/address_list.h"
 #include "net/data_buffer.h"
+#include "rak/socket_address.h"
 #include "torrent/data/file_list.h"
 #include "torrent/download/group_entry.h"
 #include "torrent/peer/peer_list.h"
@@ -97,11 +98,11 @@ public:
   using slot_count_handshakes_type = std::function<uint32_t(DownloadMain*)>;
   using slot_hash_check_add_type   = std::function<void(ChunkHandle)>;
 
-  using slot_start_handshake_type = std::function<void(const rak::socket_address&, DownloadMain*)>;
+  using slot_start_handshake_type = std::function<void(const sockaddr*, DownloadMain*)>;
   using slot_stop_handshakes_type = std::function<void(DownloadMain*)>;
 
-  void                slot_start_handshake(slot_start_handshake_type s) { m_slot_start_handshake = std::move(s); }
-  void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slot_stop_handshakes = std::move(s); }
+  void                slot_start_handshake(slot_start_handshake_type s)   { m_slot_start_handshake = std::move(s); }
+  void                slot_stop_handshakes(slot_stop_handshakes_type s)   { m_slot_stop_handshakes = std::move(s); }
   void                slot_count_handshakes(slot_count_handshakes_type s) { m_slot_count_handshakes = std::move(s); }
   void                slot_hash_check_add(slot_hash_check_add_type s)     { m_slot_hash_check_add = std::move(s); }
 

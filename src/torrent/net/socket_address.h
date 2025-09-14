@@ -3,9 +3,6 @@
 
 #include <memory>
 #include <string>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <torrent/common.h>
 #include <torrent/net/types.h>
 
 namespace torrent {
@@ -87,6 +84,7 @@ bool        sa_equal_addr(const sockaddr* lhs, const sockaddr* rhs) LIBTORRENT_E
 bool        sin_equal_addr(const sockaddr_in* lhs, const sockaddr_in* rhs) LIBTORRENT_EXPORT;
 bool        sin6_equal_addr(const sockaddr_in6* lhs, const sockaddr_in6* rhs) LIBTORRENT_EXPORT;
 
+bool        sa_less(const sockaddr* lhs, const sockaddr* rhs) LIBTORRENT_EXPORT;
 bool        sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) LIBTORRENT_EXPORT;
 
 std::string sa_addr_str(const sockaddr* sa) LIBTORRENT_EXPORT;
@@ -103,8 +101,10 @@ void sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) LIBTORREN
 std::string sa_pretty_address_str(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 //
-// Tuples:
+// Other types:
 //
+
+sa_inet_union sa_inet_union_from_sa(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 bool fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) LIBTORRENT_EXPORT;
 
