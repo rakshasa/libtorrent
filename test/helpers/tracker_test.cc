@@ -129,9 +129,14 @@ TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
   torrent::AddressList address_list;
 
   for (unsigned int i = 0; i != sum_peers; i++) {
-    rak::socket_address sa; sa.sa_inet()->clear(); sa.sa_inet()->set_port(0x100 + i);
+    torrent::sa_inet_union sa{};
+    sa.inet.sin_family = AF_INET;
+    sa.inet.sin_port = htons(0x100 + i);
+
     address_list.push_back(sa);
   }
+
+  address_list.sort_and_unique();
 
   return trigger_success(&address_list, new_peers);
 }

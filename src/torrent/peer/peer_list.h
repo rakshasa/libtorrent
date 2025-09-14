@@ -52,17 +52,15 @@ public:
 
   PeerList();
   ~PeerList();
-  PeerList(const PeerList&) = delete;
-  PeerList& operator=(const PeerList&) = delete;
 
   PeerInfo*           insert_address(const sockaddr* address, int flags);
 
   // This will be used internally only for the moment.
   uint32_t            insert_available(const void* al) LIBTORRENT_NO_EXPORT;
 
-  static ipv4_table*  ipv4_filter() { return &m_ipv4_table; }
+  static ipv4_table*  ipv4_filter()     { return &m_ipv4_table; }
 
-  const std::unique_ptr<AvailableList>& available_list() { return m_available_list; }
+  const auto&         available_list()  { return m_available_list; }
   uint32_t            available_list_size() const;
 
   uint32_t            cull_peers(int flags);
@@ -83,9 +81,12 @@ protected:
   iterator            disconnected(iterator itr, int flags) LIBTORRENT_NO_EXPORT;
 
 private:
+  PeerList(const PeerList&) = delete;
+  PeerList& operator=(const PeerList&) = delete;
+
   static ipv4_table   m_ipv4_table;
 
-  DownloadInfo*       m_info;
+  DownloadInfo*                  m_info;
   std::unique_ptr<AvailableList> m_available_list;
 };
 

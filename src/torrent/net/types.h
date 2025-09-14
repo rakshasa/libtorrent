@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <tuple>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <torrent/common.h>
 
@@ -47,6 +48,13 @@ using fd_sap_tuple = std::tuple<int, sa_unique_ptr>;
 struct listen_result_type {
   int fd;
   sa_unique_ptr address;
+};
+
+union sa_inet_union {
+  // Ensure the largest member is first as it used for default list-initialization.
+  sockaddr_in6 inet6;
+  sockaddr_in  inet;
+  sockaddr     sa;
 };
 
 } // namespace torrent

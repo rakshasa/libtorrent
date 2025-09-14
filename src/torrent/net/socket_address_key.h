@@ -73,7 +73,7 @@ socket_address_key::from_sockaddr(const sockaddr* sa) {
     result.m_family = AF_INET6;
     result.m_addr6 = reinterpret_cast<const struct sockaddr_in6*>(sa)->sin6_addr;
     break;
-   
+
   default:
     break;
   }

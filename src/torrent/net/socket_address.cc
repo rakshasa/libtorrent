@@ -543,7 +543,7 @@ sin6_equal_addr(const sockaddr_in6* lhs, const sockaddr_in6* rhs) {
 }
 
 bool
-sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) {
+sa_less(const sockaddr* lhs, const sockaddr* rhs) {
   if (lhs->sa_family != AF_INET && lhs->sa_family != AF_INET6)
     throw internal_error("torrent::sa_less() lhs sockaddr is not inet or inet6");
 
@@ -561,6 +561,36 @@ sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) {
       return ntohl(lsin->sin_addr.s_addr) < ntohl(rsin->sin_addr.s_addr);
 
     return ntohs(lsin->sin_port) < ntohs(rsin->sin_port);
+
+  } else {
+    const sockaddr_in6* lsin6 = reinterpret_cast<const sockaddr_in6*>(lhs);
+    const sockaddr_in6* rsin6 = reinterpret_cast<const sockaddr_in6*>(rhs);
+
+    auto result = std::memcmp(&lsin6->sin6_addr, &rsin6->sin6_addr, sizeof(in6_addr));
+
+    if (result != 0)
+      return result < 0;
+
+    return ntohs(lsin6->sin6_port) < ntohs(rsin6->sin6_port);
+  }
+}
+
+bool
+sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) {
+  if (lhs->sa_family != AF_INET && lhs->sa_family != AF_INET6)
+    throw internal_error("torrent::sa_less_addr() lhs sockaddr is not inet or inet6");
+
+  if (rhs->sa_family != AF_INET && rhs->sa_family != AF_INET6)
+    throw internal_error("torrent::sa_less_addr() rhs sockaddr is not inet or inet6");
+
+  if (lhs->sa_family != rhs->sa_family)
+    return lhs->sa_family == AF_INET;
+
+  if (lhs->sa_family == AF_INET) {
+    const sockaddr_in* lsin = reinterpret_cast<const sockaddr_in*>(lhs);
+    const sockaddr_in* rsin = reinterpret_cast<const sockaddr_in*>(rhs);
+
+    return ntohl(lsin->sin_addr.s_addr) < ntohl(rsin->sin_addr.s_addr);
 
   } else {
     const sockaddr_in6* lsin6 = reinterpret_cast<const sockaddr_in6*>(lhs);
@@ -664,6 +694,22 @@ sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) {
 std::string
 sa_pretty_address_str(const sockaddr* sa) {
   return sa_pretty_str(sa);
+}
+
+sa_inet_union
+sa_inet_union_from_sa(const sockaddr* sa) {
+  sa_inet_union su{};
+
+  switch (sa->sa_family) {
+  case AF_INET:
+    su.inet = *reinterpret_cast<const sockaddr_in*>(sa);
+    return su;
+  case AF_INET6:
+    su.inet6 = *reinterpret_cast<const sockaddr_in6*>(sa);
+    return su;
+  default:
+    throw internal_error("torrent::sa_inet_union_from_sa: sockaddr is not inet or inet6");
+  }
 }
 
 } // namespace torrent

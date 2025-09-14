@@ -454,20 +454,29 @@ resume_load_addresses(Download download, const Object& object) {
 
   PeerList* peerList = download.peer_list();
 
+  // TODO: Add support for inet6.
+
   for (const auto& key : object.get_key_list("peers")) {
-    if (!key.is_map() ||
-        !key.has_key_string("inet") || key.get_key_string("inet").size() != sizeof(SocketAddressCompact) ||
-        !key.has_key_value("failed") ||
-        !key.has_key_value("last") || key.get_key_value("last") > this_thread::cached_seconds().count())
+    if (!key.is_map() || !key.has_key_string("inet") || !key.has_key_value("failed") || !key.has_key_value("last"))
+      continue;
+
+    if (key.get_key_value("last") > this_thread::cached_seconds().count())
+      continue;
+
+    auto& inet_str = key.get_key_string("inet");
+
+    if (inet_str.size() != sizeof(SocketAddressCompact))
       continue;
 
     int flags = 0;
-    rak::socket_address socketAddress = *reinterpret_cast<const SocketAddressCompact*>(key.get_key_string("inet").c_str());
 
-    if (socketAddress.port() != 0)
+    auto compact_sa = reinterpret_cast<const SocketAddressCompact*>(inet_str.c_str());
+    sa_inet_union sa = *compact_sa;
+
+    if (compact_sa->port != 0)
       flags |= PeerList::address_available;
 
-    PeerInfo* peerInfo = peerList->insert_address(socketAddress.c_sockaddr(), flags);
+    PeerInfo* peerInfo = peerList->insert_address(&sa.sa, flags);
 
     if (peerInfo == NULL)
       continue;
