@@ -18,13 +18,20 @@
 #include "torrent/peer/client_list.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/net/network_config.h"
 #include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
 namespace torrent {
 
-Manager* manager = NULL;
+Manager* manager = nullptr;
+
+namespace config {
+
+net::NetworkConfig* network_config() { return manager->network_config(); }
+
+} // namespace config
 
 namespace this_thread {
 
@@ -43,7 +50,9 @@ void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remov
 } // namespace this_thread
 
 Manager::Manager()
-  : m_chunk_manager(new ChunkManager),
+  : m_network_config(new net::NetworkConfig),
+
+    m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),
@@ -59,7 +68,7 @@ Manager::Manager()
   m_task_tick.slot() = [this] { receive_tick(); };
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 1s);
 
-  m_handshake_manager->slot_download_id() = [this](auto hash) { return m_download_manager->find_main(hash); };
+  m_handshake_manager->slot_download_id()         = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
   m_connection_manager->listen()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
 
@@ -89,14 +98,15 @@ Manager::cleanup() {
 void
 Manager::initialize_download(DownloadWrapper* d) {
   d->main()->slot_count_handshakes([this](DownloadMain* download) {
-    return m_handshake_manager->size_info(download);
-  });
-  d->main()->slot_start_handshake([this](const rak::socket_address& sa, DownloadMain* download) {
-    return m_handshake_manager->add_outgoing(sa, download);
-  });
+      return m_handshake_manager->size_info(download);
+    });
+  d->main()->slot_start_handshake([this](const sockaddr* sa, DownloadMain* download) {
+      auto rsa = rak::socket_address::cast_from(sa);
+      return m_handshake_manager->add_outgoing(*rsa, download);
+    });
   d->main()->slot_stop_handshakes([this](DownloadMain* download) {
-    return m_handshake_manager->erase_download(download);
-  });
+      return m_handshake_manager->erase_download(download);
+    });
 
   // TODO: The resource manager doesn't need to know about this
   // download until we start/stop the torrent.

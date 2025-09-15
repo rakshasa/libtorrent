@@ -11,6 +11,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
+#include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/utils.h"
 #include "torrent/object_stream.h"
@@ -95,9 +96,9 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Make all connection_manager related calls thread-safe.
   //
 
-  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
+  auto local_address = config::network_config()->local_address();
 
-  if (localAddress->is_address_any()) {
+  if (sa_is_any(local_address.get())) {
     if (manager->connection_manager()->is_prefer_ipv6()) {
       auto ipv6_address = detect_local_sin6_addr();
 
@@ -106,7 +107,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
       }
     }
   } else {
-    s << "&ip=" << localAddress->address_str();
+    s << "&ip=" << sa_addr_str(local_address.get());
   }
 
   auto parameters = m_slot_parameters();
@@ -114,10 +115,8 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   if (parameters.numwant >= 0 && new_state != tracker::TrackerState::EVENT_STOPPED)
     s << "&numwant=" << parameters.numwant;
 
-  if (manager->connection_manager()->listen_port())
-    s << "&port=" << manager->connection_manager()->listen_port();
-
-  s << "&uploaded=" << parameters.uploaded_adjusted
+  s << "&port=" << config::network_config()->listen_port_or_throw()
+    << "&uploaded=" << parameters.uploaded_adjusted
     << "&downloaded=" << parameters.completed_adjusted
     << "&left=" << parameters.download_left;
 

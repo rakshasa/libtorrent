@@ -401,8 +401,7 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
   // successfull.
   promote(itr);
 
-  l->sort();
-  l->erase(std::unique(l->begin(), l->end()), l->end());
+  l->sort_and_unique();
 
   // TODO: Update staate in TrackerWorker.
 

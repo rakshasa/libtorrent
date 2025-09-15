@@ -91,28 +91,15 @@ public:
   void                set_receive_buffer_size(uint32_t s);
   void                set_encryption_options(uint32_t options);
 
-  // Setting the addresses creates a copy of the address.
-  const sockaddr*     bind_address() const                    { return m_bindAddress; }
-  const sockaddr*     local_address() const                   { return m_localAddress; }
-  const sockaddr*     proxy_address() const                   { return m_proxyAddress; }
-
-  void                set_bind_address(const sockaddr* sa);
-  void                set_local_address(const sockaddr* sa);
-  void                set_proxy_address(const sockaddr* sa);
-
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
+
+  bool                is_listen_open() const;
 
   bool                listen_open(port_type begin, port_type end);
   void                listen_close();
 
-  // Since trackers need our port number, it doesn't get cleared after
-  // 'listen_close()'. The client may change the reported port number,
-  // but do note that it gets overwritten after 'listen_open(...)'.
-  port_type           listen_port() const                     { return m_listen_port; }
-  int                 listen_backlog() const                  { return m_listen_backlog; }
-  void                set_listen_port(port_type p)            { m_listen_port = p; }
-  void                set_listen_backlog(int v);
+  void                set_listen_backlog(int backlog);
 
   // The slot returns a ThrottlePair to use for the given address, or
   // NULLs to use the default throttle.
@@ -140,13 +127,7 @@ private:
   uint32_t            m_receiveBufferSize{0};
   int                 m_encryptionOptions{encryption_none};
 
-  sockaddr*           m_bindAddress;
-  sockaddr*           m_localAddress;
-  sockaddr*           m_proxyAddress;
-
   Listen*             m_listen;
-  port_type           m_listen_port{0};
-  uint32_t            m_listen_backlog{SOMAXCONN};
 
   slot_filter_type    m_slot_filter;
   slot_throttle_type  m_slot_address_throttle;

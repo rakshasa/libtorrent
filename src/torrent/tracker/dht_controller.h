@@ -51,13 +51,14 @@ public:
 
   void                set_receive_requests(bool state);
 
+  // TODO: This is the active port, move this to NetworkConfig? (or make this unavailable)
   uint16_t            port();
 
   // Main thread:
 
-  void                initialize(const Object& dhtCache);
+  void                initialize(const Object& dht_cache);
 
-  bool                start(uint16_t port);
+  bool                start();
   void                stop();
 
   // Store DHT cache in the given container and return the container.
@@ -68,7 +69,7 @@ public:
   void                add_node(const std::string& host, int port);
   void                add_node(const sockaddr* sa, int port);
 
-  statistics_type     get_statistics() const;
+  statistics_type     get_statistics();
   void                reset_statistics();
 
   void                set_upload_throttle(Throttle* t);

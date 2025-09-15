@@ -1,46 +1,11 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <algorithm>
 #include <iterator>
 
+#include "download/available_list.h"
 #include "torrent/exceptions.h"
-#include "available_list.h"
+#include "torrent/net/socket_address.h"
 
 namespace torrent {
 
@@ -51,48 +16,43 @@ AvailableList::pop_random() {
 
   size_type idx = random() % size();
 
-  value_type tmp = *(begin() + idx);
-  *(begin() + idx) = back();
+  auto tmp = std::move(*(begin() + idx));
 
+  *(begin() + idx) = std::move(back());
   pop_back();
 
   return tmp;
 }
 
 void
-AvailableList::push_back(const rak::socket_address* sa) {
-  if (std::find(begin(), end(), *sa) != end())
-    return;
-
-  base_type::push_back(*sa);
-}
-
-void
-AvailableList::insert(AddressList* l) {
+AvailableList::insert(AddressList* source_list) {
   if (!want_more())
     return;
 
-  std::sort(begin(), end());
+  source_list->sort();
+  std::sort(begin(), end(), [](auto& a, auto& b) { return sa_less(&a.sa, &b.sa); });
 
-  // Can i use use the std::remove* semantics for this, and just copy
-  // to 'l'?.
+  // Can we use the std::remove* semantics for this, and just copy to 'l'?.
   //
-  // 'l' is guaranteed to be sorted, so we can just do
-  // std::set_difference.
-  AddressList difference;
-  std::set_difference(l->begin(), l->end(), begin(), end(), std::back_inserter(difference));
+  // 'l' is guaranteed to be sorted, so we can just do std::set_difference.
 
-  static_cast<base_type*>(this)->insert(end(), difference.begin(), difference.end());
+  AddressList difference;
+
+  std::set_difference(source_list->begin(), source_list->end(),
+                      begin(), end(),
+                      std::back_inserter(difference),
+                      [](auto& a, auto& b) { return sa_less(&a.sa, &b.sa); });
+
+  base_type::insert(end(), difference.begin(), difference.end());
 }
 
-void
-AvailableList::erase(const rak::socket_address& sa) {
-  auto itr = std::find(begin(), end(), sa);
+bool
+AvailableList::insert_unique(const sockaddr* sa) {
+  if (std::find_if(begin(), end(), [sa](auto& a) { return sa_equal(&a.sa, sa); }) != end())
+    return false;
 
-  if (itr != end()) {
-    *itr = back();
-    pop_back();
-  }
+  base_type::push_back(sa_inet_union_from_sa(sa));
+  return true;
 }
 
 } // namespace torrent

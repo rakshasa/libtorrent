@@ -7,8 +7,8 @@
 
 #include "manager.h"
 #include "net/address_list.h"
-#include "rak/error_number.h"
 #include "torrent/connection_manager.h"
+#include "torrent/net/network_config.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
@@ -216,14 +216,14 @@ TrackerUdp::start_announce() {
     return receive_failed("could not open UDP socket");
   }
 
-  auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+  auto bind_address = config::network_config()->bind_address();
 
-  if (bind_address->is_bindable() && !get_fd().bind(*bind_address)) {
-    LT_LOG("failed to bind socket to udp address : address:%s error:'%s'",
-           bind_address->pretty_address_str().c_str(), rak::error_number::current().c_str());
+  if (bind_address->sa_family != AF_UNSPEC && !get_fd().bind_sa(bind_address.get())) {
+    auto pretty_addr = sa_pretty_str(bind_address.get());
+    auto error_str = strerror(errno);
 
-    return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() +
-                          "' with error '" + rak::error_number::current().c_str() + "'");
+    LT_LOG("failed to bind socket to udp address : address:%s error:'%s'", pretty_addr.c_str(), error_str);
+    return receive_failed("failed to bind socket to udp address '" + pretty_addr + "' with error '" + error_str + "'");
   }
 
   // TODO: Don't recreate buffers.
@@ -245,23 +245,19 @@ TrackerUdp::start_announce() {
 
 void
 TrackerUdp::event_read() {
-  rak::socket_address sa;
+  auto read_size = read_datagram(m_read_buffer->begin(), m_read_buffer->reserved());
 
-  int s = read_datagram(m_read_buffer->begin(), m_read_buffer->reserved(), &sa);
-
-  if (s < 0)
+  if (read_size < 0)
     return;
 
   m_read_buffer->reset_position();
-  m_read_buffer->set_end(s);
+  m_read_buffer->set_end(read_size);
 
-  LT_LOG("received reply : size:%d", s);
-  LT_LOG_DUMP(reinterpret_cast<const char*>(m_read_buffer->begin()), s, "received reply", 0);
+  LT_LOG("received reply : size:%d", read_size);
+  LT_LOG_DUMP(reinterpret_cast<const char*>(m_read_buffer->begin()), read_size, "received reply", 0);
 
-  if (s < 4)
+  if (read_size < 4)
     return;
-
-  // Make sure sa is from the source we expected?
 
   // Do something with the content here.
   switch (m_read_buffer->read_32()) {
@@ -336,17 +332,17 @@ TrackerUdp::prepare_announce_input() {
   m_write_buffer->write_64(parameters.uploaded_adjusted);
   m_write_buffer->write_32(m_send_state);
 
-  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
-
   uint32_t local_addr = 0;
 
-  if (localAddress->family() == rak::socket_address::af_inet)
-    local_addr = localAddress->sa_inet()->address_n();
+  auto local_address = config::network_config()->local_address();
+
+  if (local_address->sa_family == AF_INET)
+    local_addr = reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr;
 
   m_write_buffer->write_32_n(local_addr);
   m_write_buffer->write_32(info().key);
   m_write_buffer->write_32(parameters.numwant);
-  m_write_buffer->write_16(manager->connection_manager()->listen_port());
+  m_write_buffer->write_16(config::network_config()->listen_port_or_throw());
 
   if (m_write_buffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");

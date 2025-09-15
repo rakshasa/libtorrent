@@ -23,6 +23,8 @@ public:
 
   void                cleanup();
 
+  auto*               network_config()     { return m_network_config.get(); }
+
   ChunkManager*       chunk_manager()      { return m_chunk_manager.get(); }
   ConnectionManager*  connection_manager() { return m_connection_manager.get(); }
   DownloadManager*    download_manager()   { return m_download_manager.get(); }
@@ -44,6 +46,8 @@ public:
   void                receive_tick();
 
 private:
+  std::unique_ptr<net::NetworkConfig> m_network_config;
+
   std::unique_ptr<ChunkManager>      m_chunk_manager;
   std::unique_ptr<ConnectionManager> m_connection_manager;
   std::unique_ptr<DownloadManager>   m_download_manager;
