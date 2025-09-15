@@ -2,6 +2,7 @@
 
 #include "dht/dht_transaction.h"
 
+#include <algorithm>
 #include <cassert>
 
 #include "dht/dht_bucket.h"
@@ -251,18 +252,26 @@ DhtTransaction::~DhtTransaction() {
 
 DhtTransaction::key_type
 DhtTransaction::key(const sockaddr* sa, int id) {
-  if (!sa_is_inet(sa))
-    throw internal_error("DhtTransaction::key called with non-inet address.");
-
-  return (static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr) << 32) + id;
+  key_type result = {};
+  result[16] = id >> 24;
+  result[17] = id >> 16;
+  result[18] = id >> 8;
+  result[19] = id;
+  if (sa_is_inet(sa)) {
+    ::memcpy(result.data(), &(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr), sizeof(in_addr));
+    return result;
+  }
+  if (sa_is_inet6(sa)) {
+    ::memcpy(result.data(), &(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr.s6_addr), sizeof(in6_addr));
+    return result;
+  }
+  throw internal_error("DhtTransaction::key called with non-inet address.");
 }
 
 bool
 DhtTransaction::key_match(key_type key, const sockaddr* sa) {
-  if (!sa_is_inet(sa))
-    throw internal_error("DhtTransaction::key_match called with non-inet address.");
-
-  return (key >> 32) == static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
+  const auto sa_key = DhtTransaction::key(sa, 0);
+  return std::equal(sa_key.begin(), sa_key.begin() + 16, key.begin(), key.begin() + 16);
 }
 
 void
