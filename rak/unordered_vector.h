@@ -98,11 +98,11 @@ typename unordered_vector<_Tp>::iterator
 unordered_vector<_Tp>::erase(iterator position) {
   // We don't need to check if position == end - 1 since we then copy
   // to the position we pop later.
-  *position = Base::back();
+  *position = std::move(Base::back());
   Base::pop_back();
 
   return position;
-}    
+}
 
 }
 

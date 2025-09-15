@@ -70,7 +70,7 @@ Manager::Manager()
 
   m_handshake_manager->slot_download_id()         = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
-  m_connection_manager->listen()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
+  m_connection_manager->listen()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa.c_sockaddr()); };
 
   m_resource_manager->push_group("default");
   m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
@@ -101,8 +101,7 @@ Manager::initialize_download(DownloadWrapper* d) {
       return m_handshake_manager->size_info(download);
     });
   d->main()->slot_start_handshake([this](const sockaddr* sa, DownloadMain* download) {
-      auto rsa = rak::socket_address::cast_from(sa);
-      return m_handshake_manager->add_outgoing(*rsa, download);
+      return m_handshake_manager->add_outgoing(sa, download);
     });
   d->main()->slot_stop_handshakes([this](DownloadMain* download) {
       return m_handshake_manager->erase_download(download);
