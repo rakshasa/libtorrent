@@ -166,51 +166,51 @@ fd_accept(int fd) {
 bool
 fd_bind(int fd, const sockaddr* sa) {
   if (fd__bind(fd, sa, sa_length(sa)) == -1) {
-    LT_LOG_FD_SOCKADDR_ERROR("fd_bind failed");
+    LT_LOG_FD_SOCKADDR_ERROR("fd_bind() failed");
     return false;
   }
 
-  LT_LOG_FD_SOCKADDR("fd_bind succeeded");
+  LT_LOG_FD_SOCKADDR("fd_bind() succeeded");
   return true;
 }
 
 bool
 fd_connect(int fd, const sockaddr* sa) {
   if (fd__connect(fd, sa, sa_length(sa)) == 0) {
-    LT_LOG_FD_SOCKADDR("fd_connect succeeded");
+    LT_LOG_FD_SOCKADDR("fd_connect() succeeded");
     return true;
   }
 
   if (errno == EINPROGRESS) {
-    LT_LOG_FD_SOCKADDR("fd_connect succeeded and in progress");
+    LT_LOG_FD_SOCKADDR("fd_connect() succeeded and in progress");
     return true;
   }
 
-  LT_LOG_FD_SOCKADDR_ERROR("fd_connect failed");
+  LT_LOG_FD_SOCKADDR_ERROR("fd_connect() failed");
   return false;
 }
 
 bool
-fd_connect_with_bind_family(int fd, const sockaddr* sa, int bind_family) {
+fd_connect_with_family(int fd, const sockaddr* sa, int family) {
   switch (sa->sa_family) {
     case AF_UNSPEC:
       errno = EINVAL;
-      LT_LOG_FD("fd_connect_with_bind_family() cannot connect unspecified address");
+      LT_LOG_FD("fd_connect_with_family() cannot connect unspecified address");
       return false;
 
     case AF_INET:
-      if (bind_family == AF_INET6)
+      if (family == AF_INET6)
         return fd_connect(fd, sa_to_v4mapped(sa).get());
 
       return fd_connect(fd, sa);
 
     case AF_INET6:
-      if (bind_family == AF_INET) {
+      if (family == AF_INET) {
         if (sa_is_v4mapped(sa))
           return fd_connect(fd, sa_from_v4mapped(sa).get());
 
         errno = EINVAL;
-        LT_LOG_FD("fd_connect_with_bind_family() cannot connect ipv6 address with ipv4 bind");
+        LT_LOG_FD("fd_connect_with_family() cannot connect ipv6 address with ipv4 bind");
         return false;
       }
 
@@ -218,7 +218,7 @@ fd_connect_with_bind_family(int fd, const sockaddr* sa, int bind_family) {
 
     default:
       errno = EINVAL;
-      LT_LOG_FD_VALUE("fd_connect_with_bind_family() invalid sa_family", sa->sa_family);
+      LT_LOG_FD_VALUE("fd_connect_with_family() invalid sa_family", sa->sa_family);
       return false;
   }
 }

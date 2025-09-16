@@ -133,8 +133,12 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   SocketFd fd;
 
   auto prepare_fd = [&fd, &connect_address]() {
+      // TODO: Open stream should take into account bind and connect addresses family.
+
       if (!fd.open_stream())
         return false;
+
+      int socket_family = fd.is_ipv6_socket() ? AF_INET6 : AF_INET;
 
       if (!setup_socket(fd.get_fd()))
         return false;
@@ -144,7 +148,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       if (bind_address->sa_family != AF_UNSPEC && !fd_bind(fd.get_fd(), bind_address.get()))
         return false;
 
-      if (!fd_connect_with_bind_family(fd.get_fd(), connect_address.get(), bind_address->sa_family))
+      if (!fd_connect_with_family(fd.get_fd(), connect_address.get(), socket_family))
         return false;
 
       return true;
