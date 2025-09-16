@@ -58,7 +58,7 @@ public:
     READ_PORT
   };
 
-  Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
+  Handshake(int fd, HandshakeManager* m, int encryption_options);
   ~Handshake() override;
   Handshake(const Handshake&) = delete;
   Handshake& operator=(const Handshake&) = delete;

@@ -10,6 +10,7 @@
 #include "torrent/download_info.h"
 #include "torrent/error.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
@@ -82,15 +83,15 @@ HandshakeManager::erase_download(DownloadMain* info) {
 }
 
 void
-HandshakeManager::add_incoming(SocketFd fd, const sockaddr* sa) {
+HandshakeManager::add_incoming(int fd, const sockaddr* sa) {
   if (!manager->connection_manager()->can_connect() ||
       !manager->connection_manager()->filter(sa) ||
       !setup_socket(fd)) {
-    fd.close();
+    fd_close(fd);
     return;
   }
 
-  LT_LOG_SA(sa, "accepted incoming connection: fd:%i", fd.get_fd());
+  LT_LOG_SA(sa, "accepted incoming connection: fd:%i", fd);
 
   manager->connection_manager()->inc_socket_count();
 
@@ -135,7 +136,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       if (!fd.open_stream())
         return false;
 
-      if (!setup_socket(fd))
+      if (!setup_socket(fd.get_fd()))
         return false;
 
       auto bind_address = config::network_config()->bind_address();
@@ -169,7 +170,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   LT_LOG_SA(sa, "created outgoing connection: fd:%i encryption:%x message:%x", fd.get_fd(), encryption_options, message);
   manager->connection_manager()->inc_socket_count();
 
-  auto handshake = std::make_unique<Handshake>(fd, this, encryption_options);
+  auto handshake = std::make_unique<Handshake>(fd.get_fd(), this, encryption_options);
   handshake->initialize_outgoing(sa, download, peerInfo);
 
   base_type::push_back(std::move(handshake));
@@ -263,19 +264,21 @@ HandshakeManager::receive_timeout(Handshake* h) {
 }
 
 bool
-HandshakeManager::setup_socket(SocketFd fd) {
-  if (!fd.set_nonblock())
+HandshakeManager::setup_socket(int fd) {
+  if (!fd_set_nonblock(fd))
     return false;
 
   ConnectionManager* m = manager->connection_manager();
 
-  if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
+  SocketFd fd_wrapper(fd);
+
+  if (m->priority() != ConnectionManager::iptos_default && !fd_wrapper.set_priority(m->priority()))
     return false;
 
-  if (m->send_buffer_size() != 0 && !fd.set_send_buffer_size(m->send_buffer_size()))
+  if (m->send_buffer_size() != 0 && !fd_wrapper.set_send_buffer_size(m->send_buffer_size()))
     return false;
 
-  if (m->receive_buffer_size() != 0 && !fd.set_receive_buffer_size(m->receive_buffer_size()))
+  if (m->receive_buffer_size() != 0 && !fd_wrapper.set_receive_buffer_size(m->receive_buffer_size()))
     return false;
 
   return true;

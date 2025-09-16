@@ -150,17 +150,17 @@ fd_close(int fd) {
 
 fd_sap_tuple
 fd_accept(int fd) {
-  sa_unique_ptr sap = sa_make_inet6();
-  socklen_t socklen = sap_length(sap);
+  sa_inet_union sau{};
+  socklen_t sau_length = sizeof(sockaddr_in6);
 
-  int accept_fd = fd__accept(fd, sap.get(), &socklen);
+  int connection_fd = fd__accept(fd, &sau.sa, &sau_length);
 
-  if (accept_fd == -1) {
+  if (connection_fd == -1) {
     LT_LOG_FD_ERROR("fd_accept failed");
     return fd_sap_tuple{-1, nullptr};
   }
 
-  return fd_sap_tuple{accept_fd, std::move(sap)};
+  return fd_sap_tuple{connection_fd, sa_copy(&sau.sa)};
 }
 
 bool
