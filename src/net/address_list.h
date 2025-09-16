@@ -48,6 +48,7 @@ struct [[gnu::packed]] SocketAddressCompact {
   uint16_t port;
 
   const char*         c_str() const { return reinterpret_cast<const char*>(this); }
+  std::string         str() const   { return std::string(c_str(), sizeof(*this)); }
 };
 
 struct [[gnu::packed]] SocketAddressCompact6 {

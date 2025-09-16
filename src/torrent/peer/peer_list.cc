@@ -256,7 +256,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
     // host as the tracker.
     // if (flags & connect_keep_handshakes &&
     //     range.first->second->is_handshake() &&
-    //     rak::socket_address::cast_from(range.first->second->socket_address())->port() != address->port())
+    //     range.first->second->socket_address()->port() != address->port())
     //   m_available_list->buffer()->push_back(*address);
 
     LT_LOG_EVENTS("connecting peer rejected, already connected (buggy, fixme): " LT_LOG_SA_FMT, addr_str.c_str(), port);
