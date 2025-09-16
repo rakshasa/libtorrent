@@ -191,6 +191,39 @@ fd_connect(int fd, const sockaddr* sa) {
 }
 
 bool
+fd_connect_with_bind_family(int fd, const sockaddr* sa, int bind_family) {
+  switch (sa->sa_family) {
+    case AF_UNSPEC:
+      errno = EINVAL;
+      LT_LOG_FD("fd_connect_with_bind_family() cannot connect unspecified address");
+      return false;
+
+    case AF_INET:
+      if (bind_family == AF_INET6)
+        return fd_connect(fd, sa_to_v4mapped(sa).get());
+
+      return fd_connect(fd, sa);
+
+    case AF_INET6:
+      if (bind_family == AF_INET) {
+        if (sa_is_v4mapped(sa))
+          return fd_connect(fd, sa_from_v4mapped(sa).get());
+
+        errno = EINVAL;
+        LT_LOG_FD("fd_connect_with_bind_family() cannot connect ipv6 address with ipv4 bind");
+        return false;
+      }
+
+      return fd_connect(fd, sa);
+
+    default:
+      errno = EINVAL;
+      LT_LOG_FD_VALUE("fd_connect_with_bind_family() invalid sa_family", sa->sa_family);
+      return false;
+  }
+}
+
+bool
 fd_listen(int fd, int backlog) {
   if (fd__listen(fd, backlog) == -1) {
     LT_LOG_FD_VALUE_ERROR("fd_listen failed", backlog);

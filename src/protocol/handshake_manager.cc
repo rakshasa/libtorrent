@@ -144,7 +144,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       if (bind_address->sa_family != AF_UNSPEC && !fd_bind(fd.get_fd(), bind_address.get()))
         return false;
 
-      if (!fd_connect(fd.get_fd(), connect_address.get()))
+      if (!fd_connect_with_bind_family(fd.get_fd(), connect_address.get(), bind_address->sa_family))
         return false;
 
       return true;
