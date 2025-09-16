@@ -60,7 +60,7 @@ private:
   HandshakeManager& operator=(const HandshakeManager&) = delete;
 
   void                create_outgoing(const sockaddr* sa, DownloadMain* info, int encryptionOptions);
-  void                erase(Handshake* handshake);
+  value_type          find_and_erase(Handshake* handshake);
 
   static bool         setup_socket(SocketFd fd);
 

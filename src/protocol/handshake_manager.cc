@@ -42,19 +42,23 @@ HandshakeManager::clear() {
   for (auto& h : *this) {
     h->deactivate_connection();
     h->destroy_connection();
+    h.reset();
   }
 
   base_type::clear();
 }
 
-void
-HandshakeManager::erase(Handshake* handshake) {
+HandshakeManager::value_type
+HandshakeManager::find_and_erase(Handshake* handshake) {
   auto itr = std::find_if(base_type::begin(), base_type::end(), [handshake](auto& h) { return h.get() == handshake; });
 
   if (itr == base_type::end())
     throw internal_error("HandshakeManager::erase(...) could not find handshake.");
 
+  auto tmp = std::move(*itr);
   base_type::erase(itr);
+
+  return tmp;
 }
 
 bool
@@ -71,6 +75,7 @@ HandshakeManager::erase_download(DownloadMain* info) {
   std::for_each(split, base_type::end(), [](auto& h) {
       h->deactivate_connection();
       h->destroy_connection();
+      h.reset();
     });
 
   base_type::erase(split, base_type::end());
@@ -89,10 +94,10 @@ HandshakeManager::add_incoming(SocketFd fd, const sockaddr* sa) {
 
   manager->connection_manager()->inc_socket_count();
 
-  auto h = std::make_unique<Handshake>(fd, this, manager->connection_manager()->encryption_options());
-  h->initialize_incoming(sa);
+  auto handshake = std::make_unique<Handshake>(fd, this, manager->connection_manager()->encryption_options());
+  handshake->initialize_incoming(sa);
 
-  base_type::push_back(std::move(h));
+  base_type::push_back(std::move(handshake));
 }
 
 void
@@ -175,11 +180,11 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
   if (!handshake->is_active())
     throw internal_error("HandshakeManager::receive_succeeded(...) called on an inactive handshake.");
 
-  erase(handshake);
+  auto handshake_ptr = find_and_erase(handshake);
   handshake->deactivate_connection();
 
   DownloadMain* download = handshake->download();
-  PeerConnectionBase* pcb;
+  PeerConnectionBase* pcb{};
 
   auto peer_type = handshake->bitfield()->is_all_set() ? "seed" : "leech";
 
@@ -224,8 +229,6 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 
     handshake->destroy_connection();
   }
-
-  delete handshake;
 }
 
 void
@@ -233,26 +236,22 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   if (!handshake->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  auto sa = sa_copy(handshake->socket_address());
-
-  erase(handshake);
+  auto sa = handshake->socket_address();
+  auto handshake_ptr = find_and_erase(handshake);
 
   handshake->deactivate_connection();
   handshake->destroy_connection();
 
-  LT_LOG_SAP(sa, "Received error: message:%x %s.", message, strerror(error));
+  LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
 
   if (handshake->encryption()->should_retry()) {
     int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SAP(sa, "Retrying %s.",
-              retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
+    LT_LOG_SA(sa, "Retrying %s.", retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
 
-    create_outgoing(sa.get(), download, retry_options);
+    create_outgoing(sa, download, retry_options);
   }
-
-  delete handshake;
 }
 
 void
