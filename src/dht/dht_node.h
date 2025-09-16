@@ -2,7 +2,6 @@
 #define LIBTORRENT_DHT_NODE_H
 
 #include "dht/dht_bucket.h"
-#include "rak/socket_address.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
 #include "torrent/net/types.h"

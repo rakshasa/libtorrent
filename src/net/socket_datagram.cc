@@ -4,7 +4,6 @@
 
 #include <sys/socket.h>
 
-#include "rak/socket_address.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 

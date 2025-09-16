@@ -7,7 +7,6 @@
 #include "download/download_main.h"
 #include "net/address_list.h"
 #include "protocol/peer_connection_base.h"
-#include "rak/socket_address.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"

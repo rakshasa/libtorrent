@@ -2,7 +2,6 @@
 #define LIBTORRENT_DHT_TRACKER_H
 
 #include <vector>
-#include <rak/socket_address.h>
 
 #include "net/address_list.h" // For SA.
 #include "torrent/object_raw_bencode.h"
