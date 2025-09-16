@@ -251,24 +251,28 @@ DhtTransaction::~DhtTransaction() {
 
 DhtTransaction::key_type
 DhtTransaction::key(const sockaddr* sa, int id) {
-  if (!sa_is_inet(sa))
-    throw internal_error("DhtTransaction::key called with non-inet address.");
-
-  return (static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr) << 32) + id;
+  if (sa_is_inet(sa))
+    return (static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr) << 32) + id;
+  else if (sa_is_inet6(sa))
+    throw internal_error("DhtTransaction::key() called with inet6 address.");
+  else
+    throw internal_error("DhtTransaction::key() called with non-inet address.");
 }
 
 bool
 DhtTransaction::key_match(key_type key, const sockaddr* sa) {
-  if (!sa_is_inet(sa))
-    throw internal_error("DhtTransaction::key_match called with non-inet address.");
-
-  return (key >> 32) == static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
+  if (sa_is_inet(sa))
+    return (key >> 32) == static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
+  else if (sa_is_inet6(sa))
+    throw internal_error("DhtTransaction::key_match() called with inet6 address.");
+  else
+    throw internal_error("DhtTransaction::key_match() called with non-inet address.");
 }
 
 void
 DhtTransactionSearch::set_stalled() {
   if (!m_hasQuickTimeout)
-    throw internal_error("DhtTransactionSearch::set_stalled called on already stalled transaction.");
+    throw internal_error("DhtTransactionSearch::set_stalled() called on already stalled transaction.");
 
   m_hasQuickTimeout = false;
   m_search->m_concurrency++;
@@ -277,10 +281,10 @@ DhtTransactionSearch::set_stalled() {
 void
 DhtTransactionSearch::complete(bool success) {
   if (m_node == m_search->end())
-    throw internal_error("DhtTransactionSearch::complete called multiple times.");
+    throw internal_error("DhtTransactionSearch::complete() called multiple times.");
 
   if (m_node.search() != m_search)
-    throw internal_error("DhtTransactionSearch::complete called for node from wrong search.");
+    throw internal_error("DhtTransactionSearch::complete() called for node from wrong search.");
 
   if (!m_hasQuickTimeout)
     m_search->m_concurrency--;

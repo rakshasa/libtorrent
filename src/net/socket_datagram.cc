@@ -52,7 +52,7 @@ SocketDatagram::write_datagram(const void* buffer, unsigned int length, rak::soc
 }
 
 int
-SocketDatagram::read_datagram_sa(void* buffer, unsigned int length, sockaddr* from_sa, unsigned int from_length) {
+SocketDatagram::read_datagram_sa(void* buffer, unsigned int length, sockaddr* from_sa, socklen_t from_length) {
   if (length == 0)
     throw internal_error("Tried to receive buffer length 0");
 
