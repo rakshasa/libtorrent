@@ -5,10 +5,6 @@
 
 struct sockaddr;
 
-namespace rak {
-  class socket_address;
-} // namespace rak
-
 namespace torrent {
 
 class SocketFd {
@@ -43,17 +39,6 @@ public:
 
   void                close() const;
   void                clear() { m_fd = -1; }
-
-  // bool                bind_sa(const sockaddr* sa);
-  // bool                connect_sa(const sockaddr* sa);
-
-  // bool                getsockname(rak::socket_address* sa);
-
-  // bool                listen(int size);
-  // SocketFd            accept(rak::socket_address* sa);
-
-//   unsigned int        get_read_queue_size() const;
-//   unsigned int        get_write_queue_size() const;
 
 private:
   inline void         check_valid() const;
