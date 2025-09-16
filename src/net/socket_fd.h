@@ -44,17 +44,13 @@ public:
   void                close() const;
   void                clear() { m_fd = -1; }
 
-  bool                bind(const rak::socket_address& sa);
-  bool                bind(const rak::socket_address& sa, unsigned int length);
-  bool                bind_sa(const sockaddr* sa);
+  // bool                bind_sa(const sockaddr* sa);
+  // bool                connect_sa(const sockaddr* sa);
 
-  bool                connect(const rak::socket_address& sa);
-  bool                connect_sa(const sockaddr* sa);
+  // bool                getsockname(rak::socket_address* sa);
 
-  bool                getsockname(rak::socket_address* sa);
-
-  bool                listen(int size);
-  SocketFd            accept(rak::socket_address* sa);
+  // bool                listen(int size);
+  // SocketFd            accept(rak::socket_address* sa);
 
 //   unsigned int        get_read_queue_size() const;
 //   unsigned int        get_write_queue_size() const;

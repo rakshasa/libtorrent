@@ -8,6 +8,7 @@
 #include "manager.h"
 #include "net/address_list.h"
 #include "torrent/connection_manager.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
@@ -218,7 +219,7 @@ TrackerUdp::start_announce() {
 
   auto bind_address = config::network_config()->bind_address();
 
-  if (bind_address->sa_family != AF_UNSPEC && !get_fd().bind_sa(bind_address.get())) {
+  if (bind_address->sa_family != AF_UNSPEC && !fd_bind(get_fd().get_fd(), bind_address.get())) {
     auto pretty_addr = sa_pretty_str(bind_address.get());
     auto error_str = strerror(errno);
 

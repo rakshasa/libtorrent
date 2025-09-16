@@ -141,10 +141,10 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 
       auto bind_address = config::network_config()->bind_address();
 
-      if (bind_address->sa_family != AF_UNSPEC && !fd.bind_sa(bind_address.get()))
+      if (bind_address->sa_family != AF_UNSPEC && !fd_bind(fd.get_fd(), bind_address.get()))
         return false;
 
-      if (!fd.connect_sa(connect_address.get()))
+      if (!fd_connect(fd.get_fd(), connect_address.get()))
         return false;
 
       return true;
