@@ -16,6 +16,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"
 #include "torrent/utils/log.h"
@@ -110,7 +111,7 @@ DhtServer::start(int port) {
     LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
 
     // Figure out how to bind to both inet and inet6.
-    if (!get_fd().bind_sa(bind_address.get()))
+    if (!fd_bind(get_fd().get_fd(), bind_address.get()))
       throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
 
   } catch (const torrent::base_error&) {

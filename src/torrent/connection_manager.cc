@@ -3,7 +3,6 @@
 #include "torrent/connection_manager.h"
 
 #include "net/listen.h"
-#include "rak/socket_address.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"

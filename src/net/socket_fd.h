@@ -5,10 +5,6 @@
 
 struct sockaddr;
 
-namespace rak {
-  class socket_address;
-} // namespace rak
-
 namespace torrent {
 
 class SocketFd {
@@ -20,6 +16,7 @@ public:
   SocketFd(int fd, bool ipv6_socket) : m_fd(fd), m_ipv6_socket(ipv6_socket) {}
 
   bool                is_valid() const                        { return m_fd >= 0; }
+  bool                is_ipv6_socket() const                  { return m_ipv6_socket; }
 
   int                 get_fd() const                          { return m_fd; }
   void                set_fd(int fd)                          { m_fd = fd; }
@@ -43,21 +40,6 @@ public:
 
   void                close() const;
   void                clear() { m_fd = -1; }
-
-  bool                bind(const rak::socket_address& sa);
-  bool                bind(const rak::socket_address& sa, unsigned int length);
-  bool                bind_sa(const sockaddr* sa);
-
-  bool                connect(const rak::socket_address& sa);
-  bool                connect_sa(const sockaddr* sa);
-
-  bool                getsockname(rak::socket_address* sa);
-
-  bool                listen(int size);
-  SocketFd            accept(rak::socket_address* sa);
-
-//   unsigned int        get_read_queue_size() const;
-//   unsigned int        get_write_queue_size() const;
 
 private:
   inline void         check_valid() const;

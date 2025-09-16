@@ -38,8 +38,7 @@ public:
 
   void                erase_download(DownloadMain* info);
 
-  // Cleanup.
-  void                add_incoming(SocketFd fd, const sockaddr* sa);
+  void                add_incoming(int fd, const sockaddr* sa);
   void                add_outgoing(const sockaddr* sa, DownloadMain* info);
 
   slot_download&      slot_download_id()         { return m_slot_download_id; }
@@ -62,7 +61,7 @@ private:
   void                create_outgoing(const sockaddr* sa, DownloadMain* info, int encryptionOptions);
   value_type          find_and_erase(Handshake* handshake);
 
-  static bool         setup_socket(SocketFd fd);
+  static bool         setup_socket(int fd);
 
   static ProtocolExtension DefaultExtensions;
 

@@ -283,8 +283,8 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 }
 
 void
-DownloadMain::add_peer(const rak::socket_address& sa) {
-  m_slot_start_handshake(sa.c_sockaddr(), this);
+DownloadMain::add_peer(const sockaddr* sa) {
+  m_slot_start_handshake(sa, this);
 }
 
 void
@@ -368,10 +368,11 @@ DownloadMain::do_peer_exchange() {
 
   for (auto& connection : *m_connectionList) {
     auto pcb = connection->m_ptr();
-    auto sa  = rak::socket_address::cast_from(pcb->peer_info()->socket_address());
+    auto sa  = pcb->peer_info()->socket_address();
 
-    if (pcb->peer_info()->listen_port() != 0 && sa->family() == rak::socket_address::af_inet)
-      current.emplace_back(sa->sa_inet()->address_n(), htons(pcb->peer_info()->listen_port()));
+    if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET)
+      // Use network byte order for the address.
+      current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
 
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;
