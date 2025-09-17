@@ -148,15 +148,27 @@ fd_close(int fd) {
   LT_LOG_FD("fd_close succeeded");
 }
 
-fd_sap_tuple
+int
 fd_accept(int fd) {
+  int connection_fd = fd__accept(fd, nullptr, nullptr);
+
+  if (connection_fd == -1) {
+    LT_LOG_FD_ERROR("fd_accept() failed");
+    return -1;
+  }
+
+  return connection_fd;
+}
+
+fd_sap_tuple
+fd_sap_accept(int fd) {
   sa_inet_union sau{};
   socklen_t sau_length = sizeof(sockaddr_in6);
 
   int connection_fd = fd__accept(fd, &sau.sa, &sau_length);
 
   if (connection_fd == -1) {
-    LT_LOG_FD_ERROR("fd_accept failed");
+    LT_LOG_FD_ERROR("fd_sap_accept() failed");
     return fd_sap_tuple{-1, nullptr};
   }
 

@@ -116,7 +116,7 @@ Listen::event_read() {
     int fd;
     sa_unique_ptr sa;
 
-    std::tie(fd, sa) = fd_accept(get_fd().get_fd());
+    std::tie(fd, sa) = fd_sap_accept(get_fd().get_fd());
 
     if (fd == -1) {
       if (errno == EAGAIN || errno == EWOULDBLOCK)
