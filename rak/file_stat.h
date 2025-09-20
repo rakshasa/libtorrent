@@ -29,10 +29,7 @@
 // If you delete this exception statement from all source files in the
 // program, then also delete it here.
 //
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
+
 
 #ifndef RAK_FILE_STAT_H
 #define RAK_FILE_STAT_H
