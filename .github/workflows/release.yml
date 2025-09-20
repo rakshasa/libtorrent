@@ -12,7 +12,7 @@ env:
   VERSION: ${{ github.ref_name }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BASE_PREFIX: ".debpkg/"
-  CXXFLAGS: '-O3 --enable-aligned'
+  CXXFLAGS: '-O3'
 
 jobs:
   build-linux-debian-package:
