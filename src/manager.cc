@@ -98,14 +98,14 @@ Manager::cleanup() {
 void
 Manager::initialize_download(DownloadWrapper* d) {
   d->main()->slot_count_handshakes([this](DownloadMain* download) {
-    return m_handshake_manager->size_info(download);
-  });
-  d->main()->slot_start_handshake([this](const rak::socket_address& sa, DownloadMain* download) {
-    return m_handshake_manager->add_outgoing(sa, download);
-  });
+      return m_handshake_manager->size_info(download);
+    });
+  d->main()->slot_start_handshake([this](const sockaddr* sa, DownloadMain* download) {
+      return m_handshake_manager->add_outgoing(sa, download);
+    });
   d->main()->slot_stop_handshakes([this](DownloadMain* download) {
-    return m_handshake_manager->erase_download(download);
-  });
+      return m_handshake_manager->erase_download(download);
+    });
 
   // TODO: The resource manager doesn't need to know about this
   // download until we start/stop the torrent.

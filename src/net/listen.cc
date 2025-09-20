@@ -2,10 +2,7 @@
 
 #include "listen.h"
 
-#include <tuple>
-
 #include "manager.h"
-#include "rak/socket_address.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
@@ -36,7 +33,6 @@ listen_fd_open(const sockaddr* bind_address) {
 
   return std::make_tuple(stream_fd, datagram_fd);
 }
-
 
 bool
 Listen::open(uint16_t first, uint16_t last, int backlog, const sockaddr* bind_address) {
@@ -116,11 +112,21 @@ void Listen::close() {
 
 void
 Listen::event_read() {
-  rak::socket_address sa;
-  SocketFd fd;
+  while (true) {
+    int fd;
+    sa_unique_ptr sa;
 
-  while ((fd = get_fd().accept(&sa)).is_valid())
-    m_slot_accepted(fd, sa);
+    std::tie(fd, sa) = fd_sap_accept(get_fd().get_fd());
+
+    if (fd == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK)
+        break;
+
+      throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
+    }
+
+    m_slot_accepted(fd, sa.get());
+  }
 }
 
 void

@@ -283,7 +283,7 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 }
 
 void
-DownloadMain::add_peer(const rak::socket_address& sa) {
+DownloadMain::add_peer(const sockaddr* sa) {
   m_slot_start_handshake(sa, this);
 }
 
@@ -305,10 +305,10 @@ DownloadMain::receive_connect_peers() {
          manager->connection_manager()->can_connect() &&
          connection_list()->size() < connection_list()->min_size() &&
          connection_list()->size() + m_slot_count_handshakes(this) < connection_list()->max_size()) {
-    rak::socket_address sa = peer_list()->available_list()->pop_random();
+    auto sa = peer_list()->available_list()->pop_random();
 
-    if (connection_list()->find(sa.c_sockaddr()) == connection_list()->end())
-      m_slot_start_handshake(sa, this);
+    if (connection_list()->find(&sa.sa) == connection_list()->end())
+      m_slot_start_handshake(&sa.sa, this);
   }
 }
 
@@ -368,10 +368,11 @@ DownloadMain::do_peer_exchange() {
 
   for (auto& connection : *m_connectionList) {
     auto pcb = connection->m_ptr();
-    auto sa  = rak::socket_address::cast_from(pcb->peer_info()->socket_address());
+    auto sa  = pcb->peer_info()->socket_address();
 
-    if (pcb->peer_info()->listen_port() != 0 && sa->family() == rak::socket_address::af_inet)
-      current.emplace_back(sa->sa_inet()->address_n(), htons(pcb->peer_info()->listen_port()));
+    if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET)
+      // Use network byte order for the address.
+      current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
 
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;

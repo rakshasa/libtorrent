@@ -2,8 +2,7 @@
 
 #include "resume.h"
 
-#include <rak/file_stat.h>
-#include <rak/socket_address.h>
+#include "rak/file_stat.h"
 
 #include "data/file.h"
 #include "data/file_list.h"
@@ -454,20 +453,29 @@ resume_load_addresses(Download download, const Object& object) {
 
   PeerList* peerList = download.peer_list();
 
+  // TODO: Add support for inet6.
+
   for (const auto& key : object.get_key_list("peers")) {
-    if (!key.is_map() ||
-        !key.has_key_string("inet") || key.get_key_string("inet").size() != sizeof(SocketAddressCompact) ||
-        !key.has_key_value("failed") ||
-        !key.has_key_value("last") || key.get_key_value("last") > this_thread::cached_seconds().count())
+    if (!key.is_map() || !key.has_key_string("inet") || !key.has_key_value("failed") || !key.has_key_value("last"))
+      continue;
+
+    if (key.get_key_value("last") > this_thread::cached_seconds().count())
+      continue;
+
+    auto& inet_str = key.get_key_string("inet");
+
+    if (inet_str.size() != sizeof(SocketAddressCompact))
       continue;
 
     int flags = 0;
-    rak::socket_address socketAddress = *reinterpret_cast<const SocketAddressCompact*>(key.get_key_string("inet").c_str());
 
-    if (socketAddress.port() != 0)
+    auto compact_sa = reinterpret_cast<const SocketAddressCompact*>(inet_str.c_str());
+    sa_inet_union sa = *compact_sa;
+
+    if (compact_sa->port != 0)
       flags |= PeerList::address_available;
 
-    PeerInfo* peerInfo = peerList->insert_address(socketAddress.c_sockaddr(), flags);
+    PeerInfo* peerInfo = peerList->insert_address(&sa.sa, flags);
 
     if (peerInfo == NULL)
       continue;
@@ -492,11 +500,10 @@ resume_save_addresses(Download download, Object& object) {
     // entries.
 
     Object& peer = dest.insert_back(Object::create_map());
+    auto sa = dlp.second->socket_address();
 
-    const rak::socket_address* sa = rak::socket_address::cast_from(dlp.second->socket_address());
-
-    if (sa->family() == rak::socket_address::af_inet)
-      peer.insert_key("inet", std::string(SocketAddressCompact(sa->sa_inet()->address_n(), htons(dlp.second->listen_port())).c_str(), sizeof(SocketAddressCompact)));
+    if (sa->sa_family == AF_INET)
+      peer.insert_key("inet", SocketAddressCompact(reinterpret_cast<const sockaddr_in*>(sa)).str());
 
     peer.insert_key("failed", dlp.second->failed_counter());
     peer.insert_key("last", dlp.second->is_connected() ? this_thread::cached_seconds().count() : dlp.second->last_connection());

@@ -51,7 +51,8 @@ private:
 } // namespace
 
 namespace torrent {
-Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
+
+Handshake::Handshake(int fd, HandshakeManager* m, int encryptionOptions) :
   m_manager(m),
 
   // Use global throttles until we know which download it is.
@@ -61,7 +62,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_encryption(encryptionOptions),
   m_extensions(torrent::HandshakeManager::default_extensions()) {
 
-  set_fd(fd);
+  set_fd(SocketFd(fd));
 
   m_readBuffer.reset();
   m_writeBuffer.reset();

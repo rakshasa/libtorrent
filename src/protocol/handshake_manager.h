@@ -2,11 +2,9 @@
 #define LIBTORRENT_NET_HANDSHAKE_MANAGER_H
 
 #include <functional>
-#include <inttypes.h>
 #include <string>
 
 #include "net/socket_fd.h"
-#include "rak/socket_address.h"
 #include "rak/unordered_vector.h"
 #include "torrent/connection_manager.h"
 
@@ -17,12 +15,10 @@ class DownloadManager;
 class DownloadMain;
 class PeerConnectionBase;
 
-class HandshakeManager : private rak::unordered_vector<Handshake*> {
+class HandshakeManager : private rak::unordered_vector<std::unique_ptr<Handshake>> {
 public:
-  using base_type = rak::unordered_vector<Handshake*>;
+  using base_type = rak::unordered_vector<std::unique_ptr<Handshake>>;
   using base_type::size;
-
-  using size_type = uint32_t;
 
   using slot_download = std::function<DownloadMain*(const char*)>;
 
@@ -31,20 +27,19 @@ public:
 
   using base_type::empty;
 
-  HandshakeManager() = default;
-  ~HandshakeManager() { clear(); }
+  HandshakeManager();
+  ~HandshakeManager();
 
   size_type           size_info(DownloadMain* info) const;
 
   void                clear();
 
-  bool                find(const rak::socket_address& sa);
+  bool                find(const sockaddr* sa);
 
   void                erase_download(DownloadMain* info);
 
-  // Cleanup.
-  void                add_incoming(SocketFd fd, const rak::socket_address& sa);
-  void                add_outgoing(const rak::socket_address& sa, DownloadMain* info);
+  void                add_incoming(int fd, const sockaddr* sa);
+  void                add_outgoing(const sockaddr* sa, DownloadMain* info);
 
   slot_download&      slot_download_id()         { return m_slot_download_id; }
   slot_download&      slot_download_obfuscated() { return m_slot_download_obfuscated; }
@@ -63,10 +58,10 @@ private:
   HandshakeManager(const HandshakeManager&) = delete;
   HandshakeManager& operator=(const HandshakeManager&) = delete;
 
-  void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryptionOptions);
-  void                erase(Handshake* handshake);
+  void                create_outgoing(const sockaddr* sa, DownloadMain* info, int encryptionOptions);
+  value_type          find_and_erase(Handshake* handshake);
 
-  static bool         setup_socket(SocketFd fd);
+  static bool         setup_socket(int fd);
 
   static ProtocolExtension DefaultExtensions;
 

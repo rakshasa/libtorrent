@@ -16,6 +16,7 @@
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
 
@@ -538,9 +539,10 @@ Download::add_peer(const sockaddr* sa, int port) {
   if (m_ptr->info()->is_private())
     return;
 
-  rak::socket_address sa_port = *rak::socket_address::cast_from(sa);
-  sa_port.set_port(port);
-  m_ptr->main()->add_peer(sa_port);
+  auto tmp = sa_copy(sa);
+  sap_set_port(tmp, port);
+
+  m_ptr->main()->add_peer(tmp.get());
 }
 
 DownloadMain* Download::main() { return m_ptr->main(); }

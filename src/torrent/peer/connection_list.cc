@@ -3,7 +3,6 @@
 #include "torrent/peer/connection_list.h"
 
 #include <algorithm>
-#include <rak/socket_address.h>
 
 #include "download/download_main.h"
 #include "net/address_list.h"
@@ -12,6 +11,7 @@
 #include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
 #include "utils/functional.h"
@@ -160,32 +160,30 @@ ConnectionList::disconnect_queued() {
 
 struct connection_list_less {
   bool operator () (const Peer* p1, const Peer* p2) const {
-    return
-      *rak::socket_address::cast_from(p1->peer_info()->socket_address()) <
-      *rak::socket_address::cast_from(p2->peer_info()->socket_address());
+    return sa_less(p1->peer_info()->socket_address(), p2->peer_info()->socket_address());
   }
 
-  bool operator () (const rak::socket_address& sa1, const Peer* p2) const {
-    return sa1 < *rak::socket_address::cast_from(p2->peer_info()->socket_address());
+  bool operator () (const sa_inet_union& sa, const Peer* p2) const {
+    return sa_less(&sa.sa, p2->peer_info()->socket_address());
   }
 
-  bool operator () (const Peer* p1, const rak::socket_address& sa2) const {
-    return *rak::socket_address::cast_from(p1->peer_info()->socket_address()) < sa2;
+  bool operator () (const Peer* p1, const sa_inet_union& sa) const {
+    return sa_less(p1->peer_info()->socket_address(), &sa.sa);
   }
 };
 
 ConnectionList::iterator
 ConnectionList::find(const char* id) {
   return std::find_if(begin(), end(), [id](Peer* p) {
-    return *HashString::cast_from(id) == p->m_ptr()->peer_info()->id();
-  });
+      return *HashString::cast_from(id) == p->m_ptr()->peer_info()->id();
+    });
 }
 
 ConnectionList::iterator
 ConnectionList::find(const sockaddr* sa) {
   return std::find_if(begin(), end(), [sa](Peer* p) {
-    return *rak::socket_address::cast_from(sa) == *p->m_ptr()->peer_info()->socket_address();
-  });
+      return sa_equal(p->m_ptr()->peer_info()->socket_address(), sa);
+    });
 }
 
 void
@@ -197,7 +195,7 @@ ConnectionList::set_difference(AddressList* l) {
 }
 
 void
-ConnectionList::set_min_size(size_type v) { 
+ConnectionList::set_min_size(size_type v) {
   if (v > (1 << 16))
     throw input_error("Min peer connections must be between 0 and 2^16.");
 
@@ -205,7 +203,7 @@ ConnectionList::set_min_size(size_type v) {
 }
 
 void
-ConnectionList::set_max_size(size_type v) { 
+ConnectionList::set_max_size(size_type v) {
   if (v > (1 << 16))
     throw input_error("Max peer connections must be between 0 and 2^16.");
 

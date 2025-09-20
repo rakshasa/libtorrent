@@ -12,9 +12,10 @@
 #include "torrent/download/download_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/object_stream.h"
+#include "torrent/net/network_config.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/net/network_config.h"
 
 #include "extensions.h"
 
@@ -306,10 +307,10 @@ ProtocolExtension::parse_ut_pex() {
 
   // TODO: Sort the list before adding it.
   AddressList l;
+
   l.parse_address_compact(peers);
-  l.sort();
-  l.erase(std::unique(l.begin(), l.end()), l.end());
- 
+  l.sort_and_unique();
+
   m_download->peer_list()->insert_available(&l);
 
   return true;

@@ -24,10 +24,12 @@ void fd_open_pipe(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 void fd_open_socket_pair(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 void fd_close(int fd) LIBTORRENT_EXPORT;
 
-fd_sap_tuple fd_accept(int fd) LIBTORRENT_EXPORT;
+int          fd_accept(int fd) LIBTORRENT_EXPORT;
+fd_sap_tuple fd_sap_accept(int fd) LIBTORRENT_EXPORT;
 
 bool fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool fd_connect(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
+bool fd_connect_with_family(int fd, const sockaddr* sa, int family) LIBTORRENT_EXPORT;
 bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
 bool fd_set_nonblock(int fd) LIBTORRENT_EXPORT;

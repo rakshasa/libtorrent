@@ -18,7 +18,7 @@ DhtNode::DhtNode(const HashString& id, const sockaddr* sa)
 
   // TODO: Change this to use the id hash similar to how peer info
   // hash'es are logged.
-  LT_LOG_THIS("created : address:%s", sa_pretty_str(sa).c_str());
+  LT_LOG_THIS("created node : %s", sa_pretty_str(sa).c_str());
 
   // if (sa->family() != AF_INET &&
   //     (sa->family() != AF_INET6 || !sa->sa_inet6()->is_any()))
