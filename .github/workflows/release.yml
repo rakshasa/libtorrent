@@ -38,7 +38,8 @@ jobs:
          path-exclude /usr/share/info/*
          EOF
          sudo apt-get install --no-install-recommends -y \
-           libcurl4-openssl-dev gcc g++
+           libcurl4-openssl-dev gcc-4.9 g++-4.9
+
 
     ## Fetch the libtorrent current repo
       - uses: actions/checkout@v5
