@@ -55,7 +55,7 @@ jobs:
       - name: Build libtorrent
         run: |
           autoreconf -ivf
-          ./configure
+          ./configure --enable-aligned
           export CORES=`nproc --all`
           export BUILD_THREADS=`expr $CORES - 1`
           echo "Building with $BUILD_THREADS threads in make"
