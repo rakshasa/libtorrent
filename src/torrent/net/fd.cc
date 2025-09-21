@@ -269,6 +269,35 @@ fd_set_reuse_address(int fd, bool state) {
 }
 
 bool
+fd_set_priority(int fd, int family, int priority) {
+  int level;
+  int opt;
+
+  switch (family) {
+    case AF_INET:
+      level = IPPROTO_IP;
+      opt = IP_TOS;
+      break;
+    case AF_INET6:
+      level = IPPROTO_IPV6;
+      opt = IPV6_TCLASS;
+      break;
+    default:
+      errno = EINVAL;
+      LT_LOG_FD_VALUE("fd_set_priority invalid family", family);
+      return false;
+  }
+
+  if (fd__setsockopt_int(fd, level, opt, priority) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_priority failed", priority);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_priority succeeded", priority);
+  return true;
+}
+
+bool
 fd_set_tcp_nodelay(int fd) {
   if (fd__setsockopt_int(fd, IPPROTO_TCP, TCP_NODELAY, true) == -1) {
     LT_LOG_FD_VALUE_ERROR("fd_set_tcp_nodelay failed", true);
@@ -287,6 +316,32 @@ fd_set_v6only(int fd, bool state) {
   }
 
   LT_LOG_FD_VALUE("fd_set_v6only succeeded", state);
+  return true;
+}
+
+bool
+fd_set_send_buffer_size(int fd, uint32_t size) {
+  int opt = size;
+
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_SNDBUF, opt) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_send_buffer_size failed", opt);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_send_buffer_size succeeded", opt);
+  return true;
+}
+
+bool
+fd_set_receive_buffer_size(int fd, uint32_t size) {
+  int opt = size;
+
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_RCVBUF, opt) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_receive_buffer_size failed", opt);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_receive_buffer_size succeeded", opt);
   return true;
 }
 

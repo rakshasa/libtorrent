@@ -27,17 +27,6 @@ SocketFd::set_nonblock() {
 }
 
 bool
-SocketFd::set_priority(priority_type p) {
-  check_valid();
-  int opt = p;
-
-  if (m_ipv6_socket)
-    return setsockopt(m_fd, IPPROTO_IPV6, IPV6_TCLASS, &opt, sizeof(opt)) == 0;
-  else
-    return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
-}
-
-bool
 SocketFd::set_reuse_address(bool state) {
   check_valid();
   int opt = state;

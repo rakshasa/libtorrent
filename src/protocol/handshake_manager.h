@@ -61,7 +61,7 @@ private:
   void                create_outgoing(const sockaddr* sa, DownloadMain* info, int encryptionOptions);
   value_type          find_and_erase(Handshake* handshake);
 
-  static bool         setup_socket(int fd);
+  static bool         setup_socket(int fd, int family);
 
   static ProtocolExtension DefaultExtensions;
 

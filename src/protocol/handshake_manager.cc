@@ -84,9 +84,20 @@ HandshakeManager::erase_download(DownloadMain* info) {
 
 void
 HandshakeManager::add_incoming(int fd, const sockaddr* sa) {
-  if (!manager->connection_manager()->can_connect() ||
-      !manager->connection_manager()->filter(sa) ||
-      !setup_socket(fd)) {
+  if (!manager->connection_manager()->can_connect()) {
+    LT_LOG_SA(sa, "rejected outgoing connection: fd:%i : rejected by connection manager", fd);
+    fd_close(fd);
+    return;
+  }
+
+  if (!manager->connection_manager()->filter(sa)) {
+    LT_LOG_SA(sa, "rejected outgoing connection: fd:%i : filtered", fd);
+    fd_close(fd);
+    return;
+  }
+
+  if (!setup_socket(fd, sa->sa_family)) {
+    LT_LOG_SA(sa, "rejected incoming connection: fd:%i : setup socket failed : %s", fd, std::strerror(errno));
     fd_close(fd);
     return;
   }
@@ -117,10 +128,12 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   if (!(encryption_options & net::NetworkConfig::encryption_retrying))
     connection_options |= PeerList::connect_filter_recent;
 
-  PeerInfo* peerInfo = download->peer_list()->connected(sa, connection_options);
+  PeerInfo* peer_info = download->peer_list()->connected(sa, connection_options);
 
-  if (peerInfo == NULL || peerInfo->failed_counter() > max_failed)
+  if (peer_info == NULL || peer_info->failed_counter() > max_failed) {
+    LT_LOG_SA(sa, "rejected outgoing connection: no peer info or too many failures", 0);
     return;
+  }
 
   auto connect_address = sa_copy(sa);
   auto proxy_address = config::network_config()->proxy_address();
@@ -135,21 +148,29 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   auto prepare_fd = [&fd, &connect_address]() {
       // TODO: Open stream should take into account bind and connect addresses family.
 
-      if (!fd.open_stream())
+      if (!fd.open_stream()) {
+        LT_LOG_SAP(connect_address, "could not create outgoing connection: open stream failed : fd:%i", fd);
         return false;
+      }
 
       int socket_family = fd.is_ipv6_socket() ? AF_INET6 : AF_INET;
 
-      if (!setup_socket(fd.get_fd()))
+      if (!setup_socket(fd.get_fd(), socket_family)) {
+        LT_LOG_SAP(connect_address, "could not create outgoing connection: setup socket failed : fd:%i : %s", fd, std::strerror(errno));
         return false;
+      }
 
       auto bind_address = config::network_config()->bind_address();
 
-      if (bind_address->sa_family != AF_UNSPEC && !fd_bind(fd.get_fd(), bind_address.get()))
+      if (bind_address->sa_family != AF_UNSPEC && !fd_bind(fd.get_fd(), bind_address.get())) {
+        LT_LOG_SAP(connect_address, "could not create reate outgoing connection: bind failed : fd:%i : %s", fd, std::strerror(errno));
         return false;
+      }
 
-      if (!fd_connect_with_family(fd.get_fd(), connect_address.get(), socket_family))
+      if (!fd_connect_with_family(fd.get_fd(), connect_address.get(), socket_family)) {
+        LT_LOG_SAP(connect_address, "could not create outgoing connection: connect failed : fd:%i : %s", fd, std::strerror(errno));
         return false;
+      }
 
       return true;
     };
@@ -158,7 +179,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
     if (fd.is_valid())
       fd.close();
 
-    download->peer_list()->disconnected(peerInfo, 0);
+    download->peer_list()->disconnected(peer_info, 0);
     return;
   }
 
@@ -175,7 +196,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   manager->connection_manager()->inc_socket_count();
 
   auto handshake = std::make_unique<Handshake>(fd.get_fd(), this, encryption_options);
-  handshake->initialize_outgoing(sa, download, peerInfo);
+  handshake->initialize_outgoing(sa, download, peer_info);
 
   base_type::push_back(std::move(handshake));
 }
@@ -268,23 +289,23 @@ HandshakeManager::receive_timeout(Handshake* h) {
 }
 
 bool
-HandshakeManager::setup_socket(int fd) {
+HandshakeManager::setup_socket(int fd, int family) {
+  errno = 0;
+
   if (!fd_set_nonblock(fd))
     return false;
 
-  SocketFd fd_wrapper(fd);
-
-  auto priority = config::network_config()->priority();
+  auto priority         = config::network_config()->priority();
   auto send_buffer_size = config::network_config()->send_buffer_size();
   auto recv_buffer_size = config::network_config()->receive_buffer_size();
 
-  if (priority != net::NetworkConfig::iptos_default && !fd_wrapper.set_priority(priority))
+  if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
     return false;
 
-  if (send_buffer_size != 0 && !fd_wrapper.set_send_buffer_size(send_buffer_size))
+  if (send_buffer_size != 0 && !fd_set_send_buffer_size(fd, send_buffer_size))
     return false;
 
-  if (recv_buffer_size != 0 && !fd_wrapper.set_receive_buffer_size(recv_buffer_size))
+  if (recv_buffer_size != 0 && !fd_set_receive_buffer_size(fd, recv_buffer_size))
     return false;
 
   return true;

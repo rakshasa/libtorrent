@@ -68,14 +68,14 @@ NetworkConfig::set_prefer_ipv6(bool v) {
   m_prefer_ipv6 = v;
 }
 
-uint8_t
+int
 NetworkConfig::priority() const {
   auto guard = lock_guard();
   return m_priority;
 }
 
 void
-NetworkConfig::set_priority(uint8_t p) {
+NetworkConfig::set_priority(int p) {
   auto guard = lock_guard();
   m_priority = p;
 }

@@ -18,10 +18,10 @@ namespace torrent::net {
 
 class LIBTORRENT_EXPORT NetworkConfig {
 public:
-  static constexpr uint8_t iptos_default     = 0;
-  static constexpr uint8_t iptos_lowdelay    = IPTOS_LOWDELAY;
-  static constexpr uint8_t iptos_throughput  = IPTOS_THROUGHPUT;
-  static constexpr uint8_t iptos_reliability = IPTOS_RELIABILITY;
+  static constexpr int iptos_default     = 0;
+  static constexpr int iptos_lowdelay    = IPTOS_LOWDELAY;
+  static constexpr int iptos_throughput  = IPTOS_THROUGHPUT;
+  static constexpr int iptos_reliability = IPTOS_RELIABILITY;
 
   static constexpr uint32_t encryption_none             = 0;
   static constexpr uint32_t encryption_allow_incoming   = 0x1;
@@ -62,8 +62,8 @@ public:
   void                set_block_ipv4in6(bool v);
   void                set_prefer_ipv6(bool v);
 
-  uint8_t             priority() const;
-  void                set_priority(uint8_t p);
+  int                 priority() const;
+  void                set_priority(int p);
 
   c_sa_shared_ptr     bind_address() const;
   std::string         bind_address_str() const;
@@ -113,7 +113,7 @@ private:
   bool                m_block_ipv4in6{false};
   bool                m_prefer_ipv6{false};
 
-  uint8_t             m_priority{iptos_throughput};
+  int                 m_priority{iptos_throughput};
 
   c_sa_shared_ptr     m_bind_address;
   c_sa_shared_ptr     m_local_address;
