@@ -25,6 +25,16 @@ public:
   // We should set the main http bind address in set_bind_address, and have special handling if it
   // is overridden by the user.
 
+  bool                is_block_ipv4() const;
+  bool                is_block_ipv6() const;
+  bool                is_block_ipv4in6() const;
+  bool                is_prefer_ipv6() const;
+
+  void                set_block_ipv4(bool v);
+  void                set_block_ipv6(bool v);
+  void                set_block_ipv4in6(bool v);
+  void                set_prefer_ipv6(bool v);
+
   c_sa_shared_ptr     bind_address() const;
   std::string         bind_address_str() const;
   void                set_bind_address(const sockaddr* sa);
@@ -59,6 +69,11 @@ protected:
 
 private:
   mutable std::mutex  m_mutex;
+
+  bool                m_block_ipv4{false};
+  bool                m_block_ipv6{false};
+  bool                m_block_ipv4in6{false};
+  bool                m_prefer_ipv6{false};
 
   c_sa_shared_ptr     m_bind_address;
   c_sa_shared_ptr     m_local_address;

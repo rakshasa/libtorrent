@@ -39,13 +39,13 @@ ConnectionManager::set_encryption_options(uint32_t options) {
 
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
-  if (m_block_ipv4 && sa_is_inet(sa))
+  if (config::network_config()->is_block_ipv4() && sa_is_inet(sa))
     return 0;
 
-  if (m_block_ipv6 && sa_is_inet6(sa))
+  if (config::network_config()->is_block_ipv6() && sa_is_inet6(sa))
     return 0;
 
-  if (m_block_ipv4in6 && sa_is_v4mapped(sa))
+  if (config::network_config()->is_block_ipv4in6() && sa_is_v4mapped(sa))
     return 0;
 
   if (m_slot_filter)
@@ -66,7 +66,7 @@ ConnectionManager::listen_open(port_type begin, port_type end) {
 
   switch (bind_address->sa_family) {
   case AF_UNSPEC:
-    if (m_block_ipv6)
+    if (config::network_config()->is_block_ipv6())
       bind_address = sa_make_inet_any();
     else
       bind_address = sa_make_inet6_any();

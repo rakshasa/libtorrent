@@ -20,6 +20,54 @@ NetworkConfig::NetworkConfig() {
   m_proxy_address = sa_make_unspec();
 }
 
+bool
+NetworkConfig::is_block_ipv4() const {
+  auto guard = lock_guard();
+  return m_block_ipv4;
+}
+
+bool
+NetworkConfig::is_block_ipv6() const {
+  auto guard = lock_guard();
+  return m_block_ipv6;
+}
+
+bool
+NetworkConfig::is_block_ipv4in6() const {
+  auto guard = lock_guard();
+  return m_block_ipv4in6;
+}
+
+bool
+NetworkConfig::is_prefer_ipv6() const {
+  auto guard = lock_guard();
+  return m_prefer_ipv6;
+}
+
+void
+NetworkConfig::set_block_ipv4(bool v) {
+  auto guard = lock_guard();
+  m_block_ipv4 = v;
+}
+
+void
+NetworkConfig::set_block_ipv6(bool v) {
+  auto guard = lock_guard();
+  m_block_ipv6 = v;
+}
+
+void
+NetworkConfig::set_block_ipv4in6(bool v) {
+  auto guard = lock_guard();
+  m_block_ipv4in6 = v;
+}
+
+void
+NetworkConfig::set_prefer_ipv6(bool v) {
+  auto guard = lock_guard();
+  m_prefer_ipv6 = v;
+}
+
 c_sa_shared_ptr
 NetworkConfig::bind_address() const {
   auto guard = lock_guard();
