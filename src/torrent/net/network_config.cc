@@ -68,6 +68,18 @@ NetworkConfig::set_prefer_ipv6(bool v) {
   m_prefer_ipv6 = v;
 }
 
+uint8_t
+NetworkConfig::priority() const {
+  auto guard = lock_guard();
+  return m_priority;
+}
+
+void
+NetworkConfig::set_priority(uint8_t p) {
+  auto guard = lock_guard();
+  m_priority = p;
+}
+
 c_sa_shared_ptr
 NetworkConfig::bind_address() const {
   auto guard = lock_guard();
@@ -78,6 +90,30 @@ std::string
 NetworkConfig::bind_address_str() const {
   auto guard = lock_guard();
   return sa_addr_str(m_bind_address.get());
+}
+
+c_sa_shared_ptr
+NetworkConfig::local_address() const {
+  auto guard = lock_guard();
+  return m_local_address;
+}
+
+std::string
+NetworkConfig::local_address_str() const {
+  auto guard = lock_guard();
+  return sa_addr_str(m_local_address.get());
+}
+
+c_sa_shared_ptr
+NetworkConfig::proxy_address() const {
+  auto guard = lock_guard();
+  return m_proxy_address;
+}
+
+std::string
+NetworkConfig::proxy_address_str() const {
+  auto guard = lock_guard();
+  return sa_pretty_str(m_proxy_address.get());
 }
 
 // TODO: Move all management tasks here.
@@ -105,18 +141,6 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
   // TODO: Warning if not matching block/prefer
 }
 
-c_sa_shared_ptr
-NetworkConfig::local_address() const {
-  auto guard = lock_guard();
-  return m_local_address;
-}
-
-std::string
-NetworkConfig::local_address_str() const {
-  auto guard = lock_guard();
-  return sa_addr_str(m_local_address.get());
-}
-
 void
 NetworkConfig::set_local_address(const sockaddr* sa) {
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
@@ -130,18 +154,6 @@ NetworkConfig::set_local_address(const sockaddr* sa) {
   LT_LOG_NOTICE("local address : %s", sa_pretty_str(sa).c_str());
 
   m_local_address = sa_copy(sa);
-}
-
-c_sa_shared_ptr
-NetworkConfig::proxy_address() const {
-  auto guard = lock_guard();
-  return m_proxy_address;
-}
-
-std::string
-NetworkConfig::proxy_address_str() const {
-  auto guard = lock_guard();
-  return sa_pretty_str(m_proxy_address.get());
 }
 
 void
@@ -191,6 +203,42 @@ void
 NetworkConfig::set_override_dht_port(uint16_t port) {
   auto guard = lock_guard();
   m_override_dht_port = port;
+}
+
+uint32_t
+NetworkConfig::encryption_options() const {
+  auto guard = lock_guard();
+  return m_encryption_options;
+}
+
+void
+NetworkConfig::set_encryption_options(uint32_t opts) {
+  auto guard = lock_guard();
+  m_encryption_options = opts;
+}
+
+uint32_t
+NetworkConfig::send_buffer_size() const {
+  auto guard = lock_guard();
+  return m_send_buffer_size;
+}
+
+uint32_t
+NetworkConfig::receive_buffer_size() const {
+  auto guard = lock_guard();
+  return m_receive_buffer_size;
+}
+
+void
+NetworkConfig::set_send_buffer_size(uint32_t s) {
+  auto guard = lock_guard();
+  m_send_buffer_size = s;
+}
+
+void
+NetworkConfig::set_receive_buffer_size(uint32_t s) {
+  auto guard = lock_guard();
+  m_receive_buffer_size = s;
 }
 
 void

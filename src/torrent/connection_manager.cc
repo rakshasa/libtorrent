@@ -22,21 +22,6 @@ ConnectionManager::can_connect() const {
   return m_size < m_maxSize;
 }
 
-void
-ConnectionManager::set_send_buffer_size(uint32_t s) {
-  m_sendBufferSize = s;
-}
-
-void
-ConnectionManager::set_receive_buffer_size(uint32_t s) {
-  m_receiveBufferSize = s;
-}
-
-void
-ConnectionManager::set_encryption_options(uint32_t options) {
-  m_encryptionOptions = options;
-}
-
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
   if (config::network_config()->is_block_ipv4() && sa_is_inet(sa))

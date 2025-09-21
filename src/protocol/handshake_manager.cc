@@ -95,7 +95,7 @@ HandshakeManager::add_incoming(int fd, const sockaddr* sa) {
 
   manager->connection_manager()->inc_socket_count();
 
-  auto handshake = std::make_unique<Handshake>(fd, this, manager->connection_manager()->encryption_options());
+  auto handshake = std::make_unique<Handshake>(fd, this, config::network_config()->encryption_options());
   handshake->initialize_incoming(sa);
 
   base_type::push_back(std::move(handshake));
@@ -107,14 +107,14 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
       !manager->connection_manager()->filter(sa))
     return;
 
-  create_outgoing(sa, download, manager->connection_manager()->encryption_options());
+  create_outgoing(sa, download, config::network_config()->encryption_options());
 }
 
 void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
   int connection_options = PeerList::connect_keep_handshakes;
 
-  if (!(encryption_options & ConnectionManager::encryption_retrying))
+  if (!(encryption_options & net::NetworkConfig::encryption_retrying))
     connection_options |= PeerList::connect_filter_recent;
 
   PeerInfo* peerInfo = download->peer_list()->connected(sa, connection_options);
@@ -127,7 +127,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 
   if (proxy_address->sa_family != AF_UNSPEC) {
     connect_address = sa_copy(proxy_address.get());
-    encryption_options |= ConnectionManager::encryption_use_proxy;
+    encryption_options |= net::NetworkConfig::encryption_use_proxy;
   }
 
   SocketFd fd;
@@ -164,9 +164,9 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 
   int message;
 
-  if (encryption_options & ConnectionManager::encryption_use_proxy)
+  if (encryption_options & net::NetworkConfig::encryption_use_proxy)
     message = ConnectionManager::handshake_outgoing_proxy;
-  else if (encryption_options & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require))
+  else if (encryption_options & (net::NetworkConfig::encryption_try_outgoing | net::NetworkConfig::encryption_require))
     message = ConnectionManager::handshake_outgoing_encrypted;
   else
     message = ConnectionManager::handshake_outgoing;
@@ -250,10 +250,10 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
 
   if (handshake->encryption()->should_retry()) {
-    int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
+    int retry_options = handshake->retry_options() | net::NetworkConfig::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SA(sa, "Retrying %s.", retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
+    LT_LOG_SA(sa, "Retrying %s.", retry_options & net::NetworkConfig::encryption_try_outgoing ? "encrypted" : "plaintext");
 
     create_outgoing(sa, download, retry_options);
   }
@@ -272,17 +272,19 @@ HandshakeManager::setup_socket(int fd) {
   if (!fd_set_nonblock(fd))
     return false;
 
-  ConnectionManager* m = manager->connection_manager();
-
   SocketFd fd_wrapper(fd);
 
-  if (m->priority() != ConnectionManager::iptos_default && !fd_wrapper.set_priority(m->priority()))
+  auto priority = config::network_config()->priority();
+  auto send_buffer_size = config::network_config()->send_buffer_size();
+  auto recv_buffer_size = config::network_config()->receive_buffer_size();
+
+  if (priority != net::NetworkConfig::iptos_default && !fd_wrapper.set_priority(priority))
     return false;
 
-  if (m->send_buffer_size() != 0 && !fd_wrapper.set_send_buffer_size(m->send_buffer_size()))
+  if (send_buffer_size != 0 && !fd_wrapper.set_send_buffer_size(send_buffer_size))
     return false;
 
-  if (m->receive_buffer_size() != 0 && !fd_wrapper.set_receive_buffer_size(m->receive_buffer_size()))
+  if (recv_buffer_size != 0 && !fd_wrapper.set_receive_buffer_size(recv_buffer_size))
     return false;
 
   return true;

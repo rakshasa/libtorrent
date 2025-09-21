@@ -20,33 +20,8 @@ class LIBTORRENT_EXPORT ConnectionManager {
 public:
   using size_type     = uint32_t;
   using port_type     = uint16_t;
-  using priority_type = uint8_t;
 
-  static constexpr priority_type iptos_default     = 0;
-  static constexpr priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
-  static constexpr priority_type iptos_throughput  = IPTOS_THROUGHPUT;
-  static constexpr priority_type iptos_reliability = IPTOS_RELIABILITY;
-
-#if defined IPTOS_MINCOST
-  static constexpr priority_type iptos_mincost     = IPTOS_MINCOST;
-#elif defined IPTOS_LOWCOST
-  static constexpr priority_type iptos_mincost     = IPTOS_LOWCOST;
-#else
-  static constexpr priority_type iptos_mincost     = iptos_throughput;
-#endif
-
-  static constexpr uint32_t encryption_none             = 0;
-  static constexpr uint32_t encryption_allow_incoming   = (1 << 0);
-  static constexpr uint32_t encryption_try_outgoing     = (1 << 1);
-  static constexpr uint32_t encryption_require          = (1 << 2);
-  static constexpr uint32_t encryption_require_RC4      = (1 << 3);
-  static constexpr uint32_t encryption_enable_retry     = (1 << 4);
-  static constexpr uint32_t encryption_prefer_plaintext = (1 << 5);
-
-  // Internal to libtorrent.
-  static constexpr uint32_t encryption_use_proxy        = (1 << 6);
-  static constexpr uint32_t encryption_retrying         = (1 << 7);
-
+  // TODO: Move.
   enum {
     handshake_incoming           = 1,
     handshake_outgoing           = 2,
@@ -80,16 +55,7 @@ public:
   size_type           size() const                            { return m_size; }
   size_type           max_size() const                        { return m_maxSize; }
 
-  priority_type       priority() const                        { return m_priority; }
-  uint32_t            send_buffer_size() const                { return m_sendBufferSize; }
-  uint32_t            receive_buffer_size() const             { return m_receiveBufferSize; }
-  uint32_t            encryption_options() const              { return m_encryptionOptions; }
-
   void                set_max_size(size_type s)               { m_maxSize = s; }
-  void                set_priority(priority_type p)           { m_priority = p; }
-  void                set_send_buffer_size(uint32_t s);
-  void                set_receive_buffer_size(uint32_t s);
-  void                set_encryption_options(uint32_t options);
 
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
@@ -111,11 +77,6 @@ public:
 private:
   size_type           m_size{0};
   size_type           m_maxSize{0};
-
-  priority_type       m_priority{iptos_throughput};
-  uint32_t            m_sendBufferSize{0};
-  uint32_t            m_receiveBufferSize{0};
-  int                 m_encryptionOptions{encryption_none};
 
   Listen*             m_listen;
 
