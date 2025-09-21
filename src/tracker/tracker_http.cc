@@ -99,7 +99,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   auto local_address = config::network_config()->local_address();
 
   if (sa_is_any(local_address.get())) {
-    if (manager->connection_manager()->is_prefer_ipv6()) {
+    if (config::network_config()->is_prefer_ipv6()) {
       auto ipv6_address = detect_local_sin6_addr();
 
       if (ipv6_address != nullptr) {
@@ -141,9 +141,17 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
 
-  bool is_block_ipv4 = manager->connection_manager()->is_block_ipv4();
-  bool is_block_ipv6 = manager->connection_manager()->is_block_ipv6();
-  bool is_prefer_ipv6 = manager->connection_manager()->is_prefer_ipv6();
+  // TODO: Move to network config and add simple retry other AF logic.
+
+  // TODO: We need to handle retry logic here, not in http stack, as we need to change the bind
+  // address? Or is this handled by the http stack?
+  //
+  // TODO: We need to include ipv4/ipv6 param in tracker requests if we bind to the other, so it
+  // needs to be handled here.
+
+  bool is_block_ipv4 = config::network_config()->is_block_ipv4();
+  bool is_block_ipv6 = config::network_config()->is_block_ipv6();
+  bool is_prefer_ipv6 = config::network_config()->is_prefer_ipv6();
 
   // If both IPv4 and IPv6 are blocked, we cannot send the request.
   //

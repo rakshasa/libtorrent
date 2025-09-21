@@ -25,8 +25,6 @@ public:
   bool                set_reuse_address(bool state);
   bool                set_ipv6_v6only(bool state);
 
-  bool                set_priority(priority_type p);
-
   bool                set_send_buffer_size(uint32_t s);
   bool                set_receive_buffer_size(uint32_t s);
 

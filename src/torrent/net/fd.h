@@ -34,8 +34,12 @@ bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
 bool fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
 bool fd_set_reuse_address(int fd, bool state) LIBTORRENT_EXPORT;
+bool fd_set_priority(int fd, int family, int priority) LIBTORRENT_EXPORT;
 bool fd_set_tcp_nodelay(int fd) LIBTORRENT_EXPORT;
 bool fd_set_v6only(int fd, bool state) LIBTORRENT_EXPORT;
+
+bool fd_set_send_buffer_size(int fd, uint32_t size) LIBTORRENT_EXPORT;
+bool fd_set_receive_buffer_size(int fd, uint32_t size) LIBTORRENT_EXPORT;
 
 // Defined with gnu::weak so that we can override them in tests.
 [[gnu::weak]] int fd__accept(int socket, sockaddr *address, socklen_t *address_len) LIBTORRENT_EXPORT;
