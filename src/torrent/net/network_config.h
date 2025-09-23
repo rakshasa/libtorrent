@@ -55,11 +55,13 @@ public:
   bool                is_block_ipv4() const;
   bool                is_block_ipv6() const;
   bool                is_block_ipv4in6() const;
+  bool                is_block_outgoing() const;
   bool                is_prefer_ipv6() const;
 
   void                set_block_ipv4(bool v);
   void                set_block_ipv6(bool v);
   void                set_block_ipv4in6(bool v);
+  void                set_block_outgoing(bool v);
   void                set_prefer_ipv6(bool v);
 
   int                 priority() const;
@@ -111,6 +113,7 @@ private:
   bool                m_block_ipv4{false};
   bool                m_block_ipv6{false};
   bool                m_block_ipv4in6{false};
+  bool                m_block_outgoing{false};
   bool                m_prefer_ipv6{false};
 
   int                 m_priority{iptos_throughput};
