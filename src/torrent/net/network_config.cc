@@ -39,6 +39,12 @@ NetworkConfig::is_block_ipv4in6() const {
 }
 
 bool
+NetworkConfig::is_block_outgoing() const {
+  auto guard = lock_guard();
+  return m_block_outgoing;
+}
+
+bool
 NetworkConfig::is_prefer_ipv6() const {
   auto guard = lock_guard();
   return m_prefer_ipv6;
@@ -60,6 +66,12 @@ void
 NetworkConfig::set_block_ipv4in6(bool v) {
   auto guard = lock_guard();
   m_block_ipv4in6 = v;
+}
+
+void
+NetworkConfig::set_block_outgoing(bool v) {
+  auto guard = lock_guard();
+  m_block_outgoing = v;
 }
 
 void
