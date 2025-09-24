@@ -24,12 +24,12 @@ TransferList::~TransferList() {
 
 TransferList::iterator
 TransferList::find(uint32_t index) {
-  return std::find_if(begin(), end(), [index](BlockList* b) { return index == b->index(); });
+  return std::find_if(begin(), end(), [index](auto b) { return index == b->index(); });
 }
 
 TransferList::const_iterator
 TransferList::find(uint32_t index) const {
-  return std::find_if(begin(), end(), [index](BlockList* b) { return index == b->index(); });
+  return std::find_if(begin(), end(), [index](auto b) { return index == b->index(); });
 }
 
 void

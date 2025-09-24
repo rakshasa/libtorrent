@@ -50,7 +50,7 @@ public:
 
   const char*         type_name() const override      { return "pcb"; }
 
-  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
+  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, const EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
   bool                is_up_choked() const            { return m_upChoke.choked(); }
@@ -109,7 +109,7 @@ public:
   // Communication with the protocol extensions
   virtual void        receive_metadata_piece(uint32_t piece, const char* data, uint32_t length);
 
-  bool                should_connection_unchoke(choke_queue* cq) const;
+  bool                should_connection_unchoke(const choke_queue* cq) const;
 
 protected:
   static constexpr uint32_t extension_must_encrypt = ~uint32_t();

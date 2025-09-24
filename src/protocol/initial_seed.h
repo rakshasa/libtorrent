@@ -58,7 +58,7 @@ public:
 
   // During the second stage (seeding rare chunks), return
   // false if given chunk is already well-seeded now. True otherwise.
-  bool                should_upload(uint32_t index);
+  bool                should_upload(uint32_t index) const;
 
 private:
   InitialSeeding(const InitialSeeding&) = delete;
@@ -70,7 +70,7 @@ private:
 
   uint32_t            find_next(bool secondary, PeerConnectionBase* pcb);
 
-  static bool         valid_peer(PeerInfo* peer);
+  static bool         valid_peer(const PeerInfo* peer);
   static void         clear_peer(PeerInfo* peer);
   void                chunk_complete(uint32_t index, PeerConnectionBase* pcb);
 

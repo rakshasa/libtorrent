@@ -214,7 +214,7 @@ DhtServer::cancel_announce(const HashString* info_hash, const TrackerDht* tracke
 
   while (itr != m_transactions.end()) {
     if (itr->second->is_search() && itr->second->as_search()->search()->is_announce()) {
-      auto announce = static_cast<DhtAnnounce*>(itr->second->as_search()->search());
+      auto announce = static_cast<const DhtAnnounce*>(itr->second->as_search()->search());
 
       if ((info_hash == nullptr || announce->target() == *info_hash) && (tracker == nullptr || announce->tracker() == tracker)) {
         drop_packet(itr->second->packet());
