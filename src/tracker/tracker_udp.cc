@@ -227,6 +227,8 @@ TrackerUdp::start_announce() {
     return receive_failed("failed to bind socket to udp address '" + pretty_addr + "' with error '" + error_str + "'");
   }
 
+  // TODO: Do connect here.
+
   // TODO: Don't recreate buffers.
   m_read_buffer = std::make_unique<ReadBuffer>();
   m_write_buffer = std::make_unique<WriteBuffer>();

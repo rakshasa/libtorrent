@@ -6,7 +6,7 @@
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
-#include "torrent/net/types.h"
+#include "torrent/net/connection_state.h"
 #include "torrent/utils/scheduler.h"
 #include "tracker/tracker_worker.h"
 
@@ -62,6 +62,8 @@ private:
 
   bool                m_resolver_requesting{false};
   bool                m_sending_announce{false};
+
+  net::ConnectionState m_connection_state;
 
   sockaddr*           m_current_address{nullptr};
   sin_unique_ptr      m_inet_address;
