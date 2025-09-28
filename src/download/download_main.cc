@@ -22,6 +22,7 @@
 #include "torrent/download/download_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/network_config.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
@@ -284,6 +285,9 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 
 void
 DownloadMain::add_peer(const sockaddr* sa) {
+  if (config::network_config()->is_block_outgoing())
+    return;
+
   m_slot_start_handshake(sa, this);
 }
 
@@ -300,6 +304,9 @@ DownloadMain::receive_connect_peers() {
     peer_list()->insert_available(alist);
     alist->clear();
   }
+
+  if (config::network_config()->is_block_outgoing())
+    return;
 
   while (!peer_list()->available_list()->empty() &&
          manager->connection_manager()->can_connect() &&

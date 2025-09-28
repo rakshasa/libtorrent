@@ -3,12 +3,12 @@
 #include <array>
 #include <cstring>
 
-#include "torrent/connection_manager.h"
 #include "torrent/download.h"
-#include "torrent/download/choke_group.h"
-#include "torrent/download/choke_queue.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
+#include "torrent/download/choke_group.h"
+#include "torrent/download/choke_queue.h"
+#include "torrent/net/network_config.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/utils/option_strings.h"
 
@@ -54,14 +54,14 @@ constexpr option_pair option_list_heuristics_upload[] = {
 };
 
 constexpr option_pair option_list_encryption[] = {
-  { "none",             torrent::ConnectionManager::encryption_none },
-  { "allow_incoming",   torrent::ConnectionManager::encryption_allow_incoming },
-  { "try_outgoing",     torrent::ConnectionManager::encryption_try_outgoing },
-  { "require",          torrent::ConnectionManager::encryption_require },
-  { "require_RC4",      torrent::ConnectionManager::encryption_require_RC4 },
-  { "require_rc4",      torrent::ConnectionManager::encryption_require_RC4 },
-  { "enable_retry",     torrent::ConnectionManager::encryption_enable_retry },
-  { "prefer_plaintext", torrent::ConnectionManager::encryption_prefer_plaintext },
+  { "none",             torrent::net::NetworkConfig::encryption_none },
+  { "allow_incoming",   torrent::net::NetworkConfig::encryption_allow_incoming },
+  { "try_outgoing",     torrent::net::NetworkConfig::encryption_try_outgoing },
+  { "require",          torrent::net::NetworkConfig::encryption_require },
+  { "require_RC4",      torrent::net::NetworkConfig::encryption_require_RC4 },
+  { "require_rc4",      torrent::net::NetworkConfig::encryption_require_RC4 },
+  { "enable_retry",     torrent::net::NetworkConfig::encryption_enable_retry },
+  { "prefer_plaintext", torrent::net::NetworkConfig::encryption_prefer_plaintext },
   { NULL, 0 }
 };
 
@@ -72,11 +72,10 @@ constexpr option_pair option_list_ip_filter[] = {
 };
 
 constexpr option_pair option_list_ip_tos[] = {
-  { "default",     torrent::ConnectionManager::iptos_default },
-  { "lowdelay",    torrent::ConnectionManager::iptos_lowdelay },
-  { "throughput",  torrent::ConnectionManager::iptos_throughput },
-  { "reliability", torrent::ConnectionManager::iptos_reliability },
-  { "mincost",     torrent::ConnectionManager::iptos_mincost },
+  { "default",     torrent::net::NetworkConfig::iptos_default },
+  { "lowdelay",    torrent::net::NetworkConfig::iptos_lowdelay },
+  { "throughput",  torrent::net::NetworkConfig::iptos_throughput },
+  { "reliability", torrent::net::NetworkConfig::iptos_reliability },
   { NULL, 0 }
 };
 
