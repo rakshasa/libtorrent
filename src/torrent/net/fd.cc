@@ -111,6 +111,20 @@ fd_open(fd_flags flags) {
   return fd;
 }
 
+int
+fd_open_family(fd_flags flags, int family) {
+  if (family != AF_INET && family != AF_INET6) {
+    LT_LOG_FLAG("fd_open_family invalid family");
+    errno = EINVAL;
+    return -1;
+  }
+
+  if (family == AF_INET)
+    flags |= fd_flag_v4;
+
+  return fd_open(flags);
+}
+
 void
 fd_open_pipe(int& fd1, int& fd2) {
   int result[2];

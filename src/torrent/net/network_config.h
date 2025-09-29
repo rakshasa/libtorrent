@@ -67,14 +67,35 @@ public:
   int                 priority() const;
   void                set_priority(int p);
 
-  c_sa_shared_ptr     bind_address() const;
-  std::string         bind_address_str() const;
+  // Use bind_address_best_match for display purposes only, or if you manually check blocking.
+  //
+  // If bind_address_or_null returns null, then available protocols are blocked. This means if the
+  // user binds to e.g. inet6 and blocks ipv6, then no connections are possible.
+  //
+  // To bind one and keep the other protocol unbound, set the other address to either 0.0.0.0 or ::.
+
+  c_sa_shared_ptr     bind_address_best_match() const;
+  std::string         bind_address_best_match_str() const;
+  c_sa_shared_ptr     bind_address_or_unspec_and_null() const;
+  c_sa_shared_ptr     bind_address_or_any_and_null() const;
+  c_sa_shared_ptr     bind_address_for_connect(int family) const;
+
+  c_sa_shared_ptr     bind_inet_address() const;
+  std::string         bind_inet_address_str() const;
+  c_sa_shared_ptr     bind_inet6_address() const;
+  std::string         bind_inet6_address_str() const;
+
   c_sa_shared_ptr     local_address() const;
   std::string         local_address_str() const;
   c_sa_shared_ptr     proxy_address() const;
   std::string         proxy_address_str() const;
 
+  // When set_bind_inet*_address is used, http stack bind address needs to be manually set.
+  //
+  // TODO: Change http stack to use NetworkConfig
   void                set_bind_address(const sockaddr* sa);
+  void                set_bind_inet_address(const sockaddr* sa);
+  void                set_bind_inet6_address(const sockaddr* sa);
   void                set_local_address(const sockaddr* sa);
   void                set_proxy_address(const sockaddr* sa);
 
@@ -116,9 +137,11 @@ private:
   bool                m_block_outgoing{false};
   bool                m_prefer_ipv6{false};
 
+  // TODO: Rename m_tos_priority.
   int                 m_priority{iptos_throughput};
 
-  c_sa_shared_ptr     m_bind_address;
+  c_sa_shared_ptr     m_bind_inet_address;
+  c_sa_shared_ptr     m_bind_inet6_address;
   c_sa_shared_ptr     m_local_address;
   c_sa_shared_ptr     m_proxy_address;
 

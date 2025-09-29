@@ -200,26 +200,50 @@ TrackerUdp::start_announce() {
 
   m_sending_announce = false;
 
-  // TODO: Properly select preferred protocol and on failure try the other one.
+  c_sa_shared_ptr bind_address;
 
-  if (m_inet_address != nullptr)
+  // TODO: This does not properly handle blocked protocols.
+
+  if (m_inet_address != nullptr && m_inet6_address != nullptr) {
+    bind_address = config::network_config()->bind_address_or_any_and_null();
+
+    if (bind_address != nullptr) {
+      if (bind_address->sa_family == AF_INET6)
+        m_current_address = reinterpret_cast<sockaddr*>(m_inet6_address.get());
+      else
+        m_current_address = reinterpret_cast<sockaddr*>(m_inet_address.get());
+    }
+
+  } else if (m_inet_address != nullptr) {
+    bind_address = config::network_config()->bind_address_for_connect(AF_INET);
     m_current_address = reinterpret_cast<sockaddr*>(m_inet_address.get());
-  else if (m_inet6_address != nullptr)
+
+  } else if (m_inet6_address != nullptr) {
+    bind_address = config::network_config()->bind_address_for_connect(AF_INET6);
     m_current_address = reinterpret_cast<sockaddr*>(m_inet6_address.get());
-  else
+
+  } else {
     throw internal_error("TrackerUdp::start_announce() called but both m_inet_address and m_inet6_address are nullptr.");
-
-  LT_LOG("starting announce : address:%s", sa_pretty_str(m_current_address).c_str());
-
-  // TODO: Make each of these a separate error... at the very least separate open and bind.
-  if (!get_fd().open_datagram() || !get_fd().set_nonblock()) {
-    LT_LOG("could not open UDP socket", 0);
-    return receive_failed("could not open UDP socket");
   }
 
-  auto bind_address = config::network_config()->bind_address();
+  if (bind_address == nullptr) {
+    LT_LOG("could not create outgoing connection: blocked or invalid bind address", 0);
+    return receive_failed("could not create outgoing connection: blocked or invalid bind address");
+  }
 
-  if (bind_address->sa_family != AF_UNSPEC && !fd_bind(get_fd().get_fd(), bind_address.get())) {
+  // TODO: Properly handle retry with failover to other protocol, and check prefer_ipv6.
+
+  LT_LOG("starting announce : connect_address:%s bind_address:%s",
+         sa_pretty_str(m_current_address).c_str(), sa_pretty_str(bind_address.get()).c_str());
+
+  m_fileDesc = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
+
+  if (m_fileDesc == -1) {
+    LT_LOG("could not open UDP socket: fd:%i error:'%s'", m_fileDesc, std::strerror(errno));
+    return receive_failed("could not open UDP socket: " + std::string(std::strerror(errno)));
+  }
+
+  if (sa_is_any(bind_address.get()) && !fd_bind(m_fileDesc, bind_address.get())) {
     auto pretty_addr = sa_pretty_str(bind_address.get());
     auto error_str = strerror(errno);
 

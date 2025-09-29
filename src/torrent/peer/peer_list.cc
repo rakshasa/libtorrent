@@ -201,6 +201,8 @@ PeerInfo*
 PeerList::connected(const sockaddr* sa, int flags) {
   // TODO: Rewrite to use new socket address api after fixing bug.
 
+  // TODO: Handle 4in6 addresses.
+
   auto sock_key = socket_address_key::from_sockaddr(sa);
   auto addr_str = sa_addr_str(sa);
   auto port = sa_port(sa);
