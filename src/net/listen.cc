@@ -136,10 +136,13 @@ Listen::event_write() {
 
 void
 Listen::event_error() {
-  int error = get_fd().get_error();
+  int socket_error;
 
-  if (error != 0)
-    throw internal_error("Listener port received an error event: " + std::string(std::strerror(error)));
+  if (!fd_get_socket_error(m_fileDesc, &socket_error))
+    throw internal_error("Listener port could not get socket error: " + std::string(std::strerror(errno)));
+
+  if (socket_error != 0)
+    throw internal_error("Listener port received an error event: " + std::string(std::strerror(socket_error)));
 }
 
 } // namespace torrent

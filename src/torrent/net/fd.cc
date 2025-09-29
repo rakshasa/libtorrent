@@ -252,11 +252,24 @@ fd_connect_with_family(int fd, const sockaddr* sa, int family) {
 bool
 fd_listen(int fd, int backlog) {
   if (fd__listen(fd, backlog) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_listen failed", backlog);
+    LT_LOG_FD_VALUE_ERROR("fd_listen() failed", backlog);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_listen succeeded", backlog);
+  LT_LOG_FD_VALUE("fd_listen() succeeded", backlog);
+  return true;
+}
+
+bool
+fd_get_socket_error(int fd, int* value) {
+  socklen_t length = sizeof(int);
+
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, value, &length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_socket_error() failed");
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_get_socket_error() succeeded", *value);
   return true;
 }
 

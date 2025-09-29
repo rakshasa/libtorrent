@@ -245,7 +245,7 @@ TrackerUdp::start_announce() {
 
   if (!sa_is_any(bind_address.get()) && !fd_bind(m_fileDesc, bind_address.get())) {
     auto pretty_addr = sa_pretty_str(bind_address.get());
-    auto error_str = strerror(errno);
+    auto error_str = std::strerror(errno);
 
     LT_LOG("failed to bind socket to udp address : address:%s error:'%s'", pretty_addr.c_str(), error_str);
     return receive_failed("failed to bind socket to udp address '" + pretty_addr + "' with error '" + error_str + "'");
