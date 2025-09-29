@@ -243,7 +243,7 @@ TrackerUdp::start_announce() {
     return receive_failed("could not open UDP socket: " + std::string(std::strerror(errno)));
   }
 
-  if (sa_is_any(bind_address.get()) && !fd_bind(m_fileDesc, bind_address.get())) {
+  if (!sa_is_any(bind_address.get()) && !fd_bind(m_fileDesc, bind_address.get())) {
     auto pretty_addr = sa_pretty_str(bind_address.get());
     auto error_str = strerror(errno);
 
