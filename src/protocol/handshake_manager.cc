@@ -96,6 +96,9 @@ HandshakeManager::add_incoming(int fd, const sockaddr* sa) {
     return;
   }
 
+  if (!fd_set_nonblock(fd))
+    throw internal_error("HandshakeManager::add_incoming() fd_set_nonblocking failed : " + std::string(strerror(errno)));
+
   if (!setup_socket(fd, sa->sa_family)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : setup socket failed : %s", fd, std::strerror(errno));
     fd_close(fd);
