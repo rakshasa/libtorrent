@@ -262,10 +262,7 @@ fd_listen(int fd, int backlog) {
 
 bool
 fd_get_socket_error(int fd, int* value) {
-  if (fd == -1)
-    throw internal_error("fd_get_socket_error() called with invalid fd");
-
-  socklen_t length = sizeof(int);
+  socklen_t length = sizeof(*value);
 
   if (getsockopt(fd, SOL_SOCKET, SO_ERROR, value, &length) == -1) {
     LT_LOG_FD_ERROR("fd_get_socket_error() failed");
