@@ -103,12 +103,12 @@ sin_is_broadcast(const sockaddr_in* sa) {
 
 bool
 sa_is_v4mapped(const sockaddr* sa) {
-  return sa != NULL && sa->sa_family == AF_INET6 && sin6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa));
+  return sa != nullptr && sa->sa_family == AF_INET6 && sin6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa));
 }
 
 bool
 sin6_is_v4mapped(const sockaddr_in6* sa) {
-  return sa != NULL && IN6_IS_ADDR_V4MAPPED(&sa->sin6_addr);
+  return sa != nullptr && IN6_IS_ADDR_V4MAPPED(&sa->sin6_addr);
 }
 
 bool

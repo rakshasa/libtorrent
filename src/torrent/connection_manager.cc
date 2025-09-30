@@ -24,6 +24,7 @@ ConnectionManager::can_connect() const {
 
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
+  // TODO: Reverse order of checks, NC should be last.
   if (config::network_config()->is_block_ipv4() && sa_is_inet(sa))
     return 0;
 
