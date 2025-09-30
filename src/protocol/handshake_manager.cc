@@ -295,7 +295,7 @@ HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
     return -1;
   }
 
-  return true;
+  return fd;
 }
 
 bool
