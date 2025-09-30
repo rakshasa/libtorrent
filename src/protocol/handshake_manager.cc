@@ -306,8 +306,8 @@ HandshakeManager::setup_socket(int fd, int family) {
 
   errno = 0;
 
-  if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
-    return false;
+  // if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
+  //   return false;
 
   if (send_buffer_size != 0 && !fd_set_send_buffer_size(fd, send_buffer_size))
     return false;
