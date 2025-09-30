@@ -123,12 +123,12 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
 
 void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
-  sa_unique_ptr connect_address;
-
-  if (sa_is_v4mapped(sa))
-    connect_address = sa_from_v4mapped(sa);
-  else
-    connect_address = sa_copy(sa);
+  auto connect_address = [sa]() {
+      if (sa_is_v4mapped(sa))
+        return sa_from_v4mapped(sa);
+      else
+        return sa_copy(sa);
+    }();
 
   int connection_options = PeerList::connect_keep_handshakes;
 
@@ -306,8 +306,8 @@ HandshakeManager::setup_socket(int fd, int family) {
 
   errno = 0;
 
-  // if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
-  //   return false;
+  if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
+    return false;
 
   if (send_buffer_size != 0 && !fd_set_send_buffer_size(fd, send_buffer_size))
     return false;

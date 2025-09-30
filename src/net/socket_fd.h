@@ -25,11 +25,6 @@ public:
   bool                set_reuse_address(bool state);
   bool                set_ipv6_v6only(bool state);
 
-  bool                set_send_buffer_size(uint32_t s);
-  bool                set_receive_buffer_size(uint32_t s);
-
-  int                 get_error() const;
-
   bool                open_stream();
   bool                open_datagram();
   bool                open_local();

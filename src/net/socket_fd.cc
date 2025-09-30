@@ -46,35 +46,6 @@ SocketFd::set_ipv6_v6only(bool state) {
 }
 
 bool
-SocketFd::set_send_buffer_size(uint32_t s) {
-  check_valid();
-  int opt = s;
-
-  return setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)) == 0;
-}
-
-bool
-SocketFd::set_receive_buffer_size(uint32_t s) {
-  check_valid();
-  int opt = s;
-
-  return setsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, &opt, sizeof(opt)) == 0;
-}
-
-int
-SocketFd::get_error() const {
-  check_valid();
-
-  int err;
-  socklen_t length = sizeof(err);
-
-  if (getsockopt(m_fd, SOL_SOCKET, SO_ERROR, &err, &length) == -1)
-    throw internal_error("SocketFd::get_error() could not get error");
-
-  return err;
-}
-
-bool
 SocketFd::open_stream() {
   m_fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 
