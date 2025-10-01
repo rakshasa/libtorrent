@@ -112,25 +112,30 @@ jobs:
             make check
 
   OpenBSD:
-    if: ${{ false }} # Doesn't work yet
     needs: Ubuntu
     runs-on: ubuntu-latest
+    env:
+      TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
+      AUTOCONF_VERSION: 2.72
+      AUTOMAKE_VERSION: 1.18
     steps:
       - uses: actions/checkout@v4
       - uses: vmactions/openbsd-vm@v1
         with:
+          release: "7.8"
+          envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
             pkg_add \
-              automake \
+              automake-1.18 \
               autoconf-2.72p0 \
               cppunit \
               curl \
               libtool \
-              openssl \
-              pkgconf
+              openssl-3.6.0p0v0
           run: |
-            env AUTOCONF_VERSION=2.72 autoreconf -fiv
-            ./configure
+            ulimit -n 1000
+            autoreconf -fiv
+            ./configure --disable-mincore
             make
             make check
 
