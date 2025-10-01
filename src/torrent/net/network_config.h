@@ -2,6 +2,7 @@
 #define LIBTORRENT_TORRENT_NET_NETWORK_CONFIG_H
 
 #include <mutex>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <torrent/net/types.h>
 
