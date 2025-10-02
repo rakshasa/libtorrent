@@ -68,6 +68,7 @@ struct test_queue_bucket_compare {
   CPPUNIT_ASSERT(buckets.queue_size(0) == s_0); \
   CPPUNIT_ASSERT(buckets.queue_size(1) == s_1);
 
+#ifdef LT_INSTRUMENTATION
 #define VERIFY_INSTRUMENTATION(a_0, m_0, r_0, t_0, a_1, m_1, r_1, t_1)            \
   CPPUNIT_ASSERT(torrent::instrumentation_values[test_constants::instrumentation_added[0]] == a_0); \
   CPPUNIT_ASSERT(torrent::instrumentation_values[test_constants::instrumentation_moved[0]] == m_0); \
@@ -77,6 +78,9 @@ struct test_queue_bucket_compare {
   CPPUNIT_ASSERT(torrent::instrumentation_values[test_constants::instrumentation_moved[1]] == m_1); \
   CPPUNIT_ASSERT(torrent::instrumentation_values[test_constants::instrumentation_removed[1]] == r_1); \
   CPPUNIT_ASSERT(torrent::instrumentation_values[test_constants::instrumentation_total[1]] == t_1);
+#else
+#define VERIFY_INSTRUMENTATION(a_0, m_0, r_0, t_0, a_1, m_1, r_1, t_1)
+#endif
 
 #define VERIFY_ITEMS_DESTROYED(count)           \
   CPPUNIT_ASSERT(items_destroyed == count);     \
