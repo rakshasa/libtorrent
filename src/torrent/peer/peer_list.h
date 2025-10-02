@@ -60,7 +60,7 @@ public:
 
   static ipv4_table*  ipv4_filter()     { return &m_ipv4_table; }
 
-  const auto&         available_list()  { return m_available_list; }
+  const auto&    available_list() const { return m_available_list; }
   uint32_t            available_list_size() const;
 
   uint32_t            cull_peers(int flags);

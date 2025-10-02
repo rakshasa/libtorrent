@@ -25,7 +25,7 @@ HttpStack::shutdown() {
 }
 
 void
-HttpStack::start_get(HttpGet& http_get) {
+HttpStack::start_get(const HttpGet& http_get) {
   if (!http_get.is_valid())
     throw torrent::internal_error("HttpStack::start_get() called with an invalid HttpGet object.");
 
