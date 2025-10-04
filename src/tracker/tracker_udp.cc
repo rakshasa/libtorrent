@@ -413,6 +413,8 @@ TrackerUdp::process_announce_output() {
 
   AddressList l;
 
+  // TODO: This might not handle IPv4-mapped IPv6 addresses correctly.
+
   switch (m_current_address->sa_family) {
   case AF_INET:
     std::copy(reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->position()),

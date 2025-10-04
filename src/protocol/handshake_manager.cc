@@ -127,9 +127,9 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
 void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
   auto connect_address = [sa]() {
-      // if (sa_is_v4mapped(sa))
-      //   return sa_from_v4mapped(sa);
-      // else
+      if (sa_is_v4mapped(sa))
+        return sa_from_v4mapped(sa);
+      else
         return sa_copy(sa);
     }();
 
