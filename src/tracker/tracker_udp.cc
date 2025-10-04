@@ -231,6 +231,9 @@ TrackerUdp::start_announce() {
     return receive_failed("could not create outgoing connection: blocked or invalid bind address");
   }
 
+  if (bind_address->sa_family != m_current_address->sa_family)
+    throw internal_error("TrackerUdp::start_announce() bind address family does not match connect address family.");
+
   // TODO: Properly handle retry with failover to other protocol, and check prefer_ipv6.
 
   LT_LOG("starting announce : connect_address:%s bind_address:%s",
@@ -410,9 +413,20 @@ TrackerUdp::process_announce_output() {
 
   AddressList l;
 
-  std::copy(reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->position()),
-            reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->end() - m_read_buffer->remaining() % sizeof(SocketAddressCompact)),
-            std::back_inserter(l));
+  switch (m_current_address->sa_family) {
+  case AF_INET:
+    std::copy(reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->position()),
+              reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->end() - m_read_buffer->remaining() % sizeof(SocketAddressCompact)),
+              std::back_inserter(l));
+    break;
+  case AF_INET6:
+    std::copy(reinterpret_cast<const SocketAddressCompact6*>(m_read_buffer->position()),
+              reinterpret_cast<const SocketAddressCompact6*>(m_read_buffer->end() - m_read_buffer->remaining() % sizeof(SocketAddressCompact6)),
+              std::back_inserter(l));
+    break;
+  default:
+    throw internal_error("TrackerUdp::process_announce_output() m_current_address is not inet or inet6.");
+  }
 
   // Some logic here to decided on whetever we're going to close the
   // connection or not?
