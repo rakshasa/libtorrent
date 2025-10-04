@@ -96,6 +96,9 @@ HandshakeManager::add_incoming(int fd, const sockaddr* sa) {
     return;
   }
 
+  if (!fd_set_nonblock(fd))
+    throw internal_error("HandshakeManager::add_incoming() fd_set_nonblocking failed : " + std::string(strerror(errno)));
+
   if (!setup_socket(fd, sa->sa_family)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : setup socket failed : %s", fd, std::strerror(errno));
     fd_close(fd);
@@ -123,6 +126,13 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
 
 void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
+  auto connect_address = [sa]() {
+      if (sa_is_v4mapped(sa))
+        return sa_from_v4mapped(sa);
+      else
+        return sa_copy(sa);
+    }();
+
   int connection_options = PeerList::connect_keep_handshakes;
 
   if (!(encryption_options & net::NetworkConfig::encryption_retrying))
@@ -131,11 +141,10 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   PeerInfo* peer_info = download->peer_list()->connected(sa, connection_options);
 
   if (peer_info == NULL || peer_info->failed_counter() > max_failed) {
-    LT_LOG_SA(sa, "rejected outgoing connection: no peer info or too many failures", 0);
+    LT_LOG_SAP(connect_address, "rejected outgoing connection: no peer info or too many failures", 0);
     return;
   }
 
-  auto connect_address = sa_copy(sa);
   auto proxy_address = config::network_config()->proxy_address();
 
   if (proxy_address->sa_family != AF_UNSPEC) {
@@ -143,42 +152,9 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
     encryption_options |= net::NetworkConfig::encryption_use_proxy;
   }
 
-  SocketFd fd;
+  int fd = open_and_connect_socket(connect_address.get());
 
-  auto prepare_fd = [&fd, &connect_address]() {
-      // TODO: Open stream should take into account bind and connect addresses family.
-
-      if (!fd.open_stream()) {
-        LT_LOG_SAP(connect_address, "could not create outgoing connection: open stream failed : fd:%i", fd);
-        return false;
-      }
-
-      int socket_family = fd.is_ipv6_socket() ? AF_INET6 : AF_INET;
-
-      if (!setup_socket(fd.get_fd(), socket_family)) {
-        LT_LOG_SAP(connect_address, "could not create outgoing connection: setup socket failed : fd:%i : %s", fd, std::strerror(errno));
-        return false;
-      }
-
-      auto bind_address = config::network_config()->bind_address();
-
-      if (bind_address->sa_family != AF_UNSPEC && !fd_bind(fd.get_fd(), bind_address.get())) {
-        LT_LOG_SAP(connect_address, "could not create reate outgoing connection: bind failed : fd:%i : %s", fd, std::strerror(errno));
-        return false;
-      }
-
-      if (!fd_connect_with_family(fd.get_fd(), connect_address.get(), socket_family)) {
-        LT_LOG_SAP(connect_address, "could not create outgoing connection: connect failed : fd:%i : %s", fd, std::strerror(errno));
-        return false;
-      }
-
-      return true;
-    };
-
-  if (!prepare_fd()) {
-    if (fd.is_valid())
-      fd.close();
-
+  if (fd == -1) {
     download->peer_list()->disconnected(peer_info, 0);
     return;
   }
@@ -192,10 +168,10 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   else
     message = ConnectionManager::handshake_outgoing;
 
-  LT_LOG_SA(sa, "created outgoing connection: fd:%i encryption:%x message:%x", fd.get_fd(), encryption_options, message);
+  LT_LOG_SAP(connect_address, "created outgoing connection: fd:%i encryption:%x message:%x", fd, encryption_options, message);
   manager->connection_manager()->inc_socket_count();
 
-  auto handshake = std::make_unique<Handshake>(fd.get_fd(), this, encryption_options);
+  auto handshake = std::make_unique<Handshake>(fd, this, encryption_options);
   handshake->initialize_outgoing(sa, download, peer_info);
 
   base_type::push_back(std::move(handshake));
@@ -288,16 +264,50 @@ HandshakeManager::receive_timeout(Handshake* h) {
                  e_handshake_network_timeout);
 }
 
+int
+HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
+  auto bind_address = config::network_config()->bind_address_for_connect(connect_address->sa_family);
+
+  if (bind_address == nullptr) {
+    LT_LOG_SA(connect_address, "could not create outgoing connection: blocked or invalid bind address", 0);
+    return -1;
+  }
+
+  int fd = fd_open_family(fd_flag_stream | fd_flag_nonblock, connect_address->sa_family);
+
+  if (fd == -1) {
+    LT_LOG_SA(connect_address, "could not create outgoing connection: open stream failed : fd:%i : %s", fd, std::strerror(errno));
+    return -1;
+  }
+
+  if (!setup_socket(fd, connect_address->sa_family)) {
+    LT_LOG_SA(connect_address, "could not create outgoing connection: setup socket failed : fd:%i : %s", fd, std::strerror(errno));
+    fd_close(fd);
+    return -1;
+  }
+
+  if (!sa_is_any(bind_address.get()) && !fd_bind(fd, bind_address.get())) {
+    LT_LOG_SA(connect_address, "could not create reate outgoing connection: bind failed : fd:%i : %s", fd, std::strerror(errno));
+    fd_close(fd);
+    return -1;
+  }
+
+  if (!fd_connect_with_family(fd, connect_address, bind_address->sa_family)) {
+    LT_LOG_SA(connect_address, "could not create outgoing connection: connect failed : fd:%i : %s", fd, std::strerror(errno));
+    fd_close(fd);
+    return -1;
+  }
+
+  return fd;
+}
+
 bool
 HandshakeManager::setup_socket(int fd, int family) {
-  errno = 0;
-
-  if (!fd_set_nonblock(fd))
-    return false;
-
   auto priority         = config::network_config()->priority();
   auto send_buffer_size = config::network_config()->send_buffer_size();
   auto recv_buffer_size = config::network_config()->receive_buffer_size();
+
+  errno = 0;
 
   if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
     return false;

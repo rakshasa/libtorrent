@@ -33,6 +33,8 @@ public:
   const char*        what() const noexcept override;
   const std::string& backtrace() const noexcept { return m_backtrace; }
 
+  void               push_front(const std::string& msg) { m_msg = msg + m_msg; }
+
 private:
   // Use this function for breaking on throws.
   void initialize(const std::string& msg);

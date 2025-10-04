@@ -61,6 +61,8 @@ private:
   void                create_outgoing(const sockaddr* sa, DownloadMain* info, int encryptionOptions);
   value_type          find_and_erase(Handshake* handshake);
 
+  // TODO: Move to anonymous namespace.
+  static int          open_and_connect_socket(const sockaddr* connect_address);
   static bool         setup_socket(int fd, int family);
 
   static ProtocolExtension DefaultExtensions;

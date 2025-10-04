@@ -8,18 +8,20 @@
 namespace torrent {
 
 enum fd_flags : int {
-  fd_flag_stream = 0x1,
-  fd_flag_datagram = 0x10,
-  fd_flag_nonblock = 0x20,
+  fd_flag_stream        = 0x1,
+  fd_flag_datagram      = 0x10,
+  fd_flag_nonblock      = 0x20,
   fd_flag_reuse_address = 0x40,
-  fd_flag_v4only = 0x80,
-  fd_flag_v6only = 0x100,
-  fd_flag_all = 0x1ff,
+  fd_flag_v4            = 0x80, // renamed
+  fd_flag_v4only        = 0x80,
+  fd_flag_v6only        = 0x100,
+  fd_flag_all           = 0x1ff,
 };
 
 constexpr bool fd_valid_flags(fd_flags flags);
 
 int  fd_open(fd_flags flags) LIBTORRENT_EXPORT;
+int  fd_open_family(fd_flags flags, int family) LIBTORRENT_EXPORT;
 void fd_open_pipe(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 void fd_open_socket_pair(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 void fd_close(int fd) LIBTORRENT_EXPORT;
@@ -31,6 +33,8 @@ bool fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool fd_connect(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool fd_connect_with_family(int fd, const sockaddr* sa, int family) LIBTORRENT_EXPORT;
 bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
+
+bool fd_get_socket_error(int fd, int* value) LIBTORRENT_EXPORT;
 
 bool fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
 bool fd_set_reuse_address(int fd, bool state) LIBTORRENT_EXPORT;

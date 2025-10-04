@@ -14,8 +14,14 @@
 
 namespace torrent::net {
 
+namespace {
+c_sa_shared_ptr inet_any_value = sa_make_inet_any();
+c_sa_shared_ptr inet6_any_value = sa_make_inet6_any();
+}
+
 NetworkConfig::NetworkConfig() {
-  m_bind_address = sa_make_unspec();
+  m_bind_inet_address = sa_make_unspec();
+  m_bind_inet6_address = sa_make_unspec();
   m_local_address = sa_make_unspec();
   m_proxy_address = sa_make_unspec();
 }
@@ -92,16 +98,153 @@ NetworkConfig::set_priority(int p) {
   m_priority = p;
 }
 
+// The caller must make sure the bind address family is not blocked before making a connection.
 c_sa_shared_ptr
-NetworkConfig::bind_address() const {
+NetworkConfig::bind_address_best_match() const {
   auto guard = lock_guard();
-  return m_bind_address;
+
+  if (m_bind_inet_address->sa_family == AF_UNSPEC)
+    return m_bind_inet6_address;
+
+  if (m_bind_inet6_address->sa_family == AF_UNSPEC)
+    return m_bind_inet_address;
+
+  if (m_prefer_ipv6) {
+    if (m_block_ipv6 && !m_block_ipv4)
+      return m_bind_inet_address;
+
+    return m_bind_inet6_address;
+  }
+
+  if (m_block_ipv4 && !m_block_ipv6)
+    return m_bind_inet6_address;
+
+  return m_bind_inet_address;
 }
 
 std::string
-NetworkConfig::bind_address_str() const {
+NetworkConfig::bind_address_best_match_str() const {
+  return sa_addr_str(bind_address_best_match().get());
+}
+
+// TODO: There's a race condition if block/bind is changed after returning unspec, and the caller
+// checks if ipv4/6 is blocked. Create a function that locks NC and sets up and binds fd.
+
+c_sa_shared_ptr
+NetworkConfig::bind_address_or_unspec_and_null() const {
   auto guard = lock_guard();
-  return sa_addr_str(m_bind_address.get());
+
+  if (m_block_ipv4 && m_block_ipv6)
+    return nullptr;
+
+  if (m_bind_inet_address->sa_family == AF_UNSPEC && m_bind_inet6_address->sa_family == AF_UNSPEC)
+    return m_bind_inet_address;
+
+  if (m_bind_inet_address->sa_family == AF_UNSPEC) {
+    if (m_block_ipv6)
+      return nullptr;
+
+    return m_bind_inet6_address;
+  }
+
+  if (m_bind_inet6_address->sa_family == AF_UNSPEC) {
+    if (m_block_ipv4)
+      return nullptr;
+
+    return m_bind_inet_address;
+  }
+
+  if (m_prefer_ipv6 && !m_block_ipv6)
+    return m_bind_inet6_address;
+
+  if (m_block_ipv4)
+    return m_bind_inet6_address;
+
+  return m_bind_inet_address;
+}
+
+c_sa_shared_ptr
+NetworkConfig::bind_address_or_any_and_null() const {
+  auto bind_address = bind_address_or_unspec_and_null();
+
+  if (bind_address == nullptr)
+    return nullptr;
+
+  if (bind_address->sa_family != AF_UNSPEC)
+    return bind_address;
+
+  if (!m_block_ipv6)
+    return inet6_any_value;
+
+  if (!m_block_ipv4)
+    return inet_any_value;
+
+  throw internal_error("NetworkConfig::bind_address_or_any_and_null(): both ipv4 and ipv6 are blocked and returned unspec");
+}
+
+c_sa_shared_ptr
+NetworkConfig::bind_address_for_connect(int family) const {
+  auto guard = lock_guard();
+
+  // if (m_block_outgoing)
+  //   return nullptr;
+
+  switch (family) {
+  case AF_INET:
+    if (m_block_ipv4)
+      return nullptr;
+
+    if (m_bind_inet_address->sa_family != AF_UNSPEC)
+      return m_bind_inet_address;
+
+    if (m_bind_inet6_address->sa_family != AF_UNSPEC) {
+      if (m_block_ipv4in6)
+        return nullptr;
+
+      return m_bind_inet6_address;
+    }
+
+    return inet_any_value;
+
+  case AF_INET6:
+    if (m_block_ipv6)
+      return nullptr;
+
+    if (m_bind_inet6_address->sa_family != AF_UNSPEC)
+      return m_bind_inet6_address;
+
+    if (m_bind_inet_address->sa_family != AF_UNSPEC)
+      return nullptr;
+
+    return inet6_any_value;
+
+  default:
+    throw input_error("NetworkConfig::bind_address_for_connect() called with invalid address family");
+  }
+}
+
+c_sa_shared_ptr
+NetworkConfig::bind_inet_address() const {
+  auto guard = lock_guard();
+  return m_bind_inet_address;
+}
+
+std::string
+NetworkConfig::bind_inet_address_str() const {
+  auto guard = lock_guard();
+  return sa_addr_str(m_bind_inet_address.get());
+}
+
+c_sa_shared_ptr
+NetworkConfig::bind_inet6_address() const {
+  auto guard = lock_guard();
+  return m_bind_inet6_address;
+}
+
+std::string
+NetworkConfig::bind_inet6_address_str() const {
+  auto guard = lock_guard();
+  return sa_addr_str(m_bind_inet6_address.get());
 }
 
 c_sa_shared_ptr
@@ -130,6 +273,8 @@ NetworkConfig::proxy_address_str() const {
 
 // TODO: Move all management tasks here.
 
+// TODO: set_bind_address replace both bind_inet and bind_inet6.
+
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
@@ -142,7 +287,22 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
 
   LT_LOG_NOTICE("bind address : %s", sa_pretty_str(sa).c_str());
 
-  m_bind_address = sa_copy(sa);
+  switch (sa->sa_family) {
+  case AF_UNSPEC:
+    m_bind_inet_address = sa_make_unspec();
+    m_bind_inet6_address = sa_make_unspec();
+    break;
+  case AF_INET:
+    m_bind_inet_address = sa_copy(sa);
+    m_bind_inet6_address = sa_make_unspec();
+    break;
+  case AF_INET6:
+    m_bind_inet_address = sa_make_unspec();
+    m_bind_inet6_address = sa_copy(sa);
+    break;
+  default:
+    throw internal_error("NetworkConfig::set_bind_address: invalid address family");
+  }
 
   // TODO: This should bind to inet/inet6 and only empty string on unspec.
   if (sa_is_any(sa))
@@ -151,6 +311,38 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
     torrent::net_thread::http_stack()->set_bind_address(sa_addr_str(sa).c_str());
 
   // TODO: Warning if not matching block/prefer
+}
+
+// TODO: Add a separate bind setting for http stack.
+
+void
+NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
+  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
+    throw input_error("Tried to set a bind inet address that is not an unspec/inet address.");
+
+  if (sa_port(sa) != 0)
+    throw input_error("Tried to set a bind inet address with a non-zero port.");
+
+  auto guard = lock_guard();
+
+  LT_LOG_NOTICE("bind inet address : %s", sa_pretty_str(sa).c_str());
+
+  m_bind_inet_address = sa_copy(sa);
+}
+
+void
+NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
+  if (sa->sa_family != AF_INET6 && sa->sa_family != AF_UNSPEC)
+    throw input_error("Tried to set a bind inet6 address that is not an unspec/inet6 address.");
+
+  if (sa_port(sa) != 0)
+    throw input_error("Tried to set a bind inet6 address with a non-zero port.");
+
+  auto guard = lock_guard();
+
+  LT_LOG_NOTICE("bind inet6 address : %s", sa_pretty_str(sa).c_str());
+
+  m_bind_inet6_address = sa_copy(sa);
 }
 
 void

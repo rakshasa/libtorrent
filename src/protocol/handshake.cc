@@ -15,6 +15,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
@@ -891,11 +892,16 @@ Handshake::validate_download() {
 
 void
 Handshake::event_write() {
+  int socket_error;
+
   try {
 
     switch (m_state) {
     case CONNECTING:
-      if (get_fd().get_error())
+      if (!fd_get_socket_error(m_fileDesc, &socket_error))
+        throw internal_error("Handshake::event_write() fd_get_socket_error failed : " + std::string(strerror(errno)));
+
+      if (socket_error != 0)
         throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_unreachable);
 
       this_thread::poll()->insert_read(this);

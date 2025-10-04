@@ -111,6 +111,20 @@ fd_open(fd_flags flags) {
   return fd;
 }
 
+int
+fd_open_family(fd_flags flags, int family) {
+  if (family != AF_INET && family != AF_INET6) {
+    LT_LOG_FLAG("fd_open_family invalid family");
+    errno = EINVAL;
+    return -1;
+  }
+
+  if (family == AF_INET)
+    flags |= fd_flag_v4;
+
+  return fd_open(flags);
+}
+
 void
 fd_open_pipe(int& fd1, int& fd2) {
   int result[2];
@@ -205,44 +219,63 @@ fd_connect(int fd, const sockaddr* sa) {
 bool
 fd_connect_with_family(int fd, const sockaddr* sa, int family) {
   switch (sa->sa_family) {
-    case AF_UNSPEC:
-      errno = EINVAL;
-      LT_LOG_FD("fd_connect_with_family() cannot connect unspecified address");
-      return false;
+  case AF_UNSPEC:
+    errno = EINVAL;
+    LT_LOG_FD("fd_connect_with_family() cannot connect unspecified address");
+    return false;
 
-    case AF_INET:
-      if (family == AF_INET6)
-        return fd_connect(fd, sa_to_v4mapped(sa).get());
+  case AF_INET:
+    if (family == AF_INET6) {
+      LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv4 using ipv6");
+      return fd_connect(fd, sa_to_v4mapped(sa).get());
+    }
 
-      return fd_connect(fd, sa);
+    LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv4");
+    return fd_connect(fd, sa);
 
-    case AF_INET6:
-      if (family == AF_INET) {
-        if (sa_is_v4mapped(sa))
-          return fd_connect(fd, sa_from_v4mapped(sa).get());
-
-        errno = EINVAL;
-        LT_LOG_FD("fd_connect_with_family() cannot connect ipv6 address with ipv4 bind");
-        return false;
+  case AF_INET6:
+    if (family == AF_INET) {
+      if (sa_is_v4mapped(sa)) {
+        LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv4in6 as ipv4");
+        return fd_connect(fd, sa_from_v4mapped(sa).get());
       }
 
-      return fd_connect(fd, sa);
-
-    default:
       errno = EINVAL;
-      LT_LOG_FD_VALUE("fd_connect_with_family() invalid sa_family", sa->sa_family);
+      LT_LOG_FD("fd_connect_with_family() cannot connect ipv6 address with ipv4 bind");
       return false;
+    }
+
+    LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv6");
+    return fd_connect(fd, sa);
+
+  default:
+    errno = EINVAL;
+    LT_LOG_FD_VALUE("fd_connect_with_family() invalid sa_family", sa->sa_family);
+    return false;
   }
 }
 
 bool
 fd_listen(int fd, int backlog) {
   if (fd__listen(fd, backlog) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_listen failed", backlog);
+    LT_LOG_FD_VALUE_ERROR("fd_listen() failed", backlog);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_listen succeeded", backlog);
+  LT_LOG_FD_VALUE("fd_listen() succeeded", backlog);
+  return true;
+}
+
+bool
+fd_get_socket_error(int fd, int* value) {
+  socklen_t length = sizeof(int);
+
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, value, &length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_socket_error() failed");
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_get_socket_error() succeeded", *value);
   return true;
 }
 

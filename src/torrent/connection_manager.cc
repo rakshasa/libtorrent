@@ -24,6 +24,7 @@ ConnectionManager::can_connect() const {
 
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
+  // TODO: Reverse order of checks, NC should be last.
   if (config::network_config()->is_block_ipv4() && sa_is_inet(sa))
     return 0;
 
@@ -47,24 +48,11 @@ ConnectionManager::is_listen_open() const {
 bool
 ConnectionManager::listen_open(port_type begin, port_type end) {
   // TODO: Make this a helper function in NetworkConfig.
-  auto bind_address = config::network_config()->bind_address();
+  auto bind_address = config::network_config()->bind_address_or_any_and_null();
 
-  switch (bind_address->sa_family) {
-  case AF_UNSPEC:
-    if (config::network_config()->is_block_ipv6())
-      bind_address = sa_make_inet_any();
-    else
-      bind_address = sa_make_inet6_any();
-
-    break;
-  case AF_INET:
-  case AF_INET6:
-    break;
-  default:
-    throw input_error("invalid bind address family");
-  }
-
-  // TODO: Add blocking of ipv4 on socket level.
+  // TODO: Fix this when we properly handle block ipv4/6.
+  if (bind_address == nullptr)
+    throw internal_error("Could not find a valid bind address to open listen socket.");
 
   if (!m_listen->open(begin, end, config::network_config()->listen_backlog(), bind_address.get()))
     return false;

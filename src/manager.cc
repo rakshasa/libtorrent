@@ -80,6 +80,8 @@ Manager::Manager()
 Manager::~Manager() {
   torrent::this_thread::scheduler()->erase(&m_task_tick);
 
+  m_connection_manager->listen()->close();
+
   m_handshake_manager->clear();
   m_download_manager->clear();
   m_dht_controller.reset();
