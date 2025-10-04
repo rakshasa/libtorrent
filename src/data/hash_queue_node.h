@@ -29,10 +29,7 @@
 // If you delete this exception statement from all source files in the
 // program, then also delete it here.
 //
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
+
 
 #ifndef LIBTORRENT_DATA_HASH_QUEUE_NODE_H
 #define LIBTORRENT_DATA_HASH_QUEUE_NODE_H
