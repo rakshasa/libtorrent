@@ -30,6 +30,9 @@ public:
   unsigned int        max_active() const;
   void                set_max_active(unsigned int a);
 
+  unsigned int        max_connects() const;
+  void                set_max_connects(unsigned int value);
+
   const std::string&  user_agent() const;
   const std::string&  http_proxy() const;
   const std::string&  bind_address() const;
@@ -92,6 +95,7 @@ private:
   bool                m_running{true};
   unsigned int        m_active{0};
   unsigned int        m_max_active{32};
+  unsigned int        m_max_connects{0};
 
   std::string         m_user_agent;
   std::string         m_http_proxy;
@@ -126,6 +130,12 @@ inline void
 CurlStack::set_max_active(unsigned int a) {
   auto guard = lock_guard();
   m_max_active = a;
+}
+
+inline unsigned int
+CurlStack::max_connects() const {
+  auto guard = lock_guard();
+  return m_max_connects;
 }
 
 inline const std::string&

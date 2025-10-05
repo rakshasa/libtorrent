@@ -30,6 +30,19 @@ CurlStack::~CurlStack() {
 }
 
 void
+CurlStack::set_max_connects(unsigned int value) {
+  if (value > 1024)
+    throw torrent::internal_error("CurlStack::set_max_connects() called with a value greater than 1024.");
+
+  auto guard = lock_guard();
+
+  m_max_connects = value;
+
+  if (curl_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, value) != CURLM_OK)
+    throw torrent::internal_error("CurlStack::set_max_connects() error calling curl_multi_setopt.");
+}
+
+void
 CurlStack::shutdown() {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 

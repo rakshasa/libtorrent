@@ -55,8 +55,18 @@ HttpStack::max_active() const {
 }
 
 void
-HttpStack::set_max_active(unsigned int a) {
-  m_stack->set_max_active(a);
+HttpStack::set_max_active(unsigned int value) {
+  m_stack->set_max_active(value);
+}
+
+unsigned int
+HttpStack::max_connections() const {
+  return m_stack->max_connects();
+}
+
+void
+HttpStack::set_max_connections(unsigned int value) {
+  m_stack->set_max_connects(value);
 }
 
 std::string

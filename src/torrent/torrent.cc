@@ -22,9 +22,10 @@
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
-#include "torrent/peer/connection_list.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/peer/connection_list.h"
+#include "torrent/net/http_stack.h"
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
 
@@ -32,7 +33,9 @@ namespace torrent {
 
 static uint32_t
 calculate_max_open_files(uint32_t openMax) {
-  if (openMax >= 8096)
+  if (openMax >= 16384)
+    return 512;
+  else if (openMax >= 8096)
     return 256;
   else if (openMax >= 1024)
     return 128;
@@ -46,7 +49,9 @@ calculate_max_open_files(uint32_t openMax) {
 
 static uint32_t
 calculate_reserved(uint32_t openMax) {
-  if (openMax >= 8096)
+  if (openMax >= 16384)
+    return 512;
+  else if (openMax >= 8096)
     return 256;
   else if (openMax >= 1024)
     return 128;
@@ -78,10 +83,13 @@ initialize() {
   ThreadNet::create_thread();
   ThreadTracker::create_thread(ThreadMain::thread_main());
 
-  uint32_t maxFiles = calculate_max_open_files(this_thread::poll()->open_max());
+  auto max_files = calculate_max_open_files(this_thread::poll()->open_max());
+  auto max_http_connections = calculate_max_open_files(this_thread::poll()->open_max() / 2);
+  auto reserved = calculate_reserved(this_thread::poll()->open_max());
 
-  manager->connection_manager()->set_max_size(this_thread::poll()->open_max() - maxFiles - calculate_reserved(this_thread::poll()->open_max()));
-  manager->file_manager()->set_max_open_files(maxFiles);
+  manager->connection_manager()->set_max_size(this_thread::poll()->open_max() - max_files - max_http_connections - reserved);
+  manager->file_manager()->set_max_open_files(max_files);
+  net_thread::http_stack()->set_max_connections(max_http_connections);
 
   thread_disk()->init_thread();
   net_thread::thread()->init_thread();

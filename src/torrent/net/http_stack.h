@@ -20,7 +20,10 @@ public:
 
   unsigned int        active() const;
   unsigned int        max_active() const;
-  void                set_max_active(unsigned int a);
+  void                set_max_active(unsigned int value);
+
+  unsigned int        max_connections() const;
+  void                set_max_connections(unsigned int value);
 
   std::string         user_agent() const;
   std::string         http_proxy() const;
