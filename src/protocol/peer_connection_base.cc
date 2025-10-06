@@ -70,7 +70,7 @@ PeerConnectionBase::~PeerConnectionBase() {
 }
 
 void
-PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield, const EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (get_fd().is_valid())
     throw internal_error("Tried to re-set PeerConnection.");
 
@@ -377,7 +377,7 @@ PeerConnectionBase::event_error() {
 }
 
 bool
-PeerConnectionBase::should_connection_unchoke(choke_queue* cq) const {
+PeerConnectionBase::should_connection_unchoke(const choke_queue* cq) const {
   if (cq == m_download->choke_group()->up_queue())
     return m_download->info()->upload_unchoked() < m_download->up_group_entry()->max_slots();
 
@@ -424,7 +424,7 @@ PeerConnectionBase::down_chunk_finished() {
   if (!request_list()->transfer()->is_finished())
     throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
 
-  BlockTransfer* transfer = request_list()->transfer();
+  auto transfer = request_list()->transfer();
 
   LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,
                       transfer->is_leader() ? "completed " : "skipped  ",

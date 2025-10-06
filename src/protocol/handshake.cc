@@ -166,7 +166,7 @@ Handshake::destroy_connection() {
 }
 
 int
-Handshake::retry_options() {
+Handshake::retry_options() const {
   uint32_t options = m_encryption.options() & ~net::NetworkConfig::encryption_enable_retry;
 
   if (m_encryption.retry() == HandshakeEncryption::RETRY_PLAIN)
@@ -1148,7 +1148,7 @@ Handshake::write_done() {
 
 void
 Handshake::write_extension_handshake() {
-  DownloadInfo* info = m_download->info();
+  auto info = m_download->info();
 
   if (m_extensions->is_default()) {
     m_extensions = new ProtocolExtension;

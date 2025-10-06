@@ -63,7 +63,7 @@ InitialSeeding::~InitialSeeding() {
 }
 
 bool
-InitialSeeding::valid_peer(PeerInfo* peer) {
+InitialSeeding::valid_peer(const PeerInfo* peer) {
   return peer > chunk_done;
 }
 
@@ -87,8 +87,8 @@ InitialSeeding::chunk_seen(uint32_t index, PeerConnectionBase* pcb) {
   if (m_download->chunk_statistics()->complete() > 1)
     complete(pcb);
 
-  PeerInfo* peer = pcb->mutable_peer_info();
-  PeerInfo* old = m_peerChunks[index];
+  auto peer = pcb->peer_info();
+  auto old = m_peerChunks[index];
 
   // We didn't send this chunk. Is someone else initial seeding too?
   // Or maybe we restarted and the peer got this chunk from someone
@@ -220,7 +220,7 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
 }
 
 bool
-InitialSeeding::should_upload(uint32_t index) {
+InitialSeeding::should_upload(uint32_t index) const {
   return m_peerChunks[index] != chunk_done;
 }
 
