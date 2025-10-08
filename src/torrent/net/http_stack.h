@@ -18,12 +18,15 @@ public:
 
   void                start_get(HttpGet& http_get);
 
-  unsigned int        active() const;
-  unsigned int        max_active() const;
-  void                set_max_active(unsigned int value);
+  unsigned int        size() const;
 
-  unsigned int        max_connections() const;
-  void                set_max_connections(unsigned int value);
+  unsigned int        max_cache_connections() const;
+  unsigned int        max_host_connections() const;
+  unsigned int        max_total_connections() const;
+
+  void                set_max_cache_connections(unsigned int value);
+  void                set_max_host_connections(unsigned int value);
+  void                set_max_total_connections(unsigned int value);
 
   std::string         user_agent() const;
   std::string         http_proxy() const;

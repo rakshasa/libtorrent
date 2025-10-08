@@ -26,12 +26,15 @@ public:
 
   bool                is_running() const;
 
-  unsigned int        active() const;
-  unsigned int        max_active() const;
-  void                set_max_active(unsigned int a);
+  unsigned int        size() const;
 
-  unsigned int        max_connects() const;
-  void                set_max_connects(unsigned int value);
+  unsigned int        max_cache_connections() const;
+  unsigned int        max_host_connections() const;
+  unsigned int        max_total_connections() const;
+
+  void                set_max_cache_connections(unsigned int value);
+  void                set_max_host_connections(unsigned int value);
+  void                set_max_total_connections(unsigned int value);
 
   const std::string&  user_agent() const;
   const std::string&  http_proxy() const;
@@ -79,7 +82,6 @@ private:
 
   static int          set_timeout(void*, long timeout_ms, CurlStack* stack);
 
-  void                activate_next_or_decrement();
   void                receive_timeout();
   bool                process_done_handle();
 
@@ -93,9 +95,10 @@ private:
 
   // Use lock guard when accessing these members, and when modifying the underlying vector.
   bool                m_running{true};
-  unsigned int        m_active{0};
-  unsigned int        m_max_active{32};
-  unsigned int        m_max_connects{0};
+
+  unsigned int        m_max_cache_connections{0};
+  unsigned int        m_max_host_connections{0};
+  unsigned int        m_max_total_connections{32};
 
   std::string         m_user_agent;
   std::string         m_http_proxy;
@@ -115,27 +118,27 @@ CurlStack::is_running() const {
 }
 
 inline unsigned int
-CurlStack::active() const {
+CurlStack::size() const {
   auto guard = lock_guard();
-  return m_active;
+  return base_type::size();
 }
 
 inline unsigned int
-CurlStack::max_active() const {
+CurlStack::max_cache_connections() const {
   auto guard = lock_guard();
-  return m_max_active;
-}
-
-inline void
-CurlStack::set_max_active(unsigned int a) {
-  auto guard = lock_guard();
-  m_max_active = a;
+  return m_max_cache_connections;
 }
 
 inline unsigned int
-CurlStack::max_connects() const {
+CurlStack::max_host_connections() const {
   auto guard = lock_guard();
-  return m_max_connects;
+  return m_max_host_connections;
+}
+
+inline unsigned int
+CurlStack::max_total_connections() const {
+  auto guard = lock_guard();
+  return m_max_total_connections;
 }
 
 inline const std::string&
