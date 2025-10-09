@@ -13,8 +13,8 @@
 
 namespace torrent::net {
 
-CurlStack::CurlStack(utils::Thread* thread) :
-    m_thread(thread),
+CurlStack::CurlStack(utils::Thread* thread)
+  : m_thread(thread),
     m_handle(curl_multi_init()) {
 
   m_task_timeout.slot() = [this]() { receive_timeout(); };
@@ -23,10 +23,53 @@ CurlStack::CurlStack(utils::Thread* thread) :
   curl_multi_setopt(m_handle, CURLMOPT_TIMERFUNCTION, &CurlStack::set_timeout);
   curl_multi_setopt(m_handle, CURLMOPT_SOCKETDATA, this);
   curl_multi_setopt(m_handle, CURLMOPT_SOCKETFUNCTION, &CurlSocket::receive_socket);
+
+  curl_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, m_max_cache_connections);
+  curl_multi_setopt(m_handle, CURLMOPT_MAX_HOST_CONNECTIONS, m_max_host_connections);
+  curl_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, m_max_total_connections);
 }
 
 CurlStack::~CurlStack() {
   assert(!is_running() && "CurlStack::~CurlStack() called while still running.");
+}
+
+void
+CurlStack::set_max_cache_connections(unsigned int value) {
+  if (value > 1024)
+    throw torrent::internal_error("CurlStack::set_max_cache_connections() called with a value greater than 1024.");
+
+  auto guard = lock_guard();
+
+  m_max_cache_connections = value;
+
+  if (curl_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, value) != CURLM_OK)
+    throw torrent::internal_error("CurlStack::set_max_cache_connections() error calling curl_multi_setopt.");
+}
+
+void
+CurlStack::set_max_host_connections(unsigned int value) {
+  if (value > 1024)
+    throw torrent::internal_error("CurlStack::set_max_host_connections() called with a value greater than 1024.");
+
+  auto guard = lock_guard();
+
+  m_max_host_connections = value;
+
+  if (curl_multi_setopt(m_handle, CURLMOPT_MAX_HOST_CONNECTIONS, value) != CURLM_OK)
+    throw torrent::internal_error("CurlStack::set_max_host_connections() error calling curl_multi_setopt.");
+}
+
+void
+CurlStack::set_max_total_connections(unsigned int value) {
+  if (value > 4096)
+    throw torrent::internal_error("CurlStack::set_max_total_connections() called with a value greater than 4096.");
+
+  auto guard = lock_guard();
+
+  m_max_total_connections = value;
+
+  if (curl_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, value) != CURLM_OK)
+    throw torrent::internal_error("CurlStack::set_max_total_connections() error calling curl_multi_setopt.");
 }
 
 void
@@ -86,11 +129,6 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
 
     base_type::push_back(curl_get);
 
-    if (m_active >= m_max_active)
-      return;
-
-    m_active++;
-
     curl_get->activate_unsafe();
   }
 }
@@ -99,14 +137,9 @@ void
 CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
-  bool was_active{};
-
   { auto guard_get = curl_get->lock_guard();
 
     if (!curl_get->is_prepare_canceled_unsafe()) {
-      if (curl_get->is_active_unsafe())
-        was_active = true;
-
       auto itr = std::find(base_type::begin(), base_type::end(), curl_get);
 
       if (itr == base_type::end())
@@ -119,9 +152,6 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
   }
 
   curl_get->notify_closed();
-
-  if (was_active)
-    activate_next_or_decrement();
 }
 
 CurlStack::base_type::iterator
@@ -146,28 +176,6 @@ CurlStack::set_timeout(void*, long timeout_ms, CurlStack* stack) {
     torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&stack->m_task_timeout, std::chrono::milliseconds(timeout_ms));
 
   return 0;
-}
-
-void
-CurlStack::activate_next_or_decrement() {
-  auto guard = lock_guard();
-
-  if (!m_running || m_active > m_max_active) {
-    m_active--;
-    return;
-  }
-
-  for (auto get : *this) {
-    auto guard_get = get->lock_guard();
-
-    if (get->is_active_unsafe() || get->is_closing_unsafe())
-      continue;
-
-    get->activate_unsafe();
-    return;
-  }
-
-  m_active--;
 }
 
 void

@@ -287,7 +287,7 @@ HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
   }
 
   if (!sa_is_any(bind_address.get()) && !fd_bind(fd, bind_address.get())) {
-    LT_LOG_SA(connect_address, "could not create reate outgoing connection: bind failed : fd:%i : %s", fd, std::strerror(errno));
+    LT_LOG_SA(connect_address, "could not create outgoing connection: bind failed : fd:%i : %s", fd, std::strerror(errno));
     fd_close(fd);
     return -1;
   }

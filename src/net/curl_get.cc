@@ -14,8 +14,8 @@
 
 namespace torrent::net {
 
-CurlGet::CurlGet(std::string url, std::shared_ptr<std::ostream> stream) :
-    m_url(std::move(url)),
+CurlGet::CurlGet(std::string url, std::shared_ptr<std::ostream> stream)
+  : m_url(std::move(url)),
     m_stream(std::move(stream)) {
 
   m_task_timeout.slot() = [this]() {

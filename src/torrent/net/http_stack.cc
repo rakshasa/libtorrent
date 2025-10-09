@@ -45,18 +45,38 @@ HttpStack::start_get(HttpGet& http_get) {
 }
 
 unsigned int
-HttpStack::active() const {
-  return m_stack->active();
+HttpStack::size() const {
+  return m_stack->size();
 }
 
 unsigned int
-HttpStack::max_active() const {
-  return m_stack->max_active();
+HttpStack::max_cache_connections() const {
+  return m_stack->max_cache_connections();
+}
+
+unsigned int
+HttpStack::max_host_connections() const {
+  return m_stack->max_host_connections();
+}
+
+unsigned int
+HttpStack::max_total_connections() const {
+  return m_stack->max_total_connections();
 }
 
 void
-HttpStack::set_max_active(unsigned int a) {
-  m_stack->set_max_active(a);
+HttpStack::set_max_cache_connections(unsigned int value) {
+  m_stack->set_max_cache_connections(value);
+}
+
+void
+HttpStack::set_max_host_connections(unsigned int value) {
+  m_stack->set_max_host_connections(value);
+}
+
+void
+HttpStack::set_max_total_connections(unsigned int value) {
+  m_stack->set_max_total_connections(value);
 }
 
 std::string

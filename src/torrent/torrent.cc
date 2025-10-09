@@ -22,40 +22,75 @@
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
-#include "torrent/peer/connection_list.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/peer/connection_list.h"
+#include "torrent/net/http_stack.h"
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
 
-static uint32_t
-calculate_max_open_files(uint32_t openMax) {
-  if (openMax >= 8096)
+namespace {
+
+uint32_t
+calculate_max_open_files(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 512;
+  else if (open_max >= 8096)
     return 256;
-  else if (openMax >= 1024)
+  else if (open_max >= 1024)
     return 128;
-  else if (openMax >= 512)
+  else if (open_max >= 512)
     return 64;
-  else if (openMax >= 128)
+  else if (open_max >= 128)
     return 16;
   else // Assumes we don't try less than 64.
     return 4;
 }
 
-static uint32_t
-calculate_reserved(uint32_t openMax) {
-  if (openMax >= 8096)
-    return 256;
-  else if (openMax >= 1024)
+uint32_t
+calculate_max_http_host_connections(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 3;
+  else if (open_max >= 8096)
+    return 2;
+  else // Assumes we don't try less than 64.
+    return 1;
+}
+
+uint32_t
+calculate_max_http_total_connections(uint32_t open_max) {
+  if (open_max >= 16384)
     return 128;
-  else if (openMax >= 512)
+  else if (open_max >= 8096)
     return 64;
-  else if (openMax >= 128)
+  else if (open_max >= 1024)
+    return 32;
+  else if (open_max >= 512)
+    return 16;
+  else if (open_max >= 128)
+    return 8;
+  else // Assumes we don't try less than 64.
+    return 4;
+}
+
+uint32_t
+calculate_reserved(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 512;
+  else if (open_max >= 8096)
+    return 256;
+  else if (open_max >= 1024)
+    return 128;
+  else if (open_max >= 512)
+    return 64;
+  else if (open_max >= 128)
     return 32;
   else // Assumes we don't try less than 64.
     return 16;
+}
+
 }
 
 void
@@ -78,10 +113,16 @@ initialize() {
   ThreadNet::create_thread();
   ThreadTracker::create_thread(ThreadMain::thread_main());
 
-  uint32_t maxFiles = calculate_max_open_files(this_thread::poll()->open_max());
+  auto max_open = this_thread::poll()->open_max();
+  auto max_files = calculate_max_open_files(max_open);
+  auto max_http_connections = calculate_max_http_total_connections(max_open);
+  auto reserved = calculate_reserved(max_open);
 
-  manager->connection_manager()->set_max_size(this_thread::poll()->open_max() - maxFiles - calculate_reserved(this_thread::poll()->open_max()));
-  manager->file_manager()->set_max_open_files(maxFiles);
+  manager->connection_manager()->set_max_size(max_open - max_files - max_http_connections - reserved);
+  manager->file_manager()->set_max_open_files(max_files);
+
+  net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(max_open));
+  net_thread::http_stack()->set_max_total_connections(max_http_connections);
 
   thread_disk()->init_thread();
   net_thread::thread()->init_thread();
