@@ -29,10 +29,7 @@
 // If you delete this exception statement from all source files in the
 // program, then also delete it here.
 //
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
+
 
 // Various functions for manipulating file paths. Also consider making
 // a directory iterator.
