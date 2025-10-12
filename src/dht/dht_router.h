@@ -105,11 +105,11 @@ private:
   DhtBucketList::iterator find_bucket(const HashString& id);
 
   bool                add_node_to_bucket(DhtNode* node);
-  void                delete_node(const DhtNodeList::accessor& itr);
+  void                delete_node(DhtNodeList::accessor itr);
 
   void                store_closest_nodes(const HashString& id, DhtBucket* bucket);
 
-  DhtBucketList::iterator split_bucket(const DhtBucketList::iterator& itr, DhtNode* node);
+  DhtBucketList::iterator split_bucket(DhtBucketList::iterator itr, DhtNode* node);
 
   void                bootstrap();
   void                bootstrap_bucket(const DhtBucket* bucket);

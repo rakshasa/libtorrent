@@ -50,7 +50,7 @@ ConnectionList::want_connection([[maybe_unused]] PeerInfo* p, Bitfield* bitfield
 }
 
 PeerConnectionBase*
-ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+ConnectionList::insert(PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)
     return NULL;
 
