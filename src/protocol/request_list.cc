@@ -56,7 +56,7 @@ request_list_constants::destroy<BlockTransfer*>(BlockTransfer*& obj) {
 
 // It is assumed invalid transfers have been removed.
 struct request_list_same_piece {
-  request_list_same_piece(const Piece& p) : m_piece(p) {}
+  request_list_same_piece(Piece p) : m_piece(p) {}
 
   bool operator () (const BlockTransfer* d) const {
     return
@@ -157,7 +157,7 @@ RequestList::delay_remove_choked() {
 }
 
 void
-RequestList::prepare_process_unordered(queues_type::iterator itr) {
+RequestList::prepare_process_unordered(const queues_type::iterator& itr) {
   m_queues.move_to(bucket_queued, m_queues.begin(bucket_queued), itr,
                    bucket_unordered);
 
@@ -198,7 +198,7 @@ RequestList::clear() {
 }
 
 bool
-RequestList::downloading(const Piece& piece) {
+RequestList::downloading(Piece piece) {
   if (m_transfer != nullptr)
     throw internal_error("RequestList::downloading(...) m_transfer != nullptr.");
 
