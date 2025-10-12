@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -58,7 +58,7 @@ ChunkSelector::initialize(ChunkStatistics* cs) {
 
   untouched->set_size_bits(completed->size_bits());
   untouched->allocate();
-  std::transform(completed->begin(), completed->end(), untouched->begin(), [](const Bitfield::value_type& v) { return ~v; });
+  std::transform(completed->begin(), completed->end(), untouched->begin(), [](auto v) { return ~v; });
   untouched->update();
 
   m_sharedQueue.enable(32);
@@ -147,10 +147,10 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   }
 
   uint32_t pos = queue->pop();
-  
+
   if (!m_data->untouched_bitfield()->get(pos))
     throw internal_error("ChunkSelector::find(...) bad index.");
-  
+
   return pos;
 }
 
@@ -222,7 +222,7 @@ ChunkSelector::search_linear(const Bitfield* bf, rak::partial_queue* pq, const d
     if (!search_linear_range(bf, pq, std::max(first, itr->first), std::min(last, itr->second)))
       return false;
 
-    ++itr;    
+    ++itr;
   }
 
   return true;
@@ -247,7 +247,7 @@ ChunkSelector::search_linear_range(const Bitfield* bf, rak::partial_queue* pq, u
 
     wanted = (*++source & *++local);
   }
-  
+
   // Unset any bits from 'last'.
   wanted &= Bitfield::mask_before(last - m_data->untouched_bitfield()->position(local));
 

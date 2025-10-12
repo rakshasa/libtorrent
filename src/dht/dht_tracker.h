@@ -12,8 +12,8 @@ namespace torrent {
 
 class DhtTracker {
 public:
-  // Maximum number of peers we return for a GET_PEERS query (default value only). 
-  // Needs to be small enough so that a packet with a payload of num_peers*6 bytes 
+  // Maximum number of peers we return for a GET_PEERS query (default value only).
+  // Needs to be small enough so that a packet with a payload of num_peers*6 bytes
   // does not need fragmentation. Value chosen so that the size is approximately
   // equal to a FIND_NODE reply (8*26 bytes).
   static constexpr unsigned int max_peers = 32;
@@ -39,7 +39,7 @@ private:
     char                 header[2];
     SocketAddressCompact peer;
 
-    BencodeAddress(const SocketAddressCompact& p) : peer(p) { header[0] = '6'; header[1] = ':'; }
+    BencodeAddress(SocketAddressCompact p) : peer(p) { header[0] = '6'; header[1] = ':'; }
 
     const char*  bencode() const { return header; }
 

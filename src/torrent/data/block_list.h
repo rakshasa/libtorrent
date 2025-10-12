@@ -27,7 +27,7 @@ public:
 
   using base_type::operator[];
 
-  BlockList(const Piece& piece, uint32_t blockLength);
+  BlockList(Piece piece, uint32_t blockLength);
   ~BlockList();
   BlockList(const BlockList&) = delete;
   BlockList& operator=(const BlockList&) = delete;

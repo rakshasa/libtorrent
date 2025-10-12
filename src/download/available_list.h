@@ -33,7 +33,7 @@ public:
   void                insert(AddressList* source_list);
   bool                insert_unique(const sockaddr* sa);
 
-  void                erase(iterator itr)                { *itr = std::move(back()); pop_back(); }
+  void                erase(iterator itr)                { *itr = back(); pop_back(); }
 
   // A place to temporarily put addresses before re-adding them to the
   // AvailableList.

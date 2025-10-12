@@ -388,7 +388,7 @@ PeerConnectionBase::should_connection_unchoke(choke_queue* cq) const {
 }
 
 bool
-PeerConnectionBase::down_chunk_start(const Piece& piece) {
+PeerConnectionBase::down_chunk_start(Piece piece) {
   if (!request_list()->downloading(piece)) {
     if (piece.length() == 0) {
       LT_LOG_PIECE_EVENTS("(down) skipping_empty %" PRIu32 " %" PRIu32 " %" PRIu32,
@@ -799,7 +799,7 @@ PeerConnectionBase::up_chunk_release() {
 }
 
 void
-PeerConnectionBase::read_request_piece(const Piece& p) {
+PeerConnectionBase::read_request_piece(Piece p) {
   auto itr = std::find(m_peerChunks.upload_queue()->begin(),
                        m_peerChunks.upload_queue()->end(),
                        p);
@@ -818,7 +818,7 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
 }
 
 void
-PeerConnectionBase::read_cancel_piece(const Piece& p) {
+PeerConnectionBase::read_cancel_piece(Piece p) {
   auto itr = std::find(m_peerChunks.upload_queue()->begin(),
                        m_peerChunks.upload_queue()->end(),
                        p);

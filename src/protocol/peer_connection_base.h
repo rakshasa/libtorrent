@@ -119,13 +119,13 @@ protected:
 
   void                load_up_chunk();
 
-  void                read_request_piece(const Piece& p);
-  void                read_cancel_piece(const Piece& p);
+  void                read_request_piece(Piece p);
+  void                read_cancel_piece(Piece p);
 
   void                write_prepare_piece();
   void                write_prepare_extension(int type, const DataBuffer& message);
 
-  bool                down_chunk_start(const Piece& p);
+  bool                down_chunk_start(Piece p);
   void                down_chunk_finished();
 
   bool                down_chunk();

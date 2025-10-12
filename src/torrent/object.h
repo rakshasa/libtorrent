@@ -65,10 +65,10 @@ public:
   Object(const value_type v)   : m_flags(TYPE_VALUE) { new (&_value()) value_type(v); }
   Object(const char* s)        : m_flags(TYPE_STRING) { new (&_string()) string_type(s); }
   Object(const string_type& s) : m_flags(TYPE_STRING) { new (&_string()) string_type(s); }
-  Object(const raw_bencode& r) : m_flags(TYPE_RAW_BENCODE) { new (&_raw_bencode()) raw_bencode(r); }
-  Object(const raw_string& r)  : m_flags(TYPE_RAW_STRING) { new (&_raw_string()) raw_string(r); }
-  Object(const raw_list& r)    : m_flags(TYPE_RAW_LIST) { new (&_raw_list()) raw_list(r); }
-  Object(const raw_map& r)     : m_flags(TYPE_RAW_MAP) { new (&_raw_map()) raw_map(r); }
+  Object(raw_bencode r)        : m_flags(TYPE_RAW_BENCODE) { new (&_raw_bencode()) raw_bencode(r); }
+  Object(raw_string r)         : m_flags(TYPE_RAW_STRING) { new (&_raw_string()) raw_string(r); }
+  Object(raw_list r)           : m_flags(TYPE_RAW_LIST) { new (&_raw_list()) raw_list(r); }
+  Object(raw_map r)            : m_flags(TYPE_RAW_MAP) { new (&_raw_map()) raw_map(r); }
 
   Object() {}
   ~Object() { clear(); }
@@ -352,10 +352,10 @@ object_create_raw_bencode_c_str(const char str[]) {
 
 // TODO: These do not preserve the flag...
 
-Object object_create_normal(const raw_bencode& obj) LIBTORRENT_EXPORT;
-Object object_create_normal(const raw_list& obj) LIBTORRENT_EXPORT;
-Object object_create_normal(const raw_map& obj) LIBTORRENT_EXPORT;
-inline Object object_create_normal(const raw_string& obj) { return torrent::Object(obj.as_string()); }
+Object object_create_normal(raw_bencode obj) LIBTORRENT_EXPORT;
+Object object_create_normal(raw_list obj) LIBTORRENT_EXPORT;
+Object object_create_normal(raw_map obj) LIBTORRENT_EXPORT;
+inline Object object_create_normal(raw_string obj) { return torrent::Object(obj.as_string()); }
 
 inline Object
 Object::create_dict_key() {
