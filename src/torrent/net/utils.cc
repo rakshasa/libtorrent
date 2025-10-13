@@ -1,10 +1,15 @@
-#include <torrent/net/utils.h>
+#include "config.h"
+
+#include "torrent/net/utils.h"
 
 #include <cerrno>
 #include <cstring>
-#include <torrent/net/fd.h>
-#include <torrent/net/socket_address.h>
-#include <torrent/utils/log.h>
+#include <netdb.h>
+
+#include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
+#include "torrent/net/socket_address.h"
+#include "torrent/utils/log.h"
 
 #define LT_LOG_ERROR(log_fmt)                                           \
   lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " (errno:%i message:'%s')", \
@@ -23,7 +28,38 @@
 
 namespace torrent {
 
-auto detect_local_sin_addr() -> sin_unique_ptr {
+c_sa_shared_ptr
+lookup_address(const std::string& address_str, int family) {
+  if (address_str.empty())
+    return sa_make_unspec();
+
+  // don't use rak::, use unix getaddrinfo
+
+  addrinfo hints = {};
+  hints.ai_family = family;
+  hints.ai_socktype = SOCK_STREAM;
+
+  addrinfo* res;
+
+  int err = ::getaddrinfo(address_str.c_str(), nullptr, &hints, &res);
+
+  if (err != 0)
+    throw input_error("Could not get address info: " + address_str + ": " + std::string(gai_strerror(err)));
+
+  try {
+    auto sa = sa_copy(res->ai_addr);
+    ::freeaddrinfo(res);
+
+    return sa;
+
+  } catch (input_error& e) {
+    ::freeaddrinfo(res);
+    throw e;
+  }
+}
+
+sin_unique_ptr
+detect_local_sin_addr() {
   int fd = fd_open(fd_flag_v4only | fd_flag_datagram);
   if (fd == -1) {
     LT_LOG_ERROR("detect_local_sin_addr: open failed");
@@ -62,7 +98,8 @@ auto detect_local_sin_addr() -> sin_unique_ptr {
   return sa;
 }
 
-auto detect_local_sin6_addr() -> sin6_unique_ptr {
+sin6_unique_ptr
+detect_local_sin6_addr() {
   int fd = fd_open(fd_flag_v6only | fd_flag_datagram);
   if (fd == -1) {
     LT_LOG_ERROR("detect_local_sin6_addr: open failed");

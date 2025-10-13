@@ -362,14 +362,13 @@ TrackerUdp::prepare_announce_input() {
   m_write_buffer->write_64(parameters.uploaded_adjusted);
   m_write_buffer->write_32(m_send_state);
 
-  uint32_t local_addr = 0;
-
-  auto local_address = config::network_config()->local_address();
+  auto local_address = config::network_config()->local_inet_address();
 
   if (local_address->sa_family == AF_INET)
-    local_addr = reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr;
+    m_write_buffer->write_32_n(reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr);
+  else
+    m_write_buffer->write_32_n(0);
 
-  m_write_buffer->write_32_n(local_addr);
   m_write_buffer->write_32(info().key);
   m_write_buffer->write_32(parameters.numwant);
   m_write_buffer->write_16(config::network_config()->listen_port_or_throw());

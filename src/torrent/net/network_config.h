@@ -105,11 +105,17 @@ public:
   //
   // TODO: Change http stack to use NetworkConfig
   void                set_bind_address(const sockaddr* sa);
+  void                set_bind_address_str(const std::string& addr);
   void                set_bind_inet_address(const sockaddr* sa);
+  void                set_bind_inet_address_str(const std::string& addr);
   void                set_bind_inet6_address(const sockaddr* sa);
+  void                set_bind_inet6_address_str(const std::string& addr);
   void                set_local_address(const sockaddr* sa);
+  void                set_local_address_str(const std::string& addr);
   void                set_local_inet_address(const sockaddr* sa);
+  void                set_local_inet_address_str(const std::string& addr);
   void                set_local_inet6_address(const sockaddr* sa);
+  void                set_local_inet6_address_str(const std::string& addr);
   void                set_proxy_address(const sockaddr* sa);
 
   // Port number should not be cleared as it is used for tracker announces.

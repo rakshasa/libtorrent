@@ -1,9 +1,16 @@
+#ifndef LIBTORRENT_TORRENT_NET_UTILS_H
+#define LIBTORRENT_TORRENT_NET_UTILS_H
+
 #include <torrent/common.h>
-#include <torrent/net/socket_address.h>
+#include <torrent/net/types.h>
 
-namespace torrent {
+namespace torrent::net {
 
-auto detect_local_sin_addr() -> sin_unique_ptr;
-auto detect_local_sin6_addr() -> sin6_unique_ptr;
+c_sa_shared_ptr lookup_address(const std::string& address_str, int family);
 
-} // namespace torrent
+sin_unique_ptr  detect_local_sin_addr();
+sin6_unique_ptr detect_local_sin6_addr();
+
+} // namespace torrent::net
+
+#endif // LIBTORRENT_TORRENT_NET_UTILS_H

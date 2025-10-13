@@ -5,6 +5,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/net/utils.h"
 #include "torrent/utils/log.h"
 
 // TODO: Add net category and add it to important/complete log outputs.
@@ -15,8 +16,10 @@
 namespace torrent::net {
 
 namespace {
+
 c_sa_shared_ptr inet_any_value = sa_make_inet_any();
 c_sa_shared_ptr inet6_any_value = sa_make_inet6_any();
+
 }
 
 NetworkConfig::NetworkConfig() {
@@ -240,13 +243,28 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
 }
 
 void
+NetworkConfig::set_bind_address_str(const std::string& addr) {
+  set_bind_address(lookup_address(addr, AF_UNSPEC).get());
+}
+
+void
 NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
   set_generic_inet_address("bind", m_bind_inet_address, sa);
 }
 
 void
+NetworkConfig::set_bind_inet_address_str(const std::string& addr) {
+  set_bind_inet_address(lookup_address(addr, AF_INET).get());
+}
+
+void
 NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
   set_generic_inet6_address("bind", m_bind_inet6_address, sa);
+}
+
+void
+NetworkConfig::set_bind_inet6_address_str(const std::string& addr) {
+  set_bind_inet6_address(lookup_address(addr, AF_INET6).get());
 }
 
 void
@@ -258,6 +276,11 @@ NetworkConfig::set_local_address(const sockaddr* sa) {
 }
 
 void
+NetworkConfig::set_local_address_str(const std::string& addr) {
+  set_local_address(lookup_address(addr, AF_UNSPEC).get());
+}
+
+void
 NetworkConfig::set_local_inet_address(const sockaddr* sa) {
   if (sa_is_any(sa))
     throw input_error("Tried to set local inet address to an any address.");
@@ -266,11 +289,21 @@ NetworkConfig::set_local_inet_address(const sockaddr* sa) {
 }
 
 void
+NetworkConfig::set_local_inet_address_str(const std::string& addr) {
+  set_local_inet_address(lookup_address(addr, AF_INET).get());
+}
+
+void
 NetworkConfig::set_local_inet6_address(const sockaddr* sa) {
   if (sa_is_any(sa))
     throw input_error("Tried to set local inet6 address to an any address.");
 
   set_generic_inet6_address("local", m_local_inet6_address, sa);
+}
+
+void
+NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
+  set_local_inet6_address(lookup_address(addr, AF_INET6).get());
 }
 
 void
