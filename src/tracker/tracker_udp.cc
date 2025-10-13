@@ -36,7 +36,7 @@ TrackerUdp::~TrackerUdp() {
 
 bool
 TrackerUdp::is_busy() const {
-  return get_fd().is_valid();
+  return m_fileDesc != -1;
 }
 
 void
@@ -115,8 +115,8 @@ TrackerUdp::close_directly() {
   m_resolver_requesting = false;
   m_sending_announce = false;
 
-  m_read_buffer = nullptr;
-  m_write_buffer = nullptr;
+  m_read_buffer.reset();
+  m_write_buffer.reset();
 
   if (!get_fd().is_valid())
     return;
@@ -198,6 +198,9 @@ TrackerUdp::start_announce() {
   if (!m_sending_announce)
     throw internal_error("TrackerUdp::start_announce() called but m_sending_announce is false.");
 
+  if (m_fileDesc != -1)
+    throw internal_error("TrackerUdp::start_announce() called but m_fileDesc is already open.");
+
   m_sending_announce = false;
 
   c_sa_shared_ptr bind_address;
@@ -254,9 +257,6 @@ TrackerUdp::start_announce() {
     return receive_failed("failed to bind socket to udp address '" + pretty_addr + "' with error '" + error_str + "'");
   }
 
-  // TODO: Do connect here.
-
-  // TODO: Don't recreate buffers.
   m_read_buffer = std::make_unique<ReadBuffer>();
   m_write_buffer = std::make_unique<WriteBuffer>();
 

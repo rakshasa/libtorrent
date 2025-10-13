@@ -22,7 +22,8 @@ c_sa_shared_ptr inet6_any_value = sa_make_inet6_any();
 NetworkConfig::NetworkConfig() {
   m_bind_inet_address = sa_make_unspec();
   m_bind_inet6_address = sa_make_unspec();
-  m_local_address = sa_make_unspec();
+  m_local_inet_address = sa_make_unspec();
+  m_local_inet6_address = sa_make_unspec();
   m_proxy_address = sa_make_unspec();
 }
 
@@ -98,129 +99,29 @@ NetworkConfig::set_priority(int p) {
   m_priority = p;
 }
 
-// The caller must make sure the bind address family is not blocked before making a connection.
 c_sa_shared_ptr
 NetworkConfig::bind_address_best_match() const {
-  auto guard = lock_guard();
-
-  if (m_bind_inet_address->sa_family == AF_UNSPEC)
-    return m_bind_inet6_address;
-
-  if (m_bind_inet6_address->sa_family == AF_UNSPEC)
-    return m_bind_inet_address;
-
-  if (m_prefer_ipv6) {
-    if (m_block_ipv6 && !m_block_ipv4)
-      return m_bind_inet_address;
-
-    return m_bind_inet6_address;
-  }
-
-  if (m_block_ipv4 && !m_block_ipv6)
-    return m_bind_inet6_address;
-
-  return m_bind_inet_address;
+  return generic_address_best_match(m_bind_inet_address, m_bind_inet6_address);
 }
 
 std::string
 NetworkConfig::bind_address_best_match_str() const {
-  return sa_addr_str(bind_address_best_match().get());
+  return generic_address_best_match_str(m_bind_inet_address, m_bind_inet6_address);
 }
-
-// TODO: There's a race condition if block/bind is changed after returning unspec, and the caller
-// checks if ipv4/6 is blocked. Create a function that locks NC and sets up and binds fd.
 
 c_sa_shared_ptr
 NetworkConfig::bind_address_or_unspec_and_null() const {
-  auto guard = lock_guard();
-
-  if (m_block_ipv4 && m_block_ipv6)
-    return nullptr;
-
-  if (m_bind_inet_address->sa_family == AF_UNSPEC && m_bind_inet6_address->sa_family == AF_UNSPEC)
-    return m_bind_inet_address;
-
-  if (m_bind_inet_address->sa_family == AF_UNSPEC) {
-    if (m_block_ipv6)
-      return nullptr;
-
-    return m_bind_inet6_address;
-  }
-
-  if (m_bind_inet6_address->sa_family == AF_UNSPEC) {
-    if (m_block_ipv4)
-      return nullptr;
-
-    return m_bind_inet_address;
-  }
-
-  if (m_prefer_ipv6 && !m_block_ipv6)
-    return m_bind_inet6_address;
-
-  if (m_block_ipv4)
-    return m_bind_inet6_address;
-
-  return m_bind_inet_address;
+  return generic_address_or_unspec_and_null(m_bind_inet_address, m_bind_inet6_address);
 }
 
 c_sa_shared_ptr
 NetworkConfig::bind_address_or_any_and_null() const {
-  auto bind_address = bind_address_or_unspec_and_null();
-
-  if (bind_address == nullptr)
-    return nullptr;
-
-  if (bind_address->sa_family != AF_UNSPEC)
-    return bind_address;
-
-  if (!m_block_ipv6)
-    return inet6_any_value;
-
-  if (!m_block_ipv4)
-    return inet_any_value;
-
-  throw internal_error("NetworkConfig::bind_address_or_any_and_null(): both ipv4 and ipv6 are blocked and returned unspec");
+  return generic_address_or_any_and_null(m_bind_inet_address, m_bind_inet6_address);
 }
 
 c_sa_shared_ptr
 NetworkConfig::bind_address_for_connect(int family) const {
-  auto guard = lock_guard();
-
-  // if (m_block_outgoing)
-  //   return nullptr;
-
-  switch (family) {
-  case AF_INET:
-    if (m_block_ipv4)
-      return nullptr;
-
-    if (m_bind_inet_address->sa_family != AF_UNSPEC)
-      return m_bind_inet_address;
-
-    if (m_bind_inet6_address->sa_family != AF_UNSPEC) {
-      if (m_block_ipv4in6)
-        return nullptr;
-
-      return m_bind_inet6_address;
-    }
-
-    return inet_any_value;
-
-  case AF_INET6:
-    if (m_block_ipv6)
-      return nullptr;
-
-    if (m_bind_inet6_address->sa_family != AF_UNSPEC)
-      return m_bind_inet6_address;
-
-    if (m_bind_inet_address->sa_family != AF_UNSPEC)
-      return nullptr;
-
-    return inet6_any_value;
-
-  default:
-    throw input_error("NetworkConfig::bind_address_for_connect() called with invalid address family");
-  }
+  return generic_address_for_connect(family, m_bind_inet_address, m_bind_inet6_address);
 }
 
 c_sa_shared_ptr
@@ -248,15 +149,67 @@ NetworkConfig::bind_inet6_address_str() const {
 }
 
 c_sa_shared_ptr
-NetworkConfig::local_address() const {
-  auto guard = lock_guard();
-  return m_local_address;
+NetworkConfig::local_address_best_match() const {
+  return generic_address_best_match(m_local_inet_address, m_local_inet6_address);
 }
 
 std::string
-NetworkConfig::local_address_str() const {
+NetworkConfig::local_address_best_match_str() const {
+  return generic_address_best_match_str(m_local_inet_address, m_local_inet6_address);
+}
+
+c_sa_shared_ptr
+NetworkConfig::local_address_or_unspec_and_null() const {
+  return generic_address_or_unspec_and_null(m_local_inet_address, m_local_inet6_address);
+}
+
+c_sa_shared_ptr
+NetworkConfig::local_address_or_any_and_null() const {
+  return generic_address_or_any_and_null(m_local_inet_address, m_local_inet6_address);
+}
+
+c_sa_shared_ptr
+NetworkConfig::local_inet_address() const {
   auto guard = lock_guard();
-  return sa_addr_str(m_local_address.get());
+  return m_local_inet_address;
+}
+
+c_sa_shared_ptr
+NetworkConfig::local_inet_address_or_null() const {
+  auto guard = lock_guard();
+
+  if (m_block_ipv4 || m_local_inet_address->sa_family == AF_UNSPEC)
+    return nullptr;
+
+  return m_local_inet_address;
+}
+
+std::string
+NetworkConfig::local_inet_address_str() const {
+  auto guard = lock_guard();
+  return sa_addr_str(m_local_inet_address.get());
+}
+
+c_sa_shared_ptr
+NetworkConfig::local_inet6_address() const {
+  auto guard = lock_guard();
+  return m_local_inet6_address;
+}
+
+c_sa_shared_ptr
+NetworkConfig::local_inet6_address_or_null() const {
+  auto guard = lock_guard();
+
+  if (m_block_ipv6 || m_local_inet6_address->sa_family == AF_UNSPEC)
+    return nullptr;
+
+  return m_local_inet6_address;
+}
+
+std::string
+NetworkConfig::local_inet6_address_str() const {
+  auto guard = lock_guard();
+  return sa_addr_str(m_local_inet6_address.get());
 }
 
 c_sa_shared_ptr
@@ -272,92 +225,52 @@ NetworkConfig::proxy_address_str() const {
 }
 
 // TODO: Move all management tasks here.
-
-// TODO: set_bind_address replace both bind_inet and bind_inet6.
+// TODO: Change http stack to use NetworkConfig
+// TODO: Add a separate bind setting for http stack.
 
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
-  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
-    throw input_error("Tried to set a bind address that is not an unspec/inet address.");
-
-  if (sa_port(sa) != 0)
-    throw input_error("Tried to set a bind address with a non-zero port.");
-
-  auto guard = lock_guard();
-
-  LT_LOG_NOTICE("bind address : %s", sa_pretty_str(sa).c_str());
-
-  switch (sa->sa_family) {
-  case AF_UNSPEC:
-    m_bind_inet_address = sa_make_unspec();
-    m_bind_inet6_address = sa_make_unspec();
-    break;
-  case AF_INET:
-    m_bind_inet_address = sa_copy(sa);
-    m_bind_inet6_address = sa_make_unspec();
-    break;
-  case AF_INET6:
-    m_bind_inet_address = sa_make_unspec();
-    m_bind_inet6_address = sa_copy(sa);
-    break;
-  default:
-    throw internal_error("NetworkConfig::set_bind_address: invalid address family");
-  }
+  set_generic_address("bind", m_bind_inet_address, m_bind_inet6_address, sa);
 
   // TODO: This should bind to inet/inet6 and only empty string on unspec.
   if (sa_is_any(sa))
     torrent::net_thread::http_stack()->set_bind_address(std::string());
   else
     torrent::net_thread::http_stack()->set_bind_address(sa_addr_str(sa).c_str());
-
-  // TODO: Warning if not matching block/prefer
 }
-
-// TODO: Add a separate bind setting for http stack.
 
 void
 NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
-  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
-    throw input_error("Tried to set a bind inet address that is not an unspec/inet address.");
-
-  if (sa_port(sa) != 0)
-    throw input_error("Tried to set a bind inet address with a non-zero port.");
-
-  auto guard = lock_guard();
-
-  LT_LOG_NOTICE("bind inet address : %s", sa_pretty_str(sa).c_str());
-
-  m_bind_inet_address = sa_copy(sa);
+  set_generic_inet_address("bind", m_bind_inet_address, sa);
 }
 
 void
 NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
-  if (sa->sa_family != AF_INET6 && sa->sa_family != AF_UNSPEC)
-    throw input_error("Tried to set a bind inet6 address that is not an unspec/inet6 address.");
-
-  if (sa_port(sa) != 0)
-    throw input_error("Tried to set a bind inet6 address with a non-zero port.");
-
-  auto guard = lock_guard();
-
-  LT_LOG_NOTICE("bind inet6 address : %s", sa_pretty_str(sa).c_str());
-
-  m_bind_inet6_address = sa_copy(sa);
+  set_generic_inet6_address("bind", m_bind_inet6_address, sa);
 }
 
 void
 NetworkConfig::set_local_address(const sockaddr* sa) {
-  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
-    throw input_error("Tried to set a local address that is not an unspec/inet address.");
+  if (sa_is_any(sa))
+    throw input_error("Tried to set local address to an any address.");
 
-  if (sa_port(sa) != 0)
-    throw input_error("Tried to set a local address with a non-zero port.");
+  set_generic_address("local", m_local_inet_address, m_local_inet6_address, sa);
+}
 
-  auto guard = lock_guard();
+void
+NetworkConfig::set_local_inet_address(const sockaddr* sa) {
+  if (sa_is_any(sa))
+    throw input_error("Tried to set local inet address to an any address.");
 
-  LT_LOG_NOTICE("local address : %s", sa_pretty_str(sa).c_str());
+  set_generic_inet_address("local", m_local_inet_address, sa);
+}
 
-  m_local_address = sa_copy(sa);
+void
+NetworkConfig::set_local_inet6_address(const sockaddr* sa) {
+  if (sa_is_any(sa))
+    throw input_error("Tried to set local inet6 address to an any address.");
+
+  set_generic_inet6_address("local", m_local_inet6_address, sa);
 }
 
 void
@@ -464,6 +377,199 @@ NetworkConfig::set_listen_backlog(int backlog) {
 
   auto guard = lock_guard();
   m_listen_backlog = backlog;
+}
+
+//
+// Helper Functions:
+//
+
+// The caller must make sure the address family is not blocked before making a connection.
+c_sa_shared_ptr
+NetworkConfig::generic_address_best_match(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const {
+  auto guard = lock_guard();
+
+  if (inet_address->sa_family == AF_UNSPEC)
+    return inet6_address;
+
+  if (inet6_address->sa_family == AF_UNSPEC)
+    return inet_address;
+
+  if (m_prefer_ipv6) {
+    if (m_block_ipv6 && !m_block_ipv4)
+      return inet_address;
+
+    return inet6_address;
+  }
+
+  if (m_block_ipv4 && !m_block_ipv6)
+    return inet6_address;
+
+  return inet_address;
+}
+
+std::string
+NetworkConfig::generic_address_best_match_str(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const {
+  return sa_addr_str(generic_address_best_match(inet_address, inet6_address).get());
+}
+
+// TODO: There's a race condition if block/local is changed after returning unspec, and the caller
+// checks if ipv4/6 is blocked. Create a function that locks NC and sets up and locals fd.
+
+c_sa_shared_ptr
+NetworkConfig::generic_address_or_unspec_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const {
+  auto guard = lock_guard();
+
+  if (m_block_ipv4 && m_block_ipv6)
+    return nullptr;
+
+  if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC)
+    return inet_address;
+
+  if (inet_address->sa_family == AF_UNSPEC) {
+    if (m_block_ipv6)
+      return nullptr;
+
+    return inet6_address;
+  }
+
+  if (inet6_address->sa_family == AF_UNSPEC) {
+    if (m_block_ipv4)
+      return nullptr;
+
+    return inet_address;
+  }
+
+  if (m_prefer_ipv6 && !m_block_ipv6)
+    return inet6_address;
+
+  if (m_block_ipv4)
+    return inet6_address;
+
+  return inet_address;
+}
+
+c_sa_shared_ptr
+NetworkConfig::generic_address_or_any_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const {
+  auto address = generic_address_or_unspec_and_null(inet_address, inet6_address);
+
+  if (address == nullptr)
+    return nullptr;
+
+  if (address->sa_family != AF_UNSPEC)
+    return address;
+
+  if (!m_block_ipv6)
+    return inet6_any_value;
+
+  if (!m_block_ipv4)
+    return inet_any_value;
+
+  throw internal_error("NetworkConfig::generic_address_or_any_and_null(): both ipv4 and ipv6 are blocked and returned unspec");
+}
+
+c_sa_shared_ptr
+NetworkConfig::generic_address_for_connect(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const {
+  auto guard = lock_guard();
+
+  // if (m_block_outgoing)
+  //   return nullptr;
+
+  switch (family) {
+  case AF_INET:
+    if (m_block_ipv4)
+      return nullptr;
+
+    if (inet_address->sa_family != AF_UNSPEC)
+      return inet_address;
+
+    if (inet6_address->sa_family != AF_UNSPEC) {
+      if (m_block_ipv4in6)
+        return nullptr;
+
+      return inet6_address;
+    }
+
+    return inet_any_value;
+
+  case AF_INET6:
+    if (m_block_ipv6)
+      return nullptr;
+
+    if (inet6_address->sa_family != AF_UNSPEC)
+      return inet6_address;
+
+    if (inet_address->sa_family != AF_UNSPEC)
+      return nullptr;
+
+    return inet6_any_value;
+
+  default:
+    throw input_error("NetworkConfig::generic_address_for_connect() called with invalid address family");
+  }
+}
+
+// TODO: Move all management tasks here.
+
+void
+NetworkConfig::set_generic_address(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa) {
+  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
+    throw input_error("Tried to set a " + std::string(category) + " address that is not an unspec/inet address.");
+
+  if (sa_port(sa) != 0)
+    throw input_error("Tried to set a " + std::string(category) + " address with a non-zero port.");
+
+  auto guard = lock_guard();
+
+  LT_LOG_NOTICE("%s address : %s", category, sa_pretty_str(sa).c_str());
+
+  switch (sa->sa_family) {
+  case AF_UNSPEC:
+    inet_address = sa_make_unspec();
+    inet6_address = sa_make_unspec();
+    break;
+  case AF_INET:
+    inet_address = sa_copy(sa);
+    inet6_address = sa_make_unspec();
+    break;
+  case AF_INET6:
+    inet_address = sa_make_unspec();
+    inet6_address = sa_copy(sa);
+    break;
+  default:
+    throw internal_error("NetworkConfig::set_" + std::string(category) + "_address: invalid address family");
+  }
+
+  // TODO: Warning if not matching block/prefer
+}
+
+void
+NetworkConfig::set_generic_inet_address(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa) {
+  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
+    throw input_error("Tried to set a " + std::string(category) + " inet address that is not an unspec/inet address.");
+
+  if (sa_port(sa) != 0)
+    throw input_error("Tried to set a " + std::string(category) + " inet address with a non-zero port.");
+
+  auto guard = lock_guard();
+
+  LT_LOG_NOTICE("%s inet address : %s", category, sa_pretty_str(sa).c_str());
+
+  inet_address = sa_copy(sa);
+}
+
+void
+NetworkConfig::set_generic_inet6_address(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa) {
+  if (sa->sa_family != AF_INET6 && sa->sa_family != AF_UNSPEC)
+    throw input_error("Tried to set a " + std::string(category) + " inet6 address that is not an unspec/inet6 address.");
+
+  if (sa_port(sa) != 0)
+    throw input_error("Tried to set a " + std::string(category) + " inet6 address with a non-zero port.");
+
+  auto guard = lock_guard();
+
+  LT_LOG_NOTICE("%s inet6 address : %s", category, sa_pretty_str(sa).c_str());
+
+  inet6_address = sa_copy(sa);
 }
 
 } // namespace torrent::net
