@@ -13,7 +13,6 @@
 #include "torrent/net/http_stack.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/net/utils.h"
 #include "torrent/object_stream.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
