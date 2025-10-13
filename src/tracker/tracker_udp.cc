@@ -36,7 +36,7 @@ TrackerUdp::~TrackerUdp() {
 
 bool
 TrackerUdp::is_busy() const {
-  return get_fd().is_valid();
+  return m_fileDesc != -1;
 }
 
 void
@@ -115,8 +115,8 @@ TrackerUdp::close_directly() {
   m_resolver_requesting = false;
   m_sending_announce = false;
 
-  m_read_buffer = nullptr;
-  m_write_buffer = nullptr;
+  m_read_buffer.reset();
+  m_write_buffer.reset();
 
   if (!get_fd().is_valid())
     return;
@@ -198,6 +198,9 @@ TrackerUdp::start_announce() {
   if (!m_sending_announce)
     throw internal_error("TrackerUdp::start_announce() called but m_sending_announce is false.");
 
+  if (m_fileDesc != -1)
+    throw internal_error("TrackerUdp::start_announce() called but m_fileDesc is already open.");
+
   m_sending_announce = false;
 
   c_sa_shared_ptr bind_address;
@@ -254,9 +257,6 @@ TrackerUdp::start_announce() {
     return receive_failed("failed to bind socket to udp address '" + pretty_addr + "' with error '" + error_str + "'");
   }
 
-  // TODO: Do connect here.
-
-  // TODO: Don't recreate buffers.
   m_read_buffer = std::make_unique<ReadBuffer>();
   m_write_buffer = std::make_unique<WriteBuffer>();
 
@@ -362,14 +362,13 @@ TrackerUdp::prepare_announce_input() {
   m_write_buffer->write_64(parameters.uploaded_adjusted);
   m_write_buffer->write_32(m_send_state);
 
-  uint32_t local_addr = 0;
-
-  auto local_address = config::network_config()->local_address();
+  auto local_address = config::network_config()->local_inet_address();
 
   if (local_address->sa_family == AF_INET)
-    local_addr = reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr;
+    m_write_buffer->write_32_n(reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr);
+  else
+    m_write_buffer->write_32_n(0);
 
-  m_write_buffer->write_32_n(local_addr);
   m_write_buffer->write_32(info().key);
   m_write_buffer->write_32(parameters.numwant);
   m_write_buffer->write_16(config::network_config()->listen_port_or_throw());

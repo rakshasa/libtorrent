@@ -55,8 +55,6 @@ libtorrent_torrent_la_SOURCES = \
 	net/socket_event.cc \
 	net/socket_event.h \
 	net/types.h \
-	net/utils.cc \
-	net/utils.h \
 \
 	peer/choke_status.h \
 	peer/client_info.cc \
@@ -180,8 +178,7 @@ libtorrent_torrent_net_include_HEADERS = \
 	net/socket_address.h \
 	net/socket_address_key.h \
 	net/socket_event.h \
-	net/types.h \
-	net/utils.h
+	net/types.h
 
 libtorrent_torrent_peer_includedir = $(includedir)/torrent/peer
 libtorrent_torrent_peer_include_HEADERS = \

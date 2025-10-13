@@ -86,8 +86,18 @@ public:
   c_sa_shared_ptr     bind_inet6_address() const;
   std::string         bind_inet6_address_str() const;
 
-  c_sa_shared_ptr     local_address() const;
-  std::string         local_address_str() const;
+  c_sa_shared_ptr     local_address_best_match() const;
+  std::string         local_address_best_match_str() const;
+  c_sa_shared_ptr     local_address_or_unspec_and_null() const;
+  c_sa_shared_ptr     local_address_or_any_and_null() const;
+
+  c_sa_shared_ptr     local_inet_address() const;
+  c_sa_shared_ptr     local_inet_address_or_null() const;
+  std::string         local_inet_address_str() const;
+  c_sa_shared_ptr     local_inet6_address() const;
+  c_sa_shared_ptr     local_inet6_address_or_null() const;
+  std::string         local_inet6_address_str() const;
+
   c_sa_shared_ptr     proxy_address() const;
   std::string         proxy_address_str() const;
 
@@ -95,9 +105,17 @@ public:
   //
   // TODO: Change http stack to use NetworkConfig
   void                set_bind_address(const sockaddr* sa);
+  void                set_bind_address_str(const std::string& addr);
   void                set_bind_inet_address(const sockaddr* sa);
+  void                set_bind_inet_address_str(const std::string& addr);
   void                set_bind_inet6_address(const sockaddr* sa);
+  void                set_bind_inet6_address_str(const std::string& addr);
   void                set_local_address(const sockaddr* sa);
+  void                set_local_address_str(const std::string& addr);
+  void                set_local_inet_address(const sockaddr* sa);
+  void                set_local_inet_address_str(const std::string& addr);
+  void                set_local_inet6_address(const sockaddr* sa);
+  void                set_local_inet6_address_str(const std::string& addr);
   void                set_proxy_address(const sockaddr* sa);
 
   // Port number should not be cleared as it is used for tracker announces.
@@ -130,6 +148,17 @@ protected:
   void                set_listen_backlog(int backlog);
 
 private:
+  c_sa_shared_ptr     generic_address_best_match(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  std::string         generic_address_best_match_str(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_or_unspec_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_or_any_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_for_connect(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_for_family(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+
+  void                set_generic_address(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
+  void                set_generic_inet_address(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa);
+  void                set_generic_inet6_address(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
+
   mutable std::mutex  m_mutex;
 
   bool                m_block_ipv4{false};
@@ -143,7 +172,8 @@ private:
 
   c_sa_shared_ptr     m_bind_inet_address;
   c_sa_shared_ptr     m_bind_inet6_address;
-  c_sa_shared_ptr     m_local_address;
+  c_sa_shared_ptr     m_local_inet_address;
+  c_sa_shared_ptr     m_local_inet6_address;
   c_sa_shared_ptr     m_proxy_address;
 
   uint16_t            m_listen_port{0};

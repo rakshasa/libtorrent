@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
+#include <netdb.h>
 #include <sys/un.h>
 
 #include "torrent/exceptions.h"
@@ -675,25 +676,34 @@ sin6_pretty_str(const sockaddr_in6* sa) {
   return result;
 }
 
-// Deprecated:
+c_sa_shared_ptr
+sa_lookup_address(const std::string& address_str, int family) {
+  if (address_str.empty())
+    return sa_make_unspec();
 
-void
-sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) {
-  uint32_t addr32[4];
-  addr32[0] = 0;
-  addr32[1] = 0;
-  addr32[2] = htonl(0xffff);
-  addr32[3] = sa->sin_addr.s_addr;
+  // don't use rak::, use unix getaddrinfo
 
-  sa_clear_inet6(mapped);
+  addrinfo hints = {};
+  hints.ai_family = family;
+  hints.ai_socktype = SOCK_STREAM;
 
-  mapped->sin6_addr = *reinterpret_cast<in6_addr*>(addr32);
-  mapped->sin6_port = sa->sin_port;
-}
+  addrinfo* res;
 
-std::string
-sa_pretty_address_str(const sockaddr* sa) {
-  return sa_pretty_str(sa);
+  int err = ::getaddrinfo(address_str.c_str(), nullptr, &hints, &res);
+
+  if (err != 0)
+    throw input_error("Could not get address info: " + address_str + ": " + std::string(gai_strerror(err)));
+
+  try {
+    auto sa = sa_copy(res->ai_addr);
+    ::freeaddrinfo(res);
+
+    return sa;
+
+  } catch (input_error& e) {
+    ::freeaddrinfo(res);
+    throw e;
+  }
 }
 
 sa_inet_union

@@ -13,7 +13,6 @@
 #include "torrent/net/http_stack.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/net/utils.h"
 #include "torrent/object_stream.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
@@ -53,93 +52,15 @@ TrackerHttp::is_busy() const {
 }
 
 void
-TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
-  char hash[61];
-
-  *rak::copy_escape_html(info().info_hash.begin(),
-                         info().info_hash.end(), hash) = '\0';
-  *stream << url
-          << (m_drop_deliminator ? '&' : '?')
-          << "info_hash=" << hash;
-}
-
-void
 TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   LT_LOG("sending event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
+
+  lock_and_set_latest_event(new_state);
 
   close_directly();
   this_thread::scheduler()->erase(&m_delay_scrape);
 
-  lock_and_set_latest_event(new_state);
-
-  std::stringstream s;
-  s.imbue(std::locale::classic());
-
-  char localId[61];
-
-  auto tracker_id = this->tracker_id();
-
-  request_prefix(&s, info().url);
-
-  *rak::copy_escape_html(info().local_id.begin(), info().local_id.end(), localId) = '\0';
-
-  s << "&peer_id=" << localId
-    << "&compact=1";
-
-  if (info().key)
-    s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << info().key << std::dec;
-
-  if (!tracker_id.empty())
-    s << "&trackerid=" << rak::copy_escape_html(tracker_id);
-
-  //
-  // TODO: Make all connection_manager related calls thread-safe.
-  //
-
-  auto local_address = config::network_config()->local_address();
-
-  if (sa_is_any(local_address.get())) {
-    if (config::network_config()->is_prefer_ipv6()) {
-      auto ipv6_address = detect_local_sin6_addr();
-
-      if (ipv6_address != nullptr) {
-        s << "&ip=" << sin6_addr_str(ipv6_address.get());
-      }
-    }
-  } else {
-    s << "&ip=" << sa_addr_str(local_address.get());
-  }
-
-  auto parameters = m_slot_parameters();
-
-  if (parameters.numwant >= 0 && new_state != tracker::TrackerState::EVENT_STOPPED)
-    s << "&numwant=" << parameters.numwant;
-
-  s << "&port=" << config::network_config()->listen_port_or_throw()
-    << "&uploaded=" << parameters.uploaded_adjusted
-    << "&downloaded=" << parameters.completed_adjusted
-    << "&left=" << parameters.download_left;
-
-  switch(new_state) {
-  case tracker::TrackerState::EVENT_STARTED:
-    s << "&event=started";
-    break;
-  case tracker::TrackerState::EVENT_STOPPED:
-    s << "&event=stopped";
-    break;
-  case tracker::TrackerState::EVENT_COMPLETED:
-    s << "&event=completed";
-    break;
-  default:
-    break;
-  }
-
-  m_data = std::make_unique<std::stringstream>();
-
-  std::string request_url = s.str();
-
   m_get.try_wait_for_close();
-  m_get.reset(request_url, m_data);
 
   // TODO: Move to network config and add simple retry other AF logic.
 
@@ -152,24 +73,38 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   bool is_block_ipv4 = config::network_config()->is_block_ipv4();
   bool is_block_ipv6 = config::network_config()->is_block_ipv6();
   bool is_prefer_ipv6 = config::network_config()->is_prefer_ipv6();
+  int family{};
 
   // If both IPv4 and IPv6 are blocked, we cannot send the request.
   //
   // TODO: Properly handle this case without throwing an error.
 
-  if (is_block_ipv4 && is_block_ipv6)
+  if (is_block_ipv4 && is_block_ipv6) {
     throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
-  else if (is_block_ipv4)
+  } else if (is_block_ipv4) {
     m_get.use_ipv6();
-  else if (is_block_ipv6)
+    family = AF_INET6;
+  } else if (is_block_ipv6) {
     m_get.use_ipv4();
-  else if (is_prefer_ipv6)
+    family = AF_INET;
+  } else if (is_prefer_ipv6) {
     m_get.prefer_ipv6();
+    family = AF_INET6;
+  } else {
+    family = AF_INET;
+  }
+
+  m_data = std::make_unique<std::stringstream>();
+
+  auto params = m_slot_parameters();
+  auto request_url = request_announce_url(new_state, params, family);
+
+  m_get.reset(request_url, m_data);
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
               option_as_string(OPTION_TRACKER_EVENT, new_state),
-              parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
+              params.uploaded_adjusted, params.completed_adjusted, params.download_left);
 
   torrent::net_thread::http_stack()->start_get(m_get);
 }
@@ -190,6 +125,80 @@ TrackerHttp::send_scrape() {
 
   LT_LOG("scrape requested : url:%s", info().url.c_str());
   this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
+}
+
+void
+TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
+  char hash[61];
+
+  *rak::copy_escape_html(info().info_hash.begin(),
+                         info().info_hash.end(), hash) = '\0';
+  *stream << url
+          << (m_drop_deliminator ? '&' : '?')
+          << "info_hash=" << hash;
+}
+
+std::string
+TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, TrackerParameters params, int family) {
+  std::stringstream s;
+  s.imbue(std::locale::classic());
+
+  auto tracker_id = this->tracker_id();
+
+  request_prefix(&s, info().url);
+
+  char local_id[61];
+  *rak::copy_escape_html(info().local_id.begin(), info().local_id.end(), local_id) = '\0';
+
+  s << "&peer_id=" << local_id
+    << "&compact=1";
+
+  if (info().key)
+    s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << info().key << std::dec;
+
+  if (!tracker_id.empty())
+    s << "&trackerid=" << rak::copy_escape_html(tracker_id);
+
+  auto local_inet_address  = config::network_config()->local_inet_address_or_null();
+  auto local_inet6_address = config::network_config()->local_inet6_address_or_null();
+
+  if (local_inet_address != nullptr) {
+    if (family == AF_INET6)
+      s << "&ip=" << sa_addr_str(local_inet_address.get());
+
+    s << "&ipv4=" << sa_addr_str(local_inet_address.get());
+  }
+
+  if (local_inet6_address != nullptr) {
+    if (family == AF_INET)
+      s << "&ip=" << sa_addr_str(local_inet6_address.get());
+
+    s << "&ipv6=" << sa_addr_str(local_inet6_address.get());
+  }
+
+  if (params.numwant >= 0 && state != tracker::TrackerState::EVENT_STOPPED)
+    s << "&numwant=" << params.numwant;
+
+  s << "&port=" << config::network_config()->listen_port_or_throw()
+    << "&uploaded=" << params.uploaded_adjusted
+    << "&downloaded=" << params.completed_adjusted
+    << "&left=" << params.download_left;
+
+  switch (state) {
+  case tracker::TrackerState::EVENT_STARTED:
+    s << "&event=started";
+    break;
+  case tracker::TrackerState::EVENT_STOPPED:
+    s << "&event=stopped";
+    break;
+  case tracker::TrackerState::EVENT_COMPLETED:
+    s << "&event=completed";
+    break;
+  default:
+    break;
+  }
+
+  return s.str();
 }
 
 // We delay scrape for 10 seconds after any tracker activity to ensure all callbacks are process
