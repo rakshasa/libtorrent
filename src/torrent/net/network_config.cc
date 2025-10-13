@@ -5,7 +5,6 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/net/utils.h"
 #include "torrent/utils/log.h"
 
 // TODO: Add net category and add it to important/complete log outputs.
@@ -244,7 +243,7 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
 
 void
 NetworkConfig::set_bind_address_str(const std::string& addr) {
-  set_bind_address(lookup_address(addr, AF_UNSPEC).get());
+  set_bind_address(sa_lookup_address(addr, AF_UNSPEC).get());
 }
 
 void
@@ -254,7 +253,7 @@ NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
 
 void
 NetworkConfig::set_bind_inet_address_str(const std::string& addr) {
-  set_bind_inet_address(lookup_address(addr, AF_INET).get());
+  set_bind_inet_address(sa_lookup_address(addr, AF_INET).get());
 }
 
 void
@@ -264,7 +263,7 @@ NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
 
 void
 NetworkConfig::set_bind_inet6_address_str(const std::string& addr) {
-  set_bind_inet6_address(lookup_address(addr, AF_INET6).get());
+  set_bind_inet6_address(sa_lookup_address(addr, AF_INET6).get());
 }
 
 void
@@ -277,7 +276,7 @@ NetworkConfig::set_local_address(const sockaddr* sa) {
 
 void
 NetworkConfig::set_local_address_str(const std::string& addr) {
-  set_local_address(lookup_address(addr, AF_UNSPEC).get());
+  set_local_address(sa_lookup_address(addr, AF_UNSPEC).get());
 }
 
 void
@@ -290,7 +289,7 @@ NetworkConfig::set_local_inet_address(const sockaddr* sa) {
 
 void
 NetworkConfig::set_local_inet_address_str(const std::string& addr) {
-  set_local_inet_address(lookup_address(addr, AF_INET).get());
+  set_local_inet_address(sa_lookup_address(addr, AF_INET).get());
 }
 
 void
@@ -303,7 +302,7 @@ NetworkConfig::set_local_inet6_address(const sockaddr* sa) {
 
 void
 NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
-  set_local_inet6_address(lookup_address(addr, AF_INET6).get());
+  set_local_inet6_address(sa_lookup_address(addr, AF_INET6).get());
 }
 
 void

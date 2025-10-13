@@ -100,6 +100,8 @@ void sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) LIBTORREN
 
 std::string sa_pretty_address_str(const sockaddr* sa) LIBTORRENT_EXPORT;
 
+c_sa_shared_ptr sa_lookup_address(const std::string& address_str, int family);
+
 //
 // Other types:
 //
