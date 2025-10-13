@@ -59,6 +59,8 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   LT_LOG("resolving hostname : address:%s", hostname.data());
 
+  // TODO: Also check failed counter....
+
   if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
       (this_thread::cached_time() - m_time_last_resolved) > 24h ||
       m_failed_since_last_resolved > 3) {

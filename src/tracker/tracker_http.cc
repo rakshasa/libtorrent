@@ -16,6 +16,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/string_manip.h"
 #include "torrent/utils/uri_parser.h"
 
 #include "manager.h"
@@ -285,8 +286,12 @@ TrackerHttp::receive_done() {
   lock_and_clear_intervals();
 
   if (m_data->fail()) {
-    std::string dump = m_data->str();
-    return receive_failed("Could not parse bencoded data: " + rak::sanitize(rak::striptags(dump)).substr(0,99));
+    auto dump = utils::sanitize_string_with_tags(m_data->str());
+
+    if (dump.empty())
+      return receive_failed("Could not parse bencoded data, empty reply");
+
+    return receive_failed("Could not parse bencoded data: " + dump.substr(0,99));
   }
 
   if (!b.is_map())
