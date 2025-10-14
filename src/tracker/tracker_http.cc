@@ -56,10 +56,10 @@ void
 TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   LT_LOG("sending event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
 
-  lock_and_set_latest_event(new_state);
-
   close_directly();
   this_thread::scheduler()->erase(&m_delay_scrape);
+
+  lock_and_set_latest_event(new_state);
 
   m_get.try_wait_for_close();
 
@@ -95,12 +95,12 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
     family = AF_INET;
   }
 
-  m_data = std::make_unique<std::stringstream>();
-
   auto params = m_slot_parameters();
   auto request_url = request_announce_url(new_state, params, family);
 
   m_get.reset(request_url, m_data);
+
+  m_data = std::make_unique<std::stringstream>();
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
