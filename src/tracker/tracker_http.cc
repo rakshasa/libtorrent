@@ -95,6 +95,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   auto params = m_slot_parameters();
   auto request_url = request_announce_url(new_state, params, family);
 
+  m_data = std::make_unique<std::stringstream>();
   m_get.reset(request_url, m_data);
 
   if (is_block_ipv4 && is_block_ipv6) {
@@ -106,8 +107,6 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   } else if (is_prefer_ipv6) {
     m_get.prefer_ipv6();
   }
-
-  m_data = std::make_unique<std::stringstream>();
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
