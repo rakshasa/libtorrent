@@ -59,12 +59,26 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   LT_LOG("resolving hostname : address:%s", hostname.data());
 
+  // TODO: Also check failed counter....
+  // TODO: Check for changes to block (NC should instead clear us on network changes)
+
   if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
       (this_thread::cached_time() - m_time_last_resolved) > 24h ||
       m_failed_since_last_resolved > 3) {
 
+    int family = AF_UNSPEC;
+    bool block_ipv4 = config::network_config()->is_block_ipv4();
+    bool block_ipv6 = config::network_config()->is_block_ipv6();
+
+    if (block_ipv4 && block_ipv6)
+      return receive_failed("cannot send tracker event, both IPv4 and IPv6 are blocked");
+    else if (block_ipv4)
+      family = AF_INET6;
+    else if (block_ipv6)
+      family = AF_INET;
+
     // Currently discarding SOCK_DGRAM filter.
-    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), AF_UNSPEC,
+    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family,
                                           [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
                                             receive_resolved(sin, sin6, err);
                                           });

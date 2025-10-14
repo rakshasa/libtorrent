@@ -16,6 +16,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/string_manip.h"
 #include "torrent/utils/uri_parser.h"
 
 #include "manager.h"
@@ -55,10 +56,10 @@ void
 TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   LT_LOG("sending event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
 
-  lock_and_set_latest_event(new_state);
-
   close_directly();
   this_thread::scheduler()->erase(&m_delay_scrape);
+
+  lock_and_set_latest_event(new_state);
 
   m_get.try_wait_for_close();
 
@@ -82,24 +83,30 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   if (is_block_ipv4 && is_block_ipv6) {
     throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
   } else if (is_block_ipv4) {
-    m_get.use_ipv6();
     family = AF_INET6;
   } else if (is_block_ipv6) {
-    m_get.use_ipv4();
     family = AF_INET;
   } else if (is_prefer_ipv6) {
-    m_get.prefer_ipv6();
     family = AF_INET6;
   } else {
     family = AF_INET;
   }
 
-  m_data = std::make_unique<std::stringstream>();
-
   auto params = m_slot_parameters();
   auto request_url = request_announce_url(new_state, params, family);
 
+  m_data = std::make_unique<std::stringstream>();
   m_get.reset(request_url, m_data);
+
+  if (is_block_ipv4 && is_block_ipv6) {
+    throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
+  } else if (is_block_ipv4) {
+    m_get.use_ipv6();
+  } else if (is_block_ipv6) {
+    m_get.use_ipv4();
+  } else if (is_prefer_ipv6) {
+    m_get.prefer_ipv6();
+  }
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
@@ -285,8 +292,12 @@ TrackerHttp::receive_done() {
   lock_and_clear_intervals();
 
   if (m_data->fail()) {
-    std::string dump = m_data->str();
-    return receive_failed("Could not parse bencoded data: " + rak::sanitize(rak::striptags(dump)).substr(0,99));
+    auto dump = utils::sanitize_string_with_tags(m_data->str());
+
+    if (dump.empty())
+      return receive_failed("Could not parse bencoded data, empty reply");
+
+    return receive_failed("Could not parse bencoded data: " + dump.substr(0,99));
   }
 
   if (!b.is_map())

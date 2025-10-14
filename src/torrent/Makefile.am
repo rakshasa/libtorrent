@@ -99,6 +99,7 @@ libtorrent_torrent_la_SOURCES = \
 	utils/scheduler.h \
 	utils/signal_bitfield.cc \
 	utils/signal_bitfield.h \
+	utils/string_manip.h \
 	utils/thread.cc \
 	utils/thread.h \
 	utils/uri_parser.cc \
@@ -211,6 +212,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/resume.h \
 	utils/scheduler.h \
 	utils/signal_bitfield.h \
+	utils/string_manip.h \
 	utils/thread.h \
 	utils/uri_parser.h
 
