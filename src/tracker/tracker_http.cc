@@ -83,13 +83,10 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   if (is_block_ipv4 && is_block_ipv6) {
     throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
   } else if (is_block_ipv4) {
-    m_get.use_ipv6();
     family = AF_INET6;
   } else if (is_block_ipv6) {
-    m_get.use_ipv4();
     family = AF_INET;
   } else if (is_prefer_ipv6) {
-    m_get.prefer_ipv6();
     family = AF_INET6;
   } else {
     family = AF_INET;
@@ -99,6 +96,16 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   auto request_url = request_announce_url(new_state, params, family);
 
   m_get.reset(request_url, m_data);
+
+  if (is_block_ipv4 && is_block_ipv6) {
+    throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
+  } else if (is_block_ipv4) {
+    m_get.use_ipv6();
+  } else if (is_block_ipv6) {
+    m_get.use_ipv4();
+  } else if (is_prefer_ipv6) {
+    m_get.prefer_ipv6();
+  }
 
   m_data = std::make_unique<std::stringstream>();
 
