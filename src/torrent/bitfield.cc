@@ -53,8 +53,8 @@ Bitfield::update() {
 
   m_set = 0;
 
-  iterator itr = m_data.get();
-  iterator last = end();
+  auto itr = m_data.get();
+  auto last = end();
 
   while (itr + sizeof(unsigned int) <= last) {
     m_set += rak::popcount_wrapper(*reinterpret_cast<unsigned int*>(itr));

@@ -79,7 +79,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
     // Currently discarding SOCK_DGRAM filter.
     this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family,
-                                          [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
+                                          [this](const c_sin_shared_ptr& sin, const c_sin6_shared_ptr& sin6, int err) {
                                             receive_resolved(sin, sin6, err);
                                           });
     return;
@@ -157,7 +157,7 @@ TrackerUdp::receive_failed(const std::string& msg) {
 // TODO: Only resolve when we don't have a valid address, failed too many times or network change
 // events.
 void
-TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err) {
+TrackerUdp::receive_resolved(const c_sin_shared_ptr& sin, const c_sin6_shared_ptr& sin6, int err) {
   if (std::this_thread::get_id() != torrent::main_thread::thread_id())
     throw internal_error("TrackerUdp::receive_resolved() called from a different thread.");
 

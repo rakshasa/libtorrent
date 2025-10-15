@@ -71,28 +71,28 @@ DownloadManager::clear() {
   }
 }
 
-DownloadManager::iterator
-DownloadManager::find(const std::string& hash) {
+DownloadManager::const_iterator
+DownloadManager::find(const std::string& hash) const {
   return find(*HashString::cast_from(hash));
 }
 
-DownloadManager::iterator
-DownloadManager::find(const HashString& hash) {
+DownloadManager::const_iterator
+DownloadManager::find(const HashString& hash) const {
   return std::find_if(begin(), end(), [hash](const auto& wrapper){ return hash == wrapper->info()->hash(); });
 }
 
-DownloadManager::iterator
-DownloadManager::find(DownloadInfo* info) {
+DownloadManager::const_iterator
+DownloadManager::find(DownloadInfo* info) const {
   return std::find_if(begin(), end(), [info](const auto& wrapper){ return info == wrapper->info(); });
 }
 
-DownloadManager::iterator
-DownloadManager::find_chunk_list(ChunkList* cl) {
+DownloadManager::const_iterator
+DownloadManager::find_chunk_list(ChunkList* cl) const {
   return std::find_if(begin(), end(), [cl](const auto& wrapper){ return cl == wrapper->chunk_list(); });
 }
 
 DownloadMain*
-DownloadManager::find_main(const char* hash) {
+DownloadManager::find_main(const char* hash) const {
   auto hash_str = *HashString::cast_from(hash);
   auto itr = std::find_if(begin(), end(), [hash_str](const auto& wrapper){ return hash_str == wrapper->info()->hash(); });
 
@@ -103,7 +103,7 @@ DownloadManager::find_main(const char* hash) {
 }
 
 DownloadMain*
-DownloadManager::find_main_obfuscated(const char* hash) {
+DownloadManager::find_main_obfuscated(const char* hash) const {
   auto hash_str = *HashString::cast_from(hash);
   auto itr = std::find_if(begin(), end(), [hash_str](const auto& wrapper){ return hash_str == wrapper->info()->hash_obfuscated(); });
 

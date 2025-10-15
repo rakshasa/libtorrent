@@ -135,7 +135,7 @@ TrackerHttp::send_scrape() {
 }
 
 void
-TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
+TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) const {
   char hash[61];
 
   *rak::copy_escape_html(info().info_hash.begin(),

@@ -38,7 +38,7 @@ private:
   void                parse_multi_files(const Object& b, uint32_t chunkSize);
 
   static Path         create_path(const Object::list_type& plist, const std::string& enc);
-  inline Path         choose_path(std::list<Path>* pathList);
+  inline Path         choose_path(std::list<Path>* pathList) const;
 
   DownloadWrapper*    m_download{};
   const EncodingList* m_encodingList{};

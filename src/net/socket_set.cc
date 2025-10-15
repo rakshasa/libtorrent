@@ -61,7 +61,7 @@ SocketSet::_replace_with_last(size_type idx) {
 
 void
 SocketSet::prepare() {
-  for (auto& socket : m_erased) {
+  for (const auto& socket : m_erased) {
     _replace_with_last(socket);
   }
 

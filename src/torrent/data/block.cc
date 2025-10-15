@@ -153,7 +153,7 @@ Block::erase(BlockTransfer* transfer) {
       auto first = std::find_if_not(m_transfers.begin(), m_transfers.end(), std::mem_fn(&BlockTransfer::is_leader));
       auto last  = std::stable_partition(first, m_transfers.end(), std::mem_fn(&BlockTransfer::is_not_leader));
 
-      auto new_leader = std::max_element(first, last, [](BlockTransfer* t1, BlockTransfer* t2) {
+      auto new_leader = std::max_element(first, last, [](auto t1, auto t2) {
         return t1->position() < t2->position();
       });
 

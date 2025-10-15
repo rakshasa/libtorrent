@@ -32,7 +32,7 @@ public:
 private:
   void                close_directly();
 
-  void                request_prefix(std::stringstream* stream, const std::string& url);
+  void                request_prefix(std::stringstream* stream, const std::string& url) const;
   std::string         request_announce_url(tracker::TrackerState::event_enum state, TrackerParameters params, int family);
 
   void                delayed_send_scrape();

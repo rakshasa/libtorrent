@@ -78,7 +78,7 @@ private:
   CurlStack(const CurlStack&) = delete;
   CurlStack operator=(const CurlStack&) = delete;
 
-  base_type::iterator find_curl_handle(const CURL* curl_handle);
+  base_type::const_iterator find_curl_handle(const CURL* curl_handle) const;
 
   static int          set_timeout(void*, long timeout_ms, CurlStack* stack);
 

@@ -91,7 +91,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
   m_main->post_initialize();
 
   m_main->tracker_controller().set_slots([this](auto l) { return receive_tracker_success(l); },
-                                         [this](auto& m) { return receive_tracker_failed(m); });
+                                         [this](const auto& m) { return receive_tracker_failed(m); });
 }
 
 void
@@ -239,7 +239,7 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
 }
 
 uint32_t
-DownloadWrapper::receive_tracker_success(AddressList* l) {
+DownloadWrapper::receive_tracker_success(const AddressList* l) {
   uint32_t inserted = m_main->peer_list()->insert_available(l);
   m_main->receive_connect_peers();
   m_main->receive_tracker_success();
@@ -290,7 +290,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   auto have_queue = m_main->have_queue();
 
   have_queue->erase(std::find_if(have_queue->rbegin(),
-                                 have_queue->rend(), [](auto& p) {
+                                 have_queue->rend(), [](const auto& p) {
                                      return this_thread::cached_time() - 600s < p.first;
                                    }).base(),
                     have_queue->end());

@@ -17,7 +17,7 @@
 namespace torrent {
 
 struct chunk_list_earliest_modified {
-  void operator () (ChunkListNode* node) {
+  void operator () (const ChunkListNode* node) {
     if (node->time_modified() < m_time && node->time_modified() != 0us)
       m_time = node->time_modified();
   }
@@ -26,7 +26,7 @@ struct chunk_list_earliest_modified {
 };
 
 inline bool
-ChunkList::is_queued(ChunkListNode* node) {
+ChunkList::is_queued(const ChunkListNode* node) const {
   return std::find(m_queue.begin(), m_queue.end(), node) != m_queue.end();
 }
 
@@ -257,7 +257,7 @@ ChunkList::sync_chunks(sync_flags flags) {
   if ((flags & sync_all))
     split = m_queue.begin();
   else
-    split = std::stable_partition(m_queue.begin(), m_queue.end(), [](ChunkListNode* n) {
+    split = std::stable_partition(m_queue.begin(), m_queue.end(), [](auto n) {
       return 1 != n->writable();
     });
 
@@ -403,7 +403,7 @@ ChunkList::partition_optimize(Queue::iterator first, Queue::iterator last, int w
 }
 
 ChunkList::chunk_address_result
-ChunkList::find_address(void* ptr) {
+ChunkList::find_address(void* ptr) const {
   auto first = begin();
   auto last  = end();
 

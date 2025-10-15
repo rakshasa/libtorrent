@@ -64,7 +64,7 @@ public:
 protected:
   friend class HttpStack;
 
-  auto                curl_get() { return m_curl_get; }
+  auto                curl_get() const { return m_curl_get; }
 
 private:
   std::shared_ptr<CurlGet> m_curl_get;
