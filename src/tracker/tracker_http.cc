@@ -98,6 +98,8 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   m_data = std::make_unique<std::stringstream>();
   m_get.reset(request_url, m_data);
 
+  // TODO: Should bind address here...
+
   if (is_block_ipv4 && is_block_ipv6) {
     throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
   } else if (is_block_ipv4) {
