@@ -174,8 +174,10 @@ Poll::process() {
   unsigned int count = 0;
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
+
+    // TODO: Figure out if this is correct.
     if (itr->ident >= m_internal->m_table.size())
-      continue;
+      throw internal_error("Poll::process(): received ident out of range: " + std::to_string(itr->ident));
 
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
