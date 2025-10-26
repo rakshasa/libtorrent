@@ -17,11 +17,6 @@ namespace torrent::net {
 CurlGet::CurlGet(std::string url, std::shared_ptr<std::ostream> stream)
   : m_url(std::move(url)),
     m_stream(std::move(stream)) {
-
-  m_task_timeout.slot() = [this]() {
-      // TODO: Should make sure it closes/disables further callbacks.
-      trigger_failed("Timed out");
-    };
 }
 
 CurlGet::~CurlGet() {
@@ -245,11 +240,6 @@ CurlGet::activate_unsafe() {
   if (code != CURLM_OK)
     throw torrent::internal_error("CurlGet::activate() error calling curl_multi_add_handle: " + std::string(curl_multi_strerror(code)));
 
-  // Normally libcurl should handle the timeout. But sometimes that doesn't
-  // work right so we do a fallback timeout that just aborts the transfer.
-  if (m_timeout != 0)
-    torrent::this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, 20s + 1s*m_timeout);
-
   m_active = true;
 }
 
@@ -262,7 +252,6 @@ CurlGet::cleanup_unsafe() {
       if (code != CURLM_OK)
         throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
 
-      torrent::this_thread::scheduler()->erase(&m_task_timeout);
       m_active = false;
     }
 
@@ -332,8 +321,6 @@ void
 CurlGet::trigger_done() {
   auto guard = lock_guard();
 
-  torrent::this_thread::scheduler()->erase(&m_task_timeout);
-
   if (m_was_closed)
     return;
 
@@ -343,8 +330,6 @@ CurlGet::trigger_done() {
 void
 CurlGet::trigger_failed(const std::string& message) {
   auto guard = lock_guard();
-
-  torrent::this_thread::scheduler()->erase(&m_task_timeout);
 
   if (m_was_closed)
     return;
