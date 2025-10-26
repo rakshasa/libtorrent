@@ -9,7 +9,7 @@
 #include <string>
 #include <curl/curl.h>
 
-#include "torrent/utils/scheduler.h"
+#include "torrent/utils/thread.h"
 
 namespace torrent::net {
 
@@ -126,9 +126,7 @@ private:
   std::string                   m_url;
   std::shared_ptr<std::ostream> m_stream;
   uint32_t                      m_timeout{5 * 60};
-
   std::condition_variable       m_cond_closed;
-  utils::SchedulerEntry         m_task_timeout;
 
   std::list<std::function<void()>>                   m_signal_done;
   std::list<std::function<void(const std::string&)>> m_signal_failed;
