@@ -19,6 +19,13 @@
 #define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
   lt_log_print(LOG_SOCKET_##log_level, "kqueue->%s(%i) : " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
 
+// TODO: Change to LOG_CONNECTION_POLL?
+
+// Debug logging for spurios kqueue events which cause infinite looping:
+//#define LT_LOG_IDENT(log_fmt, ...)
+#define LT_LOG_IDENT(log_fmt, ...)                                          \
+  lt_log_print(LOG_CONNECTION_FD, "poll->%u: " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
+
 namespace torrent {
 
 class PollInternal {
@@ -174,19 +181,22 @@ Poll::process() {
   unsigned int count = 0;
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
-
-    // TODO: Figure out if this is correct.
     if (itr->ident >= m_internal->m_table.size())
       throw internal_error("Poll::process(): received ident out of range: " + std::to_string(itr->ident));
 
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
 
-    auto evItr = m_internal->m_table.begin() + itr->ident;
+    auto ev_itr = m_internal->m_table.begin() + itr->ident;
 
-    if ((itr->flags & EV_ERROR) && evItr->second != nullptr) {
-      if (evItr->first & PollInternal::flag_error)
-        evItr->second->event_error();
+    if (ev_itr->second == nullptr) {
+      LT_LOG_IDENT("event is null, skipping : flags:%hx filter:%hx", itr->flags, itr->filter);
+      continue;
+    }
+
+    if ((itr->flags & EV_ERROR)) {
+      if (ev_itr->first & PollInternal::flag_error)
+        ev_itr->second->event_error();
 
       count++;
 
@@ -196,15 +206,22 @@ Poll::process() {
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && evItr->second != nullptr && evItr->first & PollInternal::flag_read) {
+    if (itr->filter == EVFILT_READ && ev_itr->first & PollInternal::flag_read) {
       count++;
-      evItr->second->event_read();
+      ev_itr->second->event_read();
+    }
+    else if (itr->filter == EVFILT_READ) {
+      LT_LOG_IDENT("spurious read event, skipping", 0);
     }
 
-    if (itr->filter == EVFILT_WRITE && evItr->second != nullptr && evItr->first & PollInternal::flag_write) {
+    if (itr->filter == EVFILT_WRITE && ev_itr->first & PollInternal::flag_write) {
       count++;
-      evItr->second->event_write();
+      ev_itr->second->event_write();
     }
+    else if (itr->filter == EVFILT_WRITE) {
+      LT_LOG_IDENT("spurious write event, skipping", 0);
+    }
+
   }
 
   m_internal->m_waiting_events = 0;
