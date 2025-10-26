@@ -122,6 +122,10 @@ Listen::event_read() {
       if (errno == EAGAIN || errno == EWOULDBLOCK)
         break;
 
+      // Force a new event_read() call just to be sure we don't enter an infinite loop.
+      if (errno == ECONNABORTED)
+        break;
+
       throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
     }
 
