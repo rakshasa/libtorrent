@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "peer_connection_base.h"
+
 #include <cstdio>
 #include <rak/error_number.h>
 
@@ -10,19 +12,17 @@
 #include "download/download_main.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
+#include "torrent/exceptions.h"
+#include "torrent/throttle.h"
 #include "torrent/data/block.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
-#include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/throttle.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
-
-#include "extensions.h"
-#include "peer_connection_base.h"
 
 #include "manager.h"
 
@@ -170,7 +170,7 @@ PeerConnectionBase::cleanup() {
 
   manager->connection_manager()->dec_socket_count();
 
-  get_fd().close();
+  fd_close(get_fd().get_fd());
   get_fd().clear();
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
