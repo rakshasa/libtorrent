@@ -119,9 +119,10 @@ public:
   void                set_proxy_address(const sockaddr* sa);
 
   // Port number should not be cleared as it is used for tracker announces.
+  //
+  // TODO: Move to NM.
   uint16_t            listen_port() const;
   uint16_t            listen_port_or_throw() const;
-  int                 listen_backlog() const;
 
   uint16_t            override_dht_port() const;
   void                set_override_dht_port(uint16_t port);
@@ -137,6 +138,7 @@ public:
 
 protected:
   friend class torrent::ConnectionManager;
+  friend class torrent::net::NetworkManager;
 
   void                lock() const                    { m_mutex.lock(); }
   auto                lock_guard() const              { return std::lock_guard(m_mutex); }
@@ -145,7 +147,7 @@ protected:
 
   // TODO: Use different function for client updating port.
   void                set_listen_port(uint16_t port);
-  void                set_listen_backlog(int backlog);
+  void                set_listen_port_unsafe(uint16_t port);
 
 private:
   c_sa_shared_ptr     generic_address_best_match(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
@@ -177,13 +179,14 @@ private:
   c_sa_shared_ptr     m_proxy_address;
 
   uint16_t            m_listen_port{0};
-  int                 m_listen_backlog{SOMAXCONN};
   uint16_t            m_override_dht_port{0};
 
   uint32_t            m_send_buffer_size{0};
   uint32_t            m_receive_buffer_size{0};
   int                 m_encryption_options{encryption_none};
 };
+
+inline void NetworkConfig::set_listen_port_unsafe(uint16_t port) { m_listen_port = port; }
 
 } // namespace torrent::net
 

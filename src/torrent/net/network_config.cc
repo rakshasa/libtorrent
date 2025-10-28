@@ -336,12 +336,6 @@ NetworkConfig::listen_port_or_throw() const {
   return m_listen_port;
 }
 
-int
-NetworkConfig::listen_backlog() const {
-  auto guard = lock_guard();
-  return m_listen_backlog;
-}
-
 uint16_t
 NetworkConfig::override_dht_port() const {
   auto guard = lock_guard();
@@ -397,18 +391,6 @@ NetworkConfig::set_listen_port(uint16_t port) {
 
   auto guard = lock_guard();
   m_listen_port = port;
-}
-
-void
-NetworkConfig::set_listen_backlog(int backlog) {
-  if (backlog < 1)
-    throw input_error("Tried to set a listen backlog less than 1.");
-
-  if (backlog > (1 << 16))
-    throw input_error("Tried to set a listen backlog greater than 65536.");
-
-  auto guard = lock_guard();
-  m_listen_backlog = backlog;
 }
 
 //

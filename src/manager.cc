@@ -19,6 +19,7 @@
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
 #include "torrent/net/network_config.h"
+#include "torrent/net/network_manager.h"
 #include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
@@ -32,6 +33,12 @@ namespace config {
 net::NetworkConfig* network_config() { return manager->network_config(); }
 
 } // namespace config
+
+namespace runtime {
+
+net::NetworkManager* network_manager() { return manager->network_manager(); }
+
+} // namespace runtime
 
 namespace this_thread {
 
@@ -57,6 +64,7 @@ Manager::Manager()
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),
     m_handshake_manager(new HandshakeManager),
+    m_network_manager(new net::NetworkManager),
     m_resource_manager(new ResourceManager),
 
     m_client_list(new ClientList),
@@ -70,7 +78,9 @@ Manager::Manager()
 
   m_handshake_manager->slot_download_id()         = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
-  m_connection_manager->listen()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
+
+  m_network_manager->listen_inet_unsafe()->slot_accepted()  = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
+  m_network_manager->listen_inet6_unsafe()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
 
   m_resource_manager->push_group("default");
   m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
@@ -80,7 +90,7 @@ Manager::Manager()
 Manager::~Manager() {
   torrent::this_thread::scheduler()->erase(&m_task_tick);
 
-  m_connection_manager->listen()->close();
+  m_network_manager->listen_close();
 
   m_handshake_manager->clear();
   m_download_manager->clear();
