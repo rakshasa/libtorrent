@@ -37,9 +37,7 @@ protected:
   auto                listen_inet6_unsafe()           { return m_listen_inet6.get(); }
 
 private:
-  bool                open_listen_on_address(c_sa_shared_ptr& bind_address, uint16_t begin, uint16_t end);
-
-  mutable std::mutex  m_mutex;
+  mutable std::mutex      m_mutex;
 
   std::unique_ptr<Listen> m_listen_inet;
   std::unique_ptr<Listen> m_listen_inet6;

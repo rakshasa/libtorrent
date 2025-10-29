@@ -140,10 +140,14 @@ protected:
   friend class torrent::ConnectionManager;
   friend class torrent::net::NetworkManager;
 
+  typedef std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool> listen_addresses;
+
   void                lock() const                    { m_mutex.lock(); }
   auto                lock_guard() const              { return std::lock_guard(m_mutex); }
   void                unlock() const                  { m_mutex.unlock(); }
   auto&               mutex() const                   { return m_mutex; }
+
+  listen_addresses    listen_addresses_unsafe();
 
   // TODO: Use different function for client updating port.
   void                set_listen_port(uint16_t port);

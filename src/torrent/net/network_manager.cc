@@ -21,30 +21,45 @@ NetworkManager::~NetworkManager() = default;
 
 // TODO: Currently only opens one listen socket, either ipv4 or ipv6 based on bind address.
 // TODO: Log here
+// TODO: Verify various combinations of addresses/block_ipv4in6 match tcp46/udp46 sockets
 
 bool
 NetworkManager::listen_open(uint16_t begin, uint16_t end) {
-  auto guard = lock_guard();
+  auto guard        = lock_guard();
+  auto config_guard = config::network_config()->lock_guard();
 
   // TODO: Check flag in NetworkConfig instead.
   if (m_listen_inet->is_open() || m_listen_inet6->is_open())
     throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");
 
-  auto bind_address = config::network_config()->bind_address_or_any_and_null();
+  auto [inet_address, inet6_address, block_ipv4in6] = config::network_config()->listen_addresses_unsafe();
 
-  // TODO: Move up
-  auto config_guard = config::network_config()->lock_guard();
+  if (inet_address == nullptr && inet6_address == nullptr)
+    throw input_error("Could not find a valid bind address to open listen socket.");
 
-  // TODO: Fix this when we properly handle block ipv4/6.
-  if (bind_address == nullptr)
-    throw internal_error("Could not find a valid bind address to open listen socket.");
+  // Add duel-opener to Listen.
+  if (inet_address != nullptr && inet6_address != nullptr)
+    throw input_error("Opening both ipv4 and ipv6 listen sockets is not yet supported.");
 
-  // TODO: Move range check here so we can properly attempt both ipv4 and ipv6.
+  // TODO: Remember block_ipv4in6.
 
-  if (!open_listen_on_address(bind_address, begin, end))
-    return false;
+  if (inet_address != nullptr) {
+    if (!Listen::open_single(m_listen_inet.get(), begin, end, m_listen_backlog, inet_address.get()))
+      return false;
 
-  return true;
+    config::network_config()->set_listen_port_unsafe(m_listen_inet->port());
+    return true;
+  }
+
+  if (inet6_address != nullptr) {
+    if (!Listen::open_single(m_listen_inet6.get(), begin, end, m_listen_backlog, inet6_address.get()))
+      return false;
+
+    config::network_config()->set_listen_port_unsafe(m_listen_inet6->port());
+    return true;
+  }
+
+  throw internal_error("NetworkManager::open_listen(): reached unreachable code.");
 }
 
 void
@@ -71,28 +86,6 @@ NetworkManager::set_listen_backlog(int backlog) {
 
   auto guard = lock_guard();
   m_listen_backlog = backlog;
-}
-
-bool
-NetworkManager::open_listen_on_address(c_sa_shared_ptr& bind_address, uint16_t begin, uint16_t end) {
-  switch (bind_address->sa_family) {
-  case AF_INET:
-    if (!m_listen_inet->open(begin, end, m_listen_backlog, bind_address.get()))
-      return false;
-
-    config::network_config()->set_listen_port_unsafe(m_listen_inet->port());
-    return true;
-
-  case AF_INET6:
-    if (!m_listen_inet6->open(begin, end, m_listen_backlog, bind_address.get()))
-      return false;
-
-    config::network_config()->set_listen_port_unsafe(m_listen_inet6->port());
-    return true;
-
-  default:
-    throw input_error("NetworkManager::open_listen_on_address(): bind address has invalid family.");
-  }
 }
 
 } // namespace torrent::net

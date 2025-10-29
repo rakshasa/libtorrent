@@ -384,6 +384,33 @@ NetworkConfig::set_receive_buffer_size(uint32_t s) {
   m_receive_buffer_size = s;
 }
 
+NetworkConfig::listen_addresses
+NetworkConfig::listen_addresses_unsafe() {
+  auto inet_address  = m_block_ipv4 ? nullptr : m_bind_inet_address;
+  auto inet6_address = m_block_ipv6 ? nullptr : m_bind_inet6_address;
+
+  if (inet_address == nullptr || inet6_address == nullptr)
+    return {};
+
+  if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC) {
+    if (m_block_ipv4in6)
+      return {inet_any_value, inet6_any_value, true};
+
+    return {nullptr, inet6_any_value, false};
+  }
+
+  if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
+    return {inet_address, inet6_address, m_block_ipv4in6};
+
+  if (inet_address->sa_family != AF_UNSPEC)
+    return {inet_address, nullptr, false};
+
+  if (inet6_address->sa_family != AF_UNSPEC)
+    return {nullptr, inet6_address, m_block_ipv4in6};
+
+  throw internal_error("NetworkConfig::listen_addresses_unsafe(): reached unreachable code.");
+}
+
 void
 NetworkConfig::set_listen_port(uint16_t port) {
   if (port == 0)
