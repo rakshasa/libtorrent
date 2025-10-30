@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -83,12 +83,12 @@ public:
   void push_front(int idx, const value_type& value_type);
   void push_back(int idx, const value_type& value_type);
 
-  value_type take(int idx, iterator itr);
+  value_type take(int idx, const iterator& itr);
 
   void clear(int idx);
-  void destroy(int idx, iterator begin, iterator end);
+  void destroy(int idx, const iterator& begin, const iterator& end);
 
-  void move_to(int src_idx, iterator src_begin, iterator src_end, int dst_idx);
+  void move_to(int src_idx, const iterator& src_begin, const iterator& src_end, int dst_idx);
   void move_all_to(int src_idx, int dst_idx);
 
 private:
@@ -225,7 +225,7 @@ queue_buckets<Type, Constants>::push_back(int idx, const value_type& value) {
 
 template <typename Type, typename Constants>
 inline typename queue_buckets<Type, Constants>::value_type
-queue_buckets<Type, Constants>::take(int idx, iterator itr) {
+queue_buckets<Type, Constants>::take(int idx, const iterator& itr) {
   value_type v = *itr;
   queue_at(idx).erase(itr);
 
@@ -245,7 +245,7 @@ queue_buckets<Type, Constants>::clear(int idx) {
 
 template <typename Type, typename Constants>
 inline void
-queue_buckets<Type, Constants>::destroy(int idx, iterator begin, iterator end) {
+queue_buckets<Type, Constants>::destroy(int idx, const iterator& begin, const iterator& end) {
   difference_type difference = std::distance(begin, end);
   instrumentation_update(constants::instrumentation_removed[idx], difference);
   instrumentation_update(constants::instrumentation_total[idx], -difference);
@@ -257,7 +257,7 @@ queue_buckets<Type, Constants>::destroy(int idx, iterator begin, iterator end) {
 
 template <typename Type, typename Constants>
 inline void
-queue_buckets<Type, Constants>::move_to(int src_idx, iterator src_begin, iterator src_end,
+queue_buckets<Type, Constants>::move_to(int src_idx, const iterator& src_begin, const iterator& src_end,
                                         int dst_idx) {
   difference_type difference = std::distance(src_begin, src_end);
   instrumentation_update(constants::instrumentation_moved[src_idx], difference);
