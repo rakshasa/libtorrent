@@ -13,7 +13,12 @@ class Listen : public SocketBase {
 public:
   ~Listen() override { close(); }
 
-  static bool         open_single(Listen* listen, uint16_t first, uint16_t last, int backlog, const sockaddr* bind_address);
+  static bool         open_single(Listen* listen, const sockaddr* bind_address,
+                                  uint16_t first, uint16_t last, int backlog);
+
+  static bool         open_both(Listen* listen_inet, Listen* listen_inet6,
+                                const sockaddr* bind_inet_address, const sockaddr* bind_inet6_address,
+                                uint16_t first, uint16_t last, int backlog);
 
   void                close();
 

@@ -95,12 +95,6 @@ DhtServer::~DhtServer() {
 void
 DhtServer::start(int port) {
   try {
-    if (!get_fd().open_datagram() || !get_fd().set_nonblock())
-      throw resource_error("could not allocate datagram socket");
-
-    if (!get_fd().set_reuse_address(true))
-      throw resource_error("could not set listening port to reuse address");
-
     auto bind_address = sa_copy(m_router->address());
 
     if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
@@ -110,13 +104,20 @@ DhtServer::start(int port) {
 
     LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
 
+    fd_flags open_flags = fd_flag_datagram | fd_flag_nonblock | fd_flag_reuse_address;
+
+    if (bind_address->sa_family == AF_INET)
+      open_flags |= fd_flag_v4;
+
+    m_fileDesc = fd_open(open_flags);
+
     // Figure out how to bind to both inet and inet6.
     if (!fd_bind(get_fd().get_fd(), bind_address.get()))
       throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
 
   } catch (const torrent::base_error&) {
-    get_fd().close();
-    get_fd().clear();
+    fd_close(m_fileDesc);
+    m_fileDesc = -1;
     throw;
   }
 

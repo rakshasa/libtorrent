@@ -23,6 +23,8 @@ NetworkManager::~NetworkManager() = default;
 // TODO: Log here
 // TODO: Verify various combinations of addresses/block_ipv4in6 match tcp46/udp46 sockets
 
+// TODO: Fix DHT
+
 bool
 NetworkManager::listen_open(uint16_t begin, uint16_t end) {
   auto guard        = lock_guard();
@@ -37,14 +39,19 @@ NetworkManager::listen_open(uint16_t begin, uint16_t end) {
   if (inet_address == nullptr && inet6_address == nullptr)
     throw input_error("Could not find a valid bind address to open listen socket.");
 
-  // Add duel-opener to Listen.
-  if (inet_address != nullptr && inet6_address != nullptr)
-    throw input_error("Opening both ipv4 and ipv6 listen sockets is not yet supported.");
+  if (inet_address != nullptr && inet6_address != nullptr) {
+    if (!Listen::open_both(m_listen_inet.get(), m_listen_inet6.get(), inet_address.get(), inet6_address.get(),
+                           begin, end, m_listen_backlog))
+      return false;
+
+    config::network_config()->set_listen_port_unsafe(m_listen_inet->port());
+    return true;
+  }
 
   // TODO: Remember block_ipv4in6.
 
   if (inet_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet.get(), begin, end, m_listen_backlog, inet_address.get()))
+    if (!Listen::open_single(m_listen_inet.get(), inet_address.get(), begin, end, m_listen_backlog))
       return false;
 
     config::network_config()->set_listen_port_unsafe(m_listen_inet->port());
@@ -52,7 +59,7 @@ NetworkManager::listen_open(uint16_t begin, uint16_t end) {
   }
 
   if (inet6_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet6.get(), begin, end, m_listen_backlog, inet6_address.get()))
+    if (!Listen::open_single(m_listen_inet6.get(), inet6_address.get(), begin, end, m_listen_backlog))
       return false;
 
     config::network_config()->set_listen_port_unsafe(m_listen_inet6->port());
