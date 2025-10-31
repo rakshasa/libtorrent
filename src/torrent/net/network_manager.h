@@ -17,13 +17,16 @@ public:
   NetworkManager();
   ~NetworkManager();
 
+  bool                is_listening() const;
+
   // TODO: Change to have network_config hold the port range / random info.
 
   bool                listen_open(uint16_t first, uint16_t last);
   void                listen_close();
 
-  int                 listen_backlog() const;
-  void                set_listen_backlog(int backlog);
+  // Port number remains set after listen_close.
+  uint16_t            listen_port() const;
+  uint16_t            listen_port_or_throw() const;
 
 protected:
   friend class torrent::Manager;
@@ -41,7 +44,7 @@ private:
 
   std::unique_ptr<Listen> m_listen_inet;
   std::unique_ptr<Listen> m_listen_inet6;
-  int                     m_listen_backlog{SOMAXCONN};
+  uint16_t                m_listen_port{0};
 };
 
 } // namespace torrent::net

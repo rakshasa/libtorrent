@@ -4,6 +4,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
+#include "torrent/net/network_manager.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
@@ -318,20 +319,39 @@ NetworkConfig::set_proxy_address(const sockaddr* sa) {
   m_proxy_address = sa_copy(sa);
 }
 
-uint16_t
-NetworkConfig::listen_port() const {
+
+uint32_t
+NetworkConfig::encryption_options() const {
   auto guard = lock_guard();
-  return m_listen_port;
+  return m_encryption_options;
 }
 
-uint16_t
-NetworkConfig::listen_port_or_throw() const {
+void
+NetworkConfig::set_encryption_options(uint32_t opts) {
+  auto guard = lock_guard();
+  m_encryption_options = opts;
+}
+
+int
+NetworkConfig::listen_backlog() const {
+  auto guard = lock_guard();
+  return m_listen_backlog;
+}
+
+void
+NetworkConfig::set_listen_backlog(int backlog) {
+  if (backlog < 1)
+    throw input_error("Tried to set a listen backlog less than 1.");
+
+  if (backlog > (1 << 16))
+    throw input_error("Tried to set a listen backlog greater than 65536.");
+
   auto guard = lock_guard();
 
-  if (m_listen_port == 0)
-    throw internal_error("Tried to get listen port but it is not set.");
+  if (runtime::network_manager()->is_listening())
+    throw input_error("Tried to set listen backlog while already listening.");
 
-  return m_listen_port;
+  m_listen_backlog = backlog;
 }
 
 uint16_t
@@ -344,18 +364,6 @@ void
 NetworkConfig::set_override_dht_port(uint16_t port) {
   auto guard = lock_guard();
   m_override_dht_port = port;
-}
-
-uint32_t
-NetworkConfig::encryption_options() const {
-  auto guard = lock_guard();
-  return m_encryption_options;
-}
-
-void
-NetworkConfig::set_encryption_options(uint32_t opts) {
-  auto guard = lock_guard();
-  m_encryption_options = opts;
 }
 
 uint32_t
@@ -387,7 +395,7 @@ NetworkConfig::listen_addresses_unsafe() {
   auto inet_address  = m_block_ipv4 ? nullptr : m_bind_inet_address;
   auto inet6_address = m_block_ipv6 ? nullptr : m_bind_inet6_address;
 
-  if (inet_address == nullptr || inet6_address == nullptr)
+  if (inet_address == nullptr && inet6_address == nullptr)
     return {};
 
   if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC) {
@@ -407,15 +415,6 @@ NetworkConfig::listen_addresses_unsafe() {
     return {nullptr, inet6_address, m_block_ipv4in6};
 
   throw internal_error("NetworkConfig::listen_addresses_unsafe(): reached unreachable code.");
-}
-
-void
-NetworkConfig::set_listen_port(uint16_t port) {
-  if (port == 0)
-    throw input_error("Tried to set a listen port to zero.");
-
-  auto guard = lock_guard();
-  m_listen_port = port;
 }
 
 //

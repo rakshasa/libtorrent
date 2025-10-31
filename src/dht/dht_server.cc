@@ -19,6 +19,7 @@
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"
+#include "torrent/net/network_manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
@@ -545,7 +546,7 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
     case DhtTransaction::DHT_ANNOUNCE_PEER:
       query[key_a_infoHash] = transaction->as_announce_peer()->info_hash_raw_string();
       query[key_a_token] = transaction->as_announce_peer()->token();
-      query[key_a_port] = config::network_config()->listen_port();
+      query[key_a_port] = runtime::network_manager()->listen_port();
       break;
   }
 

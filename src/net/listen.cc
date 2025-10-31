@@ -76,7 +76,7 @@ listen_open_range(uint16_t first, uint16_t last, const sockaddr* bind_address) {
 }
 
 bool
-Listen::open_single(Listen* listen, const sockaddr* bind_address, uint16_t first, uint16_t last, int backlog) {
+Listen::open_single(Listen* listen, const sockaddr* bind_address, uint16_t first, uint16_t last, int backlog, bool block_ipv4in6) {
   listen->close();
 
   if (first == 0 || first > last)
@@ -92,6 +92,12 @@ Listen::open_single(Listen* listen, const sockaddr* bind_address, uint16_t first
     return false;
   }
 
+  if (block_ipv4in6 && bind_address->sa_family == AF_INET6 && !fd_set_v6only(listen_fd, true)) {
+    fd_close(listen_fd);
+    LT_LOG("failed to set IPV6_V6ONLY on socket : %s", std::strerror(errno));
+    throw resource_error("Could not set IPV6_V6ONLY on socket: " + std::string(strerror(errno)));
+  }
+
   if (!fd_listen(listen_fd, backlog)) {
     fd_close(listen_fd);
     LT_LOG("failed to listen on socket : %s", std::strerror(errno));
@@ -105,12 +111,18 @@ Listen::open_single(Listen* listen, const sockaddr* bind_address, uint16_t first
 bool
 Listen::open_both(Listen* listen_inet, Listen* listen_inet6,
                   const sockaddr* bind_inet_address, const sockaddr* bind_inet6_address,
-                  uint16_t first, uint16_t last, int backlog) {
+                  uint16_t first, uint16_t last, int backlog, bool block_ipv4in6) {
   listen_inet->close();
   listen_inet6->close();
 
   if (first == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range");
+
+  if (bind_inet_address->sa_family != AF_INET)
+    throw input_error("Listening ipv4 socket must be inet address type");
+
+  if (bind_inet6_address->sa_family != AF_INET6)
+    throw input_error("Listening ipv6 socket must be inet6 address type");
 
   int inet_fd{}, inet6_fd{};
   uint16_t inet_port{}, inet6_port{};
@@ -139,23 +151,29 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6,
     LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : last error : %s", inet_port, std::strerror(errno));
   }
 
-  if (inet_port != inet6_port)
-    throw internal_error("Listen::open_both(): ipv4 and ipv6 ports do not match.");
+  try {
+    if (inet_port != inet6_port)
+      throw internal_error("Listen::open_both(): ipv4 and ipv6 ports do not match.");
 
-  if (!fd_listen(inet_fd, backlog)) {
+    if (!fd_listen(inet_fd, backlog)) {
+      LT_LOG("failed to listen on ipv4 socket : %s", std::strerror(errno));
+      throw resource_error("Could not listen on ipv4 socket: " + std::string(strerror(errno)));
+    }
+
+    if (block_ipv4in6 && !fd_set_v6only(inet6_fd, true)) {
+      LT_LOG("failed to set IPV6_V6ONLY on socket : %s", std::strerror(errno));
+      throw resource_error("Could not set IPV6_V6ONLY on socket: " + std::string(strerror(errno)));
+    }
+
+    if (!fd_listen(inet6_fd, backlog)) {
+      LT_LOG("failed to listen on ipv6 socket : %s", std::strerror(errno));
+      throw resource_error("Could not listen on ipv6 socket: " + std::string(strerror(errno)));
+    }
+
+  } catch (...) {
     fd_close(inet_fd);
     fd_close(inet6_fd);
-
-    LT_LOG("failed to listen on ipv4 socket : %s", std::strerror(errno));
-    throw resource_error("Could not listen on ipv4 socket: " + std::string(strerror(errno)));
-  }
-
-  if (!fd_listen(inet6_fd, backlog)) {
-    fd_close(inet_fd);
-    fd_close(inet6_fd);
-
-    LT_LOG("failed to listen on ipv6 socket : %s", std::strerror(errno));
-    throw resource_error("Could not listen on ipv6 socket: " + std::string(strerror(errno)));
+    throw;
   }
 
   listen_inet->open_done(inet_fd, inet_port, backlog);

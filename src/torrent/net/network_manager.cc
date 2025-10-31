@@ -19,6 +19,12 @@ NetworkManager::NetworkManager()
 
 NetworkManager::~NetworkManager() = default;
 
+bool
+NetworkManager::is_listening() const {
+  auto guard = lock_guard();
+  return m_listen_inet->is_open() || m_listen_inet6->is_open();
+}
+
 // TODO: Currently only opens one listen socket, either ipv4 or ipv6 based on bind address.
 // TODO: Log here
 // TODO: Verify various combinations of addresses/block_ipv4in6 match tcp46/udp46 sockets
@@ -29,40 +35,38 @@ bool
 NetworkManager::listen_open(uint16_t begin, uint16_t end) {
   auto guard        = lock_guard();
   auto config_guard = config::network_config()->lock_guard();
+  auto backlog      = config::network_config()->listen_backlog();
 
-  // TODO: Check flag in NetworkConfig instead.
   if (m_listen_inet->is_open() || m_listen_inet6->is_open())
     throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");
 
   auto [inet_address, inet6_address, block_ipv4in6] = config::network_config()->listen_addresses_unsafe();
 
   if (inet_address == nullptr && inet6_address == nullptr)
-    throw input_error("Could not find a valid bind address to open listen socket.");
+    throw input_error("Neither IPv4 nor IPv6 listen address are suitable for opening listen sockets, check block_ipv4 and block_ipv6 settings.");
 
   if (inet_address != nullptr && inet6_address != nullptr) {
     if (!Listen::open_both(m_listen_inet.get(), m_listen_inet6.get(), inet_address.get(), inet6_address.get(),
-                           begin, end, m_listen_backlog))
+                           begin, end, backlog, block_ipv4in6))
       return false;
 
-    config::network_config()->set_listen_port_unsafe(m_listen_inet->port());
+    m_listen_port = m_listen_inet->port();
     return true;
   }
 
-  // TODO: Remember block_ipv4in6.
-
   if (inet_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet.get(), inet_address.get(), begin, end, m_listen_backlog))
+    if (!Listen::open_single(m_listen_inet.get(), inet_address.get(), begin, end, backlog, false))
       return false;
 
-    config::network_config()->set_listen_port_unsafe(m_listen_inet->port());
+    m_listen_port = m_listen_inet->port();
     return true;
   }
 
   if (inet6_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet6.get(), inet6_address.get(), begin, end, m_listen_backlog))
+    if (!Listen::open_single(m_listen_inet6.get(), inet6_address.get(), begin, end, backlog, block_ipv4in6))
       return false;
 
-    config::network_config()->set_listen_port_unsafe(m_listen_inet6->port());
+    m_listen_port = m_listen_inet6->port();
     return true;
   }
 
@@ -77,22 +81,20 @@ NetworkManager::listen_close() {
   m_listen_inet6->close();
 }
 
-int
-NetworkManager::listen_backlog() const {
+uint16_t
+NetworkManager::listen_port() const {
   auto guard = lock_guard();
-  return m_listen_backlog;
+  return m_listen_port;
 }
 
-void
-NetworkManager::set_listen_backlog(int backlog) {
-  if (backlog < 1)
-    throw input_error("Tried to set a listen backlog less than 1.");
-
-  if (backlog > (1 << 16))
-    throw input_error("Tried to set a listen backlog greater than 65536.");
-
+uint16_t
+NetworkManager::listen_port_or_throw() const {
   auto guard = lock_guard();
-  m_listen_backlog = backlog;
+
+  if (m_listen_port == 0)
+    throw input_error("Tried to get listen port but it is not set.");
+
+  return m_listen_port;
 }
 
 } // namespace torrent::net
