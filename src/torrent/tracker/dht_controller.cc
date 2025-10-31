@@ -8,6 +8,7 @@
 #include "torrent/throttle.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"
+#include "torrent/net/network_manager.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -83,7 +84,7 @@ DhtController::start() {
   auto port = config::network_config()->override_dht_port();
 
   if (port == 0)
-    port = config::network_config()->listen_port_or_throw();
+    port = runtime::network_manager()->listen_port_or_throw();
 
   LT_LOG("starting : port:%d", port);
 

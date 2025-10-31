@@ -4,6 +4,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
+#include "torrent/net/network_manager.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
@@ -150,6 +151,12 @@ NetworkConfig::bind_inet6_address_str() const {
   return sa_addr_str(m_bind_inet6_address.get());
 }
 
+std::tuple<std::string, std::string>
+NetworkConfig::bind_addresses_str() const {
+  auto guard = lock_guard();
+  return std::make_tuple(sa_addr_str(m_bind_inet_address.get()), sa_addr_str(m_bind_inet6_address.get()));
+}
+
 c_sa_shared_ptr
 NetworkConfig::local_address_best_match() const {
   return generic_address_best_match(m_local_inet_address, m_local_inet6_address);
@@ -227,18 +234,10 @@ NetworkConfig::proxy_address_str() const {
 }
 
 // TODO: Move all management tasks here.
-// TODO: Change http stack to use NetworkConfig
-// TODO: Add a separate bind setting for http stack.
 
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
   set_generic_address("bind", m_bind_inet_address, m_bind_inet6_address, sa);
-
-  // TODO: This should bind to inet/inet6 and only empty string on unspec.
-  if (sa_is_any(sa))
-    torrent::net_thread::http_stack()->set_bind_address(std::string());
-  else
-    torrent::net_thread::http_stack()->set_bind_address(sa_addr_str(sa).c_str());
 }
 
 void
@@ -320,26 +319,39 @@ NetworkConfig::set_proxy_address(const sockaddr* sa) {
   m_proxy_address = sa_copy(sa);
 }
 
-uint16_t
-NetworkConfig::listen_port() const {
+
+uint32_t
+NetworkConfig::encryption_options() const {
   auto guard = lock_guard();
-  return m_listen_port;
+  return m_encryption_options;
 }
 
-uint16_t
-NetworkConfig::listen_port_or_throw() const {
+void
+NetworkConfig::set_encryption_options(uint32_t opts) {
   auto guard = lock_guard();
-
-  if (m_listen_port == 0)
-    throw internal_error("Tried to get listen port but it is not set.");
-
-  return m_listen_port;
+  m_encryption_options = opts;
 }
 
 int
 NetworkConfig::listen_backlog() const {
   auto guard = lock_guard();
   return m_listen_backlog;
+}
+
+void
+NetworkConfig::set_listen_backlog(int backlog) {
+  if (backlog < 1)
+    throw input_error("Tried to set a listen backlog less than 1.");
+
+  if (backlog > (1 << 16))
+    throw input_error("Tried to set a listen backlog greater than 65536.");
+
+  auto guard = lock_guard();
+
+  if (runtime::network_manager()->is_listening())
+    throw input_error("Tried to set listen backlog while already listening.");
+
+  m_listen_backlog = backlog;
 }
 
 uint16_t
@@ -355,21 +367,15 @@ NetworkConfig::set_override_dht_port(uint16_t port) {
 }
 
 uint32_t
-NetworkConfig::encryption_options() const {
-  auto guard = lock_guard();
-  return m_encryption_options;
-}
-
-void
-NetworkConfig::set_encryption_options(uint32_t opts) {
-  auto guard = lock_guard();
-  m_encryption_options = opts;
-}
-
-uint32_t
 NetworkConfig::send_buffer_size() const {
   auto guard = lock_guard();
   return m_send_buffer_size;
+}
+
+void
+NetworkConfig::set_send_buffer_size(uint32_t s) {
+  auto guard = lock_guard();
+  m_send_buffer_size = s;
 }
 
 uint32_t
@@ -379,36 +385,55 @@ NetworkConfig::receive_buffer_size() const {
 }
 
 void
-NetworkConfig::set_send_buffer_size(uint32_t s) {
-  auto guard = lock_guard();
-  m_send_buffer_size = s;
-}
-
-void
 NetworkConfig::set_receive_buffer_size(uint32_t s) {
   auto guard = lock_guard();
   m_receive_buffer_size = s;
 }
 
-void
-NetworkConfig::set_listen_port(uint16_t port) {
-  if (port == 0)
-    throw input_error("Tried to set a listen port to zero.");
+NetworkConfig::listen_addresses
+NetworkConfig::listen_addresses_unsafe() {
+  auto inet_address  = m_block_ipv4 ? nullptr : m_bind_inet_address;
+  auto inet6_address = m_block_ipv6 ? nullptr : m_bind_inet6_address;
 
-  auto guard = lock_guard();
-  m_listen_port = port;
+  if (inet_address == nullptr && inet6_address == nullptr)
+    return {};
+
+  if (inet_address == nullptr) {
+    if (inet6_address->sa_family == AF_UNSPEC)
+      return {nullptr, inet6_any_value, m_block_ipv4in6};
+
+    return {nullptr, inet6_address, m_block_ipv4in6};
+  }
+
+  if (inet6_address == nullptr) {
+    if (inet_address->sa_family == AF_UNSPEC)
+      return {inet_any_value, nullptr, false};
+
+    return {inet_address, nullptr, false};
+  }
+
+  if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC) {
+    if (m_block_ipv4in6)
+      return {inet_any_value, inet6_any_value, true};
+
+    return {nullptr, inet6_any_value, false};
+  }
+
+  if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
+    return {inet_address, inet6_address, m_block_ipv4in6};
+
+  if (inet_address->sa_family != AF_UNSPEC)
+    return {inet_address, nullptr, false};
+
+  if (inet6_address->sa_family != AF_UNSPEC)
+    return {nullptr, inet6_address, m_block_ipv4in6};
+
+  throw internal_error("NetworkConfig::listen_addresses_unsafe(): reached unreachable code.");
 }
 
-void
-NetworkConfig::set_listen_backlog(int backlog) {
-  if (backlog < 1)
-    throw input_error("Tried to set a listen backlog less than 1.");
-
-  if (backlog > (1 << 16))
-    throw input_error("Tried to set a listen backlog greater than 65536.");
-
-  auto guard = lock_guard();
-  m_listen_backlog = backlog;
+int
+NetworkConfig::listen_backlog_unsafe() const {
+  return m_listen_backlog;
 }
 
 //

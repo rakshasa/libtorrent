@@ -101,6 +101,12 @@ HttpGet::use_ipv6() {
 }
 
 void
+HttpGet::prefer_ipv4() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV4);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_IPV6);
+}
+
+void
 HttpGet::prefer_ipv6() {
   m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV6);
   m_curl_get->set_retry_resolve(CurlGet::RESOLVE_IPV4);

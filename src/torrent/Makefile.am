@@ -46,6 +46,8 @@ libtorrent_torrent_la_SOURCES = \
 	net/http_stack.h \
 	net/network_config.cc \
 	net/network_config.h \
+	net/network_manager.cc \
+	net/network_manager.h \
 	net/resolver.cc \
 	net/resolver.h \
 	net/socket_address.cc \
@@ -175,6 +177,7 @@ libtorrent_torrent_net_include_HEADERS = \
 	net/http_get.h \
 	net/http_stack.h \
 	net/network_config.h \
+	net/network_manager.h \
 	net/resolver.h \
 	net/socket_address.h \
 	net/socket_address_key.h \

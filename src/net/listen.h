@@ -13,7 +13,13 @@ class Listen : public SocketBase {
 public:
   ~Listen() override { close(); }
 
-  bool                open(uint16_t first, uint16_t last, int backlog, const sockaddr* bind_address);
+  static bool         open_single(Listen* listen, const sockaddr* bind_address,
+                                  uint16_t first, uint16_t last, int backlog, bool block_ipv4in6);
+
+  static bool         open_both(Listen* listen_inet, Listen* listen_inet6,
+                                const sockaddr* bind_inet_address, const sockaddr* bind_inet6_address,
+                                uint16_t first, uint16_t last, int backlog, bool block_ipv4in6);
+
   void                close();
 
   bool                is_open() const { return get_fd().is_valid(); }
@@ -27,7 +33,9 @@ public:
   void                event_error() override;
 
 private:
-  uint64_t            m_port{0};
+  void                open_done(int fd, uint16_t port, int backlog);
+
+  uint16_t            m_port{0};
 
   std::function<void(int, const sockaddr*)> m_slot_accepted;
 };

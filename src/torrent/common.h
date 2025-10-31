@@ -82,6 +82,7 @@ namespace net {
 class HttpGet;
 class HttpStack;
 class NetworkConfig;
+class NetworkManager;
 class Resolver;
 } // namespace net
 
@@ -112,6 +113,12 @@ namespace torrent::config {
 torrent::net::NetworkConfig* network_config() LIBTORRENT_EXPORT;
 
 } // namespace torrent::config
+
+namespace torrent::runtime {
+
+torrent::net::NetworkManager* network_manager() LIBTORRENT_EXPORT;
+
+} // namespace torrent::runtime
 
 namespace torrent::this_thread {
 

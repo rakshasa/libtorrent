@@ -9,6 +9,7 @@
 
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/network_config.h"
 #include "torrent/utils/thread.h"
 #include "utils/functional.h"
 
@@ -216,21 +217,40 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   //
   // We need to make CurlGet fail on numeric urls which do not match the resolve type.
 
-  switch (m_initial_resolve) {
-  case RESOLVE_IPV4:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-    break;
-  case RESOLVE_IPV6:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
-    break;
-  case RESOLVE_WHATEVER:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
-    break;
-  case RESOLVE_NONE:
+  if (m_initial_resolve == RESOLVE_NONE)
     throw torrent::internal_error("CurlGet::prepare_start_unsafe() called with m_initial_resolve set to RESOLVE_NONE.");
+
+  if (m_initial_resolve == RESOLVE_WHATEVER) {
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
+    return true;
   }
 
-  return true;
+  auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_str();
+
+  resolve_type current_resolve = m_initial_resolve;
+
+  if (!bind_inet_address.empty() && current_resolve == RESOLVE_IPV6) {
+    current_resolve = m_retry_resolve;
+    m_retrying_resolve = true;
+  } else if (!bind_inet6_address.empty() && current_resolve == RESOLVE_IPV4) {
+    current_resolve = m_retry_resolve;
+    m_retrying_resolve = true;
+  }
+
+  switch (current_resolve) {
+  case RESOLVE_IPV4:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    return true;
+  case RESOLVE_IPV6:
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+    return true;
+  case RESOLVE_NONE:
+    m_prepare_canceled = true;
+    ::utils::slot_list_call(m_signal_failed, "Bind address for requested IP protocol not set.");
+    return false;
+  default:
+    throw torrent::internal_error("CurlGet::prepare_start_unsafe() reached unreachable code with invalid current_resolve.");
+  }
 }
 
 void
@@ -334,6 +354,7 @@ CurlGet::trigger_failed(const std::string& message) {
   if (m_was_closed)
     return;
 
+  // If this is changed, verify RESOLVE_NONE handling is correct.
   ::utils::slot_list_call(m_signal_failed, message);
 }
 
