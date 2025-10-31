@@ -35,7 +35,7 @@ bool
 NetworkManager::listen_open(uint16_t begin, uint16_t end) {
   auto guard        = lock_guard();
   auto config_guard = config::network_config()->lock_guard();
-  auto backlog      = config::network_config()->listen_backlog();
+  auto backlog      = config::network_config()->listen_backlog_unsafe();
 
   if (m_listen_inet->is_open() || m_listen_inet6->is_open())
     throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");

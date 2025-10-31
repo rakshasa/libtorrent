@@ -417,6 +417,11 @@ NetworkConfig::listen_addresses_unsafe() {
   throw internal_error("NetworkConfig::listen_addresses_unsafe(): reached unreachable code.");
 }
 
+int
+NetworkConfig::listen_backlog_unsafe() const {
+  return m_listen_backlog;
+}
+
 //
 // Helper Functions:
 //

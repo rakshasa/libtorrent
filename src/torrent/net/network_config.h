@@ -147,6 +147,7 @@ protected:
   auto&               mutex() const                   { return m_mutex; }
 
   listen_addresses    listen_addresses_unsafe();
+  int                 listen_backlog_unsafe() const;
 
 private:
   c_sa_shared_ptr     generic_address_best_match(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
