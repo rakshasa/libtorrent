@@ -150,6 +150,12 @@ NetworkConfig::bind_inet6_address_str() const {
   return sa_addr_str(m_bind_inet6_address.get());
 }
 
+std::tuple<std::string, std::string>
+NetworkConfig::bind_addresses_str() const {
+  auto guard = lock_guard();
+  return std::make_tuple(sa_addr_str(m_bind_inet_address.get()), sa_addr_str(m_bind_inet6_address.get()));
+}
+
 c_sa_shared_ptr
 NetworkConfig::local_address_best_match() const {
   return generic_address_best_match(m_local_inet_address, m_local_inet6_address);
@@ -227,18 +233,10 @@ NetworkConfig::proxy_address_str() const {
 }
 
 // TODO: Move all management tasks here.
-// TODO: Change http stack to use NetworkConfig
-// TODO: Add a separate bind setting for http stack.
 
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
   set_generic_address("bind", m_bind_inet_address, m_bind_inet6_address, sa);
-
-  // TODO: This should bind to inet/inet6 and only empty string on unspec.
-  if (sa_is_any(sa))
-    torrent::net_thread::http_stack()->set_bind_address(std::string());
-  else
-    torrent::net_thread::http_stack()->set_bind_address(sa_addr_str(sa).c_str());
 }
 
 void
@@ -366,16 +364,16 @@ NetworkConfig::send_buffer_size() const {
   return m_send_buffer_size;
 }
 
-uint32_t
-NetworkConfig::receive_buffer_size() const {
-  auto guard = lock_guard();
-  return m_receive_buffer_size;
-}
-
 void
 NetworkConfig::set_send_buffer_size(uint32_t s) {
   auto guard = lock_guard();
   m_send_buffer_size = s;
+}
+
+uint32_t
+NetworkConfig::receive_buffer_size() const {
+  auto guard = lock_guard();
+  return m_receive_buffer_size;
 }
 
 void

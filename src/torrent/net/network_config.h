@@ -86,6 +86,8 @@ public:
   c_sa_shared_ptr     bind_inet6_address() const;
   std::string         bind_inet6_address_str() const;
 
+  std::tuple<std::string, std::string> bind_addresses_str() const;
+
   c_sa_shared_ptr     local_address_best_match() const;
   std::string         local_address_best_match_str() const;
   c_sa_shared_ptr     local_address_or_unspec_and_null() const;
@@ -131,9 +133,9 @@ public:
   void                set_encryption_options(uint32_t opts);
 
   uint32_t            send_buffer_size() const;
-  uint32_t            receive_buffer_size() const;
-
   void                set_send_buffer_size(uint32_t s);
+
+  uint32_t            receive_buffer_size() const;
   void                set_receive_buffer_size(uint32_t s);
 
 protected:

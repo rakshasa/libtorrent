@@ -38,13 +38,11 @@ public:
 
   const std::string&  user_agent() const;
   const std::string&  http_proxy() const;
-  const std::string&  bind_address() const;
   const std::string&  http_capath() const;
   const std::string&  http_cacert() const;
 
   void                set_user_agent(const std::string& s);
   void                set_http_proxy(const std::string& s);
-  void                set_bind_address(const std::string& s);
   void                set_http_capath(const std::string& s);
   void                set_http_cacert(const std::string& s);
 
@@ -102,7 +100,6 @@ private:
 
   std::string         m_user_agent;
   std::string         m_http_proxy;
-  std::string         m_bind_address;
   std::string         m_http_ca_path;
   std::string         m_http_ca_cert;
 
@@ -154,12 +151,6 @@ CurlStack::http_proxy() const {
 }
 
 inline const std::string&
-CurlStack::bind_address() const {
-  auto guard = lock_guard();
-  return m_bind_address;
-}
-
-inline const std::string&
 CurlStack::http_capath() const {
   auto guard = lock_guard();
   return m_http_ca_path;
@@ -181,12 +172,6 @@ inline void
 CurlStack::set_http_proxy(const std::string& s) {
   auto guard = lock_guard();
   m_http_proxy = s;
-}
-
-inline void
-CurlStack::set_bind_address(const std::string& s) {
-  auto guard = lock_guard();
-  m_bind_address = s;
 }
 
 inline void

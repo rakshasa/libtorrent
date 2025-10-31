@@ -90,11 +90,6 @@ HttpStack::http_proxy() const {
 }
 
 std::string
-HttpStack::bind_address() const {
-  return m_stack->bind_address();
-}
-
-std::string
 HttpStack::http_capath() const {
   return m_stack->http_capath();
 }
@@ -112,11 +107,6 @@ HttpStack::set_user_agent(const std::string& s) {
 void
 HttpStack::set_http_proxy(const std::string& s) {
   m_stack->set_http_proxy(s);
-}
-
-void
-HttpStack::set_bind_address(const std::string& s) {
-  m_stack->set_bind_address(s);
 }
 
 void

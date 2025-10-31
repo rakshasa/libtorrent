@@ -108,6 +108,8 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
     m_get.use_ipv4();
   } else if (is_prefer_ipv6) {
     m_get.prefer_ipv6();
+  } else {
+    m_get.prefer_ipv4();
   }
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),

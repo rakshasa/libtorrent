@@ -604,7 +604,7 @@ sa_less_addr(const sockaddr* lhs, const sockaddr* rhs) {
 std::string
 sa_addr_str(const sockaddr* sa) {
   if (sa == nullptr)
-    return "null";
+    return "";
 
   switch (sa->sa_family) {
   case AF_INET:
@@ -612,9 +612,9 @@ sa_addr_str(const sockaddr* sa) {
   case AF_INET6:
     return sin6_addr_str(reinterpret_cast<const sockaddr_in6*>(sa));
   case AF_UNSPEC:
-    return "unspec";
+    return "";
   default:
-    return "invalid";
+    throw internal_error("torrent::sa_addr_str: sockaddr is not a valid family");
   }
 }
 
@@ -623,7 +623,7 @@ sin_addr_str(const sockaddr_in* sa) {
   char buffer[INET_ADDRSTRLEN];
 
   if (inet_ntop(AF_INET, &sa->sin_addr, buffer, INET_ADDRSTRLEN) == NULL)
-    return "inet_error";
+    throw internal_error("torrent::sin_addr_str: inet_ntop failed");
 
   return buffer;
 }
@@ -634,7 +634,7 @@ sin6_addr_str(const sockaddr_in6* sa) {
   char buffer[INET6_ADDRSTRLEN];
 
   if (inet_ntop(AF_INET6, &sa->sin6_addr, buffer, INET6_ADDRSTRLEN) == NULL)
-    return "inet6_error";
+    throw internal_error("torrent::sin6_addr_str: inet_ntop failed");
 
   return buffer;
 }

@@ -112,7 +112,7 @@ DhtServer::start(int port) {
     m_fileDesc = fd_open(open_flags);
 
     // Figure out how to bind to both inet and inet6.
-    if (!fd_bind(get_fd().get_fd(), bind_address.get()))
+    if (!fd_bind(m_fileDesc, bind_address.get()))
       throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
 
   } catch (const torrent::base_error&) {
@@ -148,8 +148,8 @@ DhtServer::stop() {
 
   this_thread::poll()->remove_and_close(this);
 
-  get_fd().close();
-  get_fd().clear();
+  fd_close(m_fileDesc);
+  m_fileDesc = -1;
 
   m_networkUp = false;
 }

@@ -48,6 +48,7 @@ public:
 
   void                use_ipv4();
   void                use_ipv6();
+  void                prefer_ipv4();
   void                prefer_ipv6();
 
   // The slots add callbacks to the calling thread when triggered, and all slots will remain in the
