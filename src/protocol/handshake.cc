@@ -126,7 +126,6 @@ Handshake::deactivate_connection() {
   m_state = INACTIVE;
 
   this_thread::scheduler()->erase(&m_task_timeout);
-
   this_thread::poll()->remove_and_close(this);
 }
 

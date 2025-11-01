@@ -361,6 +361,8 @@ Poll::remove_error(Event* event) {
 
 void
 Poll::remove_and_close(Event* event) {
+  LT_LOG_EVENT("remove and close", 0);
+
   remove_read(event);
   remove_write(event);
   // remove_error(event);
