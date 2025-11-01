@@ -86,6 +86,8 @@ public:
   c_sa_shared_ptr     bind_inet6_address() const;
   std::string         bind_inet6_address_str() const;
 
+  std::tuple<std::string, std::string> bind_addresses_str() const;
+
   c_sa_shared_ptr     local_address_best_match() const;
   std::string         local_address_best_match_str() const;
   c_sa_shared_ptr     local_address_or_unspec_and_null() const;
@@ -118,34 +120,34 @@ public:
   void                set_local_inet6_address_str(const std::string& addr);
   void                set_proxy_address(const sockaddr* sa);
 
-  // Port number should not be cleared as it is used for tracker announces.
-  uint16_t            listen_port() const;
-  uint16_t            listen_port_or_throw() const;
+  uint32_t            encryption_options() const;
+  void                set_encryption_options(uint32_t opts);
+
   int                 listen_backlog() const;
+  void                set_listen_backlog(int backlog);
 
   uint16_t            override_dht_port() const;
   void                set_override_dht_port(uint16_t port);
 
-  uint32_t            encryption_options() const;
-  void                set_encryption_options(uint32_t opts);
-
   uint32_t            send_buffer_size() const;
-  uint32_t            receive_buffer_size() const;
-
   void                set_send_buffer_size(uint32_t s);
+
+  uint32_t            receive_buffer_size() const;
   void                set_receive_buffer_size(uint32_t s);
 
 protected:
   friend class torrent::ConnectionManager;
+  friend class torrent::net::NetworkManager;
+
+  typedef std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool> listen_addresses;
 
   void                lock() const                    { m_mutex.lock(); }
   auto                lock_guard() const              { return std::lock_guard(m_mutex); }
   void                unlock() const                  { m_mutex.unlock(); }
   auto&               mutex() const                   { return m_mutex; }
 
-  // TODO: Use different function for client updating port.
-  void                set_listen_port(uint16_t port);
-  void                set_listen_backlog(int backlog);
+  listen_addresses    listen_addresses_unsafe();
+  int                 listen_backlog_unsafe() const;
 
 private:
   c_sa_shared_ptr     generic_address_best_match(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
@@ -176,13 +178,11 @@ private:
   c_sa_shared_ptr     m_local_inet6_address;
   c_sa_shared_ptr     m_proxy_address;
 
-  uint16_t            m_listen_port{0};
+  int                 m_encryption_options{encryption_none};
   int                 m_listen_backlog{SOMAXCONN};
   uint16_t            m_override_dht_port{0};
-
   uint32_t            m_send_buffer_size{0};
   uint32_t            m_receive_buffer_size{0};
-  int                 m_encryption_options{encryption_none};
 };
 
 } // namespace torrent::net

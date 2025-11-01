@@ -30,13 +30,11 @@ public:
 
   std::string         user_agent() const;
   std::string         http_proxy() const;
-  std::string         bind_address() const;
   std::string         http_capath() const;
   std::string         http_cacert() const;
 
   void                set_user_agent(const std::string& s);
   void                set_http_proxy(const std::string& s);
-  void                set_bind_address(const std::string& s);
   void                set_http_capath(const std::string& s);
   void                set_http_cacert(const std::string& s);
 

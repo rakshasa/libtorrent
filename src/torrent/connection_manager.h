@@ -60,25 +60,13 @@ public:
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
 
-  bool                is_listen_open() const;
-
-  bool                listen_open(port_type begin, port_type end);
-  void                listen_close();
-
-  void                set_listen_backlog(int backlog);
-
   // The slot returns a ThrottlePair to use for the given address, or
   // NULLs to use the default throttle.
   slot_throttle_type& address_throttle()  { return m_slot_address_throttle; }
 
-  // For internal usage.
-  Listen*             listen()            { return m_listen; }
-
 private:
   size_type           m_size{0};
   size_type           m_maxSize{0};
-
-  Listen*             m_listen;
 
   slot_filter_type    m_slot_filter;
   slot_throttle_type  m_slot_address_throttle;

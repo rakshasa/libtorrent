@@ -25,12 +25,13 @@ public:
 
   auto*               network_config()     { return m_network_config.get(); }
 
-  ChunkManager*       chunk_manager()      { return m_chunk_manager.get(); }
-  ConnectionManager*  connection_manager() { return m_connection_manager.get(); }
-  DownloadManager*    download_manager()   { return m_download_manager.get(); }
-  FileManager*        file_manager()       { return m_file_manager.get(); }
-  HandshakeManager*   handshake_manager()  { return m_handshake_manager.get(); }
-  ResourceManager*    resource_manager()   { return m_resource_manager.get(); }
+  auto*               chunk_manager()      { return m_chunk_manager.get(); }
+  auto*               connection_manager() { return m_connection_manager.get(); }
+  auto*               download_manager()   { return m_download_manager.get(); }
+  auto*               file_manager()       { return m_file_manager.get(); }
+  auto*               handshake_manager()  { return m_handshake_manager.get(); }
+  auto*               network_manager()    { return m_network_manager.get(); }
+  auto*               resource_manager()   { return m_resource_manager.get(); }
 
   ClientList*             client_list()    { return m_client_list.get(); }
   tracker::DhtController* dht_controller() { return m_dht_controller.get(); }
@@ -46,14 +47,15 @@ public:
   void                receive_tick();
 
 private:
-  std::unique_ptr<net::NetworkConfig> m_network_config;
+  std::unique_ptr<net::NetworkConfig>  m_network_config;
 
-  std::unique_ptr<ChunkManager>      m_chunk_manager;
-  std::unique_ptr<ConnectionManager> m_connection_manager;
-  std::unique_ptr<DownloadManager>   m_download_manager;
-  std::unique_ptr<FileManager>       m_file_manager;
-  std::unique_ptr<HandshakeManager>  m_handshake_manager;
-  std::unique_ptr<ResourceManager>   m_resource_manager;
+  std::unique_ptr<ChunkManager>        m_chunk_manager;
+  std::unique_ptr<ConnectionManager>   m_connection_manager;
+  std::unique_ptr<DownloadManager>     m_download_manager;
+  std::unique_ptr<FileManager>         m_file_manager;
+  std::unique_ptr<HandshakeManager>    m_handshake_manager;
+  std::unique_ptr<net::NetworkManager> m_network_manager;
+  std::unique_ptr<ResourceManager>     m_resource_manager;
 
   std::unique_ptr<ClientList>             m_client_list;
   std::unique_ptr<tracker::DhtController> m_dht_controller;

@@ -114,9 +114,6 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
     if (!m_http_proxy.empty())
       curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_PROXY, m_http_proxy.c_str());
 
-    if (!m_bind_address.empty())
-      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_INTERFACE, m_bind_address.c_str());
-
     if (!m_http_ca_path.empty())
       curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_CAPATH, m_http_ca_path.c_str());
 
