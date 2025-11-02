@@ -383,7 +383,8 @@ DownloadMain::do_peer_exchange() {
       // Use network byte order for the address.
       current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
 
-      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: added : %s",
+      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: pretty : %s", sa_pretty_str(sa).c_str());
+      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: curent : %s",
                              utils::uri_escape_html(current.back().c_str(), current.back().c_str() + 6).c_str());
     }
 
