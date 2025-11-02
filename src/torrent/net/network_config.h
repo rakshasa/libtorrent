@@ -8,15 +8,6 @@
 
 namespace torrent::net {
 
-// TODO: Add a connection setup class that holds basic information about a connection, like previous
-// failed attempts, what inet family/bind were used, etc.
-//
-// ConnectionInfo ?
-// ConnectionOptions ?
-// ConnectionSettings ?
-// ConnectionContext ?
-// ConnectionState ?
-
 class LIBTORRENT_EXPORT NetworkConfig {
 public:
   static constexpr int iptos_default     = 0;
@@ -37,21 +28,9 @@ public:
 
   NetworkConfig();
 
-  // TODO: Calls using these should be thread safe, and a connection manager should be responsible
-  // for binding, etc, fds.
-  //
-  // When we change the * addresses, we should lock the connection manager until both pre- and
-  // post-change handling is done. This would include closing and reopening listening sockets,
-  // resetting connections, restarting dht, etc.
-
-  // TODO: Http bind address should be moved here.
-
   // TODO: Move helper functions in rtorrent manager here.
 
-  // Http stack has an independent bind address setting.
-  //
-  // We should set the main http bind address in set_bind_address, and have special handling if it
-  // is overridden by the user.
+  // TODO: Verify we attempt to connect to cached peers on startup, even before tracker requests.
 
   bool                is_block_ipv4() const;
   bool                is_block_ipv6() const;
@@ -103,9 +82,6 @@ public:
   c_sa_shared_ptr     proxy_address() const;
   std::string         proxy_address_str() const;
 
-  // When set_bind_inet*_address is used, http stack bind address needs to be manually set.
-  //
-  // TODO: Change http stack to use NetworkConfig
   void                set_bind_address(const sockaddr* sa);
   void                set_bind_address_str(const std::string& addr);
   void                set_bind_inet_address(const sockaddr* sa);
@@ -157,9 +133,9 @@ private:
   c_sa_shared_ptr     generic_address_for_connect(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
   c_sa_shared_ptr     generic_address_for_family(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
 
-  void                set_generic_address(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
-  void                set_generic_inet_address(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa);
-  void                set_generic_inet6_address(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
+  void                set_generic_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
+  void                set_generic_inet_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa);
+  void                set_generic_inet6_address_unsafe(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
 
   mutable std::mutex  m_mutex;
 
