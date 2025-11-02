@@ -13,6 +13,8 @@
 #include "torrent/peer/peer_info.h"
 #include "torrent/utils/log.h"
 
+#include "torrent/utils/uri_parser.h"
+
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
   lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list", log_fmt, __VA_ARGS__);
 #define LT_LOG_ADDRESS(log_fmt, ...)                                    \
@@ -391,6 +393,8 @@ PeerList::insert_pex_list(const raw_string& pex_list) {
   l.sort_and_unique();
 
   LT_LOG_EVENTS("insert_pex_list: inserting %" PRIu32 " peers", l.size());
+
+  LT_LOG_EVENTS("insert_pex_list: %s", utils::uri_escape_html(pex_list.begin(), pex_list.end()).c_str());
 
   return insert_available(&l);
 }
