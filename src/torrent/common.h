@@ -155,6 +155,10 @@ namespace torrent::main_thread {
 torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
 std::thread::id         thread_id() LIBTORRENT_EXPORT;
 
+void                    callback(void* target, std::function<void ()>&& fn);
+void                    cancel_callback(void* target);
+void                    cancel_callback_and_wait(void* target);
+
 uint32_t                hash_queue_size() LIBTORRENT_EXPORT;
 
 } // namespace torrent::main_thread

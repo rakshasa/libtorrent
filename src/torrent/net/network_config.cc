@@ -63,25 +63,33 @@ NetworkConfig::is_prefer_ipv6() const {
 void
 NetworkConfig::set_block_ipv4(bool v) {
   auto guard = lock_guard();
+
   m_block_ipv4 = v;
+  runtime::network_manager()->restart_listen();
 }
 
 void
 NetworkConfig::set_block_ipv6(bool v) {
   auto guard = lock_guard();
+
   m_block_ipv6 = v;
+  runtime::network_manager()->restart_listen();
 }
 
 void
 NetworkConfig::set_block_ipv4in6(bool v) {
   auto guard = lock_guard();
+
   m_block_ipv4in6 = v;
+  runtime::network_manager()->restart_listen();
 }
 
 void
 NetworkConfig::set_block_outgoing(bool v) {
   auto guard = lock_guard();
+
   m_block_outgoing = v;
+  runtime::network_manager()->restart_listen();
 }
 
 void
@@ -237,7 +245,10 @@ NetworkConfig::proxy_address_str() const {
 
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
-  set_generic_address("bind", m_bind_inet_address, m_bind_inet6_address, sa);
+  auto guard = lock_guard();
+
+  set_generic_address_unsafe("bind", m_bind_inet_address, m_bind_inet6_address, sa);
+  runtime::network_manager()->restart_listen();
 }
 
 void
@@ -247,7 +258,10 @@ NetworkConfig::set_bind_address_str(const std::string& addr) {
 
 void
 NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
-  set_generic_inet_address("bind", m_bind_inet_address, sa);
+  auto guard = lock_guard();
+
+  set_generic_inet_address_unsafe("bind", m_bind_inet_address, sa);
+  runtime::network_manager()->restart_listen();
 }
 
 void
@@ -257,7 +271,10 @@ NetworkConfig::set_bind_inet_address_str(const std::string& addr) {
 
 void
 NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
-  set_generic_inet6_address("bind", m_bind_inet6_address, sa);
+  auto guard = lock_guard();
+
+  set_generic_inet6_address_unsafe("bind", m_bind_inet6_address, sa);
+  runtime::network_manager()->restart_listen();
 }
 
 void
@@ -270,7 +287,8 @@ NetworkConfig::set_local_address(const sockaddr* sa) {
   if (sa_is_any(sa))
     throw input_error("Tried to set local address to an any address.");
 
-  set_generic_address("local", m_local_inet_address, m_local_inet6_address, sa);
+  auto guard = lock_guard();
+  set_generic_address_unsafe("local", m_local_inet_address, m_local_inet6_address, sa);
 }
 
 void
@@ -283,7 +301,8 @@ NetworkConfig::set_local_inet_address(const sockaddr* sa) {
   if (sa_is_any(sa))
     throw input_error("Tried to set local inet address to an any address.");
 
-  set_generic_inet_address("local", m_local_inet_address, sa);
+  auto guard = lock_guard();
+  set_generic_inet_address_unsafe("local", m_local_inet_address, sa);
 }
 
 void
@@ -296,7 +315,8 @@ NetworkConfig::set_local_inet6_address(const sockaddr* sa) {
   if (sa_is_any(sa))
     throw input_error("Tried to set local inet6 address to an any address.");
 
-  set_generic_inet6_address("local", m_local_inet6_address, sa);
+  auto guard = lock_guard();
+  set_generic_inet6_address_unsafe("local", m_local_inet6_address, sa);
 }
 
 void
@@ -348,10 +368,8 @@ NetworkConfig::set_listen_backlog(int backlog) {
 
   auto guard = lock_guard();
 
-  if (runtime::network_manager()->is_listening())
-    throw input_error("Tried to set listen backlog while already listening.");
-
   m_listen_backlog = backlog;
+  runtime::network_manager()->restart_listen();
 }
 
 uint16_t
@@ -568,14 +586,12 @@ NetworkConfig::generic_address_for_connect(int family, const c_sa_shared_ptr& in
 // TODO: Move all management tasks here.
 
 void
-NetworkConfig::set_generic_address(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa) {
+NetworkConfig::set_generic_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa) {
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set a " + std::string(category) + " address that is not an unspec/inet address.");
 
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " address with a non-zero port.");
-
-  auto guard = lock_guard();
 
   LT_LOG_NOTICE("%s address : %s", category, sa_pretty_str(sa).c_str());
 
@@ -600,14 +616,12 @@ NetworkConfig::set_generic_address(const char* category, c_sa_shared_ptr& inet_a
 }
 
 void
-NetworkConfig::set_generic_inet_address(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa) {
+NetworkConfig::set_generic_inet_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa) {
   if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set a " + std::string(category) + " inet address that is not an unspec/inet address.");
 
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " inet address with a non-zero port.");
-
-  auto guard = lock_guard();
 
   LT_LOG_NOTICE("%s inet address : %s", category, sa_pretty_str(sa).c_str());
 
@@ -615,14 +629,12 @@ NetworkConfig::set_generic_inet_address(const char* category, c_sa_shared_ptr& i
 }
 
 void
-NetworkConfig::set_generic_inet6_address(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa) {
+NetworkConfig::set_generic_inet6_address_unsafe(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa) {
   if (sa->sa_family != AF_INET6 && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set a " + std::string(category) + " inet6 address that is not an unspec/inet6 address.");
 
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " inet6 address with a non-zero port.");
-
-  auto guard = lock_guard();
 
   LT_LOG_NOTICE("%s inet6 address : %s", category, sa_pretty_str(sa).c_str());
 

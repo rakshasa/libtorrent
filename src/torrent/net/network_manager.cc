@@ -7,6 +7,8 @@
 #include "torrent/net/network_config.h"
 #include "torrent/utils/log.h"
 
+// TODO: Add net category and add it to important/complete log outputs.
+
 #define LT_LOG_NOTICE(log_fmt, ...)                                     \
   lt_log_print_subsystem(LOG_NOTICE, "net::network_manager", log_fmt, __VA_ARGS__);
 
@@ -17,12 +19,14 @@ NetworkManager::NetworkManager()
     m_listen_inet6(new Listen) {
 }
 
-NetworkManager::~NetworkManager() = default;
+NetworkManager::~NetworkManager() {
+  main_thread::cancel_callback_and_wait(this);
+}
 
 bool
 NetworkManager::is_listening() const {
   auto guard = lock_guard();
-  return m_listen_inet->is_open() || m_listen_inet6->is_open();
+  return is_listening_unsafe();
 }
 
 // TODO: Currently only opens one listen socket, either ipv4 or ipv6 based on bind address.
@@ -33,7 +37,51 @@ NetworkManager::is_listening() const {
 
 bool
 NetworkManager::listen_open(uint16_t begin, uint16_t end) {
-  auto guard        = lock_guard();
+  auto guard = lock_guard();
+  return listen_open_unsafe(begin, end);
+}
+
+void
+NetworkManager::listen_close() {
+  auto guard = lock_guard();
+  listen_close_unsafe();
+}
+
+uint16_t
+NetworkManager::listen_port() const {
+  auto guard = lock_guard();
+  return m_listen_port;
+}
+
+uint16_t
+NetworkManager::listen_port_or_throw() const {
+  auto guard = lock_guard();
+
+  if (m_listen_port == 0)
+    throw input_error("Tried to get listen port but it is not set.");
+
+  return m_listen_port;
+}
+
+bool
+NetworkManager::is_listening_unsafe() const {
+  return m_listen_inet->is_open() || m_listen_inet6->is_open();
+}
+
+void
+NetworkManager::restart_listen() {
+  auto guard = lock_guard();
+
+  if (m_restarting_listen || !is_listening_unsafe())
+    return;
+
+  m_restarting_listen = true;
+
+  main_thread::callback(this, [this]() { perform_restart_listen(); });
+}
+
+bool
+NetworkManager::listen_open_unsafe(uint16_t begin, uint16_t end) {
   auto config_guard = config::network_config()->lock_guard();
   auto backlog      = config::network_config()->listen_backlog_unsafe();
 
@@ -74,27 +122,29 @@ NetworkManager::listen_open(uint16_t begin, uint16_t end) {
 }
 
 void
-NetworkManager::listen_close() {
-  auto guard = lock_guard();
-
+NetworkManager::listen_close_unsafe() {
   m_listen_inet->close();
   m_listen_inet6->close();
 }
 
-uint16_t
-NetworkManager::listen_port() const {
-  auto guard = lock_guard();
-  return m_listen_port;
-}
-
-uint16_t
-NetworkManager::listen_port_or_throw() const {
+void
+NetworkManager::perform_restart_listen() {
   auto guard = lock_guard();
 
-  if (m_listen_port == 0)
-    throw input_error("Tried to get listen port but it is not set.");
+  m_restarting_listen = false;
 
-  return m_listen_port;
+  if (!is_listening_unsafe())
+    return;
+
+  // TODO: Move DHT here and restart.
+
+  listen_close_unsafe();
+
+  try {
+    listen_open_unsafe(m_listen_port, m_listen_port);
+  } catch (const base_error& e) {
+    LT_LOG_NOTICE("could not restart listen socket: %s", e.what());
+  }
 }
 
 } // namespace torrent::net
