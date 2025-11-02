@@ -378,4 +378,21 @@ PeerList::cull_peers(int flags) {
   return counter;
 }
 
+uint32_t
+PeerList::insert_pex_list(const raw_string& pex_list) {
+  if (pex_list.empty()) {
+    LT_LOG_EVENTS("insert_pex_list: empty list", 0);
+    return true;
+  }
+
+  AddressList l;
+
+  l.parse_address_compact(pex_list);
+  l.sort_and_unique();
+
+  LT_LOG_EVENTS("insert_pex_list: inserting %" PRIu32 " peers", l.size());
+
+  return insert_available(&l);
+}
+
 } // namespace torrent

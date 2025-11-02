@@ -301,19 +301,7 @@ ProtocolExtension::parse_ut_pex() {
   if (!message[key_pex_added].is_raw_string())
     return true;
 
-  raw_string peers = message[key_pex_added].as_raw_string();
-
-  if (peers.empty())
-    return true;
-
-  // TODO: Sort the list before adding it.
-  AddressList l;
-
-  l.parse_address_compact(peers);
-  l.sort_and_unique();
-
-  m_download->peer_list()->insert_available(&l);
-
+  m_download->peer_list()->insert_pex_list(message[key_pex_added].as_raw_string());
   return true;
 }
 

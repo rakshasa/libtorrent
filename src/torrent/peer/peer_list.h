@@ -10,6 +10,8 @@
 namespace torrent {
 
 class DownloadInfo;
+class ProtocolExtension;
+class raw_string;
 
 using ipv4_table = extents<uint32_t, int>;
 
@@ -71,6 +73,8 @@ public:
   const_reverse_iterator rend() const   { return base_type::rend(); }
 
 protected:
+  friend class torrent::ProtocolExtension;
+
   void                set_info(DownloadInfo* info) LIBTORRENT_NO_EXPORT;
 
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
@@ -79,6 +83,8 @@ protected:
 
   void                disconnected(PeerInfo* p, int flags) LIBTORRENT_NO_EXPORT;
   iterator            disconnected(iterator itr, int flags) LIBTORRENT_NO_EXPORT;
+
+  uint32_t            insert_pex_list(const raw_string& pex_list) LIBTORRENT_NO_EXPORT;
 
 private:
   PeerList(const PeerList&) = delete;
