@@ -85,13 +85,13 @@ HandshakeManager::erase_download(DownloadMain* info) {
 void
 HandshakeManager::add_incoming(int fd, const sockaddr* sa) {
   if (!manager->connection_manager()->can_connect()) {
-    LT_LOG_SA(sa, "rejected outgoing connection: fd:%i : rejected by connection manager", fd);
+    LT_LOG_SA(sa, "rejected incoming connection: fd:%i : rejected by connection manager", fd);
     fd_close(fd);
     return;
   }
 
   if (!manager->connection_manager()->filter(sa)) {
-    LT_LOG_SA(sa, "rejected outgoing connection: fd:%i : filtered", fd);
+    LT_LOG_SA(sa, "rejected incoming connection: fd:%i : filtered", fd);
     fd_close(fd);
     return;
   }
@@ -168,7 +168,9 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   else
     message = ConnectionManager::handshake_outgoing;
 
-  LT_LOG_SAP(connect_address, "created outgoing connection: fd:%i encryption:%x message:%x", fd, encryption_options, message);
+  LT_LOG_SAP(connect_address, "created outgoing connection: fd:%i address:%s encryption:%x message:%x",
+             fd, sa_pretty_str(sa).c_str(), encryption_options, message);
+
   manager->connection_manager()->inc_socket_count();
 
   auto handshake = std::make_unique<Handshake>(fd, this, encryption_options);
