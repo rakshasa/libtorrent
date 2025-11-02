@@ -1,7 +1,8 @@
 #include "config.h"
 
-#include <cstdarg>
+#include "extensions.h"
 
+#include <cstdarg>
 #include <cstdio>
 
 #include "download/download_main.h"
@@ -18,7 +19,8 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 
-#include "extensions.h"
+#include "torrent/utils/log.h"
+#include "torrent/utils/uri_parser.h"
 
 namespace torrent {
 
@@ -177,6 +179,8 @@ ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& 
   *end++ = 'e';
   if (end - buffer > 32 + added_len + removed_len)
     throw internal_error("ProtocolExtension::ut_pex_message wrote beyond buffer.");
+
+  lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "generate_ut_pex_message: %s", utils::uri_escape_html(buffer, end).c_str());
 
   return DataBuffer(buffer, end);
 }
