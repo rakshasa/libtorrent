@@ -177,10 +177,12 @@ ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& 
   end += removed_len;
 
   *end++ = 'e';
+
   if (end - buffer > 32 + added_len + removed_len)
     throw internal_error("ProtocolExtension::ut_pex_message wrote beyond buffer.");
 
-  lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "generate_ut_pex_message: %s", utils::uri_escape_html(buffer, end).c_str());
+  lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "generate_ut_pex_message: src : %s", utils::uri_escape_html(added.begin()->c_str(), added.begin()->c_str() + added_len).c_str());
+  lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "generate_ut_pex_message: raw : %s", utils::uri_escape_html(buffer, end).c_str());
 
   return DataBuffer(buffer, end);
 }
