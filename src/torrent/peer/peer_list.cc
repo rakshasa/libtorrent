@@ -384,10 +384,8 @@ PeerList::cull_peers(int flags) {
 
 uint32_t
 PeerList::insert_pex_list(const raw_string& pex_list) {
-  if (pex_list.empty()) {
-    LT_LOG_EVENTS("insert_pex_list: empty list", 0);
+  if (pex_list.empty())
     return true;
-  }
 
   AddressList l;
 
