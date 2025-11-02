@@ -13,14 +13,14 @@ class DownloadInfo;
 
 using ipv4_table = extents<uint32_t, int>;
 
-class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, PeerInfo*> {
+class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, std::unique_ptr<PeerInfo>> {
 public:
   friend class DownloadWrapper;
   friend class Handshake;
   friend class HandshakeManager;
   friend class ConnectionList;
 
-  using base_type  = std::multimap<socket_address_key, PeerInfo*>;
+  using base_type  = std::multimap<socket_address_key, std::unique_ptr<PeerInfo>>;
   using range_type = std::pair<base_type::iterator, base_type::iterator>;
 
   using base_type::value_type;
