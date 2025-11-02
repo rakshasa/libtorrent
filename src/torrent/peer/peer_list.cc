@@ -219,7 +219,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
     // We should also remove any PeerInfo objects already for this
     // address.
     if ((filter_value & PeerInfo::flag_unwanted)) {
-      LT_LOG_EVENTS("connecting peer rejected, flagged as unwanted: %s", sa_pretty_str(sa).c_str());
+      LT_LOG_EVENTS("connecting peer rejected: flagged as unwanted : %s", sa_pretty_str(sa).c_str());
       return nullptr;
     }
 
@@ -257,7 +257,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
     //     range.first->second->socket_address()->port() != address->port())
     //   m_available_list->buffer()->push_back(*address);
 
-    LT_LOG_EVENTS("connecting peer rejected, already connected (buggy, fixme): %s", sa_pretty_str(sa).c_str());
+    LT_LOG_EVENTS("connecting peer rejected: already connected (buggy, fixme) : %s", sa_pretty_str(sa).c_str());
 
     // TODO: Verify this works properly, possibly add a check/flag
     // that allows the handshake manager to notify peer list if the
@@ -271,24 +271,26 @@ PeerList::connected(const sockaddr* sa, int flags) {
     base_type::insert(range.second, value_type(sock_key, peer_info));
   }
 
-  if (flags & connect_filter_recent &&
+  if ((flags & connect_filter_recent) &&
       peer_info->last_handshake() + 600 > static_cast<uint32_t>(this_thread::cached_seconds().count())) {
-    LT_LOG_EVENTS("connecting peer rejected, recent handshake: %s", sa_pretty_str(sa).c_str());
+    LT_LOG_EVENTS("connecting peer rejected: recent handshake : %s", sa_pretty_str(sa).c_str());
     return nullptr;
   }
-
-  if (!(flags & connect_incoming))
-    peer_info->set_listen_port(port);
-
-  if (flags & connect_incoming)
-    peer_info->set_flags(PeerInfo::flag_incoming);
-  else
-    peer_info->unset_flags(PeerInfo::flag_incoming);
 
   peer_info->set_flags(PeerInfo::flag_connected);
   peer_info->set_last_handshake(this_thread::cached_seconds().count());
 
-  LT_LOG_EVENTS("connected peer accepted: %s", sa_pretty_str(sa).c_str());
+  if ((flags & connect_incoming)) {
+    peer_info->set_flags(PeerInfo::flag_incoming);
+
+    LT_LOG_EVENTS("connecting peer accepted: incoming : %s", sa_pretty_str(sa).c_str());
+
+  } else {
+    peer_info->unset_flags(PeerInfo::flag_incoming);
+    peer_info->set_listen_port(port);
+
+    LT_LOG_EVENTS("connecting peer accepted: outgoing : %s", sa_pretty_str(sa).c_str());
+  }
 
   return peer_info;
 }
