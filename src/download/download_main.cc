@@ -34,6 +34,7 @@
 #include "tracker/tracker_list.h"
 
 #include "torrent/utils/uri_parser.h"
+#include "torrent/net/socket_address.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
