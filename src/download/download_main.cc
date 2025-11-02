@@ -33,9 +33,6 @@
 #include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
 
-#include "torrent/utils/uri_parser.h"
-#include "torrent/net/socket_address.h"
-
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
@@ -381,14 +378,11 @@ DownloadMain::do_peer_exchange() {
     auto sa  = pcb->peer_info()->socket_address();
 
     if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET) {
-      // Use network byte order for the address.
+      // The reinterpret_cast requires const in push_back, while not in emplace_back.
+      //
+      // Might be the cause of corrupt address values in rtorrent-docker tests.
       // current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
       current.push_back(SocketAddressCompact(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port())));
-
-      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: s_addr : %x", reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
-      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: pretty : %s", sa_pretty_str(sa).c_str());
-      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: curent : %s",
-                             utils::uri_escape_html(current.back().c_str(), current.back().c_str() + 6).c_str());
     }
 
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
