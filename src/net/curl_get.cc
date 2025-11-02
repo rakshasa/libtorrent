@@ -206,7 +206,6 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
     curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        static_cast<long>(m_timeout));
   }
 
-  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE,   1l);
   curl_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       1l);
   curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1l);
   curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
