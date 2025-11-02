@@ -13,15 +13,8 @@ namespace torrent::net {
 
 int
 CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd, int what, CurlStack* stack, CurlSocket* socket) {
-  // TODO: Verify this is called in the correct thread.
-
-  // TODO: Keep track of CurlSocket's in CurlStack?
-
-  // If !stack->is_running(), do strict cleanup?
-  // if (!stack->is_running())
-  //   return 0;
-
-  assert(stack->is_running() && "CurlSocket::receive_socket(...) !stack->is_running()");
+  // We always return 0, even when stack is not running, as we depend on these calls to delete
+  // sockets.
 
   if (what == CURL_POLL_REMOVE) {
     if (socket == nullptr)
@@ -36,11 +29,21 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
   }
 
   if (socket == nullptr) {
+    if (!stack->is_running())
+      return 0;
+
     socket = new CurlSocket(fd, stack);
     curl_multi_assign(stack->handle(), fd, socket);
 
     torrent::this_thread::poll()->open(socket);
     torrent::this_thread::poll()->insert_error(socket);
+  }
+
+  if (!stack->is_running()) {
+    torrent::this_thread::poll()->remove_read(socket);
+    torrent::this_thread::poll()->remove_write(socket);
+    torrent::this_thread::poll()->remove_error(socket);
+    return 0;
   }
 
   if (what == CURL_POLL_NONE || what == CURL_POLL_OUT)
