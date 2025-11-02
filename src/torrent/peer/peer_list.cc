@@ -396,8 +396,6 @@ PeerList::insert_pex_list(const raw_string& pex_list) {
 
   LT_LOG_EVENTS("insert_pex_list: inserting %" PRIu32 " peers", l.size());
 
-  LT_LOG_EVENTS("insert_pex_list: %s", utils::uri_escape_html(pex_list.begin(), pex_list.end()).c_str());
-
   return insert_available(&l);
 }
 
