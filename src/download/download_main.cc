@@ -33,6 +33,8 @@
 #include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
 
+#include "torrent/utils/uri_parser.h"
+
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
@@ -377,9 +379,13 @@ DownloadMain::do_peer_exchange() {
     auto pcb = connection->m_ptr();
     auto sa  = pcb->peer_info()->socket_address();
 
-    if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET)
+    if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET) {
       // Use network byte order for the address.
       current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
+
+      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: added : %s",
+                             utils::uri_escape_html(current.back().c_str(), current.back().c_str() + 6).c_str());
+    }
 
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;
