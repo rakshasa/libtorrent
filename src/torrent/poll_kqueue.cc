@@ -15,9 +15,14 @@
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
 
-// TODO: Add new log category.
-#define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
-  lt_log_print(LOG_SOCKET_##log_level, "kqueue->%s(%i) : " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
+// TODO: Change to LOG_CONNECTION_POLL
+
+#define LT_LOG_EVENT(log_fmt, ...)                                      \
+  lt_log_print(LOG_CONNECTION_FD, "kqueue->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
+
+#define LT_LOG_DEBUG_IDENT(log_fmt, ...)
+// #define LT_LOG_DEBUG_IDENT(log_fmt, ...)                                \
+//   lt_log_print(LOG_CONNECTION_FD, "kqueue->%u: " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
 
 namespace torrent {
 
@@ -81,7 +86,7 @@ PollInternal::flush_events() {
 
 void
 PollInternal::modify(Event* event, unsigned short op, short mask) {
-  LT_LOG_EVENT(event, DEBUG, "modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
+  LT_LOG_EVENT("modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
 
   // Flush the changed filters to the kernel if the buffer is full.
   if (m_changed_events == m_max_events) {
@@ -175,16 +180,21 @@ Poll::process() {
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
     if (itr->ident >= m_internal->m_table.size())
-      continue;
+      throw internal_error("Poll::process(): received ident out of range: " + std::to_string(itr->ident));
 
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
 
-    auto evItr = m_internal->m_table.begin() + itr->ident;
+    auto ev_itr = m_internal->m_table.begin() + itr->ident;
 
-    if ((itr->flags & EV_ERROR) && evItr->second != nullptr) {
-      if (evItr->first & PollInternal::flag_error)
-        evItr->second->event_error();
+    if (ev_itr->second == nullptr) {
+      LT_LOG_DEBUG_IDENT("event is null, skipping : flags:%hx filter:%hx", itr->flags, itr->filter);
+      continue;
+    }
+
+    if ((itr->flags & EV_ERROR)) {
+      if (ev_itr->first & PollInternal::flag_error)
+        ev_itr->second->event_error();
 
       count++;
 
@@ -194,15 +204,22 @@ Poll::process() {
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && evItr->second != nullptr && evItr->first & PollInternal::flag_read) {
+    if (itr->filter == EVFILT_READ && ev_itr->first & PollInternal::flag_read) {
       count++;
-      evItr->second->event_read();
+      ev_itr->second->event_read();
+    }
+    else if (itr->filter == EVFILT_READ) {
+      LT_LOG_DEBUG_IDENT("spurious read event, skipping", 0);
     }
 
-    if (itr->filter == EVFILT_WRITE && evItr->second != nullptr && evItr->first & PollInternal::flag_write) {
+    if (itr->filter == EVFILT_WRITE && ev_itr->first & PollInternal::flag_write) {
       count++;
-      evItr->second->event_write();
+      ev_itr->second->event_write();
     }
+    else if (itr->filter == EVFILT_WRITE) {
+      LT_LOG_DEBUG_IDENT("spurious write event, skipping", 0);
+    }
+
   }
 
   m_internal->m_waiting_events = 0;
@@ -216,7 +233,7 @@ Poll::open_max() const {
 
 void
 Poll::open(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "open event", 0);
+  LT_LOG_EVENT("open event", 0);
 
   if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::open(...) called but the file descriptor is active");
@@ -224,7 +241,7 @@ Poll::open(Event* event) {
 
 void
 Poll::close(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "close event", 0);
+  LT_LOG_EVENT("close event", 0);
 
   if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::close(...) called but the file descriptor is active");
@@ -250,7 +267,7 @@ Poll::close(Event* event) {
 
 void
 Poll::cleanup_closed(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "cleanup_closed event", 0);
+  LT_LOG_EVENT("cleanup_closed event", 0);
 
   // if (m_internal->event_mask(event) != 0)
   //   throw internal_error("Poll::cleanup_closed(...) called but the file descriptor is active");
@@ -293,7 +310,7 @@ Poll::insert_read(Event* event) {
   if (m_internal->event_mask(event) & PollInternal::flag_read)
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "insert read", 0);
+  LT_LOG_EVENT("insert read", 0);
 
   m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_read);
   m_internal->modify(event, EV_ADD, EVFILT_READ);
@@ -304,7 +321,7 @@ Poll::insert_write(Event* event) {
   if (m_internal->event_mask(event) & PollInternal::flag_write)
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "insert write", 0);
+  LT_LOG_EVENT("insert write", 0);
 
   m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_write);
   m_internal->modify(event, EV_ADD, EVFILT_WRITE);
@@ -312,7 +329,7 @@ Poll::insert_write(Event* event) {
 
 void
 Poll::insert_error(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "insert error", 0);
+  LT_LOG_EVENT("insert error", 0);
 }
 
 void
@@ -320,7 +337,7 @@ Poll::remove_read(Event* event) {
   if (!(m_internal->event_mask(event) & PollInternal::flag_read))
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "remove read", 0);
+  LT_LOG_EVENT("remove read", 0);
 
   m_internal->set_event_mask(event, m_internal->event_mask(event) & ~PollInternal::flag_read);
   m_internal->modify(event, EV_DELETE, EVFILT_READ);
@@ -331,7 +348,7 @@ Poll::remove_write(Event* event) {
   if (!(m_internal->event_mask(event) & PollInternal::flag_write))
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "remove write", 0);
+  LT_LOG_EVENT("remove write", 0);
 
   m_internal->set_event_mask(event, m_internal->event_mask(event) & ~PollInternal::flag_write);
   m_internal->modify(event, EV_DELETE, EVFILT_WRITE);
@@ -339,11 +356,13 @@ Poll::remove_write(Event* event) {
 
 void
 Poll::remove_error(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "remove error", 0);
+  LT_LOG_EVENT("remove error", 0);
 }
 
 void
 Poll::remove_and_close(Event* event) {
+  LT_LOG_EVENT("remove and close", 0);
+
   remove_read(event);
   remove_write(event);
   // remove_error(event);

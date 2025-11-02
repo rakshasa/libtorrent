@@ -65,6 +65,10 @@ CurlSocket::close() {
   if (m_fileDesc == -1)
     throw torrent::internal_error("CurlSocket::close() m_fileDesc == -1.");
 
+  torrent::this_thread::poll()->remove_read(this);
+  torrent::this_thread::poll()->remove_write(this);
+  torrent::this_thread::poll()->remove_error(this);
+
   torrent::this_thread::poll()->cleanup_closed(this);
 
   m_stack = nullptr;
