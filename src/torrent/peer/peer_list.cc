@@ -46,7 +46,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   socket_address_key sock_key = socket_address_key::from_sockaddr(sa);
 
   if (sock_key.is_valid() && !socket_address_key::is_comparable_sockaddr(sa)) {
-    LT_LOG_EVENTS("address not comparable: %s", sa_pretty_str(sa).c_str());
+    LT_LOG_EVENTS("adding address: not comparable: %s", sa_pretty_str(sa).c_str());
     return nullptr;
   }
 
@@ -61,7 +61,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   // What we do depends on the flags, but for now just allow one
   // PeerInfo per address key and do nothing.
   if (range.first != range.second) {
-    LT_LOG_EVENTS("address already exists: %s", sa_pretty_str(sa).c_str());
+    LT_LOG_EVENTS("adding address: already exists: %s", sa_pretty_str(sa).c_str());
     return nullptr;
   }
 
@@ -87,9 +87,9 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   if ((flags & address_available) && peer_info->listen_port() != 0) {
     m_available_list->insert_unique(sa);
 
-    LT_LOG_EVENTS("added available address: %s", sa_pretty_str(sa).c_str());
+    LT_LOG_EVENTS("adding address: available : %s", sa_pretty_str(sa).c_str());
   } else {
-    LT_LOG_EVENTS("added unavailable address: %s", sa_pretty_str(sa).c_str());
+    LT_LOG_EVENTS("adding address: unavailable : %s", sa_pretty_str(sa).c_str());
   }
 
   auto itr = base_type::insert(range.second, value_type(sock_key, peer_info.release()));
@@ -121,7 +121,7 @@ PeerList::insert_available(const void* al) {
 
     if (!socket_address_key::is_comparable_sockaddr(&addr.sa) || port == 0) {
       invalid++;
-      LT_LOG_ADDRESS("skipped invalid address: %s", sa_pretty_str(&addr.sa).c_str());
+      LT_LOG_ADDRESS("adding available address: skipped invalid : %s", sa_pretty_str(&addr.sa).c_str());
       continue;
     }
 
@@ -173,7 +173,7 @@ PeerList::insert_available(const void* al) {
     inserted++;
     m_available_list->insert_unique(&addr.sa);
 
-    LT_LOG_ADDRESS("added available address: %s", sa_pretty_str(&addr.sa).c_str());
+    LT_LOG_ADDRESS("adding available address: %s", sa_pretty_str(&addr.sa).c_str());
   }
 
   LT_LOG_EVENTS("inserted peers"
