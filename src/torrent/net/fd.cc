@@ -30,6 +30,9 @@
 #define LT_LOG_FD_SOCKADDR_ERROR(log_fmt)                               \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s errno:%i message:'%s'", \
                fd, sa_pretty_str(sa).c_str(), errno, std::strerror(errno));
+#define LT_LOG_FD_SAP(log_fmt)                                        \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s", \
+               fd, sap_pretty_str(sap).c_str());
 #define LT_LOG_FD_FLAG(log_fmt)                                         \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x", fd, flags);
 #define LT_LOG_FD_FLAG_ERROR(log_fmt)                                   \
@@ -186,7 +189,10 @@ fd_sap_accept(int fd) {
     return fd_sap_tuple{-1, nullptr};
   }
 
-  return fd_sap_tuple{connection_fd, sa_copy(&sau.sa)};
+  auto sap = sa_copy(&sau.sa);
+
+  LT_LOG_FD_SAP("fd_sap_accept() succeeded");
+  return fd_sap_tuple{connection_fd, std::move(sap)};
 }
 
 bool

@@ -18,8 +18,6 @@
 #define LT_LOG_ADDRESS(log_fmt, ...)                                    \
   lt_log_print_info(LOG_PEER_LIST_ADDRESS, m_info, "peer_list", log_fmt, __VA_ARGS__);
 
-#define LT_LOG_SA_FMT "'%s:%" PRIu16 "'"
-
 namespace torrent {
 
 ipv4_table PeerList::m_ipv4_table;
@@ -31,12 +29,9 @@ PeerList::PeerList()
 PeerList::~PeerList() {
   LT_LOG_EVENTS("deleting list total:%zu available:%zu", size(), m_available_list->size());
 
-  for (const auto& v : *this)
-    delete v.second;
-
   base_type::clear();
 
-  m_info = NULL;
+  m_info = nullptr;
 }
 
 void
@@ -51,8 +46,8 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   socket_address_key sock_key = socket_address_key::from_sockaddr(sa);
 
   if (sock_key.is_valid() && !socket_address_key::is_comparable_sockaddr(sa)) {
-    LT_LOG_EVENTS("address not comparable", 0);
-    return NULL;
+    LT_LOG_EVENTS("adding address: not comparable: %s", sa_pretty_str(sa).c_str());
+    return nullptr;
   }
 
   range_type range = base_type::equal_range(sock_key);
@@ -66,40 +61,40 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   // What we do depends on the flags, but for now just allow one
   // PeerInfo per address key and do nothing.
   if (range.first != range.second) {
-    LT_LOG_EVENTS("address already exists " LT_LOG_SA_FMT, addr_str.c_str(), port);
-    return NULL;
+    LT_LOG_EVENTS("adding address: already exists: %s", sa_pretty_str(sa).c_str());
+    return nullptr;
   }
 
-  auto peerInfo = new PeerInfo(sa);
-  peerInfo->set_listen_port(port);
+  auto peer_info = std::make_unique<PeerInfo>(sa);
+  peer_info->set_listen_port(port);
 
   if (sa->sa_family == AF_INET) {
     // IPv4 addresses are stored in host byte order in ipv4_table so they are comparable.
     uint32_t host_byte_order_ipv4_addr = ntohl(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
 
     if(m_ipv4_table.defined(host_byte_order_ipv4_addr))
-      peerInfo->set_flags(m_ipv4_table.at(host_byte_order_ipv4_addr) & PeerInfo::mask_ip_table);
+      peer_info->set_flags(m_ipv4_table.at(host_byte_order_ipv4_addr) & PeerInfo::mask_ip_table);
 
   } else if (sa->sa_family == AF_INET6) {
     // Currently nothing to do for IPv6 addresses.
 
   } else {
-    throw internal_error("PeerList::insert_address() only AF_INET addresses are supported");
+    throw internal_error("PeerList::insert_address() only supports INET/INET6 addresses");
   }
 
-  manager->client_list()->retrieve_unknown(&peerInfo->mutable_client_info());
+  manager->client_list()->retrieve_unknown(&peer_info->mutable_client_info());
 
-  base_type::insert(range.second, value_type(sock_key, peerInfo));
-
-  if ((flags & address_available) && peerInfo->listen_port() != 0) {
+  if ((flags & address_available) && peer_info->listen_port() != 0) {
     m_available_list->insert_unique(sa);
 
-    LT_LOG_EVENTS("added available address " LT_LOG_SA_FMT, addr_str.c_str(), port);
+    LT_LOG_EVENTS("adding address: available : %s", sa_pretty_str(sa).c_str());
   } else {
-    LT_LOG_EVENTS("added unavailable address " LT_LOG_SA_FMT, addr_str.c_str(), port);
+    LT_LOG_EVENTS("adding address: unavailable : %s", sa_pretty_str(sa).c_str());
   }
 
-  return peerInfo;
+  auto itr = base_type::insert(range.second, value_type(sock_key, peer_info.release()));
+
+  return itr->second.get();
 }
 
 uint32_t
@@ -126,7 +121,7 @@ PeerList::insert_available(const void* al) {
 
     if (!socket_address_key::is_comparable_sockaddr(&addr.sa) || port == 0) {
       invalid++;
-      LT_LOG_ADDRESS("skipped invalid address " LT_LOG_SA_FMT, addr_str.c_str(), port);
+      LT_LOG_ADDRESS("adding available address: skipped invalid : %s", sa_pretty_str(&addr.sa).c_str());
       continue;
     }
 
@@ -154,13 +149,13 @@ PeerList::insert_available(const void* al) {
     if (range.first != range.second) {
       // Add some logic here to select the best PeerInfo, but for now
       // just assume the first one is the only one that exists.
-      PeerInfo* peerInfo = range.first->second;
+      PeerInfo* peer_info = range.first->second.get();
 
-      if (peerInfo->listen_port() == 0)
-        peerInfo->set_port(port);
+      if (peer_info->listen_port() == 0)
+        peer_info->set_port(port);
 
-      if (peerInfo->connection() != NULL ||
-          peerInfo->last_handshake() + 600 > static_cast<uint32_t>(this_thread::cached_seconds().count())) {
+      if (peer_info->connection() != nullptr ||
+          peer_info->last_handshake() + 600 > static_cast<uint32_t>(this_thread::cached_seconds().count())) {
         updated++;
         continue;
       }
@@ -178,7 +173,7 @@ PeerList::insert_available(const void* al) {
     inserted++;
     m_available_list->insert_unique(&addr.sa);
 
-    LT_LOG_ADDRESS("added available address " LT_LOG_SA_FMT, addr_str.c_str(), port);
+    LT_LOG_ADDRESS("adding available address: %s", sa_pretty_str(&addr.sa).c_str());
   }
 
   LT_LOG_EVENTS("inserted peers"
@@ -207,9 +202,8 @@ PeerList::connected(const sockaddr* sa, int flags) {
   auto addr_str = sa_addr_str(sa);
   auto port = sa_port(sa);
 
-  if (!sock_key.is_valid() ||
-      !socket_address_key::is_comparable_sockaddr(sa))
-    return NULL;
+  if (!sock_key.is_valid() || !socket_address_key::is_comparable_sockaddr(sa))
+    return nullptr;
 
   int filter_value = 0;
 
@@ -223,8 +217,8 @@ PeerList::connected(const sockaddr* sa, int flags) {
     // We should also remove any PeerInfo objects already for this
     // address.
     if ((filter_value & PeerInfo::flag_unwanted)) {
-      LT_LOG_EVENTS("connecting peer rejected, flagged as unwanted: " LT_LOG_SA_FMT, addr_str.c_str(), port);
-      return NULL;
+      LT_LOG_EVENTS("connecting peer rejected: flagged as unwanted : %s", sa_pretty_str(sa).c_str());
+      return nullptr;
     }
 
   } else if (sa->sa_family == AF_INET6) {
@@ -234,20 +228,20 @@ PeerList::connected(const sockaddr* sa, int flags) {
     throw internal_error("PeerList::connected() with invalid address family");
   }
 
-  PeerInfo* peerInfo;
+  PeerInfo* peer_info;
   range_type range = base_type::equal_range(sock_key);
 
   if (range.first == range.second) {
     // Create a new entry.
-    peerInfo = new PeerInfo(sa);
-    peerInfo->set_flags(filter_value & PeerInfo::mask_ip_table);
+    peer_info = new PeerInfo(sa);
+    peer_info->set_flags(filter_value & PeerInfo::mask_ip_table);
 
-    base_type::insert(range.second, value_type(sock_key, peerInfo));
+    base_type::insert(range.second, value_type(sock_key, peer_info));
 
   } else if (!range.first->second->is_connected()) {
     // Use an old entry.
-    peerInfo = range.first->second;
-    peerInfo->set_port(port);
+    peer_info = range.first->second.get();
+    peer_info->set_port(port);
 
   } else {
     // Make sure we don't end up throwing away the port the host is
@@ -261,36 +255,42 @@ PeerList::connected(const sockaddr* sa, int flags) {
     //     range.first->second->socket_address()->port() != address->port())
     //   m_available_list->buffer()->push_back(*address);
 
-    LT_LOG_EVENTS("connecting peer rejected, already connected (buggy, fixme): " LT_LOG_SA_FMT, addr_str.c_str(), port);
+    LT_LOG_EVENTS("connecting peer rejected: already connected (buggy, fixme) : %s", sa_pretty_str(sa).c_str());
 
     // TODO: Verify this works properly, possibly add a check/flag
     // that allows the handshake manager to notify peer list if the
     // incoming connection was a duplicate peer hash.
 
-    //return NULL;
+    //return nullptr;
 
-    peerInfo = new PeerInfo(sa);
-    peerInfo->set_flags(filter_value & PeerInfo::mask_ip_table);
+    peer_info = new PeerInfo(sa);
+    peer_info->set_flags(filter_value & PeerInfo::mask_ip_table);
 
-    base_type::insert(range.second, value_type(sock_key, peerInfo));
+    base_type::insert(range.second, value_type(sock_key, peer_info));
   }
 
-  if (flags & connect_filter_recent &&
-      peerInfo->last_handshake() + 600 > static_cast<uint32_t>(this_thread::cached_seconds().count()))
-    return NULL;
+  if ((flags & connect_filter_recent) &&
+      peer_info->last_handshake() + 600 > static_cast<uint32_t>(this_thread::cached_seconds().count())) {
+    LT_LOG_EVENTS("connecting peer rejected: recent handshake : %s", sa_pretty_str(sa).c_str());
+    return nullptr;
+  }
 
-  if (!(flags & connect_incoming))
-    peerInfo->set_listen_port(port);
+  peer_info->set_flags(PeerInfo::flag_connected);
+  peer_info->set_last_handshake(this_thread::cached_seconds().count());
 
-  if (flags & connect_incoming)
-    peerInfo->set_flags(PeerInfo::flag_incoming);
-  else
-    peerInfo->unset_flags(PeerInfo::flag_incoming);
+  if ((flags & connect_incoming)) {
+    peer_info->set_flags(PeerInfo::flag_incoming);
 
-  peerInfo->set_flags(PeerInfo::flag_connected);
-  peerInfo->set_last_handshake(this_thread::cached_seconds().count());
+    LT_LOG_EVENTS("connecting peer accepted: incoming : %s", sa_pretty_str(sa).c_str());
 
-  return peerInfo;
+  } else {
+    peer_info->unset_flags(PeerInfo::flag_incoming);
+    peer_info->set_listen_port(port);
+
+    LT_LOG_EVENTS("connecting peer accepted: outgoing : %s", sa_pretty_str(sa).c_str());
+  }
+
+  return peer_info;
 }
 
 // Make sure we properly clear port when disconnecting.
@@ -301,10 +301,10 @@ PeerList::disconnected(PeerInfo* p, int flags) {
 
   range_type range = base_type::equal_range(sock_key);
 
-  auto itr = std::find_if(range.first, range.second, [p](auto& v) { return p == v.second; });
+  auto itr = std::find_if(range.first, range.second, [p](auto& v) { return p == v.second.get(); });
 
   if (itr == range.second) {
-    if (std::none_of(base_type::begin(), base_type::end(), [p](auto& v){ return p == v.second; }))
+    if (std::none_of(base_type::begin(), base_type::end(), [p](auto& v){ return p == v.second.get(); }))
       throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist.");
     else
       throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");
@@ -372,15 +372,27 @@ PeerList::cull_peers(int flags) {
     // shouldn't actually be used in erase (I think), just ot be safe
     // we delete it after erase.
     auto tmp = itr++;
-    PeerInfo* peerInfo = tmp->second;
-
     base_type::erase(tmp);
-    delete peerInfo;
 
     counter++;
   }
 
   return counter;
+}
+
+uint32_t
+PeerList::insert_pex_list(const raw_string& pex_list) {
+  if (pex_list.empty())
+    return true;
+
+  AddressList l;
+
+  l.parse_address_compact(pex_list);
+  l.sort_and_unique();
+
+  LT_LOG_EVENTS("inserting pex list: %" PRIu32 " peers", l.size());
+
+  return insert_available(&l);
 }
 
 } // namespace torrent

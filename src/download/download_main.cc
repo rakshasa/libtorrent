@@ -377,9 +377,13 @@ DownloadMain::do_peer_exchange() {
     auto pcb = connection->m_ptr();
     auto sa  = pcb->peer_info()->socket_address();
 
-    if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET)
-      // Use network byte order for the address.
-      current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
+    if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET) {
+      // The reinterpret_cast requires const in push_back, while not in emplace_back.
+      //
+      // Might be the cause of corrupt address values in rtorrent-docker tests.
+      // current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
+      current.push_back(SocketAddressCompact(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port())));
+    }
 
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;

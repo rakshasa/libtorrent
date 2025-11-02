@@ -1,7 +1,8 @@
 #include "config.h"
 
-#include <cstdarg>
+#include "extensions.h"
 
+#include <cstdarg>
 #include <cstdio>
 
 #include "download/download_main.h"
@@ -17,8 +18,6 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-
-#include "extensions.h"
 
 namespace torrent {
 
@@ -175,6 +174,7 @@ ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& 
   end += removed_len;
 
   *end++ = 'e';
+
   if (end - buffer > 32 + added_len + removed_len)
     throw internal_error("ProtocolExtension::ut_pex_message wrote beyond buffer.");
 
@@ -301,19 +301,7 @@ ProtocolExtension::parse_ut_pex() {
   if (!message[key_pex_added].is_raw_string())
     return true;
 
-  raw_string peers = message[key_pex_added].as_raw_string();
-
-  if (peers.empty())
-    return true;
-
-  // TODO: Sort the list before adding it.
-  AddressList l;
-
-  l.parse_address_compact(peers);
-  l.sort_and_unique();
-
-  m_download->peer_list()->insert_available(&l);
-
+  m_download->peer_list()->insert_pex_list(message[key_pex_added].as_raw_string());
   return true;
 }
 
