@@ -382,8 +382,10 @@ DownloadMain::do_peer_exchange() {
 
     if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET) {
       // Use network byte order for the address.
-      current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
+      // current.emplace_back(reinterpret_cast<sockaddr_in*>(&sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port()));
+      current.push_back(SocketAddressCompact(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, htons(pcb->peer_info()->listen_port())));
 
+      lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: s_addr : %x", reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
       lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: pretty : %s", sa_pretty_str(sa).c_str());
       lt_log_print_subsystem(LOG_PEER_LIST_EVENTS, "peer_list", "do_peer_exchange: curent : %s",
                              utils::uri_escape_html(current.back().c_str(), current.back().c_str() + 6).c_str());
