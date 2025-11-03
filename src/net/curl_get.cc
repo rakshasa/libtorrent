@@ -158,8 +158,12 @@ CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback
   if (callback_thread != nullptr)
     callback_thread->cancel_callback(self);
 
-  if (self->m_stack == nullptr)
+  if (self->m_stack == nullptr) {
+    if (self->m_was_started)
+      self->m_was_closed = true;
+
     return;
+  }
 
   assert(std::this_thread::get_id() != self->m_stack->thread()->thread_id());
   assert(callback_thread != self->m_stack->thread());
