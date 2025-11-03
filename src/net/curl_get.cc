@@ -354,21 +354,32 @@ CurlGet::retry_resolve() {
 
   m_retrying_resolve = true;
 
+  auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_or_null();
+
   switch (m_retry_resolve) {
   case RESOLVE_IPV4:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-    break;
-  case RESOLVE_IPV6:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
-    break;
-  case RESOLVE_WHATEVER:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
-    break;
-  case RESOLVE_NONE:
-    throw torrent::internal_error("CurlGet::retry_resolve() called with m_retry_resolve set to RESOLVE_NONE.");
-  }
+    if (bind_inet_address == nullptr)
+      return false;
 
-  return true;
+    if (bind_inet_address->sa_family != AF_UNSPEC)
+      curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet_address.get()).c_str());
+
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    return true;
+
+  case RESOLVE_IPV6:
+    if (bind_inet6_address == nullptr)
+      return false;
+
+    if (bind_inet6_address->sa_family != AF_UNSPEC)
+      curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet6_address.get()).c_str());
+
+    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+    return true;
+
+  default:
+    throw torrent::internal_error("CurlGet::retry_resolve() reached unreachable code with invalid m_retry_resolve.");
+  }
 }
 
 void
