@@ -143,7 +143,14 @@ SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) 
   if (length == 0 || offset > size() || offset + length > size())
     return MemoryChunk();
 
-  uint64_t align = offset % MemoryChunk::page_size();
+  uint32_t page_size = MemoryChunk::page_size();
+  uint64_t align = offset % page_size;
+
+  if (page_size != 4096)
+    throw internal_error("SocketFile::get_chunk() page size is not 4096 bytes: " + std::to_string(page_size));
+
+  if (align >= page_size)
+    throw internal_error("SocketFile::get_chunk() alignment calculation error: " + std::to_string(align));
 
   auto ptr = static_cast<char*>(mmap(nullptr, length + align, prot, flags, m_fd, offset - align));
 
