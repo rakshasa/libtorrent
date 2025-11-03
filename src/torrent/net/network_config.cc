@@ -159,6 +159,27 @@ NetworkConfig::bind_inet6_address_str() const {
   return sa_addr_str(m_bind_inet6_address.get());
 }
 
+std::tuple<c_sa_shared_ptr, c_sa_shared_ptr>
+NetworkConfig::bind_addresses_or_null() const {
+  auto guard = lock_guard();
+
+  auto inet_addr  = m_bind_inet_address;
+  auto inet6_addr = m_bind_inet6_address;
+
+  if (inet_addr->sa_family != AF_UNSPEC && inet6_addr->sa_family == AF_UNSPEC)
+    inet6_addr = nullptr;
+  else if (inet6_addr->sa_family != AF_UNSPEC && inet_addr->sa_family == AF_UNSPEC)
+    inet_addr = nullptr;
+
+  if (m_block_ipv4)
+    inet_addr = nullptr;
+
+  if (m_block_ipv6)
+    inet6_addr = nullptr;
+
+  return std::make_tuple(inet_addr, inet6_addr);
+}
+
 std::tuple<std::string, std::string>
 NetworkConfig::bind_addresses_str() const {
   auto guard = lock_guard();

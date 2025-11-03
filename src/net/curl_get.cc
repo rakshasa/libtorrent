@@ -10,6 +10,7 @@
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/network_config.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/thread.h"
 #include "utils/functional.h"
 
@@ -228,31 +229,61 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
     return true;
   }
 
-  auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_str();
+  auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_or_null();
 
   resolve_type current_resolve = m_initial_resolve;
 
-  if (!bind_inet_address.empty() && current_resolve == RESOLVE_IPV6) {
-    current_resolve = m_retry_resolve;
-    m_retrying_resolve = true;
-  } else if (!bind_inet6_address.empty() && current_resolve == RESOLVE_IPV4) {
-    current_resolve = m_retry_resolve;
-    m_retrying_resolve = true;
-  }
-
   switch (current_resolve) {
   case RESOLVE_IPV4:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-    return true;
+    if (bind_inet_address == nullptr) {
+      current_resolve = m_retry_resolve;
+      m_retrying_resolve = true;
+    }
+    break;
   case RESOLVE_IPV6:
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
-    return true;
-  case RESOLVE_NONE:
-    m_prepare_canceled = true;
-    ::utils::slot_list_call(m_signal_failed, "Bind address for requested IP protocol not set.");
-    return false;
+    if (bind_inet6_address == nullptr) {
+      current_resolve = m_retry_resolve;
+      m_retrying_resolve = true;
+    }
+    break;
   default:
     throw torrent::internal_error("CurlGet::prepare_start_unsafe() reached unreachable code with invalid current_resolve.");
+  }
+
+  try {
+
+    switch (current_resolve) {
+    case RESOLVE_IPV4:
+      if (bind_inet_address == nullptr)
+        throw torrent::input_error("Bind address for requested IP protocol(s) not available.");
+
+      if (bind_inet_address->sa_family != AF_UNSPEC)
+        curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet_address.get()).c_str());
+
+      curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+      return true;
+
+    case RESOLVE_IPV6:
+      if (bind_inet6_address == nullptr)
+        throw torrent::input_error("Bind address for requested IP protocol(s) not available.");
+
+      if (bind_inet_address->sa_family != AF_UNSPEC)
+        curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet6_address.get()).c_str());
+
+      curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+      return true;
+
+    case RESOLVE_NONE:
+      throw torrent::input_error("Bind address for requested IP protocol not available.");
+
+    default:
+      throw torrent::internal_error("CurlGet::prepare_start_unsafe() reached unreachable code with invalid current_resolve.");
+    }
+
+  } catch (const torrent::input_error& e) {
+    m_prepare_canceled = true;
+    ::utils::slot_list_call(m_signal_failed, e.what());
+    return false;
   }
 }
 

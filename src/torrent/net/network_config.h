@@ -65,7 +65,8 @@ public:
   c_sa_shared_ptr     bind_inet6_address() const;
   std::string         bind_inet6_address_str() const;
 
-  std::tuple<std::string, std::string> bind_addresses_str() const;
+  std::tuple<c_sa_shared_ptr, c_sa_shared_ptr> bind_addresses_or_null() const;
+  std::tuple<std::string, std::string>         bind_addresses_str() const;
 
   c_sa_shared_ptr     local_address_best_match() const;
   std::string         local_address_best_match_str() const;
