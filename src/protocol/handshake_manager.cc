@@ -121,7 +121,16 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
       !manager->connection_manager()->filter(sa))
     return;
 
-  create_outgoing(sa, download, config::network_config()->encryption_options());
+  auto encryption_options = config::network_config()->encryption_options();
+
+  if (download->info()->is_meta_download()) {
+    encryption_options &= ~net::NetworkConfig::encryption_try_outgoing;
+    encryption_options &= ~net::NetworkConfig::encryption_require;
+    encryption_options &= ~net::NetworkConfig::encryption_require_RC4;
+    encryption_options &= ~net::NetworkConfig::encryption_enable_retry;
+  }
+
+  create_outgoing(sa, download, encryption_options);
 }
 
 void
