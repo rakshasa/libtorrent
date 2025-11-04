@@ -12,22 +12,19 @@ struct TestTrackerListWrapper;
 
 namespace torrent {
 
-// The tracker list will contain a list of tracker, divided into
-// subgroups. Each group must be randomized before we start. When
-// starting the tracker request, always start from the beginning and
-// iterate if the request failed. Upon request success move the
-// tracker to the beginning of the subgroup and start from the
+// The tracker list will contain a list of tracker, divided into subgroups.
+//
+// Each group must be randomized before we start.
+//
+// When starting the tracker request, always start from the beginning and iterate if the request
+// failed.
+//
+// Upon request success move the tracker to the beginning of the subgroup and start from the
 // beginning of the whole list.
-
-// TODO: Use tracker::Tracker non-pointer, change slots, etc into using TrackerWorker*.
 
 class LIBTORRENT_EXPORT TrackerList : private std::vector<tracker::Tracker> {
 public:
   using base_type = std::vector<tracker::Tracker>;
-
-  using slot_tracker      = std::function<void(tracker::Tracker)>;
-  using slot_string       = std::function<void(tracker::Tracker, const std::string&)>;
-  using slot_address_list = std::function<uint32_t(tracker::Tracker, AddressList*)>;
 
   using base_type::value_type;
 
@@ -46,13 +43,9 @@ public:
   using base_type::back;
 
   using base_type::at;
-  using base_type::operator[];
 
   TrackerList();
   ~TrackerList();
-
-  TrackerList(const TrackerList&) = delete;
-  TrackerList& operator=(const TrackerList&) = delete;
 
   bool                has_active() const;
   bool                has_active_not_scrape() const;
@@ -101,19 +94,18 @@ public:
   // TODO: Replace with shared_ptr to TrackerWorker.
   void                receive_success(tracker::Tracker tracker, AddressList* l);
   void                receive_failed(tracker::Tracker tracker, const std::string& msg);
-
   void                receive_scrape_success(tracker::Tracker tracker);
   void                receive_scrape_failed(tracker::Tracker tracker, const std::string& msg);
+  void                receive_new_peers(tracker::Tracker tracker, AddressList* l);
 
-  // Used by libtorrent internally.
-  slot_address_list&  slot_success()                          { return m_slot_success; }
-  slot_string&        slot_failure()                          { return m_slot_failed; }
+  auto&               slot_success()                          { return m_slot_success; }
+  auto&               slot_failure()                          { return m_slot_failed; }
+  auto&               slot_scrape_success()                   { return m_slot_scrape_success; }
+  auto&               slot_scrape_failure()                   { return m_slot_scrape_failed; }
+  auto&               slot_new_peers()                        { return m_slot_new_peers; }
 
-  slot_tracker&       slot_scrape_success()                   { return m_slot_scrape_success; }
-  slot_string&        slot_scrape_failure()                   { return m_slot_scrape_failed; }
-
-  slot_tracker&       slot_tracker_enabled()                  { return m_slot_tracker_enabled; }
-  slot_tracker&       slot_tracker_disabled()                 { return m_slot_tracker_disabled; }
+  auto&               slot_tracker_enabled()                  { return m_slot_tracker_enabled; }
+  auto&               slot_tracker_disabled()                 { return m_slot_tracker_disabled; }
 
 protected:
   friend class DownloadWrapper;
@@ -124,21 +116,23 @@ protected:
   void                set_key(uint32_t k)                     { m_key = k; }
 
 private:
-  DownloadInfo*       m_info{nullptr};
+  TrackerList(const TrackerList&) = delete;
+  TrackerList& operator=(const TrackerList&) = delete;
+
+  DownloadInfo*       m_info{};
   int                 m_state;
 
   // TODO: Key should be part of download static info.
   uint32_t            m_key{0};
   int32_t             m_numwant{-1};
 
-  slot_address_list   m_slot_success;
-  slot_string         m_slot_failed;
-
-  slot_tracker        m_slot_scrape_success;
-  slot_string         m_slot_scrape_failed;
-
-  slot_tracker        m_slot_tracker_enabled;
-  slot_tracker        m_slot_tracker_disabled;
+  std::function<uint32_t(tracker::Tracker, AddressList*)>   m_slot_success;
+  std::function<void(tracker::Tracker, const std::string&)> m_slot_failed;
+  std::function<void(tracker::Tracker)>                     m_slot_scrape_success;
+  std::function<void(tracker::Tracker, const std::string&)> m_slot_scrape_failed;
+  std::function<void(tracker::Tracker, AddressList&&)>      m_slot_new_peers;
+  std::function<void(tracker::Tracker)>                     m_slot_tracker_enabled;
+  std::function<void(tracker::Tracker)>                     m_slot_tracker_disabled;
 };
 
 } // namespace torrent

@@ -228,6 +228,18 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
+  worker->m_slot_new_peers = [this, weak_tracker, worker](AddressList&& l) {
+      thread_tracker()->tracker_manager()->add_event(worker, [this, weak_tracker, l = std::move(l)]() {
+          if (!m_slot_new_peers)
+            return;
+
+          auto tracker_shared_ptr = weak_tracker.lock();
+
+          if (tracker_shared_ptr)
+            receive_new_peers(tracker::Tracker(std::move(tracker_shared_ptr)), const_cast<AddressList*>(&l));
+        });
+    };
+
   worker->m_slot_parameters = [this]() {
       // TODO: Lock here!
 
@@ -485,6 +497,29 @@ TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& 
 
   if (m_slot_scrape_failed)
     m_slot_scrape_failed(tracker, msg);
+}
+
+void
+TrackerList::receive_new_peers(tracker::Tracker tracker, AddressList* l) {
+  LT_LOG("received %zu new peers : requester:%p group:%u url:%s",
+         l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
+
+  auto itr = find(tracker);
+
+  if (itr == end())
+    throw internal_error("TrackerList::receive_new_peers(...) called but the iterator is invalid.");
+
+  l->sort_and_unique();
+
+  // auto new_peers = m_slot_success(tracker, l);
+  m_slot_success(tracker, l);
+
+  // TODO: Figure out better updating here...
+
+  // {
+  //   auto guard = tracker.get_worker()->lock_guard();
+  //   tracker.get_worker()->state().m_latest_new_peers = new_peers;
+  // }
 }
 
 } // namespace torrent

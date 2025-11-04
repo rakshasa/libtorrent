@@ -78,9 +78,9 @@ public:
   void                receive_tracker_enabled(const tracker::Tracker& tb);
   void                receive_tracker_disabled(const tracker::Tracker& tb);
 
-  slot_void&          slot_timeout()        { return m_slot_timeout; }
-  slot_address_list&  slot_success()        { return m_slot_success; }
-  slot_string&        slot_failure()        { return m_slot_failure; }
+  slot_void&          slot_timeout()          { return m_slot_timeout; }
+  slot_address_list&  slot_success()          { return m_slot_success; }
+  slot_string&        slot_failure()          { return m_slot_failure; }
 
   slot_tracker&       slot_tracker_enabled()  { return m_slot_tracker_enabled; }
   slot_tracker&       slot_tracker_disabled() { return m_slot_tracker_disabled; }
