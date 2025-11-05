@@ -318,6 +318,10 @@ Handshake::read_encryption_skey() {
 
   validate_download();
 
+  // We don't allow encrypted connections for meta-data downloads.
+  if (m_download->info()->is_meta_download())
+    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_invalid_encryption);
+
   std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.get());
 
   m_encryption.initialize_encrypt(m_download->info()->hash().c_str(), m_incoming);

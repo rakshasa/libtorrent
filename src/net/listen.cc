@@ -192,7 +192,7 @@ Listen::open_done(int fd, uint16_t port, int backlog) {
   this_thread::poll()->insert_read(this);
   this_thread::poll()->insert_error(this);
 
-  LT_LOG("listen port %" PRIu16 " opened with backlog set to %i", m_port, backlog);
+  LT_LOG("listen opened: fd:%i port:%" PRIu16 " backlog:%i", m_fileDesc, m_port, backlog);
 }
 
 void Listen::close() {

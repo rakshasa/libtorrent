@@ -267,7 +267,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
       if (bind_inet6_address == nullptr)
         throw torrent::input_error("Bind address for requested IP protocol(s) not available.");
 
-      if (bind_inet_address->sa_family != AF_UNSPEC)
+      if (bind_inet6_address->sa_family != AF_UNSPEC)
         curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet6_address.get()).c_str());
 
       curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
