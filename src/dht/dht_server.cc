@@ -95,14 +95,28 @@ DhtServer::~DhtServer() {
 
 void
 DhtServer::start(int port) {
+  auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_or_null();
+
+  if (bind_inet_address == nullptr)
+    throw resource_error("no valid bind address for DHT server");
+
+  sa_unique_ptr bind_address;
+
+  switch (bind_inet_address->sa_family) {
+  case AF_INET:
+    bind_address = sa_copy(bind_inet_address.get());
+    break;
+  case AF_UNSPEC:
+    bind_address = sa_make_inet_any();
+    break;
+  default:
+    throw resource_error("invalid address family for DHT server");
+  }
+
+  m_router->set_address(bind_inet_address.get());
+  sap_set_port(bind_address, port);
+
   try {
-    auto bind_address = sa_copy(m_router->address());
-
-    if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
-      throw resource_error("invalid address family for DHT server");
-
-    sap_set_port(bind_address, port);
-
     LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
 
     fd_flags open_flags = fd_flag_datagram | fd_flag_nonblock | fd_flag_reuse_address;
@@ -111,6 +125,9 @@ DhtServer::start(int port) {
       open_flags |= fd_flag_v4;
 
     m_fileDesc = fd_open(open_flags);
+
+    if (m_fileDesc == -1)
+      throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
 
     // Figure out how to bind to both inet and inet6.
     if (!fd_bind(m_fileDesc, bind_address.get()))
