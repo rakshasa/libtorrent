@@ -108,8 +108,8 @@ private:
   uint32_t              m_group{0};
 };
 
-inline TrackerWorker::TrackerWorker(TrackerInfo info, int flags) :
-    m_info(std::move(info)) {
+inline TrackerWorker::TrackerWorker(TrackerInfo info, int flags)
+  : m_info(std::move(info)) {
   m_state.m_flags = flags;
 }
 

@@ -109,7 +109,13 @@ TrackerDht::receive_peers(raw_list peers) {
   if (m_dht_state == state_idle)
     throw internal_error("TrackerDht::receive_peers called while not busy.");
 
+  // The final success event will resend all peers for now.
   m_peers.parse_address_bencode(peers);
+
+  AddressList address_list;
+  address_list.parse_address_bencode(peers);
+
+  m_slot_new_peers(std::move(address_list));
 }
 
 void

@@ -98,6 +98,7 @@ protected:
 
   event_enum          m_latest_event{EVENT_NONE};
   uint32_t            m_latest_new_peers{0};
+  uint32_t            m_latest_new_peers_delta{0};
   uint32_t            m_latest_sum_peers{0};
 
   uint32_t            m_success_time_last{0};

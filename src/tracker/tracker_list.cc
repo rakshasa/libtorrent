@@ -40,6 +40,13 @@ TrackerList::has_active() const {
 }
 
 bool
+TrackerList::has_active_not_dht() const {
+  return std::any_of(begin(), end(), [](const tracker::Tracker& tracker) {
+      return tracker.is_busy() && tracker.type() != tracker_enum::TRACKER_DHT;
+    });
+}
+
+bool
 TrackerList::has_active_not_scrape() const {
   return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
 }
@@ -432,7 +439,8 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
 
   {
     auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().m_latest_new_peers = new_peers;
+    tracker.get_worker()->state().m_latest_new_peers = new_peers + tracker.get_worker()->state().m_latest_new_peers_delta;
+    tracker.get_worker()->state().m_latest_new_peers_delta = 0;
   }
 }
 
@@ -453,6 +461,7 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
     auto guard = tracker.get_worker()->lock_guard();
     tracker.get_worker()->state().m_failed_time_last = this_thread::cached_seconds().count();
     tracker.get_worker()->state().m_failed_counter++;
+    tracker.get_worker()->state().m_latest_new_peers_delta = 0;
   }
 
   if (m_slot_failed)
@@ -511,15 +520,12 @@ TrackerList::receive_new_peers(tracker::Tracker tracker, AddressList* l) {
 
   l->sort_and_unique();
 
-  // auto new_peers = m_slot_success(tracker, l);
-  m_slot_success(tracker, l);
+  auto new_peers = m_slot_new_peers(l);
 
-  // TODO: Figure out better updating here...
-
-  // {
-  //   auto guard = tracker.get_worker()->lock_guard();
-  //   tracker.get_worker()->state().m_latest_new_peers = new_peers;
-  // }
+  {
+    auto guard = tracker.get_worker()->lock_guard();
+    tracker.get_worker()->state().m_latest_new_peers_delta += new_peers;
+  }
 }
 
 } // namespace torrent

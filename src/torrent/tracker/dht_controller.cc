@@ -58,6 +58,9 @@ DhtController::initialize(const Object& dht_cache) {
 
   // TODO: Bind address should be set at start, not initialize.
 
+  // TODO: Make dht_server get the bind address.
+
+  // auto bind_address = config::network_config()->bind_address_or_any_and_null();
   auto bind_address = config::network_config()->bind_address_or_any_and_null();
 
   LT_LOG("initializing : %s", sa_pretty_str(bind_address.get()).c_str());

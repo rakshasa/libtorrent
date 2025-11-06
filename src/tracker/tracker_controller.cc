@@ -600,6 +600,11 @@ TrackerController::receive_scrape([[maybe_unused]] const tracker::Tracker& track
   }
 }
 
+uint32_t
+TrackerController::receive_new_peers(address_list* l) {
+  return m_slot_success(l);
+}
+
 void
 TrackerController::receive_tracker_enabled(const tracker::Tracker& tb) {
   // TODO: This won't be needed if we rely only on Tracker::m_enable,

@@ -48,6 +48,7 @@ public:
   ~TrackerList();
 
   bool                has_active() const;
+  bool                has_active_not_dht() const;
   bool                has_active_not_scrape() const;
   bool                has_active_in_group(uint32_t group) const;
   bool                has_active_not_scrape_in_group(uint32_t group) const;
@@ -63,6 +64,9 @@ public:
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   // TODO: Move these to controller / tracker.
+
+  // TODO: CHECK PEX CAUSES PEER CONNECTS.
+
   void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
   void                send_scrape(tracker::Tracker& tracker);
@@ -91,7 +95,6 @@ public:
   void                randomize_group_entries();
 
   // TODO: Make protected.
-  // TODO: Replace with shared_ptr to TrackerWorker.
   void                receive_success(tracker::Tracker tracker, AddressList* l);
   void                receive_failed(tracker::Tracker tracker, const std::string& msg);
   void                receive_scrape_success(tracker::Tracker tracker);
@@ -130,7 +133,7 @@ private:
   std::function<void(tracker::Tracker, const std::string&)> m_slot_failed;
   std::function<void(tracker::Tracker)>                     m_slot_scrape_success;
   std::function<void(tracker::Tracker, const std::string&)> m_slot_scrape_failed;
-  std::function<void(tracker::Tracker, AddressList&&)>      m_slot_new_peers;
+  std::function<uint32_t(AddressList*)>                     m_slot_new_peers;
   std::function<void(tracker::Tracker)>                     m_slot_tracker_enabled;
   std::function<void(tracker::Tracker)>                     m_slot_tracker_disabled;
 };

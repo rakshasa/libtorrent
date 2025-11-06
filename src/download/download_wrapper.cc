@@ -86,12 +86,11 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
 
   // Connect various signals and slots.
   m_hash_checker->slot_check_chunk()     = [this](auto h) { check_chunk_hash(h, true); };
-  m_hash_checker->delay_checked().slot() = [this] { receive_initial_hash(); };
+  m_hash_checker->delay_checked().slot() = [this]         { receive_initial_hash(); };
 
   m_main->post_initialize();
-
-  m_main->tracker_controller().set_slots([this](auto l) { return receive_tracker_success(l); },
-                                         [this](auto& m) { return receive_tracker_failed(m); });
+  m_main->tracker_controller().set_slots([this](auto l)   { return receive_tracker_success(l); },
+                                         [this](auto& m)  { return receive_tracker_failed(m); });
 }
 
 void
@@ -119,7 +118,7 @@ DownloadWrapper::close() {
 
 bool
 DownloadWrapper::is_stopped() const {
-  return !m_main->tracker_controller().is_active() && !m_main->tracker_list()->has_active();
+  return !m_main->tracker_controller().is_active() && !m_main->tracker_list()->has_active_not_dht();
 }
 
 void
