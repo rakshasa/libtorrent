@@ -60,10 +60,13 @@ CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   if (m_handle != nullptr)
     throw torrent::internal_error("CurlGet::reset() called on a stacked object.");
 
-  m_url = url;
-  m_stream = std::move(stream);
+  if (m_was_started)
+    throw torrent::internal_error("CurlGet::reset() called on a started object.");
+
+  m_url         = url;
+  m_stream      = std::move(stream);
   m_was_started = false;
-  m_was_closed = false;
+  m_was_closed  = false;
 }
 
 void
@@ -152,6 +155,9 @@ CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback
   auto self = curl_get.get();
 
   std::unique_lock<std::mutex> guard(self->m_mutex);
+
+  if (!self->m_was_started)
+    throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an object that was not started.");
 
   if (self->m_was_closed)
     throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an already closing object.");
@@ -312,13 +318,15 @@ CurlGet::cleanup_unsafe() {
     curl_easy_cleanup(m_handle);
 
     m_handle = nullptr;
-    m_stack = nullptr;
+    m_stack  = nullptr;
 
   } else {
     if (!m_prepare_canceled)
       throw torrent::internal_error("CurlGet::cleanup() called on an object that has no m_handle yet m_prepare_canceled is false.");
   }
 
+  m_was_started      = false;
+  m_was_closed       = false;
   m_prepare_canceled = false;
   m_retrying_resolve = false;
 }
