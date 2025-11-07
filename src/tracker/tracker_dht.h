@@ -52,11 +52,11 @@ public:
   void                receive_progress(int replied, int contacted);
 
 private:
-  AddressList  m_peers;
-  state_type   m_dht_state{state_idle};
+  AddressList         m_peers;
+  state_type          m_dht_state{state_idle};
 
-  int          m_replied;
-  int          m_contacted;
+  int                 m_replied;
+  int                 m_contacted;
 };
 
 } // namespace torrent

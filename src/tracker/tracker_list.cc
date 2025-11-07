@@ -40,6 +40,13 @@ TrackerList::has_active() const {
 }
 
 bool
+TrackerList::has_active_not_dht() const {
+  return std::any_of(begin(), end(), [](const tracker::Tracker& tracker) {
+      return tracker.is_busy() && tracker.type() != tracker_enum::TRACKER_DHT;
+    });
+}
+
+bool
 TrackerList::has_active_not_scrape() const {
   return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
 }
@@ -225,6 +232,18 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
 
           if (tracker_shared_ptr)
             receive_scrape_failed(tracker::Tracker(std::move(tracker_shared_ptr)), msg);
+        });
+    };
+
+  worker->m_slot_new_peers = [this, weak_tracker, worker](AddressList&& l) {
+      thread_tracker()->tracker_manager()->add_event(worker, [this, weak_tracker, l = std::move(l)]() {
+          if (!m_slot_new_peers)
+            return;
+
+          auto tracker_shared_ptr = weak_tracker.lock();
+
+          if (tracker_shared_ptr)
+            receive_new_peers(tracker::Tracker(std::move(tracker_shared_ptr)), const_cast<AddressList*>(&l));
         });
     };
 
@@ -420,7 +439,8 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
 
   {
     auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().m_latest_new_peers = new_peers;
+    tracker.get_worker()->state().m_latest_new_peers = new_peers + tracker.get_worker()->state().m_latest_new_peers_delta;
+    tracker.get_worker()->state().m_latest_new_peers_delta = 0;
   }
 }
 
@@ -441,6 +461,7 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
     auto guard = tracker.get_worker()->lock_guard();
     tracker.get_worker()->state().m_failed_time_last = this_thread::cached_seconds().count();
     tracker.get_worker()->state().m_failed_counter++;
+    tracker.get_worker()->state().m_latest_new_peers_delta = 0;
   }
 
   if (m_slot_failed)
@@ -485,6 +506,26 @@ TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& 
 
   if (m_slot_scrape_failed)
     m_slot_scrape_failed(tracker, msg);
+}
+
+void
+TrackerList::receive_new_peers(tracker::Tracker tracker, AddressList* l) {
+  LT_LOG("received %zu new peers : requester:%p group:%u url:%s",
+         l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
+
+  auto itr = find(tracker);
+
+  if (itr == end())
+    throw internal_error("TrackerList::receive_new_peers(...) called but the iterator is invalid.");
+
+  l->sort_and_unique();
+
+  auto new_peers = m_slot_new_peers(l);
+
+  {
+    auto guard = tracker.get_worker()->lock_guard();
+    tracker.get_worker()->state().m_latest_new_peers_delta += new_peers;
+  }
 }
 
 } // namespace torrent

@@ -74,13 +74,14 @@ public:
   uint32_t            receive_success(const tracker::Tracker& tracker, address_list* l);
   void                receive_failure(const tracker::Tracker& tracker, const std::string& msg);
   void                receive_scrape(const tracker::Tracker& tracker) const;
+  uint32_t            receive_new_peers(address_list* l);
 
   void                receive_tracker_enabled(const tracker::Tracker& tb);
   void                receive_tracker_disabled(const tracker::Tracker& tb);
 
-  slot_void&          slot_timeout()        { return m_slot_timeout; }
-  slot_address_list&  slot_success()        { return m_slot_success; }
-  slot_string&        slot_failure()        { return m_slot_failure; }
+  slot_void&          slot_timeout()          { return m_slot_timeout; }
+  slot_address_list&  slot_success()          { return m_slot_success; }
+  slot_string&        slot_failure()          { return m_slot_failure; }
 
   slot_tracker&       slot_tracker_enabled()  { return m_slot_tracker_enabled; }
   slot_tracker&       slot_tracker_disabled() { return m_slot_tracker_disabled; }

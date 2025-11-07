@@ -21,8 +21,8 @@ namespace torrent {
 
 HashString DhtRouter::zero_id;
 
-DhtRouter::DhtRouter(const Object& cache, const sockaddr* sa) :
-  DhtNode(zero_id, sa), // actual ID is set later
+DhtRouter::DhtRouter(const Object& cache) :
+  DhtNode(zero_id, sa_make_inet_any().get()), // actual ID is set later
   m_server(this),
   m_curToken(random()),
   m_prevToken(random()) {
@@ -52,7 +52,7 @@ DhtRouter::DhtRouter(const Object& cache, const sockaddr* sa) :
     sha.final_c(data());
   }
 
-  LT_LOG_THIS("creating : address:%s", sa_pretty_str(sa).c_str());
+  LT_LOG_THIS("creating", 0);
 
   set_bucket(new DhtBucket(zero_id, ones_id));
   m_routingTable.emplace(bucket()->id_range_end(), bucket());
@@ -100,7 +100,7 @@ DhtRouter::~DhtRouter() {
 
 void
 DhtRouter::start(int port) {
-  LT_LOG_THIS("starting (port:%d)", port);
+  LT_LOG_THIS("starting: port:%d", port);
 
   m_server.start(port);
 
