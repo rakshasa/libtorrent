@@ -87,9 +87,6 @@ public:
   tracker::DhtController::statistics_type get_statistics() const;
   void                                    reset_statistics()  { m_server.reset_statistics(); }
 
-  void                set_upload_throttle(ThrottleList* t)    { m_server.set_upload_throttle(t); }
-  void                set_download_throttle(ThrottleList* t)  { m_server.set_download_throttle(t); }
-
 private:
   // Hostname and port of potential bootstrap nodes.
   using contact_t = std::pair<std::string, int>;

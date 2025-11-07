@@ -6,7 +6,9 @@
 #include <torrent/common.h>
 
 namespace torrent {
+
 class TrackerDht;
+
 } // namespace torrent
 
 namespace torrent::tracker {
@@ -16,10 +18,6 @@ public:
   struct statistics_type {
     // Cycle; 0=inactive, 1=initial bootstrapping, 2 and up=normal operation
     unsigned int       cycle{};
-
-    // UDP transfer rates.
-    const Rate&        up_rate;
-    const Rate&        down_rate;
 
     // DHT query statistics.
     unsigned int       queries_received{};
@@ -36,8 +34,6 @@ public:
     unsigned int       num_peers{};
     unsigned int       max_peers{};
     unsigned int       num_trackers{};
-
-    statistics_type(const Rate& up, const Rate& down) : up_rate(up), down_rate(down) { }
   };
 
   DhtController();
@@ -71,9 +67,6 @@ public:
 
   statistics_type     get_statistics();
   void                reset_statistics();
-
-  void                set_upload_throttle(Throttle* t);
-  void                set_download_throttle(Throttle* t);
 
 protected:
   friend class torrent::TrackerDht;
