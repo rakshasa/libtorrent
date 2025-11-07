@@ -455,11 +455,11 @@ TestTrackerController::test_multiple_cycle_second_group() {
   CPPUNIT_ASSERT(tracker_0_1_worker->trigger_failure());
   CPPUNIT_ASSERT(tracker_1_0_worker->trigger_success());
 
-  CPPUNIT_ASSERT(tracker_list[0] == tracker_0_0);
-  CPPUNIT_ASSERT(tracker_list[1] == tracker_0_1);
-  CPPUNIT_ASSERT(tracker_list[2] == tracker_1_0);
-  CPPUNIT_ASSERT(tracker_list[3] == tracker_2_0);
-  CPPUNIT_ASSERT(tracker_list[4] == tracker_3_0);
+  CPPUNIT_ASSERT(tracker_list.at(0) == tracker_0_0);
+  CPPUNIT_ASSERT(tracker_list.at(1) == tracker_0_1);
+  CPPUNIT_ASSERT(tracker_list.at(2) == tracker_1_0);
+  CPPUNIT_ASSERT(tracker_list.at(3) == tracker_2_0);
+  CPPUNIT_ASSERT(tracker_list.at(4) == tracker_3_0);
 
   TEST_MULTIPLE_END(1, 2);
 }

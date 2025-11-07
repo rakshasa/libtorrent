@@ -53,21 +53,10 @@ DhtController::initialize(const Object& dht_cache) {
   if (m_router != nullptr)
     throw internal_error("DhtController::initialize() called with DHT already active.");
 
-  // TODO: Create a seperate router listen open function, which will be called when bind address /
-  // block ipv4/6 changes.
-
-  // TODO: Bind address should be set at start, not initialize.
-
-  auto bind_address = config::network_config()->bind_address_or_any_and_null();
-
-  LT_LOG("initializing : %s", sa_pretty_str(bind_address.get()).c_str());
+  LT_LOG("initializing", 0);
 
   try {
-    // TODO: This should not be an internal error, just do it here for now.
-    if (bind_address == nullptr)
-      throw internal_error("DhtController::initialize() called but no valid bind address.");
-
-    m_router = std::make_unique<DhtRouter>(dht_cache, bind_address.get());
+    m_router = std::make_unique<DhtRouter>(dht_cache);
 
   } catch (const torrent::local_error& e) {
     LT_LOG("initialization failed : %s", e.what());

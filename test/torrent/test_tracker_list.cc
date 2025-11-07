@@ -12,7 +12,7 @@ TestTrackerList::test_basic() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
-  CPPUNIT_ASSERT(tracker_0 == tracker_list[0]);
+  CPPUNIT_ASSERT(tracker_0 == tracker_list.at(0));
 
   CPPUNIT_ASSERT(std::distance(tracker_list.begin_group(0), tracker_list.end_group(0)) == 1);
 
@@ -105,11 +105,11 @@ TestTrackerList::test_tracker_flags() {
   tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "", torrent::tracker::TrackerState::flag_extra_tracker));
   tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "", torrent::tracker::TrackerState::flag_enabled | torrent::tracker::TrackerState::flag_extra_tracker));
 
-  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[0]) & 0xf) == torrent::tracker::TrackerState::flag_enabled);
-  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[1]) & 0xf) == 0);
-  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[2]) & 0xf) == torrent::tracker::TrackerState::flag_enabled);
-  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[3]) & 0xf) == torrent::tracker::TrackerState::flag_extra_tracker);
-  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list[4]) & 0xf) == (torrent::tracker::TrackerState::flag_enabled | torrent::tracker::TrackerState::flag_extra_tracker));
+  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list.at(0)) & 0xf) == torrent::tracker::TrackerState::flag_enabled);
+  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list.at(1)) & 0xf) == 0);
+  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list.at(2)) & 0xf) == torrent::tracker::TrackerState::flag_enabled);
+  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list.at(3)) & 0xf) == torrent::tracker::TrackerState::flag_extra_tracker);
+  CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list.at(4)) & 0xf) == (torrent::tracker::TrackerState::flag_enabled | torrent::tracker::TrackerState::flag_extra_tracker));
 }
 
 void
@@ -123,13 +123,13 @@ TestTrackerList::test_find_url() {
   CPPUNIT_ASSERT(tracker_list.find_url("http://") == tracker_list.end());
 
   CPPUNIT_ASSERT(tracker_list.find_url("http://1") != tracker_list.end());
-  CPPUNIT_ASSERT(*tracker_list.find_url("http://1") == tracker_list[0]);
+  CPPUNIT_ASSERT(*tracker_list.find_url("http://1") == tracker_list.at(0));
 
   CPPUNIT_ASSERT(tracker_list.find_url("http://2") != tracker_list.end());
-  CPPUNIT_ASSERT(*tracker_list.find_url("http://2") == tracker_list[1]);
+  CPPUNIT_ASSERT(*tracker_list.find_url("http://2") == tracker_list.at(1));
 
   CPPUNIT_ASSERT(tracker_list.find_url("http://3") != tracker_list.end());
-  CPPUNIT_ASSERT(*tracker_list.find_url("http://3") == tracker_list[2]);
+  CPPUNIT_ASSERT(*tracker_list.find_url("http://3") == tracker_list.at(2));
 }
 
 void

@@ -35,7 +35,7 @@ public:
   // A node ID of all zero.
   static HashString zero_id;
 
-  DhtRouter(const Object& cache, const sockaddr* sa);
+  DhtRouter(const Object& cache);
   ~DhtRouter();
 
   void                start(int port);

@@ -94,16 +94,16 @@ DownloadMain::~DownloadMain() {
 
 void
 DownloadMain::post_initialize() {
-  auto tracker_controller = std::make_shared<TrackerController>(m_tracker_list);
+  auto tc = std::make_shared<TrackerController>(m_tracker_list);
 
-  m_tracker_list->slot_success()          = [tracker_controller](const auto& t, auto al) { return tracker_controller->receive_success(t, al); };
-  m_tracker_list->slot_failure()          = [tracker_controller](const auto& t, const auto& str) { tracker_controller->receive_failure(t, str); };
-  m_tracker_list->slot_scrape_success()   = [tracker_controller](const auto& t) { tracker_controller->receive_scrape(t); };
-  m_tracker_list->slot_tracker_enabled()  = [tracker_controller](const auto& t) { tracker_controller->receive_tracker_enabled(t); };
-  m_tracker_list->slot_tracker_disabled() = [tracker_controller](const auto& t) { tracker_controller->receive_tracker_disabled(t); };
+  m_tracker_list->slot_success()          = [tc](const auto& t, auto al)         { return tc->receive_success(t, al); };
+  m_tracker_list->slot_failure()          = [tc](const auto& t, const auto& str) { tc->receive_failure(t, str); };
+  m_tracker_list->slot_scrape_success()   = [tc](const auto& t)                  { tc->receive_scrape(t); };
+  m_tracker_list->slot_new_peers()        = [tc](auto al)                        { return tc->receive_new_peers(al); };
+  m_tracker_list->slot_tracker_enabled()  = [tc](const auto& t)                  { tc->receive_tracker_enabled(t); };
+  m_tracker_list->slot_tracker_disabled() = [tc](const auto& t)                  { tc->receive_tracker_disabled(t); };
 
-  // TODO: Move tracker list to manager, and add the proper barrier for slots.
-  m_tracker_controller = thread_tracker()->tracker_manager()->add_controller(info(), std::move(tracker_controller));
+  m_tracker_controller = thread_tracker()->tracker_manager()->add_controller(info(), std::move(tc));
 }
 
 std::pair<ThrottleList*, ThrottleList*>

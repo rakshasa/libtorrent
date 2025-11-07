@@ -92,6 +92,7 @@ protected:
   std::function<void(std::string)>   m_slot_failure;
   std::function<void()>              m_slot_scrape_success;
   std::function<void(std::string)>   m_slot_scrape_failure;
+  std::function<void(AddressList&&)> m_slot_new_peers;
   std::function<TrackerParameters()> m_slot_parameters;
 
 private:
@@ -107,8 +108,8 @@ private:
   uint32_t              m_group{0};
 };
 
-inline TrackerWorker::TrackerWorker(TrackerInfo info, int flags) :
-    m_info(std::move(info)) {
+inline TrackerWorker::TrackerWorker(TrackerInfo info, int flags)
+  : m_info(std::move(info)) {
   m_state.m_flags = flags;
 }
 
