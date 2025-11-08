@@ -5,7 +5,6 @@
 #include "dht/dht_router.h"
 #include "src/manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/throttle.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/network_manager.h"
@@ -152,34 +151,6 @@ DhtController::reset_statistics() {
     throw internal_error("DhtController::reset_statistics() called but DHT not initialized.");
 
   m_router->reset_statistics();
-}
-
-// TOOD: Throttle needs to be made thread-safe.
-
-void
-DhtController::set_upload_throttle(Throttle* t) {
-  auto lock = std::lock_guard(m_lock);
-
-  if (!m_router)
-    throw internal_error("DhtController::set_upload_throttle() called but DHT not initialized.");
-
-  if (m_router->is_active())
-    throw internal_error("DhtController::set_upload_throttle() called while DHT server active.");
-
-  m_router->set_upload_throttle(t->throttle_list());
-}
-
-void
-DhtController::set_download_throttle(Throttle* t) {
-  auto lock = std::lock_guard(m_lock);
-
-  if (!m_router)
-    throw internal_error("DhtController::set_download_throttle() called but DHT not initialized.");
-
-  if (m_router->is_active())
-    throw internal_error("DhtController::set_download_throttle() called while DHT server active.");
-
-  m_router->set_download_throttle(t->throttle_list());
 }
 
 void
