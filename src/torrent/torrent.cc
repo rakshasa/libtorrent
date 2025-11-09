@@ -178,8 +178,6 @@ ConnectionManager* connection_manager()  { return manager->connection_manager();
 FileManager*       file_manager()        { return manager->file_manager(); }
 ResourceManager*   resource_manager()    { return manager->resource_manager(); }
 
-tracker::DhtController* dht_controller() { return manager->dht_controller(); }
-
 uint32_t
 total_handshakes() {
   return manager->handshake_manager()->size();

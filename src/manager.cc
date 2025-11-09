@@ -20,7 +20,6 @@
 #include "torrent/throttle.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/network_manager.h"
-#include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
@@ -68,7 +67,6 @@ Manager::Manager()
     m_resource_manager(new ResourceManager),
 
     m_client_list(new ClientList),
-    m_dht_controller(new tracker::DhtController),
 
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
@@ -94,17 +92,11 @@ Manager::~Manager() {
 
   m_handshake_manager->clear();
   m_download_manager->clear();
-  m_dht_controller.reset();
 
   Throttle::destroy_throttle(m_uploadThrottle);
   Throttle::destroy_throttle(m_downloadThrottle);
 
   instrumentation_tick();
-}
-
-void
-Manager::cleanup() {
-  m_dht_controller->stop();
 }
 
 void

@@ -19,6 +19,8 @@ public:
 
   bool                is_listening() const;
 
+  void                cleanup();
+
   // TODO: Change to have network_config hold the port range / random info.
 
   bool                listen_open(uint16_t first, uint16_t last);
@@ -27,6 +29,9 @@ public:
   // Port number remains set after listen_close.
   uint16_t            listen_port() const;
   uint16_t            listen_port_or_throw() const;
+
+  // TODO: Only allowed to be called from main thread (tracker thread when moved).
+  auto*               dht_controller()                { return m_dht_controller.get(); }
 
 protected:
   friend class torrent::Manager;
@@ -55,8 +60,9 @@ private:
   std::unique_ptr<Listen> m_listen_inet;
   std::unique_ptr<Listen> m_listen_inet6;
   uint16_t                m_listen_port{0};
+  bool                    m_listen_restarting{};
 
-  bool                    m_restarting_listen{};
+  std::unique_ptr<tracker::DhtController> m_dht_controller;
 };
 
 } // namespace torrent::net

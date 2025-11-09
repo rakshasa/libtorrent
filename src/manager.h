@@ -21,8 +21,6 @@ public:
   Manager();
   ~Manager();
 
-  void                cleanup();
-
   auto*               network_config()     { return m_network_config.get(); }
 
   auto*               chunk_manager()      { return m_chunk_manager.get(); }
@@ -33,8 +31,7 @@ public:
   auto*               network_manager()    { return m_network_manager.get(); }
   auto*               resource_manager()   { return m_resource_manager.get(); }
 
-  ClientList*             client_list()    { return m_client_list.get(); }
-  tracker::DhtController* dht_controller() { return m_dht_controller.get(); }
+  auto*               client_list()        { return m_client_list.get(); }
 
   EncodingList*       encoding_list()      { return &m_encodingList; }
 
@@ -58,7 +55,6 @@ private:
   std::unique_ptr<ResourceManager>     m_resource_manager;
 
   std::unique_ptr<ClientList>             m_client_list;
-  std::unique_ptr<tracker::DhtController> m_dht_controller;
 
   EncodingList        m_encodingList;
 
