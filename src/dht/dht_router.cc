@@ -343,7 +343,7 @@ DhtRouter::store_cache(Object* container) const {
 
 tracker::DhtController::statistics_type
 DhtRouter::get_statistics() const {
-  tracker::DhtController::statistics_type stats(*m_server.upload_throttle_node()->rate(), *m_server.download_throttle_node()->rate());
+  tracker::DhtController::statistics_type stats;
 
   if (!m_server.is_active())
     stats.cycle = 0;

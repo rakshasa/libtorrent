@@ -78,6 +78,10 @@ AC_ARG_ENABLE(execinfo,
     AX_EXECINFO
   ])
 
+if test "x$use_kqueue" != "xyes" && test "x$use_epoll" != "xyes"; then
+  AC_MSG_ERROR([Must enable at least one of either kqueue or epoll])
+fi
+
 AX_PTHREAD
 CHECK_ATOMIC
 
@@ -108,10 +112,10 @@ AC_SUBST(LIBTORRENT_CFLAGS)
 AC_DEFINE(HAVE_CONFIG_H, 1, true if config.h was included)
 
 AC_CONFIG_FILES([
-	libtorrent.pc
-	Makefile
-	src/Makefile
-	src/torrent/Makefile
+    libtorrent.pc
+    Makefile
+    src/Makefile
+    src/torrent/Makefile
     test/Makefile
 ])
 

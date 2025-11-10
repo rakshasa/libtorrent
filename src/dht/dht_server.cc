@@ -15,7 +15,6 @@
 #include "torrent/object_static_map.h"
 #include "torrent/object_stream.h"
 #include "torrent/poll.h"
-#include "torrent/throttle.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"
@@ -72,11 +71,9 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 };
 
 DhtServer::DhtServer(DhtRouter* router)
-  : m_router(router),
-    m_uploadThrottle(manager->upload_throttle()->throttle_list()),
-    m_downloadThrottle(manager->download_throttle()->throttle_list()) {
+  : m_router(router) {
 
-  get_fd().clear();
+  m_fileDesc = -1;
   reset_statistics();
 
   // Reserve a socket for the DHT server, even though we don't
@@ -139,12 +136,6 @@ DhtServer::start(int port) {
     throw;
   }
 
-  m_uploadNode.set_list_iterator(m_uploadThrottle->end());
-  m_uploadNode.slot_activate() = [this] { receive_throttle_up_activate(); };
-
-  m_downloadNode.set_list_iterator(m_downloadThrottle->end());
-  m_downloadThrottle->insert(&m_downloadNode);
-
   this_thread::poll()->open(this);
   this_thread::poll()->insert_read(this);
   this_thread::poll()->insert_error(this);
@@ -160,10 +151,6 @@ DhtServer::stop() {
   clear_transactions();
 
   this_thread::scheduler()->erase(&m_task_timeout);
-
-  m_uploadThrottle->erase(&m_uploadNode);
-  m_downloadThrottle->erase(&m_downloadNode);
-
   this_thread::poll()->remove_and_close(this);
 
   fd_close(m_fileDesc);
@@ -179,9 +166,6 @@ DhtServer::reset_statistics() {
   m_repliesReceived = 0;
   m_errorsReceived = 0;
   m_errorsCaught = 0;
-
-  m_uploadNode.rate()->set_total(0);
-  m_downloadNode.rate()->set_total(0);
 }
 
 // Ping a node whose ID we know.
@@ -519,12 +503,8 @@ DhtServer::drop_packet(DhtTransactionPacket* packet) {
   m_lowQueue.erase(std::remove_if(m_lowQueue.begin(), m_lowQueue.end(), [packet](auto& p) { return p.get() == packet; }),
                    m_lowQueue.end());
 
-  if (m_highQueue.empty() && m_lowQueue.empty()) {
+  if (m_highQueue.empty() && m_lowQueue.empty())
     this_thread::poll()->remove_write(this);
-
-    if (m_uploadThrottle->is_throttled(&m_uploadNode))
-      m_uploadThrottle->erase(&m_uploadNode);
-  }
 }
 
 void
@@ -693,8 +673,6 @@ DhtServer::clear_transactions() {
 
 void
 DhtServer::event_read() {
-  uint32_t total = 0;
-
   while (true) {
     Object request;
     int type = '?';
@@ -720,8 +698,6 @@ DhtServer::event_read() {
 
       if (sa->sa_family != AF_INET)
         continue;
-
-      total += read;
 
       // If it's not a valid bencode dictionary at all, it's probably not a DHT
       // packet at all, so we don't throw an error to prevent bounce loops.
@@ -808,16 +784,11 @@ DhtServer::event_read() {
     }
   }
 
-  m_downloadThrottle->node_used_unthrottled(total);
-  m_downloadNode.rate()->insert(total);
-
   start_write();
 }
 
-bool
-DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
-  uint32_t used = 0;
-
+void
+DhtServer::process_queue(packet_queue& queue) {
   while (!queue.empty()) {
     auto packet = queue.front();
     DhtTransaction::key_type transactionKey = 0;
@@ -833,11 +804,6 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
       continue;
     }
 
-    if (packet->length() > *quota) {
-      m_uploadThrottle->node_used(&m_uploadNode, used);
-      return false;
-    }
-
     queue.pop_front();
 
     try {
@@ -845,9 +811,6 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
 
       if (written == -1)
         throw network_error();
-
-      used += written;
-      *quota -= written;
 
       if (static_cast<unsigned int>(written) != packet->length())
         throw network_error();
@@ -871,9 +834,6 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
         packet->transaction()->set_packet(NULL);
     }
   }
-
-  m_uploadThrottle->node_used(&m_uploadNode, used);
-  return true;
 }
 
 void
@@ -881,21 +841,11 @@ DhtServer::event_write() {
   if (m_highQueue.empty() && m_lowQueue.empty())
     throw internal_error("DhtServer::event_write called but both write queues are empty.");
 
-  if (!m_uploadThrottle->is_throttled(&m_uploadNode))
-    throw internal_error("DhtServer::event_write called while not in throttle list.");
+  process_queue(m_highQueue);
+  process_queue(m_lowQueue);
 
-  uint32_t quota = m_uploadThrottle->node_quota(&m_uploadNode);
-
-  if (quota == 0 || !process_queue(m_highQueue, &quota) || !process_queue(m_lowQueue, &quota)) {
+  if (m_highQueue.empty() && m_lowQueue.empty())
     this_thread::poll()->remove_write(this);
-    m_uploadThrottle->node_deactivate(&m_uploadNode);
-    return;
-  }
-
-  if (m_highQueue.empty() && m_lowQueue.empty()) {
-    this_thread::poll()->remove_write(this);
-    m_uploadThrottle->erase(&m_uploadNode);
-  }
 }
 
 void
@@ -904,10 +854,8 @@ DhtServer::event_error() {
 
 void
 DhtServer::start_write() {
-  if ((!m_highQueue.empty() || !m_lowQueue.empty()) && !m_uploadThrottle->is_throttled(&m_uploadNode)) {
-    m_uploadThrottle->insert(&m_uploadNode);
+  if (!m_highQueue.empty() || !m_lowQueue.empty())
     this_thread::poll()->insert_write(this);
-  }
 
   if (!m_task_timeout.is_scheduled() && !m_transactions.empty())
     this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 5s);

@@ -76,7 +76,7 @@ public:
   Object& operator=(const Object& b);
 
   // TODO: Move this out of the class namespace, call them
-  // make_object_. 
+  // make_object_.
   static Object       create_empty(type_type t);
   static Object       create_value()  { return Object(value_type()); }
   static Object       create_string() { return Object(string_type()); }
@@ -92,7 +92,9 @@ public:
   template <typename ForwardIterator>
   static Object       create_list_range(ForwardIterator first, ForwardIterator last);
 
-  static Object       from_list(const list_type& src) { Object tmp; tmp.m_flags = TYPE_LIST; new (&tmp._list()) list_type(src); return tmp; }
+  static const char*  type_to_c_str(type_type t);
+
+  static Object       from_list(const list_type& src);
 
   // Clear should probably not be inlined due to size and not being
   // optimized away in pretty much any case. Might not work well in
@@ -210,8 +212,8 @@ public:
   static void         swap_same_type(Object& left, Object& right) noexcept;
 
  private:
-  bool                check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
-  void                check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
+  bool                check(map_type::const_iterator itr, type_type t) const;
+  void                check_throw(type_type t) const;
 
   template <typename T> void check_value_throw(const char* err_msg) const;
 
@@ -410,6 +412,31 @@ Object::create_list_range(ForwardIterator first, ForwardIterator last) {
   Object tmp; tmp.m_flags = TYPE_LIST; new (&tmp._list()) list_type(first, last); return tmp;
 }
 
+inline const char*
+Object::type_to_c_str(type_type t) {
+  switch (t) {
+  case TYPE_NONE:        return "none";
+  case TYPE_RAW_BENCODE: return "raw_bencode";
+  case TYPE_RAW_STRING:  return "raw_string";
+  case TYPE_RAW_LIST:    return "raw_list";
+  case TYPE_RAW_MAP:     return "raw_map";
+  case TYPE_VALUE:       return "value";
+  case TYPE_STRING:      return "string";
+  case TYPE_LIST:        return "list";
+  case TYPE_MAP:         return "map";
+  case TYPE_DICT_KEY:    return "dict_key";
+  default:               return "invalid";
+  }
+}
+
+inline Object
+Object::from_list(const list_type& src) {
+  Object tmp;
+  tmp.m_flags = TYPE_LIST;
+  new (&tmp._list()) list_type(src);
+  return tmp;
+}
+
 inline void
 Object::clear() {
   switch (type()) {
@@ -451,6 +478,17 @@ object_equal(const Object& left, const Object& right) {
   case Object::TYPE_STRING:      return left.as_string() == right.as_string();
   default: return false;
   }
+}
+
+inline bool
+Object::check(map_type::const_iterator itr, type_type t) const {
+  return itr != _map().end() && itr->second.type() == t;
+}
+
+inline void
+Object::check_throw(type_type t) const {
+  if (t != type())
+    throw bencode_error("Wrong object type: expected: " + std::string(type_to_c_str(t)) + " actual: " + std::string(type_to_c_str(type())));
 }
 
 template <typename T>

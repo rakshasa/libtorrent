@@ -7,7 +7,6 @@
 
 #include "dht/dht_transaction.h"
 #include "net/socket_datagram.h"
-#include "net/throttle_node.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
 #include "torrent/utils/scheduler.h"
@@ -58,14 +57,6 @@ public:
 
   // Called every 15 minutes.
   void                update();
-
-  ThrottleNode*       upload_throttle_node()                  { return &m_uploadNode; }
-  const ThrottleNode* upload_throttle_node() const            { return &m_uploadNode; }
-  ThrottleNode*       download_throttle_node()                { return &m_downloadNode; }
-  const ThrottleNode* download_throttle_node() const          { return &m_downloadNode; }
-
-  void                set_upload_throttle(ThrottleList* t)    { m_uploadThrottle = t; }
-  void                set_download_throttle(ThrottleList* t)  { m_downloadThrottle = t; }
 
   void                event_read() override;
   void                event_write() override;
@@ -134,7 +125,7 @@ private:
 
   void                clear_transactions();
 
-  bool                process_queue(packet_queue& queue, uint32_t* quota);
+  void                process_queue(packet_queue& queue);
   void                receive_timeout();
 
   DhtRouter*          m_router{};
@@ -143,12 +134,6 @@ private:
   transaction_map     m_transactions;
 
   utils::SchedulerEntry m_task_timeout;
-
-  ThrottleNode        m_uploadNode{60};
-  ThrottleNode        m_downloadNode{60};
-
-  ThrottleList*       m_uploadThrottle{};
-  ThrottleList*       m_downloadThrottle{};
 
   unsigned int        m_queriesReceived{};
   unsigned int        m_queriesSent{};
