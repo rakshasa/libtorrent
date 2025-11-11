@@ -53,7 +53,7 @@ ThreadNet::init_thread() {
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_NET - INSTRUMENTATION_POLLING_DO_POLL;
 
-  m_udns->initialize();
+  m_udns->initialize(this);
 }
 
 void
