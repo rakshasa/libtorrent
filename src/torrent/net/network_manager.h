@@ -18,6 +18,8 @@ public:
   ~NetworkManager();
 
   bool                is_listening() const;
+  bool                is_dht_active() const;
+  bool                is_dht_active_and_receiving_requests() const;
 
   void                cleanup();
 
@@ -31,7 +33,13 @@ public:
   uint16_t            listen_port_or_throw() const;
 
   // TODO: Only allowed to be called from main thread (tracker thread when moved).
-  auto*               dht_controller()                { return m_dht_controller.get(); }
+  // TODO: Move DHT on/off/auto handlig here.
+
+  auto*               dht_controller();
+  uint16_t            dht_port();
+
+  void                dht_add_bootstrap_node(std::string host, int port);
+  void                dht_add_peer_node(const sockaddr* sa, int port);
 
 protected:
   friend class torrent::Manager;
@@ -64,6 +72,10 @@ private:
 
   std::unique_ptr<tracker::DhtController> m_dht_controller;
 };
+
+// We don't need locking for objects we initialize/destruct in the ctor/dtor.
+
+inline auto* NetworkManager::dht_controller() { return m_dht_controller.get(); }
 
 } // namespace torrent::net
 

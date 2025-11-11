@@ -31,6 +31,19 @@ NetworkManager::is_listening() const {
   return is_listening_unsafe();
 }
 
+bool
+NetworkManager::is_dht_active() const {
+  // auto guard = lock_guard();
+  return m_dht_controller->is_active();
+}
+
+bool
+NetworkManager::is_dht_active_and_receiving_requests() const {
+  // auto guard = lock_guard();
+  return m_dht_controller->is_active() && m_dht_controller->is_receiving_requests();
+}
+
+// Cleanup should get called twice; when shutdown is initiated and on libtorrent cleanup.
 void
 NetworkManager::cleanup() {
   auto guard = lock_guard();
@@ -73,6 +86,30 @@ NetworkManager::listen_port_or_throw() const {
     throw input_error("Tried to get listen port but it is not set.");
 
   return m_listen_port;
+}
+
+uint16_t
+NetworkManager::dht_port() {
+  // auto guard = lock_guard();
+  return m_dht_controller->port();
+}
+
+// TODO: Make bootstrap nodes explicit, and when we add them also try adding as node if we're
+// already running.
+
+// TODO: Consider adding dht bootstrap nodes to network config.
+
+void
+NetworkManager::dht_add_bootstrap_node(std::string host, int port){
+  // auto guard = lock_guard();
+  m_dht_controller->add_bootstrap_node(std::move(host), port);
+}
+
+void
+NetworkManager::dht_add_peer_node([[maybe_unused]] const sockaddr* sa, [[maybe_unused]] int port) {
+  // Ignore peer nodes as we shouldn't need them(?)
+  //
+  // Re-enable this if it causes issues.
 }
 
 bool

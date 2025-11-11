@@ -55,11 +55,21 @@ UdnsResolver::UdnsResolver() {
   if (m_fileDesc == -1)
     throw internal_error("dns_init failed");
 
+  // TODO: This needs to be done in the thread_net only.
+  // torrent::this_thread::poll()->open(socket);
+
   m_task_timeout.slot() = [this]() { process_timeouts(); };
 }
 
 UdnsResolver::~UdnsResolver() {
   this_thread::scheduler()->erase(&m_task_timeout);
+
+  if (m_fileDesc != -1) {
+    this_thread::poll()->remove_read(this);
+    this_thread::poll()->remove_error(this);
+
+    this_thread::poll()->cleanup_closed(this);
+  }
 
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
@@ -95,6 +105,8 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       // query internally so we can call the callback later with a failure code.
       query->error_sin = EAI_NONAME;
 
+      process_timeouts();
+
       auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.emplace(requester, std::move(query));
 
@@ -120,6 +132,8 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
       query->error_sin = EAI_NONAME;
 
+      process_timeouts();
+
       auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.emplace(requester, std::move(query));
 
@@ -128,6 +142,8 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
   }
 
   LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
+
+  process_timeouts();
 
   auto lock = std::scoped_lock(m_mutex);
   m_queries.emplace(requester, std::move(query));
@@ -178,21 +194,24 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<Query>& query) {
 
 void
 UdnsResolver::cancel(void* requester) {
-  auto lock = std::scoped_lock(m_mutex);
+  {
+    auto lock        = std::scoped_lock(m_mutex);
+    auto range       = m_queries.equal_range(requester);
+    auto query_count = std::distance(range.first, range.second);
 
-  auto range = m_queries.equal_range(requester);
-  unsigned int query_count = std::distance(range.first, range.second);
+    for (auto itr = range.first; itr != range.second; ++itr)
+      itr->second->canceled = true;
 
-  for (auto itr = range.first; itr != range.second; ++itr)
-    itr->second->canceled = true;
+    range = m_malformed_queries.equal_range(requester);
+    unsigned int malformed_count = std::distance(range.first, range.second);
 
-  range = m_malformed_queries.equal_range(requester);
-  unsigned int malformed_count = std::distance(range.first, range.second);
+    for (auto itr = range.first; itr != range.second; ++itr)
+      itr->second->canceled = true;
 
-  for (auto itr = range.first; itr != range.second; ++itr)
-    itr->second->canceled = true;
+    LT_LOG("canceled : requester:%p queries:%d malformed:%d", requester, query_count, malformed_count);
+  }
 
-  LT_LOG("canceled : requester:%p queries:%d malformed:%d", requester, query_count, malformed_count);
+  process_timeouts();
 }
 
 void
@@ -221,6 +240,8 @@ UdnsResolver::flush() {
 void
 UdnsResolver::event_read() {
   ::dns_ioevent(m_ctx, 0);
+
+  process_timeouts();
 }
 
 void
@@ -231,6 +252,7 @@ UdnsResolver::event_write() {
 void
 UdnsResolver::event_error() {
   // TODO: Handle error.
+  process_timeouts();
 }
 
 std::unique_ptr<UdnsResolver::Query>
@@ -277,6 +299,8 @@ UdnsResolver::process_timeouts() {
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
     this_thread::poll()->remove_error(this);
+
+    this_thread::scheduler()->erase(&m_task_timeout);
     return;
   }
 
@@ -360,6 +384,8 @@ UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, vo
 
 void
 UdnsResolver::process_result(query_map::iterator itr) {
+  itr->second->parent->process_timeouts();
+
   if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr)
     return;
 
