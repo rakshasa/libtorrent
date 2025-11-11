@@ -328,6 +328,8 @@ UdnsResolver::process_timeouts() {
   if (timeout <= 0)
     throw internal_error("UdnsResolver::process_timeouts() dns_timeouts returned invalid timeout: " + std::to_string(timeout));
 
+  LT_LOG("processing timeouts, next in %d seconds", timeout);
+
   this_thread::poll()->insert_read(this);
   this_thread::poll()->insert_error(this);
 
