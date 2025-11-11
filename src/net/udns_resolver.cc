@@ -408,8 +408,10 @@ void
 UdnsResolver::process_result(query_map::iterator itr) {
   itr->second->parent->process_timeouts();
 
-  if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr)
+  if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr) {
+    LT_LOG("processing results, waiting for other queries : requester:%p name:%s", itr->second->requester, itr->second->hostname.c_str());
     return;
+  }
 
   auto query = itr->second->parent->erase_query(itr);
 
