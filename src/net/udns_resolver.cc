@@ -2,6 +2,7 @@
 
 #include "net/udns_resolver.h"
 
+#include <cassert>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -48,27 +49,50 @@ UdnsResolver::UdnsResolver() {
     m_initialized = true;
   }
 
-  // Contexts are not thread-safe.
-  m_ctx = ::dns_new(nullptr);
+  m_task_timeout.slot() = [this]() { process_timeouts(); };
+}
+
+UdnsResolver::~UdnsResolver() {
+  assert(m_fileDesc == -1 && "UdnsResolver::~UdnsResolver() m_fileDesc != -1.");
+}
+
+void
+UdnsResolver::initialize(utils::Thread* thread) {
+  assert(std::this_thread::get_id() == thread->thread_id());
+
+  m_thread   = thread;
+  m_ctx      = ::dns_new(nullptr);
   m_fileDesc = ::dns_open(m_ctx);
 
   if (m_fileDesc == -1)
     throw internal_error("dns_init failed");
 
-  m_task_timeout.slot() = [this]() { process_timeouts(); };
+  torrent::this_thread::poll()->open(this);
 }
 
-UdnsResolver::~UdnsResolver() {
+void
+UdnsResolver::cleanup() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   this_thread::scheduler()->erase(&m_task_timeout);
+
+  if (m_fileDesc == -1)
+    return;
 
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
+
+  this_thread::poll()->remove_read(this);
+  this_thread::poll()->remove_error(this);
+  this_thread::poll()->cleanup_closed(this);
 
   m_fileDesc = -1;
 }
 
 void
 UdnsResolver::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   auto query = std::make_unique<Query>();
 
   query->requester = requester;
@@ -95,6 +119,8 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       // query internally so we can call the callback later with a failure code.
       query->error_sin = EAI_NONAME;
 
+      process_timeouts();
+
       auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.emplace(requester, std::move(query));
 
@@ -120,6 +146,8 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
       query->error_sin = EAI_NONAME;
 
+      process_timeouts();
+
       auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.emplace(requester, std::move(query));
 
@@ -129,12 +157,16 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
   LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
 
+  process_timeouts();
+
   auto lock = std::scoped_lock(m_mutex);
   m_queries.emplace(requester, std::move(query));
 }
 
 bool
 UdnsResolver::try_resolve_numeric(std::unique_ptr<Query>& query) {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   addrinfo hints{};
   addrinfo* result;
 
@@ -197,6 +229,8 @@ UdnsResolver::cancel(void* requester) {
 
 void
 UdnsResolver::flush() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   {
     auto lock = std::scoped_lock(m_mutex);
     auto malformed_queries = std::move(m_malformed_queries);
@@ -221,6 +255,7 @@ UdnsResolver::flush() {
 void
 UdnsResolver::event_read() {
   ::dns_ioevent(m_ctx, 0);
+  process_timeouts();
 }
 
 void
@@ -231,6 +266,7 @@ UdnsResolver::event_write() {
 void
 UdnsResolver::event_error() {
   // TODO: Handle error.
+  process_timeouts();
 }
 
 std::unique_ptr<UdnsResolver::Query>
@@ -272,6 +308,8 @@ UdnsResolver::find_malformed_query(Query* query) {
 
 void
 UdnsResolver::process_timeouts() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
 
   if (timeout == -1) {
@@ -289,8 +327,7 @@ UdnsResolver::process_timeouts() {
 void
 UdnsResolver::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void *data) {
   auto query = static_cast<UdnsResolver::Query*>(data);
-
-  auto lock = std::scoped_lock(query->parent->m_mutex);
+  auto lock  = std::scoped_lock(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("A records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
@@ -325,8 +362,7 @@ UdnsResolver::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, vo
 void
 UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
   auto query = static_cast<UdnsResolver::Query*>(data);
-
-  auto lock = std::scoped_lock(query->parent->m_mutex);
+  auto lock  = std::scoped_lock(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("AAAA records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
@@ -360,6 +396,8 @@ UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, vo
 
 void
 UdnsResolver::process_result(query_map::iterator itr) {
+  itr->second->parent->process_timeouts();
+
   if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr)
     return;
 

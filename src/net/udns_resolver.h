@@ -45,6 +45,9 @@ public:
 
   const char*         type_name() const override { return "udns"; }
 
+  void                initialize(utils::Thread* thread);
+  void                cleanup();
+
   // Callback must happen in thread_net and cannot call back into the resolver.
   //
   // If the hostname is a numeric address, it will result in the callback being called immediately.
@@ -74,6 +77,8 @@ protected:
   static void         process_result(query_map::iterator itr);
 
   static bool         m_initialized;
+
+  utils::Thread*      m_thread{};
 
   ::dns_ctx*            m_ctx{nullptr};
   utils::SchedulerEntry m_task_timeout;

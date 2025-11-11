@@ -52,6 +52,8 @@ ThreadNet::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_NET - INSTRUMENTATION_POLLING_DO_POLL;
+
+  m_udns->initialize();
 }
 
 void
@@ -59,9 +61,7 @@ ThreadNet::cleanup_thread() {
   m_thread_net = nullptr;
 
   m_http_stack->shutdown();
-
-  // TODO: Should be a shutdown method in UdnsResolver, rather using reset.
-  m_udns.reset();
+  m_udns->cleanup();
 }
 
 void
