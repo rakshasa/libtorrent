@@ -61,12 +61,14 @@ void
 UdnsResolver::initialize(utils::Thread* thread) {
   assert(std::this_thread::get_id() == thread->thread_id());
 
+  LT_LOG("initializing udns resolver: thread:%s", thread->name());
+
   m_thread   = thread;
   m_ctx      = ::dns_new(nullptr);
   m_fileDesc = ::dns_open(m_ctx);
 
   if (m_fileDesc == -1)
-    throw internal_error("dns_init failed");
+    throw internal_error("UdnsResolver::initialize() dns_open failed");
 
   torrent::this_thread::poll()->open(this);
 }
@@ -77,8 +79,12 @@ UdnsResolver::cleanup() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  if (m_fileDesc == -1)
+  if (m_fileDesc == -1) {
+    LT_LOG("cleanup not needed, not initialized: thread:%s", m_thread->name());
     return;
+  }
+
+  LT_LOG("cleaning up: thread:%s", m_thread->name());
 
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
@@ -318,6 +324,9 @@ UdnsResolver::process_timeouts() {
     this_thread::poll()->remove_error(this);
     return;
   }
+
+  if (timeout <= 0)
+    throw internal_error("UdnsResolver::process_timeouts() dns_timeouts returned invalid timeout: " + std::to_string(timeout));
 
   this_thread::poll()->insert_read(this);
   this_thread::poll()->insert_error(this);
