@@ -79,8 +79,9 @@ protected:
   static bool         m_initialized;
 
   utils::Thread*      m_thread{};
+  ::dns_ctx*          m_ctx{};
 
-  ::dns_ctx*            m_ctx{nullptr};
+  bool                  m_processing_timeouts{};
   utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;

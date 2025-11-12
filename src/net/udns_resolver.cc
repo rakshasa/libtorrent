@@ -317,7 +317,12 @@ void
 UdnsResolver::process_timeouts() {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
+  if (m_processing_timeouts)
+    return;
+
+  m_processing_timeouts = true;
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
+  m_processing_timeouts = false;
 
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
@@ -408,6 +413,8 @@ UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, vo
 
 void
 UdnsResolver::process_result(query_map::iterator itr) {
+
+  // TODO: Do not call while in process_timeouts().
   itr->second->parent->process_timeouts();
 
   if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr) {
