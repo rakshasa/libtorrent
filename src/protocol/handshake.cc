@@ -17,7 +17,7 @@
 #include "torrent/throttle.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
-#include "torrent/tracker/dht_controller.h"
+#include "torrent/net/network_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/diffie_hellman.h"
 #include "utils/sha1.h"
@@ -615,7 +615,7 @@ Handshake::read_port() {
   m_readBuffer.read_8();
 
   if (length == 2)
-    manager->dht_controller()->add_node(m_address.get(), m_readBuffer.peek_16());
+    runtime::network_manager()->dht_add_peer_node(m_address.get(), m_readBuffer.peek_16());
 
   m_readBuffer.consume(length);
   return true;
@@ -1045,9 +1045,14 @@ Handshake::prepare_handshake() {
   m_writeBuffer.write_range(m_protocol, m_protocol + 19);
 
   std::memset(m_writeBuffer.end(), 0, 8);
-  *(m_writeBuffer.end()+5) |= 0x10;    // support extension protocol
-  if (manager->dht_controller()->is_active())
-    *(m_writeBuffer.end()+7) |= 0x01;  // DHT support, enable PORT message
+
+  // Supports extension protocol.
+  *(m_writeBuffer.end()+5) |= 0x10;
+
+  // Send PORT message.
+  if (runtime::network_manager()->is_dht_active())
+    *(m_writeBuffer.end()+7) |= 0x01;
+
   m_writeBuffer.move_end(8);
 
   m_writeBuffer.write_range(m_download->info()->hash().c_str(), m_download->info()->hash().c_str() + 20);
@@ -1112,15 +1117,10 @@ Handshake::prepare_post_handshake(bool must_write) {
   Buffer::iterator old_end = m_writeBuffer.end();
 
   // Send PORT message for DHT if enabled and peer supports it.
-  if (m_peerInfo->supports_dht() &&
-      manager->dht_controller()->is_active() &&
-      manager->dht_controller()->is_receiving_requests()) {
-
+  if (m_peerInfo->supports_dht() && runtime::network_manager()->is_dht_active_and_receiving_requests()) {
     m_writeBuffer.write_32(3);
     m_writeBuffer.write_8(protocol_port);
-    m_writeBuffer.write_16(manager->dht_controller()->port());
-
-    // manager->dht_controller()->port_sent();
+    m_writeBuffer.write_16(runtime::network_manager()->dht_port());
   }
 
   // Send a keep-alive if we still must send something.

@@ -56,6 +56,9 @@ public:
 
   // Add the given host to the list of potential contacts if we haven't
   // completed the bootstrap process, or contact the given address directly.
+
+  // TODO: Remoce add_contact.... And make it check that sa is inet.
+
   void                add_contact(const std::string& host, int port);
   void                contact(const sockaddr* sa, int port);
 

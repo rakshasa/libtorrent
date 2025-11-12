@@ -35,26 +35,26 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
     socket = new CurlSocket(fd, stack);
     curl_multi_assign(stack->handle(), fd, socket);
 
-    torrent::this_thread::poll()->open(socket);
-    torrent::this_thread::poll()->insert_error(socket);
+    this_thread::poll()->open(socket);
+    this_thread::poll()->insert_error(socket);
   }
 
   if (!stack->is_running()) {
-    torrent::this_thread::poll()->remove_read(socket);
-    torrent::this_thread::poll()->remove_write(socket);
-    torrent::this_thread::poll()->remove_error(socket);
+    this_thread::poll()->remove_read(socket);
+    this_thread::poll()->remove_write(socket);
+    this_thread::poll()->remove_error(socket);
     return 0;
   }
 
   if (what == CURL_POLL_NONE || what == CURL_POLL_OUT)
-    torrent::this_thread::poll()->remove_read(socket);
+    this_thread::poll()->remove_read(socket);
   else
-    torrent::this_thread::poll()->insert_read(socket);
+    this_thread::poll()->insert_read(socket);
 
   if (what == CURL_POLL_NONE || what == CURL_POLL_IN)
-    torrent::this_thread::poll()->remove_write(socket);
+    this_thread::poll()->remove_write(socket);
   else
-    torrent::this_thread::poll()->insert_write(socket);
+    this_thread::poll()->insert_write(socket);
 
   return 0;
 }
@@ -66,13 +66,13 @@ CurlSocket::~CurlSocket() {
 void
 CurlSocket::close() {
   if (m_fileDesc == -1)
-    throw torrent::internal_error("CurlSocket::close() m_fileDesc == -1.");
+    throw internal_error("CurlSocket::close() m_fileDesc == -1.");
 
-  torrent::this_thread::poll()->remove_read(this);
-  torrent::this_thread::poll()->remove_write(this);
-  torrent::this_thread::poll()->remove_error(this);
+  this_thread::poll()->remove_read(this);
+  this_thread::poll()->remove_write(this);
+  this_thread::poll()->remove_error(this);
 
-  torrent::this_thread::poll()->cleanup_closed(this);
+  this_thread::poll()->cleanup_closed(this);
 
   m_stack = nullptr;
   m_fileDesc = -1;
@@ -105,7 +105,7 @@ CurlSocket::handle_action(int ev_bitmask) {
   CURLMcode code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
 
   if (code != CURLM_OK)
-    throw torrent::internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
+    throw internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
 
   while (stack->process_done_handle())
     ; // Do nothing.

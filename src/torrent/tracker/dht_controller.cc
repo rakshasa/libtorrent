@@ -108,19 +108,19 @@ DhtController::set_receive_requests(bool state) {
 }
 
 void
+DhtController::add_bootstrap_node(std::string host, int port) {
+  auto lock = std::lock_guard(m_lock);
+
+  if (m_router)
+    m_router->add_contact(std::move(host), port);
+}
+
+void
 DhtController::add_node(const sockaddr* sa, int port) {
   auto lock = std::lock_guard(m_lock);
 
   if (m_router)
     m_router->contact(sa, port);
-}
-
-void
-DhtController::add_node(const std::string& host, int port) {
-  auto lock = std::lock_guard(m_lock);
-
-  if (m_router)
-    m_router->add_contact(host, port);
 }
 
 Object*
