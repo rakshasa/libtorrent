@@ -219,6 +219,10 @@ DhtRouter::contact(const sockaddr* sa, int port) {
   if (sa_tmp->sa_family != AF_INET && sa_tmp->sa_family != AF_INET6)
     throw input_error("DhtRouter::contact() called with non-inet/inet6 address.");
 
+  // Currently only IPv4 is supported.
+  if (sa_tmp->sa_family != AF_INET)
+    return;
+
   if (sap_is_any(sa_tmp))
     throw input_error("DhtRouter::contact() called with any address.");
 
