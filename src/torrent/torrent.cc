@@ -26,6 +26,7 @@
 #include "torrent/throttle.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/net/http_stack.h"
+#include "torrent/net/network_manager.h"
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
 
@@ -141,7 +142,7 @@ cleanup() {
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
   // Might need to wait for the threads to finish?
-  manager->cleanup();
+  runtime::network_manager()->cleanup();
 
   thread_tracker()->stop_thread_wait();
   thread_disk()->stop_thread_wait();
@@ -177,8 +178,6 @@ ClientList*        client_list()         { return manager->client_list(); }
 ConnectionManager* connection_manager()  { return manager->connection_manager(); }
 FileManager*       file_manager()        { return manager->file_manager(); }
 ResourceManager*   resource_manager()    { return manager->resource_manager(); }
-
-tracker::DhtController* dht_controller() { return manager->dht_controller(); }
 
 uint32_t
 total_handshakes() {

@@ -27,8 +27,6 @@ ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
 FileManager*        file_manager() LIBTORRENT_EXPORT;
 ResourceManager*    resource_manager() LIBTORRENT_EXPORT;
 
-tracker::DhtController* dht_controller() LIBTORRENT_EXPORT;
-
 uint32_t            total_handshakes() LIBTORRENT_EXPORT;
 
 Throttle*           down_throttle_global() LIBTORRENT_EXPORT;

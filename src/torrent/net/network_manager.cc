@@ -5,6 +5,7 @@
 #include "net/listen.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/network_config.h"
+#include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 
 // TODO: Add net category and add it to important/complete log outputs.
@@ -16,7 +17,8 @@ namespace torrent::net {
 
 NetworkManager::NetworkManager()
   : m_listen_inet(new Listen),
-    m_listen_inet6(new Listen) {
+    m_listen_inet6(new Listen),
+    m_dht_controller(new tracker::DhtController) {
 }
 
 NetworkManager::~NetworkManager() {
@@ -27,6 +29,33 @@ bool
 NetworkManager::is_listening() const {
   auto guard = lock_guard();
   return is_listening_unsafe();
+}
+
+bool
+NetworkManager::is_dht_valid() const {
+  // auto guard = lock_guard();
+  return m_dht_controller->is_valid();
+}
+
+bool
+NetworkManager::is_dht_active() const {
+  // auto guard = lock_guard();
+  return m_dht_controller->is_active();
+}
+
+bool
+NetworkManager::is_dht_active_and_receiving_requests() const {
+  // auto guard = lock_guard();
+  return m_dht_controller->is_active() && m_dht_controller->is_receiving_requests();
+}
+
+// Cleanup should get called twice; when shutdown is initiated and on libtorrent cleanup.
+void
+NetworkManager::cleanup() {
+  auto guard = lock_guard();
+
+  m_dht_controller->stop();
+  listen_close_unsafe();
 }
 
 // TODO: Currently only opens one listen socket, either ipv4 or ipv6 based on bind address.
@@ -45,6 +74,8 @@ void
 NetworkManager::listen_close() {
   auto guard = lock_guard();
   listen_close_unsafe();
+
+  // m_dht_controller->stop();
 }
 
 uint16_t
@@ -63,6 +94,30 @@ NetworkManager::listen_port_or_throw() const {
   return m_listen_port;
 }
 
+uint16_t
+NetworkManager::dht_port() {
+  // auto guard = lock_guard();
+  return m_dht_controller->port();
+}
+
+// TODO: Make bootstrap nodes explicit, and when we add them also try adding as node if we're
+// already running.
+
+// TODO: Consider adding dht bootstrap nodes to network config.
+
+void
+NetworkManager::dht_add_bootstrap_node(std::string host, int port){
+  // auto guard = lock_guard();
+  m_dht_controller->add_bootstrap_node(std::move(host), port);
+}
+
+void
+NetworkManager::dht_add_peer_node([[maybe_unused]] const sockaddr* sa, [[maybe_unused]] int port) {
+  // Ignore peer nodes as we shouldn't need them(?)
+  //
+  // Re-enable this if it causes issues.
+}
+
 bool
 NetworkManager::is_listening_unsafe() const {
   return m_listen_inet->is_open() || m_listen_inet6->is_open();
@@ -72,10 +127,10 @@ void
 NetworkManager::restart_listen() {
   auto guard = lock_guard();
 
-  if (m_restarting_listen || !is_listening_unsafe())
+  if (m_listen_restarting || !is_listening_unsafe())
     return;
 
-  m_restarting_listen = true;
+  m_listen_restarting = true;
 
   main_thread::callback(this, [this]() { perform_restart_listen(); });
 }
@@ -131,7 +186,7 @@ void
 NetworkManager::perform_restart_listen() {
   auto guard = lock_guard();
 
-  m_restarting_listen = false;
+  m_listen_restarting = false;
 
   if (!is_listening_unsafe())
     return;

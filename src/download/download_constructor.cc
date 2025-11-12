@@ -5,14 +5,13 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <rak/string_manip.h>
 
 #include "download/download_wrapper.h"
+#include "rak/string_manip.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
-#include "torrent/tracker/dht_controller.h"
 #include "tracker/tracker_list.h"
 
 #include "manager.h"
@@ -141,24 +140,22 @@ DownloadConstructor::parse_tracker(const Object& b) {
       // entries while still having valid 'announce'.
       !(announce_list = &b.get_key_list("announce-list"))->empty() &&
       std::any_of(announce_list->begin(), announce_list->end(), std::mem_fn(&Object::is_list))) {
+
     for (const auto& group : *announce_list) {
       add_tracker_group(group);
     }
   } else if (b.has_key("announce")) {
     add_tracker_single(b.get_key("announce"), 0);
-
-  } else if (!manager->dht_controller()->is_valid() || m_download->info()->is_private()) {
-    throw bencode_error("Could not find any trackers");
   }
 
-  if (manager->dht_controller()->is_valid() && !m_download->info()->is_private())
+  if (!m_download->info()->is_private())
     m_download->main()->tracker_list()->insert_url(m_download->main()->tracker_list()->size_group(), "dht://");
 
-  if (manager->dht_controller()->is_valid() && b.has_key_list("nodes")) {
-    for (const auto& node : b.get_key_list("nodes")) {
-      add_dht_node(node);
-    }
-  }
+  // Deprecating DHT nodes key in torrent files as this is no longer needed.
+  // if (b.has_key_list("nodes")) {
+  //   for (const auto& node : b.get_key_list("nodes"))
+  //     add_dht_node(node);
+  // }
 
   m_download->main()->tracker_list()->randomize_group_entries();
 }
@@ -181,24 +178,6 @@ DownloadConstructor::add_tracker_single(const Object& b, int group) {
     throw bencode_error("Tracker entry not a string");
 
   m_download->main()->tracker_list()->insert_url(group, rak::trim_classic(b.as_string()));
-}
-
-void
-DownloadConstructor::add_dht_node(const Object& b) {
-  if (!b.is_list() || b.as_list().size() < 2)
-    return;
-
-  auto el = b.as_list().begin();
-
-  if (!el->is_string())
-    return;
-
-  const std::string& host = el->as_string();
-
-  if (!(++el)->is_value())
-    return;
-
-  manager->dht_controller()->add_node(host, el->as_value());
 }
 
 bool

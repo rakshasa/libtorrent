@@ -327,6 +327,8 @@ UdnsResolver::process_timeouts() {
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
     this_thread::poll()->remove_error(this);
+
+    this_thread::scheduler()->erase(&m_task_timeout);
     return;
   }
 

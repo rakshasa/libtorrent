@@ -29,7 +29,6 @@ private:
 
   void                add_tracker_group(const Object& b);
   void                add_tracker_single(const Object& b, int group);
-  static void         add_dht_node(const Object& b);
 
   static bool         is_valid_path_element(const Object& b);
   static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
