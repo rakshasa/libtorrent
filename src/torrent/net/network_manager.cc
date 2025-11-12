@@ -32,6 +32,12 @@ NetworkManager::is_listening() const {
 }
 
 bool
+NetworkManager::is_dht_valid() const {
+  // auto guard = lock_guard();
+  return m_dht_controller->is_valid();
+}
+
+bool
 NetworkManager::is_dht_active() const {
   // auto guard = lock_guard();
   return m_dht_controller->is_active();

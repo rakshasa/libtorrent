@@ -18,6 +18,7 @@ public:
   ~NetworkManager();
 
   bool                is_listening() const;
+  bool                is_dht_valid() const;
   bool                is_dht_active() const;
   bool                is_dht_active_and_receiving_requests() const;
 
