@@ -238,25 +238,21 @@ void
 UdnsResolver::flush() {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
-  {
-    auto lock = std::scoped_lock(m_mutex);
-    auto malformed_queries = std::move(m_malformed_queries);
+  auto lock = std::scoped_lock(m_mutex);
+  auto malformed_queries = std::move(m_malformed_queries);
 
-    for (auto& query : malformed_queries) {
-      if (query.second->canceled)
-        continue;
+  for (auto& query : malformed_queries) {
+    if (query.second->canceled)
+      continue;
 
-      LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
+    LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
 
-      int error = query.second->error_sin != 0 ? query.second->error_sin : query.second->error_sin6;
-      if (error == 0)
-        throw internal_error("attempting to flush malformed query with no error");
+    int error = query.second->error_sin != 0 ? query.second->error_sin : query.second->error_sin6;
+    if (error == 0)
+      throw internal_error("attempting to flush malformed query with no error");
 
-      query.second->callback(nullptr, nullptr, error);
-    }
+    query.second->callback(nullptr, nullptr, error);
   }
-
-  process_timeouts();
 }
 
 void
@@ -329,6 +325,8 @@ UdnsResolver::process_timeouts() {
     this_thread::poll()->remove_error(this);
 
     this_thread::scheduler()->erase(&m_task_timeout);
+
+    LT_LOG("processing timeouts, no pending queries", 0);
     return;
   }
 

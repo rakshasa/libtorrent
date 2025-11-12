@@ -307,8 +307,10 @@ Poll::in_error(Event* event) {
 
 void
 Poll::insert_read(Event* event) {
-  if (m_internal->event_mask(event) & PollInternal::flag_read)
+  if (m_internal->event_mask(event) & PollInternal::flag_read) {
+    LT_LOG_EVENT("insert read: already in read", 0);
     return;
+  }
 
   LT_LOG_EVENT("insert read", 0);
 
@@ -318,8 +320,10 @@ Poll::insert_read(Event* event) {
 
 void
 Poll::insert_write(Event* event) {
-  if (m_internal->event_mask(event) & PollInternal::flag_write)
+  if (m_internal->event_mask(event) & PollInternal::flag_write) {
+    LT_LOG_EVENT("insert write: already in write", 0);
     return;
+  }
 
   LT_LOG_EVENT("insert write", 0);
 
@@ -334,8 +338,10 @@ Poll::insert_error(Event* event) {
 
 void
 Poll::remove_read(Event* event) {
-  if (!(m_internal->event_mask(event) & PollInternal::flag_read))
+  if (!(m_internal->event_mask(event) & PollInternal::flag_read)) {
+    LT_LOG_EVENT("remove read: not in read", 0);
     return;
+  }
 
   LT_LOG_EVENT("remove read", 0);
 
@@ -345,8 +351,10 @@ Poll::remove_read(Event* event) {
 
 void
 Poll::remove_write(Event* event) {
-  if (!(m_internal->event_mask(event) & PollInternal::flag_write))
+  if (!(m_internal->event_mask(event) & PollInternal::flag_write)) {
+    LT_LOG_EVENT("remove write: not in write", 0);
     return;
+  }
 
   LT_LOG_EVENT("remove write", 0);
 
