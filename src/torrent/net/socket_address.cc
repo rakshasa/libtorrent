@@ -281,7 +281,7 @@ sa_copy_unmapped(const sockaddr* sa) {
     return sa_copy_in(reinterpret_cast<const sockaddr_in*>(sa));
   case AF_INET6:
     if (sin6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa)))
-      return sa_to_v4mapped_in(reinterpret_cast<const sockaddr_in*>(sa));
+      return sa_from_v4mapped_in6(reinterpret_cast<const sockaddr_in6*>(sa));
 
     return sa_copy_in6(reinterpret_cast<const sockaddr_in6*>(sa));
   case AF_UNSPEC:
