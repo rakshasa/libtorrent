@@ -214,7 +214,14 @@ DhtRouter::contact(const sockaddr* sa, int port) {
   if (!is_active())
     return;
 
-  auto sa_tmp = sa_copy(sa);
+  auto sa_tmp = sa_copy_unmapped(sa);
+
+  if (sa_tmp->sa_family != AF_INET && sa_tmp->sa_family != AF_INET6)
+    throw input_error("DhtRouter::contact() called with non-inet/inet6 address.");
+
+  if (sap_is_any(sa_tmp))
+    throw input_error("DhtRouter::contact() called with any address.");
+
   sap_set_port(sa_tmp, port);
 
   m_server.ping(zero_id, sa_tmp.get());
