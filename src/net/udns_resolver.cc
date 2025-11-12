@@ -413,8 +413,6 @@ UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, vo
 
 void
 UdnsResolver::process_result(query_map::iterator itr) {
-
-  // TODO: Do not call while in process_timeouts().
   itr->second->parent->process_timeouts();
 
   if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr) {
