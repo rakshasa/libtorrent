@@ -86,12 +86,10 @@ UdnsResolver::cleanup() {
 
   LT_LOG("cleaning up: thread:%s", m_thread->name());
 
+  this_thread::poll()->remove_and_close(this);
+
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
-
-  this_thread::poll()->remove_read(this);
-  this_thread::poll()->remove_error(this);
-  this_thread::poll()->cleanup_closed(this);
 
   m_fileDesc = -1;
 }
@@ -320,6 +318,8 @@ UdnsResolver::process_timeouts() {
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
   m_processing_timeouts = false;
 
+  // TODO: We shouldn't remove from error events.
+
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
     this_thread::poll()->remove_error(this);
@@ -387,6 +387,7 @@ UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, vo
   }
 
   auto itr = query->parent->find_query(query);
+
   if (itr == query->parent->m_queries.end())
     throw internal_error("UdnsResolver::a6_callback_wrapper called with invalid query");
 

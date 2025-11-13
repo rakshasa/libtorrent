@@ -32,6 +32,9 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
     if (!stack->is_running())
       return 0;
 
+    // TODO: Assign nullptr here....
+    // TODO: Might not be getting removed ? verify fd, etc.
+
     socket = new CurlSocket(fd, stack);
     curl_multi_assign(stack->handle(), fd, socket);
 
@@ -68,11 +71,7 @@ CurlSocket::close() {
   if (m_fileDesc == -1)
     throw internal_error("CurlSocket::close() m_fileDesc == -1.");
 
-  this_thread::poll()->remove_read(this);
-  this_thread::poll()->remove_write(this);
-  this_thread::poll()->remove_error(this);
-
-  this_thread::poll()->cleanup_closed(this);
+  this_thread::poll()->remove_and_close(this);
 
   m_stack = nullptr;
   m_fileDesc = -1;
