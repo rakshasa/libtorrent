@@ -26,7 +26,6 @@ public:
   inline uint32_t     event_mask(Event* e);
   inline void         set_event_mask(Event* e, uint32_t m);
 
-  void                flush_events();
   void                modify(torrent::Event* event, unsigned short op, uint32_t mask);
 
   int                 m_fd;

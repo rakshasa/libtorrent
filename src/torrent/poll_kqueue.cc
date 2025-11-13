@@ -38,7 +38,6 @@ public:
   inline uint32_t     event_mask_any(int fd);
   inline void         set_event_mask(Event* e, uint32_t m);
 
-  void                flush_events();
   void                modify(torrent::Event* event, unsigned short op, short mask);
 
   int                 m_fd;
@@ -92,24 +91,6 @@ PollInternal::set_event_mask(Event* e, uint32_t m) {
 }
 
 void
-PollInternal::flush_events() {
-  timespec timeout = { 0, 0 };
-
-  int nfds = ::kevent(m_fd,
-                      m_changes.get(),
-                      m_changed_events,
-                      m_events.get() + m_waiting_events,
-                      m_max_events - m_waiting_events,
-                      &timeout);
-
-  if (nfds == -1)
-    throw internal_error("PollInternal::flush_events() error: " + std::string(std::strerror(errno)));
-
-  m_changed_events = 0;
-  m_waiting_events += nfds;
-}
-
-void
 PollInternal::modify(Event* event, unsigned short op, short mask) {
   LT_LOG_EVENT("modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
 
@@ -148,6 +129,7 @@ Poll::create() {
   poll->m_internal->m_events = std::make_unique<struct kevent[]>(poll->m_internal->m_max_events);
 
   // TODO: Dynamically resize.
+  // !!!!! check if correct size
   poll->m_internal->m_changes = std::make_unique<struct kevent[]>(socket_open_max);
 
   return std::unique_ptr<Poll>(poll);
@@ -180,6 +162,7 @@ Poll::poll(int timeout_usec) {
   int nfds = ::kevent(m_internal->m_fd,
                       m_internal->m_changes.get(),
                       m_internal->m_changed_events,
+                      // REMOVE waiting_events!!!
                       m_internal->m_events.get() + m_internal->m_waiting_events,
                       m_internal->m_max_events - m_internal->m_waiting_events,
                       &timeout);
