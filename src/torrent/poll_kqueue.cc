@@ -290,35 +290,6 @@ Poll::close(Event* event) {
   // remove_read/write/error.
 }
 
-// TODO: REMOVE
-void
-Poll::cleanup_closed(Event* event) {
-  LT_LOG_EVENT("cleanup_closed event", 0);
-
-  // Kernel removes closed FDs automatically, so just clear the mask
-  // and remove it from pending calls.  Don't touch if the FD was
-  // re-used before we received the close notification.
-  if (m_internal->m_table[event->file_descriptor()].second == event) {
-    if (m_internal->event_mask(event) != 0)
-      throw internal_error("Poll::cleanup_closed() called but the file descriptor is active");
-
-    m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
-  } else {
-    LT_LOG_EVENT("cleanup_closed() event FD was re-used", 0);
-  }
-
-  auto last_itr = std::remove_if(m_internal->m_changes.get(),
-                                 m_internal->m_changes.get() + m_internal->m_changed_events,
-                                 [event](const struct kevent& ke) { return ke.udata == event; });
-
-  m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
-
-  // Clear the event list just in case we open a new socket with the
-  // same fd while in the middle of calling Poll::perform.
-  //
-  // Removed.
-}
-
 bool
 Poll::in_read(Event* event) {
   return m_internal->event_mask(event) & PollInternal::flag_read;
