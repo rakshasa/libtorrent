@@ -126,6 +126,7 @@ Thread::enter_event_loop(void* thread) {
     throw internal_error("Thread::enter_event_loop called with a null pointer thread");
 
   t->init_thread_local();
+  t->init_thread_post_local();
   t->event_loop();
   t->cleanup_thread_local();
 
@@ -204,6 +205,10 @@ Thread::init_thread_local() {
 
   if (!m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
     throw internal_error("Thread::init_thread_local() : " + std::string(name()) + " : called on an object that is not in the initialized state.");
+}
+
+void
+Thread::init_thread_post_local() {
 }
 
 void

@@ -28,12 +28,6 @@ public:
   void                open(Event* event);
   void                close(Event* event);
 
-  // More efficient interface when closing the file descriptor.
-  // Automatically removes the event from all polls.
-  //
-  // Event::get_fd() may or may not be closed already.
-  void                cleanup_closed(Event* event);
-
   // Functions for checking whetever the Event is listening to r/w/e?
   bool                in_read(Event* event);
   bool                in_write(Event* event);
