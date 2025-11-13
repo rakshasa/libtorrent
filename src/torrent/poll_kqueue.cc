@@ -245,6 +245,8 @@ Poll::open(Event* event) {
 
   if (m_internal->event_mask_any(event->file_descriptor()) != 0)
     throw internal_error("Poll::open(...) called but the file descriptor is active");
+
+  m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type(0, event);
 }
 
 void
