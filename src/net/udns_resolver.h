@@ -45,6 +45,9 @@ public:
 
   const char*         type_name() const override { return "udns"; }
 
+  void                initialize(utils::Thread* thread);
+  void                cleanup();
+
   // Callback must happen in thread_net and cannot call back into the resolver.
   //
   // If the hostname is a numeric address, it will result in the callback being called immediately.
@@ -75,7 +78,10 @@ protected:
 
   static bool         m_initialized;
 
-  ::dns_ctx*            m_ctx{nullptr};
+  utils::Thread*      m_thread{};
+  ::dns_ctx*          m_ctx{};
+
+  bool                  m_processing_timeouts{};
   utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;

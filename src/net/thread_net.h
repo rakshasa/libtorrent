@@ -22,6 +22,7 @@ public:
   const char*         name() const override { return "rtorrent net"; }
 
   void                init_thread() override;
+  void                init_thread_post_local() override;
   void                cleanup_thread() override;
 
 protected:

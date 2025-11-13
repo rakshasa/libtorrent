@@ -55,13 +55,16 @@ ThreadNet::init_thread() {
 }
 
 void
+ThreadNet::init_thread_post_local() {
+  m_udns->initialize(this);
+}
+
+void
 ThreadNet::cleanup_thread() {
   m_thread_net = nullptr;
 
   m_http_stack->shutdown();
-
-  // TODO: Should be a shutdown method in UdnsResolver, rather using reset.
-  m_udns.reset();
+  m_udns->cleanup();
 }
 
 void
