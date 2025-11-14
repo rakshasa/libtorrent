@@ -54,13 +54,13 @@ public:
 inline uint32_t
 PollInternal::event_mask(Event* e) {
   if (e->file_descriptor() == -1)
-    throw internal_error("PollInternal::event_mask(): invalid file descriptor for event: name:" + std::string(e->type_name()));
+    throw internal_error("PollInternal::event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
 
   if (static_cast<unsigned int>(e->file_descriptor()) >= m_table.size())
-    throw internal_error("PollInternal::event_mask(): file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
+    throw internal_error("PollInternal::event_mask() file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
 
   if (e != m_table[e->file_descriptor()].second)
-    throw internal_error("PollInternal::event_mask(): event mismatch: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
+    throw internal_error("PollInternal::event_mask() event mismatch: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
 
   return m_table[e->file_descriptor()].first;
 }
@@ -68,10 +68,10 @@ PollInternal::event_mask(Event* e) {
 inline uint32_t
 PollInternal::event_mask_any(int fd) {
   if (fd == -1)
-    throw internal_error("PollInternal::event_mask_any(): invalid file descriptor for event");
+    throw internal_error("PollInternal::event_mask_any() invalid file descriptor for event");
 
   if (static_cast<unsigned int>(fd) >= m_table.size())
-    throw internal_error("PollInternal::event_mask_any(): file descriptor out of range: fd:" + std::to_string(fd));
+    throw internal_error("PollInternal::event_mask_any() file descriptor out of range: fd:" + std::to_string(fd));
 
   return m_table[fd].first;
 }
@@ -79,13 +79,13 @@ PollInternal::event_mask_any(int fd) {
 inline void
 PollInternal::set_event_mask(Event* e, uint32_t m) {
   if (e->file_descriptor() == -1)
-    throw internal_error("PollInternal::set_event_mask(): invalid file descriptor for event: name:" + std::string(e->type_name()));
+    throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
 
   if (static_cast<unsigned int>(e->file_descriptor()) >= m_table.size())
-    throw internal_error("PollInternal::set_event_mask(): file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
+    throw internal_error("PollInternal::set_event_mask() file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
 
   if (e != m_table[e->file_descriptor()].second)
-    throw internal_error("PollInternal::set_event_mask(): event mismatch: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
+    throw internal_error("PollInternal::set_event_mask() event mismatch: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
 
   m_table[e->file_descriptor()] = Table::value_type(m, e);
 }
@@ -113,7 +113,7 @@ Poll::create() {
   auto socket_open_max = sysconf(_SC_OPEN_MAX);
 
   if (socket_open_max == -1)
-    throw internal_error("Poll::create(): sysconf(_SC_OPEN_MAX) failed: " + std::string(std::strerror(errno)));
+    throw internal_error("Poll::create() : sysconf(_SC_OPEN_MAX) failed: " + std::string(std::strerror(errno)));
 
   int fd = kqueue();
 
@@ -147,7 +147,7 @@ Poll::do_poll(int64_t timeout_usec) {
 
   if (status == -1) {
     if (errno != EINTR)
-      throw internal_error("Poll::work(): " + std::string(std::strerror(errno)));
+      throw internal_error("Poll::work() " + std::string(std::strerror(errno)));
 
     return 0;
   }
@@ -162,9 +162,8 @@ Poll::poll(int timeout_usec) {
   int nfds = ::kevent(m_internal->m_fd,
                       m_internal->m_changes.get(),
                       m_internal->m_changed_events,
-                      // REMOVE waiting_events!!!
-                      m_internal->m_events.get() + m_internal->m_waiting_events,
-                      m_internal->m_max_events - m_internal->m_waiting_events,
+                      m_internal->m_events.get(),
+                      m_internal->m_max_events,
                       &timeout);
 
   // Clear the changed events even on fail as we might have received a
@@ -178,7 +177,7 @@ Poll::poll(int timeout_usec) {
   if (nfds == -1)
     return -1;
 
-  m_internal->m_waiting_events += nfds;
+  m_internal->m_waiting_events = nfds;
   return nfds;
 }
 
@@ -188,7 +187,7 @@ Poll::process() {
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
     if (itr->ident >= m_internal->m_table.size())
-      throw internal_error("Poll::process(): received ident out of range: " + std::to_string(itr->ident));
+      throw internal_error("Poll::process() received ident out of range: " + std::to_string(itr->ident));
 
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
@@ -244,7 +243,7 @@ Poll::open(Event* event) {
   LT_LOG_EVENT("open event", 0);
 
   if (m_internal->event_mask_any(event->file_descriptor()) != 0)
-    throw internal_error("Poll::open(...) called but the file descriptor is active");
+    throw internal_error("Poll::open() called but the file descriptor is active");
 
   m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type(0, event);
 }
@@ -254,7 +253,7 @@ Poll::close(Event* event) {
   LT_LOG_EVENT("close event", 0);
 
   if (m_internal->event_mask(event) != 0)
-    throw internal_error("Poll::close(...) called but the file descriptor is active");
+    throw internal_error("Poll::close() called but the file descriptor is active");
 
   m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
