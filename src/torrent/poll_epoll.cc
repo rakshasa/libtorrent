@@ -43,7 +43,7 @@ PollInternal::event_mask(Event* e) {
   if (e->file_descriptor() == -1)
     throw internal_error("PollInternal::event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
 
-  if (static_cast<size_type>(e->file_descriptor()) >= m_table.size())
+  if (static_cast<unsigned int>(e->file_descriptor()) >= m_table.size())
     throw internal_error("PollInternal::event_mask() file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
 
   if (m_table[e->file_descriptor()].second != e)
@@ -57,7 +57,7 @@ PollInternal::event_mask_any(int fd) {
   if (fd == -1)
     throw internal_error("PollInternal::event_mask_any() invalid file descriptor for event");
 
-  if (static_cast<size_type>(fd) >= m_table.size())
+  if (static_cast<unsigned int>(fd) >= m_table.size())
     throw internal_error("PollInternal::event_mask_any() file descriptor out of range: fd:" + std::to_string(fd));
 
   return m_table[fd].first;
@@ -68,7 +68,7 @@ PollInternal::set_event_mask(Event* e, uint32_t m) {
   if (e->file_descriptor() == -1)
     throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
 
-  if (static_cast<size_type>(e->file_descriptor()) >= m_table.size())
+  if (static_cast<unsigned int>(e->file_descriptor()) >= m_table.size())
     throw internal_error("PollInternal::set_event_mask() file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
 
   if (m_table[e->file_descriptor()].second != e)
