@@ -14,8 +14,12 @@
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
 
-#define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
-  lt_log_print(LOG_SOCKET_##log_level, "epoll->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
+#define LT_LOG_EVENT(log_fmt, ...)                                      \
+  lt_log_print(LOG_CONNECTION_FD, "epoll->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
+
+#define LT_LOG_DEBUG_IDENT(log_fmt, ...)
+// #define LT_LOG_DEBUG_IDENT(log_fmt, ...)                                \
+//   lt_log_print(LOG_CONNECTION_FD, "epoll->%u: " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
 
 namespace torrent {
 
@@ -82,7 +86,7 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
   if (event_mask(event) == mask)
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "modify event : op:%hx mask:%hx", op, mask);
+  LT_LOG_EVENT("modify event : op:%hx mask:%hx", op, mask);
 
   epoll_event e;
   e.data.u64 = 0;
@@ -197,7 +201,7 @@ Poll::process() {
     auto evItr = m_internal->m_table.begin() + itr->data.fd;
 
     if (evItr->second == nullptr) {
-      LT_LOG_DEBUG_IDENT("event is null, skipping : events:%hx", itr->events);
+      LT_LOG("event is null, skipping : events:%hx", itr->events);
       continue;
     }
 
@@ -237,7 +241,7 @@ Poll::open_max() const {
 
 void
 Poll::open(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "open event", 0);
+  LT_LOG_EVENT("open event", 0);
 
   if (m_internal->event_mask_any(event->file_descriptor()) != 0)
     throw internal_error("Poll::open() called but the file descriptor is active");
@@ -247,7 +251,7 @@ Poll::open(Event* event) {
 
 void
 Poll::close(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "close event", 0);
+  LT_LOG_EVENT("close event", 0);
 
   if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::close() called but the file descriptor is active");
@@ -283,7 +287,7 @@ Poll::insert_read(Event* event) {
   if (m_internal->event_mask(event) & EPOLLIN)
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "insert read", 0);
+  LT_LOG_EVENT("insert read", 0);
 
   m_internal->modify(event,
                      m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
@@ -295,7 +299,7 @@ Poll::insert_write(Event* event) {
   if (m_internal->event_mask(event) & EPOLLOUT)
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "insert write", 0);
+  LT_LOG_EVENT("insert write", 0);
 
   m_internal->modify(event,
                      m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
@@ -307,7 +311,7 @@ Poll::insert_error(Event* event) {
   if (m_internal->event_mask(event) & EPOLLERR)
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "insert error", 0);
+  LT_LOG_EVENT("insert error", 0);
 
   m_internal->modify(event,
                      m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
@@ -319,7 +323,7 @@ Poll::remove_read(Event* event) {
   if (!(m_internal->event_mask(event) & EPOLLIN))
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "remove read", 0);
+  LT_LOG_EVENT("remove read", 0);
 
   uint32_t mask = m_internal->event_mask(event) & ~EPOLLIN;
   m_internal->modify(event,
@@ -332,7 +336,7 @@ Poll::remove_write(Event* event) {
   if (!(m_internal->event_mask(event) & EPOLLOUT))
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "remove write", 0);
+  LT_LOG_EVENT("remove write", 0);
 
   uint32_t mask = m_internal->event_mask(event) & ~EPOLLOUT;
   m_internal->modify(event,
@@ -345,7 +349,7 @@ Poll::remove_error(Event* event) {
   if (!(m_internal->event_mask(event) & EPOLLERR))
     return;
 
-  LT_LOG_EVENT(event, DEBUG, "remove error", 0);
+  LT_LOG_EVENT("remove error", 0);
 
   uint32_t mask = m_internal->event_mask(event) & ~EPOLLERR;
   m_internal->modify(event,
