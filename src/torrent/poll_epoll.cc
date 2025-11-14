@@ -17,9 +17,9 @@
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "epoll->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
-#define LT_LOG_DEBUG_IDENT(log_fmt, ...)
-// #define LT_LOG_DEBUG_IDENT(log_fmt, ...)                                \
-//   lt_log_print(LOG_CONNECTION_FD, "epoll->%u: " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
+#define LT_LOG_DEBUG_DATA_FD(log_fmt, ...)
+// #define LT_LOG_DEBUG_DATA_FD(log_fmt, ...)                                \
+//   lt_log_print(LOG_CONNECTION_FD, "epoll->%i: " log_fmt, itr->data.fd, __VA_ARGS__);
 
 namespace torrent {
 
@@ -201,7 +201,7 @@ Poll::process() {
     auto evItr = m_internal->m_table.begin() + itr->data.fd;
 
     if (evItr->second == nullptr) {
-      LT_LOG("event is null, skipping : events:%hx", itr->events);
+      LT_LOG_DEBUG_DATA_FD("event is null, skipping : events:%hx", itr->events);
       continue;
     }
 
