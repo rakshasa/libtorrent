@@ -101,6 +101,7 @@ libtorrent_torrent_la_SOURCES = \
 	utils/scheduler.h \
 	utils/signal_bitfield.cc \
 	utils/signal_bitfield.h \
+	utils/string_manip.cc \
 	utils/string_manip.h \
 	utils/thread.cc \
 	utils/thread.h \
