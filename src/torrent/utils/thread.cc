@@ -139,6 +139,7 @@ Thread::event_loop() {
 
   try {
 
+    m_poll->open(m_interrupt_receiver.get());
     m_poll->insert_read(m_interrupt_receiver.get());
 
     while (true) {
@@ -173,6 +174,7 @@ Thread::event_loop() {
   // Some test, and perhaps other code, segfaults on this.
   // TODO: Test
   //m_poll->remove_read(m_interrupt_receiver.get());
+  //m_poll->close(m_interrupt_receiver.get());
 
   auto previous_state = STATE_ACTIVE;
 
