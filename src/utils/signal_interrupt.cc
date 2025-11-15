@@ -73,6 +73,11 @@ SignalInterrupt::poke() {
   instrumentation_update(INSTRUMENTATION_POLLING_INTERRUPT_POKE, 1);
 }
 
+const char*
+SignalInterrupt::type_name() const {
+  return "signal_interrupt";
+}
+
 void
 SignalInterrupt::event_read() {
   char buffer[256];
