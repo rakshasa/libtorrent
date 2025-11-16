@@ -138,7 +138,7 @@ initialize() {
 // them to finish is not required, but recommended.
 void
 cleanup() {
-  if (manager == NULL)
+  if (manager == nullptr)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
   // Might need to wait for the threads to finish?
@@ -148,6 +148,7 @@ cleanup() {
   thread_disk()->stop_thread_wait();
   net_thread::thread()->stop_thread_wait();
 
+  // TODO: Set these to null.
   delete thread_tracker();
   delete thread_disk();
   delete net_thread::thread();
