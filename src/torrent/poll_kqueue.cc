@@ -17,6 +17,8 @@
 
 // TODO: Change to LOG_CONNECTION_POLL
 
+// TODO: Optimize table memory size, and add a reference to Event for direct lookup.
+
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
