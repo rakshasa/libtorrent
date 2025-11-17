@@ -17,6 +17,7 @@ public:
   ~ThreadNet() override;
 
   static void         create_thread();
+  static void         destroy_thread();
   static ThreadNet*   thread_net();
 
   const char*         name() const override { return "rtorrent net"; }

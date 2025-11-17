@@ -148,10 +148,9 @@ cleanup() {
   thread_disk()->stop_thread_wait();
   net_thread::thread()->stop_thread_wait();
 
-  // TODO: Set these to null.
-  delete thread_tracker();
-  delete thread_disk();
-  delete net_thread::thread();
+  ThreadTracker::destroy_thread();
+  ThreadDisk::destroy_thread();
+  ThreadNet::destroy_thread();
 
   delete manager;
   manager = NULL;

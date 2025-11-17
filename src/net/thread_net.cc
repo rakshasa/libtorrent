@@ -42,6 +42,12 @@ ThreadNet::create_thread() {
   m_thread_net = thread;
 }
 
+void
+ThreadNet::destroy_thread() {
+  delete m_thread_net;
+  m_thread_net = nullptr;
+}
+
 ThreadNet*
 ThreadNet::thread_net() {
   return m_thread_net;
@@ -61,8 +67,6 @@ ThreadNet::init_thread_post_local() {
 
 void
 ThreadNet::cleanup_thread() {
-  m_thread_net = nullptr;
-
   m_http_stack->shutdown();
   m_udns->cleanup();
 }
