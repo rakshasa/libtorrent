@@ -47,7 +47,7 @@ Thread::start_thread() {
   if (!is_initialized())
     throw internal_error("Called Thread::start_thread on an uninitialized object.");
 
-  if (pthread_create(&m_thread, NULL, &Thread::enter_event_loop, this))
+  if (pthread_create(&m_thread, nullptr, &Thread::enter_event_loop, this))
     throw internal_error("Failed to create thread.");
 
   while (m_state != STATE_ACTIVE)
@@ -60,7 +60,7 @@ Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
   interrupt();
 
-  pthread_join(m_thread, NULL);
+  pthread_join(m_thread, nullptr);
   assert(is_inactive());
 }
 

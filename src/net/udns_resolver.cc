@@ -141,13 +141,13 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
     if (query->a6_query == nullptr) {
       LT_LOG("malformed AAAA query : requester:%p name:%s", requester, hostname.c_str());
 
-      if (::dns_status(m_ctx) != DNS_E_BADQUERY)
-        throw new internal_error("dns_submit_a6 failed");
-
       if (query->a4_query != nullptr) {
         ::dns_cancel(m_ctx, query->a4_query);
         query->a4_query = nullptr;
       }
+
+      if (::dns_status(m_ctx) != DNS_E_BADQUERY)
+        throw new internal_error("dns_submit_a6 failed");
 
       query->error_sin = EAI_NONAME;
 
@@ -352,9 +352,11 @@ UdnsResolver::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, vo
   }
 
   auto itr = query->parent->find_query(static_cast<UdnsResolver::Query*>(data));
+
   if (itr == query->parent->m_queries.end())
     throw internal_error("UdnsResolver::a4_callback_wrapper called with invalid query");
 
+  // TODO: Verify...
   query->a4_query = nullptr;
 
   if (result == nullptr || result->dnsa4_nrr == 0) {

@@ -22,6 +22,12 @@ ThreadTracker::create_thread(utils::Thread* main_thread) {
   m_thread_tracker.load()->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
 }
 
+void
+ThreadTracker::destroy_thread() {
+  delete m_thread_tracker;
+  m_thread_tracker = nullptr;
+}
+
 ThreadTracker*
 ThreadTracker::thread_tracker() {
   return m_thread_tracker;
@@ -40,8 +46,6 @@ ThreadTracker::init_thread() {
 
 void
 ThreadTracker::cleanup_thread() {
-  m_thread_tracker = nullptr;
-
   m_tracker_manager.reset();
 }
 

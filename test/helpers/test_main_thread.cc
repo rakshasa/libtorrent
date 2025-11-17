@@ -83,7 +83,7 @@ TestFixtureWithMainAndDiskThread::setUp() {
 void
 TestFixtureWithMainAndDiskThread::tearDown() {
   torrent::thread_disk()->stop_thread_wait();
-  delete torrent::thread_disk();
+  torrent::ThreadDisk::destroy_thread();
 
   m_main_thread.reset();
 
@@ -108,7 +108,7 @@ TestFixtureWithMainAndTrackerThread::setUp() {
 void
 TestFixtureWithMainAndTrackerThread::tearDown() {
   torrent::thread_tracker()->stop_thread_wait();
-  delete torrent::thread_tracker();
+  torrent::ThreadTracker::destroy_thread();
 
   m_main_thread.reset();
 
@@ -140,8 +140,8 @@ TestFixtureWithMainNetTrackerThread::tearDown() {
   torrent::thread_tracker()->stop_thread_wait();
   torrent::net_thread::thread()->stop_thread_wait();
 
-  delete torrent::net_thread::thread();
-  delete torrent::thread_tracker();
+  torrent::ThreadTracker::destroy_thread();
+  torrent::ThreadNet::destroy_thread();
 
   m_main_thread.reset();
 
