@@ -417,8 +417,13 @@ TrackerHttp::process_success(const Object& object) {
       state().m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
   }
 
-  if (!object.has_key("peers") && !object.has_key("peers6"))
-    return receive_failed("No peers returned");
+  if (!object.has_key("peers") && !object.has_key("peers6")) {
+    if (state().latest_event() != tracker::TrackerState::EVENT_STOPPED)
+      return receive_failed("No peers returned");
+
+    close_directly();
+    m_slot_success(AddressList());
+  }
 
   AddressList l;
 

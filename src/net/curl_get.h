@@ -105,6 +105,8 @@ private:
 
   static size_t       receive_write(const char* data, size_t size, size_t nmemb, CurlGet* handle);
 
+  bool                prepare_resolve(resolve_type current_resolve);
+
   mutable std::mutex  m_mutex;
 
   CURL*               m_handle{};
