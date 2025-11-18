@@ -45,6 +45,8 @@ sa_unique_ptr   sa_copy_in6(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_copy_addr(const sockaddr* sa, uint16_t port = 0) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_copy_addr_in(const sockaddr_in* sa, uint16_t port = 0) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_copy_addr_in6(const sockaddr_in6* sa, uint16_t port = 0) LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_copy_unmapped(const sockaddr* sa) LIBTORRENT_EXPORT;
+
 sin_unique_ptr  sin_copy(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 sin6_unique_ptr sin6_copy(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 

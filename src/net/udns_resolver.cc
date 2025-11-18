@@ -2,6 +2,7 @@
 
 #include "net/udns_resolver.h"
 
+#include <cassert>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -12,6 +13,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/thread.h"
 
 #define LT_LOG(log_fmt, ...)                                \
   lt_log_print_subsystem(LOG_NET_DNS, "dns", log_fmt, __VA_ARGS__);
@@ -48,18 +50,43 @@ UdnsResolver::UdnsResolver() {
     m_initialized = true;
   }
 
-  // Contexts are not thread-safe.
-  m_ctx = ::dns_new(nullptr);
-  m_fileDesc = ::dns_open(m_ctx);
-
-  if (m_fileDesc == -1)
-    throw internal_error("dns_init failed");
-
   m_task_timeout.slot() = [this]() { process_timeouts(); };
 }
 
 UdnsResolver::~UdnsResolver() {
+  assert(m_fileDesc == -1 && "UdnsResolver::~UdnsResolver() m_fileDesc != -1.");
+}
+
+void
+UdnsResolver::initialize(utils::Thread* thread) {
+  assert(std::this_thread::get_id() == thread->thread_id());
+
+  LT_LOG("initializing udns resolver: thread:%s", thread->name());
+
+  m_thread   = thread;
+  m_ctx      = ::dns_new(nullptr);
+  m_fileDesc = ::dns_open(m_ctx);
+
+  if (m_fileDesc == -1)
+    throw internal_error("UdnsResolver::initialize() dns_open failed");
+
+  torrent::this_thread::poll()->open(this);
+}
+
+void
+UdnsResolver::cleanup() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   this_thread::scheduler()->erase(&m_task_timeout);
+
+  if (m_fileDesc == -1) {
+    LT_LOG("cleanup not needed, not initialized: thread:%s", m_thread->name());
+    return;
+  }
+
+  LT_LOG("cleaning up: thread:%s", m_thread->name());
+
+  this_thread::poll()->remove_and_close(this);
 
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
@@ -69,6 +96,8 @@ UdnsResolver::~UdnsResolver() {
 
 void
 UdnsResolver::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   auto query = std::make_unique<Query>();
 
   query->requester = requester;
@@ -95,6 +124,8 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       // query internally so we can call the callback later with a failure code.
       query->error_sin = EAI_NONAME;
 
+      process_timeouts();
+
       auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.emplace(requester, std::move(query));
 
@@ -110,15 +141,17 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
     if (query->a6_query == nullptr) {
       LT_LOG("malformed AAAA query : requester:%p name:%s", requester, hostname.c_str());
 
-      if (::dns_status(m_ctx) != DNS_E_BADQUERY)
-        throw new internal_error("dns_submit_a6 failed");
-
       if (query->a4_query != nullptr) {
         ::dns_cancel(m_ctx, query->a4_query);
         query->a4_query = nullptr;
       }
 
+      if (::dns_status(m_ctx) != DNS_E_BADQUERY)
+        throw new internal_error("dns_submit_a6 failed");
+
       query->error_sin = EAI_NONAME;
+
+      process_timeouts();
 
       auto lock = std::scoped_lock(m_mutex);
       m_malformed_queries.emplace(requester, std::move(query));
@@ -129,12 +162,16 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
   LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
 
+  process_timeouts();
+
   auto lock = std::scoped_lock(m_mutex);
   m_queries.emplace(requester, std::move(query));
 }
 
 bool
 UdnsResolver::try_resolve_numeric(std::unique_ptr<Query>& query) {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
   addrinfo hints{};
   addrinfo* result;
 
@@ -197,30 +234,29 @@ UdnsResolver::cancel(void* requester) {
 
 void
 UdnsResolver::flush() {
-  {
-    auto lock = std::scoped_lock(m_mutex);
-    auto malformed_queries = std::move(m_malformed_queries);
+  assert(std::this_thread::get_id() == m_thread->thread_id());
 
-    for (auto& query : malformed_queries) {
-      if (query.second->canceled)
-        continue;
+  auto lock = std::scoped_lock(m_mutex);
+  auto malformed_queries = std::move(m_malformed_queries);
 
-      LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
+  for (auto& query : malformed_queries) {
+    if (query.second->canceled)
+      continue;
 
-      int error = query.second->error_sin != 0 ? query.second->error_sin : query.second->error_sin6;
-      if (error == 0)
-        throw internal_error("attempting to flush malformed query with no error");
+    LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
 
-      query.second->callback(nullptr, nullptr, error);
-    }
+    int error = query.second->error_sin != 0 ? query.second->error_sin : query.second->error_sin6;
+    if (error == 0)
+      throw internal_error("attempting to flush malformed query with no error");
+
+    query.second->callback(nullptr, nullptr, error);
   }
-
-  process_timeouts();
 }
 
 void
 UdnsResolver::event_read() {
   ::dns_ioevent(m_ctx, 0);
+  process_timeouts();
 }
 
 void
@@ -231,6 +267,7 @@ UdnsResolver::event_write() {
 void
 UdnsResolver::event_error() {
   // TODO: Handle error.
+  process_timeouts();
 }
 
 std::unique_ptr<UdnsResolver::Query>
@@ -272,13 +309,31 @@ UdnsResolver::find_malformed_query(Query* query) {
 
 void
 UdnsResolver::process_timeouts() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
+  if (m_processing_timeouts)
+    return;
+
+  m_processing_timeouts = true;
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
+  m_processing_timeouts = false;
+
+  // TODO: We shouldn't remove from error events.
 
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
     this_thread::poll()->remove_error(this);
+
+    this_thread::scheduler()->erase(&m_task_timeout);
+
+    LT_LOG("processing timeouts, no pending queries", 0);
     return;
   }
+
+  if (timeout <= 0)
+    throw internal_error("UdnsResolver::process_timeouts() dns_timeouts returned invalid timeout: " + std::to_string(timeout));
+
+  LT_LOG("processing timeouts, next in %d seconds", timeout);
 
   this_thread::poll()->insert_read(this);
   this_thread::poll()->insert_error(this);
@@ -289,8 +344,7 @@ UdnsResolver::process_timeouts() {
 void
 UdnsResolver::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void *data) {
   auto query = static_cast<UdnsResolver::Query*>(data);
-
-  auto lock = std::scoped_lock(query->parent->m_mutex);
+  auto lock  = std::scoped_lock(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("A records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
@@ -298,9 +352,11 @@ UdnsResolver::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, vo
   }
 
   auto itr = query->parent->find_query(static_cast<UdnsResolver::Query*>(data));
+
   if (itr == query->parent->m_queries.end())
     throw internal_error("UdnsResolver::a4_callback_wrapper called with invalid query");
 
+  // TODO: Verify...
   query->a4_query = nullptr;
 
   if (result == nullptr || result->dnsa4_nrr == 0) {
@@ -325,8 +381,7 @@ UdnsResolver::a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, vo
 void
 UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
   auto query = static_cast<UdnsResolver::Query*>(data);
-
-  auto lock = std::scoped_lock(query->parent->m_mutex);
+  auto lock  = std::scoped_lock(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("AAAA records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
@@ -334,6 +389,7 @@ UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, vo
   }
 
   auto itr = query->parent->find_query(query);
+
   if (itr == query->parent->m_queries.end())
     throw internal_error("UdnsResolver::a6_callback_wrapper called with invalid query");
 
@@ -360,8 +416,12 @@ UdnsResolver::a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, vo
 
 void
 UdnsResolver::process_result(query_map::iterator itr) {
-  if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr)
+  itr->second->parent->process_timeouts();
+
+  if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr) {
+    LT_LOG("processing results, waiting for other queries : requester:%p name:%s", itr->second->requester, itr->second->hostname.c_str());
     return;
+  }
 
   auto query = itr->second->parent->erase_query(itr);
 

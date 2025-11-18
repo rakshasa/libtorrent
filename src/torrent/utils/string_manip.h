@@ -1,84 +1,21 @@
-#ifndef LIBTORRENT_TORRENT_UTILS_STRING_H
-#define LIBTORRENT_TORRENT_UTILS_STRING_H
+#ifndef LIBTORRENT_TORRENT_UTILS_STRING_MANIP_H
+#define LIBTORRENT_TORRENT_UTILS_STRING_MANIP_H
 
 #include <string>
+#include <torrent/common.h>
 
 namespace torrent::utils {
 
-std::string
-trim_string(const std::string& str) {
-  std::string::size_type pos{};
-  std::string::size_type end{str.length()};
+// TODO: Deprecate trim_string and sanitize_string.
 
-  while (pos != end && str[pos] >= ' ' && str[pos] <= '~')
-    pos++;
+std::string trim_string(const std::string& str) LIBTORRENT_EXPORT;
 
-  while (end != pos && str[end - 1] >= ' ' && str[end - 1] <= '~')
-    end--;
+std::string string_with_escape_codes(const std::string& str) LIBTORRENT_EXPORT;
 
-  return str.substr(pos, end - pos);
-}
-
-std::string
-sanitize_string(const std::string& str) {
-  std::string result;
-  bool        unprintable{};
-  bool        space{};
-
-  for (auto c : str) {
-    if (c < ' ' || c > '~') {
-      if (c == '\n' || c == '\r' || c == '\t') {
-        if (!space && !unprintable)
-          result += ' ';
-
-        space = true;
-        continue;
-      }
-
-      if (!unprintable)
-        result += '*';
-
-      unprintable = true;
-      space = false;
-      continue;
-    }
-
-    result += c;
-    unprintable = false;
-    space = false;
-  }
-
-  return trim_string(result);
-}
-
-std::string
-sanitize_string_with_tags(const std::string& str) {
-  bool        in_tag{};
-  std::string result;
-  std::string sanitized = sanitize_string(str);
-
-  for (auto c : sanitized) {
-    if (c == '>') {
-      in_tag = false;
-      continue;
-    }
-
-    if (in_tag || c == '<') {
-      in_tag = true;
-      continue;
-    }
-
-    result += c;
-  }
-
-  result = trim_string(result);
-
-  if (result.empty())
-    return trim_string(sanitized);
-
-  return result;
-}
+std::string sanitize_string(const std::string& str) LIBTORRENT_EXPORT;
+std::string sanitize_string_with_escape_codes(const std::string& str) LIBTORRENT_EXPORT;
+std::string sanitize_string_with_tags(const std::string& str) LIBTORRENT_EXPORT;
 
 } // namespace torrent::utils
 
-#endif // LIBTORRENT_TORRENT_UTILS_STRINGSTRING
+#endif // LIBTORRENT_TORRENT_UTILS_STRING_MANIP_H

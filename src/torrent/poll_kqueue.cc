@@ -17,6 +17,8 @@
 
 // TODO: Change to LOG_CONNECTION_POLL
 
+// TODO: Optimize table memory size, and add a reference to Event for direct lookup.
+
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
@@ -35,9 +37,9 @@ public:
   static constexpr uint32_t flag_error = (1 << 2);
 
   inline uint32_t     event_mask(Event* e);
+  inline uint32_t     event_mask_any(int fd);
   inline void         set_event_mask(Event* e, uint32_t m);
 
-  void                flush_events();
   void                modify(torrent::Event* event, unsigned short op, short mask);
 
   int                 m_fd;
@@ -53,35 +55,41 @@ public:
 
 inline uint32_t
 PollInternal::event_mask(Event* e) {
-  assert(e->file_descriptor() != -1);
+  if (e->file_descriptor() == -1)
+    throw internal_error("PollInternal::event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
 
-  Table::value_type entry = m_table[e->file_descriptor()];
-  return entry.second != e ? 0 : entry.first;
+  if (static_cast<unsigned int>(e->file_descriptor()) >= m_table.size())
+    throw internal_error("PollInternal::event_mask() file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
+
+  if (e != m_table[e->file_descriptor()].second)
+    throw internal_error("PollInternal::event_mask() event mismatch: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
+
+  return m_table[e->file_descriptor()].first;
+}
+
+inline uint32_t
+PollInternal::event_mask_any(int fd) {
+  if (fd == -1)
+    throw internal_error("PollInternal::event_mask_any() invalid file descriptor for event");
+
+  if (static_cast<unsigned int>(fd) >= m_table.size())
+    throw internal_error("PollInternal::event_mask_any() file descriptor out of range: fd:" + std::to_string(fd));
+
+  return m_table[fd].first;
 }
 
 inline void
 PollInternal::set_event_mask(Event* e, uint32_t m) {
-  assert(e->file_descriptor() != -1);
+  if (e->file_descriptor() == -1)
+    throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
+
+  if (static_cast<unsigned int>(e->file_descriptor()) >= m_table.size())
+    throw internal_error("PollInternal::set_event_mask() file descriptor out of range: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
+
+  if (e != m_table[e->file_descriptor()].second)
+    throw internal_error("PollInternal::set_event_mask() event mismatch: name:" + std::string(e->type_name()) + " fd:" + std::to_string(e->file_descriptor()));
 
   m_table[e->file_descriptor()] = Table::value_type(m, e);
-}
-
-void
-PollInternal::flush_events() {
-  timespec timeout = { 0, 0 };
-
-  int nfds = ::kevent(m_fd,
-                      m_changes.get(),
-                      m_changed_events,
-                      m_events.get() + m_waiting_events,
-                      m_max_events - m_waiting_events,
-                      &timeout);
-
-  if (nfds == -1)
-    throw internal_error("PollInternal::flush_events() error: " + std::string(std::strerror(errno)));
-
-  m_changed_events = 0;
-  m_waiting_events += nfds;
 }
 
 void
@@ -107,7 +115,7 @@ Poll::create() {
   auto socket_open_max = sysconf(_SC_OPEN_MAX);
 
   if (socket_open_max == -1)
-    throw internal_error("Poll::create(): sysconf(_SC_OPEN_MAX) failed: " + std::string(std::strerror(errno)));
+    throw internal_error("Poll::create() : sysconf(_SC_OPEN_MAX) failed: " + std::string(std::strerror(errno)));
 
   int fd = kqueue();
 
@@ -123,6 +131,7 @@ Poll::create() {
   poll->m_internal->m_events = std::make_unique<struct kevent[]>(poll->m_internal->m_max_events);
 
   // TODO: Dynamically resize.
+  // !!!!! check if correct size
   poll->m_internal->m_changes = std::make_unique<struct kevent[]>(socket_open_max);
 
   return std::unique_ptr<Poll>(poll);
@@ -140,7 +149,7 @@ Poll::do_poll(int64_t timeout_usec) {
 
   if (status == -1) {
     if (errno != EINTR)
-      throw internal_error("Poll::work(): " + std::string(std::strerror(errno)));
+      throw internal_error("Poll::work() " + std::string(std::strerror(errno)));
 
     return 0;
   }
@@ -155,8 +164,8 @@ Poll::poll(int timeout_usec) {
   int nfds = ::kevent(m_internal->m_fd,
                       m_internal->m_changes.get(),
                       m_internal->m_changed_events,
-                      m_internal->m_events.get() + m_internal->m_waiting_events,
-                      m_internal->m_max_events - m_internal->m_waiting_events,
+                      m_internal->m_events.get(),
+                      m_internal->m_max_events,
                       &timeout);
 
   // Clear the changed events even on fail as we might have received a
@@ -170,7 +179,7 @@ Poll::poll(int timeout_usec) {
   if (nfds == -1)
     return -1;
 
-  m_internal->m_waiting_events += nfds;
+  m_internal->m_waiting_events = nfds;
   return nfds;
 }
 
@@ -180,7 +189,7 @@ Poll::process() {
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
     if (itr->ident >= m_internal->m_table.size())
-      throw internal_error("Poll::process(): received ident out of range: " + std::to_string(itr->ident));
+      throw internal_error("Poll::process() received ident out of range: " + std::to_string(itr->ident));
 
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
@@ -235,8 +244,10 @@ void
 Poll::open(Event* event) {
   LT_LOG_EVENT("open event", 0);
 
-  if (m_internal->event_mask(event) != 0)
-    throw internal_error("Poll::open(...) called but the file descriptor is active");
+  if (m_internal->event_mask_any(event->file_descriptor()) != 0)
+    throw internal_error("Poll::open() called but the file descriptor is active");
+
+  m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type(0, event);
 }
 
 void
@@ -244,7 +255,7 @@ Poll::close(Event* event) {
   LT_LOG_EVENT("close event", 0);
 
   if (m_internal->event_mask(event) != 0)
-    throw internal_error("Poll::close(...) called but the file descriptor is active");
+    throw internal_error("Poll::close() called but the file descriptor is active");
 
   m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
@@ -265,31 +276,6 @@ Poll::close(Event* event) {
   // remove_read/write/error.
 }
 
-void
-Poll::cleanup_closed(Event* event) {
-  LT_LOG_EVENT("cleanup_closed event", 0);
-
-  // if (m_internal->event_mask(event) != 0)
-  //   throw internal_error("Poll::cleanup_closed(...) called but the file descriptor is active");
-
-  // Kernel removes closed FDs automatically, so just clear the mask
-  // and remove it from pending calls.  Don't touch if the FD was
-  // re-used before we received the close notification.
-  if (m_internal->m_table[event->file_descriptor()].second == event)
-    m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
-
-  auto last_itr = std::remove_if(m_internal->m_changes.get(),
-                                 m_internal->m_changes.get() + m_internal->m_changed_events,
-                                 [event](const struct kevent& ke) { return ke.udata == event; });
-
-  m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
-
-  // Clear the event list just in case we open a new socket with the
-  // same fd while in the middle of calling Poll::perform.
-  //
-  // Removed.
-}
-
 bool
 Poll::in_read(Event* event) {
   return m_internal->event_mask(event) & PollInternal::flag_read;
@@ -307,23 +293,31 @@ Poll::in_error(Event* event) {
 
 void
 Poll::insert_read(Event* event) {
-  if (m_internal->event_mask(event) & PollInternal::flag_read)
+  auto event_mask = m_internal->event_mask(event);
+
+  if (event_mask & PollInternal::flag_read) {
+    LT_LOG_EVENT("insert read: already in read", 0);
     return;
+  }
 
   LT_LOG_EVENT("insert read", 0);
 
-  m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_read);
+  m_internal->set_event_mask(event, event_mask | PollInternal::flag_read);
   m_internal->modify(event, EV_ADD, EVFILT_READ);
 }
 
 void
 Poll::insert_write(Event* event) {
-  if (m_internal->event_mask(event) & PollInternal::flag_write)
+  auto event_mask = m_internal->event_mask(event);
+
+  if (event_mask & PollInternal::flag_write) {
+    LT_LOG_EVENT("insert write: already in write", 0);
     return;
+  }
 
   LT_LOG_EVENT("insert write", 0);
 
-  m_internal->set_event_mask(event, m_internal->event_mask(event) | PollInternal::flag_write);
+  m_internal->set_event_mask(event, event_mask | PollInternal::flag_write);
   m_internal->modify(event, EV_ADD, EVFILT_WRITE);
 }
 
@@ -334,23 +328,31 @@ Poll::insert_error(Event* event) {
 
 void
 Poll::remove_read(Event* event) {
-  if (!(m_internal->event_mask(event) & PollInternal::flag_read))
+  auto event_mask = m_internal->event_mask(event);
+
+  if (!(event_mask & PollInternal::flag_read)) {
+    LT_LOG_EVENT("remove read: not in read", 0);
     return;
+  }
 
   LT_LOG_EVENT("remove read", 0);
 
-  m_internal->set_event_mask(event, m_internal->event_mask(event) & ~PollInternal::flag_read);
+  m_internal->set_event_mask(event, event_mask & ~PollInternal::flag_read);
   m_internal->modify(event, EV_DELETE, EVFILT_READ);
 }
 
 void
 Poll::remove_write(Event* event) {
-  if (!(m_internal->event_mask(event) & PollInternal::flag_write))
+  auto event_mask = m_internal->event_mask(event);
+
+  if (!(event_mask & PollInternal::flag_write)) {
+    LT_LOG_EVENT("remove write: not in write", 0);
     return;
+  }
 
   LT_LOG_EVENT("remove write", 0);
 
-  m_internal->set_event_mask(event, m_internal->event_mask(event) & ~PollInternal::flag_write);
+  m_internal->set_event_mask(event, event_mask & ~PollInternal::flag_write);
   m_internal->modify(event, EV_DELETE, EVFILT_WRITE);
 }
 

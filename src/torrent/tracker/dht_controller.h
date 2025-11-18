@@ -62,7 +62,7 @@ public:
 
   // Add a node by host (from a torrent file), or by address from explicit add_node
   // command or the BT PORT message.
-  void                add_node(const std::string& host, int port);
+  void                add_bootstrap_node(std::string host, int port);
   void                add_node(const sockaddr* sa, int port);
 
   statistics_type     get_statistics();

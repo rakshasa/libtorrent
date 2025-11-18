@@ -66,6 +66,7 @@ public:
 
   virtual void        init_thread() = 0;
   void                init_thread_local();
+  virtual void        init_thread_post_local();
 
   // It is assumed that any thread-specific resources no longer are accessed at the time
   // cleanup_thread is called, or that those resources remain safe to call.

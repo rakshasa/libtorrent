@@ -5,6 +5,7 @@
 #include "dht/dht_router.h"
 #include "manager.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/network_manager.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
@@ -14,19 +15,21 @@
 
 namespace torrent {
 
-bool TrackerDht::is_allowed() { return manager->dht_controller()->is_valid(); }
+TrackerDht::TrackerDht(const TrackerInfo& info, int flags)
+  : TrackerWorker(info, flags) {
 
-TrackerDht::TrackerDht(const TrackerInfo& info, int flags) :
-  TrackerWorker(info, flags)
-  {
-
-  if (!manager->dht_controller()->is_valid())
+  if (!runtime::network_manager()->dht_controller()->is_valid())
     throw internal_error("Trying to add DHT tracker with no DHT manager.");
 }
 
 TrackerDht::~TrackerDht() {
   if (m_dht_state != state_idle)
-    manager->dht_controller()->cancel_announce(NULL, this);
+    runtime::network_manager()->dht_controller()->cancel_announce(NULL, this);
+}
+
+bool
+TrackerDht::is_allowed() {
+  return runtime::network_manager()->dht_controller()->is_valid();
 }
 
 bool
@@ -36,7 +39,7 @@ TrackerDht::is_busy() const {
 
 bool
 TrackerDht::is_usable() const {
-  return state().is_enabled() && manager->dht_controller()->is_active();
+  return state().is_enabled() && runtime::network_manager()->dht_controller()->is_active();
 }
 
 
@@ -58,7 +61,7 @@ TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
   close();
 
   if (m_dht_state != state_idle) {
-    manager->dht_controller()->cancel_announce(&info().info_hash, this);
+    runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
 
     if (m_dht_state != state_idle)
       throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
@@ -71,10 +74,10 @@ TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
 
   m_dht_state = state_searching;
 
-  if (!manager->dht_controller()->is_active())
+  if (!runtime::network_manager()->dht_controller()->is_active())
     return receive_failed("DHT server not active.");
 
-  manager->dht_controller()->announce(info().info_hash, this);
+  runtime::network_manager()->dht_controller()->announce(info().info_hash, this);
 
   state().set_normal_interval(20 * 60);
   state().set_min_interval(0);
@@ -93,7 +96,7 @@ TrackerDht::close() {
   m_slot_close();
 
   if (m_dht_state != state_idle)
-    manager->dht_controller()->cancel_announce(&info().info_hash, this);
+    runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
 }
 
 tracker_enum

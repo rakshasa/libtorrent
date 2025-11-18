@@ -20,7 +20,6 @@
 #include "torrent/throttle.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/network_manager.h"
-#include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
@@ -45,7 +44,6 @@ namespace this_thread {
 void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
 void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
 void event_close_and_count(Event* event)  { utils::ThreadInternal::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
-void event_closed_and_count(Event* event) { utils::ThreadInternal::poll()->cleanup_closed(event); manager->connection_manager()->dec_socket_count(); }
 void event_insert_read(Event* event)      { utils::ThreadInternal::poll()->insert_read(event); }
 void event_insert_write(Event* event)     { utils::ThreadInternal::poll()->insert_write(event); }
 void event_insert_error(Event* event)     { utils::ThreadInternal::poll()->insert_error(event); }
@@ -68,7 +66,6 @@ Manager::Manager()
     m_resource_manager(new ResourceManager),
 
     m_client_list(new ClientList),
-    m_dht_controller(new tracker::DhtController),
 
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
@@ -94,17 +91,11 @@ Manager::~Manager() {
 
   m_handshake_manager->clear();
   m_download_manager->clear();
-  m_dht_controller.reset();
 
   Throttle::destroy_throttle(m_uploadThrottle);
   Throttle::destroy_throttle(m_downloadThrottle);
 
   instrumentation_tick();
-}
-
-void
-Manager::cleanup() {
-  m_dht_controller->stop();
 }
 
 void

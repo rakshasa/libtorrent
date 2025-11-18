@@ -23,6 +23,12 @@ ThreadDisk::create_thread() {
   m_thread_disk = new ThreadDisk;
 }
 
+void
+ThreadDisk::destroy_thread() {
+  delete m_thread_disk;
+  m_thread_disk = nullptr;
+}
+
 ThreadDisk*
 ThreadDisk::thread_disk() {
   return m_thread_disk;
@@ -42,8 +48,6 @@ ThreadDisk::init_thread() {
 
 void
 ThreadDisk::cleanup_thread() {
-  m_thread_disk = nullptr;
-
   assert(m_hash_check_queue.empty() && "ThreadDisk::cleanup_thread(): m_hash_check_queue not empty.");
 }
 

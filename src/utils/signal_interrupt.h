@@ -20,6 +20,8 @@ public:
 
   void                poke();
 
+  const char*         type_name() const override;
+
   void                event_read() override;
   void                event_write() override;
   void                event_error() override;

@@ -50,10 +50,10 @@ private:
   net::HttpGet                       m_get;
   std::shared_ptr<std::stringstream> m_data;
 
-  bool                  m_drop_deliminator;
+  bool                  m_drop_deliminator{};
   std::string           m_current_tracker_id;
 
-  bool                  m_requested_scrape;
+  bool                  m_requested_scrape{};
   utils::SchedulerEntry m_delay_scrape;
 };
 

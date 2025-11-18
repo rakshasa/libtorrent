@@ -129,7 +129,7 @@ sa_length(const sockaddr* sa) {
   case AF_UNIX:
     return sizeof(sockaddr_un);
   default:
-    throw internal_error("torrent::sa_length: sockaddr is not a valid family");
+    throw internal_error("torrent::sa_length() sockaddr is not a valid family");
   }
 }
 
@@ -175,7 +175,7 @@ sa_make_inet6_any() {
 sa_unique_ptr
 sa_make_unix(const std::string& pathname) {
   if (!pathname.empty())
-    throw internal_error("torrent::sa_make_unix: function not implemented");
+    throw internal_error("torrent::sa_make_unix() function not implemented");
 
   sun_unique_ptr sunp(new sockaddr_un{});
 
@@ -201,14 +201,14 @@ sa_convert(const sockaddr* sa) {
   case AF_UNSPEC:
     return sa_make_unspec();
   default:
-    throw internal_error("torrent::sa_convert: sockaddr is not a valid family");
+    throw internal_error("torrent::sa_convert() sockaddr is not a valid family");
   }
 }
 
 sa_unique_ptr
 sa_copy(const sockaddr* sa) {
   if (sa == nullptr)
-    throw internal_error("torrent::sa_copy: sockaddr is a nullptr");
+    throw internal_error("torrent::sa_copy() sockaddr is a nullptr");
 
   switch(sa->sa_family) {
   case AF_INET:
@@ -218,7 +218,7 @@ sa_copy(const sockaddr* sa) {
   case AF_UNSPEC:
     return sa_make_unspec();
   default:
-    throw internal_error("torrent::sa_copy: sockaddr is not a valid family");
+    throw internal_error("torrent::sa_copy() sockaddr is not a valid family");
   }
 }
 
@@ -239,7 +239,7 @@ sa_copy_in6(const sockaddr_in6* sa) {
 sa_unique_ptr
 sa_copy_addr(const sockaddr* sa, uint16_t port) {
   if (sa == nullptr)
-    throw internal_error("torrent::sa_copy_addr: sockaddr is a nullptr");
+    throw internal_error("torrent::sa_copy_addr() sockaddr is a nullptr");
 
   switch(sa->sa_family) {
   case AF_INET:
@@ -249,7 +249,7 @@ sa_copy_addr(const sockaddr* sa, uint16_t port) {
   case AF_UNSPEC:
     return sa_make_unspec();
   default:
-    throw internal_error("torrent::sa_copy_addr: sockaddr is not a valid family");
+    throw internal_error("torrent::sa_copy_addr() sockaddr is not a valid family");
   }
 }
 
@@ -269,6 +269,26 @@ sa_copy_addr_in6(const sockaddr_in6* sa, uint16_t port) {
   std::memcpy(&reinterpret_cast<sockaddr_in6*>(result.get())->sin6_addr, &sa->sin6_addr, sizeof(in6_addr));
   reinterpret_cast<sockaddr_in6*>(result.get())->sin6_port = htons(port);
   return result;
+}
+
+sa_unique_ptr
+sa_copy_unmapped(const sockaddr* sa) {
+  if (sa == nullptr)
+    throw internal_error("torrent::sa_copy_unmapped() sockaddr is a nullptr");
+
+  switch(sa->sa_family) {
+  case AF_INET:
+    return sa_copy_in(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    if (sin6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa)))
+      return sa_from_v4mapped_in6(reinterpret_cast<const sockaddr_in6*>(sa));
+
+    return sa_copy_in6(reinterpret_cast<const sockaddr_in6*>(sa));
+  case AF_UNSPEC:
+    return sa_make_unspec();
+  default:
+    throw internal_error("torrent::sa_copy_unmapped() sockaddr is not a valid family");
+  }
 }
 
 sin_unique_ptr
@@ -304,7 +324,7 @@ sa_free(const sockaddr* sa) {
     delete reinterpret_cast<const sockaddr_un*>(sa);
     break;
   default:
-    throw internal_error("torrent::sa_free: invalid family type");
+    throw internal_error("torrent::sa_free() invalid family type");
   }
 }
 
@@ -371,7 +391,7 @@ sin6_make_any() {
 sa_unique_ptr
 sa_from_v4mapped(const sockaddr* sa) {
   if (!sa_is_inet6(sa))
-    throw internal_error("torrent::sa_from_v4mapped: sockaddr is not inet6");
+    throw internal_error("torrent::sa_from_v4mapped() sockaddr is not inet6");
 
   return sa_from_in(sin_from_v4mapped_in6(reinterpret_cast<const sockaddr_in6*>(sa)));
 }
@@ -379,7 +399,7 @@ sa_from_v4mapped(const sockaddr* sa) {
 sa_unique_ptr
 sa_to_v4mapped(const sockaddr* sa) {
   if (!sa_is_inet(sa))
-    throw internal_error("torrent::sa_to_v4mapped: sockaddr is not inet");
+    throw internal_error("torrent::sa_to_v4mapped() sockaddr is not inet");
 
   return sa_from_in6(sin6_to_v4mapped_in(reinterpret_cast<const sockaddr_in*>(sa)));
 }
@@ -387,7 +407,7 @@ sa_to_v4mapped(const sockaddr* sa) {
 sin_unique_ptr
 sin_from_v4mapped_in6(const sockaddr_in6* sin6) {
   if (!sin6_is_v4mapped(sin6))
-    throw internal_error("torrent::sin6_is_v4mapped: sockaddr_in6 is not v4mapped");
+    throw internal_error("torrent::sin6_is_v4mapped() sockaddr_in6 is not v4mapped");
 
   sin_unique_ptr result = sin_make();
   result->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sin6, 3)));
@@ -409,7 +429,7 @@ sin6_to_v4mapped_in(const sockaddr_in* sin) {
 sin_unique_ptr
 sin_from_sa(sa_unique_ptr sap) {
   if (!sap_is_inet(sap))
-    throw internal_error("torrent::sin_from_sa: sockaddr is nullptr or not inet");
+    throw internal_error("torrent::sin_from_sa() sockaddr is nullptr or not inet");
 
   return sin_unique_ptr(reinterpret_cast<sockaddr_in*>(sap.release()));
 }
@@ -417,7 +437,7 @@ sin_from_sa(sa_unique_ptr sap) {
 sin6_unique_ptr
 sin6_from_sa(sa_unique_ptr sap) {
   if (!sap_is_inet6(sap))
-    throw internal_error("torrent::sin6_from_sa: sockaddr is nullptr or not inet6");
+    throw internal_error("torrent::sin6_from_sa() sockaddr is nullptr or not inet6");
 
   return sin6_unique_ptr(reinterpret_cast<sockaddr_in6*>(sap.release()));
 }
@@ -425,7 +445,7 @@ sin6_from_sa(sa_unique_ptr sap) {
 c_sin_unique_ptr
 sin_from_c_sa(c_sa_unique_ptr sap) {
   if (!sap_is_inet(sap))
-    throw internal_error("torrent::sin_from_c_sa: sockaddr is nullptr or not inet");
+    throw internal_error("torrent::sin_from_c_sa() sockaddr is nullptr or not inet");
 
   return c_sin_unique_ptr(reinterpret_cast<const sockaddr_in*>(sap.release()));
 }
@@ -433,7 +453,7 @@ sin_from_c_sa(c_sa_unique_ptr sap) {
 c_sin6_unique_ptr
 sin6_from_c_sa(c_sa_unique_ptr sap) {
   if (!sap_is_inet6(sap))
-    throw internal_error("torrent::sin6_from_c_sa: sockaddr is nullptr or not inet6");
+    throw internal_error("torrent::sin6_from_c_sa() sockaddr is nullptr or not inet6");
 
   return c_sin6_unique_ptr(reinterpret_cast<const sockaddr_in6*>(sap.release()));
 }
@@ -469,7 +489,7 @@ sa_set_port(sockaddr* sa, uint16_t port) {
     reinterpret_cast<sockaddr_in6*>(sa)->sin6_port = htons(port);
     return;
   default:
-    throw internal_error("torrent::sa_set_port: invalid family type");
+    throw internal_error("torrent::sa_set_port() invalid family type");
   }
 }
 
@@ -481,7 +501,7 @@ sa_equal(const sockaddr* lhs, const sockaddr* rhs) {
   case AF_UNSPEC:
     break;
   default:
-    throw internal_error("torrent::sa_equal: rhs sockaddr is not a valid family");
+    throw internal_error("torrent::sa_equal() rhs sockaddr is not a valid family");
   }
 
   switch(lhs->sa_family) {
@@ -494,7 +514,7 @@ sa_equal(const sockaddr* lhs, const sockaddr* rhs) {
   case AF_UNSPEC:
     return lhs->sa_family == rhs->sa_family;
   default:
-    throw internal_error("torrent::sa_equal: lhs sockaddr is not a valid family");
+    throw internal_error("torrent::sa_equal() lhs sockaddr is not a valid family");
   }
 }
 
@@ -516,7 +536,7 @@ sa_equal_addr(const sockaddr* lhs, const sockaddr* rhs) {
   case AF_UNSPEC:
     break;
   default:
-    throw internal_error("torrent::sa_equal_addr: rhs sockaddr is not a valid family");
+    throw internal_error("torrent::sa_equal_addr() rhs sockaddr is not a valid family");
   }
 
   switch(lhs->sa_family) {
@@ -529,7 +549,7 @@ sa_equal_addr(const sockaddr* lhs, const sockaddr* rhs) {
   case AF_UNSPEC:
     return lhs->sa_family == rhs->sa_family;
   default:
-    throw internal_error("torrent::sa_equal_addr: lhs sockaddr is not a valid family");
+    throw internal_error("torrent::sa_equal_addr() lhs sockaddr is not a valid family");
   }
 }
 
@@ -614,7 +634,7 @@ sa_addr_str(const sockaddr* sa) {
   case AF_UNSPEC:
     return "";
   default:
-    throw internal_error("torrent::sa_addr_str: sockaddr is not a valid family");
+    throw internal_error("torrent::sa_addr_str() sockaddr is not a valid family");
   }
 }
 
@@ -623,7 +643,7 @@ sin_addr_str(const sockaddr_in* sa) {
   char buffer[INET_ADDRSTRLEN];
 
   if (inet_ntop(AF_INET, &sa->sin_addr, buffer, INET_ADDRSTRLEN) == NULL)
-    throw internal_error("torrent::sin_addr_str: inet_ntop failed");
+    throw internal_error("torrent::sin_addr_str() inet_ntop failed");
 
   return buffer;
 }
@@ -634,7 +654,7 @@ sin6_addr_str(const sockaddr_in6* sa) {
   char buffer[INET6_ADDRSTRLEN];
 
   if (inet_ntop(AF_INET6, &sa->sin6_addr, buffer, INET6_ADDRSTRLEN) == NULL)
-    throw internal_error("torrent::sin6_addr_str: inet_ntop failed");
+    throw internal_error("torrent::sin6_addr_str() inet_ntop failed");
 
   return buffer;
 }
@@ -718,7 +738,7 @@ sa_inet_union_from_sa(const sockaddr* sa) {
     su.inet6 = *reinterpret_cast<const sockaddr_in6*>(sa);
     return su;
   default:
-    throw internal_error("torrent::sa_inet_union_from_sa: sockaddr is not inet or inet6");
+    throw internal_error("torrent::sa_inet_union_from_sa() sockaddr is not inet or inet6");
   }
 }
 

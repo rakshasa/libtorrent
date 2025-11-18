@@ -23,6 +23,7 @@ public:
   ~ThreadTracker() override;
 
   static void           create_thread(utils::Thread* main_thread);
+  static void           destroy_thread();
   static ThreadTracker* thread_tracker();
 
   const char*           name() const override { return "rtorrent tracker"; }
