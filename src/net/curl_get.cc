@@ -60,13 +60,11 @@ CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   if (m_handle != nullptr)
     throw torrent::internal_error("CurlGet::reset() called on a stacked object.");
 
-  /////// ??? && !m_was_closed ???
   if (m_was_started)
     throw torrent::internal_error("CurlGet::reset() called on a started object.");
 
   m_url         = url;
   m_stream      = std::move(stream);
-  ///
   m_was_started = false;
   m_was_closed  = false;
 }
