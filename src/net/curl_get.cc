@@ -60,11 +60,13 @@ CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   if (m_handle != nullptr)
     throw torrent::internal_error("CurlGet::reset() called on a stacked object.");
 
+  /////// ??? && !m_was_closed ???
   if (m_was_started)
     throw torrent::internal_error("CurlGet::reset() called on a started object.");
 
   m_url         = url;
   m_stream      = std::move(stream);
+  ///
   m_was_started = false;
   m_was_closed  = false;
 }
@@ -97,8 +99,8 @@ void
 CurlGet::set_timeout(uint32_t seconds) {
   auto guard = lock_guard();
 
-  if (m_handle != nullptr || m_was_started)
-    throw torrent::internal_error("CurlGet::set_timeout(...) called on a stacked or started object.");
+  if (m_was_started)
+    throw torrent::internal_error("CurlGet::set_timeout(...) called on a started object.");
 
   m_timeout = seconds;
 }
@@ -107,31 +109,17 @@ void
 CurlGet::set_was_started() {
   auto guard = lock_guard();
 
-  if (m_handle != nullptr || m_was_started)
-    throw torrent::internal_error("CurlGet::set_was_started() called on a stacked or started object.");
+  if (m_was_started)
+    throw torrent::internal_error("CurlGet::set_was_started() called on an already started object.");
 
   m_was_started = true;
-}
-
-bool
-CurlGet::set_was_closed() {
-  auto guard = lock_guard();
-
-  if (m_was_closed)
-    throw torrent::internal_error("CurlGet::set_was_closed() called on a closed object.");
-
-  if (!m_was_started)
-    return false;
-
-  m_was_closed = true;
-  return true;
 }
 
 void
 CurlGet::set_initial_resolve(resolve_type type) {
   auto guard = lock_guard();
 
-  if (m_handle != nullptr || m_was_started)
+  if (m_was_started)
     throw torrent::internal_error("CurlGet::set_initial_resolve(...) called on a stacked or started object.");
 
   if (type == RESOLVE_NONE)
@@ -144,7 +132,7 @@ void
 CurlGet::set_retry_resolve(resolve_type type) {
   auto guard = lock_guard();
 
-  if (m_handle != nullptr || m_was_started)
+  if (m_was_started)
     throw torrent::internal_error("CurlGet::set_retry_resolve(...) called on a stacked or started object.");
 
   m_retry_resolve = type;
@@ -239,21 +227,10 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
   resolve_type current_resolve = m_initial_resolve;
 
-  switch (current_resolve) {
-  case RESOLVE_IPV4:
-    if (bind_inet_address == nullptr) {
-      current_resolve = m_retry_resolve;
-      m_retrying_resolve = true;
-    }
-    break;
-  case RESOLVE_IPV6:
-    if (bind_inet6_address == nullptr) {
-      current_resolve = m_retry_resolve;
-      m_retrying_resolve = true;
-    }
-    break;
-  default:
-    throw torrent::internal_error("CurlGet::prepare_start_unsafe() reached unreachable code with invalid current_resolve.");
+  if ((current_resolve == RESOLVE_IPV4 && bind_inet_address == nullptr) ||
+      (current_resolve == RESOLVE_IPV6 && bind_inet6_address == nullptr)) {
+    current_resolve = m_retry_resolve;
+    m_retrying_resolve = true;
   }
 
   try {
@@ -265,6 +242,8 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
       if (bind_inet_address->sa_family != AF_UNSPEC)
         curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet_address.get()).c_str());
+      else
+        curl_easy_setopt(m_handle, CURLOPT_INTERFACE, "0.0.0.0");
 
       curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
       return true;
@@ -275,6 +254,8 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
       if (bind_inet6_address->sa_family != AF_UNSPEC)
         curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet6_address.get()).c_str());
+      else
+        curl_easy_setopt(m_handle, CURLOPT_INTERFACE, "::");
 
       curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
       return true;

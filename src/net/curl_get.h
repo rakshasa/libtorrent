@@ -50,7 +50,6 @@ public:
 
   void                set_timeout(uint32_t seconds);
   void                set_was_started();
-  [[nodiscard]] bool  set_was_closed();
 
   void                set_initial_resolve(resolve_type type);
   void                set_retry_resolve(resolve_type type);
