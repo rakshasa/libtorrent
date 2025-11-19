@@ -2,7 +2,7 @@
 
 #ifdef USE_EPOLL
 
-#include "torrent/poll.h"
+#include "torrent/net/poll.h"
 
 #include <cassert>
 #include <cerrno>
