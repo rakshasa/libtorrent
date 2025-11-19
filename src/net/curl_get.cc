@@ -57,16 +57,14 @@ void
 CurlGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
   auto guard = lock_guard();
 
-  if (m_handle != nullptr)
-    throw torrent::internal_error("CurlGet::reset() called on a stacked object.");
-
   if (m_was_started)
     throw torrent::internal_error("CurlGet::reset() called on a started object.");
 
-  m_url         = url;
-  m_stream      = std::move(stream);
-  m_was_started = false;
-  m_was_closed  = false;
+  if (m_handle != nullptr)
+    throw torrent::internal_error("CurlGet::reset() called on a stacked object.");
+
+  m_url    = url;
+  m_stream = std::move(stream);
 }
 
 void
@@ -152,8 +150,12 @@ CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback
     callback_thread->cancel_callback(self);
 
   if (self->m_stack == nullptr) {
-    if (self->m_was_started)
-      self->m_was_closed = true;
+    if (self->m_was_started) {
+      self->m_was_started      = false;
+      self->m_was_closed       = false;
+      self->m_prepare_canceled = false;
+      self->m_retrying_resolve = false;
+    }
 
     return;
   }

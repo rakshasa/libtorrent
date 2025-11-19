@@ -112,6 +112,7 @@ private:
   CURL*               m_handle{};
   CurlStack*          m_stack{};
 
+  // TODO: Remove m_active.
   bool                m_active{};
   bool                m_prepare_canceled{};
   bool                m_was_started{};

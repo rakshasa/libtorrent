@@ -48,6 +48,11 @@ TrackerHttp::~TrackerHttp() {
   this_thread::scheduler()->erase(&m_delay_scrape);
 }
 
+tracker_enum
+TrackerHttp::type() const {
+  return TRACKER_HTTP;
+}
+
 bool
 TrackerHttp::is_busy() const {
   return m_data != nullptr;
@@ -61,8 +66,6 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   this_thread::scheduler()->erase(&m_delay_scrape);
 
   lock_and_set_latest_event(new_state);
-
-  m_get.try_wait_for_close();
 
   // TODO: Move to network config and add simple retry other AF logic.
 
@@ -97,6 +100,8 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   auto request_url = request_announce_url(new_state, params, family);
 
   m_data = std::make_unique<std::stringstream>();
+
+  m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
 
   // TODO: Should bind address here...
@@ -251,11 +256,6 @@ TrackerHttp::close() {
   m_requested_scrape = false;
 
   close_directly();
-}
-
-tracker_enum
-TrackerHttp::type() const {
-  return TRACKER_HTTP;
 }
 
 void
