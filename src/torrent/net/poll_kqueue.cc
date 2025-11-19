@@ -26,7 +26,7 @@
 // #define LT_LOG_DEBUG_IDENT(log_fmt, ...)                                \
 //   lt_log_print(LOG_CONNECTION_FD, "kqueue->%u: " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
 
-namespace torrent {
+namespace torrent::net {
 
 class PollInternal {
 public:

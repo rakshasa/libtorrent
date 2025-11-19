@@ -22,11 +22,11 @@
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
-#include "torrent/poll.h"
 #include "torrent/throttle.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/net/http_stack.h"
 #include "torrent/net/network_manager.h"
+#include "torrent/net/poll.h"
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
 

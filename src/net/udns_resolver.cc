@@ -10,8 +10,8 @@
 #include "net/udns/udns.h"
 #include "torrent/common.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/poll.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
 

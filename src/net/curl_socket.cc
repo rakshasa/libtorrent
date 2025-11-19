@@ -4,10 +4,10 @@
 
 #include <cassert>
 #include <curl/multi.h>
-#include <torrent/poll.h>
-#include <torrent/exceptions.h>
 
 #include "net/curl_stack.h"
+#include "torrent/net/poll.h"
+#include "torrent/exceptions.h"
 
 namespace torrent::net {
 

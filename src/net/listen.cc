@@ -5,8 +5,8 @@
 #include "manager.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll.h"
 #include "torrent/net/fd.h"
+#include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 

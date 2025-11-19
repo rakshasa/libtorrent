@@ -46,7 +46,7 @@ public:
   void                set_pre_stop()           { m_test_flags |= test_flag_pre_stop; }
   void                set_test_flag(int flags) { m_test_flags |= flags; }
 
-  torrent::Poll*      internal_poll() const    { return m_poll.get(); }
+  auto*               internal_poll() const    { return m_poll.get(); }
 
 private:
   test_thread();
