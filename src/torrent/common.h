@@ -68,7 +68,6 @@ class PeerConnectionBase;
 class PeerInfo;
 class PeerList;
 class Piece;
-class Poll;
 class ProtocolExtension;
 class Rate;
 class ResourceManager;
@@ -79,22 +78,29 @@ class TrackerList;
 class TransferList;
 
 namespace net {
+
 class HttpGet;
 class HttpStack;
 class NetworkConfig;
 class NetworkManager;
+class Poll;
 class Resolver;
+
 } // namespace net
 
 namespace tracker {
+
 class DhtController;
 class Tracker;
+
 } // namespace tracker
 
 namespace utils {
+
 class Scheduler;
 class SchedulerEntry;
 class Thread;
+
 } // namespace utils
 
 } // namespace torrent
@@ -132,7 +138,7 @@ void                      callback(void* target, std::function<void ()>&& fn);
 void                      cancel_callback(void* target);
 void                      cancel_callback_and_wait(void* target);
 
-Poll*                     poll() LIBTORRENT_EXPORT;
+net::Poll*                poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
 utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
 

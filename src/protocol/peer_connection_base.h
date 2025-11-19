@@ -9,9 +9,9 @@
 #include "protocol/peer_chunks.h"
 #include "protocol/protocol_base.h"
 #include "protocol/request_list.h"
-#include "torrent/poll.h"
-#include "torrent/peer/peer.h"
+#include "torrent/net/poll.h"
 #include "torrent/peer/choke_status.h"
+#include "torrent/peer/peer.h"
 
 namespace torrent {
 

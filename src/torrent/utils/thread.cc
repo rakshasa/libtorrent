@@ -8,8 +8,8 @@
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/net/poll.h"
 #include "torrent/net/resolver.h"
-#include "torrent/poll.h"
 #include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
@@ -23,7 +23,7 @@ thread_local Thread* Thread::m_self{nullptr};
 
 Thread::Thread() :
     m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
-    m_poll(Poll::create()),
+    m_poll(net::Poll::create()),
     m_scheduler(new Scheduler) {
 
   std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
@@ -297,7 +297,7 @@ void                      callback(void* target, std::function<void ()>&& fn) { 
 void                      cancel_callback(void* target)                       { utils::ThreadInternal::cancel_callback(target); }
 void                      cancel_callback_and_wait(void* target)              { utils::ThreadInternal::cancel_callback_and_wait(target); }
 
-Poll*                     poll()                                              { return utils::ThreadInternal::poll(); }
+net::Poll*                poll()                                              { return utils::ThreadInternal::poll(); }
 net::Resolver*            resolver()                                          { return utils::ThreadInternal::resolver(); }
 utils::Scheduler*         scheduler()                                         { return utils::ThreadInternal::scheduler(); }
 

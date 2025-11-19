@@ -2,7 +2,7 @@
 
 #ifdef USE_EPOLL
 
-#include "torrent/poll.h"
+#include "torrent/net/poll.h"
 
 #include <cassert>
 #include <cerrno>
@@ -21,7 +21,7 @@
 // #define LT_LOG_DEBUG_DATA_FD(log_fmt, ...)                                \
 //   lt_log_print(LOG_CONNECTION_FD, "epoll->%i: " log_fmt, itr->data.fd, __VA_ARGS__);
 
-namespace torrent {
+namespace torrent::net {
 
 class PollInternal {
 public:
