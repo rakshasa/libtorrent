@@ -91,7 +91,7 @@ Object::get_key(const char* k) const {
 Object::map_insert_type
 Object::insert_preserve_type(const key_type& k, Object& b) {
   check_throw(TYPE_MAP);
-  map_insert_type result = _map().insert(map_type::value_type(k, b));
+  auto result = _map().emplace(k, b);
 
   if (!result.second && result.first->second.type() != b.type()) {
     result.first->second.move(b);
