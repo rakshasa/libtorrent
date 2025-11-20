@@ -1,17 +1,25 @@
 #ifndef LIBTORRENT_TORRENT_EVENT_H
 #define LIBTORRENT_TORRENT_EVENT_H
 
+#include <memory>
 #include <torrent/common.h>
 
 namespace torrent {
 
+namespace net {
+class PollEvent;
+class PollInternal;
+}
+
 class LIBTORRENT_EXPORT Event {
 public:
-  virtual             ~Event() = default;
+  virtual             ~Event();
 
   bool                is_open() const;
 
   int                 file_descriptor() const;
+
+  std::string         print_name_fd_str() const;
 
   // TODO: Require all to define their own typename.
   virtual const char* type_name() const;
@@ -21,10 +29,15 @@ public:
   virtual void        event_write() = 0;
   virtual void        event_error() = 0;
 
-
 protected:
+  friend class net::Poll;
+  friend class net::PollInternal;
+
   void                close_file_descriptor();
   void                set_file_descriptor(int fd);
+
+  // TODO: Dtor shoudl fail if still set.
+  std::shared_ptr<net::PollEvent> m_poll_event;
 
   // TODO: Rename to m_fd.
   int                 m_fileDesc{-1};

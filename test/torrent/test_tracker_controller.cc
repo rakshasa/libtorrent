@@ -80,7 +80,7 @@ test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
 
 void
 TestTrackerController::test_basic() {
-  torrent::TrackerController tracker_controller(NULL);
+  torrent::TrackerController tracker_controller(nullptr);
 
   CPPUNIT_ASSERT(tracker_controller.flags() == 0);
   CPPUNIT_ASSERT(!tracker_controller.is_active());

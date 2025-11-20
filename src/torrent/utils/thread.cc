@@ -141,6 +141,7 @@ Thread::event_loop() {
 
     m_poll->open(m_interrupt_receiver.get());
     m_poll->insert_read(m_interrupt_receiver.get());
+    m_poll->insert_error(m_interrupt_receiver.get());
 
     while (true) {
       process_events();
@@ -171,10 +172,9 @@ Thread::event_loop() {
     lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
   }
 
-  // Some test, and perhaps other code, segfaults on this.
-  // TODO: Test
-  //m_poll->remove_read(m_interrupt_receiver.get());
-  //m_poll->close(m_interrupt_receiver.get());
+  m_poll->remove_read(m_interrupt_receiver.get());
+  m_poll->remove_error(m_interrupt_receiver.get());
+  m_poll->close(m_interrupt_receiver.get());
 
   auto previous_state = STATE_ACTIVE;
 
