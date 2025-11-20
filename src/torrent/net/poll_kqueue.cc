@@ -34,6 +34,10 @@ public:
 
   uint32_t            mask{};
   Event*              event{};
+
+  // Keep a shared ptr to self to manage lifetime, as changed events returned by kevent might be
+  // processed after the event has been removed.
+  std::shared_ptr<PollEvent> self_ptr;
 };
 
 class PollInternal {
@@ -89,7 +93,6 @@ void
 PollInternal::modify(Event* event, unsigned short op, short mask) {
   LT_LOG_EVENT("modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
 
-  // Flush the changed filters to the kernel if the buffer is full.
   if (m_changed_events == m_max_events) {
     if (::kevent(m_fd, m_changes.get(), m_changed_events, nullptr, 0, nullptr) == -1)
       throw internal_error("PollInternal::modify() error: " + std::string(std::strerror(errno)));
@@ -97,9 +100,12 @@ PollInternal::modify(Event* event, unsigned short op, short mask) {
     m_changed_events = 0;
   }
 
+  if (event->m_poll_event == nullptr)
+    throw internal_error("PollInternal::modify() event has no poll event: " + event->print_name_fd_str());
+
   struct kevent* itr = m_changes.get() + (m_changed_events++);
 
-  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
+  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event->m_poll_event.get());
 }
 
 std::unique_ptr<Poll>
@@ -107,12 +113,12 @@ Poll::create() {
   auto socket_open_max = sysconf(_SC_OPEN_MAX);
 
   if (socket_open_max == -1)
-    throw internal_error("Poll::create() : sysconf(_SC_OPEN_MAX) failed: " + std::string(std::strerror(errno)));
+    throw internal_error("Poll::create() : sysconf(_SC_OPEN_MAX) failed : " + std::string(std::strerror(errno)));
 
-  int fd = kqueue();
+  int fd = ::kqueue();
 
   if (fd == -1)
-    return nullptr;
+    throw internal_error("Poll::create() : kqueue() failed : " + std::string(std::strerror(errno)));
 
   auto poll = new Poll();
 
@@ -141,7 +147,7 @@ Poll::do_poll(int64_t timeout_usec) {
 
   if (status == -1) {
     if (errno != EINTR)
-      throw internal_error("Poll::work() " + std::string(std::strerror(errno)));
+      throw internal_error("Poll::do_poll() error: " + std::string(std::strerror(errno)));
 
     return 0;
   }
@@ -183,22 +189,19 @@ Poll::process() {
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
 
-    Event* event = static_cast<Event*>(itr->udata);
+    auto* poll_event = static_cast<PollEvent*>(itr->udata);
+    auto* event = poll_event->event;
 
-    if (event == nullptr)
-      throw internal_error("Poll::process() event is null: flags:" + std::to_string(itr->flags) + " filter:" + std::to_string(itr->filter));
-
-    if (event->m_poll_event == nullptr) {
-      LT_LOG_DEBUG_IDENT("event is not poll event, skipping : %s", event->print_name_fd_str().c_str());
+    if (event == nullptr) {
+      LT_LOG_DEBUG_IDENT("event is null, skipping : udata:%p", itr->udata);
       continue;
     }
 
     if ((itr->flags & EV_ERROR)) {
-      if (!(event->m_poll_event->mask & PollInternal::flag_error))
-        throw internal_error("Poll::process() received error event for event not in error: " + event->print_name_fd_str());
+      if (!(poll_event->mask & PollInternal::flag_error))
+        throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
 
       auto event_info = event->print_name_fd_str();
-      auto poll_event = event->m_poll_event;
 
       event->event_error();
 
@@ -209,7 +212,7 @@ Poll::process() {
       continue;
     }
 
-    if (itr->filter == EVFILT_READ && (event->m_poll_event->mask & PollInternal::flag_read)) {
+    if (itr->filter == EVFILT_READ && (poll_event->mask & PollInternal::flag_read)) {
       count++;
       event->event_read();
     }
@@ -217,7 +220,7 @@ Poll::process() {
       LT_LOG_DEBUG_IDENT("spurious read event, skipping", 0);
     }
 
-    if (itr->filter == EVFILT_WRITE && (event->m_poll_event->mask & PollInternal::flag_write)) {
+    if (itr->filter == EVFILT_WRITE && (poll_event->mask & PollInternal::flag_write)) {
       count++;
       event->event_write();
     }
@@ -247,6 +250,8 @@ Poll::open(Event* event) {
     throw internal_error("PollInternal::event_mask_open() event already exists: " + event->print_name_fd_str());
 
   event->m_poll_event = std::make_shared<PollEvent>(event);
+  event->m_poll_event->self_ptr = event->m_poll_event;
+
   m_internal->m_table[event->file_descriptor()] = event->m_poll_event;
 }
 
@@ -254,21 +259,32 @@ void
 Poll::close(Event* event) {
   LT_LOG_EVENT("close event", 0);
 
+  auto* poll_event = event->m_poll_event.get();
+
+  if (poll_event == nullptr)
+    return;
+
+  if (poll_event->event != event)
+    throw internal_error("Poll::close() event mismatch: " + event->print_name_fd_str());
+
   if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::close() called but the file descriptor is active: " + event->print_name_fd_str());
 
   if (m_internal->m_table.erase(event->file_descriptor()) == 0)
     throw internal_error("Poll::close() event not found: " + event->print_name_fd_str());
 
-  event->m_poll_event.reset();
-
   // No need to touch m_events as we unset the read/write/error flags in m_internal->m_events using
   // remove_read/write/error.
   auto last_itr = std::remove_if(m_internal->m_changes.get(),
                                  m_internal->m_changes.get() + m_internal->m_changed_events,
-                                 [event](const struct kevent& ke) { return ke.udata == event; });
+                                 [poll_event](const struct kevent& ke) { return ke.udata == poll_event; });
 
   m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
+
+  poll_event->event = nullptr;
+  poll_event->self_ptr.reset();
+
+  event->m_poll_event.reset();
 }
 
 bool
