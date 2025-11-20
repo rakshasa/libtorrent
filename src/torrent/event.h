@@ -21,8 +21,7 @@ public:
 
   std::string         print_name_fd_str() const;
 
-  // TODO: Require all to define their own typename.
-  virtual const char* type_name() const;
+  virtual const char* type_name() const = 0;
 
   // TODO: Make these protected.
   virtual void        event_read() = 0;
@@ -36,7 +35,6 @@ protected:
   void                close_file_descriptor();
   void                set_file_descriptor(int fd);
 
-  // TODO: Dtor shoudl fail if still set.
   std::shared_ptr<net::PollEvent> m_poll_event;
 
   // TODO: Rename to m_fd.
