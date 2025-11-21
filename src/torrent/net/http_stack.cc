@@ -29,19 +29,7 @@ HttpStack::start_get(HttpGet& http_get) {
   if (!http_get.is_valid())
     throw torrent::internal_error("HttpStack::start_get() called with an invalid HttpGet object.");
 
-  if (std::this_thread::get_id() == m_stack->thread()->thread_id())
-    throw torrent::internal_error("HttpStack::start_get() called from the same thread as the CurlStack.");
-
-  http_get.curl_get()->set_was_started();
-
-  auto curl_get_weak = std::weak_ptr<CurlGet>(http_get.curl_get());
-
-  m_stack->thread()->callback(nullptr, [stack = m_stack.get(), curl_get_weak]() {
-      auto curl_get = curl_get_weak.lock();
-
-      if (curl_get)
-        stack->start_get(curl_get);
-    });
+  CurlGet::start(http_get.curl_get(), m_stack.get());
 }
 
 unsigned int

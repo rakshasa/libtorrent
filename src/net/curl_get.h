@@ -27,6 +27,9 @@ public:
   CurlGet(std::string url = "", std::shared_ptr<std::ostream> stream = nullptr);
   ~CurlGet();
 
+  static void         start(const std::shared_ptr<CurlGet>& curl_get, CurlStack* stack);
+  static void         close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread, bool wait);
+
   static void         close_and_keep_callbacks(const std::shared_ptr<CurlGet>& curl_get);
   static void         close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback_thread);
   static void         close_and_wait(const std::shared_ptr<CurlGet>& curl_get);
@@ -49,8 +52,6 @@ public:
   bool                try_wait_for_close();
 
   void                set_timeout(uint32_t seconds);
-  void                set_was_started();
-  [[nodiscard]] bool  set_was_closed();
 
   void                set_initial_resolve(resolve_type type);
   void                set_retry_resolve(resolve_type type);
@@ -73,8 +74,6 @@ public:
 
 protected:
   friend class CurlStack;
-
-  static void         close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread, bool wait);
 
   // We need to lock when changing any of the values publically accessible. This means we don't need
   // to lock when changing the underlying vector.
@@ -105,6 +104,8 @@ private:
   CurlGet& operator=(const CurlGet&) = delete;
 
   static size_t       receive_write(const char* data, size_t size, size_t nmemb, CurlGet* handle);
+
+  bool                prepare_resolve(resolve_type current_resolve);
 
   mutable std::mutex  m_mutex;
 
