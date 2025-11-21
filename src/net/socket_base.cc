@@ -5,7 +5,7 @@
 #include <cassert>
 #include <sys/socket.h>
 
-#include "torrent/poll.h"
+#include "torrent/net/poll.h"
 
 namespace torrent {
 

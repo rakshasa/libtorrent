@@ -1,11 +1,10 @@
 #ifndef LIBTORRENT_TORRENT_POLL_H
 #define LIBTORRENT_TORRENT_POLL_H
 
-#include <functional>
 #include <memory>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace torrent::net {
 
 class PollInternal;
 

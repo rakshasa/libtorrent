@@ -13,7 +13,7 @@
 #include "net/socket_fd.h"
 #include "rak/error_number.h"
 #include "torrent/exceptions.h"
-#include "torrent/poll.h"
+#include "torrent/net/poll.h"
 
 namespace torrent {
 

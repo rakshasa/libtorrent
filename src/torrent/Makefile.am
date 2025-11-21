@@ -48,6 +48,9 @@ libtorrent_torrent_la_SOURCES = \
 	net/network_config.h \
 	net/network_manager.cc \
 	net/network_manager.h \
+	net/poll.h \
+	net/poll_epoll.cc \
+	net/poll_kqueue.cc \
 	net/resolver.cc \
 	net/resolver.h \
 	net/socket_address.cc \
@@ -135,9 +138,6 @@ libtorrent_torrent_la_SOURCES = \
 	object_stream.h \
 	path.cc \
 	path.h \
-	poll.h \
-	poll_epoll.cc \
-	poll_kqueue.cc \
 	rate.cc \
 	rate.h \
 	throttle.cc \
@@ -179,6 +179,7 @@ libtorrent_torrent_net_include_HEADERS = \
 	net/http_stack.h \
 	net/network_config.h \
 	net/network_manager.h \
+	net/poll.h \
 	net/resolver.h \
 	net/socket_address.h \
 	net/socket_address_key.h \
@@ -237,7 +238,6 @@ libtorrent_torrent_include_HEADERS = \
 	object_static_map.h \
 	object_stream.h \
 	path.h \
-	poll.h \
 	rate.h \
 	throttle.h \
 	torrent.h
