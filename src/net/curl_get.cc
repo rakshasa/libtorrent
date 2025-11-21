@@ -102,16 +102,6 @@ CurlGet::set_timeout(uint32_t seconds) {
 }
 
 void
-CurlGet::set_was_started() {
-  auto guard = lock_guard();
-
-  if (m_was_started)
-    throw torrent::internal_error("CurlGet::set_was_started() called on an already started object.");
-
-  m_was_started = true;
-}
-
-void
 CurlGet::set_initial_resolve(resolve_type type) {
   auto guard = lock_guard();
 
@@ -135,6 +125,22 @@ CurlGet::set_retry_resolve(resolve_type type) {
 }
 
 void
+CurlGet::start(const std::shared_ptr<CurlGet>& curl_get, CurlStack* stack) {
+  auto self = curl_get.get();
+
+  std::unique_lock<std::mutex> guard(self->m_mutex);
+
+  if (self->m_was_started)
+    throw torrent::internal_error("CurlGet::start() called on an already started object.");
+
+  self->m_was_started = true;
+
+  stack->thread()->callback(self, [stack, curl_get]() {
+      stack->start_get(curl_get);
+    });
+}
+
+void
 CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback_thread, bool wait) {
   auto self = curl_get.get();
 
@@ -145,6 +151,8 @@ CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback
 
   if (self->m_was_closed)
     throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an already closing object.");
+
+  self->m_stack->thread()->cancel_callback(self);
 
   if (callback_thread != nullptr)
     callback_thread->cancel_callback(self);
