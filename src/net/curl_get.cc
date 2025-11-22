@@ -12,6 +12,7 @@
 #include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/thread.h"
+#include "torrent/utils/uri_parser.h"
 #include "utils/functional.h"
 
 namespace torrent::net {
@@ -133,7 +134,8 @@ CurlGet::start(const std::shared_ptr<CurlGet>& curl_get, CurlStack* stack) {
   if (self->m_was_started)
     throw torrent::internal_error("CurlGet::start() called on an already started object.");
 
-  self->m_was_started = true;
+  self->m_was_started  = true;
+  self->m_stack_thread = stack->thread();
 
   stack->thread()->callback(self, [stack, curl_get]() {
       stack->start_get(curl_get);
@@ -152,13 +154,14 @@ CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback
   if (self->m_was_closed)
     throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an already closing object.");
 
-  self->m_stack->thread()->cancel_callback(self);
+  self->m_stack_thread->cancel_callback(self);
 
   if (callback_thread != nullptr)
     callback_thread->cancel_callback(self);
 
   if (self->m_stack == nullptr) {
     if (self->m_was_started) {
+      self->m_stack_thread     = nullptr;
       self->m_was_started      = false;
       self->m_was_closed       = false;
       self->m_prepare_canceled = false;
@@ -232,8 +235,16 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   }
 
   try {
-    if (prepare_resolve(m_initial_resolve))
-      return true;
+    try {
+      if (prepare_resolve(m_initial_resolve))
+        return true;
+
+    } catch (const torrent::input_error& e) {
+      if (m_retry_resolve == RESOLVE_NONE)
+        throw;
+
+      // TODO: Save the error msg for later.
+    }
 
     m_retrying_resolve = true;
 
@@ -281,6 +292,7 @@ CurlGet::cleanup_unsafe() {
       throw torrent::internal_error("CurlGet::cleanup() called on an object that has no m_handle yet m_prepare_canceled is false.");
   }
 
+  m_stack_thread     = nullptr;
   m_was_started      = false;
   m_was_closed       = false;
   m_prepare_canceled = false;
@@ -361,19 +373,18 @@ bool
 CurlGet::prepare_resolve(resolve_type current_resolve) {
   auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_or_null();
 
-  if ((current_resolve == RESOLVE_IPV4 && bind_inet_address == nullptr) ||
-      (current_resolve == RESOLVE_IPV6 && bind_inet6_address == nullptr))
-    return false;
+  int detected_family = utils::uri_detect_numeric(m_url);
 
   switch (current_resolve) {
   case RESOLVE_IPV4:
     if (bind_inet_address == nullptr)
       throw torrent::input_error("Bind address for requested IP protocol(s) not available.");
 
+    if (detected_family == AF_INET6)
+      throw torrent::input_error("Numeric IPv6 address in url, but IPv4 was requested.");
+
     if (bind_inet_address->sa_family != AF_UNSPEC)
       curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet_address.get()).c_str());
-    else
-      curl_easy_setopt(m_handle, CURLOPT_INTERFACE, "0.0.0.0");
 
     curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
     return true;
@@ -382,12 +393,11 @@ CurlGet::prepare_resolve(resolve_type current_resolve) {
     if (bind_inet6_address == nullptr)
       throw torrent::input_error("Bind address for requested IP protocol(s) not available.");
 
+    if (detected_family == AF_INET)
+      throw torrent::input_error("Numeric IPv4 address in url, but IPv6 was requested.");
+
     if (bind_inet6_address->sa_family != AF_UNSPEC)
       curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet6_address.get()).c_str());
-    else
-      // TODO: This doesn't work... we need to check the ip numeric...
-      // TODO: Check if ipv4in6, and disallow
-      curl_easy_setopt(m_handle, CURLOPT_INTERFACE, "::");
 
     curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
     return true;
