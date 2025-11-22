@@ -42,20 +42,22 @@ public:
   using input_error::input_error;
 };
 
-void uri_parse_str(std::string uri, uri_state& state) LIBTORRENT_EXPORT;
-void uri_parse_c_str(const char* uri, uri_state& state) LIBTORRENT_EXPORT;
+void        uri_parse_str(std::string uri, uri_state& state) LIBTORRENT_EXPORT;
+void        uri_parse_c_str(const char* uri, uri_state& state) LIBTORRENT_EXPORT;
 
-void uri_parse_resource(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
-void uri_parse_resource_authority(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
-void uri_parse_resource_path(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+void        uri_parse_resource(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+void        uri_parse_resource_authority(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+void        uri_parse_resource_path(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
 
-void uri_parse_query_str(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
-void uri_parse_query_c_str(const char* query, uri_query_state& state) LIBTORRENT_EXPORT;
+void        uri_parse_query_str(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+void        uri_parse_query_c_str(const char* query, uri_query_state& state) LIBTORRENT_EXPORT;
 
 std::string uri_generate_scrape_url(std::string uri) LIBTORRENT_EXPORT;
 
-bool uri_can_scrape(const std::string& uri) LIBTORRENT_EXPORT;
-bool uri_has_query(const std::string& uri) LIBTORRENT_EXPORT;
+bool        uri_can_scrape(const std::string& uri) LIBTORRENT_EXPORT;
+bool        uri_has_query(const std::string& uri) LIBTORRENT_EXPORT;
+
+int         uri_detect_numeric(const std::string& uri) LIBTORRENT_EXPORT;
 
 std::string uri_escape_html(const char* first, const char* last) LIBTORRENT_EXPORT;
 

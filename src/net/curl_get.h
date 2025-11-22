@@ -111,6 +111,7 @@ private:
 
   CURL*               m_handle{};
   CurlStack*          m_stack{};
+  utils::Thread*      m_stack_thread{};
 
   bool                m_active{};
   bool                m_prepare_canceled{};

@@ -3,6 +3,9 @@
 #include "torrent/utils/uri_parser.h"
 
 #include <algorithm>
+#include <arpa/inet.h>
+#include <curl/curl.h>
+#include <sys/socket.h>
 
 namespace torrent::utils {
 
@@ -198,6 +201,41 @@ uri_has_query(const std::string& uri) {
     return false;
 
   return uri.find('/', delim_options) == std::string::npos;
+}
+
+int
+uri_detect_numeric(const std::string& uri) {
+  CURLU *url = curl_url();
+  char *host;
+
+  if (curl_url_set(url, CURLUPART_URL, uri.c_str(), 0) != CURLUE_OK) {
+    curl_url_cleanup(url);
+    return AF_UNSPEC;
+  }
+
+  if (curl_url_get(url, CURLUPART_HOST, &host, 0) != CURLUE_OK) {
+    curl_url_cleanup(url);
+    return AF_UNSPEC;
+  }
+
+  char   buf[16];
+  int    family = AF_UNSPEC;
+  size_t host_len = strlen(host);
+
+  if (host_len >= 2 && host[0] == '[' && host[host_len - 1] == ']') {
+    host[host_len - 1] = '\0';
+
+    if (::inet_pton(AF_INET6, host + 1, buf) == 1)
+      family = AF_INET6;
+
+  } else {
+    if (::inet_pton(AF_INET, host, buf) == 1)
+      family = AF_INET;
+  }
+
+  curl_free(host);
+  curl_url_cleanup(url);
+  return family;
 }
 
 std::string
