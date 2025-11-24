@@ -91,12 +91,17 @@ UdnsResolver::cleanup() {
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
 
+  m_ctx      = nullptr;
   m_fileDesc = -1;
 }
 
 void
 UdnsResolver::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
+
+  // TODO: Fail gracefully?
+  if (m_ctx == nullptr)
+    throw internal_error("UdnsResolver::resolve() context is null");
 
   auto query = std::make_unique<Query>();
 
@@ -255,6 +260,9 @@ UdnsResolver::flush() {
 
 void
 UdnsResolver::event_read() {
+  if (m_ctx == nullptr)
+    throw internal_error("UdnsResolver::event_read() context is null");
+
   ::dns_ioevent(m_ctx, 0);
   process_timeouts();
 }
@@ -313,6 +321,9 @@ UdnsResolver::process_timeouts() {
 
   if (m_processing_timeouts)
     return;
+
+  if (m_ctx == nullptr)
+    throw internal_error("UdnsResolver::process_timeouts() context is null");
 
   m_processing_timeouts = true;
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
