@@ -34,8 +34,8 @@ public:
 
   value_type* data() const { return m_data; }
 
-  bool operator == (const raw_object& rhs) const { return m_size == rhs.m_size && std::memcmp(m_data, rhs.m_data, m_size) == 0; }
-  bool operator != (const raw_object& rhs) const { return m_size != rhs.m_size || std::memcmp(m_data, rhs.m_data, m_size) != 0; }
+  bool operator == (raw_object rhs) const { return m_size == rhs.m_size && std::memcmp(m_data, rhs.m_data, m_size) == 0; }
+  bool operator != (raw_object rhs) const { return m_size != rhs.m_size || std::memcmp(m_data, rhs.m_data, m_size) != 0; }
 
 protected:
   iterator  m_data{};
@@ -53,8 +53,8 @@ protected:
   using raw_object::end;                        \
   using raw_object::data;                       \
                                                 \
-  bool operator == (const this_type& rhs) const { return raw_object::operator==(rhs); } \
-  bool operator != (const this_type& rhs) const { return raw_object::operator!=(rhs); } \
+  bool operator == (this_type rhs) const { return raw_object::operator==(rhs); } \
+  bool operator != (this_type rhs) const { return raw_object::operator!=(rhs); } \
 
 // A raw_bencode object shall always contain valid bencode data or be
 // empty.
@@ -160,19 +160,19 @@ raw_bencode::as_raw_map() const {
 //
 
 inline bool
-raw_bencode_equal(const raw_bencode& left, const raw_bencode& right) {
+raw_bencode_equal(raw_bencode left, raw_bencode right) {
   return left.size() == right.size() && std::memcmp(left.begin(), right.begin(), left.size()) == 0;
 }
 
 template <typename tmpl_raw_object>
 inline bool
-raw_bencode_equal(const tmpl_raw_object& left, const char* right, size_t right_size) {
+raw_bencode_equal(tmpl_raw_object left, const char* right, size_t right_size) {
   return left.size() == right_size && std::memcmp(left.begin(), right, right_size) == 0;
 }
 
 template <typename tmpl_raw_object>
 inline bool
-raw_bencode_equal_c_str(const tmpl_raw_object& left, const char* right) {
+raw_bencode_equal_c_str(tmpl_raw_object left, const char* right) {
   return raw_bencode_equal(left, right, strlen(right));
 }
 

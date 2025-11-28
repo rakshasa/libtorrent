@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -164,7 +164,7 @@ Object::merge_copy(const Object& object, uint32_t skip_mask, uint32_t maxDepth) 
 
 //     list_type::const_iterator srcItr = object.as_list().begin();
 //     list_type::const_iterator srcLast = object.as_list().end();
-    
+
 //     while (srcItr != srcLast) {
 //       if (destItr == dest.end())
 //         destItr = dest.insert(destItr, *srcItr);
@@ -202,7 +202,7 @@ Object::operator = (const Object& src) {
   return *this;
 }
 
-Object object_create_normal(const raw_bencode& obj) {
+Object object_create_normal(raw_bencode obj) {
   torrent::Object result;
 
   if (object_read_bencode_c(obj.begin(), obj.end(), &result, 128) != obj.end())
@@ -211,7 +211,7 @@ Object object_create_normal(const raw_bencode& obj) {
   return result;
 }
 
-Object object_create_normal(const raw_list& obj) {
+Object object_create_normal(raw_list obj) {
   torrent::Object result = Object::create_list();
 
   raw_list::iterator first = obj.begin();
@@ -232,7 +232,7 @@ Object object_create_normal(const raw_list& obj) {
   return result;
 }
 
-Object object_create_normal(const raw_map& obj) {
+Object object_create_normal(raw_map obj) {
   torrent::Object result = Object::create_map();
 
   raw_list::iterator first = obj.begin();
