@@ -21,6 +21,7 @@
 namespace torrent {
 
 struct UdnsQuery {
+  // TODO: We already use deleted.
   ~UdnsQuery() { parent = nullptr; }
 
   void*             requester{};
@@ -28,6 +29,8 @@ struct UdnsQuery {
   int               family{};
 
   UdnsResolver::resolver_callback callback;
+
+  // TODO: Verify canceled and deleted atomicity.
 
   UdnsResolver*     parent{};
   bool              canceled{};
@@ -151,11 +154,12 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       // query internally so we can call the callback later with a failure code.
       query->error_sin = EAI_NONAME;
 
+      {
+        auto lock = std::lock_guard(m_mutex);
+        m_malformed_queries_unsafe.emplace(requester, std::move(query));
+      }
+
       process_timeouts();
-
-      auto lock = std::scoped_lock(m_mutex);
-      m_malformed_queries.emplace(requester, std::move(query));
-
       return;
     }
   }
@@ -178,21 +182,24 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
       query->error_sin = EAI_NONAME;
 
+      {
+        auto lock = std::lock_guard(m_mutex);
+        m_malformed_queries_unsafe.emplace(requester, std::move(query));
+      }
+
       process_timeouts();
-
-      auto lock = std::scoped_lock(m_mutex);
-      m_malformed_queries.emplace(requester, std::move(query));
-
       return;
     }
   }
 
   LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
 
-  process_timeouts();
+  {
+    auto lock = std::lock_guard(m_mutex);
+    m_queries_unsafe.emplace(requester, std::move(query));
+  }
 
-  auto lock = std::scoped_lock(m_mutex);
-  m_queries.emplace(requester, std::move(query));
+  process_timeouts();
 }
 
 bool
@@ -231,30 +238,34 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
   if (query->family != AF_UNSPEC && query->family != result->ai_family)
     throw internal_error("getaddrinfo returned address with unexpected family");
 
-  auto requester = query->requester;
+  {
+    auto lock = std::lock_guard(m_mutex);
+    process_final_result_unsafe(std::move(query));
+  }
 
-  auto lock = std::scoped_lock(m_mutex);
-  auto itr = m_queries.emplace(requester, std::move(query));
-
-  process_result(itr);
   return true;
 }
 
 void
 UdnsResolver::cancel(void* requester) {
-  auto lock = std::scoped_lock(m_mutex);
+  auto lock = std::lock_guard(m_mutex);
 
-  auto range = m_queries.equal_range(requester);
-  unsigned int query_count = std::distance(range.first, range.second);
+  auto cancel_fn = [](std::pair<query_map::iterator, query_map::iterator> range) {
+      unsigned int count = 0;
 
-  for (auto itr = range.first; itr != range.second; ++itr)
-    itr->second->canceled = true;
+      for (auto itr = range.first; itr != range.second; ++itr) {
+        if (itr->second->canceled)
+          continue;
 
-  range = m_malformed_queries.equal_range(requester);
-  unsigned int malformed_count = std::distance(range.first, range.second);
+        itr->second->canceled = true;
+        ++count;
+      }
 
-  for (auto itr = range.first; itr != range.second; ++itr)
-    itr->second->canceled = true;
+      return count;
+    };
+
+  unsigned int query_count     = cancel_fn(m_queries_unsafe.equal_range(requester));
+  unsigned int malformed_count = cancel_fn(m_malformed_queries_unsafe.equal_range(requester));
 
   LT_LOG("canceled : requester:%p queries:%d malformed:%d", requester, query_count, malformed_count);
 }
@@ -263,8 +274,9 @@ void
 UdnsResolver::flush() {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
-  auto lock = std::scoped_lock(m_mutex);
-  auto malformed_queries = std::move(m_malformed_queries);
+  // Keep lock to ensure cancel() calls do not return until after flushing is complete.
+  auto lock              = std::lock_guard(m_mutex);
+  auto malformed_queries = std::move(m_malformed_queries_unsafe);
 
   for (auto& query : malformed_queries) {
     if (query.second->canceled)
@@ -293,59 +305,27 @@ UdnsResolver::event_write() {
 
 void
 UdnsResolver::event_error() {
-  // TODO: Handle error.
-  process_timeouts();
+  throw internal_error("UdnsResolver::event_error() called");
 }
-
-std::unique_ptr<UdnsQuery>
-UdnsResolver::erase_query(query_map::iterator itr) {
-  if (itr == m_queries.end())
-    throw internal_error("UdnsResolver::erase_query called with invalid iterator");
-
-  auto query = std::move(itr->second);
-  m_queries.erase(itr);
-
-  query->deleted = true;
-  return query;
-}
-
 
 UdnsResolver::query_map::iterator
-UdnsResolver::find_query(UdnsQuery* query) {
-  auto range = m_queries.equal_range(query->requester);
+UdnsResolver::find_query_or_fail_unsafe(UdnsQuery* query) {
+  auto range = m_queries_unsafe.equal_range(query->requester);
 
   for (auto itr = range.first; itr != range.second; ++itr) {
     if (itr->second.get() == query)
       return itr;
   }
 
-  return m_queries.end();
+  throw internal_error("UdnsResolver::find_query_or_fail_unsafe() called with invalid query");
 }
 
-UdnsResolver::query_map::iterator
-UdnsResolver::find_malformed_query(UdnsQuery* query) {
-  auto range = m_malformed_queries.equal_range(query->requester);
-
-  for (auto itr = range.first; itr != range.second; ++itr) {
-    if (itr->second.get() == query)
-      return itr;
-  }
-
-  return m_malformed_queries.end();
-}
-
+// Do not call recursively.
 void
 UdnsResolver::process_timeouts() {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
-  if (m_processing_timeouts)
-    return;
-
-  m_processing_timeouts = true;
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
-  m_processing_timeouts = false;
-
-  // TODO: We shouldn't remove from error events.
 
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
@@ -371,23 +351,16 @@ UdnsResolver::process_timeouts() {
 void
 UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, void *data) {
   auto query = static_cast<UdnsQuery*>(data);
-
-  if (query->parent == nullptr)
-    throw internal_error("UdnsResolver::a4_callback_wrapper called with null parent");
-
-  auto lock = std::lock_guard(query->parent->m_mutex);
+  auto lock  = std::lock_guard(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("A records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
     throw internal_error("UdnsResolver::a4_callback_wrapper called with deleted query");
   }
 
-  auto itr = query->parent->find_query(static_cast<UdnsQuery*>(data));
+  auto itr = query->parent->find_query_or_fail_unsafe(query);
 
-  if (itr == query->parent->m_queries.end())
-    throw internal_error("UdnsResolver::a4_callback_wrapper called with invalid query");
-
-  // TODO: Verify...
+  // TODO: Do we need to release a4_query?
   query->a4_query = nullptr;
 
   if (result == nullptr || result->dnsa4_nrr == 0) {
@@ -396,37 +369,28 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
     LT_LOG("no A records received : requester:%p name:%s error:'%s'",
            query->requester, query->hostname.c_str(), gai_strerror(query->error_sin));
 
-    UdnsResolver::process_result(itr);
-    return;
+  } else {
+    query->result_sin = sin_make();
+    query->result_sin->sin_addr = result->dnsa4_addr[0];
+
+    LT_LOG("A records received : requester:%p name:%s nrr:%d",
+           query->requester, query->hostname.c_str(), result->dnsa4_nrr);
   }
 
-  query->result_sin = sin_make();
-  query->result_sin->sin_addr = result->dnsa4_addr[0];
-
-  LT_LOG("A records received : requester:%p name:%s nrr:%d",
-         query->requester, query->hostname.c_str(), result->dnsa4_nrr);
-
-  UdnsResolver::process_result(itr);
+  UdnsResolver::process_partial_result_unsafe(itr);
 }
 
 void
 UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
   auto query = static_cast<UdnsQuery*>(data);
-
-  if (query->parent == nullptr)
-    throw internal_error("UdnsResolver::a6_callback_wrapper called with null parent");
-
-  auto lock = std::lock_guard(query->parent->m_mutex);
+  auto lock  = std::lock_guard(query->parent->m_mutex);
 
   if (query->deleted) {
     LT_LOG("AAAA records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
     throw internal_error("UdnsResolver::a6_callback_wrapper called with deleted query");
   }
 
-  auto itr = query->parent->find_query(query);
-
-  if (itr == query->parent->m_queries.end())
-    throw internal_error("UdnsResolver::a6_callback_wrapper called with invalid query");
+  auto itr = query->parent->find_query_or_fail_unsafe(query);
 
   query->a6_query = nullptr;
 
@@ -436,30 +400,34 @@ UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, v
     LT_LOG("no AAAA records received, calling back with error : requester:%p name:%s error:'%s'",
            query->requester, query->hostname.c_str(), gai_strerror(query->error_sin6));
 
-    UdnsResolver::process_result(itr);
-    return;
+  } else {
+    query->result_sin6 = sin6_make();
+    query->result_sin6->sin6_addr = result->dnsa6_addr[0];
+
+    LT_LOG("AAAA records received : requester:%p name:%s nrr:%d",
+           query->requester, query->hostname.c_str(), result->dnsa6_nrr);
   }
 
-  query->result_sin6 = sin6_make();
-  query->result_sin6->sin6_addr = result->dnsa6_addr[0];
-
-  LT_LOG("AAAA records received : requester:%p name:%s nrr:%d",
-         query->requester, query->hostname.c_str(), result->dnsa6_nrr);
-
-  UdnsResolver::process_result(itr);
+  UdnsResolver::process_partial_result_unsafe(itr);
 }
 
 void
-UdnsResolver::process_result(query_map::iterator itr) {
-  itr->second->parent->process_timeouts();
-
+UdnsResolver::process_partial_result_unsafe(query_map::iterator itr) {
   if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr) {
     LT_LOG("processing results, waiting for other queries : requester:%p name:%s", itr->second->requester, itr->second->hostname.c_str());
     return;
   }
 
-  auto query = itr->second->parent->erase_query(itr);
+  auto query = std::move(itr->second);
 
+  query->deleted = true;
+  query->parent->m_queries_unsafe.erase(itr);
+
+  process_final_result_unsafe(std::move(query));
+}
+
+void
+UdnsResolver::process_final_result_unsafe(std::unique_ptr<UdnsQuery>&& query) {
   if (query->canceled) {
     LT_LOG("processing results, canceled : requester:%p name:%s", query->requester, query->hostname.c_str());
     return;

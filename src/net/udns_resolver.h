@@ -48,27 +48,27 @@ protected:
   friend class UdnsResolverInternal;
 
   std::unique_ptr<UdnsQuery> erase_query(query_map::iterator itr);
-  query_map::iterator        find_query(UdnsQuery* query);
-  query_map::iterator        find_malformed_query(UdnsQuery* query);
+
+  query_map::iterator        find_query_or_fail_unsafe(UdnsQuery* query);
 
   bool                try_resolve_numeric(std::unique_ptr<UdnsQuery>& query);
 
   void                process_canceled();
   void                process_timeouts();
 
-  static void         process_result(query_map::iterator itr);
+  static void         process_partial_result_unsafe(query_map::iterator itr);
+  static void         process_final_result_unsafe(std::unique_ptr<UdnsQuery>&& query);
 
   static bool         m_initialized;
 
   utils::Thread*      m_thread{};
   ::dns_ctx*          m_ctx{};
 
-  bool                  m_processing_timeouts{};
   utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;
-  query_map           m_queries;
-  query_map           m_malformed_queries;
+  query_map           m_queries_unsafe;
+  query_map           m_malformed_queries_unsafe;
 };
 
 } // namespace torrent
