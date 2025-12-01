@@ -197,7 +197,7 @@ Poll::process() {
     auto ev_itr = m_internal->m_table.begin() + itr->ident;
 
     if (ev_itr->second == nullptr) {
-      LT_LOG_DEBUG_IDENT("event is null, skipping : flags:%hx filter:%hx", itr->flags, itr->filter);
+      LT_LOG_DEBUG_IDENT("event is null, skipping : flags:%hx fflag:%hx filter:%hx", itr->flags, itr->fflags, itr->filter);
       continue;
     }
 

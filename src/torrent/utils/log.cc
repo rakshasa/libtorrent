@@ -308,6 +308,8 @@ log_remove_child([[maybe_unused]] int group, [[maybe_unused]] int child) {
   // Remove from all groups, then modify all outputs.
 }
 
+// TODO: Add lock for file writes.
+
 static void
 log_file_write(const std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.

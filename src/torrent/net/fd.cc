@@ -174,6 +174,7 @@ fd_accept(int fd) {
     return -1;
   }
 
+  LT_LOG_FD("fd_accept() succeeded");
   return connection_fd;
 }
 
