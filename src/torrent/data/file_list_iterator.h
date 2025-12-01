@@ -40,8 +40,8 @@ public:
   FileListIterator&   forward_current_depth();
   FileListIterator&   backward_current_depth();
 
-  friend bool         operator ==(const FileListIterator& left, const FileListIterator& right);
-  friend bool         operator !=(const FileListIterator& left, const FileListIterator& right);
+  friend bool         operator ==(FileListIterator left, FileListIterator right);
+  friend bool         operator !=(FileListIterator left, FileListIterator right);
 
 private:
   iterator            m_position;
@@ -63,12 +63,12 @@ FileListIterator::operator --(int) {
 }
 
 inline bool
-operator ==(const FileListIterator& left, const FileListIterator& right) {
+operator ==(FileListIterator left, FileListIterator right) {
   return left.m_position == right.m_position && left.m_depth == right.m_depth;
 }
 
 inline bool
-operator !=(const FileListIterator& left, const FileListIterator& right) {
+operator !=(FileListIterator left, FileListIterator right) {
   return left.m_position != right.m_position || left.m_depth != right.m_depth;
 }
 
@@ -92,7 +92,7 @@ public:
   using base_type::file;
 
   file_list_collapsed_iterator() = default;
-  file_list_collapsed_iterator(const FileListIterator& src) : FileListIterator(src) {}
+  file_list_collapsed_iterator(FileListIterator src) : FileListIterator(src) {}
   explicit file_list_collapsed_iterator(iterator pos, uint32_t depth = 0) : FileListIterator(pos, depth) {}
 
   base_type           base() const { return *static_cast<const base_type*>(this); }
@@ -103,17 +103,17 @@ public:
   this_type           operator ++(int);
   this_type           operator --(int);
 
-  friend bool         operator ==(const file_list_collapsed_iterator& left, const file_list_collapsed_iterator& right);
-  friend bool         operator !=(const file_list_collapsed_iterator& left, const file_list_collapsed_iterator& right);
+  friend bool         operator ==(file_list_collapsed_iterator left, file_list_collapsed_iterator right);
+  friend bool         operator !=(file_list_collapsed_iterator left, file_list_collapsed_iterator right);
 };
 
 inline bool
-operator ==(const file_list_collapsed_iterator& left, const file_list_collapsed_iterator& right) {
+operator ==(file_list_collapsed_iterator left, file_list_collapsed_iterator right) {
   return left.base() == right.base();
 }
 
 inline bool
-operator !=(const file_list_collapsed_iterator& left, const file_list_collapsed_iterator& right) {
+operator !=(file_list_collapsed_iterator left, file_list_collapsed_iterator right) {
   return left.base() != right.base();
 }
 
