@@ -10,35 +10,17 @@
 #include "torrent/utils/scheduler.h"
 
 struct dns_ctx;
-struct dns_query;
-struct dns_rr_a4;
-struct dns_rr_a6;
 
 namespace torrent {
+
+struct UdnsQuery;
+class  UdnsResolverInternal;
 
 class UdnsResolver : public Event {
 public:
   using resolver_callback = std::function<void(sin_shared_ptr, sin6_shared_ptr, int)>;
 
-  struct Query {
-    void*             requester{};
-    std::string       hostname;
-    int               family{};
-    resolver_callback callback;
-
-    UdnsResolver*     parent{};
-    bool              canceled{};
-    bool              deleted{};
-    ::dns_query*      a4_query{};
-    ::dns_query*      a6_query{};
-
-    sin_shared_ptr    result_sin;
-    sin6_shared_ptr   result_sin6;
-    int               error_sin{0};
-    int               error_sin6{0};
-  };
-
-  using query_map = std::multimap<void*, std::unique_ptr<Query>>;
+  using query_map = std::multimap<void*, std::unique_ptr<UdnsQuery>>;
 
   UdnsResolver();
   ~UdnsResolver() override;
@@ -63,30 +45,30 @@ public:
   void                event_error() override;
 
 protected:
-  std::unique_ptr<Query> erase_query(query_map::iterator itr);
-  query_map::iterator    find_query(Query* query);
-  query_map::iterator    find_malformed_query(Query* query);
+  friend class UdnsResolverInternal;
 
-  bool                try_resolve_numeric(std::unique_ptr<Query>& query);
+  std::unique_ptr<UdnsQuery> erase_query(query_map::iterator itr);
+
+  query_map::iterator        find_query_or_fail_unsafe(UdnsQuery* query);
+
+  bool                try_resolve_numeric(std::unique_ptr<UdnsQuery>& query);
 
   void                process_canceled();
   void                process_timeouts();
 
-  static void         a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void *data);
-  static void         a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data);
-  static void         process_result(query_map::iterator itr);
+  static void         process_partial_result_unsafe(query_map::iterator itr);
+  static void         process_final_result_unsafe(std::unique_ptr<UdnsQuery>&& query);
 
   static bool         m_initialized;
 
   utils::Thread*      m_thread{};
   ::dns_ctx*          m_ctx{};
 
-  bool                  m_processing_timeouts{};
   utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;
-  query_map           m_queries;
-  query_map           m_malformed_queries;
+  query_map           m_queries_unsafe;
+  query_map           m_malformed_queries_unsafe;
 };
 
 } // namespace torrent
