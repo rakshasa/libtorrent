@@ -197,7 +197,7 @@ Poll::process() {
     auto ev_itr = m_internal->m_table.begin() + itr->ident;
 
     if (ev_itr->second == nullptr) {
-      LT_LOG_DEBUG_IDENT("event is null, skipping : flags:%hx filter:%hx", itr->flags, itr->filter);
+      LT_LOG_DEBUG_IDENT("event is null, skipping : flags:%hx fflag:%hx filter:%hx", itr->flags, itr->fflags, itr->filter);
       continue;
     }
 
@@ -256,6 +256,9 @@ Poll::close(Event* event) {
 
   if (m_internal->event_mask(event) != 0)
     throw internal_error("Poll::close() called but the file descriptor is active");
+
+  m_internal->modify(event, EV_DISABLE, EVFILT_READ);
+  m_internal->modify(event, EV_DISABLE, EVFILT_WRITE);
 
   m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
