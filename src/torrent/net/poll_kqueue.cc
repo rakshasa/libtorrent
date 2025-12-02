@@ -19,6 +19,9 @@
 
 // TODO: Optimize table memory size, and add a reference to Event for direct lookup.
 
+#define LT_LOG(log_fmt, ...)                                        \
+  lt_log_print(LOG_CONNECTION_FD, "kqueue: " log_fmt, __VA_ARGS__);
+
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
@@ -40,6 +43,7 @@ public:
   inline uint32_t     event_mask_any(int fd);
   inline void         set_event_mask(Event* e, uint32_t m);
 
+  void                flush();
   void                modify(torrent::Event* event, unsigned short op, short mask);
 
   int                 m_fd;
@@ -93,16 +97,25 @@ PollInternal::set_event_mask(Event* e, uint32_t m) {
 }
 
 void
+PollInternal::flush() {
+  if (m_changed_events == 0)
+    return;
+
+  LT_LOG("flushing events : changed:%u", m_changed_events);
+
+  if (::kevent(m_fd, m_changes.get(), m_changed_events, nullptr, 0, nullptr) == -1)
+    throw internal_error("PollInternal::flush() error: " + std::string(std::strerror(errno)));
+
+  m_changed_events = 0;
+}
+
+void
 PollInternal::modify(Event* event, unsigned short op, short mask) {
   LT_LOG_EVENT("modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
 
   // Flush the changed filters to the kernel if the buffer is full.
-  if (m_changed_events == m_max_events) {
-    if (::kevent(m_fd, m_changes.get(), m_changed_events, nullptr, 0, nullptr) == -1)
-      throw internal_error("PollInternal::modify() error: " + std::string(std::strerror(errno)));
-
-    m_changed_events = 0;
-  }
+  if (m_changed_events == m_max_events)
+    flush();
 
   struct kevent* itr = m_changes.get() + (m_changed_events++);
 
@@ -197,7 +210,7 @@ Poll::process() {
     auto ev_itr = m_internal->m_table.begin() + itr->ident;
 
     if (ev_itr->second == nullptr) {
-      LT_LOG_DEBUG_IDENT("event is null, skipping : flags:%hx filter:%hx", itr->flags, itr->filter);
+      LT_LOG_DEBUG_IDENT("event is null, skipping : flags:%hx fflag:%hx filter:%hx", itr->flags, itr->fflags, itr->filter);
       continue;
     }
 
@@ -259,21 +272,7 @@ Poll::close(Event* event) {
 
   m_internal->m_table[event->file_descriptor()] = PollInternal::Table::value_type();
 
-  // No need to touch m_events as we unset the read/write/error flags in m_internal->m_events using
-  // remove_read/write/error.
-  auto last_itr = std::remove_if(m_internal->m_changes.get(),
-                                 m_internal->m_changes.get() + m_internal->m_changed_events,
-                                 [event](const struct kevent& ke) { return ke.udata == event; });
-
-  m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
-
-  // Clear the event list just in case we open a new socket with the
-  // same fd while in the middle of calling Poll::perform.
-  //
-  // Removed.
-  //
-  // Shouldn't be needed as we unset the read/write/error flags in m_internal->m_events using
-  // remove_read/write/error.
+  m_internal->flush();
 }
 
 bool

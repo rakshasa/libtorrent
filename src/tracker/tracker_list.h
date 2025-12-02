@@ -123,7 +123,7 @@ private:
   TrackerList& operator=(const TrackerList&) = delete;
 
   DownloadInfo*       m_info{};
-  int                 m_state;
+  int                 m_state{};
 
   // TODO: Key should be part of download static info.
   uint32_t            m_key{0};

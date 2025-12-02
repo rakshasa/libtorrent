@@ -103,7 +103,7 @@ private:
 
   TrackerInfo           m_info;
 
-  tracker::TrackerState m_state;
+  tracker::TrackerState m_state{};
   std::string           m_tracker_id;
   uint32_t              m_group{0};
 };
