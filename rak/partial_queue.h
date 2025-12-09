@@ -38,9 +38,10 @@
 #define RAK_PARTIAL_QUEUE_H
 
 #include <array>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 #include <stdexcept>
-#include <cinttypes>
 
 namespace rak {
 
@@ -57,17 +58,12 @@ public:
   typedef uint16_t                        size_type;
   typedef std::pair<size_type, size_type> size_pair_type;
 
-  static const size_type num_layers = 8;
-
-  partial_queue() = default;
-  ~partial_queue() { disable(); }
-  partial_queue(const partial_queue&) = delete;
-  partial_queue& operator=(const partial_queue&) = delete;
+  static constexpr size_type num_layers = 8;
 
   bool                is_full() const                         { return m_ceiling == 0; }
   bool                is_layer_full(size_type l) const        { return m_layers[l].second >= m_maxLayerSize; }
 
-  bool                is_enabled() const                      { return m_data != NULL; }
+  bool                is_enabled() const                      { return m_data != nullptr; }
 
   // Add check to see if we can add more. Also make it possible to
   // check how full we are in the lower parts so the caller knows when
@@ -101,7 +97,7 @@ private:
 
   void                find_non_empty();
 
-  mapped_type*        m_data{};
+  std::unique_ptr<mapped_type[]> m_data;
   size_type           m_maxLayerSize{};
 
   size_type           m_index;
@@ -115,23 +111,21 @@ partial_queue::enable(size_type ls) {
   if (ls == 0)
     throw std::logic_error("partial_queue::enable(...) ls == 0.");
 
-  delete [] m_data;
-  m_data = new mapped_type[ls * num_layers];
+  m_data = std::make_unique<mapped_type[]>(ls * num_layers);
 
   m_maxLayerSize = ls;
 }
 
 inline void
 partial_queue::disable() {
-  delete [] m_data;
-  m_data = NULL;
+  m_data = nullptr;
 
   m_maxLayerSize = 0;
 }
 
 inline void
 partial_queue::clear() {
-  if (m_data == NULL)
+  if (m_data == nullptr)
     return;
 
   m_index = 0;
