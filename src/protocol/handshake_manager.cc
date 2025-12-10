@@ -110,7 +110,11 @@ HandshakeManager::add_incoming(int fd, const sockaddr* sa) {
   manager->connection_manager()->inc_socket_count();
 
   auto handshake = std::make_unique<Handshake>(fd, this, config::network_config()->encryption_options());
-  handshake->initialize_incoming(sa);
+
+  if (sa_is_v4mapped(sa))
+    handshake->initialize_incoming(sa_from_v4mapped(sa).get());
+  else
+    handshake->initialize_incoming(sa);
 
   base_type::push_back(std::move(handshake));
 }
@@ -130,18 +134,14 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
     encryption_options &= ~net::NetworkConfig::encryption_enable_retry;
   }
 
-  create_outgoing(sa, download, encryption_options);
+  if (sa_is_v4mapped(sa))
+    create_outgoing(sa_from_v4mapped(sa).get(), download, encryption_options);
+  else
+    create_outgoing(sa, download, encryption_options);
 }
 
 void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
-  auto connect_address = [sa]() {
-      if (sa_is_v4mapped(sa))
-        return sa_from_v4mapped(sa);
-      else
-        return sa_copy(sa);
-    }();
-
   int connection_options = PeerList::connect_keep_handshakes;
 
   if (!(encryption_options & net::NetworkConfig::encryption_retrying))
@@ -150,10 +150,11 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   PeerInfo* peer_info = download->peer_list()->connected(sa, connection_options);
 
   if (peer_info == NULL || peer_info->failed_counter() > max_failed) {
-    LT_LOG_SAP(connect_address, "rejected outgoing connection: no peer info or too many failures", 0);
+    LT_LOG_SA(sa, "rejected outgoing connection: no peer info or too many failures", 0);
     return;
   }
 
+  auto connect_address = sa_copy(sa);
   auto proxy_address = config::network_config()->proxy_address();
 
   if (proxy_address->sa_family != AF_UNSPEC) {
@@ -177,8 +178,12 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   else
     message = ConnectionManager::handshake_outgoing;
 
-  LT_LOG_SAP(connect_address, "created outgoing connection: fd:%i address:%s encryption:%x message:%x",
-             fd, sa_pretty_str(sa).c_str(), encryption_options, message);
+  if (proxy_address->sa_family != AF_UNSPEC) {
+    LT_LOG_SA(sa, "created outgoing connection via proxy: fd:%i proxy:%s encryption:%x message:%x",
+              fd, sa_addr_str(proxy_address.get()).c_str(), encryption_options, message);
+  } else {
+    LT_LOG_SA(sa, "created outgoing connection: fd:%i encryption:%x message:%x", fd, encryption_options, message);
+  }
 
   manager->connection_manager()->inc_socket_count();
 

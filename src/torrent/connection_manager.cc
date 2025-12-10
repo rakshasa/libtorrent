@@ -25,11 +25,17 @@ ConnectionManager::filter(const sockaddr* sa) {
   if (config::network_config()->is_block_ipv6() && sa_is_inet6(sa))
     return 0;
 
-  if (config::network_config()->is_block_ipv4in6() && sa_is_v4mapped(sa))
-    return 0;
+  if (sa_is_v4mapped(sa)) {
+    if (config::network_config()->is_block_ipv4in6())
+      return 0;
 
-  if (m_slot_filter)
-    return m_slot_filter(sa);
+    if (m_slot_filter)
+      return m_slot_filter(sa_from_v4mapped(sa).get());
+
+  } else {
+    if (m_slot_filter)
+      return m_slot_filter(sa);
+  }
 
   return 1;
 }
