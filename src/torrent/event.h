@@ -7,7 +7,11 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Event {
 public:
+  Event() = default;
   virtual             ~Event() = default;
+
+  Event(const Event&) = delete;
+  Event& operator=(const Event&) = delete;
 
   bool                is_open() const;
 
