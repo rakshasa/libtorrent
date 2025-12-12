@@ -53,9 +53,9 @@ public:
   static constexpr uint32_t flag_write = 0x2;
   static constexpr uint32_t flag_error = 0x4;
 
-  inline uint32_t     event_mask(Event* e);
-  inline uint32_t     event_mask_any(int fd);
-  inline void         set_event_mask(Event* event, uint32_t mask);
+  uint32_t            event_mask(Event* event);
+  uint32_t            event_mask_any(int fd);
+  void                set_event_mask(Event* event, uint32_t mask);
 
   void                flush();
   void                modify(torrent::Event* event, unsigned short op, short mask);
@@ -74,16 +74,18 @@ public:
 
 uint32_t
 PollInternal::event_mask(Event* event) {
+  // TODO: Replace `file_descriptor()` with m_event_poll.
+
   if (event->file_descriptor() == -1)
-    throw internal_error("PollInternal::event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
+    throw internal_error("PollInternal::event_mask() invalid file descriptor for event: " + event->print_name_fd_str());
 
   auto itr = m_table.find(event->file_descriptor());
 
   if (itr == m_table.end())
-    throw internal_error("PollInternal::event_mask() event not found: name:" + std::string(event->type_name()) + " fd:" + std::to_string(event->file_descriptor()));
+    throw internal_error("PollInternal::event_mask() event not found: " + event->print_name_fd_str());
 
   if (event != itr->second->event)
-    throw internal_error("PollInternal::event_mask() event mismatch: name:" + std::string(event->type_name()) + " fd:" + std::to_string(event->file_descriptor()));
+    throw internal_error("PollInternal::event_mask() event mismatch: " + event->print_name_fd_str());
 
   return itr->second->mask;
 }
@@ -91,7 +93,7 @@ PollInternal::event_mask(Event* event) {
 void
 PollInternal::set_event_mask(Event* event, uint32_t mask) {
   if (event->file_descriptor() == -1)
-    throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: name:" + std::string(event->type_name()) + " fd:" + std::to_string(event->file_descriptor()));
+    throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: " + event->print_name_fd_str());
 
   event->m_poll_event->mask = mask;
 }
@@ -119,7 +121,6 @@ PollInternal::modify(Event* event, unsigned short op, short mask) {
 
   struct kevent* itr = m_changes.get() + (m_changed_events++);
 
-  assert(event == m_table[event->file_descriptor()].second);
   EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event->m_poll_event.get());
 }
 
@@ -261,10 +262,10 @@ Poll::open(Event* event) {
   LT_LOG_EVENT("open event", 0);
 
   if (event->file_descriptor() == -1)
-    throw internal_error("Poll::open() invalid file descriptor for event: name:" + std::string(event->type_name()));
+    throw internal_error("Poll::open() invalid file descriptor for event: " + event->print_name_fd_str());
 
-  if (m_internal->event_mask_any(event->file_descriptor()) != 0)
-    throw internal_error("Poll::open() called but the file descriptor is active");
+  if (event->m_poll_event != nullptr)
+    throw internal_error("Poll::open() called but the event is already associated with a poll: " + event->print_name_fd_str());
 
   if (m_internal->m_table.find(event->file_descriptor()) != m_internal->m_table.end())
     throw internal_error("Poll::open() event already exists: " + event->print_name_fd_str());
