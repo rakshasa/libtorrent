@@ -37,7 +37,7 @@ protected:
 
   std::shared_ptr<net::PollEvent> m_poll_event;
 
-  // TODO: Rename to m_fd.
+  // TODO: replace by m_poll_event->fd()
   int                 m_fileDesc{-1};
 
   // TODO: Deprecate.

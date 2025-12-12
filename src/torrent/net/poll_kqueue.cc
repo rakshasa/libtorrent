@@ -39,10 +39,6 @@ public:
 
   uint32_t            mask{};
   Event*              event{};
-
-  // Keep a shared ptr to self to manage lifetime, as changed events returned by kevent might be
-  // processed after the event has been removed.
-  std::shared_ptr<PollEvent> self_ptr;
 };
 
 class PollInternal {
@@ -54,7 +50,6 @@ public:
   static constexpr uint32_t flag_error = 0x4;
 
   uint32_t            event_mask(Event* event);
-  uint32_t            event_mask_any(int fd);
   void                set_event_mask(Event* event, uint32_t mask);
 
   void                flush();
@@ -151,8 +146,6 @@ Poll::create() {
 Poll::~Poll() {
   assert(m_internal->m_table.empty() && "Poll::~Poll() called with non-empty event table.");
 
-  m_internal->m_table.clear();
-
   ::close(m_internal->m_fd);
   m_internal->m_fd = -1;
 }
@@ -206,9 +199,10 @@ Poll::process() {
       utils::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->udata);
-    auto* event = poll_event->event;
+    auto* event      = poll_event->event;
 
     if (event == nullptr) {
+      // TODO: This should fail.
       LT_LOG_DEBUG_IDENT("event is null, skipping : udata:%p", itr->udata);
       continue;
     }
@@ -224,9 +218,8 @@ Poll::process() {
       if (poll_event->mask != 0)
         throw internal_error("Poll::process() event_error called but event mask not cleared: " + event_info);
 
-      count++;
-
       // We assume that the event gets closed if we get an error.
+      count++;
       continue;
     }
 
@@ -271,7 +264,6 @@ Poll::open(Event* event) {
     throw internal_error("Poll::open() event already exists: " + event->print_name_fd_str());
 
   event->m_poll_event = std::make_shared<PollEvent>(event);
-  event->m_poll_event->self_ptr = event->m_poll_event;
 
   m_internal->m_table[event->file_descriptor()] = event->m_poll_event;
 }
@@ -297,8 +289,6 @@ Poll::close(Event* event) {
   m_internal->flush();
 
   poll_event->event = nullptr;
-  poll_event->self_ptr.reset();
-
   event->m_poll_event.reset();
 }
 
