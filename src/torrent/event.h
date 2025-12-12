@@ -21,7 +21,7 @@ public:
 
   std::string         print_name_fd_str() const;
 
-  virtual const char* type_name() const = 0;
+  virtual const char* type_name() const;
 
   // TODO: Make these protected.
   virtual void        event_read() = 0;
