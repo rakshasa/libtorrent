@@ -90,7 +90,6 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
     throw internal_error("PollInternal::modify() event has no PollEvent associated: " + event->print_name_fd_str());
 
   epoll_event e{};
-  e.data.u64 = 0;
   e.data.ptr = event->m_poll_event.get();
   e.events = mask;
 
