@@ -21,13 +21,13 @@ public:
   TrackerHttp(const TrackerInfo& info, int flags = 0);
   ~TrackerHttp() override;
 
+  tracker_enum        type() const override;
+
   bool                is_busy() const override;
 
   void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
   void                close() override;
-
-  tracker_enum        type() const override;
 
 private:
   void                close_directly();

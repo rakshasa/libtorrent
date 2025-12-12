@@ -18,6 +18,11 @@
 
 // TODO: Change to LOG_CONNECTION_POLL
 
+// TODO: Optimize table memory size, and add a reference to Event for direct lookup.
+
+#define LT_LOG(log_fmt, ...)                                        \
+  lt_log_print(LOG_CONNECTION_FD, "kqueue: " log_fmt, __VA_ARGS__);
+
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
@@ -49,8 +54,10 @@ public:
   static constexpr uint32_t flag_error = 0x4;
 
   inline uint32_t     event_mask(Event* e);
+  inline uint32_t     event_mask_any(int fd);
   inline void         set_event_mask(Event* event, uint32_t mask);
 
+  void                flush();
   void                modify(torrent::Event* event, unsigned short op, short mask);
 
   int                 m_fd;
@@ -68,15 +75,15 @@ public:
 uint32_t
 PollInternal::event_mask(Event* event) {
   if (event->file_descriptor() == -1)
-    throw internal_error("PollInternal::event_mask() invalid file descriptor for event: " + event->print_name_fd_str());
+    throw internal_error("PollInternal::event_mask() invalid file descriptor for event: name:" + std::string(e->type_name()));
 
   auto itr = m_table.find(event->file_descriptor());
 
   if (itr == m_table.end())
-    throw internal_error("PollInternal::event_mask() event not found: " + event->print_name_fd_str());
+    throw internal_error("PollInternal::event_mask() event not found: name:" + std::string(event->type_name()) + " fd:" + std::to_string(event->file_descriptor()));
 
   if (event != itr->second->event)
-    throw internal_error("PollInternal::event_mask() event mismatch: " + event->print_name_fd_str());
+    throw internal_error("PollInternal::event_mask() event mismatch: name:" + std::string(event->type_name()) + " fd:" + std::to_string(event->file_descriptor()));
 
   return itr->second->mask;
 }
@@ -84,27 +91,35 @@ PollInternal::event_mask(Event* event) {
 void
 PollInternal::set_event_mask(Event* event, uint32_t mask) {
   if (event->file_descriptor() == -1)
-    throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: " + event->print_name_fd_str());
+    throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: name:" + std::string(event->type_name()) + " fd:" + std::to_string(event->file_descriptor()));
 
   event->m_poll_event->mask = mask;
+}
+
+void
+PollInternal::flush() {
+  if (m_changed_events == 0)
+    return;
+
+  LT_LOG("flushing events : changed:%u", m_changed_events);
+
+  if (::kevent(m_fd, m_changes.get(), m_changed_events, nullptr, 0, nullptr) == -1)
+    throw internal_error("PollInternal::flush() error: " + std::string(std::strerror(errno)));
+
+  m_changed_events = 0;
 }
 
 void
 PollInternal::modify(Event* event, unsigned short op, short mask) {
   LT_LOG_EVENT("modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
 
-  if (m_changed_events == m_max_events) {
-    if (::kevent(m_fd, m_changes.get(), m_changed_events, nullptr, 0, nullptr) == -1)
-      throw internal_error("PollInternal::modify() error: " + std::string(std::strerror(errno)));
-
-    m_changed_events = 0;
-  }
-
-  if (event->m_poll_event == nullptr)
-    throw internal_error("PollInternal::modify() event has no poll event: " + event->print_name_fd_str());
+  // Flush the changed filters to the kernel if the buffer is full.
+  if (m_changed_events == m_max_events)
+    flush();
 
   struct kevent* itr = m_changes.get() + (m_changed_events++);
 
+  assert(event == m_table[event->file_descriptor()].second);
   EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event->m_poll_event.get());
 }
 
@@ -209,6 +224,8 @@ Poll::process() {
         throw internal_error("Poll::process() event_error called but event mask not cleared: " + event_info);
 
       count++;
+
+      // We assume that the event gets closed if we get an error.
       continue;
     }
 
@@ -244,10 +261,13 @@ Poll::open(Event* event) {
   LT_LOG_EVENT("open event", 0);
 
   if (event->file_descriptor() == -1)
-    throw internal_error("PollInternal::event_mask_open() invalid file descriptor for event: name:" + std::string(event->type_name()));
+    throw internal_error("Poll::open() invalid file descriptor for event: name:" + std::string(event->type_name()));
+
+  if (m_internal->event_mask_any(event->file_descriptor()) != 0)
+    throw internal_error("Poll::open() called but the file descriptor is active");
 
   if (m_internal->m_table.find(event->file_descriptor()) != m_internal->m_table.end())
-    throw internal_error("PollInternal::event_mask_open() event already exists: " + event->print_name_fd_str());
+    throw internal_error("Poll::open() event already exists: " + event->print_name_fd_str());
 
   event->m_poll_event = std::make_shared<PollEvent>(event);
   event->m_poll_event->self_ptr = event->m_poll_event;
@@ -273,13 +293,7 @@ Poll::close(Event* event) {
   if (m_internal->m_table.erase(event->file_descriptor()) == 0)
     throw internal_error("Poll::close() event not found: " + event->print_name_fd_str());
 
-  // No need to touch m_events as we unset the read/write/error flags in m_internal->m_events using
-  // remove_read/write/error.
-  auto last_itr = std::remove_if(m_internal->m_changes.get(),
-                                 m_internal->m_changes.get() + m_internal->m_changed_events,
-                                 [poll_event](const struct kevent& ke) { return ke.udata == poll_event; });
-
-  m_internal->m_changed_events = last_itr - m_internal->m_changes.get();
+  m_internal->flush();
 
   poll_event->event = nullptr;
   poll_event->self_ptr.reset();

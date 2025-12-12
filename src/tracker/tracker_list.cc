@@ -269,7 +269,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
 // TODO: Use proper flags for insert options.
 void
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
-  TrackerWorker* worker;
+  TrackerWorker* worker{};
 
   int flags = tracker::TrackerState::flag_enabled;
 
@@ -277,6 +277,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     flags |= tracker::TrackerState::flag_extra_tracker;
 
   TrackerInfo tracker_info;
+
   tracker_info.info_hash = m_info->hash();
   tracker_info.obfuscated_hash = m_info->hash_obfuscated();
   tracker_info.local_id = m_info->local_id();
