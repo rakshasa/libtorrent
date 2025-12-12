@@ -43,7 +43,7 @@ public:
   void                set_event_mask(Event* event, uint32_t mask);
 
   void                flush();
-  void                modify(torrent::Event* event, unsigned short op, short mask);
+  void                modify(torrent::Event* event, unsigned short op, uint32_t mask);
 
   int                 m_fd;
 
@@ -207,7 +207,7 @@ Poll::process() {
     // it wasn't removed from one of them but not closed.
 
     if (itr->events & EPOLLERR && poll_event->mask & EPOLLERR) {
-      if (!(poll_event->mask & PollInternal::flag_error))
+      if (!(poll_event->mask & EPOLLERR))
         throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
 
       auto event_info = event->print_name_fd_str();
