@@ -28,7 +28,7 @@ namespace torrent::net {
 
 class PollEvent {
 public:
-  PollEvent(Event* e) : event(e) {}
+  PollEvent(Event* event) : event(event) {}
   ~PollEvent() = default;
 
   uint32_t            mask{};
@@ -86,9 +86,12 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
 
   LT_LOG_EVENT("modify event : op:%hx mask:%hx", op, mask);
 
-  epoll_event e;
+  if (event->m_poll_event == nullptr)
+    throw internal_error("PollInternal::modify() event has no PollEvent associated: " + event->print_name_fd_str());
+
+  epoll_event e{};
   e.data.u64 = 0;
-  e.data.fd = event->file_descriptor();
+  e.data.ptr = event->m_poll_event.get();
   e.events = mask;
 
   set_event_mask(event, mask);
