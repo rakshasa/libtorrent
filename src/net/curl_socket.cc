@@ -22,6 +22,9 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
 
     // We also probably need the special code here as we're not
     // guaranteed that the fd will be closed, afaik.
+    this_thread::poll()->remove_read(socket);
+    this_thread::poll()->remove_write(socket);
+    this_thread::poll()->remove_error(socket);
     socket->close();
 
     delete socket;
