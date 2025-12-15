@@ -183,6 +183,7 @@ constexpr const char* option_list_log_group[] = {
   "rpc_events",
   "rpc_dump",
 
+  "session_events",
   "storage",
   "system",
 
