@@ -21,6 +21,15 @@ namespace torrent::utils {
 
 thread_local Thread* Thread::m_self{nullptr};
 
+Thread::~Thread() = default;
+
+Thread* Thread::self() { return m_self; }
+
+void Thread::init_thread() {}
+void Thread::init_thread_pre_start() {}
+void Thread::init_thread_post_local() {}
+void Thread::cleanup_thread() {}
+
 Thread::Thread() :
     m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
     m_poll(net::Poll::create()),
@@ -32,13 +41,6 @@ Thread::Thread() :
   m_scheduler->set_cached_time(m_cached_time);
 }
 
-Thread::~Thread() = default;
-
-Thread*
-Thread::self() {
-  return m_self;
-}
-
 void
 Thread::start_thread() {
   if (m_poll == nullptr)
@@ -46,6 +48,8 @@ Thread::start_thread() {
 
   if (!is_initialized())
     throw internal_error("Called Thread::start_thread on an uninitialized object.");
+
+  init_thread_pre_start();
 
   if (pthread_create(&m_thread, nullptr, &Thread::enter_event_loop, this))
     throw internal_error("Failed to create thread.");
@@ -210,10 +214,6 @@ Thread::init_thread_local() {
 }
 
 void
-Thread::init_thread_post_local() {
-}
-
-void
 Thread::cleanup_thread_local() {
   lt_log_print(LOG_THREAD_NOTICE, "%s : cleaning up thread local data", name());
 
@@ -221,12 +221,6 @@ Thread::cleanup_thread_local() {
 
   // TODO: Cleanup the resolver, scheduler, and poll objects.
   m_self = nullptr;
-}
-
-void
-Thread::set_cached_time(std::chrono::microseconds t) {
-  m_cached_time = t;
-  m_scheduler->set_cached_time(t);
 }
 
 void
@@ -281,6 +275,12 @@ Thread::process_callbacks(bool only_interrupt) {
     m_callbacks_processing = false;
     m_callbacks_processing_lock.unlock();
   }
+}
+
+void
+Thread::set_cached_time(std::chrono::microseconds t) {
+  m_cached_time = t;
+  m_scheduler->set_cached_time(t);
 }
 
 } // namespace torrent::utils
