@@ -13,7 +13,11 @@ class PollInternal;
 
 class LIBTORRENT_EXPORT Event {
 public:
+  Event();
   virtual             ~Event();
+
+  Event(const Event&) = delete;
+  Event& operator=(const Event&) = delete;
 
   bool                is_open() const;
 
