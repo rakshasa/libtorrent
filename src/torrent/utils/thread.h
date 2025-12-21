@@ -64,16 +64,7 @@ public:
   //
   auto                signal_bitfield()    { return &m_signal_bitfield; }
 
-  virtual void        init_thread() = 0;
-  void                init_thread_local();
-  virtual void        init_thread_post_local();
-
-  // It is assumed that any thread-specific resources no longer are accessed at the time
-  // cleanup_thread is called, or that those resources remain safe to call.
-  //
-  // This mean that e.g. tracker::Manager never gets called once thread_tracker is stopped.
-  virtual void        cleanup_thread() = 0;
-  void                cleanup_thread_local();
+  virtual void        init_thread();
 
   void                start_thread();
   void                stop_thread_wait();
@@ -97,8 +88,6 @@ protected:
   net::Resolver*      resolver()  { return m_resolver.get(); }
   Scheduler*          scheduler() { return m_scheduler.get(); }
 
-  void                set_cached_time(std::chrono::microseconds t);
-
   bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
 
   static void*        enter_event_loop(void* thread);
@@ -106,9 +95,22 @@ protected:
   virtual void                      call_events() = 0;
   virtual std::chrono::microseconds next_timeout() = 0;
 
+  virtual void        init_thread_pre_start();
+  void                init_thread_local();
+  virtual void        init_thread_post_local();
+
+  // It is assumed that any thread-specific resources no longer are accessed at the time
+  // cleanup_thread is called, or that those resources remain safe to call.
+  //
+  // This mean that e.g. tracker::Manager never gets called once thread_tracker is stopped.
+  virtual void        cleanup_thread();
+  void                cleanup_thread_local();
+
   void                process_events();
   void                process_events_without_cached_time();
   void                process_callbacks(bool only_interrupt = false);
+
+  void                set_cached_time(std::chrono::microseconds t);
 
   static thread_local Thread*  m_self;
 
@@ -135,6 +137,7 @@ protected:
   std::multimap<const void*, std::function<void ()>> m_callbacks;
   std::multimap<const void*, std::function<void ()>> m_interrupt_callbacks;
   std::atomic<bool>                                  m_callbacks_should_interrupt_polling{false};
+
   std::mutex                                         m_callbacks_processing_lock;
   std::atomic<bool>                                  m_callbacks_processing{false};
 };
