@@ -151,6 +151,11 @@ Download::hash_check(bool tryQuick) {
     bitfield->unset_all();
 
     m_ptr->hash_checker()->hashing_ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
+
+  } else if (!tryQuick) {
+    // Clear ranges we're about to recheck so mark_completed can re-set them.
+    for (auto range : m_ptr->hash_checker()->hashing_ranges())
+      bitfield->unset_range(range.first, range.second);
   }
 
   m_ptr->main()->file_list()->update_completed();
