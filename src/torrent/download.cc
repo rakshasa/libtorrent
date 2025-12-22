@@ -129,8 +129,16 @@ Download::stop(int flags) {
   m_ptr->main()->tracker_controller().disable();
 }
 
+// When session data is loaded, it includes a bitfield and list of files+mtime.
+//
+// As the download is opened it checks the mtimes of the files, if the file is missing or has wrong mtime then
+// the file's range is added to hashing_ranges() and the bitfield range is cleared.
+//
+// Hash check with try_quick never does any actual hashing, it only checks if the underlying file
+// exists and if it does it fails the whole try_quick hash check.
+
 bool
-Download::hash_check(bool tryQuick) {
+Download::hash_check(bool try_quick) {
   if (m_ptr->hash_checker()->is_checking())
     throw internal_error("Download::hash_check(...) called but the hash is already being checked.");
 
@@ -142,7 +150,7 @@ Download::hash_check(bool tryQuick) {
 
   Bitfield* bitfield = m_ptr->data()->mutable_completed_bitfield();
 
-  LT_LOG_THIS(INFO, "Checking hash: allocated:%i try_quick:%i.", !bitfield->empty(), (int)tryQuick);
+  LT_LOG_THIS(INFO, "Checking hash: allocated:%i try_quick:%i.", !bitfield->empty(), (int)try_quick);
 
   if (bitfield->empty()) {
     // The bitfield still hasn't been allocated, so no resume data was
@@ -151,11 +159,19 @@ Download::hash_check(bool tryQuick) {
     bitfield->unset_all();
 
     m_ptr->hash_checker()->hashing_ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
+
+  } else if (!try_quick) {
+    // Clear ranges we're about to recheck so mark_completed can re-set them.
+    for (auto range : m_ptr->hash_checker()->hashing_ranges())
+      bitfield->unset_range(range.first, range.second);
+
+    // TODO: Consider adding a sanity check above instead, and print out the files (size+range) of
+    // the invalid marked bit.
   }
 
   m_ptr->main()->file_list()->update_completed();
 
-  return m_ptr->hash_checker()->start(tryQuick);
+  return m_ptr->hash_checker()->start(try_quick);
 }
 
 // Propably not correct, need to clear content, etc.
