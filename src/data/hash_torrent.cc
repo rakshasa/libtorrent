@@ -140,7 +140,7 @@ HashTorrent::queue(bool quick) {
       }
 
       if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent) {
-        LT_LOG_THIS(DEBUG, "Return on handle errno == E_NOENT: position:%u.", m_position);
+        LT_LOG_THIS(DEBUG, "Return on handle errno != E_NOENT: position:%u.", m_position);
         return;
       }
 

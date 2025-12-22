@@ -134,9 +134,9 @@ std::thread::id           thread_id() LIBTORRENT_EXPORT;
 std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
 std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
 
-void                      callback(void* target, std::function<void ()>&& fn);
-void                      cancel_callback(void* target);
-void                      cancel_callback_and_wait(void* target);
+void                      callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
+void                      cancel_callback(void* target) LIBTORRENT_EXPORT;
+void                      cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
 
 net::Poll*                poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
@@ -161,9 +161,9 @@ namespace torrent::main_thread {
 torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
 std::thread::id         thread_id() LIBTORRENT_EXPORT;
 
-void                    callback(void* target, std::function<void ()>&& fn);
-void                    cancel_callback(void* target);
-void                    cancel_callback_and_wait(void* target);
+void                    callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
+void                    cancel_callback(void* target) LIBTORRENT_EXPORT;
+void                    cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
 
 uint32_t                hash_queue_size() LIBTORRENT_EXPORT;
 
@@ -174,9 +174,9 @@ namespace torrent::net_thread {
 torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
 std::thread::id         thread_id() LIBTORRENT_EXPORT;
 
-void                    callback(void* target, std::function<void ()>&& fn);
-void                    cancel_callback(void* target);
-void                    cancel_callback_and_wait(void* target);
+void                    callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
+void                    cancel_callback(void* target) LIBTORRENT_EXPORT;
+void                    cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
 
 torrent::net::HttpStack* http_stack() LIBTORRENT_EXPORT;
 
