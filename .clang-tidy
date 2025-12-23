@@ -1,7 +1,9 @@
 ---
-Checks: '-*,readability-identifier-naming'
+Checks: '-*,misc-include-cleaner'
 FormatStyle: 'file'
 CheckOptions:
+  - key: misc-include-cleaner.MissingIncludes
+    value: false
   - key: readability-identifier-naming.LocalVariableCase
     value: lower_case
   - key: readability-identifier-naming.ParameterCase
