@@ -3,6 +3,7 @@
 #include "curl_socket.h"
 
 #include <cassert>
+#include <unistd.h>
 #include <curl/multi.h>
 
 #include "net/curl_stack.h"
@@ -11,20 +12,24 @@
 
 namespace torrent::net {
 
+CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle)
+  : m_stack(stack),
+    m_easy_handle(easy_handle) {
+  m_fileDesc = fd;
+}
+
 int
-CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd, int what, CurlStack* stack, CurlSocket* socket) {
+CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlStack* stack, CurlSocket* socket) {
   // We always return 0, even when stack is not running, as we depend on these calls to delete
   // sockets.
 
   if (what == CURL_POLL_REMOVE) {
     if (socket == nullptr)
-      return 0;
+      throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
 
-    // We also probably need the special code here as we're not
-    // guaranteed that the fd will be closed, afaik.
-    socket->close();
-
-    delete socket;
+    this_thread::poll()->remove_read(socket);
+    this_thread::poll()->remove_write(socket);
+    this_thread::poll()->remove_error(socket);
     return 0;
   }
 
@@ -32,11 +37,11 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
     if (!stack->is_running())
       return 0;
 
-    // TODO: Assign nullptr here....
-    // TODO: Might not be getting removed ? verify fd, etc.
+    socket = new CurlSocket(fd, stack, easy_handle);
 
-    socket = new CurlSocket(fd, stack);
     curl_multi_assign(stack->handle(), fd, socket);
+    curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETDATA, socket);
+    curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
 
     this_thread::poll()->open(socket);
     this_thread::poll()->insert_error(socket);
@@ -62,6 +67,23 @@ CurlSocket::receive_socket([[maybe_unused]] void* easy_handle, curl_socket_t fd,
   return 0;
 }
 
+int
+CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
+  if (socket == nullptr)
+    throw internal_error("CurlSocket::close_socket() called with null socket.");
+
+  if (fd != socket->m_fileDesc)
+    throw internal_error("CurlSocket::close_socket() fd mismatch.");
+
+  socket->close();
+
+  if (::close(fd) != 0)
+    throw internal_error("CurlSocket::close_socket() error closing fd.");
+
+  delete socket;
+  return 0;
+}
+
 CurlSocket::~CurlSocket() {
   assert(m_fileDesc == -1 && "CurlSocket::~CurlSocket() m_fileDesc != -1.");
 }
@@ -69,9 +91,12 @@ CurlSocket::~CurlSocket() {
 void
 CurlSocket::close() {
   if (m_fileDesc == -1)
-    throw internal_error("CurlSocket::close() m_fileDesc == -1.");
+    return;
 
   this_thread::poll()->remove_and_close(this);
+
+  curl_multi_assign(m_stack->handle(), m_fileDesc, nullptr);
+  curl_easy_setopt(m_easy_handle, CURLOPT_CLOSESOCKETFUNCTION, nullptr);
 
   m_stack = nullptr;
   m_fileDesc = -1;
