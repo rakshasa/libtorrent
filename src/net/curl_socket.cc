@@ -27,9 +27,17 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (socket == nullptr)
       throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
 
-    this_thread::poll()->remove_read(socket);
-    this_thread::poll()->remove_write(socket);
-    this_thread::poll()->remove_error(socket);
+    // TODO: This should be handled such that ... all the ai suggestions are bad
+
+    if (socket->m_fileDesc == -1)
+      throw internal_error("CurlSocket::receive_socket() CURL_POLL_REMOVE on already closed socket.");
+
+    if (socket->m_fileDesc != fd)
+      throw internal_error("CurlSocket::receive_socket() CURL_POLL_REMOVE fd mismatch.");
+
+    socket->close();
+    delete socket;
+
     return 0;
   }
 
@@ -80,7 +88,7 @@ CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
   if (::close(fd) != 0)
     throw internal_error("CurlSocket::close_socket() error closing fd.");
 
-  delete socket;
+  // delete socket;
   return 0;
 }
 
@@ -95,7 +103,8 @@ CurlSocket::close() {
 
   this_thread::poll()->remove_and_close(this);
 
-  curl_multi_assign(m_stack->handle(), m_fileDesc, nullptr);
+  // TODO: This will result in the callback receving a null socket pointer, this means we should have one point of deletion.
+  // curl_multi_assign(m_stack->handle(), m_fileDesc, nullptr);
   curl_easy_setopt(m_easy_handle, CURLOPT_CLOSESOCKETFUNCTION, nullptr);
 
   m_stack = nullptr;
