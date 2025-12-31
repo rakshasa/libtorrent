@@ -27,10 +27,11 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (socket == nullptr)
       throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
 
-    // TODO: This should be handled such that ... all the ai suggestions are bad
-
-    if (socket->m_fileDesc == -1)
-      throw internal_error("CurlSocket::receive_socket() CURL_POLL_REMOVE on already closed socket.");
+    // LibCurl already called close_socket().
+    if (socket->m_fileDesc == -1) {
+      delete socket;
+      return 0;
+    }
 
     if (socket->m_fileDesc != fd)
       throw internal_error("CurlSocket::receive_socket() CURL_POLL_REMOVE fd mismatch.");
@@ -75,6 +76,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   return 0;
 }
 
+// When receive_socket() is called with CURL_POLL_REMOVE, we call CurlSocket::close() which
+// deregisters this callback.
 int
 CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
   if (socket == nullptr)
@@ -87,6 +90,10 @@ CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
 
   if (::close(fd) != 0)
     throw internal_error("CurlSocket::close_socket() error closing fd.");
+
+  // We assume the socket is deleted in receive_socket() after CURL_POLL_REMOVE.
+  //
+  // TODO: We need to verify that libcurl calls CURL_POLL_REMOVE after this.
 
   // delete socket;
   return 0;
@@ -103,8 +110,8 @@ CurlSocket::close() {
 
   this_thread::poll()->remove_and_close(this);
 
-  // TODO: This will result in the callback receving a null socket pointer, this means we should have one point of deletion.
-  // curl_multi_assign(m_stack->handle(), m_fileDesc, nullptr);
+  // Deregister close callback for when receive_socket() is called with CURL_POLL_REMOVE, as this
+  // CurlSocket is deleted.
   curl_easy_setopt(m_easy_handle, CURLOPT_CLOSESOCKETFUNCTION, nullptr);
 
   m_stack = nullptr;
