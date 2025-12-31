@@ -6,6 +6,8 @@ AM_INIT_AUTOMAKE([serial-tests subdir-objects foreign])
 
 LT_INIT([[disable-static]])
 
+# When releasing the first 1.x.y version, we need to start with 1.1.0 (or higher) as we've already
+# used 0.16.x.
 AC_DEFINE([[PEER_NAME]], [["-lt1005-"]], [[Identifier that is part of the default peer id.]])
 AC_DEFINE([[PEER_VERSION]], [["lt\x10\x05"]], [[4 byte client and version identifier for DHT.]])
 

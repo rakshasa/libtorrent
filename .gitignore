@@ -53,6 +53,7 @@ scripts/lt*.m4
 # Logs and databases #
 ######################
 *.log
+compile_commands.json
 
 # OS generated files #
 ######################
