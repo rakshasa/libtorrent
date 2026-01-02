@@ -40,6 +40,12 @@ ThreadMain::create_thread() {
   m_thread_main->m_hash_queue = std::make_unique<HashQueue>();
 }
 
+void
+ThreadMain::destroy_thread() {
+  delete m_thread_main;
+  m_thread_main = nullptr;
+}
+
 ThreadMain*
 ThreadMain::thread_main() {
   return m_thread_main;

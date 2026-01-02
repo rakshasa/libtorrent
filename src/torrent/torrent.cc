@@ -158,6 +158,11 @@ cleanup() {
   curl_global_cleanup();
 }
 
+void
+cleanup_main_thread() {
+  ThreadMain::destroy_thread();
+}
+
 bool
 is_initialized() {
   return manager != NULL;

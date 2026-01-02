@@ -15,6 +15,7 @@ void                initialize() LIBTORRENT_EXPORT;
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
 void                cleanup() LIBTORRENT_EXPORT;
+void                cleanup_main_thread() LIBTORRENT_EXPORT;
 
 bool                is_inactive() LIBTORRENT_EXPORT;
 bool                is_initialized() LIBTORRENT_EXPORT;

@@ -15,6 +15,7 @@ public:
   ~ThreadMain() override;
 
   static void         create_thread();
+  static void         destroy_thread();
   static ThreadMain*  thread_main();
 
   const char*         name() const override { return "rtorrent main"; }
