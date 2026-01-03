@@ -28,7 +28,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
 
     // LibCurl already called close_socket().
-    if (socket->!is_open()) {
+    if (!socket->is_open()) {
       delete socket;
       return 0;
     }
