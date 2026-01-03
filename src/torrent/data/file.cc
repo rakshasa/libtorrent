@@ -1,14 +1,14 @@
 #include "config.h"
 
-#include <cassert>
-#include <rak/file_stat.h>
+#include "torrent/data/file.h"
 
-#include "data/socket_file.h"
+#include <cassert>
 
 #include "exceptions.h"
-#include "file.h"
-#include "file_manager.h"
 #include "manager.h"
+#include "data/socket_file.h"
+#include "torrent/data/file_manager.h"
+#include "torrent/utils/file_stat.h"
 
 namespace torrent {
 
@@ -21,7 +21,7 @@ File::is_created() const {
   if (is_padding())
     return true;
 
-  rak::file_stat fs;
+  utils::FileStat fs;
 
   // If we can't even get permission to do fstat, we might as well
   // consider the file as not created. This function is to be used by
@@ -40,7 +40,7 @@ File::is_correct_size() const {
   if (is_padding())
     return true;
 
-  rak::file_stat fs;
+  utils::FileStat fs;
 
   if (!fs.update(frozen_path()))
     return false;
