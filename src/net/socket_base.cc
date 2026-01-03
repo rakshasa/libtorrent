@@ -12,7 +12,7 @@ namespace torrent {
 char* SocketBase::m_nullBuffer = new char[SocketBase::null_buffer_size];
 
 SocketBase::~SocketBase() {
-  assert(!get_fd().is_valid() && "SocketBase::~SocketBase() called but m_fd is still valid");
+  assert(m_fileDesc == -1 && "SocketBase::~SocketBase() called but m_fd is still valid");
 }
 
 bool

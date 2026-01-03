@@ -5,7 +5,6 @@
 #include <functional>
 
 #include "socket_base.h"
-#include "socket_fd.h"
 
 namespace torrent {
 
@@ -24,7 +23,7 @@ public:
 
   void                close();
 
-  bool                is_open() const { return get_fd().is_valid(); }
+  bool                is_open() const { return m_fileDesc != -1; }
 
   uint16_t            port() const { return m_port; }
 

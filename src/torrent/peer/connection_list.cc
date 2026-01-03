@@ -50,7 +50,7 @@ ConnectionList::want_connection([[maybe_unused]] PeerInfo* p, Bitfield* bitfield
 }
 
 PeerConnectionBase*
-ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+ConnectionList::insert(PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)
     return NULL;
 
@@ -61,9 +61,10 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
 
   peerInfo->set_connection(peerConnection);
   peerInfo->set_last_connection(this_thread::cached_seconds().count());
+
   peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
-  if (!peerConnection->get_fd().is_valid()) {
+  if (peerConnection->file_descriptor() == -1) {
     delete peerConnection;
     return NULL;
   }

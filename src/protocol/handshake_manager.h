@@ -4,7 +4,6 @@
 #include <functional>
 #include <string>
 
-#include "net/socket_fd.h"
 #include "rak/unordered_vector.h"
 #include "torrent/connection_manager.h"
 

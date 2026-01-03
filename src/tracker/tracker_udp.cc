@@ -133,13 +133,13 @@ TrackerUdp::close_directly() {
   m_read_buffer.reset();
   m_write_buffer.reset();
 
-  if (!get_fd().is_valid())
+  if (m_fileDesc == -1)
     return;
 
   this_thread::event_remove_and_close(this);
 
-  get_fd().close();
-  get_fd().clear();
+  fd_close(m_fileDesc);
+  m_fileDesc = -1;
 }
 
 tracker_enum

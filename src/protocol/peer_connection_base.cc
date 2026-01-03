@@ -70,17 +70,17 @@ PeerConnectionBase::~PeerConnectionBase() {
 }
 
 void
-PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
-  if (get_fd().is_valid())
+PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+  if (m_fileDesc != -1)
     throw internal_error("Tried to re-set PeerConnection.");
 
-  if (!fd.is_valid())
-    throw internal_error("PeerConnectionBase::set(...) received bad input.");
+  if (fd < 0)
+    throw internal_error("PeerConnectionBase::initialize() received invalid fd.");
 
   if (encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())
     throw internal_error("Encryption and decryption inconsistent.");
 
-  set_fd(fd);
+  m_fileDesc = fd;
 
   m_peerInfo = peerInfo;
   m_download = download;
@@ -118,7 +118,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
     m_download   = nullptr;
     m_extensions = nullptr;
 
-    get_fd().clear();
+    m_fileDesc = -1;
     return;
   }
 
@@ -144,7 +144,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
 
 void
 PeerConnectionBase::cleanup() {
-  if (!get_fd().is_valid())
+  if (m_fileDesc == -1)
     return;
 
   if (m_download == NULL)
@@ -170,8 +170,8 @@ PeerConnectionBase::cleanup() {
 
   manager->connection_manager()->dec_socket_count();
 
-  fd_close(get_fd().get_fd());
-  get_fd().clear();
+  fd_close(m_fileDesc);
+  m_fileDesc = -1;
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
   m_down->throttle()->erase(m_peerChunks.download_throttle());
@@ -355,8 +355,8 @@ PeerConnectionBase::load_up_chunk() {
 
 void
 PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
-  if (!get_fd().is_valid())
-    throw internal_error("PeerConnectionBase::cancel_transfer(...) !get_fd().is_valid()");
+  if (m_fileDesc == -1)
+    throw internal_error("PeerConnectionBase::cancel_transfer(...) m_fileDesc == -1");
 
   if (transfer->peer_info() != peer_info())
     throw internal_error("PeerConnectionBase::cancel_transfer(...) peer info doesn't match");

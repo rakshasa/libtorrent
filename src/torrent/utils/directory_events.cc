@@ -3,6 +3,7 @@
 #include "directory_events.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <string>
 #include <unistd.h>
 
@@ -10,9 +11,8 @@
 #include <sys/inotify.h>
 #endif
 
-#include "net/socket_fd.h"
-#include "rak/error_number.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/poll.h"
 
 namespace torrent {
@@ -22,17 +22,18 @@ directory_events::open() {
   if (m_fileDesc != -1)
     return true;
 
-  rak::error_number::clear_global();
+  errno = 0;
 
 #ifdef USE_INOTIFY
   m_fileDesc = inotify_init();
 
-  if (!SocketFd(m_fileDesc).set_nonblock()) {
-    SocketFd(m_fileDesc).close();
+  if (!fd_set_nonblock(m_fileDesc)) {
+    fd_close(m_fileDesc);
     m_fileDesc = -1;
   }
+
 #else
-  rak::error_number::set_global(rak::error_number::e_nodev);
+  errno = ENODEV;
 #endif
 
   if (m_fileDesc == -1)

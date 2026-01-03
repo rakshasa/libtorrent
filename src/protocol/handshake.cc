@@ -60,7 +60,7 @@ Handshake::Handshake(int fd, HandshakeManager* m, int encryptionOptions) :
   m_encryption(encryptionOptions),
   m_extensions(torrent::HandshakeManager::default_extensions()) {
 
-  set_fd(SocketFd(fd));
+  m_fileDesc = fd;
 
   m_readBuffer.reset();
   m_writeBuffer.reset();
@@ -70,7 +70,7 @@ Handshake::Handshake(int fd, HandshakeManager* m, int encryptionOptions) :
 
 Handshake::~Handshake() {
   assert(!m_task_timeout.is_scheduled());
-  assert(!get_fd().is_valid());
+  assert(m_fileDesc == -1);
 
   m_encryption.cleanup();
 }
@@ -116,7 +116,7 @@ Handshake::initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* pe
 
 void
 Handshake::deactivate_connection() {
-  if (!get_fd().is_valid())
+  if (m_fileDesc == -1)
     throw internal_error("Handshake::deactivate_connection called but m_fd is not open.");
 
   m_state = INACTIVE;
@@ -127,24 +127,24 @@ Handshake::deactivate_connection() {
 
 void
 Handshake::release_connection() {
-  if (!get_fd().is_valid())
+  if (m_fileDesc == -1)
     throw internal_error("Handshake::release_connection called but m_fd is not open.");
 
   m_peerInfo->unset_flags(PeerInfo::flag_handshake);
   m_peerInfo = NULL;
 
-  get_fd().clear();
+  m_fileDesc = -1;
 }
 
 void
 Handshake::destroy_connection() {
-  if (!get_fd().is_valid())
+  if (m_fileDesc == -1)
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
   manager->connection_manager()->dec_socket_count();
 
-  get_fd().close();
-  get_fd().clear();
+  fd_close(m_fileDesc);
+  m_fileDesc = -1;
 
   if (m_peerInfo == NULL)
     return;

@@ -30,7 +30,7 @@ public:
 
   const char*         type_name() const override         { return "dht"; }
 
-  bool                is_active() const                  { return get_fd().is_valid(); }
+  bool                is_active() const                  { return m_fileDesc != -1; }
 
   void                start(int port);
   void                stop();
