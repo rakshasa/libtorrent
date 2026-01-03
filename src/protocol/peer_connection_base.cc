@@ -71,7 +71,7 @@ PeerConnectionBase::~PeerConnectionBase() {
 
 void
 PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
-  if (m_fileDesc != -1)
+  if (is_open())
     throw internal_error("Tried to re-set PeerConnection.");
 
   if (fd < 0)
@@ -144,7 +144,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
 
 void
 PeerConnectionBase::cleanup() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     return;
 
   if (m_download == NULL)
@@ -355,8 +355,8 @@ PeerConnectionBase::load_up_chunk() {
 
 void
 PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
-  if (m_fileDesc == -1)
-    throw internal_error("PeerConnectionBase::cancel_transfer(...) m_fileDesc == -1");
+  if (!is_open())
+    throw internal_error("PeerConnectionBase::cancel_transfer(...) !is_open()");
 
   if (transfer->peer_info() != peer_info())
     throw internal_error("PeerConnectionBase::cancel_transfer(...) peer info doesn't match");

@@ -19,7 +19,7 @@ namespace torrent {
 
 bool
 directory_events::open() {
-  if (m_fileDesc != -1)
+  if (is_open())
     return true;
 
   errno = 0;
@@ -36,7 +36,7 @@ directory_events::open() {
   errno = ENODEV;
 #endif
 
-  if (m_fileDesc == -1)
+  if (!is_open())
     return false;
 
   this_thread::poll()->open(this);
@@ -47,7 +47,7 @@ directory_events::open() {
 
 void
 directory_events::close() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     return;
 
   this_thread::poll()->remove_read(this);

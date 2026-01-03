@@ -70,7 +70,7 @@ Handshake::Handshake(int fd, HandshakeManager* m, int encryptionOptions) :
 
 Handshake::~Handshake() {
   assert(!m_task_timeout.is_scheduled());
-  assert(m_fileDesc == -1);
+  assert(!is_open());
 
   m_encryption.cleanup();
 }
@@ -116,7 +116,7 @@ Handshake::initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* pe
 
 void
 Handshake::deactivate_connection() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     throw internal_error("Handshake::deactivate_connection called but m_fd is not open.");
 
   m_state = INACTIVE;
@@ -127,7 +127,7 @@ Handshake::deactivate_connection() {
 
 void
 Handshake::release_connection() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     throw internal_error("Handshake::release_connection called but m_fd is not open.");
 
   m_peerInfo->unset_flags(PeerInfo::flag_handshake);
@@ -138,7 +138,7 @@ Handshake::release_connection() {
 
 void
 Handshake::destroy_connection() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
   manager->connection_manager()->dec_socket_count();

@@ -23,8 +23,6 @@ public:
 
   void                close();
 
-  bool                is_open() const { return m_fileDesc != -1; }
-
   uint16_t            port() const { return m_port; }
 
   auto&               slot_accepted() { return m_slot_accepted; }

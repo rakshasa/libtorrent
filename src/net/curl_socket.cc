@@ -28,7 +28,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
 
     // LibCurl already called close_socket().
-    if (socket->m_fileDesc == -1) {
+    if (socket->!is_open()) {
       delete socket;
       return 0;
     }
@@ -100,12 +100,12 @@ CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
 }
 
 CurlSocket::~CurlSocket() {
-  assert(m_fileDesc == -1 && "CurlSocket::~CurlSocket() m_fileDesc != -1.");
+  assert(!is_open() && "CurlSocket::~CurlSocket() !is_open().");
 }
 
 void
 CurlSocket::close() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     return;
 
   this_thread::poll()->remove_and_close(this);
@@ -135,7 +135,7 @@ CurlSocket::event_error() {
 
 void
 CurlSocket::handle_action(int ev_bitmask) {
-  assert(m_fileDesc != -1 && "CurlSocket::handle_action(...) m_fileDesc != -1.");
+  assert(is_open() && "CurlSocket::handle_action(...) is_open().");
   assert(m_stack != nullptr && "CurlSocket::handle_action(...) m_stack != nullptr.");
 
   // Processing might deallocate this CurlSocket.
