@@ -86,7 +86,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   int result = inotify_add_watch(m_fileDesc, path.c_str(), in_flags);
 
   if (result == -1)
-    throw input_error("Call to inotify_add_watch(...) failed: " + std::string(rak::error_number::current().c_str()));
+    throw input_error("Call to inotify_add_watch(...) failed: " + std::string(std::strerror(errno)));
 
   auto& wd = m_wd_list.emplace_back();
   wd.descriptor = result;
