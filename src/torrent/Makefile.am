@@ -210,6 +210,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/chrono.h \
 	utils/directory_events.h \
 	utils/extents.h \
+	utils/file_stat.h \
 	utils/log.h \
 	utils/log_buffer.h \
 	utils/option_strings.h \
