@@ -25,7 +25,7 @@ SignalInterrupt::SignalInterrupt(int fd) {
 }
 
 SignalInterrupt::~SignalInterrupt() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     return;
 
   ::close(m_fileDesc);

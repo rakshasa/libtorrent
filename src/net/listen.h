@@ -4,12 +4,11 @@
 #include <cinttypes>
 #include <functional>
 
-#include "socket_base.h"
-#include "socket_fd.h"
+#include "torrent/event.h"
 
 namespace torrent {
 
-class Listen : public SocketBase {
+class Listen : public Event {
 public:
   ~Listen() override { close(); }
 
@@ -23,8 +22,6 @@ public:
                                 uint16_t first, uint16_t last, int backlog, bool block_ipv4in6);
 
   void                close();
-
-  bool                is_open() const { return get_fd().is_valid(); }
 
   uint16_t            port() const { return m_port; }
 

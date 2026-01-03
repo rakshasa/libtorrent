@@ -196,7 +196,7 @@ Listen::open_done(int fd, uint16_t port, int backlog) {
 }
 
 void Listen::close() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     return;
 
   this_thread::poll()->remove_and_close(this);

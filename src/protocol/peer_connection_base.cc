@@ -70,17 +70,17 @@ PeerConnectionBase::~PeerConnectionBase() {
 }
 
 void
-PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
-  if (get_fd().is_valid())
+PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+  if (is_open())
     throw internal_error("Tried to re-set PeerConnection.");
 
-  if (!fd.is_valid())
-    throw internal_error("PeerConnectionBase::set(...) received bad input.");
+  if (fd < 0)
+    throw internal_error("PeerConnectionBase::initialize() received invalid fd.");
 
   if (encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())
     throw internal_error("Encryption and decryption inconsistent.");
 
-  set_fd(fd);
+  m_fileDesc = fd;
 
   m_peerInfo = peerInfo;
   m_download = download;
@@ -101,10 +101,10 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   m_down->set_throttle(throttles.second);
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
-  m_peerChunks.upload_throttle()->slot_activate() = [this] { receive_throttle_up_activate(); };
+  m_peerChunks.upload_throttle()->slot_activate() = [this] { this_thread::poll()->insert_write(this); };
 
   m_peerChunks.download_throttle()->set_list_iterator(m_down->throttle()->end());
-  m_peerChunks.download_throttle()->slot_activate() = [this] { receive_throttle_down_activate(); };
+  m_peerChunks.download_throttle()->slot_activate() = [this] { this_thread::poll()->insert_read(this); };
 
   request_list()->set_delegator(m_download->delegator());
   request_list()->set_peer_chunks(&m_peerChunks);
@@ -118,7 +118,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
     m_download   = nullptr;
     m_extensions = nullptr;
 
-    get_fd().clear();
+    m_fileDesc = -1;
     return;
   }
 
@@ -144,7 +144,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
 
 void
 PeerConnectionBase::cleanup() {
-  if (!get_fd().is_valid())
+  if (!is_open())
     return;
 
   if (m_download == NULL)
@@ -170,8 +170,8 @@ PeerConnectionBase::cleanup() {
 
   manager->connection_manager()->dec_socket_count();
 
-  fd_close(get_fd().get_fd());
-  get_fd().clear();
+  fd_close(m_fileDesc);
+  m_fileDesc = -1;
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
   m_down->throttle()->erase(m_peerChunks.download_throttle());
@@ -355,8 +355,8 @@ PeerConnectionBase::load_up_chunk() {
 
 void
 PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
-  if (!get_fd().is_valid())
-    throw internal_error("PeerConnectionBase::cancel_transfer(...) !get_fd().is_valid()");
+  if (!is_open())
+    throw internal_error("PeerConnectionBase::cancel_transfer(...) !is_open()");
 
   if (transfer->peer_info() != peer_info())
     throw internal_error("PeerConnectionBase::cancel_transfer(...) peer info doesn't match");

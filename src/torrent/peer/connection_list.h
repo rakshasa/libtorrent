@@ -18,7 +18,6 @@ class Peer;
 class PeerConnectionBase;
 class PeerInfo;
 class ProtocolExtension;
-class SocketFd;
 class EncryptionInfo;
 class HandshakeManager;
 
@@ -104,7 +103,7 @@ protected:
   // responsible for cleaning up 'fd'.
   //
   // Clean this up, don't use this many arguments.
-  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) LIBTORRENT_NO_EXPORT;
+  PeerConnectionBase* insert(PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) LIBTORRENT_NO_EXPORT;
 
   void                disconnect_queued() LIBTORRENT_NO_EXPORT;
 

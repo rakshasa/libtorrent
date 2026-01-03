@@ -37,7 +37,7 @@ TrackerUdp::~TrackerUdp() {
 
 bool
 TrackerUdp::is_busy() const {
-  return m_fileDesc != -1;
+  return is_open();
 }
 
 void
@@ -133,13 +133,13 @@ TrackerUdp::close_directly() {
   m_read_buffer.reset();
   m_write_buffer.reset();
 
-  if (!get_fd().is_valid())
+  if (!is_open())
     return;
 
   this_thread::event_remove_and_close(this);
 
-  get_fd().close();
-  get_fd().clear();
+  fd_close(m_fileDesc);
+  m_fileDesc = -1;
 }
 
 tracker_enum
@@ -213,7 +213,7 @@ TrackerUdp::start_announce() {
   if (!m_sending_announce)
     throw internal_error("TrackerUdp::start_announce() called but m_sending_announce is false.");
 
-  if (m_fileDesc != -1)
+  if (is_open())
     throw internal_error("TrackerUdp::start_announce() called but m_fileDesc is already open.");
 
   m_sending_announce = false;
@@ -259,7 +259,7 @@ TrackerUdp::start_announce() {
 
   m_fileDesc = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
 
-  if (m_fileDesc == -1) {
+  if (!is_open()) {
     LT_LOG("could not open UDP socket: fd:%i error:'%s'", m_fileDesc, std::strerror(errno));
     return receive_failed("could not open UDP socket: " + std::string(std::strerror(errno)));
   }

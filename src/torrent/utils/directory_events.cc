@@ -3,6 +3,7 @@
 #include "directory_events.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <string>
 #include <unistd.h>
 
@@ -10,32 +11,32 @@
 #include <sys/inotify.h>
 #endif
 
-#include "net/socket_fd.h"
-#include "rak/error_number.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/poll.h"
 
 namespace torrent {
 
 bool
 directory_events::open() {
-  if (m_fileDesc != -1)
+  if (is_open())
     return true;
 
-  rak::error_number::clear_global();
+  errno = 0;
 
 #ifdef USE_INOTIFY
   m_fileDesc = inotify_init();
 
-  if (!SocketFd(m_fileDesc).set_nonblock()) {
-    SocketFd(m_fileDesc).close();
+  if (!fd_set_nonblock(m_fileDesc)) {
+    fd_close(m_fileDesc);
     m_fileDesc = -1;
   }
+
 #else
-  rak::error_number::set_global(rak::error_number::e_nodev);
+  errno = ENODEV;
 #endif
 
-  if (m_fileDesc == -1)
+  if (!is_open())
     return false;
 
   this_thread::poll()->open(this);
@@ -46,7 +47,7 @@ directory_events::open() {
 
 void
 directory_events::close() {
-  if (m_fileDesc == -1)
+  if (!is_open())
     return;
 
   this_thread::poll()->remove_read(this);
@@ -85,7 +86,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   int result = inotify_add_watch(m_fileDesc, path.c_str(), in_flags);
 
   if (result == -1)
-    throw input_error("Call to inotify_add_watch(...) failed: " + std::string(rak::error_number::current().c_str()));
+    throw input_error("Call to inotify_add_watch(...) failed: " + std::string(std::strerror(errno)));
 
   auto& wd = m_wd_list.emplace_back();
   wd.descriptor = result;

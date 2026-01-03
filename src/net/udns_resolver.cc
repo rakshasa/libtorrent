@@ -84,7 +84,7 @@ UdnsResolver::UdnsResolver() {
 }
 
 UdnsResolver::~UdnsResolver() {
-  assert(m_fileDesc == -1 && "UdnsResolver::~UdnsResolver() m_fileDesc != -1.");
+  assert(!is_open() && "UdnsResolver::~UdnsResolver() is_open().");
 }
 
 void
@@ -97,7 +97,7 @@ UdnsResolver::initialize(utils::Thread* thread) {
   m_ctx      = ::dns_new(nullptr);
   m_fileDesc = ::dns_open(m_ctx);
 
-  if (m_fileDesc == -1)
+  if (!is_open())
     throw internal_error("UdnsResolver::initialize() dns_open failed");
 
   torrent::this_thread::poll()->open(this);
@@ -109,7 +109,7 @@ UdnsResolver::cleanup() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  if (m_fileDesc == -1) {
+  if (!is_open()) {
     LT_LOG("cleanup not needed, not initialized: thread:%s", m_thread->name());
     return;
   }
