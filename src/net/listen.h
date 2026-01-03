@@ -4,11 +4,11 @@
 #include <cinttypes>
 #include <functional>
 
-#include "socket_base.h"
+#include "torrent/event.h"
 
 namespace torrent {
 
-class Listen : public SocketBase {
+class Listen : public Event {
 public:
   ~Listen() override { close(); }
 

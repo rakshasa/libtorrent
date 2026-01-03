@@ -101,10 +101,10 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   m_down->set_throttle(throttles.second);
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
-  m_peerChunks.upload_throttle()->slot_activate() = [this] { receive_throttle_up_activate(); };
+  m_peerChunks.upload_throttle()->slot_activate() = [this] { this_thread::poll()->insert_write(this); };
 
   m_peerChunks.download_throttle()->set_list_iterator(m_down->throttle()->end());
-  m_peerChunks.download_throttle()->slot_activate() = [this] { receive_throttle_down_activate(); };
+  m_peerChunks.download_throttle()->slot_activate() = [this] { this_thread::poll()->insert_read(this); };
 
   request_list()->set_delegator(m_download->delegator());
   request_list()->set_peer_chunks(&m_peerChunks);
