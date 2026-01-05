@@ -3,6 +3,7 @@
 #include "torrent/torrent.h"
 
 #include <curl/curl.h>
+#include <sys/stat.h>
 
 #include "data/file_manager.h"
 #include "data/hash_queue.h"

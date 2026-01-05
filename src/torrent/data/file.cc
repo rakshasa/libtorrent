@@ -3,12 +3,12 @@
 #include "torrent/data/file.h"
 
 #include <cassert>
+#include <filesystem>
 
 #include "exceptions.h"
 #include "manager.h"
 #include "data/socket_file.h"
 #include "torrent/data/file_manager.h"
-#include "torrent/utils/file_stat.h"
 
 namespace torrent {
 
@@ -21,18 +21,12 @@ File::is_created() const {
   if (is_padding())
     return true;
 
-  utils::FileStat fs;
+  // If we can't even get permission to do fstat, we might as well consider the file as not
+  // created. This function is to be used by the client to check that the torrent files are present
+  // and ok, rather than as a way to find out if it is starting on a blank slate.
+  std::error_code ec;
 
-  // If we can't even get permission to do fstat, we might as well
-  // consider the file as not created. This function is to be used by
-  // the client to check that the torrent files are present and ok,
-  // rather than as a way to find out if it is starting on a blank
-  // slate.
-  if (!fs.update(frozen_path()))
-//     return rak::error_number::current() == rak::error_number::e_access;
-    return false;
-
-  return fs.is_regular();
+  return std::filesystem::is_regular_file(frozen_path(), ec);
 }
 
 bool
@@ -40,12 +34,12 @@ File::is_correct_size() const {
   if (is_padding())
     return true;
 
-  utils::FileStat fs;
+  std::error_code ec;
 
-  if (!fs.update(frozen_path()))
+  if (!std::filesystem::is_regular_file(frozen_path(), ec))
     return false;
 
-  return fs.is_regular() && static_cast<uint64_t>(fs.size()) == m_size;
+  return std::filesystem::file_size(frozen_path(), ec) == m_size;
 }
 
 void

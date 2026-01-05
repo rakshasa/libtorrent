@@ -2,6 +2,9 @@
 
 #include "resume.h"
 
+#include <filesystem>
+#include <sys/stat.h>
+
 #include "data/file.h"
 #include "data/file_list.h"
 #include "data/transfer_list.h"
@@ -15,7 +18,6 @@
 #include "torrent/download_info.h"
 #include "torrent/object.h"
 #include "torrent/tracker/tracker.h"
-#include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_list.h"
 
@@ -31,6 +33,39 @@
 #define LT_LOG_SAVE_FILE(log_fmt, ...)                                  \
   lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save", "file[%u]: " log_fmt, \
                     file_index, __VA_ARGS__);
+
+namespace {
+
+struct file_info {
+  bool    exists;
+  int64_t mtime;
+};
+
+file_info
+get_file_info(const std::string& path) {
+  file_info info{};
+
+  auto ec        = std::error_code{};
+  auto file_stat = std::filesystem::status(path, ec);
+
+  if (ec)
+    return info;
+
+  info.exists = std::filesystem::exists(file_stat);
+
+  if (info.exists) {
+    auto ftime = std::filesystem::last_write_time(path, ec);
+
+    if (ec)
+      return info;
+
+    info.mtime = std::chrono::duration_cast<std::chrono::seconds>(ftime.time_since_epoch()).count();
+  }
+
+  return info;
+}
+
+}
 
 namespace torrent {
 
@@ -61,8 +96,6 @@ resume_load_progress(Download download, const Object& object) {
 
     unsigned int file_index = std::distance(fileList->begin(), listItr);
 
-    utils::FileStat fs;
-
     if (!filesItr->has_key_value("mtime")) {
       LT_LOG_LOAD_FILE("no mtime found, file:create|resize range:clear|recheck", 0);
 
@@ -76,7 +109,14 @@ resume_load_progress(Download download, const Object& object) {
     }
 
     int64_t mtimeValue = filesItr->get_key_value("mtime");
-    bool    fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
+
+    auto ec          = std::error_code{};
+    auto file_stat   = std::filesystem::status(fileList->root_dir() + (*listItr)->path()->as_string(), ec);
+    auto file_exists = std::filesystem::exists(file_stat);
+
+    // auto file_exists = std::filesystem::exists(std::filesystem::path(fileList->root_dir()) /
+    //                                            std::filesystem::path((*listItr)->path()->as_string()),
+    //                                            ec);
 
     // The default action when we have 'mtime' is not to create nor
     // resize the file.
@@ -102,15 +142,31 @@ resume_load_progress(Download download, const Object& object) {
 
       // Ensure the bitfield range is cleared so that stray resume
       // data doesn't get counted.
-      download.update_range(Download::update_range_clear | (fileExists ? Download::update_range_recheck : 0),
-                            (*listItr)->range().first, (*listItr)->range().second);
+      download.update_range(Download::update_range_clear |
+                            (std::filesystem::exists(file_stat) ? Download::update_range_recheck : 0),
+                            (*listItr)->range().first,
+                            (*listItr)->range().second);
+      continue;
+    }
+
+    // TODO: If we can't get file size, do something else?
+
+    auto file_size = std::filesystem::file_size(fileList->root_dir() + (*listItr)->path()->as_string(), ec);
+
+    if (ec) {
+      LT_LOG_LOAD_FILE("could not get file size, file:create|resize range:clear|recheck", 0);
+
+      (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+      download.update_range(Download::update_range_clear | Download::update_range_recheck,
+                            (*listItr)->range().first,
+                            (*listItr)->range().second);
       continue;
     }
 
     // If the file is the wrong size, queue resize and clear resume
     // data for that file.
-    if (static_cast<uint64_t>(fs.size()) != (*listItr)->size_bytes()) {
-      if (fs.size() == 0) {
+    if (static_cast<uint64_t>(file_size) != (*listItr)->size_bytes()) {
+      if (file_size == 0) {
         LT_LOG_LOAD_FILE("zero-length file found, file:resize range:clear|recheck", 0);
       } else {
         LT_LOG_LOAD_FILE("file has the wrong size, file:resize range:clear|recheck", 0);
@@ -132,6 +188,17 @@ resume_load_progress(Download download, const Object& object) {
       continue;
     }
 
+    struct stat fs;
+
+    if (stat((fileList->root_dir() + (*listItr)->path()->as_string()).c_str(), &fs) != 0) {
+      LT_LOG_LOAD_FILE("could not stat file, file:create|resize range:clear|recheck", 0);
+
+      (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+      download.update_range(Download::update_range_clear | Download::update_range_recheck,
+                            (*listItr)->range().first, (*listItr)->range().second);
+      continue;
+    }
+
     // An 'mtime' of ~2 indicates that the resume data was made by an
     // old rtorrent version which does not include 'uncertain_pieces'
     // field, and thus can't be relied upon.
@@ -140,7 +207,7 @@ resume_load_progress(Download download, const Object& object) {
     // the file, else clear the range. This should be set only for
     // files that have completed and got no indices in
     // TransferList::completed_list().
-    if (mtimeValue == ~int64_t{2} || mtimeValue != fs.modified_time()) {
+    if (mtimeValue == ~int64_t{2} || mtimeValue != static_cast<int64_t>(fs.st_mtime)) {
       LT_LOG_LOAD_FILE("resume data doesn't include uncertain pieces, range:clear|recheck", 0);
       download.update_range(Download::update_range_clear | Download::update_range_recheck,
                             (*listItr)->range().first, (*listItr)->range().second);
@@ -196,11 +263,11 @@ resume_save_progress(Download download, Object& object) {
 
     filesItr->insert_key("completed", static_cast<int64_t>((*listItr)->completed_chunks()));
 
-    utils::FileStat fs;
+    auto ec          = std::error_code{};
+    auto file_stat   = std::filesystem::status(fileList->root_dir() + (*listItr)->path()->as_string(), ec);
+    bool file_exists = std::filesystem::exists(file_stat);
 
-    bool fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
-
-    if (!fileExists) {
+    if (!file_exists) {
 
       if ((*listItr)->is_create_queued()) {
         // ~0 means the file still needs to be created.
@@ -221,6 +288,7 @@ resume_save_progress(Download download, Object& object) {
       // This assumes the syncs are properly called before
       // resume_save_progress gets called after finishing a torrent.
       filesItr->insert_key("mtime", static_cast<int64_t>(fs.modified_time()));
+
       LT_LOG_SAVE_FILE("file completed, mtime:%" PRIi64, (int64_t)fs.modified_time());
 
     } else if (!download.info()->is_active()) {

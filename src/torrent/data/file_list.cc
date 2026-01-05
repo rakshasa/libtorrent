@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <limits>
 #include <memory>
 #include <set>
@@ -18,7 +19,6 @@
 #include "torrent/path.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_manager.h"
-#include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
 
 #if HAVE_SYS_VFS_H
@@ -73,13 +73,9 @@ FileList::is_valid_piece(const Piece& piece) const {
 
 bool
 FileList::is_root_dir_created() const {
-  utils::FileStat fs;
+  std::error_code ec;
 
-  if (!fs.update(m_root_dir))
-//     return rak::error_number::current() == rak::error_number::e_access;
-    return false;
-
-  return fs.is_directory();
+  return std::filesystem::is_directory(m_root_dir, ec);
 }
 
 bool
@@ -285,7 +281,10 @@ FileList::make_root_path() {
   if (!is_open())
     return false;
 
-  return ::mkdir(m_root_dir.c_str(), 0777) == 0 || errno == EEXIST;
+  std::error_code ec;
+  std::filesystem::create_directory(m_root_dir, ec);
+
+  return !ec || ec.value() == EEXIST;
 }
 
 bool
@@ -453,12 +452,14 @@ FileList::open(bool hashing, int flags) {
   // to alert the user in this (unlikely) case.
   //
   // DEBUG: Make this depend on a flag...
-  if (size_bytes() < 2) {
-    utils::FileStat stat;
 
-    // This probably recurses into open() once, but that is harmless.
-    if (stat.update((*begin())->frozen_path()) && stat.size() > 1)
-      return reset_filesize(stat.size());
+  // TODO: Check if this is the reason for various bugs related to 0 sized files.
+  if (size_bytes() < 2) {
+    auto ec        = std::error_code{};
+    auto file_size = std::filesystem::file_size((*begin())->frozen_path(), ec);
+
+    if (!ec && file_size > 1)
+      return reset_filesize(file_size);
   }
 }
 
@@ -503,17 +504,18 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 
     startItr++;
 
-    utils::FileStat fileStat;
+    auto ec        = std::error_code{};
+    auto file_stat = std::filesystem::symlink_status(path, ec);
 
-    if (fileStat.update_link(path) &&
-        fileStat.is_link() &&
-        std::find(m_indirect_links.begin(), m_indirect_links.end(), path) == m_indirect_links.end())
-      m_indirect_links.push_back(path);
+    if (ec && std::filesystem::is_symlink(file_stat)) {
+      if (std::find(m_indirect_links.begin(), m_indirect_links.end(), path) == m_indirect_links.end())
+        m_indirect_links.push_back(path);
+    }
 
     if (pathBegin == pathEnd)
       break;
 
-    if (::mkdir(path.c_str(), 0777) != 0 && errno != EEXIST)
+    if (!std::filesystem::create_directory(path, ec) && ec.value() != EEXIST)
       throw storage_error("Could not create directory '" + path + "': " + std::strerror(errno));
   }
 }
@@ -542,12 +544,13 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
   if (file_node->path()->back().empty())
     return file_node->size_bytes() == 0;
 
-  utils::FileStat file_stat;
+  auto ec        = std::error_code{};
+  auto file_stat = std::filesystem::status(file_node->frozen_path(), ec);
 
-  if (file_stat.update(file_node->frozen_path()) &&
-      !file_stat.is_regular() && !file_stat.is_link()) {
-    // Might also bork on other kinds of file types, but there's no
-    // suitable errno for all cases.
+  if (!ec &&
+      !std::filesystem::is_regular_file(file_stat) &&
+      !std::filesystem::is_symlink(file_stat)) {
+    // Might fail on other kinds of file types, but there's no suitable errno for all cases.
     errno = EISDIR;
     return false;
   }
