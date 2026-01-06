@@ -84,7 +84,7 @@ protected:
   void                disconnected(PeerInfo* p, int flags) LIBTORRENT_NO_EXPORT;
   iterator            disconnected(iterator itr, int flags) LIBTORRENT_NO_EXPORT;
 
-  uint32_t            insert_pex_list(const raw_string& pex_list) LIBTORRENT_NO_EXPORT;
+  uint32_t            insert_pex_list(raw_string pex_list) LIBTORRENT_NO_EXPORT;
 
 private:
   PeerList(const PeerList&) = delete;

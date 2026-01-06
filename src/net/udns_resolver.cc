@@ -21,8 +21,12 @@
 namespace torrent {
 
 struct UdnsQuery {
+  UdnsQuery() = default;
   // TODO: We already use deleted.
   ~UdnsQuery() { parent = nullptr; }
+
+  UdnsQuery(const UdnsQuery&) = delete;
+  UdnsQuery& operator=(const UdnsQuery&) = delete;
 
   void*             requester{};
   std::string       hostname;

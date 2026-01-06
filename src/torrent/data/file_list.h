@@ -61,7 +61,7 @@ public:
 
   bool                is_open() const                                 { return m_is_open; }
   bool                is_done() const                                 { return completed_chunks() == size_chunks(); }
-  bool                is_valid_piece(const Piece& piece) const;
+  bool                is_valid_piece(Piece piece) const;
   bool                is_root_dir_created() const;
 
   // Check if the torrent is loaded as a multi-file torrent. This may

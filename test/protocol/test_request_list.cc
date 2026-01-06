@@ -43,6 +43,9 @@ struct RequestListGuard {
     request_list->delegator()->transfer_list()->clear();
   }
 
+  RequestListGuard(const RequestListGuard&) = delete;
+  RequestListGuard& operator=(const RequestListGuard&) = delete;
+
   bool                  completed{false};
   torrent::RequestList* request_list;
 };

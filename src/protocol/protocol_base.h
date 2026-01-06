@@ -2,10 +2,11 @@
 #define LIBTORRENT_NET_PROTOCOL_BASE_H
 
 #include "net/protocol_buffer.h"
+#include "torrent/data/piece.h"
 
 namespace torrent {
 
-class Piece;
+class ThrottleList;
 
 class ProtocolBase {
 public:
@@ -69,9 +70,9 @@ public:
   void                write_interested(bool s);
   void                write_have(uint32_t index);
   void                write_bitfield(size_type length);
-  void                write_request(const Piece& p);
-  void                write_cancel(const Piece& p);
-  void                write_piece(const Piece& p);
+  void                write_request(Piece p);
+  void                write_cancel(Piece p);
+  void                write_piece(Piece p);
   void                write_port(uint16_t port);
   void                write_extension(uint8_t id, uint32_t length);
 
@@ -126,7 +127,7 @@ ProtocolBase::read_request() {
   uint32_t index = m_buffer.read_32();
   uint32_t offset = m_buffer.read_32();
   uint32_t length = m_buffer.read_32();
-  
+
   return Piece(index, offset, length);
 }
 
@@ -170,7 +171,7 @@ ProtocolBase::write_bitfield(size_type length) {
 }
 
 inline void
-ProtocolBase::write_request(const Piece& p) {
+ProtocolBase::write_request(Piece p) {
   m_buffer.write_32(13);
   write_command(REQUEST);
   m_buffer.write_32(p.index());
@@ -179,7 +180,7 @@ ProtocolBase::write_request(const Piece& p) {
 }
 
 inline void
-ProtocolBase::write_cancel(const Piece& p) {
+ProtocolBase::write_cancel(Piece p) {
   m_buffer.write_32(13);
   write_command(CANCEL);
   m_buffer.write_32(p.index());
@@ -188,7 +189,7 @@ ProtocolBase::write_cancel(const Piece& p) {
 }
 
 inline void
-ProtocolBase::write_piece(const Piece& p) {
+ProtocolBase::write_piece(Piece p) {
   m_buffer.write_32(9 + p.length());
   write_command(PIECE);
   m_buffer.write_32(p.index());
