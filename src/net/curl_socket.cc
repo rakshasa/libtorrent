@@ -56,6 +56,9 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     this_thread::poll()->insert_error(socket);
   }
 
+  if (socket->m_easy_handle != easy_handle)
+    throw internal_error("CurlSocket::receive_socket() easy handle mismatch.");
+
   if (!stack->is_running()) {
     this_thread::poll()->remove_read(socket);
     this_thread::poll()->remove_write(socket);
@@ -78,6 +81,19 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
 // When receive_socket() is called with CURL_POLL_REMOVE, we call CurlSocket::close() which
 // deregisters this callback.
+//
+// Note that when using multi/share handles, your callback may get invoked even after the easy
+// handle has been cleaned up.
+
+// TODO: We need to handle the case where libcurl reuses file descriptors.
+//
+// This means that the CurlSocket passed to close_socket() may not be the same as the one we
+// initially registered.
+//
+// So keep a map of fd -> CurlSocket in CurlStack?
+//
+// Or can we just update the CURLOPT_CLOSESOCKETDATA to the new CurlSocket when it reuses a fd?
+
 int
 CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
   if (socket == nullptr)
@@ -112,6 +128,8 @@ CurlSocket::close() {
 
   // Deregister close callback for when receive_socket() is called with CURL_POLL_REMOVE, as this
   // CurlSocket is deleted.
+
+  // TODO: Don't do this?
   curl_easy_setopt(m_easy_handle, CURLOPT_CLOSESOCKETFUNCTION, nullptr);
 
   m_stack = nullptr;
@@ -130,6 +148,10 @@ CurlSocket::event_write() {
 
 void
 CurlSocket::event_error() {
+  // TODO: This needs to close the socket.
+
+  // TODO: Log all events.
+
   return handle_action(CURL_CSELECT_ERR);
 }
 
