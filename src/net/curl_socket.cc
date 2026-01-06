@@ -75,8 +75,10 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     this_thread::poll()->insert_error(socket);
   }
 
-  if (socket->m_easy_handle != easy_handle)
+  if (socket->m_easy_handle != easy_handle) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : easy handle mismatch", 0);
     throw internal_error("CurlSocket::receive_socket() easy handle mismatch.");
+  }
 
   if (!stack->is_running()) {
     LT_LOG_DEBUG_SOCKET_FD("receive_socket() : stack not running, removing socket from poll", 0);
