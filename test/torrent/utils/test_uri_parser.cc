@@ -73,8 +73,8 @@ test_uri_parser::test_query_magnet() {
   CPPUNIT_ASSERT(state.fragment == "");
 
   uri_parse_query_str(state.query, query_state);
-  
-  for (auto element : query_state.elements)
+
+  for (const auto& element : query_state.elements)
     lt_log_print(torrent::LOG_MOCK_CALLS, "query_element: %s", element.c_str());
 
   CPPUNIT_ASSERT(query_state.state == torrent::utils::uri_query_state::state_valid);
