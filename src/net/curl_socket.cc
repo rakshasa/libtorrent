@@ -7,8 +7,20 @@
 #include <curl/multi.h>
 
 #include "net/curl_stack.h"
-#include "torrent/net/poll.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/poll.h"
+#include "torrent/utils/log.h"
+
+#define LT_LOG_DEBUG_THIS(log_fmt, ...) \
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__);
+
+//#define LT_LOG_DEBUG_SOCKET(log_fmt, ...)
+#define LT_LOG_DEBUG_SOCKET(log_fmt, ...) \
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, __VA_ARGS__);
+
+// #define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)
+#define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)                            \
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__);
 
 namespace torrent::net {
 
@@ -24,6 +36,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   // sockets.
 
   if (what == CURL_POLL_REMOVE) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : CURL_POLL_REMOVE", 0);
+
     if (socket == nullptr)
       throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
 
@@ -43,8 +57,12 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   }
 
   if (socket == nullptr) {
-    if (!stack->is_running())
+    if (!stack->is_running()) {
+      LT_LOG_DEBUG_SOCKET_FD("receive_socket() : stack not running, skipping socket creation", 0);
       return 0;
+    }
+
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : new socket", 0);
 
     socket = new CurlSocket(fd, stack, easy_handle);
 
@@ -60,21 +78,29 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     throw internal_error("CurlSocket::receive_socket() easy handle mismatch.");
 
   if (!stack->is_running()) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : stack not running, removing socket from poll", 0);
+
     this_thread::poll()->remove_read(socket);
     this_thread::poll()->remove_write(socket);
     this_thread::poll()->remove_error(socket);
     return 0;
   }
 
-  if (what == CURL_POLL_NONE || what == CURL_POLL_OUT)
+  if (what == CURL_POLL_NONE || what == CURL_POLL_OUT) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : removing read", 0);
     this_thread::poll()->remove_read(socket);
-  else
+  } else {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : inserting read", 0);
     this_thread::poll()->insert_read(socket);
+  }
 
-  if (what == CURL_POLL_NONE || what == CURL_POLL_IN)
+  if (what == CURL_POLL_NONE || what == CURL_POLL_IN) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : removing write", 0);
     this_thread::poll()->remove_write(socket);
-  else
+  } else {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : inserting write", 0);
     this_thread::poll()->insert_write(socket);
+  }
 
   return 0;
 }
@@ -96,6 +122,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
 int
 CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
+  LT_LOG_DEBUG_SOCKET_FD("close_socket() called", 0);
+
   if (socket == nullptr)
     throw internal_error("CurlSocket::close_socket() called with null socket.");
 
@@ -121,6 +149,8 @@ CurlSocket::~CurlSocket() {
 
 void
 CurlSocket::close() {
+  LT_LOG_DEBUG_THIS("close() called", 0);
+
   if (!is_open())
     return;
 
@@ -148,9 +178,9 @@ CurlSocket::event_write() {
 
 void
 CurlSocket::event_error() {
-  // TODO: This needs to close the socket.
+  LT_LOG_DEBUG_THIS("event_error() called", 0);
 
-  // TODO: Log all events.
+  // TODO: This needs to close the socket.
 
   return handle_action(CURL_CSELECT_ERR);
 }
