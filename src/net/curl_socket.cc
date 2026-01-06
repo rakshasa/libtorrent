@@ -38,6 +38,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   if (what == CURL_POLL_REMOVE) {
     LT_LOG_DEBUG_SOCKET_FD("receive_socket() : CURL_POLL_REMOVE", 0);
 
+    // TODO: This got thrown, log wasn't flushed so don't know the last log messages.
     if (socket == nullptr)
       throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
 
