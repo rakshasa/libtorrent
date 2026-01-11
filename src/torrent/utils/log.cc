@@ -366,6 +366,8 @@ log_open_file_output(const char* name, const char* filename, bool append) {
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
+  outfile->setf(std::ios::unitbuf);
+
   log_open_output(name, [outfile](auto d, auto l, auto g) { log_file_write(outfile, d, l, g); });
 }
 
