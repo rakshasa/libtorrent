@@ -35,24 +35,34 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   // We always return 0, even when stack is not running, as we depend on these calls to delete
   // sockets.
 
+  if (socket != nullptr && socket->m_stack == nullptr) {
+    // CURLOPT_CLOSESOCKETFUNCTION was called, socket is closed.
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : socket already closed", 0);
+    return 0;
+  }
+
   if (what == CURL_POLL_REMOVE) {
     LT_LOG_DEBUG_SOCKET_FD("receive_socket() : CURL_POLL_REMOVE", 0);
 
     // TODO: This got thrown, log wasn't flushed so don't know the last log messages.
     if (socket == nullptr)
-      throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket.");
+      throw internal_error("CurlSocket::receive_socket() called with CURL_POLL_REMOVE and null socket");
 
     // LibCurl already called close_socket().
     if (!socket->is_open()) {
-      delete socket;
+    //   delete socket;
       return 0;
     }
 
     if (socket->m_fileDesc != fd)
-      throw internal_error("CurlSocket::receive_socket() CURL_POLL_REMOVE fd mismatch.");
+      throw internal_error("CurlSocket::receive_socket() CURL_POLL_REMOVE fd mismatch");
 
-    socket->close();
-    delete socket;
+    // socket->close();
+    // delete socket;
+
+    this_thread::poll()->remove_read(socket);
+    this_thread::poll()->remove_write(socket);
+    this_thread::poll()->remove_error(socket);
 
     return 0;
   }
@@ -67,6 +77,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
     socket = new CurlSocket(fd, stack, easy_handle);
 
+    stack->fd_to_socket_map()[fd] = std::unique_ptr<CurlSocket>(socket);
+
     curl_multi_assign(stack->handle(), fd, socket);
     curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETDATA, socket);
     curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
@@ -77,7 +89,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
   if (socket->m_easy_handle != easy_handle) {
     LT_LOG_DEBUG_SOCKET_FD("receive_socket() : easy handle mismatch", 0);
-    throw internal_error("CurlSocket::receive_socket() easy handle mismatch.");
+    throw internal_error("CurlSocket::receive_socket() easy handle mismatch");
   }
 
   if (!stack->is_running()) {
@@ -128,26 +140,29 @@ CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
   LT_LOG_DEBUG_SOCKET_FD("close_socket() called", 0);
 
   if (socket == nullptr)
-    throw internal_error("CurlSocket::close_socket() called with null socket.");
+    throw internal_error("CurlSocket::close_socket() called with null socket");
 
-  if (fd != socket->m_fileDesc)
-    throw internal_error("CurlSocket::close_socket() fd mismatch.");
+  if (fd != socket->file_descriptor())
+    throw internal_error("CurlSocket::close_socket() fd mismatch");
+
+  auto itr = socket->m_stack->fd_to_socket_map().find(fd);
+
+  if (itr == socket->m_stack->fd_to_socket_map().end())
+    throw internal_error("CurlSocket::close_socket() could not find fd in fd_to_socket_map()");
 
   socket->close();
 
   if (::close(fd) != 0)
-    throw internal_error("CurlSocket::close_socket() error closing fd.");
+    throw internal_error("CurlSocket::close_socket() error closing fd");
 
-  // We assume the socket is deleted in receive_socket() after CURL_POLL_REMOVE.
-  //
-  // TODO: We need to verify that libcurl calls CURL_POLL_REMOVE after this.
+  socket->m_stack->sockets_to_delete().push_back(std::move(itr->second));
+  socket->m_stack->fd_to_socket_map().erase(itr);
 
-  // delete socket;
   return 0;
 }
 
 CurlSocket::~CurlSocket() {
-  assert(!is_open() && "CurlSocket::~CurlSocket() !is_open().");
+  assert(!is_open() && "CurlSocket::~CurlSocket() !is_open()");
 }
 
 void
@@ -163,10 +178,12 @@ CurlSocket::close() {
   // CurlSocket is deleted.
 
   // TODO: Don't do this?
-  curl_easy_setopt(m_easy_handle, CURLOPT_CLOSESOCKETFUNCTION, nullptr);
+  // curl_easy_setopt(m_easy_handle, CURLOPT_CLOSESOCKETFUNCTION, nullptr);
 
   m_stack = nullptr;
   m_fileDesc = -1;
+
+  // TODO: Mark CurlSocket for deletion.
 }
 
 void
@@ -190,14 +207,14 @@ CurlSocket::event_error() {
 
 void
 CurlSocket::handle_action(int ev_bitmask) {
-  assert(is_open() && "CurlSocket::handle_action(...) is_open().");
-  assert(m_stack != nullptr && "CurlSocket::handle_action(...) m_stack != nullptr.");
+  assert(is_open() && "CurlSocket::handle_action(...) is_open()");
+  assert(m_stack != nullptr && "CurlSocket::handle_action(...) m_stack != nullptr");
 
   // Processing might deallocate this CurlSocket.
   auto stack = m_stack;
 
-  int count{};
-  CURLMcode code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
+  int  count{};
+  auto code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
 
   if (code != CURLM_OK)
     throw internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));

@@ -1,6 +1,7 @@
 #ifndef RTORRENT_CORE_CURL_STACK_H
 #define RTORRENT_CORE_CURL_STACK_H
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <new>
@@ -59,18 +60,21 @@ public:
   void                start_get(const std::shared_ptr<CurlGet>& curl_get);
   void                close_get(const std::shared_ptr<CurlGet>& curl_get);
 
-  utils::Thread*      thread() const                         { return m_thread; }
+  utils::Thread*      thread() const     { return m_thread; }
 
 protected:
   friend class CurlGet;
   friend class CurlSocket;
 
-  CURLM*              handle() const                         { return m_handle; }
+  auto*               handle() const     { return m_handle; }
+
+  auto&               fd_to_socket_map() { return m_fd_to_socket; }
+  auto&               sockets_to_delete() { return m_sockets_to_delete; }
 
   // We need to lock when changing any of the values publically accessible.
-  void                lock() const                           { m_mutex.lock(); }
-  auto                lock_guard() const                     { return std::scoped_lock(m_mutex); }
-  void                unlock() const                         { m_mutex.unlock(); }
+  void                lock() const       { m_mutex.lock(); }
+  auto                lock_guard() const { return std::scoped_lock(m_mutex); }
+  void                unlock() const     { m_mutex.unlock(); }
 
 private:
   CurlStack(const CurlStack&) = delete;
@@ -88,6 +92,10 @@ private:
   utils::Thread*        m_thread{};
   CURLM*                m_handle{};
   utils::SchedulerEntry m_task_timeout;
+
+  // TODO: Make a new class holding CurlSocket's for a short while before deleting them.
+  std::map<int, std::unique_ptr<CurlSocket>> m_fd_to_socket;
+  std::vector<std::unique_ptr<CurlSocket>>   m_sockets_to_delete;
 
   mutable std::mutex  m_mutex;
 
