@@ -2,52 +2,38 @@
 
 #include <rak/string_manip.h>
 
-#include "hash_string.h"
+#include "torrent/hash_string.h"
+#include "torrent/utils/string_manip.h"
 
-namespace torrent {
+namespace {
 
-// TODO: Move to src/utils.
-static bool
+inline bool
 hash_string_is_alnum(char c) {
   return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
 }
 
-static bool
-hash_string_is_hex(char c) {
-  return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9');
-}
+} // namespace
+
+namespace torrent {
 
 const char*
 hash_string_from_hex_c_str(const char* first, HashString& hash) {
-  const char* hash_first = first;
+  if (!utils::string_from_hex_with_check(first, first + HashString::size_data * 2, hash.begin(), hash.end()))
+    return first;
 
-  torrent::HashString::iterator itr = hash.begin();
-
-  while (itr != hash.end()) {
-    if (!hash_string_is_hex(*first) || !hash_string_is_hex(*(first + 1)))
-      return hash_first;
-
-    *itr++ = (rak::hexchar_to_value(*first) << 4) + rak::hexchar_to_value(*(first + 1));
-    first += 2;
-  }
-
-  return first;
+  return first + HashString::size_data * 2;
 }
 
 char*
 hash_string_to_hex(const HashString& hash, char* first) {
-  return rak::transform_hex(hash.begin(), hash.end(), first);
+  return utils::string_to_hex(hash.begin(), hash.end(), first);
 }
 
 std::string
 hash_string_to_hex_str(const HashString& hash) {
-  std::string str(HashString::size_data * 2, '\0');
-  rak::transform_hex(hash.begin(), hash.end(), str.begin());
-
-  return str;
+  return utils::string_to_hex(hash.begin(), hash.end());
 }
 
-// TODO: Replace rak::copy_escape_html.
 std::string
 hash_string_to_html_str(const HashString& hash) {
   std::string str;

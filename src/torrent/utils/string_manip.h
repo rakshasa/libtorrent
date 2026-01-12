@@ -10,6 +10,12 @@ namespace torrent::utils {
 
 std::string trim_string(const std::string& str) LIBTORRENT_EXPORT;
 
+std::string string_from_hex_or_empty(const char* hex_begin, const char* hex_end) LIBTORRENT_EXPORT;
+bool        string_from_hex_with_check(const char* hex_begin, const char* hex_end, char* dest_begin, char* dest_end) LIBTORRENT_EXPORT;
+
+std::string string_to_hex(const char* begin, const char* end) LIBTORRENT_EXPORT;
+char*       string_to_hex(const char* begin, const char* end, char* dest) LIBTORRENT_EXPORT;
+
 std::string string_with_escape_codes(const std::string& str) LIBTORRENT_EXPORT;
 
 std::string sanitize_string(const std::string& str) LIBTORRENT_EXPORT;
