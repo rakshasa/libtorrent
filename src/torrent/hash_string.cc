@@ -1,8 +1,7 @@
 #include "config.h"
 
-#include <rak/string_manip.h>
-
 #include "torrent/hash_string.h"
+
 #include "torrent/utils/string_manip.h"
 
 namespace {
