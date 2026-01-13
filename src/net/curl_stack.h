@@ -68,7 +68,7 @@ protected:
 
   auto*               handle() const     { return m_handle; }
 
-  auto&               fd_to_socket_map() { return m_fd_to_socket; }
+  auto&               fd_to_socket_map()  { return m_fd_to_socket; }
   auto&               sockets_to_delete() { return m_sockets_to_delete; }
 
   // We need to lock when changing any of the values publically accessible.
