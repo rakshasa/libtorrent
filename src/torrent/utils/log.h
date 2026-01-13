@@ -207,7 +207,7 @@ void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_add_child(int group, int child) LIBTORRENT_EXPORT;
 void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
 
-void log_open_file_output(const char* name, const char* filename, bool append = false) LIBTORRENT_EXPORT;
+void log_open_file_output(const char* name, const char* filename, bool append = false, bool flush = false) LIBTORRENT_EXPORT;
 void log_open_gz_file_output(const char* name, const char* filename, bool append = false) LIBTORRENT_EXPORT;
 
 //
