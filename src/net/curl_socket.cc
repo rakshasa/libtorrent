@@ -22,6 +22,18 @@
 #define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)                            \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__);
 
+
+// Ok, retry this:
+
+// We assume libcurl doesn't tell us when closing sockets in the connection pool.
+
+// So we should alwasy tell Poll to open/close those sockets when receive_socket() is called.
+
+// We also depend on CURLOPT_CLOSESOCKETFUNCTION to tell us when libcurl is done with a socket, so
+// we don't encounter any issues with dead sockets being called by Poll.
+
+
+
 namespace torrent::net {
 
 CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle)
@@ -97,9 +109,22 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
       stack->fd_to_socket_map().insert({fd, std::unique_ptr<CurlSocket>(socket)});
 
-      curl_multi_assign(stack->handle(), fd, socket);
+      // TODO: Switching the order of the setting of CLOSESOCKETDATA/FUNCTION and curl_multi_assign
+      // seems to have fixed everything...
+      //
+
+      // Nope, looks like it was a temporary thing, perhaps the tracker ignoring connections (due to
+      // repeated requests) causes the issue.
+
+      // So we're actually having connection timeouts, and libcurl retries the requests on the same
+      // fd (which is about to time out / get rejected)
+
+      // Still not seeing any calls to CLOSESOCKETFUNCTION though...
+
       curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETDATA, socket);
       curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
+
+      curl_multi_assign(stack->handle(), fd, socket);
 
       this_thread::poll()->open(socket);
       this_thread::poll()->insert_error(socket);
@@ -114,6 +139,16 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
       socket->m_easy_handle = easy_handle;
       // this_thread::poll()->insert_error(socket);
+
+      // TODO: With only above, we got reusing existing socket with active easy handle error.
+      //
+      // (this now works, but still getting poll socket errors)
+      // haven't seen a single calls from CURLOPT_CLOSESOCKETFUNCTION.
+      curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETDATA, socket);
+      curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
+
+      // TODO: Not having these calls results in errors, use this fact to test error handling later.
+      curl_multi_assign(stack->handle(), fd, socket);
 
       LT_LOG_DEBUG_SOCKET_FD("receive_socket() : reusing existing socket", 0);
     }
@@ -168,6 +203,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 //
 // Or can we just update the CURLOPT_CLOSESOCKETDATA to the new CurlSocket when it reuses a fd?
 
+// !!!!!!!!!!!! We're not getting any calls to this function
+
 int
 CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
   if (!socket->is_open()) {
@@ -216,6 +253,8 @@ CurlSocket::close() {
   m_fileDesc = -1;
 
   // TODO: Mark CurlSocket for deletion.
+
+  // TODO: Clear m_easy_handle?
 }
 
 void
@@ -234,13 +273,21 @@ CurlSocket::event_error() {
 
   handle_action(CURL_CSELECT_ERR);
 
+  // TODO: We might still have pending libcurl callbacks, mark this fd as in error state to avoid issues?
+  //
+  // TODO: Add is_open() checks.
+  auto itr = m_stack->fd_to_socket_map().find(m_fileDesc);
+
+  if (itr != m_stack->fd_to_socket_map().end()) {
+    m_stack->sockets_to_delete().push_back(std::move(itr->second));
+    m_stack->fd_to_socket_map().erase(itr);
+  }
+
   // We are required to close the socket on error, however libcurl may still do callbacks and assume
   // it is open.
   //
   // Since deletion of CurlSocket's are delayed, it's safe to call close() here.
   close();
-
-  // TODO: We might still have pending libcurl callbacks, mark this fd as in error state to avoid issues?
 
   // TODO: Also, we migth not be getting socket close calls from libcurl after reuse.
 }
