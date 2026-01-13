@@ -357,7 +357,7 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
 }
 
 void
-log_open_file_output(const char* name, const char* filename, bool append) {
+log_open_file_output(const char* name, const char* filename, bool append, bool flush) {
   std::ios_base::openmode mode = std::ofstream::out;
   if (append)
     mode |= std::ofstream::app;
@@ -366,9 +366,10 @@ log_open_file_output(const char* name, const char* filename, bool append) {
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
-  outfile->setf(std::ios::unitbuf);
-
-  log_open_output(name, [outfile](auto d, auto l, auto g) { log_file_write(outfile, d, l, g); });
+  if (flush)
+    log_open_output(name, [outfile](auto d, auto l, auto g) { log_file_write(outfile, d, l, g); outfile->flush(); });
+  else
+    log_open_output(name, [outfile](auto d, auto l, auto g) { log_file_write(outfile, d, l, g); });
 }
 
 void
