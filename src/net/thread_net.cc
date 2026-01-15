@@ -2,6 +2,7 @@
 
 #include "net/thread_net.h"
 
+#include "net/curl_stack.h"
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"

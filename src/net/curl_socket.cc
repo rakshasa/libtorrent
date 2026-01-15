@@ -25,13 +25,21 @@
 
 // Ok, retry this:
 
-// We assume libcurl doesn't tell us when closing sockets in the connection pool.
+// We assume libcurl doesn't tell us when closing sockets in the connection pool nor when socket errors are passed to it.
 
 // So we should alwasy tell Poll to open/close those sockets when receive_socket() is called.
 
 // We also depend on CURLOPT_CLOSESOCKETFUNCTION to tell us when libcurl is done with a socket, so
 // we don't encounter any issues with dead sockets being called by Poll.
 
+
+//
+// receive_socket() : CURL_POLL_REMOVE received
+// receive_socket() : reusing existing socket
+//
+// This might be libcurl reopening the file descriptor, it might not be the same one.
+//
+// More likely, libcurl is using CURL_POLL_REMOVE just to pause the socket, 
 
 
 namespace torrent::net {
@@ -85,9 +93,23 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     // TODO: Figure out if we need to remove error monitoring, and if so we need to add it when reusing fds.
     // this_thread::poll()->remove_error(socket);
 
+    //
+    // TODO: Tell Poll the fd is closed, also remove from CurlStack fd_to_socket_map().
+    //
+    // TODO: We should probably keep CURLOPT_CLOSESOCKETDATA and have an m_in_poll flag.
+
+    // TODO: Removing from poll means we don't get error events that close the socket.
+
+    // socket->m_in_poll = false;
+    // this_thread::poll()->remove_and_close(socket);
+
+    // curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETDATA, nullptr);
+    // curl_multi_assign(stack->handle(), fd, nullptr);
+
+
     // When libCurl reuses a file descriptor it will pass a nullptr for 'socket', so setting
     // m_easy_handle to nullptr indicates that this socket has been removed and can be reused.
-    socket->m_easy_handle = nullptr;
+    // socket->m_easy_handle = nullptr;
 
     return 0;
   }
@@ -134,11 +156,14 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     } else {
       socket = itr->second.get();
 
-      if (socket->m_easy_handle != nullptr)
-        throw internal_error("CurlSocket::receive_socket() reusing existing socket with active easy handle");
+      if (socket->m_easy_handle != nullptr) {
+        // throw internal_error("CurlSocket::receive_socket() reusing existing socket with active easy handle");
+        LT_LOG_DEBUG_SOCKET_FD("receive_socket() : reusing existing socket with active easy handle", 0);
+      } else {
+        LT_LOG_DEBUG_SOCKET_FD("receive_socket() : reusing existing socket", 0);
+      }
 
       socket->m_easy_handle = easy_handle;
-      // this_thread::poll()->insert_error(socket);
 
       // TODO: With only above, we got reusing existing socket with active easy handle error.
       //
@@ -149,14 +174,21 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
       // TODO: Not having these calls results in errors, use this fact to test error handling later.
       curl_multi_assign(stack->handle(), fd, socket);
-
-      LT_LOG_DEBUG_SOCKET_FD("receive_socket() : reusing existing socket", 0);
     }
   }
 
+  //
+  // TODO: This should be used to indicate that the socket now has a different handle.
+  //
+
   if (socket->m_easy_handle != easy_handle) {
-    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : easy handle mismatch", 0);
-    throw internal_error("CurlSocket::receive_socket() easy handle mismatch");
+    // LT_LOG_DEBUG_SOCKET_FD("receive_socket() : easy handle mismatch", 0);
+    // throw internal_error("CurlSocket::receive_socket() easy handle mismatch");
+
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : updating easy handle", 0);
+
+    // TODO: Do more to the easy handle?
+    socket->m_easy_handle = easy_handle;
   }
 
   // TODO: This should be impossible.
@@ -207,6 +239,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
 int
 CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
+  // TODO: Handle nullptr socket?
+
   if (!socket->is_open()) {
     // Socket error forced us to close it already.
     LT_LOG_DEBUG_SOCKET_FD("close_socket() : socket already closed, ignoring", 0);
@@ -267,29 +301,39 @@ CurlSocket::event_write() {
   handle_action(CURL_CSELECT_OUT);
 }
 
+// LibCurl seems to retry same-host requests immediately after a (failed? or both) attempt, while
+// the host seems to have sent a TCP RST.
+//
+// This means libcurl tries to set up the same connection again on the same fd, followed by an
+// almost immediate error event.
+
 void
 CurlSocket::event_error() {
   LT_LOG_DEBUG_THIS("event_error() called", 0);
 
+  if (!is_open())
+    throw internal_error("CurlSocket::event_error() called on closed socket");
+
+  // We assume libcurl closes the socket after an error event, so we remove it from Poll before
+  // libcurl handles the action.
+  this_thread::poll()->remove_and_close(this);
+
   handle_action(CURL_CSELECT_ERR);
 
   // TODO: We might still have pending libcurl callbacks, mark this fd as in error state to avoid issues?
-  //
-  // TODO: Add is_open() checks.
   auto itr = m_stack->fd_to_socket_map().find(m_fileDesc);
 
-  if (itr != m_stack->fd_to_socket_map().end()) {
-    m_stack->sockets_to_delete().push_back(std::move(itr->second));
-    m_stack->fd_to_socket_map().erase(itr);
-  }
+  if (itr->second.get() != this)
+    throw internal_error("CurlSocket::event_error() fd_to_socket_map() socket mismatch");
 
-  // We are required to close the socket on error, however libcurl may still do callbacks and assume
-  // it is open.
-  //
-  // Since deletion of CurlSocket's are delayed, it's safe to call close() here.
-  close();
+  if (itr == m_stack->fd_to_socket_map().end())
+    throw internal_error("CurlSocket::event_error() could not find fd in fd_to_socket_map()");
 
-  // TODO: Also, we migth not be getting socket close calls from libcurl after reuse.
+  m_stack->sockets_to_delete().push_back(std::move(itr->second));
+  m_stack->fd_to_socket_map().erase(itr);
+
+  m_stack = nullptr;
+  m_fileDesc = -1;
 }
 
 void
@@ -298,13 +342,16 @@ CurlSocket::handle_action(int ev_bitmask) {
   assert(m_stack != nullptr && "CurlSocket::handle_action(...) m_stack != nullptr");
 
   // Processing might deallocate this CurlSocket.
-  auto stack = m_stack;
-
   int  count{};
-  auto code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
+  auto stack = m_stack;
+  auto code  = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
 
   if (code != CURLM_OK)
     throw internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
+
+  //
+  // TODO: Use Thread::call_events() to process this: ?
+  //
 
   while (stack->process_done_handle())
     ; // Do nothing.
