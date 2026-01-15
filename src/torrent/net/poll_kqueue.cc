@@ -208,6 +208,7 @@ Poll::process() {
     }
 
     if ((itr->flags & EV_ERROR)) {
+      // TODO: This should do nothing if the event is not in error?
       if (!(poll_event->mask & PollInternal::flag_error))
         throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
 
@@ -339,7 +340,17 @@ Poll::insert_write(Event* event) {
 
 void
 Poll::insert_error(Event* event) {
+  auto event_mask = m_internal->event_mask(event);
+
+  if (event_mask & PollInternal::flag_error) {
+    LT_LOG_EVENT("insert error: already in error", 0);
+    return;
+  }
+
   LT_LOG_EVENT("insert error", 0);
+
+  m_internal->set_event_mask(event, event_mask | PollInternal::flag_error);
+  // Kqueue always monitors errors, no need to insert.
 }
 
 void
@@ -374,7 +385,17 @@ Poll::remove_write(Event* event) {
 
 void
 Poll::remove_error(Event* event) {
+  auto event_mask = m_internal->event_mask(event);
+
+  if (!(event_mask & PollInternal::flag_error)) {
+    LT_LOG_EVENT("remove error: not in error", 0);
+    return;
+  }
+
   LT_LOG_EVENT("remove error", 0);
+
+  m_internal->set_event_mask(event, event_mask & ~PollInternal::flag_error);
+  // Kqueue always monitors errors, no need to remove.
 }
 
 void

@@ -7,8 +7,20 @@
 #include <curl/multi.h>
 
 #include "net/curl_stack.h"
-#include "torrent/net/poll.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/poll.h"
+#include "torrent/utils/log.h"
+
+#define LT_LOG_DEBUG_THIS(log_fmt, ...) \
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__);
+
+//#define LT_LOG_DEBUG_SOCKET(log_fmt, ...)
+#define LT_LOG_DEBUG_SOCKET(log_fmt, ...) \
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, __VA_ARGS__);
+
+// #define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)
+#define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)                            \
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__);
 
 namespace torrent::net {
 
@@ -16,6 +28,12 @@ CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle)
   : m_stack(stack),
     m_easy_handle(easy_handle) {
   m_fileDesc = fd;
+}
+
+CurlSocket::~CurlSocket() {
+  assert(!is_open() && "CurlSocket::~CurlSocket() !is_open()");
+
+  m_self_exists = false;
 }
 
 int
@@ -56,22 +74,31 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     this_thread::poll()->insert_error(socket);
   }
 
+  // TODO: This should be impossible.
   if (!stack->is_running()) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : stack not running, removing socket from poll", 0);
+
     this_thread::poll()->remove_read(socket);
     this_thread::poll()->remove_write(socket);
     this_thread::poll()->remove_error(socket);
     return 0;
   }
 
-  if (what == CURL_POLL_NONE || what == CURL_POLL_OUT)
+  if (what == CURL_POLL_NONE || what == CURL_POLL_OUT) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : removing read", 0);
     this_thread::poll()->remove_read(socket);
-  else
+  } else {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : inserting read", 0);
     this_thread::poll()->insert_read(socket);
+  }
 
-  if (what == CURL_POLL_NONE || what == CURL_POLL_IN)
+  if (what == CURL_POLL_NONE || what == CURL_POLL_IN) {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : removing write", 0);
     this_thread::poll()->remove_write(socket);
-  else
+  } else {
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : inserting write", 0);
     this_thread::poll()->insert_write(socket);
+  }
 
   return 0;
 }
@@ -97,10 +124,6 @@ CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
 
   // delete socket;
   return 0;
-}
-
-CurlSocket::~CurlSocket() {
-  assert(!is_open() && "CurlSocket::~CurlSocket() !is_open().");
 }
 
 void
@@ -135,17 +158,20 @@ CurlSocket::event_error() {
 
 void
 CurlSocket::handle_action(int ev_bitmask) {
-  assert(is_open() && "CurlSocket::handle_action(...) is_open().");
-  assert(m_stack != nullptr && "CurlSocket::handle_action(...) m_stack != nullptr.");
+  assert(is_open() && "CurlSocket::handle_action() is_open()");
+  assert(m_stack != nullptr && "CurlSocket::handle_action() m_stack != nullptr");
 
   // Processing might deallocate this CurlSocket.
+  int  count{};
   auto stack = m_stack;
-
-  int count{};
-  CURLMcode code = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
+  auto code  = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
 
   if (code != CURLM_OK)
     throw internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
+
+  //
+  // TODO: Use Thread::call_events() to process this: ?
+  //
 
   while (stack->process_done_handle())
     ; // Do nothing.

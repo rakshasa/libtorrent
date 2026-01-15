@@ -33,6 +33,8 @@ private:
 
   CurlStack*          m_stack{};
   CURL*               m_easy_handle{};
+
+  bool                m_self_exists{true};
 };
 
 } // namespace torrent::net
