@@ -58,6 +58,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       return 0;
     }
 
+    // TODO: This should be throw internal_error, unless we re-add CURLOPT_CLOSESOCKETFUNCTION.
     if (!socket->is_open()) {
       LT_LOG_DEBUG_SOCKET_FD("receive_socket() : socket already closed, deleting", 0);
       delete socket;
