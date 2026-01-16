@@ -174,6 +174,13 @@ Thread::event_loop() {
 
   } catch (const shutdown_exception&) {
     lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
+
+  } catch (const internal_error& e) {
+    // Uncaught internal errors in threads cause the program to exit, and we need to flush the logs.
+    if (this_thread::thread_id() != torrent::main_thread::thread_id())
+      log_cleanup();
+
+    throw;
   }
 
   m_poll->remove_read(m_interrupt_receiver.get());

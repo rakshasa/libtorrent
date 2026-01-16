@@ -100,6 +100,8 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
     if (op == EPOLL_CTL_DEL && errno == ENOENT)
       return;
 
+    // TODO: Remove this retry?
+
     // Handle some libcurl/c-ares bugs by retrying once.
     int retry = op;
 

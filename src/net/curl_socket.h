@@ -16,8 +16,6 @@ public:
 
   const char*         type_name() const override { return "curl_socket"; }
 
-  void                close();
-
   void                event_read() override;
   void                event_write() override;
   void                event_error() override;
@@ -33,6 +31,8 @@ private:
 
   CurlStack*          m_stack{};
   CURL*               m_easy_handle{};
+
+  bool                m_self_exists{true};
 };
 
 } // namespace torrent::net
