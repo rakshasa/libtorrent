@@ -52,12 +52,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     // When libcurl closes a socket in the idle connection poll, it calls receive_socket() with a
     // null socket.
 
-    // TODO: Add to unbound fd's list to close / reuse?
     if (socket == nullptr) {
-      // throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called with CURL_POLL_REMOVE and null socket.");
-
       // Assume libcurl calls this before closing the fd if it is in the idle connection pool.
-
       LT_LOG_DEBUG_SOCKET_FD("receive_socket() : CURL_POLL_REMOVE with null socket", 0);
       return 0;
     }
@@ -72,13 +68,6 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch.");
 
     LT_LOG_DEBUG_SOCKET_FD("receive_socket() : CURL_POLL_REMOVE, removing from poll and deleting", 0);
-
-    // TODO: This is wrong, we don't close the fd.
-
-    // TODO: Currently assuming libcurl keeps track of the fd, so we just remove from polling and
-    // delete the socket.
-
-    // TODO: Verify we don't leak fd's, that libcurl assumes it should call CURLOPT_CLOSESOCKETFUNCTION.
 
     this_thread::poll()->remove_and_close(socket);
 
@@ -109,14 +98,9 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     LT_LOG_DEBUG_SOCKET_FD("receive_socket() : new socket created and added to poll", 0);
   }
 
-  // TODO: This should be impossible.
   if (!stack->is_running()) {
-    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : stack not running, removing socket from poll", 0);
-
-    this_thread::poll()->remove_read(socket);
-    this_thread::poll()->remove_write(socket);
-    this_thread::poll()->remove_error(socket);
-    return 0;
+    LT_LOG_DEBUG_SOCKET_FD("receive_socket() : CurlStack not running, aborting", 0);
+    throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called while CurlStack is not running.");
   }
 
   if (what == CURL_POLL_NONE || what == CURL_POLL_OUT) {
@@ -137,6 +121,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
   return 0;
 }
+
+// TODO: Remove.
 
 // When receive_socket() is called with CURL_POLL_REMOVE, we call CurlSocket::close() which
 // deregisters this callback.
@@ -162,10 +148,6 @@ CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
   // We assume the socket is deleted in receive_socket() after CURL_POLL_REMOVE.
   //
   // TODO: We need to verify that libcurl calls CURL_POLL_REMOVE after this.
-
-  // TODO: Add to a delayed delete list?
-
-  // delete socket;
   return 0;
 }
 
@@ -188,7 +170,7 @@ CurlSocket::event_error() {
 
   if (!m_self_exists) {
     LT_LOG_DEBUG_THIS("event_error() : self deleted during handle_action, aborting", 0);
-    throw internal_error("CurlSocket::event_error(fd:" + std::to_string(m_fileDesc) + ") self deleted during handle_action.");
+    throw internal_error("CurlSocket::event_error() self deleted during handle_action.");
   }
 
   m_fileDesc    = -1;
