@@ -2,8 +2,6 @@
 
 #include "resume.h"
 
-#include "rak/file_stat.h"
-
 #include "data/file.h"
 #include "data/file_list.h"
 #include "data/transfer_list.h"
@@ -17,6 +15,7 @@
 #include "torrent/download_info.h"
 #include "torrent/object.h"
 #include "torrent/tracker/tracker.h"
+#include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_list.h"
 
@@ -62,7 +61,7 @@ resume_load_progress(Download download, const Object& object) {
 
     unsigned int file_index = std::distance(fileList->begin(), listItr);
 
-    rak::file_stat fs;
+    utils::FileStat fs;
 
     if (!filesItr->has_key_value("mtime")) {
       LT_LOG_LOAD_FILE("no mtime found, file:create|resize range:clear|recheck", 0);
@@ -182,8 +181,8 @@ resume_save_progress(Download download, Object& object) {
 
   resume_save_bitfield(download, object);
 
-  Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
-  auto filesItr = files.begin();
+  auto& files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
+  auto  filesItr = files.begin();
 
   FileList* fileList = download.file_list();
 
@@ -197,7 +196,8 @@ resume_save_progress(Download download, Object& object) {
 
     filesItr->insert_key("completed", static_cast<int64_t>((*listItr)->completed_chunks()));
 
-    rak::file_stat fs;
+    utils::FileStat fs;
+
     bool fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
 
     if (!fileExists) {

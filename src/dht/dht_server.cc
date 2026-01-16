@@ -123,7 +123,7 @@ DhtServer::start(int port) {
 
     m_fileDesc = fd_open(open_flags);
 
-    if (m_fileDesc == -1)
+    if (!is_open())
       throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
 
     // Figure out how to bind to both inet and inet6.

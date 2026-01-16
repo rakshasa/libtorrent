@@ -50,7 +50,7 @@ public:
 
   const char*         type_name() const override      { return "pcb"; }
 
-  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
+  void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
   bool                is_up_choked() const            { return m_upChoke.choked(); }

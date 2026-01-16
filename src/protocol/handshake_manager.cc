@@ -210,7 +210,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
       download->connection_list()->want_connection(handshake->peer_info(), handshake->bitfield()) &&
 
       (pcb = download->connection_list()->insert(handshake->peer_info(),
-                                                 handshake->get_fd(),
+                                                 handshake->file_descriptor(),
                                                  handshake->bitfield(),
                                                  handshake->encryption()->info(),
                                                  handshake->extensions())) != NULL) {

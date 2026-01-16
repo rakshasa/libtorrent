@@ -9,8 +9,6 @@
 
 namespace torrent {
 
-class SocketBase;
-
 class ThrottleNode {
 public:
   using iterator       = ThrottleList::iterator;

@@ -83,12 +83,8 @@ libtorrent_other_la_SOURCES = \
 	net/listen.cc \
 	net/listen.h \
 	net/protocol_buffer.h \
-	net/socket_base.cc \
-	net/socket_base.h \
 	net/socket_datagram.cc \
 	net/socket_datagram.h \
-	net/socket_fd.cc \
-	net/socket_fd.h \
 	net/socket_set.cc \
 	net/socket_set.h \
 	net/socket_stream.cc \

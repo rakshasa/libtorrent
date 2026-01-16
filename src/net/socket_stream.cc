@@ -6,6 +6,8 @@
 
 namespace torrent {
 
+char* SocketStream::m_nullBuffer = new char[SocketStream::null_buffer_size];
+
 SocketStream::~SocketStream() = default;
 
 uint32_t

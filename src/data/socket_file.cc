@@ -1,14 +1,15 @@
 #include "config.h"
 
-#include "socket_file.h"
-#include "torrent/exceptions.h"
-#include "torrent/utils/log.h"
+#include "data/socket_file.h"
 
 #include <fcntl.h>
-#include <rak/file_stat.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "torrent/exceptions.h"
+#include "torrent/utils/file_stat.h"
+#include "torrent/utils/log.h"
 
 #define LT_LOG_ERROR(log_fmt, ...)                                      \
   lt_log_print(LOG_STORAGE, "socket_file->%i: " log_fmt, m_fd, __VA_ARGS__);
@@ -57,7 +58,7 @@ SocketFile::size() const {
   if (!is_open())
     throw internal_error("SocketFile::size() called on a closed file");
 
-  rak::file_stat fs;
+  utils::FileStat fs;
 
   return fs.update(m_fd) ? fs.size() : 0;
 }
@@ -75,7 +76,7 @@ SocketFile::set_size(uint64_t size) const {
 }
 
 bool
-SocketFile::allocate(uint64_t size, int flags) const {
+SocketFile::allocate([[maybe_unused]] uint64_t size, [[maybe_unused]] int flags) const {
   if (!is_open())
     throw internal_error("SocketFile::allocate() called on a closed file");
 

@@ -4,12 +4,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "torrent/event.h"
 #include "torrent/exceptions.h"
-#include "socket_base.h"
 
 namespace torrent {
 
-class SocketStream : public SocketBase {
+class SocketStream : public Event {
 public:
   ~SocketStream() override;
 
@@ -28,6 +28,11 @@ public:
   bool                write_buffer(const void* buf, uint32_t length, uint32_t& pos);
 
   uint32_t            ignore_stream_throws(uint32_t length) { return read_stream_throws(m_nullBuffer, length); }
+
+protected:
+  static constexpr size_t null_buffer_size = 1 << 17;
+
+  static char*        m_nullBuffer;
 };
 
 inline bool

@@ -449,7 +449,7 @@ PeerConnection<type>::event_read() {
 
   } catch (const base_error& e) {
     std::stringstream s;
-    s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
+    s << "Connection read fd(" << m_fileDesc << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
     s << " '" << utils::uri_escape_html(reinterpret_cast<char*>(m_down->buffer()->begin()), reinterpret_cast<char*>(m_down->buffer()->position())) << "'";
 
     throw internal_error(s.str());
@@ -630,7 +630,7 @@ PeerConnection<type>::event_write() {
 
   } catch (const base_error& e) {
     std::stringstream s;
-    s << "Connection write fd(" << get_fd().get_fd() << ',' << m_up->get_state() << ',' << m_up->last_command() << ") \"" << e.what() << '"';
+    s << "Connection write fd(" << m_fileDesc << ',' << m_up->get_state() << ',' << m_up->last_command() << ") \"" << e.what() << '"';
 
     throw internal_error(s.str());
   }

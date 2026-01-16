@@ -7,9 +7,6 @@
 #include <cstring>
 #include <limits>
 #include <memory>
-#include <rak/error_number.h>
-#include <rak/file_stat.h>
-#include <rak/fs_stat.h>
 #include <set>
 
 #include "manager.h"
@@ -21,7 +18,18 @@
 #include "torrent/path.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_manager.h"
+#include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
+
+#if HAVE_SYS_VFS_H
+#include <sys/vfs.h>
+#endif
+#if HAVE_SYS_STATVFS_H
+#include <sys/statvfs.h>
+#endif
+#if HAVE_SYS_STATFS_H
+#include <sys/statfs.h>
+#endif
 
 #define LT_LOG_FL(log_level, log_fmt, ...)                              \
   lt_log_print_data(LOG_STORAGE_##log_level, (&m_data), "file_list", log_fmt, __VA_ARGS__);
@@ -65,7 +73,7 @@ FileList::is_valid_piece(const Piece& piece) const {
 
 bool
 FileList::is_root_dir_created() const {
-  rak::file_stat fs;
+  utils::FileStat fs;
 
   if (!fs.update(m_root_dir))
 //     return rak::error_number::current() == rak::error_number::e_access;
@@ -149,18 +157,19 @@ FileList::set_max_file_size(uint64_t size) {
 // spread over multiple mount-points.
 uint64_t
 FileList::free_diskspace() const {
-  uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
+  uint64_t free_diskspace = std::numeric_limits<uint64_t>::max();
 
   for (const auto& link : m_indirect_links) {
-    rak::fs_stat stat;
+    FS_STAT_STRUCT m_stat;
+    auto fn = link.c_str();
 
-    if (!stat.update(link))
+    if (!(FS_STAT_FN))
       continue;
 
-    freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
+    free_diskspace = std::min<uint64_t>(free_diskspace, (int64_t)(FS_STAT_BLOCK_SIZE) * m_stat.f_bavail);
   }
 
-  return freeDiskspace != std::numeric_limits<uint64_t>::max() ? freeDiskspace : 0;
+  return free_diskspace != std::numeric_limits<uint64_t>::max() ? free_diskspace : 0;
 }
 
 FileList::iterator_range
@@ -305,7 +314,7 @@ FileList::make_all_paths() {
       firstMismatch++;
     }
 
-    rak::error_number::clear_global();
+    errno = 0;
 
     make_directory(entry->path()->begin(), entry->path()->end(), firstMismatch);
 
@@ -408,7 +417,7 @@ FileList::open(bool hashing, int flags) {
         // being set or not.
         if (!(flags & open_no_create))
           // Also check if open_require_all_open is set.
-          throw storage_error("Could not open file: " + std::string(rak::error_number::current().c_str()));
+          throw storage_error("Could not open file: " + std::string(std::strerror(errno)));
 
         // Don't set the lastPath as we haven't created the directory.
         continue;
@@ -445,7 +454,7 @@ FileList::open(bool hashing, int flags) {
   //
   // DEBUG: Make this depend on a flag...
   if (size_bytes() < 2) {
-    rak::file_stat stat;
+    utils::FileStat stat;
 
     // This probably recurses into open() once, but that is harmless.
     if (stat.update((*begin())->frozen_path()) && stat.size() > 1)
@@ -494,7 +503,7 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 
     startItr++;
 
-    rak::file_stat fileStat;
+    utils::FileStat fileStat;
 
     if (fileStat.update_link(path) &&
         fileStat.is_link() &&
@@ -511,7 +520,7 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 
 bool
 FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int flags) {
-  rak::error_number::clear_global();
+  errno = 0;
 
   if (!(flags & open_no_create)) {
     const Path* path = file_node->path();
@@ -533,13 +542,13 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
   if (file_node->path()->back().empty())
     return file_node->size_bytes() == 0;
 
-  rak::file_stat file_stat;
+  utils::FileStat file_stat;
 
   if (file_stat.update(file_node->frozen_path()) &&
       !file_stat.is_regular() && !file_stat.is_link()) {
     // Might also bork on other kinds of file types, but there's no
     // suitable errno for all cases.
-    rak::error_number::set_global(rak::error_number::e_isdir);
+    errno = EISDIR;
     return false;
   }
 
