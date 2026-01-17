@@ -104,7 +104,7 @@ directory_events::event_read() {
   char buffer[2048];
   ssize_t result = ::read(m_fileDesc, buffer, 2048);
 
-  if (result < (ssize_t)sizeof(struct inotify_event))
+  if (result < static_cast<ssize_t>(sizeof(struct inotify_event)))
     return;
 
   auto event = reinterpret_cast<struct inotify_event*>(buffer);
