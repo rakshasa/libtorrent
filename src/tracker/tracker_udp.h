@@ -3,6 +3,9 @@
 
 #include <array>
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
@@ -23,6 +26,25 @@ public:
 
   static constexpr uint32_t udp_timeout = 30;
   static constexpr uint32_t udp_tries = 2;
+
+  // Shared DNS cache entry
+  struct DnsCacheEntry {
+    c_sin_shared_ptr    inet_address;
+    c_sin6_shared_ptr   inet6_address;
+    std::chrono::microseconds time_resolved{};
+    uint32_t            failed_count{0};
+    int                 cached_error{0};  // Non-zero if this is a negative cache entry
+
+    // Trackers waiting for this lookup to complete
+    std::vector<TrackerUdp*> pending_trackers;
+    bool                resolving{false};
+  };
+
+  using dns_cache_type = std::unordered_map<std::string, DnsCacheEntry>;
+
+  // Access the shared DNS cache (for testing/debugging)
+  static dns_cache_type& dns_cache() { return s_dns_cache; }
+  static void clear_dns_cache() { s_dns_cache.clear(); }
 
   TrackerUdp(const TrackerInfo& info, int flags = 0);
   ~TrackerUdp() override;
@@ -60,6 +82,9 @@ private:
 
   static bool         parse_udp_url(const std::string& url, hostname_type& hostname, int& port);
 
+  // Shared DNS cache
+  static dns_cache_type s_dns_cache;
+
   bool                m_resolver_requesting{false};
   bool                m_sending_announce{false};
 
@@ -78,10 +103,10 @@ private:
   std::unique_ptr<WriteBuffer> m_write_buffer;
 
   uint32_t            m_tries{};
-  uint32_t            m_failed_since_last_resolved{};
 
   utils::SchedulerEntry     m_task_timeout;
-  std::chrono::microseconds m_time_last_resolved{};
+
+  std::string         m_hostname;  // Cache key for DNS lookups
 };
 
 } // namespace torrent
