@@ -7,8 +7,7 @@
 namespace torrent {
 
 socket_event::~socket_event() {
-  if (is_open())
-    throw internal_error("Called socket_event::~socket_event while still open on type " + std::string(type_name()));
+  assert(is_open() == false && "Called socket_event::~socket_event while still open on type " + std::string(type_name()));
 }
 
 void
