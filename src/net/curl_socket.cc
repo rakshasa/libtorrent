@@ -11,6 +11,9 @@
 #include "torrent/net/poll.h"
 #include "torrent/utils/log.h"
 
+#define LT_LOG_DEBUG(log_fmt, ...)                                      \
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket: " log_fmt, __VA_ARGS__);
+
 #define LT_LOG_DEBUG_THIS(log_fmt, ...)                                 \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__);
 
@@ -65,11 +68,9 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       return 0;
     }
 
-    // TODO: This should be throw internal_error, unless we re-add CURLOPT_CLOSESOCKETFUNCTION.
-    if (!socket->is_open()) {
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : socket already closed, deleting", 0);
-      delete socket;
-      return 0;
+    if (!socket->is_open() || !socket->is_polling()) {
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : socket already closed, aborting", 0);
+      throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE called on closed socket.");
     }
 
     if (socket->m_fileDesc != fd)
@@ -77,16 +78,11 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
     LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_REMOVE, removing from poll and deleting", 0);
 
-    this_thread::poll()->remove_and_close(socket);
+    this_thread::poll()->remove_read(socket);
+    this_thread::poll()->remove_write(socket);
 
-    // if (socket->m_easy_handle != nullptr)
-    //   curl_easy_setopt(socket->m_easy_handle, CURLOPT_CLOSESOCKETFUNCTION, nullptr);
-
-    socket->m_fileDesc    = -1;
-    socket->m_stack       = nullptr;
     socket->m_easy_handle = nullptr;
 
-    delete socket;
     return 0;
   }
 
@@ -94,20 +90,32 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (!stack->is_running())
       return 0;
 
-    socket = new CurlSocket(fd, stack, easy_handle);
+    auto itr = stack->socket_map()->find(fd);
 
-    curl_multi_assign(stack->handle(), fd, socket);
-    // curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETDATA, socket);
-    // curl_easy_setopt(easy_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
+    if (itr == stack->socket_map()->end()) {
+      socket = new CurlSocket(fd, stack, easy_handle);
 
-    this_thread::poll()->open(socket);
-    this_thread::poll()->insert_error(socket);
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : new socket created and added to poll", 0);
 
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : new socket created and added to poll", 0);
+      curl_multi_assign(stack->handle(), fd, socket);
 
-    if (what == CURL_POLL_NONE) {
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_NONE, not adding read or write", 0);
-      throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called with CURL_POLL_NONE on new socket.");
+      this_thread::poll()->open(socket);
+      this_thread::poll()->insert_error(socket);
+
+      stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
+
+    } else {
+      if (itr->second->m_easy_handle != nullptr) {
+        LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing CurlSocket easy_handle not null, aborting", 0);
+        throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") existing CurlSocket easy_handle not null.");
+      }
+
+      socket = itr->second.get();
+      socket->m_easy_handle = easy_handle;
+
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket found in map", 0);
+
+      curl_multi_assign(stack->handle(), fd, socket);
     }
   }
 
@@ -135,32 +143,38 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   return 0;
 }
 
-// TODO: Remove.
-
 // When receive_socket() is called with CURL_POLL_REMOVE, we call CurlSocket::close() which
 // deregisters this callback.
 int
-CurlSocket::close_socket(CurlSocket* socket, curl_socket_t fd) {
-  if (socket == nullptr)
-    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + ") called with null socket.");
+CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
+  auto itr = stack->socket_map()->find(fd);
 
-  LT_LOG_DEBUG_SOCKET_FD("close_socket() called", 0);
+  if (itr == stack->socket_map()->end())
+    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not found in stack map");
 
-  if (fd != socket->m_fileDesc)
-    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + ") fd mismatch.");
+  auto* socket = itr->second.get();
+
+  LT_LOG_DEBUG_SOCKET_FD("close_socket() : closing socket", 0);
+
+  if (!socket->is_polling())
+    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not in poll");
+
+  if (fd != socket->file_descriptor())
+    throw internal_error("CurlSocket::close_socket(): fd mismatch : curl:" + std::to_string(fd) + " self:" + std::to_string(socket->file_descriptor()));
 
   this_thread::poll()->remove_and_close(socket);
 
+  curl_multi_assign(stack->handle(), fd, nullptr);
+
   if (::close(fd) != 0)
-    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + ") error closing socket: " + std::string(std::strerror(errno)));
+    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): error closing socket: " + std::string(std::strerror(errno)));
 
   socket->m_fileDesc    = -1;
   socket->m_stack       = nullptr;
   socket->m_easy_handle = nullptr;
 
-  // We assume the socket is deleted in receive_socket() after CURL_POLL_REMOVE.
-  //
-  // TODO: We need to verify that libcurl calls CURL_POLL_REMOVE after this.
+  stack->socket_map()->erase(itr);
+
   return 0;
 }
 
@@ -176,8 +190,12 @@ CurlSocket::event_write() {
 
 void
 CurlSocket::event_error() {
+  LT_LOG_DEBUG_THIS("event_error()", 0);
+
   // LibCurl will close the socket, so remove it from polling prior to passing the error event.
   this_thread::poll()->remove_and_close(this);
+
+  curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
 
   handle_action(CURL_CSELECT_ERR);
 
@@ -186,11 +204,7 @@ CurlSocket::event_error() {
     throw internal_error("CurlSocket::event_error() self deleted during handle_action.");
   }
 
-  m_fileDesc    = -1;
-  m_stack       = nullptr;
-  m_easy_handle = nullptr;
-
-  delete this;
+  clear_and_delete_self();
 }
 
 void
@@ -212,6 +226,23 @@ CurlSocket::handle_action(int ev_bitmask) {
 
   while (stack->process_done_handle())
     ; // Do nothing.
+}
+
+void
+CurlSocket::clear_and_delete_self() {
+  auto socket_map = m_stack->socket_map();
+  auto itr        = socket_map->find(m_fileDesc);
+
+  if (itr == m_stack->socket_map()->end()) {
+    LT_LOG_DEBUG_THIS("clear_and_delete_self() : socket not found in stack map, aborting", 0);
+    throw internal_error("CurlSocket::clear_and_delete_self(fd:" + std::to_string(m_fileDesc) + ") socket not found in stack map.");
+  }
+
+  m_fileDesc    = -1;
+  m_stack       = nullptr;
+  m_easy_handle = nullptr;
+
+  socket_map->erase(itr);
 }
 
 } // namespace torrent::net

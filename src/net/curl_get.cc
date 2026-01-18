@@ -7,6 +7,7 @@
 #include <utility>
 #include <curl/easy.h>
 
+#include "net/curl_socket.h"
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/network_config.h"
@@ -207,9 +208,13 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   if (m_handle == nullptr)
     throw torrent::internal_error("Call to curl_easy_init() failed.");
 
-  curl_easy_setopt(m_handle, CURLOPT_URL,            m_url.c_str());
-  curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION,  &CurlGet::receive_write);
-  curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,      this);
+  curl_easy_setopt(m_handle, CURLOPT_URL,           m_url.c_str());
+  curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &CurlGet::receive_write);
+  curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,     this);
+
+  // Close function and data must be set before libcurl's create_conn() is called.
+  curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
+  curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
 
   if (m_timeout != 0) {
     curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 60l);
