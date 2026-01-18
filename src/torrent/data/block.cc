@@ -72,7 +72,7 @@ Block::~Block() {
   }
   m_transfers.clear();
 
-  assert(m_notStalled == 0 && "Block::clear() m_stalled != 0.")
+  assert(m_notStalled == 0 && "Block::clear() m_stalled != 0.");
 
   delete m_failedList;
 }
