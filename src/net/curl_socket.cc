@@ -69,14 +69,14 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     }
 
     if (!socket->is_open() || !socket->is_polling()) {
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : socket already closed, aborting", 0);
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_REMOVE socket already closed, aborting", 0);
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE called on closed socket.");
     }
 
     if (socket->m_fileDesc != fd)
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch.");
 
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_REMOVE, removing from poll and deleting", 0);
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_REMOVE removing from read/write polling", 0);
 
     this_thread::poll()->remove_read(socket);
     this_thread::poll()->remove_write(socket);
@@ -164,6 +164,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
   this_thread::poll()->remove_and_close(socket);
 
+  // Ensure libcurl does not use this socket as argument for any further callbacks.
   curl_multi_assign(stack->handle(), fd, nullptr);
 
   if (::close(fd) != 0)
