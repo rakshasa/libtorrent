@@ -16,6 +16,7 @@ public:
   virtual             ~Event();
 
   bool                is_open() const;
+  bool                is_polling() const;
 
   int                 file_descriptor() const;
 
@@ -45,6 +46,8 @@ protected:
 };
 
 inline bool Event::is_open() const             { return file_descriptor() != -1; }
+inline bool Event::is_polling() const          { return m_poll_event != nullptr; }
+
 inline int  Event::file_descriptor() const     { return m_fileDesc; }
 inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }
 
