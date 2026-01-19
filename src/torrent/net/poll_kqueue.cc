@@ -192,41 +192,40 @@ Poll::poll(int timeout_usec) {
 
 unsigned int
 Poll::process() {
-  unsigned int count = 0;
+  unsigned int count{};
+
+  m_processing = true;
+  m_closed_events.clear();
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->udata);
-    auto* event      = poll_event->event;
-
-    if (event == nullptr) {
-      // TODO: This should fail.
-      LT_LOG_DEBUG_IDENT("event is null, skipping : udata:%p", itr->udata);
-      continue;
-    }
 
     if ((itr->flags & EV_ERROR)) {
-      // TODO: This should do nothing if the event is not in error?
+      count++;
+
+      if (poll_event->event == nullptr)
+        continue;
+
       if (!(poll_event->mask & PollInternal::flag_error))
         throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
 
-      auto event_info = event->print_name_fd_str();
+      auto event_info = poll_event->event->print_name_fd_str();
 
-      event->event_error();
+      poll_event->event->event_error();
 
       if (poll_event->mask != 0)
         throw internal_error("Poll::process() event_error called but event mask not cleared: " + event_info);
 
       // We assume that the event gets closed if we get an error.
-      count++;
       continue;
     }
 
     if (itr->filter == EVFILT_READ && (poll_event->mask & PollInternal::flag_read)) {
       count++;
-      event->event_read();
+      poll_event->event->event_read();
     }
     else if (itr->filter == EVFILT_READ) {
       LT_LOG_DEBUG_IDENT("spurious read event, skipping", 0);
@@ -234,7 +233,7 @@ Poll::process() {
 
     if (itr->filter == EVFILT_WRITE && (poll_event->mask & PollInternal::flag_write)) {
       count++;
-      event->event_write();
+      poll_event->event->event_write();
     }
     else if (itr->filter == EVFILT_WRITE) {
       LT_LOG_DEBUG_IDENT("spurious write event, skipping", 0);
@@ -242,7 +241,11 @@ Poll::process() {
 
   }
 
+  m_closed_events.clear();
+  m_processing = false;
+
   m_internal->m_waiting_events = 0;
+
   return count;
 }
 
@@ -289,8 +292,11 @@ Poll::close(Event* event) {
 
   m_internal->flush();
 
-  poll_event->event = nullptr;
-  event->m_poll_event.reset();
+  if (m_processing)
+    m_closed_events.push_back(event->m_poll_event);
+
+  poll_event->event   = nullptr;
+  event->m_poll_event = nullptr;
 }
 
 bool
