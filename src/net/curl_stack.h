@@ -1,6 +1,7 @@
 #ifndef RTORRENT_CORE_CURL_STACK_H
 #define RTORRENT_CORE_CURL_STACK_H
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <new>
@@ -19,7 +20,8 @@ class CurlSocket;
 
 class alignas(LT_SMP_CACHE_BYTES) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
-  using base_type = std::vector<std::shared_ptr<CurlGet>>;
+  using base_type       = std::vector<std::shared_ptr<CurlGet>>;
+  using socket_map_type = std::map<curl_socket_t, std::unique_ptr<CurlSocket>>;
 
   CurlStack(utils::Thread* thread);
   ~CurlStack();
@@ -66,6 +68,7 @@ protected:
   friend class CurlSocket;
 
   CURLM*              handle() const                         { return m_handle; }
+  auto                socket_map()                           { return &m_socket_map; }
 
   // We need to lock when changing any of the values publically accessible.
   void                lock() const                           { m_mutex.lock(); }
@@ -88,6 +91,8 @@ private:
   utils::Thread*        m_thread{};
   CURLM*                m_handle{};
   utils::SchedulerEntry m_task_timeout;
+
+  socket_map_type     m_socket_map;
 
   mutable std::mutex  m_mutex;
 

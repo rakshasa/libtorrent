@@ -254,7 +254,7 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   if (!handshake->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  auto sa = handshake->socket_address();
+  auto sa            = handshake->socket_address();
   auto handshake_ptr = find_and_erase(handshake);
 
   handshake->deactivate_connection();
