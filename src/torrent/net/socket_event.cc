@@ -1,6 +1,8 @@
 #include "config.h"
 
 #include <cassert>
+#include <iostream>
+#include <ostream>
 
 #include "socket_event.h"
 #include "torrent/exceptions.h"
