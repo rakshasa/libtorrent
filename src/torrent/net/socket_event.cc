@@ -8,7 +8,12 @@
 namespace torrent {
 
 socket_event::~socket_event() {
-  assert(is_open() == false && "Called socket_event::~socket_event while still open on type " + std::string(type_name()));
+#ifndef NDEBUG
+  if (is_open()) {
+    std::cerr << "Called socket_event::~socket_event while still open on type " << type_name() << std::endl;
+    std::abort();
+  }
+#endif
 }
 
 void
