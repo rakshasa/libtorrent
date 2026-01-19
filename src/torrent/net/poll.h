@@ -2,10 +2,12 @@
 #define LIBTORRENT_TORRENT_POLL_H
 
 #include <memory>
+#include <vector>
 #include <torrent/common.h>
 
 namespace torrent::net {
 
+class PollEvent;
 class PollInternal;
 
 class LIBTORRENT_EXPORT Poll {
@@ -47,12 +49,17 @@ public:
   // Add one for HUP? Or would that be in event?
 
 private:
+  using poll_event_list = std::vector<std::shared_ptr<net::PollEvent>>;
+
   Poll() = default;
   Poll(const Poll&) = delete;
   Poll& operator=(const Poll&) = delete;
 
   int                 poll(int timeout_usec);
   unsigned int        process();
+
+  bool                m_processing{false};
+  poll_event_list     m_closed_events;
 
   std::unique_ptr<PollInternal> m_internal;
 };
