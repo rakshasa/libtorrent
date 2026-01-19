@@ -11,22 +11,36 @@
 #include "torrent/net/poll.h"
 #include "torrent/utils/log.h"
 
+#if 0
+
+#define LT_LOG_DEBUG(log_fmt, ...)
+#define LT_LOG_DEBUG_THIS(log_fmt, ...)
+#define LT_LOG_DEBUG_SOCKET(log_fmt, ...)
+#define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)
+#define LT_LOG_DEBUG_SOCKET_FD_HANDLE(log_fmt, ...)
+
+#else
+
 #define LT_LOG_DEBUG(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket: " log_fmt, __VA_ARGS__);
-
 #define LT_LOG_DEBUG_THIS(log_fmt, ...)                                 \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__);
-
-//#define LT_LOG_DEBUG_SOCKET(log_fmt, ...)
 #define LT_LOG_DEBUG_SOCKET(log_fmt, ...)                               \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, __VA_ARGS__);
-
 #define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)                            \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__);
-
-// #define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)
 #define LT_LOG_DEBUG_SOCKET_FD_HANDLE(log_fmt, ...)                            \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i easy_handle:%p : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, easy_handle, __VA_ARGS__);
+
+#endif
+
+// TODO: Currently kevent doesn't report socket errors when not in read/write mode.
+//
+
+// We likely need to either have a timeout task to check if error when in idle connectino poll, or
+// set it to read mode always.
+//
+// HTTP shouldn't be sending any data when idle, so read mode shouldn't be a problem.
 
 namespace torrent::net {
 
@@ -41,10 +55,6 @@ CurlSocket::~CurlSocket() {
 
   m_self_exists = false;
 }
-
-// TODO: Rewrite to only use a single CurlSocket object for each fd, and update its state.
-//
-// This will allow us to listen for socket error events on idle connections.
 
 int
 CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlStack* stack, CurlSocket* socket) {
@@ -64,19 +74,19 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
     if (socket == nullptr) {
       // Assume libcurl calls this before closing the fd if it is in the idle connection pool.
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_REMOVE with null socket", 0);
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : null socket", 0);
       return 0;
     }
 
     if (!socket->is_open() || !socket->is_polling()) {
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_REMOVE socket already closed, aborting", 0);
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket already closed, aborting", 0);
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE called on closed socket.");
     }
 
     if (socket->m_fileDesc != fd)
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch.");
 
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : CURL_POLL_REMOVE removing from read/write polling", 0);
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : removing from read/write polling", 0);
 
     this_thread::poll()->remove_read(socket);
     this_thread::poll()->remove_write(socket);
@@ -154,7 +164,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
   auto* socket = itr->second.get();
 
-  LT_LOG_DEBUG_SOCKET_FD("close_socket() : closing socket", 0);
+  LT_LOG_DEBUG_SOCKET("close_socket()", 0);
 
   if (!socket->is_polling())
     throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not in poll");
