@@ -189,55 +189,53 @@ Poll::poll(int timeout_usec) {
 // some event but not closed, it won't call that event? Think so...
 unsigned int
 Poll::process() {
-  unsigned int count = 0;
+  unsigned int count{};
+
+  m_processing = true;
+  m_closed_events.clear();
 
   for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
     if (utils::Thread::self()->callbacks_should_interrupt_polling())
       utils::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->data.ptr);
-    auto* event      = poll_event->event;
 
-    if (event == nullptr) {
-      // TODO: This should fail.
-      LT_LOG_DEBUG_DATA_FD("event is null, skipping : events:%hx", itr->events);
-      continue;
-    }
+    if (itr->events & EPOLLERR) {
+      count++;
 
-    // Each branch must check for data.ptr != nullptr to allow the socket
-    // to remove itself between the calls.
-    //
-    // TODO: Make it so that it checks that read/write is wanted, that
-    // it wasn't removed from one of them but not closed.
+      if (poll_event->event == nullptr)
+        continue;
 
-    if (itr->events & EPOLLERR && poll_event->mask & EPOLLERR) {
       if (!(poll_event->mask & EPOLLERR))
         throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
 
-      auto event_info = event->print_name_fd_str();
+      auto event_info = poll_event->event->print_name_fd_str();
 
-      event->event_error();
+      poll_event->event->event_error();
 
       if (poll_event->mask != 0)
         throw internal_error("Poll::process() event_error called but event mask not cleared: " + event_info);
 
       // We assume that the event gets closed if we get an error.
-      count++;
       continue;
     }
 
     if (itr->events & EPOLLIN && poll_event->mask & EPOLLIN) {
-      event->event_read();
+      poll_event->event->event_read();
       count++;
     }
 
     if (itr->events & EPOLLOUT && poll_event->mask & EPOLLOUT) {
-      event->event_write();
+      poll_event->event->event_write();
       count++;
     }
   }
 
+  m_closed_events.clear();
+  m_processing = false;
+
   m_internal->m_waiting_events = 0;
+
   return count;
 }
 
@@ -282,8 +280,11 @@ Poll::close(Event* event) {
   if (m_internal->m_table.erase(event->file_descriptor()) == 0)
     throw internal_error("Poll::close() event not found: " + event->print_name_fd_str());
 
-  poll_event->event = nullptr;
-  event->m_poll_event.reset();
+  if (m_processing)
+    m_closed_events.push_back(event->m_poll_event);
+
+  poll_event->event   = nullptr;
+  event->m_poll_event = nullptr;
 }
 
 bool
