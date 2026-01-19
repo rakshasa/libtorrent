@@ -159,8 +159,15 @@ int
 CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
   auto itr = stack->socket_map()->find(fd);
 
-  if (itr == stack->socket_map()->end())
-    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not found in stack map");
+  // Socket won't exist if the only thing it called was receive_socket(CURL_POLL_REMOVE).
+  if (itr == stack->socket_map()->end()) {
+    LT_LOG_DEBUG("close_socket(fd:%i) : socket not found in stack map", fd);
+
+    if (::close(fd) != 0)
+      throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): error closing socket: " + std::string(std::strerror(errno)));
+
+    return 0;
+  }
 
   auto* socket = itr->second.get();
 
@@ -173,19 +180,12 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
     throw internal_error("CurlSocket::close_socket(): fd mismatch : curl:" + std::to_string(fd) + " self:" + std::to_string(socket->file_descriptor()));
 
   this_thread::poll()->remove_and_close(socket);
-
-  // Ensure libcurl does not use this socket as argument for any further callbacks.
   curl_multi_assign(stack->handle(), fd, nullptr);
 
   if (::close(fd) != 0)
     throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): error closing socket: " + std::string(std::strerror(errno)));
 
-  socket->m_fileDesc    = -1;
-  socket->m_stack       = nullptr;
-  socket->m_easy_handle = nullptr;
-
-  stack->socket_map()->erase(itr);
-
+  socket->clear_and_erase_self(itr);
   return 0;
 }
 
@@ -205,7 +205,6 @@ CurlSocket::event_error() {
 
   // LibCurl will close the socket, so remove it from polling prior to passing the error event.
   this_thread::poll()->remove_and_close(this);
-
   curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
 
   handle_action(CURL_CSELECT_ERR);
@@ -215,7 +214,14 @@ CurlSocket::event_error() {
     throw internal_error("CurlSocket::event_error() self deleted during handle_action.");
   }
 
-  clear_and_delete_self();
+  auto itr = m_stack->socket_map()->find(m_fileDesc);
+
+  if (itr == m_stack->socket_map()->end()) {
+    LT_LOG_DEBUG_THIS("event_error() : socket not found in stack map, aborting", 0);
+    throw internal_error("CurlSocket::event_error() socket not found in stack map.");
+  }
+
+  clear_and_erase_self(itr);
 }
 
 void
@@ -240,14 +246,8 @@ CurlSocket::handle_action(int ev_bitmask) {
 }
 
 void
-CurlSocket::clear_and_delete_self() {
+CurlSocket::clear_and_erase_self(CurlStack::socket_map_type::iterator itr) {
   auto socket_map = m_stack->socket_map();
-  auto itr        = socket_map->find(m_fileDesc);
-
-  if (itr == m_stack->socket_map()->end()) {
-    LT_LOG_DEBUG_THIS("clear_and_delete_self() : socket not found in stack map, aborting", 0);
-    throw internal_error("CurlSocket::clear_and_delete_self(fd:" + std::to_string(m_fileDesc) + ") socket not found in stack map.");
-  }
 
   m_fileDesc    = -1;
   m_stack       = nullptr;

@@ -3,12 +3,12 @@
 
 #include <curl/curl.h>
 
+#include "net/curl_stack.h"
 #include "torrent/event.h"
 
 namespace torrent::net {
 
 class CurlGet;
-class CurlStack;
 
 class CurlSocket : public torrent::Event {
 public:
@@ -34,7 +34,7 @@ private:
 
   void                handle_action(int ev_bitmask);
 
-  void                clear_and_delete_self();
+  void                clear_and_erase_self(CurlStack::socket_map_type::iterator itr);
 
   CurlStack*          m_stack{};
   CURL*               m_easy_handle{};
