@@ -43,7 +43,7 @@ public:
   void                set_event_mask(Event* event, uint32_t mask);
 
   void                flush();
-  void                modify(torrent::Event* event, unsigned short op, uint32_t mask);
+  void                modify(torrent::Event* event, unsigned short op, uint32_t mask, uint32_t old_mask);
 
   int                 m_fd;
 
@@ -79,8 +79,10 @@ PollInternal::set_event_mask(Event* event, uint32_t mask) {
   event->m_poll_event->mask = mask;
 }
 
+// See https://github.com/enki/libev/blob/master/ev_epoll.c for suggestions.
+
 void
-PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
+PollInternal::modify(Event* event, unsigned short op, uint32_t mask, uint32_t old_mask) {
   if (event_mask(event) == mask)
     return;
 
@@ -104,9 +106,17 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
     case EPOLL_CTL_MOD:
       if (errno == ENOENT) {
         LT_LOG_EVENT("modify event EPOLL_CTL_MOD failed with ENOENT", 0);
-        // TODO: Return error / mark event as closed?
-
         // TODO: We might be getting removed because EPOLLERR is not considered being in the poll?
+        //
+        // We still seem to be getting error events (verify with libcurl idle poll).
+        //
+        // Add a test here to see if we're moving from no events to some events, and only retry in that case.
+
+        if (old_mask & (EPOLLIN | EPOLLOUT)) {
+          LT_LOG_EVENT("modify event EPOLL_CTL_MOD cannot retry as old mask had read/write", 0);
+          throw internal_error("PollInternal::modify(): epoll_ctl(MOD) error for event: " + event->print_name_fd_str() + " : in read/write but got ENOENT");
+        }
+
         if (epoll_ctl(m_fd, EPOLL_CTL_ADD, event->file_descriptor(), &e) == 0) {
           LT_LOG_EVENT("modify event EPOLL_CTL_ADD retry after ENOENT succeeded", 0);
           return;
@@ -123,29 +133,6 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
     default:
       throw internal_error("PollInternal::modify(): unknown epoll_ctl operation: " + std::to_string(op) + " for event: " + event->print_name_fd_str());
     }
-
-    // // Handle some libcurl/c-ares bugs by retrying once.
-    // int retry = op;
-
-    // if (op == EPOLL_CTL_ADD && errno == EEXIST) {
-    //   retry = EPOLL_CTL_MOD;
-    //   errno = 0;
-    // } else if (op == EPOLL_CTL_MOD && errno == ENOENT) {
-    //   retry = EPOLL_CTL_ADD;
-    //   errno = 0;
-    // } else if (errno == EBADFD) {
-    //   // Another thread might have just closed the fd. Try again.
-    //   errno = 0;
-    // }
-
-    // if (errno || epoll_ctl(m_fd, retry, event->file_descriptor(), &e)) {
-    //   char errmsg[1024];
-    //   snprintf(errmsg, sizeof(errmsg),
-    //            "PollInternal::modify() epoll_ctl(%d, %d -> %d, %d, [%p:%x]) = %d: %s",
-    //            m_fd, op, retry, event->file_descriptor(), event, mask, errno, strerror(errno));
-
-    //   throw internal_error(errmsg);
-    // }
   }
 }
 
@@ -270,6 +257,8 @@ Poll::open_max() const {
   return m_internal->m_max_sockets;
 }
 
+// TODO: Change open() to take initial filter state.
+
 void
 Poll::open(Event* event) {
   LT_LOG_EVENT("open event", 0);
@@ -330,76 +319,94 @@ Poll::in_error(Event* event) {
 
 void
 Poll::insert_read(Event* event) {
-  if (m_internal->event_mask(event) & EPOLLIN)
+  auto mask = m_internal->event_mask(event);
+
+  if (mask & EPOLLIN)
     return;
 
   LT_LOG_EVENT("insert read", 0);
 
   m_internal->modify(event,
-                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-                     m_internal->event_mask(event) | EPOLLIN);
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     mask | EPOLLIN,
+                     mask);
 }
 
 void
 Poll::insert_write(Event* event) {
-  if (m_internal->event_mask(event) & EPOLLOUT)
+  auto mask = m_internal->event_mask(event);
+
+  if (mask & EPOLLOUT)
     return;
 
   LT_LOG_EVENT("insert write", 0);
 
   m_internal->modify(event,
-                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-                     m_internal->event_mask(event) | EPOLLOUT);
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     mask | EPOLLOUT,
+                     mask);
 }
 
 void
 Poll::insert_error(Event* event) {
-  if (m_internal->event_mask(event) & EPOLLERR)
+  auto mask = m_internal->event_mask(event);
+
+  if (mask & EPOLLERR)
     return;
 
   LT_LOG_EVENT("insert error", 0);
 
   m_internal->modify(event,
-                     m_internal->event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-                     m_internal->event_mask(event) | EPOLLERR);
+                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+                     mask | EPOLLERR,
+                     mask);
 }
 
 void
 Poll::remove_read(Event* event) {
-  if (!(m_internal->event_mask(event) & EPOLLIN))
+  auto mask     = m_internal->event_mask(event);
+  auto new_mask = mask & ~EPOLLIN;
+
+  if (!(mask & EPOLLIN))
     return;
 
   LT_LOG_EVENT("remove read", 0);
 
-  uint32_t mask = m_internal->event_mask(event) & ~EPOLLIN;
   m_internal->modify(event,
-                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     new_mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     new_mask,
                      mask);
 }
 
 void
 Poll::remove_write(Event* event) {
-  if (!(m_internal->event_mask(event) & EPOLLOUT))
+  auto mask     = m_internal->event_mask(event);
+  auto new_mask = mask & ~EPOLLOUT;
+
+  if (!(mask & EPOLLOUT))
     return;
 
   LT_LOG_EVENT("remove write", 0);
 
-  uint32_t mask = m_internal->event_mask(event) & ~EPOLLOUT;
   m_internal->modify(event,
-                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     new_mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     new_mask,
                      mask);
 }
 
 void
 Poll::remove_error(Event* event) {
-  if (!(m_internal->event_mask(event) & EPOLLERR))
+  auto mask     = m_internal->event_mask(event);
+  auto new_mask = mask & ~EPOLLERR;
+
+  if (!(mask & EPOLLERR))
     return;
 
   LT_LOG_EVENT("remove error", 0);
 
-  uint32_t mask = m_internal->event_mask(event) & ~EPOLLERR;
   m_internal->modify(event,
-                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     new_mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+                     new_mask,
                      mask);
 }
 

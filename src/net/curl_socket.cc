@@ -47,6 +47,20 @@
 
 // TODO: Check if socket error events properly close sockets.
 
+
+// New approach needed for fd race conditions:
+//
+
+// All fd open / close operations must routed through a SocketManager. (even file sockets)
+//
+// CurlSocket will then open sockets through that.
+//
+// The SocketManager will allow the caller to grab a lock guard for the duration of the fd open /
+// close process. (Or when checking if a socket is still open, before adding it to poll after inactivity)
+//
+// Or rather, allow us to pass a lambda to the SocketManager.
+
+
 namespace torrent::net {
 
 CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle)
@@ -237,6 +251,14 @@ void
 CurlSocket::event_write() {
   handle_action(CURL_CSELECT_OUT);
 }
+
+// TODO: We're not properly handling idle connections here, as libcurl will ignore error events when
+// there's no read/write polling on the socket.
+//
+// We most likely need to add a list of fd's that have errors during idle connection, and check for
+// those when libcurl tries to reuse them.
+//
+// This means we also need to implement OPENSOCKET handling.
 
 void
 CurlSocket::event_error() {
