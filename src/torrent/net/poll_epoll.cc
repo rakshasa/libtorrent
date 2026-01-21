@@ -96,13 +96,22 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
   set_event_mask(event, mask);
 
   if (epoll_ctl(m_fd, op, event->file_descriptor(), &e)) {
-    if (op == EPOLL_CTL_DEL) {
+    switch (op) {
+    case EPOLL_CTL_ADD:
+      LT_LOG_EVENT("modify event EPOLL_CTL_ADD failed: %s", std::strerror(errno));
+      throw internal_error("PollInternal::modify(): epoll_ctl(ADD) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
+
+    case EPOLL_CTL_MOD:
+      LT_LOG_EVENT("modify event EPOLL_CTL_MOD failed: %s", std::strerror(errno));
+      throw internal_error("PollInternal::modify(): epoll_ctl(MOD) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
+
+    case EPOLL_CTL_DEL:
       LT_LOG_EVENT("modify event EPOLL_CTL_DEL failed: %s", std::strerror(errno));
       throw internal_error("PollInternal::modify(): epoll_ctl(DEL) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
-    }
 
-    LT_LOG_EVENT("modify event epoll_ctl failed: %s", std::strerror(errno));
-    throw internal_error("PollInternal::modify(): epoll_ctl error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
+    default:
+      throw internal_error("PollInternal::modify(): unknown epoll_ctl operation: " + std::to_string(op) + " for event: " + event->print_name_fd_str());
+    }
 
     // // Handle some libcurl/c-ares bugs by retrying once.
     // int retry = op;
