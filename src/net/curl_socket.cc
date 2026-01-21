@@ -98,9 +98,9 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     //
     // It is assumed libcurl is done with all request so the server should not be sending any
     // unrequested data.
-    this_thread::poll()->insert_read(socket);
+    // this_thread::poll()->insert_read(socket);
 
-    // this_thread::poll()->remove_read(socket);
+    this_thread::poll()->remove_read(socket);
     this_thread::poll()->remove_write(socket);
 
     socket->m_easy_handle = nullptr;
@@ -137,8 +137,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket found in map", 0);
 
-      // Idle connection sockets are in read mode to catch errors.
-      this_thread::poll()->remove_read(socket);
+      // // Idle connection sockets are in read mode to catch errors.
+      // this_thread::poll()->remove_read(socket);
 
       curl_multi_assign(stack->handle(), fd, socket);
     }
@@ -210,25 +210,25 @@ CurlSocket::event_read() {
   //
   // We likely need to figure out how to properly read error events from poll...
 
-  if (m_easy_handle == nullptr) {
-    // This should just pass on the read event, and let libcurl handle it if it is an error.
+  // if (m_easy_handle == nullptr) {
+  //   // This should just pass on the read event, and let libcurl handle it if it is an error.
 
-    LT_LOG_DEBUG_THIS("event_read() : easy_handle is null, likely idle connection error event", 0);
+  //   LT_LOG_DEBUG_THIS("event_read() : easy_handle is null, likely idle connection error event", 0);
 
-    // Read the data into a buffer, and log it:
+  //   // Read the data into a buffer, and log it:
 
-    char buffer[1024];
+  //   char buffer[1024];
 
-    ssize_t result = ::read(m_fileDesc, buffer, sizeof(buffer));
+  //   ssize_t result = ::read(m_fileDesc, buffer, sizeof(buffer));
 
-    // TODO: Disabl gzip compression to debug the data.
+  //   // TODO: Disabl gzip compression to debug the data.
 
-    LT_LOG_DEBUG_THIS("event_read() : read %zd bytes from idle connection socket", result);
-    LT_LOG_DEBUG_THIS("event_read() : data: '%s'", std::string(buffer, result).c_str());
-    LT_LOG_DEBUG_THIS("event_read() : hex: '%s'", torrent::utils::string_with_escape_codes(std::string(buffer, result)).c_str());
+  //   LT_LOG_DEBUG_THIS("event_read() : read %zd bytes from idle connection socket", result);
+  //   LT_LOG_DEBUG_THIS("event_read() : data: '%s'", std::string(buffer, result).c_str());
+  //   LT_LOG_DEBUG_THIS("event_read() : hex: '%s'", torrent::utils::string_with_escape_codes(std::string(buffer, result)).c_str());
 
-    throw internal_error("CurlSocket::event_read() easy_handle is null, likely idle connection error event.");
-  }
+  //   throw internal_error("CurlSocket::event_read() easy_handle is null, likely idle connection error event.");
+  // }
 
   handle_action(CURL_CSELECT_IN);
 }

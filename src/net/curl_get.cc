@@ -225,7 +225,6 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1l);
   curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
   curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
-  // curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
 
   // Note that if the url has a numeric IP address, libcurl will not respect the CURLOPT_IPRESOLVE
   // option.
