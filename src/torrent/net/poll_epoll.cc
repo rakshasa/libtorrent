@@ -102,6 +102,17 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
       throw internal_error("PollInternal::modify(): epoll_ctl(ADD) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
 
     case EPOLL_CTL_MOD:
+      if (errno == ENOENT) {
+        LT_LOG_EVENT("modify event EPOLL_CTL_MOD failed with ENOENT", 0);
+        // TODO: Return error / mark event as closed?
+
+        // TODO: We might be getting removed because EPOLLERR is not considered being in the poll?
+        if (epoll_ctl(m_fd, EPOLL_CTL_ADD, event->file_descriptor(), &e) == 0) {
+          LT_LOG_EVENT("modify event EPOLL_CTL_ADD retry after ENOENT succeeded", 0);
+          return;
+        }
+      }
+
       LT_LOG_EVENT("modify event EPOLL_CTL_MOD failed: %s", std::strerror(errno));
       throw internal_error("PollInternal::modify(): epoll_ctl(MOD) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
 
@@ -220,6 +231,7 @@ Poll::process() {
       if (poll_event->event == nullptr)
         continue;
 
+      // TODO: EPOLLERR is always reported, so we don't need error event registration.
       if (!(poll_event->mask & EPOLLERR))
         throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
 
