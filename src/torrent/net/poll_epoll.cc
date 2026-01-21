@@ -258,6 +258,7 @@ Poll::open_max() const {
 }
 
 // TODO: Change open() to take initial filter state.
+// TODO: Make open register for at least error events.
 
 void
 Poll::open(Event* event) {
