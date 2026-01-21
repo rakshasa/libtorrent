@@ -41,7 +41,9 @@ string_with_escape_codes(const std::string& str) {
 
   for (auto c : str) {
     if (c < ' ' || c > '~') {
-      result += '%' + to_hex_char(c, true) + to_hex_char(c, false);
+      result += '%';
+      result += to_hex_char(c, true);
+      result += to_hex_char(c, false);
       continue;
     }
 
@@ -76,8 +78,9 @@ sanitize_string(const std::string& str) {
     }
 
     result += c;
-    unprintable = false;
-    space = false;
+
+    unprintable  = false;
+    space        = false;
   }
 
   return trim_string(result);
@@ -98,7 +101,9 @@ sanitize_string_with_escape_codes(const std::string& str) {
         continue;
       }
 
-      result += '%' + to_hex_char(c, true) + to_hex_char(c, false);
+      result += '%';
+      result += to_hex_char(c, true);
+      result += to_hex_char(c, false);
 
       space = false;
       continue;
