@@ -87,7 +87,7 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
   LT_LOG_EVENT("modify event : op:%hx mask:%hx", op, mask);
 
   if (event->m_poll_event == nullptr)
-    throw internal_error("PollInternal::modify() event has no PollEvent associated: " + event->print_name_fd_str());
+    throw internal_error("PollInternal::modify(): event has no PollEvent associated: " + event->print_name_fd_str());
 
   epoll_event e{};
   e.data.ptr = event->m_poll_event.get();
@@ -96,31 +96,36 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask) {
   set_event_mask(event, mask);
 
   if (epoll_ctl(m_fd, op, event->file_descriptor(), &e)) {
-    // Socket was probably already closed. Ignore this.
-    if (op == EPOLL_CTL_DEL && errno == ENOENT)
-      return;
-
-    // TODO: Remove this retry?
-
-    // Handle some libcurl/c-ares bugs by retrying once.
-    int retry = op;
-
-    if (op == EPOLL_CTL_ADD && errno == EEXIST) {
-      retry = EPOLL_CTL_MOD;
-      errno = 0;
-    } else if (op == EPOLL_CTL_MOD && errno == ENOENT) {
-      retry = EPOLL_CTL_ADD;
-      errno = 0;
+    if (op == EPOLL_CTL_DEL) {
+      LT_LOG_EVENT("modify event EPOLL_CTL_DEL failed: %s", std::strerror(errno));
+      throw internal_error("PollInternal::modify(): epoll_ctl(DEL) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
     }
 
-    if (errno || epoll_ctl(m_fd, retry, event->file_descriptor(), &e)) {
-      char errmsg[1024];
-      snprintf(errmsg, sizeof(errmsg),
-               "PollInternal::modify() epoll_ctl(%d, %d -> %d, %d, [%p:%x]) = %d: %s",
-               m_fd, op, retry, event->file_descriptor(), event, mask, errno, strerror(errno));
+    LT_LOG_EVENT("modify event epoll_ctl failed: %s", std::strerror(errno));
+    throw internal_error("PollInternal::modify(): epoll_ctl error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
 
-      throw internal_error(errmsg);
-    }
+    // // Handle some libcurl/c-ares bugs by retrying once.
+    // int retry = op;
+
+    // if (op == EPOLL_CTL_ADD && errno == EEXIST) {
+    //   retry = EPOLL_CTL_MOD;
+    //   errno = 0;
+    // } else if (op == EPOLL_CTL_MOD && errno == ENOENT) {
+    //   retry = EPOLL_CTL_ADD;
+    //   errno = 0;
+    // } else if (errno == EBADFD) {
+    //   // Another thread might have just closed the fd. Try again.
+    //   errno = 0;
+    // }
+
+    // if (errno || epoll_ctl(m_fd, retry, event->file_descriptor(), &e)) {
+    //   char errmsg[1024];
+    //   snprintf(errmsg, sizeof(errmsg),
+    //            "PollInternal::modify() epoll_ctl(%d, %d -> %d, %d, [%p:%x]) = %d: %s",
+    //            m_fd, op, retry, event->file_descriptor(), event, mask, errno, strerror(errno));
+
+    //   throw internal_error(errmsg);
+    // }
   }
 }
 
