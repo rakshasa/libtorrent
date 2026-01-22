@@ -8,6 +8,7 @@
 #include "torrent/net/fd.h"
 #include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \

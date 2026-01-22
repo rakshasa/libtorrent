@@ -1,17 +1,14 @@
 #ifndef LIBTORRENT_TORRENT_NET_SOCKET_MANAGER_H
 #define LIBTORRENT_TORRENT_NET_SOCKET_MANAGER_H
 
-#include <functional>
 #include <mutex>
 #include <unordered_map>
 #include <torrent/common.h>
 
-namespace torrent::net {
+namespace torrent::runtime {
 
 struct SocketInfo {
   int                 fd{-1};
-
-  // thread, event, type, etc.
   utils::Thread*      thread{nullptr};
 };
 
