@@ -20,6 +20,7 @@
 #include "torrent/net/poll.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
@@ -37,7 +38,8 @@ net::NetworkConfig* network_config() { return manager->network_config(); }
 
 namespace runtime {
 
-runtime::NetworkManager* network_manager() { return manager->network_manager(); }
+NetworkManager* network_manager() { return manager->network_manager(); }
+SocketManager*  socket_manager()  { return manager->socket_manager(); }
 
 void     dht_add_peer_node(const sockaddr* sa, uint16_t port) { manager->network_manager()->dht_add_peer_node(sa, port); }
 uint16_t listen_port()                                        { return manager->network_manager()->listen_port(); }
@@ -65,6 +67,7 @@ Manager::Manager()
   : m_network_config(new net::NetworkConfig),
 
     m_network_manager(new runtime::NetworkManager),
+    m_socket_manager(new runtime::SocketManager),
 
     m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
