@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_TORRENT_NET_SOCKET_MANAGER_H
-#define LIBTORRENT_TORRENT_NET_SOCKET_MANAGER_H
+#ifndef LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H
+#define LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H
 
 #include <mutex>
 #include <unordered_map>
@@ -34,6 +34,6 @@ private:
   socket_map_type     m_socket_map;
 };
 
-} // namespace torrent::net
+} // namespace torrent::runtime
 
-#endif // LIBTORRENT_TORRENT_NET_SOCKET_MANAGER_H
+#endif // LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H

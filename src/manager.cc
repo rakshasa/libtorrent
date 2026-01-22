@@ -39,6 +39,9 @@ namespace runtime {
 
 runtime::NetworkManager* network_manager() { return manager->network_manager(); }
 
+void     dht_add_peer_node(const sockaddr* sa, uint16_t port) { manager->network_manager()->dht_add_peer_node(sa, port); }
+uint16_t listen_port()                                        { return manager->network_manager()->listen_port(); }
+
 } // namespace runtime
 
 namespace this_thread {

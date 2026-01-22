@@ -11,7 +11,7 @@
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_NET_SOCKET, "socket_manager: " log_fmt, __VA_ARGS__);
 
-namespace torrent::net {
+namespace torrent::runtime {
 
 SocketManager::SocketManager() {
   // TODO: Set load factor a bit higher than default to account for peak usage during startup / etc.
@@ -78,4 +78,4 @@ SocketManager::close_socket(int fd, std::function<int (int)> close_func) {
   return true;
 }
 
-} // namespace torrent::net
+} // namespace torrent::runtime
