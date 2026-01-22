@@ -37,7 +37,7 @@ ResourceManager::~ResourceManager() {
 
 // If called directly ensure a valid group has been selected.
 ResourceManager::iterator
-ResourceManager::insert(const resource_manager_entry& entry) {
+ResourceManager::insert(resource_manager_entry entry) {
   bool will_realloc = true; //size() == capacity();
 
   auto itr = base_type::insert(find_group_end(entry.group()), entry);
@@ -210,7 +210,7 @@ ResourceManager::set_group(iterator itr, uint16_t grp) {
   resource_manager_entry entry = *itr;
   entry.set_group(grp);
   entry.download()->set_choke_group(choke_base_type::at(entry.group()));
-  
+
   base_type::erase(itr);
   base_type::insert(find_group_end(entry.group()), entry);
 

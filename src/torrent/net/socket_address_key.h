@@ -29,7 +29,7 @@ public:
   static bool is_comparable_sockaddr(const sockaddr* sa);
 
   static socket_address_key from_sockaddr(const sockaddr* sa);
-  static socket_address_key from_sin_addr(const sockaddr_in& sa);
+  static socket_address_key from_sin_addr(sockaddr_in sa);
   static socket_address_key from_sin6_addr(const sockaddr_in6& sa);
 
   bool operator < (const socket_address_key& sa) const;
@@ -82,7 +82,7 @@ socket_address_key::from_sockaddr(const sockaddr* sa) {
 }
 
 inline socket_address_key
-socket_address_key::from_sin_addr(const sockaddr_in& sa) {
+socket_address_key::from_sin_addr(sockaddr_in sa) {
   socket_address_key result{};
 
   result.m_family = AF_INET;
