@@ -12,7 +12,6 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
 #include "torrent/net/network_config.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/object_stream.h"
 #include "torrent/utils/log.h"
@@ -196,7 +195,7 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
   if (params.numwant >= 0 && state != tracker::TrackerState::EVENT_STOPPED)
     s << "&numwant=" << params.numwant;
 
-  s << "&port=" << runtime::network_manager()->listen_port_or_throw()
+  s << "&port=" << runtime::listen_port()
     << "&uploaded=" << params.uploaded_adjusted
     << "&downloaded=" << params.completed_adjusted
     << "&left=" << params.download_left;

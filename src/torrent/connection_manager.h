@@ -48,6 +48,8 @@ public:
   // Consider only checking max number of open sockets.
   bool                can_connect() const;
 
+  // TODO: Move this to SocketManager?
+
   // Call this to keep the socket count up to date.
   void                inc_socket_count()                      { m_size++; }
   void                dec_socket_count()                      { m_size--; }

@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_TORRENT_NET_NETWORK_MANAGER_H
-#define LIBTORRENT_TORRENT_NET_NETWORK_MANAGER_H
+#ifndef LIBTORRENT_TORRENT_RUNTIME_NETWORK_MANAGER_H
+#define LIBTORRENT_TORRENT_RUNTIME_NETWORK_MANAGER_H
 
 #include <mutex>
 #include <torrent/net/types.h>
@@ -10,7 +10,7 @@ class Manager;
 
 } // namespace torrent
 
-namespace torrent::net {
+namespace torrent::runtime {
 
 class LIBTORRENT_EXPORT NetworkManager {
 public:
@@ -78,6 +78,6 @@ private:
 
 inline auto* NetworkManager::dht_controller() { return m_dht_controller.get(); }
 
-} // namespace torrent::net
+} // namespace torrent::runtime
 
-#endif // LIBTORRENT_TORRENT_NET_NETWORK_MANAGER_H
+#endif // LIBTORRENT_TORRENT_RUNTIME_NETWORK_MANAGER_H

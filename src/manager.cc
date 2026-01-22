@@ -17,9 +17,9 @@
 #include "torrent/download/download_manager.h"
 #include "torrent/download/resource_manager.h"
 #include "torrent/net/network_config.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/poll.h"
 #include "torrent/peer/client_list.h"
+#include "torrent/runtime/network_manager.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
@@ -33,13 +33,17 @@ net::NetworkConfig* network_config() { return manager->network_config(); }
 
 } // namespace config
 
+// TODO: Move runtime to a separate runtime object.
+
 namespace runtime {
 
-net::NetworkManager* network_manager() { return manager->network_manager(); }
+runtime::NetworkManager* network_manager() { return manager->network_manager(); }
 
 } // namespace runtime
 
 namespace this_thread {
+
+// TODO: Deprecate these.
 
 void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
 void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
@@ -57,12 +61,13 @@ void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remov
 Manager::Manager()
   : m_network_config(new net::NetworkConfig),
 
+    m_network_manager(new runtime::NetworkManager),
+
     m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),
     m_handshake_manager(new HandshakeManager),
-    m_network_manager(new net::NetworkManager),
     m_resource_manager(new ResourceManager),
 
     m_client_list(new ClientList),
