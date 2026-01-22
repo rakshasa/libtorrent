@@ -107,6 +107,8 @@ Manager::~Manager() {
   Throttle::destroy_throttle(m_downloadThrottle);
 
   instrumentation_tick();
+
+  m_network_manager.reset();
 }
 
 void
