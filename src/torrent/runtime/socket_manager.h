@@ -17,6 +17,8 @@ public:
   SocketManager();
   ~SocketManager();
 
+  // TODO: Add open_socket version that automatically closes the new fd if there's a conflict.
+
   int                 open_socket(std::function<int ()> socket_func);
   bool                close_socket(int fd, std::function<int (int)> close_func);
 

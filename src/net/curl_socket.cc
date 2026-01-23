@@ -199,6 +199,15 @@ CurlSocket::event_write() {
   handle_action(CURL_CSELECT_OUT);
 }
 
+// TODO: We need to figure out how to tell libcurl to not close an fd when it has been reused.
+//
+// Perhaps we just pretend it is open while in idle conection poll, and pretend to add it to read
+// just to get the CLOSEFUNCTION callback?
+//
+// Also, verify if reporting errors to libcurl actually closes the fd, doesn't seem like it should?
+//
+// Think it should be calling the callback.
+
 void
 CurlSocket::event_error() {
   LT_LOG_DEBUG_THIS("event_error()", 0);
