@@ -4,6 +4,7 @@
 
 #include <cassert>
 
+#include "torrent/event.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
@@ -21,61 +22,278 @@ SocketManager::~SocketManager() {
   assert(m_socket_map.empty() && "SocketManager::~SocketManager(): socket map not empty on destruction.");
 }
 
-int
-SocketManager::open_socket(std::function<int ()> socket_func) {
+void
+SocketManager::open_event_or_throw(Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
-  int fd = socket_func();
+  if (event->is_open())
+    throw internal_error("SocketManager::open_event_or_throw(): event is already open");
 
-  if (fd == -1) {
-    LT_LOG("open_socket(%i) : %s : failed to open socket", fd, this_thread::thread()->name());
-    return -1;
+  func();
+
+  if (!event->is_open()) {
+    LT_LOG("open_event_or_throw() : %s:%s : failed to open socket", this_thread::thread()->name(), event->type_name());
+    return;
   }
 
+  auto fd  = event->file_descriptor();
   auto itr = m_socket_map.find(fd);
 
-  // TODO: This isn't really an error, rather we assume the fd is reused.
   if (itr != m_socket_map.end()) {
-    LT_LOG("open_socket(%i) : %s : trying to open already existing socket : thread:%s",
-           fd, this_thread::thread()->name(), itr->second.thread->name());
+    // We don't allow conflicts for this function.
+    LT_LOG("open_event_or_throw() : %s:%s:%i : tried to use an existing file descriptor : %s:%s",
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
 
-    throw internal_error("SocketManager::open_socket(): trying to open already existing socket fd: " + std::to_string(fd));
+    throw internal_error("SocketManager::open_event_or_throw(): tried to use an existing file descriptor: " +
+                         std::string(itr->second.thread->name()) + ":" +
+                         std::string(itr->second.event->type_name()) + ":" +
+                         std::to_string(fd));
   }
 
-  LT_LOG("open_socket(%i) : %s : opened socket", fd, this_thread::thread()->name());
+  LT_LOG("open_event_or_throw() : %s:%s:%i : opened socket",
+         this_thread::thread()->name(), event->type_name(), fd);
 
-  m_socket_map.emplace(fd, SocketInfo{fd, this_thread::thread()});
-
-  return fd;
+  m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 }
 
 bool
-SocketManager::close_socket(int fd, std::function<int (int)> close_func) {
+SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void ()> cleanup) {
   auto guard = lock_guard();
 
-  auto itr = m_socket_map.find(fd);
+  if (event->is_open())
+    throw internal_error("SocketManager::open_event_or_cleanup(): event is already open");
 
-  if (itr == m_socket_map.end())
-    throw internal_error("SocketManager::close_socket(): trying to close unknown socket fd: " + std::to_string(fd));
+  func();
 
-  if (itr->second.thread != this_thread::thread())
-    throw internal_error("SocketManager::close_socket(" + std::to_string(fd) + "): trying to close socket from wrong thread : " +
-                         itr->second.thread->name() + " != " + this_thread::thread()->name());
-
-  errno = 0;
-
-  int result = close_func(fd);
-
-  if (result == -1) {
-    LT_LOG("close_socket(%i) : %s : failed to close socket : %s", fd, this_thread::thread()->name(), std::strerror(errno));
+  if (!event->is_open()) {
+    LT_LOG("open_event_or_cleanup() : %s:%s : failed to open socket", this_thread::thread()->name(), event->type_name());
+    cleanup();
     return false;
   }
 
-  LT_LOG("close_socket(%i) : %s : closed socket", fd, this_thread::thread()->name());
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr != m_socket_map.end()) {
+    if (!handle_reused_socket(itr)) {
+      LT_LOG("open_event_or_cleanup() : %s:%s:%i : failed to reuse existing file descriptor : %s:%s",
+             this_thread::thread()->name(), event->type_name(), fd,
+             itr->second.thread->name(), itr->second.event->type_name());
+
+      cleanup();
+      return false;
+    }
+
+    LT_LOG("open_event_or_cleanup() : %s:%s:%i : reused existing file descriptor : %s:%s",
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
+
+    itr->second = SocketInfo{fd, event, this_thread::thread()};
+    return true;
+  }
+
+  LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket",
+         this_thread::thread()->name(), event->type_name(), fd);
+
+  m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  return true;
+}
+
+void
+SocketManager::close_event_or_throw(Event* event, std::function<void ()> func) {
+  auto guard = lock_guard();
+
+  if (!event->is_open())
+    throw internal_error("SocketManager::close_event_or_throw(): event is not open");
+
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr == m_socket_map.end()) {
+    LT_LOG("close_event_or_throw() : %s:%s:%i : trying to close unknown socket",
+           this_thread::thread()->name(), event->type_name(), fd);
+
+    throw internal_error("SocketManager::close_event_or_throw(): trying to close unknown socket fd");
+  }
+
+  if (itr->second.event != event) {
+    LT_LOG("close_event_or_throw() : %s:%s:%i : event mismatch when trying to close socket : %s:%s",
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
+
+    throw internal_error("SocketManager::close_event_or_throw(): event mismatch when trying to close socket fd");
+  }
+
+  func();
+
+  if (event->is_open())
+    throw internal_error("SocketManager::close_event_or_throw(): event is still open after close function");
+
+  LT_LOG("close_event_or_throw() : %s:%s:%i : closed socket",
+         this_thread::thread()->name(), event->type_name(), fd);
 
   m_socket_map.erase(itr);
+}
 
-  return true;
+void
+SocketManager::register_event_or_throw(Event* event, std::function<void ()> func) {
+  auto guard = lock_guard();
+
+  if (!event->is_open())
+    throw internal_error("SocketManager::register_event_or_throw(): event is not open");
+
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr != m_socket_map.end()) {
+    LT_LOG("register_event_or_throw() : %s:%s:%i : tried to register an existing file descriptor : %s:%s",
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
+
+    throw internal_error("SocketManager::register_event_or_throw(): tried to register an existing file descriptor: " +
+                         std::string(itr->second.thread->name()) + ":" +
+                         std::string(itr->second.event->type_name()) + ":" +
+                         std::to_string(fd));
+  }
+
+  func();
+
+  LT_LOG("register_event_or_throw() : %s:%s:%i : registered socket",
+         this_thread::thread()->name(), event->type_name(), fd);
+
+  m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+}
+
+void
+SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> func) {
+  auto guard = lock_guard();
+
+  if (!event->is_open())
+    throw internal_error("SocketManager::unregister_event_or_throw(): event is not open");
+
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr == m_socket_map.end()) {
+    LT_LOG("unregister_event_or_throw() : %s:%s:%i : trying to unregister unknown socket",
+           this_thread::thread()->name(), event->type_name(), fd);
+
+    throw internal_error("SocketManager::unregister_event_or_throw(): trying to unregister unknown socket fd");
+  }
+
+  if (itr->second.event != event) {
+    LT_LOG("unregister_event_or_throw() : %s:%s:%i : event mismatch when trying to unregister socket : %s:%s",
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
+
+    throw internal_error("SocketManager::unregister_event_or_throw(): event mismatch when trying to unregister socket fd");
+  }
+
+  func();
+
+  LT_LOG("unregister_event_or_throw() : %s:%s:%i : unregistered socket",
+         this_thread::thread()->name(), event->type_name(), fd);
+
+  m_socket_map.erase(itr);
+}
+
+Event*
+SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) {
+  auto guard = lock_guard();
+
+  if (!event_from->is_open())
+    throw internal_error("SocketManager::transfer_event(): source event is not open");
+
+  auto fd  = event_from->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr == m_socket_map.end()) {
+    LT_LOG("transfer_event() : %s:%s:%i : trying to transfer unknown socket",
+           this_thread::thread()->name(), event_from->type_name(), fd);
+
+    throw internal_error("SocketManager::transfer_event(): trying to transfer unknown socket fd");
+  }
+
+  if (itr->second.event != event_from)
+    throw internal_error("SocketManager::transfer_event(): event mismatch when trying to transfer socket fd");
+
+  auto event_to = func();
+
+  if (event_to == nullptr) {
+    // Transfer failed, the func is responsible for cleaning up event_from.
+    LT_LOG("transfer_event() : %s:%s:%i : socket transfer function returned nullptr",
+           this_thread::thread()->name(), event_from->type_name(), fd);
+
+    return nullptr;
+  }
+
+  if (!event_to->is_open())
+    throw internal_error("SocketManager::transfer_event(): target event is not open after transfer");
+
+  itr->second.event = event_to;
+
+  LT_LOG("transfer_event() : %s:%s:%i : transferred socket : %s",
+         this_thread::thread()->name(), event_from->type_name(), fd, event_to->type_name());
+
+  return event_to;
+}
+
+void
+SocketManager::mark_event_active(Event* event) {
+  auto guard = lock_guard();
+
+  if (!event->is_open())
+    throw internal_error("SocketManager::mark_event_active(): event is not open");
+
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr == m_socket_map.end())
+    throw internal_error("SocketManager::mark_event_active(): trying to mark unknown socket fd active");
+
+  if (itr->second.event != event)
+    throw internal_error("SocketManager::mark_event_active(): event mismatch when trying to mark socket fd active");
+
+  itr->second.flags &= ~flag_inactive;
+
+  LT_LOG("mark_event_active() : %s:%s:%i : marked socket active",
+         this_thread::thread()->name(), event->type_name(), fd);
+}
+
+void
+SocketManager::mark_event_inactive(Event* event) {
+  auto guard = lock_guard();
+
+  if (!event->is_open())
+    throw internal_error("SocketManager::mark_event_inactive(): event is not open");
+
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr == m_socket_map.end())
+    throw internal_error("SocketManager::mark_event_inactive(): trying to mark unknown socket fd inactive");
+
+  if (itr->second.event != event)
+    throw internal_error("SocketManager::mark_event_inactive(): event mismatch when trying to mark socket fd inactive");
+
+  itr->second.flags |= flag_inactive;
+
+  LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive",
+         this_thread::thread()->name(), event->type_name(), fd);
+}
+
+bool
+SocketManager::handle_reused_socket(socket_map::iterator itr) {
+  if (!(itr->second.flags & flag_inactive))
+    return false;
+
+  // TODO: Add event to a closed list, which will be checked when mark_event_active is called.
+  //
+  // TODO: Until the, just disallow reuse.
+  return false;
+
+  // return true;
 }
 
 } // namespace torrent::runtime

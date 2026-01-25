@@ -58,10 +58,8 @@ public:
     READ_PORT
   };
 
-  Handshake(int fd, HandshakeManager* m, int encryption_options);
+  Handshake();
   ~Handshake() override;
-  Handshake(const Handshake&) = delete;
-  Handshake& operator=(const Handshake&) = delete;
 
   const char*         type_name() const override    { return "handshake"; }
 
@@ -69,8 +67,8 @@ public:
 
   State               state() const                 { return m_state; }
 
-  void                initialize_incoming(const sockaddr* sa);
-  void                initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* peerInfo);
+  void                initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options);
+  void                initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options, DownloadMain* d, PeerInfo* peerInfo);
 
   PeerInfo*           peer_info()                   { return m_peerInfo; }
   const PeerInfo*     peer_info() const             { return m_peerInfo; }
@@ -82,7 +80,6 @@ public:
   DownloadMain*       download()                    { return m_download; }
   Bitfield*           bitfield()                    { return &m_bitfield; }
 
-  void                deactivate_connection();
   void                release_connection();
   void                destroy_connection();
 
@@ -101,6 +98,11 @@ public:
   int                 retry_options();
 
 protected:
+  Handshake(const Handshake&) = delete;
+  Handshake& operator=(const Handshake&) = delete;
+
+  void                set_manager(HandshakeManager* handshake_manager);
+
   void                read_done();
   void                write_done();
 
@@ -145,8 +147,8 @@ protected:
   DownloadMain*       m_download{};
   Bitfield            m_bitfield;
 
-  ThrottleList*       m_uploadThrottle;
-  ThrottleList*       m_downloadThrottle;
+  ThrottleList*       m_upload_throttle;
+  ThrottleList*       m_download_throttle;
 
   utils::SchedulerEntry     m_task_timeout;
   std::chrono::microseconds m_initialized_time;

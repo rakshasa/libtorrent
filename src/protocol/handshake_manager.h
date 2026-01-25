@@ -37,7 +37,7 @@ public:
 
   void                erase_download(DownloadMain* info);
 
-  void                add_incoming(int fd, const sockaddr* sa);
+  void                add_incoming(std::unique_ptr<Handshake>& handshake, int fd, const sockaddr* sa);
   void                add_outgoing(const sockaddr* sa, DownloadMain* info);
 
   slot_download&      slot_download_id()         { return m_slot_download_id; }

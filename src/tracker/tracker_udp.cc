@@ -12,6 +12,7 @@
 #include "torrent/net/network_config.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 
@@ -135,10 +136,12 @@ TrackerUdp::close_directly() {
   if (!is_open())
     return;
 
-  this_thread::event_remove_and_close(this);
+  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+      this_thread::event_remove_and_close(this);
 
-  fd_close(m_fileDesc);
-  m_fileDesc = -1;
+      fd_close(m_fileDesc);
+      m_fileDesc = -1;
+    });
 }
 
 tracker_enum
@@ -256,7 +259,18 @@ TrackerUdp::start_announce() {
   LT_LOG("starting announce : connect_address:%s bind_address:%s",
          sa_pretty_str(m_current_address).c_str(), sa_pretty_str(bind_address.get()).c_str());
 
-  m_fileDesc = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
+  runtime::socket_manager()->open_event_or_throw(this, [this, &bind_address]() {
+      m_fileDesc = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
+
+      if (m_fileDesc == -1)
+        return;
+
+      // TODO: Add socket counting.
+      this_thread::event_open(this);
+      this_thread::event_insert_read(this);
+      this_thread::event_insert_write(this);
+      this_thread::event_insert_error(this);
+    });
 
   if (!is_open()) {
     LT_LOG("could not open UDP socket: fd:%i error:'%s'", m_fileDesc, std::strerror(errno));
@@ -275,12 +289,6 @@ TrackerUdp::start_announce() {
   m_write_buffer = std::make_unique<WriteBuffer>();
 
   prepare_connect_input();
-
-  // TODO: Add socket counting.
-  this_thread::event_open(this);
-  this_thread::event_insert_read(this);
-  this_thread::event_insert_write(this);
-  this_thread::event_insert_error(this);
 
   m_tries = udp_tries;
 

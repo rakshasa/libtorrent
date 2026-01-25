@@ -10,6 +10,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/poll.h"
 #include "torrent/net/resolver.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
@@ -143,9 +144,12 @@ Thread::event_loop() {
 
   try {
 
-    m_poll->open(m_interrupt_receiver.get());
-    m_poll->insert_read(m_interrupt_receiver.get());
-    m_poll->insert_error(m_interrupt_receiver.get());
+    runtime::socket_manager()->register_event_or_throw(m_interrupt_receiver.get(), [this]() {
+        m_poll->open(m_interrupt_receiver.get());
+        m_poll->insert_read(m_interrupt_receiver.get());
+        m_poll->insert_error(m_interrupt_receiver.get());
+    });
+    runtime::socket_manager()->register_event_or_throw(m_interrupt_sender.get(), []() {});
 
     while (true) {
       process_events();
@@ -183,9 +187,12 @@ Thread::event_loop() {
     throw;
   }
 
-  m_poll->remove_read(m_interrupt_receiver.get());
-  m_poll->remove_error(m_interrupt_receiver.get());
-  m_poll->close(m_interrupt_receiver.get());
+  runtime::socket_manager()->unregister_event_or_throw(m_interrupt_receiver.get(), [this]() {
+      m_poll->remove_read(m_interrupt_receiver.get());
+      m_poll->remove_error(m_interrupt_receiver.get());
+      m_poll->close(m_interrupt_receiver.get());
+    });
+  runtime::socket_manager()->unregister_event_or_throw(m_interrupt_sender.get(), []() {});
 
   auto previous_state = STATE_ACTIVE;
 

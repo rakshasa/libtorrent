@@ -3,12 +3,14 @@
 #include "listen.h"
 
 #include "manager.h"
+#include "protocol/handshake.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \
@@ -184,52 +186,77 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6,
 
 void
 Listen::open_done(int fd, uint16_t port, int backlog) {
-  m_fileDesc = fd;
+  set_file_descriptor(fd);
   m_port = port;
 
   manager->connection_manager()->inc_socket_count();
 
-  this_thread::poll()->open(this);
-  this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_error(this);
+  runtime::socket_manager()->register_event_or_throw(this, [this]() {
+      this_thread::poll()->open(this);
+      this_thread::poll()->insert_read(this);
+      this_thread::poll()->insert_error(this);
+    });
 
-  LT_LOG("listen opened: fd:%i port:%" PRIu16 " backlog:%i", m_fileDesc, m_port, backlog);
+  LT_LOG("listen opened: fd:%i port:%" PRIu16 " backlog:%i", file_descriptor(), m_port, backlog);
 }
 
 void Listen::close() {
   if (!is_open())
     return;
 
-  this_thread::poll()->remove_and_close(this);
+  runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
+      this_thread::poll()->remove_and_close(this);
+
+      fd_close(file_descriptor());
+      set_file_descriptor(-1);
+    });
 
   manager->connection_manager()->dec_socket_count();
 
-  fd_close(m_fileDesc);
-
-  m_fileDesc = -1;
   m_port = 0;
 }
 
 void
 Listen::event_read() {
   while (true) {
-    int fd;
-    sa_unique_ptr sa;
+    auto handshake = std::make_unique<Handshake>();
 
-    std::tie(fd, sa) = fd_sap_accept(m_fileDesc);
+    // TODO: Optimize this by adding handshake immediately to poll and put the slot_accepted() call
+    // outside of open_func().
 
-    if (fd == -1) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK)
-        break;
+    auto open_func = [&]() {
+        int fd;
+        sa_unique_ptr sa;
 
-      // Force a new event_read() call just to be sure we don't enter an infinite loop.
-      if (errno == ECONNABORTED)
-        break;
+        std::tie(fd, sa) = fd_sap_accept(file_descriptor());
 
-      throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
-    }
+        if (fd == -1) {
+          if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return;
 
-    m_slot_accepted(fd, sa.get());
+          // Force a new event_read() call just to be sure we don't enter an infinite loop.
+          if (errno == ECONNABORTED)
+            return;
+
+          throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
+        }
+
+        m_slot_accepted(handshake, fd, sa.get());
+      };
+
+    auto cleanup_func = [&]() {
+        LT_LOG("failed to accept incoming connection : socket manager triggered cleanup", 0);
+        handshake->destroy_connection();
+      };
+
+    bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);
+
+    // If the handshake connection or socket manager failed, don't continue accepting connections.
+    //
+    // This allows the event loop a chance to clear out any conflicts with reused file descriptors.
+
+    if (!result || !handshake->is_open())
+      return;
   }
 }
 
@@ -242,7 +269,7 @@ void
 Listen::event_error() {
   int socket_error;
 
-  if (!fd_get_socket_error(m_fileDesc, &socket_error))
+  if (!fd_get_socket_error(file_descriptor(), &socket_error))
     throw internal_error("Listener port could not get socket error: " + std::string(std::strerror(errno)));
 
   if (socket_error != 0)

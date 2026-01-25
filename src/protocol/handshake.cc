@@ -18,6 +18,7 @@
 #include "torrent/net/network_config.h"
 #include "torrent/net/poll.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/diffie_hellman.h"
 #include "utils/sha1.h"
@@ -50,22 +51,12 @@ private:
 
 namespace torrent {
 
-Handshake::Handshake(int fd, HandshakeManager* m, int encryptionOptions) :
-  m_manager(m),
-
-  // Use global throttles until we know which download it is.
-  m_uploadThrottle(manager->upload_throttle()->throttle_list()),
-  m_downloadThrottle(manager->download_throttle()->throttle_list()),
-
-  m_encryption(encryptionOptions),
-  m_extensions(torrent::HandshakeManager::default_extensions()) {
-
-  m_fileDesc = fd;
+Handshake::Handshake()
+  : m_encryption(HandshakeEncryption::RETRY_NONE),
+    m_extensions(HandshakeManager::default_extensions()) {
 
   m_readBuffer.reset();
   m_writeBuffer.reset();
-
-  m_task_timeout.slot() = [this, m] { m->receive_timeout(this); };
 }
 
 Handshake::~Handshake() {
@@ -76,14 +67,28 @@ Handshake::~Handshake() {
 }
 
 void
-Handshake::initialize_incoming(const sockaddr* sa) {
-  m_incoming = true;
-  m_address = sa_copy(sa);
+Handshake::set_manager(HandshakeManager* handshake_manager) {
+  m_manager           = handshake_manager;
+  m_upload_throttle   = manager->upload_throttle()->throttle_list();
+  m_download_throttle = manager->download_throttle()->throttle_list();
+
+  m_task_timeout.slot() = [this, handshake_manager] { handshake_manager->receive_timeout(this); };
+}
+
+void
+Handshake::initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options) {
+  set_manager(handshake_manager);
+
+  m_incoming   = true;
+  m_address    = sa_copy(sa);
+  m_encryption = encryption_options;
 
   if (m_encryption.options() & (net::NetworkConfig::encryption_allow_incoming | net::NetworkConfig::encryption_require))
     m_state = READ_ENC_KEY;
   else
     m_state = READ_INFO;
+
+  set_file_descriptor(fd);
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_read(this);
@@ -94,18 +99,23 @@ Handshake::initialize_incoming(const sockaddr* sa) {
 }
 
 void
-Handshake::initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* peerInfo) {
+Handshake::initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options, DownloadMain* d, PeerInfo* peerInfo) {
+  set_manager(handshake_manager);
+
   m_download = d;
 
   m_peerInfo = peerInfo;
   m_peerInfo->set_flags(PeerInfo::flag_handshake);
 
-  m_incoming = false;
-  m_address = sa_copy(sa);
+  m_incoming   = false;
+  m_address    = sa_copy(sa);
+  m_encryption = encryption_options;
 
-  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.get());
+  std::make_pair(m_upload_throttle, m_download_throttle) = m_download->throttles(m_address.get());
 
   m_state = CONNECTING;
+
+  set_file_descriptor(fd);
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_write(this);
@@ -115,25 +125,18 @@ Handshake::initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* pe
 }
 
 void
-Handshake::deactivate_connection() {
-  if (!is_open())
-    throw internal_error("Handshake::deactivate_connection called but m_fd is not open.");
-
-  m_state = INACTIVE;
-
-  this_thread::scheduler()->erase(&m_task_timeout);
-  this_thread::poll()->remove_and_close(this);
-}
-
-void
 Handshake::release_connection() {
   if (!is_open())
     throw internal_error("Handshake::release_connection called but m_fd is not open.");
 
-  m_peerInfo->unset_flags(PeerInfo::flag_handshake);
-  m_peerInfo = NULL;
+  this_thread::scheduler()->erase(&m_task_timeout);
+  this_thread::poll()->remove_and_close(this);
 
-  m_fileDesc = -1;
+  m_peerInfo->unset_flags(PeerInfo::flag_handshake);
+  m_peerInfo = nullptr;
+  m_state    = INACTIVE;
+
+  set_file_descriptor(-1);
 }
 
 void
@@ -141,10 +144,18 @@ Handshake::destroy_connection() {
   if (!is_open())
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
-  manager->connection_manager()->dec_socket_count();
+  m_state = INACTIVE;
 
-  fd_close(m_fileDesc);
-  m_fileDesc = -1;
+  this_thread::scheduler()->erase(&m_task_timeout);
+
+  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+      this_thread::poll()->remove_and_close(this);
+
+      fd_close(m_fileDesc);
+      set_file_descriptor(-1);
+    });
+
+  manager->connection_manager()->dec_socket_count();
 
   if (m_peerInfo == NULL)
     return;
@@ -176,12 +187,12 @@ Handshake::retry_options() {
 
 inline uint32_t
 Handshake::read_unthrottled(void* buf, uint32_t length) {
-  return m_downloadThrottle->node_used_unthrottled(read_stream_throws(buf, length));
+  return m_download_throttle->node_used_unthrottled(read_stream_throws(buf, length));
 }
 
 inline uint32_t
 Handshake::write_unthrottled(const void* buf, uint32_t length) {
-  return m_uploadThrottle->node_used_unthrottled(write_stream_throws(buf, length));
+  return m_upload_throttle->node_used_unthrottled(write_stream_throws(buf, length));
 }
 
 // Handshake::read_proxy_connect()
@@ -322,7 +333,7 @@ Handshake::read_encryption_skey() {
   if (m_download->info()->is_meta_download())
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_invalid_encryption);
 
-  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.get());
+  std::make_pair(m_upload_throttle, m_download_throttle) = m_download->throttles(m_address.get());
 
   m_encryption.initialize_encrypt(m_download->info()->hash().c_str(), m_incoming);
   m_encryption.initialize_decrypt(m_download->info()->hash().c_str(), m_incoming);
@@ -475,7 +486,7 @@ Handshake::read_info() {
 
     validate_download();
 
-    std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.get());
+    std::make_pair(m_upload_throttle, m_download_throttle) = m_download->throttles(m_address.get());
 
     prepare_handshake();
 
@@ -897,7 +908,7 @@ Handshake::event_write() {
 
     switch (m_state) {
     case CONNECTING:
-      if (!fd_get_socket_error(m_fileDesc, &socket_error))
+      if (!fd_get_socket_error(file_descriptor(), &socket_error))
         throw internal_error("Handshake::event_write() fd_get_socket_error failed : " + std::string(strerror(errno)));
 
       if (socket_error != 0)

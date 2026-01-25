@@ -3,8 +3,8 @@
 #include "peer_connection_base.h"
 
 #include <cstdio>
-#include <rak/error_number.h>
 
+#include "manager.h"
 #include "data/chunk_iterator.h"
 #include "data/chunk_list.h"
 #include "download/chunk_selector.h"
@@ -21,10 +21,9 @@
 #include "torrent/net/fd.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
-
-#include "manager.h"
 
 #define LT_LOG_PIECE_EVENTS(log_fmt, ...)                               \
   lt_log_print_info(LOG_PROTOCOL_PIECE_EVENTS, this->download()->info(), "piece_events", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
@@ -166,12 +165,14 @@ PeerConnectionBase::cleanup() {
   if (!m_extensions->is_default())
     m_extensions->cleanup();
 
-  this_thread::poll()->remove_and_close(this);
+  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+      this_thread::poll()->remove_and_close(this);
+
+      fd_close(m_fileDesc);
+      m_fileDesc = -1;
+    });
 
   manager->connection_manager()->dec_socket_count();
-
-  fd_close(m_fileDesc);
-  m_fileDesc = -1;
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
   m_down->throttle()->erase(m_peerChunks.download_throttle());

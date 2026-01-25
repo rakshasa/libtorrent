@@ -10,7 +10,6 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \
@@ -58,63 +57,61 @@ int fd__socket(int domain, int type, int protocol) { return ::socket(domain, typ
 
 int
 fd_open(fd_flags flags) {
-  return runtime::socket_manager()->open_socket([flags]() {
-      int domain;
-      int protocol;
+  int domain;
+  int protocol;
 
-      if (!fd_valid_flags(flags))
-        throw internal_error("torrent::fd_open failed: invalid fd_flags");
+  if (!fd_valid_flags(flags))
+    throw internal_error("torrent::fd_open failed: invalid fd_flags");
 
-      if ((flags & fd_flag_stream)) {
-        domain = SOCK_STREAM;
-        protocol = IPPROTO_TCP;
-      } else if ((flags & fd_flag_datagram)) {
-        domain = SOCK_DGRAM;
-        protocol = IPPROTO_UDP;
-      } else {
-        LT_LOG_FLAG("fd_open missing socket type");
-        errno = EINVAL;
-        return -1;
-      }
+  if ((flags & fd_flag_stream)) {
+    domain = SOCK_STREAM;
+    protocol = IPPROTO_TCP;
+  } else if ((flags & fd_flag_datagram)) {
+    domain = SOCK_DGRAM;
+    protocol = IPPROTO_UDP;
+  } else {
+    LT_LOG_FLAG("fd_open missing socket type");
+    errno = EINVAL;
+    return -1;
+  }
 
-      int fd = -1;
+  int fd = -1;
 
-      if (fd == -1 && !(flags & fd_flag_v4only)) {
-        LT_LOG_FLAG("fd_open opening ipv6 socket");
-        fd = fd__socket(PF_INET6, domain, protocol);
-      }
+  if (fd == -1 && !(flags & fd_flag_v4only)) {
+    LT_LOG_FLAG("fd_open opening ipv6 socket");
+    fd = fd__socket(PF_INET6, domain, protocol);
+  }
 
-      if (fd == -1 && !(flags & fd_flag_v6only)) {
-        LT_LOG_FLAG("fd_open opening ipv4 socket");
-        fd = fd__socket(PF_INET, domain, protocol);
-      }
+  if (fd == -1 && !(flags & fd_flag_v6only)) {
+    LT_LOG_FLAG("fd_open opening ipv4 socket");
+    fd = fd__socket(PF_INET, domain, protocol);
+  }
 
-      if (fd == -1) {
-        LT_LOG_FLAG_ERROR("fd_open failed to open socket");
-        return -1;
-      }
+  if (fd == -1) {
+    LT_LOG_FLAG_ERROR("fd_open failed to open socket");
+    return -1;
+  }
 
-      if ((flags & fd_flag_v6only) && !fd_set_v6only(fd, true)) {
-        LT_LOG_FD_FLAG_ERROR("fd_open failed to set v6only");
-        fd__close(fd);
-        return -1;
-      }
+  if ((flags & fd_flag_v6only) && !fd_set_v6only(fd, true)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open failed to set v6only");
+    fd__close(fd);
+    return -1;
+  }
 
-      if ((flags & fd_flag_nonblock) && !fd_set_nonblock(fd)) {
-        LT_LOG_FD_FLAG_ERROR("fd_open failed to set nonblock");
-        fd__close(fd);
-        return -1;
-      }
+  if ((flags & fd_flag_nonblock) && !fd_set_nonblock(fd)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open failed to set nonblock");
+    fd__close(fd);
+    return -1;
+  }
 
-      if ((flags & fd_flag_reuse_address) && !fd_set_reuse_address(fd, true)) {
-        LT_LOG_FD_FLAG_ERROR("fd_open failed to set reuse_address");
-        fd__close(fd);
-        return -1;
-      }
+  if ((flags & fd_flag_reuse_address) && !fd_set_reuse_address(fd, true)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open failed to set reuse_address");
+    fd__close(fd);
+    return -1;
+  }
 
-      LT_LOG_FD_FLAG("fd_open succeeded");
-      return fd;
-    });
+  LT_LOG_FD_FLAG("fd_open succeeded");
+  return fd;
 }
 
 int
@@ -131,7 +128,6 @@ fd_open_family(fd_flags flags, int family) {
   return fd_open(flags);
 }
 
-// TODO: Add these fd's to socket manager.
 void
 fd_open_pipe(int& fd1, int& fd2) {
   int result[2];
@@ -145,7 +141,6 @@ fd_open_pipe(int& fd1, int& fd2) {
   LT_LOG("fd_open_pipe succeeded : fd1:%i fd2:%i", fd1, fd2);
 }
 
-// TODO: Add these fd's to socket manager.
 void
 fd_open_socket_pair(int& fd1, int& fd2) {
   int result[2];
@@ -164,7 +159,7 @@ fd_close(int fd) {
   if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
     throw internal_error("torrent::fd_close: tried to close stdin/out/err");
 
-  if (!runtime::socket_manager()->close_socket(fd, fd__close))
+  if (fd__close(fd) == -1)
     throw internal_error("torrent::fd_close: " + std::string(strerror(errno)));
 
   LT_LOG_FD("fd_close succeeded");
@@ -172,9 +167,7 @@ fd_close(int fd) {
 
 int
 fd_accept(int fd) {
-  int connection_fd = runtime::socket_manager()->open_socket([fd]() {
-      return fd__accept(fd, nullptr, nullptr);
-    });
+  int connection_fd = fd__accept(fd, nullptr, nullptr);
 
   if (connection_fd == -1) {
     LT_LOG_FD_ERROR("fd_accept() failed");
@@ -190,9 +183,7 @@ fd_sap_accept(int fd) {
   sa_inet_union sau{};
   socklen_t sau_length = sizeof(sockaddr_in6);
 
-  int connection_fd = runtime::socket_manager()->open_socket([&]() {
-      return fd__accept(fd, &sau.sa, &sau_length);
-    });
+  int connection_fd = fd__accept(fd, &sau.sa, &sau_length);
 
   if (connection_fd == -1) {
     LT_LOG_FD_ERROR("fd_sap_accept() failed");
@@ -296,24 +287,35 @@ fd_get_socket_error(int fd, int* value) {
 }
 
 bool
-fd_set_nonblock(int fd) {
-  if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
-    LT_LOG_FD_ERROR("fd_set_nonblock failed");
+fd_set_dont_route(int fd, bool state) {
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_DONTROUTE, state) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_dont_route() failed", state);
     return false;
   }
 
-  LT_LOG_FD("fd_set_nonblock succeeded");
+  LT_LOG_FD_VALUE("fd_set_dont_route() succeeded", state);
+  return true;
+}
+
+bool
+fd_set_nonblock(int fd) {
+  if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
+    LT_LOG_FD_ERROR("fd_set_nonblock() failed");
+    return false;
+  }
+
+  LT_LOG_FD("fd_set_nonblock() succeeded");
   return true;
 }
 
 bool
 fd_set_reuse_address(int fd, bool state) {
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_REUSEADDR, state) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_reuse_address failed", state);
+    LT_LOG_FD_VALUE_ERROR("fd_set_reuse_address() failed", state);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_reuse_address succeeded", state);
+  LT_LOG_FD_VALUE("fd_set_reuse_address() succeeded", state);
   return true;
 }
 
@@ -338,33 +340,33 @@ fd_set_priority(int fd, int family, int priority) {
   }
 
   if (fd__setsockopt_int(fd, level, opt, priority) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_priority failed", priority);
+    LT_LOG_FD_VALUE_ERROR("fd_set_priority() failed", priority);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_priority succeeded", priority);
+  LT_LOG_FD_VALUE("fd_set_priority() succeeded", priority);
   return true;
 }
 
 bool
 fd_set_tcp_nodelay(int fd) {
   if (fd__setsockopt_int(fd, IPPROTO_TCP, TCP_NODELAY, true) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_tcp_nodelay failed", true);
+    LT_LOG_FD_VALUE_ERROR("fd_set_tcp_nodelay() failed", true);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_tcp_nodelay succeeded", true);
+  LT_LOG_FD_VALUE("fd_set_tcp_nodelay() succeeded", true);
   return true;
 }
 
 bool
 fd_set_v6only(int fd, bool state) {
   if (fd__setsockopt_int(fd, IPPROTO_IPV6, IPV6_V6ONLY, state) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_v6only failed", state);
+    LT_LOG_FD_VALUE_ERROR("fd_set_v6only() failed", state);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_v6only succeeded", state);
+  LT_LOG_FD_VALUE("fd_set_v6only() succeeded", state);
   return true;
 }
 
@@ -373,11 +375,11 @@ fd_set_send_buffer_size(int fd, uint32_t size) {
   int opt = size;
 
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_SNDBUF, opt) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_send_buffer_size failed", opt);
+    LT_LOG_FD_VALUE_ERROR("fd_set_send_buffer_size() failed", opt);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_send_buffer_size succeeded", opt);
+  LT_LOG_FD_VALUE("fd_set_send_buffer_size() succeeded", opt);
   return true;
 }
 
@@ -386,11 +388,11 @@ fd_set_receive_buffer_size(int fd, uint32_t size) {
   int opt = size;
 
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_RCVBUF, opt) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_receive_buffer_size failed", opt);
+    LT_LOG_FD_VALUE_ERROR("fd_set_receive_buffer_size() failed", opt);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_receive_buffer_size succeeded", opt);
+  LT_LOG_FD_VALUE("fd_set_receive_buffer_size() succeeded", opt);
   return true;
 }
 

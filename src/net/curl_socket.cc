@@ -134,6 +134,9 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called while CurlStack is not running.");
   }
 
+  // TODO: Do inserts before removes to ensure we never stay without read or write when switching modes.
+  // TODO: Set as inactive on CURL_POLL_NONE.
+
   if (what == CURL_POLL_NONE || what == CURL_POLL_OUT) {
     LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : removing read", 0);
     this_thread::poll()->remove_read(socket);
