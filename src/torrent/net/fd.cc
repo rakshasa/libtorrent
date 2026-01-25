@@ -94,19 +94,19 @@ fd_open(fd_flags flags) {
 
   if ((flags & fd_flag_v6only) && !fd_set_v6only(fd, true)) {
     LT_LOG_FD_FLAG_ERROR("fd_open failed to set v6only");
-    fd_close(fd);
+    fd__close(fd);
     return -1;
   }
 
   if ((flags & fd_flag_nonblock) && !fd_set_nonblock(fd)) {
     LT_LOG_FD_FLAG_ERROR("fd_open failed to set nonblock");
-    fd_close(fd);
+    fd__close(fd);
     return -1;
   }
 
   if ((flags & fd_flag_reuse_address) && !fd_set_reuse_address(fd, true)) {
     LT_LOG_FD_FLAG_ERROR("fd_open failed to set reuse_address");
-    fd_close(fd);
+    fd__close(fd);
     return -1;
   }
 
@@ -126,6 +126,37 @@ fd_open_family(fd_flags flags, int family) {
     flags |= fd_flag_v4;
 
   return fd_open(flags);
+}
+
+int
+fd_open_local(fd_flags flags) {
+  if ((flags & ~(fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address)))
+    throw internal_error("torrent::fd_open_local() invalid fd_flags");
+
+  if (!(flags & fd_flag_stream))
+    throw internal_error("torrent::fd_open_local() only stream sockets supported");
+
+  int fd = fd__socket(AF_LOCAL, SOCK_STREAM, 0);
+
+  if (fd == -1) {
+    LT_LOG_FLAG_ERROR("fd_open_local() failed to open socket");
+    return -1;
+  }
+
+  if ((flags & fd_flag_nonblock) && !fd_set_nonblock(fd)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open_local() failed to set nonblock");
+    fd__close(fd);
+    return -1;
+  }
+
+  if ((flags & fd_flag_reuse_address) && !fd_set_reuse_address(fd, true)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open_local() failed to set reuse_address");
+    fd__close(fd);
+    return -1;
+  }
+
+  LT_LOG_FD_FLAG("fd_open_local() succeeded");
+  return fd;
 }
 
 void
@@ -199,6 +230,17 @@ fd_sap_accept(int fd) {
 bool
 fd_bind(int fd, const sockaddr* sa) {
   if (fd__bind(fd, sa, sa_length(sa)) == -1) {
+    LT_LOG_FD_SOCKADDR_ERROR("fd_bind() failed");
+    return false;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_bind() succeeded");
+  return true;
+}
+
+bool
+fd_bind_with_length(int fd, const sockaddr* sa, socklen_t length) {
+  if (fd__bind(fd, sa, length) == -1) {
     LT_LOG_FD_SOCKADDR_ERROR("fd_bind() failed");
     return false;
   }
@@ -287,24 +329,35 @@ fd_get_socket_error(int fd, int* value) {
 }
 
 bool
-fd_set_nonblock(int fd) {
-  if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
-    LT_LOG_FD_ERROR("fd_set_nonblock failed");
+fd_set_dont_route(int fd, bool state) {
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_DONTROUTE, state) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_dont_route() failed", state);
     return false;
   }
 
-  LT_LOG_FD("fd_set_nonblock succeeded");
+  LT_LOG_FD_VALUE("fd_set_dont_route() succeeded", state);
+  return true;
+}
+
+bool
+fd_set_nonblock(int fd) {
+  if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
+    LT_LOG_FD_ERROR("fd_set_nonblock() failed");
+    return false;
+  }
+
+  LT_LOG_FD("fd_set_nonblock() succeeded");
   return true;
 }
 
 bool
 fd_set_reuse_address(int fd, bool state) {
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_REUSEADDR, state) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_reuse_address failed", state);
+    LT_LOG_FD_VALUE_ERROR("fd_set_reuse_address() failed", state);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_reuse_address succeeded", state);
+  LT_LOG_FD_VALUE("fd_set_reuse_address() succeeded", state);
   return true;
 }
 
@@ -329,33 +382,33 @@ fd_set_priority(int fd, int family, int priority) {
   }
 
   if (fd__setsockopt_int(fd, level, opt, priority) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_priority failed", priority);
+    LT_LOG_FD_VALUE_ERROR("fd_set_priority() failed", priority);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_priority succeeded", priority);
+  LT_LOG_FD_VALUE("fd_set_priority() succeeded", priority);
   return true;
 }
 
 bool
 fd_set_tcp_nodelay(int fd) {
   if (fd__setsockopt_int(fd, IPPROTO_TCP, TCP_NODELAY, true) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_tcp_nodelay failed", true);
+    LT_LOG_FD_VALUE_ERROR("fd_set_tcp_nodelay() failed", true);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_tcp_nodelay succeeded", true);
+  LT_LOG_FD_VALUE("fd_set_tcp_nodelay() succeeded", true);
   return true;
 }
 
 bool
 fd_set_v6only(int fd, bool state) {
   if (fd__setsockopt_int(fd, IPPROTO_IPV6, IPV6_V6ONLY, state) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_v6only failed", state);
+    LT_LOG_FD_VALUE_ERROR("fd_set_v6only() failed", state);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_v6only succeeded", state);
+  LT_LOG_FD_VALUE("fd_set_v6only() succeeded", state);
   return true;
 }
 
@@ -364,11 +417,11 @@ fd_set_send_buffer_size(int fd, uint32_t size) {
   int opt = size;
 
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_SNDBUF, opt) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_send_buffer_size failed", opt);
+    LT_LOG_FD_VALUE_ERROR("fd_set_send_buffer_size() failed", opt);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_send_buffer_size succeeded", opt);
+  LT_LOG_FD_VALUE("fd_set_send_buffer_size() succeeded", opt);
   return true;
 }
 
@@ -377,11 +430,11 @@ fd_set_receive_buffer_size(int fd, uint32_t size) {
   int opt = size;
 
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_RCVBUF, opt) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_receive_buffer_size failed", opt);
+    LT_LOG_FD_VALUE_ERROR("fd_set_receive_buffer_size() failed", opt);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_receive_buffer_size succeeded", opt);
+  LT_LOG_FD_VALUE("fd_set_receive_buffer_size() succeeded", opt);
   return true;
 }
 
