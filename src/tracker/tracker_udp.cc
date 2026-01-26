@@ -10,9 +10,9 @@
 #include "torrent/connection_manager.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 
@@ -386,7 +386,7 @@ TrackerUdp::prepare_announce_input() {
 
   m_write_buffer->write_32(info().key);
   m_write_buffer->write_32(parameters.numwant);
-  m_write_buffer->write_16(runtime::network_manager()->listen_port_or_throw());
+  m_write_buffer->write_16(runtime::listen_port());
 
   if (m_write_buffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
