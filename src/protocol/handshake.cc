@@ -16,8 +16,8 @@
 #include "torrent/throttle.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/poll.h"
+#include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/diffie_hellman.h"
 #include "utils/sha1.h"
@@ -615,7 +615,7 @@ Handshake::read_port() {
   m_readBuffer.read_8();
 
   if (length == 2)
-    runtime::network_manager()->dht_add_peer_node(m_address.get(), m_readBuffer.peek_16());
+    runtime::dht_add_peer_node(m_address.get(), m_readBuffer.peek_16());
 
   m_readBuffer.consume(length);
   return true;

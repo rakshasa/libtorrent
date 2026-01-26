@@ -5,7 +5,7 @@
 #include "dht/dht_router.h"
 #include "manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/network_manager.h"
+#include "torrent/runtime/network_manager.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"

@@ -14,7 +14,6 @@
 #include "torrent/download_info.h"
 #include "torrent/object_stream.h"
 #include "torrent/net/network_config.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
@@ -107,7 +106,7 @@ ProtocolExtension::generate_handshake_message() {
   if ((config::network_config()->encryption_options() & net::NetworkConfig::encryption_allow_incoming) != 0)
     message[key_e] = (config::network_config()->encryption_options() & net::NetworkConfig::encryption_require) != 0;
 
-  message[key_p] = runtime::network_manager()->listen_port_or_throw();
+  message[key_p] = runtime::listen_port();
   message[key_v] = raw_string::from_c_str("libTorrent " VERSION);
   message[key_reqq] = 2048;  // maximum request queue size
 

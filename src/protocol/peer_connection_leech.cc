@@ -11,7 +11,6 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/utils/log.h"
@@ -295,7 +294,7 @@ PeerConnection<type>::read_message() {
     if (!m_down->can_read_port_body())
       break;
 
-    runtime::network_manager()->dht_add_peer_node(m_peerInfo->socket_address(), m_down->buffer()->read_16());
+    runtime::dht_add_peer_node(m_peerInfo->socket_address(), m_down->buffer()->read_16());
     return true;
 
   case ProtocolBase::EXTENSION_PROTOCOL:

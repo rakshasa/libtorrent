@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "torrent/net/network_manager.h"
+#include "torrent/runtime/network_manager.h"
 
 #include "net/listen.h"
 #include "torrent/exceptions.h"
@@ -8,12 +8,12 @@
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 
-// TODO: Add net category and add it to important/complete log outputs.
+// TODO: Add runtime category and add it to important/complete log outputs.
 
 #define LT_LOG_NOTICE(log_fmt, ...)                                     \
-  lt_log_print_subsystem(LOG_NOTICE, "net::network_manager", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(LOG_NOTICE, "runtime::network_manager", log_fmt, __VA_ARGS__);
 
-namespace torrent::net {
+namespace torrent::runtime {
 
 NetworkManager::NetworkManager()
   : m_listen_inet(new Listen),
@@ -202,4 +202,4 @@ NetworkManager::perform_restart_listen() {
   }
 }
 
-} // namespace torrent::net
+} // namespace torrent::runtime

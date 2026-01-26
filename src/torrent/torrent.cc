@@ -25,8 +25,8 @@
 #include "torrent/throttle.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/net/http_stack.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/poll.h"
+#include "torrent/runtime/network_manager.h"
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
 

@@ -7,7 +7,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"
-#include "torrent/net/network_manager.h"
+#include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
