@@ -17,9 +17,9 @@
 #include "torrent/download/download_manager.h"
 #include "torrent/download/resource_manager.h"
 #include "torrent/net/network_config.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/poll.h"
 #include "torrent/peer/client_list.h"
+#include "torrent/runtime/network_manager.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
@@ -33,13 +33,20 @@ net::NetworkConfig* network_config() { return manager->network_config(); }
 
 } // namespace config
 
+// TODO: Move runtime to a separate runtime object.
+
 namespace runtime {
 
-net::NetworkManager* network_manager() { return manager->network_manager(); }
+NetworkManager* network_manager() { return manager->network_manager(); }
+
+void     dht_add_peer_node(const sockaddr* sa, uint16_t port) { manager->network_manager()->dht_add_peer_node(sa, port); }
+uint16_t listen_port()                                        { return manager->network_manager()->listen_port(); }
 
 } // namespace runtime
 
 namespace this_thread {
+
+// TODO: Deprecate these.
 
 void event_open(Event* event)             { utils::ThreadInternal::poll()->open(event); }
 void event_open_and_count(Event* event)   { utils::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
@@ -62,13 +69,14 @@ Manager::Manager()
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),
     m_handshake_manager(new HandshakeManager),
-    m_network_manager(new net::NetworkManager),
     m_resource_manager(new ResourceManager),
 
     m_client_list(new ClientList),
 
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
+
+  g_runtime = new Runtime;
 
   m_task_tick.slot() = [this] { receive_tick(); };
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 1s);
@@ -87,7 +95,7 @@ Manager::Manager()
 Manager::~Manager() {
   torrent::this_thread::scheduler()->erase(&m_task_tick);
 
-  m_network_manager->listen_close();
+  network_manager()->listen_close();
 
   m_handshake_manager->clear();
   m_download_manager->clear();
@@ -96,6 +104,9 @@ Manager::~Manager() {
   Throttle::destroy_throttle(m_downloadThrottle);
 
   instrumentation_tick();
+
+  delete g_runtime;
+  g_runtime = nullptr;
 }
 
 void
