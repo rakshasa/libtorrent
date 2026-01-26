@@ -82,11 +82,17 @@ namespace net {
 class HttpGet;
 class HttpStack;
 class NetworkConfig;
-class NetworkManager;
 class Poll;
 class Resolver;
 
 } // namespace net
+
+namespace runtime {
+
+class NetworkManager;
+class SocketManager;
+
+} // namespace runtime
 
 namespace tracker {
 
@@ -120,9 +126,17 @@ torrent::net::NetworkConfig* network_config() LIBTORRENT_EXPORT;
 
 } // namespace torrent::config
 
+// TODO: Move to runtime/common.h
+
 namespace torrent::runtime {
 
-torrent::net::NetworkManager* network_manager() LIBTORRENT_EXPORT;
+// add fd_manager here...
+
+NetworkManager*           network_manager() LIBTORRENT_EXPORT;
+SocketManager*            socket_manager() LIBTORRENT_EXPORT;
+
+void                      dht_add_peer_node(const sockaddr* sa, uint16_t port);
+uint16_t                  listen_port() LIBTORRENT_EXPORT;
 
 } // namespace torrent::runtime
 

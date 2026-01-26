@@ -114,7 +114,7 @@ public:
 
 protected:
   friend class torrent::ConnectionManager;
-  friend class torrent::net::NetworkManager;
+  friend class torrent::runtime::NetworkManager;
 
   typedef std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool> listen_addresses;
 
