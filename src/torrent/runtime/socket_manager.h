@@ -18,6 +18,8 @@ namespace torrent::runtime {
 
 struct SocketInfo {
   // TODO: Replace with Event*, and add thread to PollEvent?
+  // TODO: Event should contain the owning thread, and not be included here.
+  // TODO: Fd not needed here.
 
   int                 fd{-1};
   Event*              event{};
@@ -32,18 +34,20 @@ public:
   SocketManager();
   ~SocketManager();
 
-  // TODO: Add open_socket version that automatically closes the new fd if there's a conflict.
+  // TODO: Rename / change _or_throw to be more specific about what we throw, as it currently calls
+  // internal errors. DHT server should probably throw resource_error instead? Or retry. (this
+  // however hides errors for normal users)
+  //
+  // TODO: Finish implementation of reuse logic.
 
-  // TODO: A socket that is added here should also be registered with the Poll object to avoid race
-  // condition with inactivity.
+  // To avoid reuse race conditions, these calls must also add the Event to read/write polling.
 
-  // TODO: Listen accept should close the new socket if there's a conflict?
-
-  // TODO: Remove.
-  // int                 open_socket(std::function<int ()> func);
-  // bool                close_socket(int fd, std::function<int (int)> func);
-
+  // Throw internal_error on conflicts, as the caller isn't expecting conflicts.
   void                open_event_or_throw(Event* event, std::function<void ()> func);
+
+  // Try to reuse existing socket, if that fails call cleanup.
+  //
+  // This is used for listen accept and other cases where the caller doesn't mind ignoring failures.
   bool                open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void ()> cleanup);
 
   void                close_event_or_throw(Event* event, std::function<void ()> func);
