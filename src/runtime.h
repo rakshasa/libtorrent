@@ -18,11 +18,9 @@ protected:
   friend Manager;
 
   auto*               network_manager()    { return m_network_manager.get(); }
-  auto*               socket_manager()     { return m_socket_manager.get(); }
 
 private:
   std::unique_ptr<runtime::NetworkManager> m_network_manager;
-  std::unique_ptr<runtime::SocketManager>  m_socket_manager;
 };
 
 extern Runtime* g_runtime;
