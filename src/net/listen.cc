@@ -246,7 +246,9 @@ Listen::event_read() {
 
     auto cleanup_func = [&]() {
         LT_LOG("failed to accept incoming connection : socket manager triggered cleanup", 0);
-        handshake->destroy_connection();
+
+        if (handshake && handshake->is_open())
+          handshake->destroy_connection();
       };
 
     bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);
@@ -255,7 +257,7 @@ Listen::event_read() {
     //
     // This allows the event loop a chance to clear out any conflicts with reused file descriptors.
 
-    if (!result || !handshake->is_open())
+    if (!result)
       return;
   }
 }

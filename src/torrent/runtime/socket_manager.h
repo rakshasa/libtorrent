@@ -27,7 +27,7 @@ struct SocketInfo {
   int                 flags{};
 };
 
-class SocketManager {
+class LIBTORRENT_EXPORT SocketManager {
 public:
   static constexpr int flag_inactive = (1 << 0);
 

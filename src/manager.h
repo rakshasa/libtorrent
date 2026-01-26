@@ -8,6 +8,9 @@
 #include "torrent/common.h"
 #include "torrent/utils/scheduler.h"
 
+// TODO: Remove.
+#include "runtime.h"
+
 namespace torrent {
 
 class DownloadManager;
@@ -23,8 +26,9 @@ public:
 
   auto*               network_config()     { return m_network_config.get(); }
 
-  auto*               network_manager()    { return m_network_manager.get(); }
-  auto*               socket_manager()     { return m_socket_manager.get(); }
+  // TODO: Remove.
+  auto*               network_manager()    { return g_runtime->network_manager(); }
+  auto*               socket_manager()     { return g_runtime->socket_manager(); }
 
   auto*               chunk_manager()      { return m_chunk_manager.get(); }
   auto*               connection_manager() { return m_connection_manager.get(); }
@@ -47,9 +51,6 @@ public:
 
 private:
   std::unique_ptr<net::NetworkConfig>  m_network_config;
-
-  std::unique_ptr<runtime::NetworkManager> m_network_manager;
-  std::unique_ptr<runtime::SocketManager>  m_socket_manager;
 
   std::unique_ptr<ChunkManager>      m_chunk_manager;
   std::unique_ptr<ConnectionManager> m_connection_manager;

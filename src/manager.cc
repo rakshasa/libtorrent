@@ -66,9 +66,6 @@ void event_remove_and_close(Event* event) { utils::ThreadInternal::poll()->remov
 Manager::Manager()
   : m_network_config(new net::NetworkConfig),
 
-    m_network_manager(new runtime::NetworkManager),
-    m_socket_manager(new runtime::SocketManager),
-
     m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
     m_download_manager(new DownloadManager),
@@ -81,14 +78,16 @@ Manager::Manager()
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
 
+  g_runtime = new Runtime;
+
   m_task_tick.slot() = [this] { receive_tick(); };
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 1s);
 
   m_handshake_manager->slot_download_id()         = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
 
-  m_network_manager->listen_inet_unsafe()->slot_accepted()  = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
-  m_network_manager->listen_inet6_unsafe()->slot_accepted() = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
+  network_manager()->listen_inet_unsafe()->slot_accepted()  = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
+  network_manager()->listen_inet6_unsafe()->slot_accepted() = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
 
   m_resource_manager->push_group("default");
   m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
@@ -98,7 +97,7 @@ Manager::Manager()
 Manager::~Manager() {
   torrent::this_thread::scheduler()->erase(&m_task_tick);
 
-  m_network_manager->listen_close();
+  network_manager()->listen_close();
 
   m_handshake_manager->clear();
   m_download_manager->clear();
@@ -108,7 +107,8 @@ Manager::~Manager() {
 
   instrumentation_tick();
 
-  m_network_manager.reset();
+  delete g_runtime;
+  g_runtime = nullptr;
 }
 
 void

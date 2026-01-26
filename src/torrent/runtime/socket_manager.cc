@@ -77,6 +77,7 @@ SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, 
 
   if (itr != m_socket_map.end()) {
     if (!handle_reused_socket(itr)) {
+      // TODO: Make this a macro. use (sss : ss)
       LT_LOG("open_event_or_cleanup() : %s:%s:%i : failed to reuse existing file descriptor : %s:%s",
              this_thread::thread()->name(), event->type_name(), fd,
              itr->second.thread->name(), itr->second.event->type_name());
