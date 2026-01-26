@@ -33,7 +33,6 @@ protected:
   friend class net::Poll;
   friend class net::PollInternal;
 
-  void                close_file_descriptor();
   void                set_file_descriptor(int fd);
 
   std::shared_ptr<net::PollEvent> m_poll_event;

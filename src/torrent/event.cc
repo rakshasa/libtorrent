@@ -23,13 +23,4 @@ Event::print_name_fd_str() const {
  return "name:" + std::string(type_name()) + " fd:" + std::to_string(file_descriptor());
 }
 
-void
-Event::close_file_descriptor() {
-  if (!is_open())
-    throw internal_error("Tried to close already closed file descriptor on event type " + std::string(type_name()));
-
-  fd_close(m_fileDesc);
-  m_fileDesc = -1;
-}
-
 } // namespace torrent
