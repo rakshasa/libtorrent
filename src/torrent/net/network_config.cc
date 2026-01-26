@@ -4,8 +4,8 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
-#include "torrent/net/network_manager.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
 
 // TODO: Add net category and add it to important/complete log outputs.
