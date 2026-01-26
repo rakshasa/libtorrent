@@ -84,8 +84,8 @@ Manager::Manager()
   m_handshake_manager->slot_download_id()         = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
 
-  m_network_manager->listen_inet_unsafe()->slot_accepted()  = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
-  m_network_manager->listen_inet6_unsafe()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
+  network_manager()->listen_inet_unsafe()->slot_accepted()  = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
+  network_manager()->listen_inet6_unsafe()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
 
   m_resource_manager->push_group("default");
   m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
