@@ -12,7 +12,6 @@
 #include "torrent/net/network_config.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 
