@@ -20,14 +20,6 @@ sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
     (sa->sin6_addr.s6_addr[index * 4 + 3] << 0);
 }
 
-static void
-sin6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
-  sa->sin6_addr.s6_addr[index * 4 + 0] = (value >> 24);
-  sa->sin6_addr.s6_addr[index * 4 + 1] = (value >> 16);
-  sa->sin6_addr.s6_addr[index * 4 + 2] = (value >> 8);
-  sa->sin6_addr.s6_addr[index * 4 + 3] = (value >> 0);
-}
-
 static in6_addr
 sin6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr3) {
   uint32_t addr32[4];

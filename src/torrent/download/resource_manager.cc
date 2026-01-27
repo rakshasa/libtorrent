@@ -26,11 +26,8 @@ const Rate* resource_manager_entry::up_rate() const { return m_download->info()-
 const Rate* resource_manager_entry::down_rate() const { return m_download->info()->down_rate(); }
 
 ResourceManager::~ResourceManager() {
-  if (m_currentlyUploadUnchoked != 0)
-    throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyUploadUnchoked != 0.");
-
-  if (m_currentlyDownloadUnchoked != 0)
-    throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyDownloadUnchoked != 0.");
+  assert(m_currentlyUploadUnchoked == 0 && "ResourceManager::~ResourceManager() called but m_currentlyUploadUnchoked != 0.");
+  assert(m_currentlyDownloadUnchoked == 0 && "ResourceManager::~ResourceManager() called but m_currentlyDownloadUnchoked != 0.");
 
   std::for_each(choke_base_type::begin(), choke_base_type::end(), [](choke_group* g) { delete g; });
 }
