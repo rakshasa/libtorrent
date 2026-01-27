@@ -135,7 +135,7 @@ namespace torrent::runtime {
 NetworkManager*           network_manager() LIBTORRENT_EXPORT;
 SocketManager*            socket_manager() LIBTORRENT_EXPORT;
 
-void                      dht_add_peer_node(const sockaddr* sa, uint16_t port);
+void                      dht_add_peer_node(const sockaddr* sa, uint16_t port) LIBTORRENT_EXPORT;
 uint16_t                  listen_port() LIBTORRENT_EXPORT;
 
 } // namespace torrent::runtime
