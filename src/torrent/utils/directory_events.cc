@@ -102,9 +102,9 @@ void
 directory_events::event_read() {
 #ifdef USE_INOTIFY
   char buffer[2048];
-  int result = ::read(m_fileDesc, buffer, 2048);
+  ssize_t result = ::read(m_fileDesc, buffer, 2048);
 
-  if (result < sizeof(struct inotify_event))
+  if (result < static_cast<ssize_t>(sizeof(struct inotify_event)))
     return;
 
   auto event = reinterpret_cast<struct inotify_event*>(buffer);
@@ -112,7 +112,7 @@ directory_events::event_read() {
   while (event + 1 <= reinterpret_cast<struct inotify_event*>(buffer + result)) {
     auto next_event = reinterpret_cast<char*>(event) + sizeof(struct inotify_event) + event->len;
 
-    if (event->len == 0 || next_event > buffer + 2048)
+    if (event->len == 0 || next_event > buffer + result)
       return;
 
     auto itr = std::find_if(m_wd_list.begin(), m_wd_list.end(), [event](const auto& w) {

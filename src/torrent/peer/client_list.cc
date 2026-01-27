@@ -197,7 +197,7 @@ ClientList::insert(ClientInfo::id_type type, const char* key, const char* versio
   if (key == NULL)
     std::memset(clientInfo.mutable_key(), 0, ClientInfo::max_key_size);
   else
-    std::strncpy(clientInfo.mutable_key(), key, ClientInfo::max_key_size);
+    std::memcpy(clientInfo.mutable_key(), key, ClientInfo::max_key_size);
     
   if (version != NULL)
     std::memcpy(clientInfo.mutable_version(), version, ClientInfo::max_version_size);
