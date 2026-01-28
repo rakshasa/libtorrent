@@ -19,6 +19,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/net/network_config.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
@@ -26,6 +27,7 @@
   lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
 
 namespace {
+
 // Error in DHT protocol, avoids std::string ctor from communication_error
 class dht_error : public torrent::network_error {
 public:
@@ -113,32 +115,37 @@ DhtServer::start(int port) {
   m_router->set_address(bind_inet_address.get());
   sap_set_port(bind_address, port);
 
-  try {
-    LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
+  LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
 
-    fd_flags open_flags = fd_flag_datagram | fd_flag_nonblock | fd_flag_reuse_address;
+  fd_flags open_flags = fd_flag_datagram | fd_flag_nonblock | fd_flag_reuse_address;
 
-    if (bind_address->sa_family == AF_INET)
-      open_flags |= fd_flag_v4;
+  if (bind_address->sa_family == AF_INET)
+    open_flags |= fd_flag_v4;
 
-    m_fileDesc = fd_open(open_flags);
+  // TODO: This throws internal_error on failure.
+  runtime::socket_manager()->open_event_or_throw(this, [&]() {
+      int fd = fd_open(open_flags);
 
-    if (!is_open())
-      throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
+      if (fd == -1) {
+        LT_LOG_THIS("could not open datagram socket : %s", std::strerror(errno));
+        throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
+      }
 
-    // Figure out how to bind to both inet and inet6.
-    if (!fd_bind(m_fileDesc, bind_address.get()))
-      throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
+      // Figure out how to bind to both inet and inet6.
+      if (!fd_bind(fd, bind_address.get())) {
+        LT_LOG_THIS("could not bind datagram socket : %s", std::strerror(errno));
+        fd_close(fd);
+        throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
+      }
 
-  } catch (const torrent::base_error&) {
-    fd_close(m_fileDesc);
-    m_fileDesc = -1;
-    throw;
-  }
+      set_file_descriptor(fd);
 
-  this_thread::poll()->open(this);
-  this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_error(this);
+      this_thread::poll()->open(this);
+      this_thread::poll()->insert_read(this);
+      this_thread::poll()->insert_error(this);
+
+      return file_descriptor();
+    });
 }
 
 void
@@ -151,10 +158,13 @@ DhtServer::stop() {
   clear_transactions();
 
   this_thread::scheduler()->erase(&m_task_timeout);
-  this_thread::poll()->remove_and_close(this);
 
-  fd_close(m_fileDesc);
-  m_fileDesc = -1;
+  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+      this_thread::poll()->remove_and_close(this);
+
+      fd_close(file_descriptor());
+      set_file_descriptor(-1);
+    });
 
   m_networkUp = false;
 }

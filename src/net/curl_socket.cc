@@ -134,6 +134,9 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called while CurlStack is not running.");
   }
 
+  // TODO: Do inserts before removes to ensure we never stay without read or write when switching modes.
+  // TODO: Set as inactive on CURL_POLL_NONE.
+
   if (what == CURL_POLL_NONE || what == CURL_POLL_OUT) {
     LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : removing read", 0);
     this_thread::poll()->remove_read(socket);
@@ -198,6 +201,15 @@ void
 CurlSocket::event_write() {
   handle_action(CURL_CSELECT_OUT);
 }
+
+// TODO: We need to figure out how to tell libcurl to not close an fd when it has been reused.
+//
+// Perhaps we just pretend it is open while in idle conection poll, and pretend to add it to read
+// just to get the CLOSEFUNCTION callback?
+//
+// Also, verify if reporting errors to libcurl actually closes the fd, doesn't seem like it should?
+//
+// Think it should be calling the callback.
 
 void
 CurlSocket::event_error() {

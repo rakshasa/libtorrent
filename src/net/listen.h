@@ -3,6 +3,7 @@
 
 #include <cinttypes>
 #include <functional>
+#include <memory>
 
 #include "torrent/event.h"
 
@@ -23,7 +24,7 @@ public:
 
   void                close();
 
-  uint16_t            port() const { return m_port; }
+  uint16_t            port() const    { return m_port; }
 
   auto&               slot_accepted() { return m_slot_accepted; }
 
@@ -32,11 +33,12 @@ public:
   void                event_error() override;
 
 private:
+  using slot_accept_type = std::function<void(std::unique_ptr<Handshake>& handshake, int, const sockaddr*)>;
+
   void                open_done(int fd, uint16_t port, int backlog);
 
   uint16_t            m_port{0};
-
-  std::function<void(int, const sockaddr*)> m_slot_accepted;
+  slot_accept_type    m_slot_accepted;
 };
 
 } // namespace torrent

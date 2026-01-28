@@ -169,6 +169,7 @@ constexpr const char* option_list_log_group[] = {
   "mock_calls",
 
   "net_dns",
+  "net_socket",
 
   "peer_list_events",
   "peer_list_address",

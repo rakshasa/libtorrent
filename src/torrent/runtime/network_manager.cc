@@ -7,6 +7,7 @@
 #include "torrent/net/network_config.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/thread.h"
 
 // TODO: Add runtime category and add it to important/complete log outputs.
 
@@ -15,14 +16,16 @@
 
 namespace torrent::runtime {
 
-NetworkManager::NetworkManager()
-  : m_listen_inet(new Listen),
+NetworkManager::NetworkManager(utils::Thread* main_thread)
+  : m_main_thread(main_thread),
+
+    m_listen_inet(new Listen),
     m_listen_inet6(new Listen),
     m_dht_controller(new tracker::DhtController) {
 }
 
 NetworkManager::~NetworkManager() {
-  main_thread::cancel_callback_and_wait(this);
+  m_main_thread->cancel_callback_and_wait(this);
 }
 
 bool
@@ -132,7 +135,7 @@ NetworkManager::restart_listen() {
 
   m_listen_restarting = true;
 
-  main_thread::callback(this, [this]() { perform_restart_listen(); });
+  m_main_thread->callback(this, [this]() { perform_restart_listen(); });
 }
 
 bool

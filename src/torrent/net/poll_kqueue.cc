@@ -26,11 +26,18 @@
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
-#if 0
+#if 1
+
+#define LT_LOG_DEBUG(log_fmt, ...)
+#define LT_LOG_DEBUG_IDENT(log_fmt, ...)
+
+#else
+
+#define LT_LOG_DEBUG(log_fmt, ...)                                  \
+  lt_log_print(LOG_CONNECTION_FD, "kqueue: " log_fmt, __VA_ARGS__);
 #define LT_LOG_DEBUG_IDENT(log_fmt, ...)                                \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%u: " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
-#else
-#define LT_LOG_DEBUG_IDENT(log_fmt, ...)
+
 #endif
 
 namespace torrent::net {
@@ -101,7 +108,7 @@ PollInternal::flush() {
   if (m_changed_events == 0)
     return;
 
-  LT_LOG("flushing events : changed:%u", m_changed_events);
+  LT_LOG_DEBUG("flushing events : changed:%u", m_changed_events);
 
   if (::kevent(m_fd, m_changes.get(), m_changed_events, nullptr, 0, nullptr) == -1)
     throw internal_error("PollInternal::flush() error: " + std::string(std::strerror(errno)));
@@ -321,10 +328,8 @@ void
 Poll::insert_read(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
-  if (event_mask & PollInternal::flag_read) {
-    LT_LOG_EVENT("insert read: already in read", 0);
+  if (event_mask & PollInternal::flag_read)
     return;
-  }
 
   LT_LOG_EVENT("insert read", 0);
 
@@ -336,10 +341,8 @@ void
 Poll::insert_write(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
-  if (event_mask & PollInternal::flag_write) {
-    LT_LOG_EVENT("insert write: already in write", 0);
+  if (event_mask & PollInternal::flag_write)
     return;
-  }
 
   LT_LOG_EVENT("insert write", 0);
 
@@ -351,10 +354,8 @@ void
 Poll::insert_error(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
-  if (event_mask & PollInternal::flag_error) {
-    LT_LOG_EVENT("insert error: already in error", 0);
+  if (event_mask & PollInternal::flag_error)
     return;
-  }
 
   LT_LOG_EVENT("insert error", 0);
 
@@ -366,10 +367,8 @@ void
 Poll::remove_read(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
-  if (!(event_mask & PollInternal::flag_read)) {
-    LT_LOG_EVENT("remove read: not in read", 0);
+  if (!(event_mask & PollInternal::flag_read))
     return;
-  }
 
   LT_LOG_EVENT("remove read", 0);
 
@@ -381,10 +380,8 @@ void
 Poll::remove_write(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
-  if (!(event_mask & PollInternal::flag_write)) {
-    LT_LOG_EVENT("remove write: not in write", 0);
+  if (!(event_mask & PollInternal::flag_write))
     return;
-  }
 
   LT_LOG_EVENT("remove write", 0);
 
@@ -396,10 +393,8 @@ void
 Poll::remove_error(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
-  if (!(event_mask & PollInternal::flag_error)) {
-    LT_LOG_EVENT("remove error: not in error", 0);
+  if (!(event_mask & PollInternal::flag_error))
     return;
-  }
 
   LT_LOG_EVENT("remove error", 0);
 

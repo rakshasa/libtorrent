@@ -5,6 +5,7 @@
 #include "helpers/test_thread.h"
 #include "helpers/test_utils.h"
 
+#include "runtime.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/signal_bitfield.h"
 #include "torrent/utils/thread.h"
@@ -104,6 +105,8 @@ test_signal_bitfield::test_threaded() {
   auto thread = test_thread::create();
   // thread->set_test_flag(test_thread::test_flag_long_timeout);
 
+  torrent::Runtime::initialize(thread.get());
+
   for (unsigned int i = 0; i < torrent::signal_bitfield::max_size; i++)
     CPPUNIT_ASSERT(thread->signal_bitfield()->add_signal([i, &marked_bitfield] () { bitfield_mark_index(marked_bitfield, i); }) == i);
 
@@ -124,6 +127,8 @@ test_signal_bitfield::test_threaded() {
   }
 
   thread->stop_thread_wait();
+  torrent::Runtime::cleanup();
+
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
 }
 

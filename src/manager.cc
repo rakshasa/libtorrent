@@ -2,6 +2,7 @@
 
 #include "manager.h"
 
+#include "runtime.h"
 #include "data/chunk_list.h"
 #include "data/hash_torrent.h"
 #include "download/download_main.h"
@@ -20,6 +21,7 @@
 #include "torrent/net/poll.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
@@ -32,17 +34,6 @@ namespace config {
 net::NetworkConfig* network_config() { return manager->network_config(); }
 
 } // namespace config
-
-// TODO: Move runtime to a separate runtime object.
-
-namespace runtime {
-
-NetworkManager* network_manager() { return manager->network_manager(); }
-
-void     dht_add_peer_node(const sockaddr* sa, uint16_t port) { manager->network_manager()->dht_add_peer_node(sa, port); }
-uint16_t listen_port()                                        { return manager->network_manager()->listen_port(); }
-
-} // namespace runtime
 
 namespace this_thread {
 
@@ -76,7 +67,7 @@ Manager::Manager()
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
 
-  g_runtime = new Runtime;
+  Runtime::initialize(torrent::this_thread::thread());
 
   m_task_tick.slot() = [this] { receive_tick(); };
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 1s);
@@ -84,8 +75,8 @@ Manager::Manager()
   m_handshake_manager->slot_download_id()         = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
 
-  network_manager()->listen_inet_unsafe()->slot_accepted()  = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
-  network_manager()->listen_inet6_unsafe()->slot_accepted() = [this](auto fd, auto sa) { return m_handshake_manager->add_incoming(fd, sa); };
+  network_manager()->listen_inet_unsafe()->slot_accepted()  = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
+  network_manager()->listen_inet6_unsafe()->slot_accepted() = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
 
   m_resource_manager->push_group("default");
   m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
@@ -105,8 +96,7 @@ Manager::~Manager() {
 
   instrumentation_tick();
 
-  delete g_runtime;
-  g_runtime = nullptr;
+  Runtime::cleanup();
 }
 
 void
