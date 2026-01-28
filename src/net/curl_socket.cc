@@ -156,6 +156,23 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   return 0;
 }
 
+curl_socket_t
+CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose, struct curl_sockaddr *address) {
+  if (!stack->is_running())
+    return CURL_SOCKET_BAD;
+
+  int fd = ::socket(address->family, address->socktype, address->protocol);
+
+  if (fd == -1) {
+    LT_LOG_DEBUG("CurlSocket::open_socket() : error creating socket: %s", std::strerror(errno));
+    return CURL_SOCKET_BAD;
+  }
+
+  LT_LOG_DEBUG("open_socket() : new socket created : fd:%i", fd);
+
+  return fd;
+}
+
 // When receive_socket() is called with CURL_POLL_REMOVE, we call CurlSocket::close() which
 // deregisters this callback.
 int

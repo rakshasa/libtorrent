@@ -1,5 +1,5 @@
-#ifndef RTORRENT_CORE_CURL_GET_H
-#define RTORRENT_CORE_CURL_GET_H
+#ifndef LIBTORRENT_NET_CURL_GET_H
+#define LIBTORRENT_NET_CURL_GET_H
 
 #include <condition_variable>
 #include <iosfwd>
@@ -187,4 +187,4 @@ CurlGet::timeout() const {
 
 } // namespace torrent::net
 
-#endif
+#endif // LIBTORRENT_NET_CURL_GET_H

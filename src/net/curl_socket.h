@@ -1,5 +1,5 @@
-#ifndef RTORRENT_CORE_CURL_SOCKET_H
-#define RTORRENT_CORE_CURL_SOCKET_H
+#ifndef LIBTORRENT_NET_CURL_SOCKET_H
+#define LIBTORRENT_NET_CURL_SOCKET_H
 
 #include <curl/curl.h>
 
@@ -25,8 +25,9 @@ protected:
   friend class CurlGet;
   friend class CurlStack;
 
-  static int          receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlStack* userp, CurlSocket* socketp);
-  static int          close_socket(CurlStack* stack, curl_socket_t fd);
+  static int           receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlStack* userp, CurlSocket* socketp);
+  static curl_socket_t open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sockaddr *address);
+  static int           close_socket(CurlStack* stack, curl_socket_t fd);
 
 private:
   CurlSocket(const CurlSocket&) = delete;
@@ -44,4 +45,4 @@ private:
 
 } // namespace torrent::net
 
-#endif
+#endif // LIBTORRENT_NET_CURL_SOCKET_H
