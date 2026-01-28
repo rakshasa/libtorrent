@@ -7,6 +7,7 @@
 #include <thread>
 #include <unistd.h>
 
+#include "runtime.h"
 #include "helpers/test_thread.h"
 #include "helpers/test_utils.h"
 #include "torrent/exceptions.h"
@@ -31,6 +32,8 @@ void
 test_thread_base::test_lifecycle() {
   auto thread = test_thread::create();
 
+  torrent::Runtime::initialize(thread.get());
+
   CPPUNIT_ASSERT(thread->state() == torrent::utils::Thread::STATE_UNKNOWN);
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_NONE);
 
@@ -50,11 +53,15 @@ test_thread_base::test_lifecycle() {
   thread->stop_thread_wait();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
   CPPUNIT_ASSERT(thread->is_inactive());
+
+  torrent::Runtime::cleanup();
 }
 
 void
 test_thread_base::test_interrupt() {
   auto thread = test_thread::create();
+
+  torrent::Runtime::initialize(thread.get());
 
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
@@ -76,12 +83,17 @@ test_thread_base::test_interrupt() {
 
   thread->stop_thread_wait();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_INACTIVE)));
+
+  torrent::Runtime::cleanup();
 }
 
 void
 test_thread_base::test_stop() {
   for (int i = 0; i < 20; i++) {
     auto thread = test_thread::create();
+
+    torrent::Runtime::initialize(thread.get());
+
     thread->set_test_flag(test_thread::test_flag_do_work);
 
     thread->init_thread();
@@ -89,5 +101,7 @@ test_thread_base::test_stop() {
 
     thread->stop_thread_wait();
     CPPUNIT_ASSERT(thread->is_inactive());
+
+    torrent::Runtime::cleanup();
   }
 }
