@@ -2,6 +2,7 @@
 
 #include "manager.h"
 
+#include "runtime.h"
 #include "data/chunk_list.h"
 #include "data/hash_torrent.h"
 #include "download/download_main.h"
@@ -33,18 +34,6 @@ namespace config {
 net::NetworkConfig* network_config() { return manager->network_config(); }
 
 } // namespace config
-
-// TODO: Move runtime to a separate runtime object.
-
-namespace runtime {
-
-NetworkManager* network_manager() { return manager->network_manager(); }
-SocketManager*  socket_manager()  { return manager->socket_manager(); }
-
-void     dht_add_peer_node(const sockaddr* sa, uint16_t port) { manager->network_manager()->dht_add_peer_node(sa, port); }
-uint16_t listen_port()                                        { return manager->network_manager()->listen_port(); }
-
-} // namespace runtime
 
 namespace this_thread {
 
@@ -78,7 +67,7 @@ Manager::Manager()
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
 
-  g_runtime = new Runtime;
+  Runtime::initialize(torrent::this_thread::thread());
 
   m_task_tick.slot() = [this] { receive_tick(); };
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 1s);
@@ -107,8 +96,7 @@ Manager::~Manager() {
 
   instrumentation_tick();
 
-  delete g_runtime;
-  g_runtime = nullptr;
+  Runtime::cleanup();
 }
 
 void

@@ -7,25 +7,23 @@
 
 namespace torrent {
 
-class Manager;
-
-class Runtime {
+class LIBTORRENT_EXPORT Runtime {
 public:
-  Runtime();
-  ~Runtime();
-
-protected:
-  friend Manager;
+  static void         initialize(utils::Thread* main_thread);
+  static void         cleanup();
 
   auto*               network_manager()    { return m_network_manager.get(); }
   auto*               socket_manager()     { return m_socket_manager.get(); }
 
 private:
+  Runtime(utils::Thread* main_thread);
+  ~Runtime();
+
+  utils::Thread*      m_main_thread;
+
   std::unique_ptr<runtime::NetworkManager> m_network_manager;
   std::unique_ptr<runtime::SocketManager>  m_socket_manager;
 };
-
-extern Runtime* g_runtime;
 
 } // namespace torrent
 

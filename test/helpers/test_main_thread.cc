@@ -4,6 +4,7 @@
 
 #include <signal.h>
 
+#include "runtime.h"
 #include "data/thread_disk.h"
 #include "net/thread_net.h"
 #include "test/helpers/mock_function.h"
@@ -54,11 +55,13 @@ TestFixtureWithMainThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
+  torrent::Runtime::initialize(m_main_thread.get());
   m_main_thread->init_thread();
 }
 
 void
 TestFixtureWithMainThread::tearDown() {
+  torrent::Runtime::cleanup();
   m_main_thread.reset();
 
   test_fixture::tearDown();
@@ -69,6 +72,7 @@ TestFixtureWithMainAndDiskThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
+  torrent::Runtime::initialize(m_main_thread.get());
   m_main_thread->init_thread();
 
   // m_hash_check_queue.slot_chunk_done() binds to main_thread().
@@ -83,8 +87,10 @@ TestFixtureWithMainAndDiskThread::setUp() {
 void
 TestFixtureWithMainAndDiskThread::tearDown() {
   torrent::thread_disk()->stop_thread_wait();
-  torrent::ThreadDisk::destroy_thread();
 
+  torrent::Runtime::cleanup();
+
+  torrent::ThreadDisk::destroy_thread();
   m_main_thread.reset();
 
   test_fixture::tearDown();
@@ -95,6 +101,7 @@ TestFixtureWithMainAndTrackerThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
+  torrent::Runtime::initialize(m_main_thread.get());
   m_main_thread->init_thread();
 
   log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
@@ -108,6 +115,8 @@ TestFixtureWithMainAndTrackerThread::setUp() {
 void
 TestFixtureWithMainAndTrackerThread::tearDown() {
   torrent::thread_tracker()->stop_thread_wait();
+
+  torrent::Runtime::cleanup();
   torrent::ThreadTracker::destroy_thread();
 
   m_main_thread.reset();
@@ -120,6 +129,7 @@ TestFixtureWithMainNetTrackerThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
+  torrent::Runtime::initialize(m_main_thread.get());
   m_main_thread->init_thread();
 
   log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
@@ -140,6 +150,7 @@ TestFixtureWithMainNetTrackerThread::tearDown() {
   torrent::thread_tracker()->stop_thread_wait();
   torrent::net_thread::thread()->stop_thread_wait();
 
+  torrent::Runtime::cleanup();
   torrent::ThreadTracker::destroy_thread();
   torrent::ThreadNet::destroy_thread();
 
@@ -153,11 +164,13 @@ TestFixtureWithMockAndMainThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create_with_mock();
+  torrent::Runtime::initialize(m_main_thread.get());
   m_main_thread->init_thread();
 }
 
 void
 TestFixtureWithMockAndMainThread::tearDown() {
+  torrent::Runtime::cleanup();
   m_main_thread.reset();
 
   test_fixture::tearDown();

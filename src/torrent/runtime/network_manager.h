@@ -14,7 +14,7 @@ namespace torrent::runtime {
 
 class LIBTORRENT_EXPORT NetworkManager {
 public:
-  NetworkManager();
+  NetworkManager(utils::Thread* main_thread);
   ~NetworkManager();
 
   bool                is_listening() const;
@@ -63,6 +63,8 @@ private:
   void                listen_close_unsafe();
 
   void                perform_restart_listen();
+
+  utils::Thread*      m_main_thread;
 
   mutable std::mutex      m_mutex;
 
