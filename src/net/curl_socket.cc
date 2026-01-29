@@ -93,6 +93,22 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (socket->m_fileDesc != fd)
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch");
 
+    if (!socket->m_properly_opened) {
+      // This is likely a socket created by libcurl or c-ares directly, so we assume libcurl also
+      // handles closing it.
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket not properly opened, removing from poll", 0);
+
+      auto itr = stack->socket_map()->find(fd);
+
+      if (itr == stack->socket_map()->end())
+        throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE marked not properly opened was not found in stack map");
+
+      this_thread::poll()->remove_and_close(socket);
+      socket->clear_and_erase_self(itr);
+
+      return 0;
+    }
+
     LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : removing from read/write polling", 0);
 
     this_thread::poll()->remove_read(socket);
@@ -110,18 +126,19 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     auto itr = stack->socket_map()->find(fd);
 
     if (itr == stack->socket_map()->end()) {
-      // socket = new CurlSocket(fd, stack, easy_handle);
+      socket = new CurlSocket(fd, stack, easy_handle);
+      socket->m_properly_opened = false;
 
-      // LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : new socket created and added to poll", 0);
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unexpected fd encountered, creating new CurlSocket", 0);
 
-      // curl_multi_assign(stack->handle(), fd, socket);
+      curl_multi_assign(stack->handle(), fd, socket);
 
-      // this_thread::poll()->open(socket);
-      // this_thread::poll()->insert_error(socket);
+      this_thread::poll()->open(socket);
+      this_thread::poll()->insert_error(socket);
 
-      // stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
+      stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
 
-      throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") socket not found in stack");
+      // throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") socket not found in stack");
 
     } else {
       if (itr->second->m_easy_handle != nullptr) {
@@ -180,6 +197,7 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
   }
 
   auto event = std::make_unique<CurlSocket>(stack);
+  event->m_properly_opened = true;
 
   auto open_func = [&]() {
       int fd = ::socket(address->family, address->socktype, address->protocol);

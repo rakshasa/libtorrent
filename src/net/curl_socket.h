@@ -44,6 +44,7 @@ private:
   CURL*               m_easy_handle{};
 
   bool                m_self_exists{true};
+  bool                m_properly_opened{false};
 };
 
 } // namespace torrent::net
