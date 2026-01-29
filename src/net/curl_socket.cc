@@ -298,6 +298,8 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
       if (::close(fd) != 0)
         throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): error closing socket: " + std::string(std::strerror(errno)));
+
+      socket->set_file_descriptor(-1);
     });
 
   socket->clear_and_erase_self(itr);
