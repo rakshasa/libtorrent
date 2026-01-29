@@ -233,10 +233,10 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
     throw internal_error("getaddrinfo returned unsupported family");
   }
 
-  ::freeaddrinfo(result);
-
   if (query->family != AF_UNSPEC && query->family != result->ai_family)
     throw internal_error("getaddrinfo returned address with unexpected family");
+
+  ::freeaddrinfo(result);
 
   {
     auto lock = std::lock_guard(m_mutex);
