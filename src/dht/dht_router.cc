@@ -598,10 +598,12 @@ DhtRouter::bootstrap() {
 
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
+    int port = m_contacts->back().second;
+
     // Currently discarding SOCK_DGRAM.
-    auto f = [this](const auto& sa, int) {
+    auto f = [this, port](const auto& sa, int) {
       if (sa != nullptr)
-        contact(sa.get(), m_contacts->back().second);
+        contact(sa.get(), port);
     };
 
     this_thread::resolver()->resolve_specific(this, m_contacts->back().first, AF_INET, f);
