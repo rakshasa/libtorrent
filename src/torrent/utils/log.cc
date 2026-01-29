@@ -31,6 +31,13 @@ struct log_cache_entry {
   log_slot*    cache_last;
 };
 
+struct log_stream_output {
+  log_stream_output(std::ostream* stream) : stream(stream) {}
+
+  std::mutex                    mutex;
+  std::unique_ptr<std::ostream> stream;
+};
+
 struct log_gz_output {
   log_gz_output(const char* filename, bool append) :
       gz_file(gzopen(filename, append ? "a" : "w"), gzclose) {}
@@ -311,7 +318,7 @@ log_remove_child([[maybe_unused]] int group, [[maybe_unused]] int child) {
 // TODO: Add lock for file writes.
 
 static void
-log_file_write(const std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
+log_file_write(const std::unique_ptr<std::ostream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
 
   // Normal groups are nul-terminated strings.
@@ -359,17 +366,28 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
 void
 log_open_file_output(const char* name, const char* filename, bool append, bool flush) {
   std::ios_base::openmode mode = std::ofstream::out;
+
   if (append)
     mode |= std::ofstream::app;
-  auto outfile = std::make_shared<std::ofstream>(filename, mode);
 
-  if (!outfile->good())
+  auto outfile = std::make_shared<log_stream_output>(new std::ofstream(filename, mode));
+
+  if (!outfile->stream->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
   if (flush)
-    log_open_output(name, [outfile](auto d, auto l, auto g) { log_file_write(outfile, d, l, g); outfile->flush(); });
+    log_open_output(name, [outfile](auto d, auto l, auto g) {
+        auto lock = std::lock_guard(outfile->mutex);
+
+        log_file_write(outfile->stream, d, l, g);
+        outfile->stream->flush();
+      });
   else
-    log_open_output(name, [outfile](auto d, auto l, auto g) { log_file_write(outfile, d, l, g); });
+    log_open_output(name, [outfile](auto d, auto l, auto g) {
+        auto lock = std::lock_guard(outfile->mutex);
+
+        log_file_write(outfile->stream, d, l, g);
+      });
 }
 
 void
@@ -382,7 +400,9 @@ log_open_gz_file_output(const char* name, const char* filename, bool append) {
   // if (!outfile->set_buffer(1 << 14))
   //   throw input_error("Could not set gzip log file buffer size.");
 
-  log_open_output(name, [outfile](auto d, auto l, auto g) { log_gz_file_write(outfile, d, l, g); });
+  log_open_output(name, [outfile](auto d, auto l, auto g) {
+      log_gz_file_write(outfile, d, l, g);
+    });
 }
 
 } // namespace torrent

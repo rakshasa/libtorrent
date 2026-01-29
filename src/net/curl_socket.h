@@ -12,7 +12,10 @@ class CurlGet;
 
 class CurlSocket : public torrent::Event {
 public:
+  // TODO: Deprecate.
   CurlSocket(int fd, CurlStack* stack, CURL* easy_handle);
+
+  CurlSocket(CurlStack* stack);
   ~CurlSocket() override;
 
   const char*         type_name() const override { return "curl_socket"; }
