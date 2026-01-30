@@ -9,6 +9,7 @@
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/poll.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 
@@ -43,12 +44,20 @@
 //
 // HTTP shouldn't be sending any data when idle, so read mode shouldn't be a problem.
 
+
+//
+// TODO: Redo inactive sockets to check for some kind of identifier, e.g. socket opt.
+//
+// Use getsockopt(SO_TYPE), SOCK_STREAM, and getpeername() / getsockname() to verify the socket is
+// the same as when marking inactive.
+
 namespace torrent::net {
 
 CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle)
   : m_stack(stack),
     m_easy_handle(easy_handle) {
-  m_fileDesc = fd;
+
+  set_file_descriptor(fd);
 }
 
 CurlSocket::CurlSocket(CurlStack* stack)
@@ -111,10 +120,33 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
     LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : removing from read/write polling", 0);
 
-    this_thread::poll()->remove_read(socket);
-    this_thread::poll()->remove_write(socket);
+    bool result = runtime::socket_manager()->mark_stream_event_inactive(socket, [socket]() {
+        this_thread::poll()->remove_read(socket);
+        this_thread::poll()->remove_write(socket);
+      });
 
-    socket->m_easy_handle = nullptr;
+    if (!result) {
+      // Not connected...
+      // throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE: socket was not connected");
+
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket was not connected, returning error", 0);
+
+      // clear_and_erase_self()?
+      runtime::socket_manager()->close_event_or_throw(socket, [socket]() {
+          this_thread::poll()->remove_and_close(socket);
+        });
+
+      auto itr = stack->socket_map()->find(fd);
+
+      if (itr == stack->socket_map()->end())
+        throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE trying to erase not found socket");
+
+      socket->clear_and_erase_self(itr);
+      return -1;
+    }
+
+    socket->m_easy_handle  = nullptr;
+    socket->m_uninterested = true;
 
     return 0;
   }
@@ -149,9 +181,22 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       socket = itr->second.get();
       socket->m_easy_handle = easy_handle;
 
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket found in map", 0);
-
       curl_multi_assign(stack->handle(), fd, socket);
+
+      // TODO: Should these be exceptions? New connections shouldn't be possible before close_socket() is called.
+
+      if (!socket->update_and_verify_socket_address()) {
+        LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket address mismatch, aborting", 0);
+        throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + "): existing socket address mismatch");
+      }
+
+      if (!socket->update_and_verify_peer_address()) {
+        LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing peer address mismatch, aborting", 0);
+        throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + "): existing peer address mismatch");
+      }
+
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket found in map : socket:%s peer:%s",
+                                    sa_pretty_str(socket->socket_address()).c_str(), sa_pretty_str(socket->peer_address()).c_str());
     }
   }
 
@@ -160,26 +205,83 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called while CurlStack is not running");
   }
 
-  // TODO: Do inserts before removes to ensure we never stay without read or write when switching modes.
-  // TODO: Set as inactive on CURL_POLL_NONE.
+  if (what != CURL_POLL_NONE && socket->m_uninterested) {
+    // TODO: Do this in a func protected by SocketManager lock.
+    if (!runtime::socket_manager()->mark_event_active_or_fail(socket)) {
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : socket fd was reused, aborting", 0);
 
-  if (what == CURL_POLL_NONE || what == CURL_POLL_OUT) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : removing read", 0);
-    this_thread::poll()->remove_read(socket);
-  } else {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : inserting read", 0);
+      auto itr = stack->socket_map()->find(fd);
+
+      if (itr == stack->socket_map()->end())
+        throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + "): trying to erase reused socket, but not found in stack map");
+
+      // TODO: This can cause libcurl to call close_socket() on a reused fd?
+      socket->clear_and_erase_self(itr);
+      return -1;
+    }
+
+    socket->m_uninterested = false;
+
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : marking socket as interested", 0);
+  }
+
+  // TODO: If this is a 'properly opened' socket, update and verify addresses.
+  //
+  // TODO: This should be done other places also.
+
+  if (socket->m_properly_opened) {
+    if (!socket->update_and_verify_socket_address()) {
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : socket address mismatch on properly opened socket, returning error", 0);
+      return -1;
+    }
+
+    if (!socket->update_and_verify_peer_address()) {
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : peer address mismatch on properly opened socket, returning error", 0);
+      return -1;
+    }
+  }
+
+  switch (what) {
+  case CURL_POLL_NONE:
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_NONE) : removing read and write", 0);
+
+    socket->m_uninterested = true;
+
+    {
+      bool result = runtime::socket_manager()->mark_stream_event_inactive(socket, [socket]() {
+          this_thread::poll()->remove_read(socket);
+          this_thread::poll()->remove_write(socket);
+        });
+
+      if (!result) {
+        // Not connected...
+        throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_NONE: socket was not connected");
+      }
+    }
+    break;
+
+  case CURL_POLL_IN:
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_IN) : inserting read, removing write", 0);
     this_thread::poll()->insert_read(socket);
-  }
-
-  if (what == CURL_POLL_NONE || what == CURL_POLL_IN) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : removing write", 0);
     this_thread::poll()->remove_write(socket);
-  } else {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : inserting write", 0);
-    this_thread::poll()->insert_write(socket);
-  }
+    break;
 
-  // TODO: Clean up insert/remove to more clearly handle socket being in/out of read/write polling.
+  case CURL_POLL_OUT:
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_OUT) : inserting write, removing read", 0);
+    this_thread::poll()->insert_write(socket);
+    this_thread::poll()->remove_read(socket);
+    break;
+
+  case CURL_POLL_INOUT:
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_INOUT) : inserting read and write", 0);
+    this_thread::poll()->insert_read(socket);
+    this_thread::poll()->insert_write(socket);
+    break;
+
+  default:
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unknown what value: %i, aborting", 0);
+    throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + "): unknown what value: " + std::to_string(what));
+  }
 
   return 0;
 }
@@ -276,6 +378,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
   // in a graceful way. (Which isn't really strictly correct)
   if (itr == stack->socket_map()->end()) {
     bool result = runtime::socket_manager()->execute_if_not_present(fd, [&]() {
+        // TODO: This can cause issues if the fd was by something that doesn't register with SocketManager.
         ::close(fd);
       });
 

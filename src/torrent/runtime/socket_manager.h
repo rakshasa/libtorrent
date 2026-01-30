@@ -61,8 +61,9 @@ public:
 
   bool                execute_if_not_present(int fd, std::function<void ()> func);
 
-  void                mark_event_active(Event* event);
-  void                mark_event_inactive(Event* event);
+  [[nodiscard]] bool  mark_event_active_or_fail(Event* event);
+  void                mark_event_inactive(Event* event, std::function<void ()> func);
+  [[nodiscard]] bool  mark_stream_event_inactive(Event* event, std::function<void ()> func);
 
   // No, this should take Event*?
   // bool                is_socket_reused(int fd);

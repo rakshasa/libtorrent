@@ -45,6 +45,7 @@ private:
 
   bool                m_self_exists{true};
   bool                m_properly_opened{false};
+  bool                m_uninterested{};
 };
 
 } // namespace torrent::net
