@@ -240,6 +240,18 @@ SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) 
   return event_to;
 }
 
+bool
+SocketManager::execute_if_not_present(int fd, std::function<void ()> func) {
+  auto guard = lock_guard();
+  auto itr   = m_socket_map.find(fd);
+
+  if (itr != m_socket_map.end())
+    return false;
+
+  func();
+  return true;
+}
+
 void
 SocketManager::mark_event_active(Event* event) {
   auto guard = lock_guard();

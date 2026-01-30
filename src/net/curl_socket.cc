@@ -23,15 +23,15 @@
 #else
 
 #define LT_LOG_DEBUG(log_fmt, ...)                                      \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket: " log_fmt, __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket: " log_fmt, __VA_ARGS__)
 #define LT_LOG_DEBUG_THIS(log_fmt, ...)                                 \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__)
 #define LT_LOG_DEBUG_SOCKET(log_fmt, ...)                               \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, __VA_ARGS__)
 #define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)                            \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__)
 #define LT_LOG_DEBUG_SOCKET_FD_HANDLE(log_fmt, ...)                            \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i easy_handle:%p : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, easy_handle, __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i easy_handle:%p : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, easy_handle, __VA_ARGS__)
 
 #endif
 
@@ -207,6 +207,8 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
         return -1;
       }
 
+      // TODO: Fail if fd is already in use, especially if it is m_properly_opened.
+
       event->set_file_descriptor(fd);
 
       // TODO: We should add this to uninterested sockets until libcurl tells us to poll.
@@ -269,16 +271,21 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
   auto itr = stack->socket_map()->find(fd);
 
   // Socket won't exist if the only thing it called was receive_socket(CURL_POLL_REMOVE).
+  //
+  // LibCurl is randomly closing / not closing sockets that receive errors, so we need to handle it
+  // in a graceful way. (Which isn't really strictly correct)
   if (itr == stack->socket_map()->end()) {
-    LT_LOG_DEBUG("close_socket(fd:%i) : socket not found in stack map", fd);
+    bool result = runtime::socket_manager()->execute_if_not_present(fd, [&]() {
+        ::close(fd);
+      });
 
-    // if (::close(fd) != 0)
-    //   throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): error closing socket: " + std::string(std::strerror(errno)));
+    if (result) {
+      LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack : closed directly", 0);
+    } else {
+      LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack, but is in socket manager : assuming reuse", 0);
+    }
 
-    // return 0;
-
-    // Shouldn't happen, as open_socket() must have been called.
-    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not found in stack");
+    return 0;
   }
 
   auto* socket = itr->second.get();

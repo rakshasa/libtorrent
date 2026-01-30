@@ -59,6 +59,8 @@ public:
   // The func must close event_from and the pointer must remain valid.
   Event*              transfer_event(Event* event_from, std::function<Event* ()> func);
 
+  bool                execute_if_not_present(int fd, std::function<void ()> func);
+
   void                mark_event_active(Event* event);
   void                mark_event_inactive(Event* event);
 
