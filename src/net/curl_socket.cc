@@ -377,15 +377,20 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
   // LibCurl is randomly closing / not closing sockets that receive errors, so we need to handle it
   // in a graceful way. (Which isn't really strictly correct)
   if (itr == stack->socket_map()->end()) {
-    bool result = runtime::socket_manager()->execute_if_not_present(fd, [&]() {
-        // TODO: This can cause issues if the fd was by something that doesn't register with SocketManager.
 
-        // TODO: Rewrite this to check fd's socket/peer address to verify it is the same socket.
-        //
-        // This requires not erasing properly opened CurlSockets on error, etc?
+    // TODO: This needs to be changed to keep track of properly opened sockets. (it tries to close fd:0!!!)
 
-        ::close(fd);
-      });
+    // bool result = runtime::socket_manager()->execute_if_not_present(fd, [&]() {
+    //     // TODO: This can cause issues if the fd was by something that doesn't register with SocketManager.
+
+    //     // TODO: Rewrite this to check fd's socket/peer address to verify it is the same socket.
+    //     //
+    //     // This requires not erasing properly opened CurlSockets on error, etc?
+
+    //     ::close(fd);
+    //   });
+
+    // replace with execute_if_matches
 
     if (result) {
       LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack : closed directly", 0);
