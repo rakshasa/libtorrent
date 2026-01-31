@@ -63,7 +63,7 @@ public:
 
   [[nodiscard]] bool  mark_event_active_or_fail(Event* event);
   void                mark_event_inactive(Event* event, std::function<void ()> func);
-  [[nodiscard]] bool  mark_stream_event_inactive(Event* event, std::function<void ()> func);
+  [[nodiscard]] bool  mark_stream_event_inactive(Event* event, std::function<void ()> func, std::function<void ()> on_reuse);
 
   // No, this should take Event*?
   // bool                is_socket_reused(int fd);

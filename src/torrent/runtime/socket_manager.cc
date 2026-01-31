@@ -325,46 +325,68 @@ SocketManager::mark_event_inactive(Event* event, std::function<void ()> func) {
 // The socket must be in read/write to avoid reuse before calling this.
 //
 // Returns false is the socket was not connected.
+
+// Some of this relies on no non-SocketManager managed sockets being added to this_thread's
+// poller. Or else cleanup that removes reused fd's can cause issues.
+
+
+// TODO: Rename inet?
+
 bool
-SocketManager::mark_stream_event_inactive(Event* event, std::function<void ()> func) {
-  bool result{};
+SocketManager::mark_stream_event_inactive(Event* event, std::function<void ()> func, std::function<void ()> on_reuse) {
+  auto guard = lock_guard();
 
-  mark_event_inactive(event, [&]() {
-      // TODO: Use check+update helper function.
-      // TODO: When already got a value, verify it matches.
+  if (!event->is_open())
+    throw internal_error("SocketManager::mark_event_inactive(): event is not open");
 
-      if (!event->update_and_verify_socket_address()) {
-        LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address verification failed",
-               this_thread::thread()->name(), event->type_name(), event->file_descriptor());
-        result = false;
-        return;
-      }
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
 
-      if (!event->update_and_verify_peer_address()) {
-        LT_LOG("mark_stream_event_inactive() : %s:%s:%i : peer address verification failed",
-               this_thread::thread()->name(), event->type_name(), event->file_descriptor());
-        result = false;
-        return;
-      }
+  if (itr == m_socket_map.end())
+    throw internal_error("SocketManager::mark_event_inactive(): trying to mark unknown socket fd inactive");
 
-      if (!event->socket_address()) {
-        LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address is null after update",
-               this_thread::thread()->name(), event->type_name(), event->file_descriptor());
-        result = false;
-        return;
-      }
+  if (itr->second.event != event)
+    throw internal_error("SocketManager::mark_event_inactive(): event mismatch when trying to mark socket fd inactive");
 
-      // TODO: Check if we got a valid socket_address (a must).
+  if (!event->update_and_verify_socket_address()) {
+    LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address verification failed",
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
 
-      LT_LOG("mark_stream_event_inactive() : %s:%s:%i : marking stream socket inactive : socket:%s peer:%s",
-             this_thread::thread()->name(), event->type_name(), event->file_descriptor(),
-             sa_pretty_str(event->socket_address()).c_str(), sa_pretty_str(event->peer_address()).c_str());
+    on_reuse();
+    return false;
+  }
 
-      func();
-      result = true;
-    });
+  if (!event->update_and_verify_peer_address()) {
+    LT_LOG("mark_stream_event_inactive() : %s:%s:%i : peer address verification failed",
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
 
-  return result;
+    // TODO: Check if socket is still valid?
+    on_reuse();
+    return false;
+  }
+
+  if (!event->socket_address()) {
+    LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address is null after update",
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
+
+    on_reuse();
+    return false;
+  }
+
+  // TODO: Check if we got a valid socket_address (a must).
+
+  LT_LOG("mark_stream_event_inactive() : %s:%s:%i : marking stream socket inactive : socket:%s peer:%s",
+         this_thread::thread()->name(), event->type_name(), event->file_descriptor(),
+         sa_pretty_str(event->socket_address()).c_str(), sa_pretty_str(event->peer_address()).c_str());
+
+  func();
+
+  itr->second.flags |= flag_inactive;
+
+  LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive",
+         this_thread::thread()->name(), event->type_name(), fd);
+
+  return true;
 }
 
 // TODO: Finish implementation of reuse logic. (not as needed now that we check)
