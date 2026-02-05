@@ -44,7 +44,7 @@ struct dht_compare_closer {
   raw_string                      target_raw_string() const { return raw_string(m_target.data(), HashString::size_data); }
 
   private:
-  const HashString&    m_target;
+  HashString    m_target;
 };
 
 // DhtSearch contains a list of nodes sorted by closeness to the given target,
