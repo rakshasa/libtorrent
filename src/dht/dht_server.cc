@@ -181,7 +181,7 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
 // Contact nodes in given bucket and ask for their nodes closest to target.
 void
 DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
-  auto search = new DhtSearch(target, contacts);
+  auto search = std::make_shared<DhtSearch>(target, contacts);
 
   auto n = search->get_contact();
   while (n != search->end()) {
@@ -189,14 +189,12 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
     n = search->get_contact();
   }
 
-  // This shouldn't happen, it means we had no contactable nodes at all.
-  if (!search->start())
-    delete search;
+  search->start();
 }
 
 void
 DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker) {
-  auto announce = new DhtAnnounce(infoHash, tracker, contacts);
+  auto announce = std::make_shared<DhtAnnounce>(infoHash, tracker, contacts);
   auto n        = announce->get_contact();
 
   while (n != announce->end()) {
@@ -204,10 +202,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, Track
     n = announce->get_contact();
   }
 
-  // This can only happen if all nodes we know are bad.
-  if (!announce->start())
-    delete announce;
-  else
+  if (announce->start())
     announce->update_status();
 }
 
