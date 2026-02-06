@@ -76,6 +76,13 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/socket_manager.cc \
 	runtime/socket_manager.h \
 \
+	shm/channel.cc \
+	shm/channel.h \
+	shm/router.cc \
+	shm/router.h \
+	shm/segment.cc \
+	shm/segment.h \
+\
 	tracker/dht_controller.cc \
 	tracker/dht_controller.h \
 	tracker/manager.cc \
@@ -200,6 +207,12 @@ libtorrent_torrent_runtime_includedir = $(includedir)/torrent/runtime
 libtorrent_torrent_runtime_include_HEADERS = \
 	runtime/network_manager.h \
 	runtime/socket_manager.h
+
+libtorrent_torrent_shm_includedir = $(includedir)/torrent/shm
+libtorrent_torrent_shm_include_HEADERS = \
+	shm/channel.h \
+	shm/router.h \
+	shm/segment.h
 
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
 libtorrent_torrent_tracker_include_HEADERS = \

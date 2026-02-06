@@ -194,6 +194,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
 void
 CurlSocket::event_read() {
+  // TODO: Use MSG_PEEK to check if we're in idle connection poll and close this fd.
   handle_action(CURL_CSELECT_IN);
 }
 
