@@ -104,6 +104,8 @@ libtorrent_torrent_la_SOURCES = \
 	utils/log_buffer.h \
 	utils/option_strings.cc \
 	utils/option_strings.h \
+	utils/process.cc \
+	utils/process.h \
 	utils/random.cc \
 	utils/random.h \
 	utils/ranges.h \

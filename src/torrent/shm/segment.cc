@@ -23,29 +23,40 @@ Segment::create(uint32_t size) {
 
   auto fd = shmget(IPC_PRIVATE, size, IPC_CREAT | 0600);
 
-  if (fd == -1)
+  if (fd == -1) {
+    if (errno == ENOMEM)
+      throw torrent::internal_error("shmget() failed with ENOMEM: not enough shared memory available (try deleting unused shared memory segments with 'ipcrm -m <id>')");
+
     throw torrent::internal_error("shmget() failed: " + std::string(strerror(errno)));
+  }
 
   m_shm_id = fd;
   m_size   = size;
+
+  try {
+    attach();
+    unlink();
+  } catch (...) {
+    // If we don't unlink the shared memory it will stick around after all processes are done.
+    unlink();
+    throw;
+  }
 }
 
 void
-Segment::close() {
+Segment::unlink() {
   if (m_shm_id == -1)
     return;
 
   if (shmctl(m_shm_id, IPC_RMID, nullptr) == -1)
     throw torrent::internal_error("shmctl(IPC_RMID) failed: " + std::string(strerror(errno)));
-
-  m_shm_id = -1;
-  m_size   = 0;
-  m_addr   = nullptr;
 }
 
-// TODO: Change to return a ChannelMetadata*.
 void
 Segment::attach() {
+  if (m_addr != nullptr)
+    throw torrent::internal_error("Segment::attach() segment already attached");
+
   void* addr = shmat(m_shm_id, nullptr, 0);
 
   if (addr == (void*)-1)

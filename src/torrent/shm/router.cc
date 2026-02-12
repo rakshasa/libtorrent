@@ -3,40 +3,58 @@
 #include "torrent/shm/router.h"
 
 #include <cassert>
+#include <unistd.h>
+#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/shm/channel.h"
 
 namespace torrent::shm {
 
-Router::Router(Channel* read_channel, Channel* write_channel)
+Router::Router(int fd, Channel* read_channel, Channel* write_channel)
   : m_read_channel(read_channel),
-    m_write_channel(write_channel) {
+    m_write_channel(write_channel),
+    m_fd(fd) {
 }
 
 Router::~Router() = default;
 
 uint32_t
-Router::register_handler(std::function<void(void* data, uint32_t size)> on_read,
-                         std::function<void(void* data, uint32_t size)> on_error) {
-  if (!on_read)
-    throw torrent::internal_error("Router::register_handler(): on_read handler is required");
-  if (!on_error)
-    throw torrent::internal_error("Router::register_handler(): on_error handler is required");
+Router::register_handler(data_func on_read, data_func on_error) {
+  auto id = m_next_id;
 
-  auto id              = m_next_id;
-  auto [itr, inserted] = m_handlers.try_emplace(id, RouterHandler{on_read, on_error});
+  while (!try_register_handler(id, on_read, on_error)) {
+    id++;
 
-  // TODO: Try to find a free id instead of throwing.
-  if (itr != m_handlers.end())
+    if (id == 0)
+      throw torrent::internal_error("Router::register_handler(): no available ids");
+  }
+
+  m_next_id = id + 1;
+  return id;
+}
+
+void
+Router::register_handler(int id, data_func on_read, data_func on_error) {
+  if (!try_register_handler(id, on_read, on_error))
     throw torrent::internal_error("Router::register_handler(): id already in use");
+}
+
+bool
+Router::try_register_handler(int id, data_func on_read, data_func on_error) {
+  // TODO: Optimize to avoid double lookup.
+  auto itr = m_handlers.find(id);
+
+  if (itr != m_handlers.end())
+    return false;
+
+  if (!on_read)
+    throw torrent::internal_error("Router::try_register_handler(): on_read handler is required");
+  if (!on_error)
+    throw torrent::internal_error("Router::try_register_handler(): on_error handler is required");
 
   m_handlers[id] = RouterHandler{on_read, on_error};
-
-  // TODO: Handle wrap-around.
-  m_next_id++;
-
-  return id;
+  return true;
 }
 
 void
@@ -61,7 +79,7 @@ Router::close(uint32_t id) {
 
   if (!m_write_channel->write(id | Router::flag_close, 0, nullptr)) {
     // TODO: Add to a pending close queue to retry later?
-    throw torrent::internal_error("Router::unregister_handler(): failed to write close event to channel");
+    throw torrent::internal_error("Router::close(): failed to write close event to channel");
   }
 }
 
@@ -97,21 +115,48 @@ Router::process_reads() {
       // continue;
     }
 
+    if (header->size != 0 && !itr->second.is_closed_read())
+      itr->second.on_read(header->data, header->size);
+
     if (header->id & Router::flag_close) {
-      if (itr->second.is_closed_read())
+      if (itr->second.is_closed_read()) {
         m_handlers.erase(itr);
-      else
-        itr->second.on_read = nullptr;
+
+        m_read_channel->consume_header(header);
+        continue;
+      }
+
+      if (header->size != 0)
+        throw torrent::internal_error("Router::process_reads(): close message with non-zero size");
+
+      itr->second.on_read = nullptr;
 
       m_read_channel->consume_header(header);
       continue;
     }
 
-    if (!itr->second.is_closed_read())
-      itr->second.on_read(header->data, header->size);
-
     m_read_channel->consume_header(header);
   }
+
+  // TODO: Replace zero-length close messages with a id=0 special message that is buffered and
+  // packed.
+  //
+  // By adding a (free space) buffer for special messages we avoid writes of closes failing.
+  //
+  // The process_reads() function can then send these special messages after reading normal
+  // messages, and do reads while the buffer is insufficient to send them.
+}
+
+void
+Router::send_fatal_error(const char* msg, uint32_t size) {
+  if (m_fd == -1)
+    throw torrent::internal_error("Router::send_fatal_error(): no file descriptor to send error message on");
+
+  if (::send(m_fd, msg, size, 0) == -1)
+    throw torrent::internal_error("Router::send_fatal_error(): failed to send error message");
+
+  ::close(m_fd);
+  m_fd = -1;
 }
 
 } // namespace torrent::shm

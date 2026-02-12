@@ -30,6 +30,8 @@ public:
   // Only use this for a rough estimate of available space.
   uint32_t            available_write();
 
+  bool                can_write(uint32_t size);
+
   bool                write(uint32_t id, uint32_t size, void* data);
 
   header_type*        read_header();
@@ -39,6 +41,7 @@ protected:
   // These are offset by size of ChannelBase.
   void*                 m_addr{};
   uint32_t              m_size{};
+  uint32_t              m_write_threshold{};
 
   std::atomic<uint32_t> m_read_offset{};
   std::atomic<uint32_t> m_write_offset{};

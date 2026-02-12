@@ -21,8 +21,9 @@ Channel::initialize(void* addr, size_t size) {
   if (size == 0 || (size % std::hardware_destructive_interference_size) != 0)
     throw torrent::internal_error("Channel::initialize() size must be non-zero and a multiple of cache line size");
 
-  m_addr = static_cast<char*>(addr) + align_to_cacheline(sizeof(Channel));
-  m_size = size - align_to_cacheline(sizeof(Channel));
+  m_addr            = static_cast<char*>(addr) + align_to_cacheline(sizeof(Channel));
+  m_size            = size - align_to_cacheline(sizeof(Channel));
+  m_write_threshold = align_to_cacheline(m_size / 10) + 2 * cache_line_size;
 
   m_read_offset = 0;
   m_write_offset = 0;
@@ -38,6 +39,11 @@ Channel::available_write() {
     return std::max(m_size - end_offset, start_offset);
   else
     return start_offset - end_offset;
+}
+
+bool
+Channel::can_write(uint32_t size) {
+  return available_write() >= align_to_cacheline(header_size + size) + cache_line_size;
 }
 
 // TODO: Need to align writes?
