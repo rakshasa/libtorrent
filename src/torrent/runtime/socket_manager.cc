@@ -6,6 +6,7 @@
 
 #include "torrent/event.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
 
@@ -240,8 +241,20 @@ SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) 
   return event_to;
 }
 
-void
-SocketManager::mark_event_active(Event* event) {
+bool
+SocketManager::execute_if_not_present(int fd, std::function<void ()> func) {
+  auto guard = lock_guard();
+  auto itr   = m_socket_map.find(fd);
+
+  if (itr != m_socket_map.end())
+    return false;
+
+  func();
+  return true;
+}
+
+bool
+SocketManager::mark_event_active_or_fail(Event* event) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -250,20 +263,43 @@ SocketManager::mark_event_active(Event* event) {
   auto fd  = event->file_descriptor();
   auto itr = m_socket_map.find(fd);
 
-  if (itr == m_socket_map.end())
-    throw internal_error("SocketManager::mark_event_active(): trying to mark unknown socket fd active");
+  if (itr == m_socket_map.end()) {
+    LT_LOG("mark_event_active_or_fail() : %s:%s:%i : fd was likely reused, then closed",
+           this_thread::thread()->name(), event->type_name(), fd);
+    return false;
+  }
 
-  if (itr->second.event != event)
-    throw internal_error("SocketManager::mark_event_active(): event mismatch when trying to mark socket fd active");
+  if (itr->second.event != event) {
+    LT_LOG("mark_event_active_or_fail() : %s:%s:%i : fd has been reused and is active : %s:%s",
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
+    return false;
+  }
+
+  if (event->socket_address() != nullptr) {
+    if (!event->update_and_verify_socket_address()) {
+      LT_LOG("mark_event_active_or_fail() : %s:%s:%i : socket address verification failed",
+             this_thread::thread()->name(), event->type_name(), fd);
+      return false;
+    }
+
+    if (!event->update_and_verify_peer_address()) {
+      LT_LOG("mark_event_active_or_fail() : %s:%s:%i : peer address verification failed",
+             this_thread::thread()->name(), event->type_name(), fd);
+      return false;
+    }
+  }
 
   itr->second.flags &= ~flag_inactive;
 
   LT_LOG("mark_event_active() : %s:%s:%i : marked socket active",
          this_thread::thread()->name(), event->type_name(), fd);
+
+  return true;
 }
 
 void
-SocketManager::mark_event_inactive(Event* event) {
+SocketManager::mark_event_inactive(Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -278,11 +314,82 @@ SocketManager::mark_event_inactive(Event* event) {
   if (itr->second.event != event)
     throw internal_error("SocketManager::mark_event_inactive(): event mismatch when trying to mark socket fd inactive");
 
+  func();
+
   itr->second.flags |= flag_inactive;
 
   LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive",
          this_thread::thread()->name(), event->type_name(), fd);
 }
+
+// The socket must be in read/write to avoid reuse before calling this.
+//
+// Returns false is the socket was not connected.
+
+// Some of this relies on no non-SocketManager managed sockets being added to this_thread's
+// poller. Or else cleanup that removes reused fd's can cause issues.
+
+
+// TODO: Rename inet?
+
+bool
+SocketManager::mark_stream_event_inactive(Event* event, std::function<void ()> func, std::function<void ()> on_reuse) {
+  auto guard = lock_guard();
+
+  if (!event->is_open())
+    throw internal_error("SocketManager::mark_event_inactive(): event is not open");
+
+  auto fd  = event->file_descriptor();
+  auto itr = m_socket_map.find(fd);
+
+  if (itr == m_socket_map.end())
+    throw internal_error("SocketManager::mark_event_inactive(): trying to mark unknown socket fd inactive");
+
+  if (itr->second.event != event)
+    throw internal_error("SocketManager::mark_event_inactive(): event mismatch when trying to mark socket fd inactive");
+
+  if (!event->update_and_verify_socket_address()) {
+    LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address verification failed",
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
+
+    on_reuse();
+    return false;
+  }
+
+  if (!event->update_and_verify_peer_address()) {
+    LT_LOG("mark_stream_event_inactive() : %s:%s:%i : peer address verification failed",
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
+
+    // TODO: Check if socket is still valid?
+    on_reuse();
+    return false;
+  }
+
+  if (!event->socket_address()) {
+    LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address is null after update",
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
+
+    on_reuse();
+    return false;
+  }
+
+  // TODO: Check if we got a valid socket_address (a must).
+
+  LT_LOG("mark_stream_event_inactive() : %s:%s:%i : marking stream socket inactive : socket:%s peer:%s",
+         this_thread::thread()->name(), event->type_name(), event->file_descriptor(),
+         sa_pretty_str(event->socket_address()).c_str(), sa_pretty_str(event->peer_address()).c_str());
+
+  func();
+
+  itr->second.flags |= flag_inactive;
+
+  LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive",
+         this_thread::thread()->name(), event->type_name(), fd);
+
+  return true;
+}
+
+// TODO: Finish implementation of reuse logic. (not as needed now that we check)
 
 bool
 SocketManager::handle_reused_socket(socket_map::iterator itr) {

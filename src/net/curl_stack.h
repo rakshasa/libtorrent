@@ -1,5 +1,5 @@
-#ifndef RTORRENT_CORE_CURL_STACK_H
-#define RTORRENT_CORE_CURL_STACK_H
+#ifndef LIBTORRENT_NET_CURL_STACK_H
+#define LIBTORRENT_NET_CURL_STACK_H
 
 #include <map>
 #include <memory>
@@ -229,4 +229,4 @@ CurlStack::set_dns_timeout(long timeout) {
 
 } // namespace torrent::net
 
-#endif
+#endif // LIBTORRENT_NET_CURL_STACK_H

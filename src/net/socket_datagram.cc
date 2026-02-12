@@ -45,17 +45,10 @@ SocketDatagram::write_datagram_sa(const void* buffer, unsigned int length, socka
 
   int r;
 
-  if (sa != NULL) {
-    if (m_ipv6_socket && sa->sa_family == AF_INET) {
-      auto sa_mapped = sa_to_v4mapped_in(reinterpret_cast<sockaddr_in*>(sa));
-      r = ::sendto(m_fileDesc, buffer, length, 0, sa_mapped.get(), sa_length(sa_mapped.get()));
-    } else {
-      r = ::sendto(m_fileDesc, buffer, length, 0, sa, sa_length(sa));
-    }
-
-  } else {
+  if (sa != nullptr)
+    r = ::sendto(m_fileDesc, buffer, length, 0, sa, sa_length(sa));
+  else
     r = ::send(m_fileDesc, buffer, length, 0);
-  }
 
   return r;
 }
