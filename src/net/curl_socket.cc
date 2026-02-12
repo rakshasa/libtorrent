@@ -36,18 +36,6 @@
 
 #endif
 
-// TODO: Currently kevent doesn't report socket errors when not in read/write mode.
-//
-
-// We likely need to either have a timeout task to check if error when in idle connectino poll, or
-// set it to read mode always.
-//
-// HTTP shouldn't be sending any data when idle, so read mode shouldn't be a problem.
-
-
-//
-// TODO: Redo inactive sockets to check for some kind of identifier, e.g. socket opt.
-//
 // Use getsockopt(SO_TYPE), SOCK_STREAM, and getpeername() / getsockname() to verify the socket is
 // the same as when marking inactive.
 
@@ -103,8 +91,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch");
 
     if (!socket->m_properly_opened) {
-      // This is likely a socket created by libcurl or c-ares directly, so we assume libcurl also
-      // handles closing it.
+      // This is likely a socketpair created by libcurl directly, so we assume libcurl also handles
+      // closing it.
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket not properly opened, removing from poll", 0);
 
       this_thread::poll()->remove_and_close(socket);
@@ -132,12 +120,6 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
       // Socket was closed by the kernel, or reused.
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket was not connected, returning error", 0);
-
-      // TODO: We should rely on close_socket() to clean up the socket instead?
-      //
-      // TODO: We should add a flag for this.
-      //
-      // TODO: Move to close_socket() and add a close_stream_event_or_
       return -1;
     }
 
@@ -163,9 +145,9 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
       stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
 
-      // throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") socket not found in stack");
-
     } else {
+      // LibCurl is reusing the fd for a new connection, and as such passed us null socketp.
+
       if (itr->second->m_easy_handle != nullptr) {
         LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing CurlSocket easy_handle not null, aborting", 0);
         throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") existing CurlSocket easy_handle not null");
@@ -175,8 +157,6 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       socket->m_easy_handle = easy_handle;
 
       curl_multi_assign(stack->handle(), fd, socket);
-
-      // TODO: Should these be exceptions? New connections shouldn't be possible before close_socket() is called.
 
       if (!socket->update_and_verify_socket_address()) {
         LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket address mismatch, aborting", 0);
@@ -217,10 +197,35 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   }
 
   // TODO: If this is a 'properly opened' socket, update and verify addresses.
-  //
   // TODO: This should be done other places also.
-  //
   // TODO: Should we also always check SocketManager?
+
+  if (what == CURL_POLL_NONE) {
+    // Handle uninterested sockets before checking addresses, as the server tends to close
+    // connections right after completing requests. (which invalidates the peer name)
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_NONE) : removing read and write", 0);
+
+    socket->m_uninterested = true;
+
+    auto func = [socket]() {
+        this_thread::poll()->remove_read(socket);
+        this_thread::poll()->remove_write(socket);
+      };
+
+    auto on_reuse = [socket]() {
+        this_thread::poll()->remove_and_close(socket);
+        socket->clear_and_erase_self_or_throw();
+      };
+
+    if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
+      // Not connected...
+      // throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_NONE: socket was not connected");
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_NONE) : socket was not connected, returning error", 0);
+      return -1;
+    }
+
+    return 0;
+  }
 
   if (socket->m_properly_opened) {
     if (!socket->update_and_verify_socket_address()) {
@@ -235,31 +240,6 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   }
 
   switch (what) {
-  case CURL_POLL_NONE:
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_NONE) : removing read and write", 0);
-
-    socket->m_uninterested = true;
-
-    {
-      auto func = [socket]() {
-          this_thread::poll()->remove_read(socket);
-          this_thread::poll()->remove_write(socket);
-        };
-
-      auto on_reuse = [socket]() {
-          this_thread::poll()->remove_and_close(socket);
-          socket->clear_and_erase_self_or_throw();
-        };
-
-      if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
-        // Not connected...
-        // throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_NONE: socket was not connected");
-        LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_NONE) : socket was not connected, returning error", 0);
-        return -1;
-      }
-    }
-    break;
-
   case CURL_POLL_IN:
     LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_IN) : inserting read, removing write", 0);
     this_thread::poll()->insert_read(socket);
@@ -286,9 +266,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   return 0;
 }
 
-// TODO: Only allow socket events for fd's explicitly opened below.
-// TODO: Why is logging not correct order for open_socket()?
-
+// This is not called when libcurl creates socketpairs, yet it expects us to handle them in receive_socket().
 curl_socket_t
 CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose, struct curl_sockaddr *address) {
   assert(this_thread::thread() == stack->thread());
@@ -392,13 +370,16 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
     // replace with execute_if_matches
 
-    if (result) {
-      LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack : closed directly", 0);
-    } else {
-      LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack, but is in socket manager : assuming reuse", 0);
-    }
+    // if (result) {
+    //   LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack : closed directly", 0);
+    // } else {
+    //   LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack, but is in socket manager : assuming reuse", 0);
+    // }
 
-    return 0;
+    LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack, skipping", 0);
+    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not found in stack");
+
+    // return 0;
   }
 
   auto* socket = itr->second.get();

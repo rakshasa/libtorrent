@@ -218,6 +218,10 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
   curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
 
+  // Disable connection reuse as libcurl doesn't provide proper API to handle idle connections being
+  // closed/reused.
+  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE, 1l);
+
   if (m_timeout != 0) {
     curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 60l);
     curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        static_cast<long>(m_timeout));
