@@ -93,9 +93,12 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (!socket->m_properly_opened) {
       // This is likely a socketpair created by libcurl directly, so we assume libcurl also handles
       // closing it.
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket not properly opened, removing from poll", 0);
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket never properly opened, removing from poll", 0);
 
-      this_thread::poll()->remove_and_close(socket);
+      runtime::socket_manager()->unregister_event_or_throw(socket, [&]() {
+          this_thread::poll()->remove_and_close(socket);
+        });
+
       socket->clear_and_erase_self_or_throw();
       return 0;
     }
@@ -136,14 +139,16 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       socket = new CurlSocket(fd, stack, easy_handle);
       socket->m_properly_opened = false;
 
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unexpected fd encountered, creating new CurlSocket", 0);
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unexpected fd encountered, creating new (not properly opened) CurlSocket", 0);
 
-      curl_multi_assign(stack->handle(), fd, socket);
-
-      this_thread::poll()->open(socket);
-      this_thread::poll()->insert_error(socket);
+      runtime::socket_manager()->register_event_or_throw(socket, [&]() {
+          this_thread::poll()->open(socket);
+          this_thread::poll()->insert_error(socket);
+        });
 
       stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
+
+      curl_multi_assign(stack->handle(), fd, socket);
 
     } else {
       // LibCurl is reusing the fd for a new connection, and as such passed us null socketp.
