@@ -157,6 +157,11 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
     }
   }
 
+  // TODO: Check if there's only one peer, if so disconnect and mark that peer as bad. (review code
+  // to make sure the peer gets disconnected)
+  //
+  // TODO: Add a sanity check, e.g. >100 attempted tries.
+
   // Should we check if there's any peers whom have sent us bad data
   // before, and just clear those first?
 
@@ -178,6 +183,12 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
       transfer.set_failed_list(new BlockFailed());
 
     auto failedItr = std::find_if(transfer.failed_list()->begin(), transfer.failed_list()->end(), transfer_list_compare_data(chunk, transfer.piece()));
+
+    // TODO: If we get the different data from same peer, disconnect and mark that peer as
+    // bad. (review code to make sure the peer gets disconnected)
+    //
+    // TODO: If we don't get any new data at all for any blocks (all blocks) for a long time,
+    // disconnect all peers and mark them as bad.
 
     if (failedItr == transfer.failed_list()->end()) {
       // We've never encountered this data before, make a new entry.
