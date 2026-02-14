@@ -191,6 +191,11 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
     };
 
   auto cleanup_func = [&]() {
+      if (!handshake->is_open()) {
+        LT_LOG_SA(sa, "failed to create outgoing connection: open failed", 0);
+        return;
+      }
+
       LT_LOG_SA(sa, "failed to create outgoing connection : socket manager triggered cleanup", 0);
 
       download->peer_list()->disconnected(peer_info, 0);
