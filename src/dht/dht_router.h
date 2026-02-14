@@ -59,7 +59,7 @@ public:
 
   // TODO: Remoce add_contact.... And make it check that sa is inet.
 
-  void                add_contact(const std::string& host, int port);
+  void                add_bootstrap_contact(const std::string& host, int port);
   void                contact(const sockaddr* sa, int port);
 
   // Retrieve node of given ID in constant time. Return NULL if not found, unless
