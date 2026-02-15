@@ -61,6 +61,8 @@ public:
   void                start_get(const std::shared_ptr<CurlGet>& curl_get);
   void                close_get(const std::shared_ptr<CurlGet>& curl_get);
 
+  bool                process_done_handle();
+
   utils::Thread*      thread() const                         { return m_thread; }
 
 protected:
@@ -84,7 +86,6 @@ private:
   static int          set_timeout(void*, long timeout_ms, CurlStack* stack);
 
   void                receive_timeout();
-  bool                process_done_handle();
 
   // Unprotected members (including base_type vector), only changed in ways that are implicitly
   // thread-safe. E.g. before any threads are started or only within the owning thread.

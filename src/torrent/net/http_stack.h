@@ -5,6 +5,10 @@
 #include <memory>
 #include <torrent/common.h>
 
+namespace torrent {
+class ThreadNet;
+}
+
 namespace torrent::net {
 
 class CurlStack;
@@ -49,6 +53,7 @@ public:
 
 protected:
   friend class HttpGet;
+  friend class torrent::ThreadNet;
 
   CurlStack*          curl_stack() { return m_stack.get(); }
 

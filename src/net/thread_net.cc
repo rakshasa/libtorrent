@@ -2,6 +2,7 @@
 
 #include "net/thread_net.h"
 
+#include "net/curl_stack.h"
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
@@ -74,6 +75,9 @@ ThreadNet::cleanup_thread() {
 void
 ThreadNet::call_events() {
   // lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
+
+  while (m_http_stack->curl_stack()->process_done_handle())
+    ; // Do nothing.
 
   // TODO: Consider moving this into timer events instead.
   if ((m_flags & flag_do_shutdown)) {
