@@ -112,7 +112,7 @@ DhtController::add_bootstrap_node(std::string host, int port) {
   auto lock = std::lock_guard(m_lock);
 
   if (m_router)
-    m_router->add_contact(std::move(host), port);
+    m_router->add_bootstrap_contact(std::move(host), port);
 }
 
 void

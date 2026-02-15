@@ -140,7 +140,7 @@ Handshake::release_connection() {
 }
 
 void
-Handshake::destroy_connection() {
+Handshake::destroy_connection(bool no_socket_manager) {
   if (!is_open())
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
@@ -148,12 +148,17 @@ Handshake::destroy_connection() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+  auto fn = [this]() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(m_fileDesc);
       set_file_descriptor(-1);
-    });
+    };
+
+  if (no_socket_manager)
+    fn();
+  else
+    runtime::socket_manager()->close_event_or_throw(this, fn);
 
   manager->connection_manager()->dec_socket_count();
 
