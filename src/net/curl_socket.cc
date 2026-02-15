@@ -455,9 +455,11 @@ CurlSocket::event_error() {
     auto fd    = file_descriptor();
     auto stack = m_stack;
 
-    this_thread::poll()->remove_and_close(this);
-    curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
+    runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
+        this_thread::poll()->remove_and_close(this);
+      });
 
+    curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
     clear_and_erase_self_or_throw();
 
     CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
