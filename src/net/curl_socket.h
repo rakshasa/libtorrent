@@ -36,7 +36,8 @@ private:
   CurlSocket(const CurlSocket&) = delete;
   CurlSocket& operator=(const CurlSocket&) = delete;
 
-  void                handle_action(int fd, int ev_bitmask);
+  void                handle_action(int ev_bitmask);
+  static void         handle_action_simple(CurlStack* stack, int fd, int ev_bitmask);
 
   void                clear_and_erase_self(CurlStack::socket_map_type::iterator itr);
   void                clear_and_erase_self_or_throw();

@@ -420,12 +420,12 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
 void
 CurlSocket::event_read() {
-  handle_action(file_descriptor(), CURL_CSELECT_IN);
+  handle_action(CURL_CSELECT_IN);
 }
 
 void
 CurlSocket::event_write() {
-  handle_action(file_descriptor(), CURL_CSELECT_OUT);
+  handle_action(CURL_CSELECT_OUT);
 }
 
 // TODO: We need to figure out how to tell libcurl to not close an fd when it has been reused.
@@ -452,14 +452,15 @@ CurlSocket::event_error() {
   //     });
 
   if (!m_properly_opened) {
-    int fd = file_descriptor();
+    auto fd    = file_descriptor();
+    auto stack = m_stack;
 
     this_thread::poll()->remove_and_close(this);
     curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
 
     clear_and_erase_self_or_throw();
 
-    handle_action(fd, CURL_CSELECT_ERR);
+    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
     return;
   }
 
@@ -467,7 +468,7 @@ CurlSocket::event_error() {
 
   curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
 
-  handle_action(file_descriptor(), CURL_CSELECT_ERR);
+  handle_action(CURL_CSELECT_ERR);
 
   if (!m_self_exists) {
     LT_LOG_DEBUG_THIS("event_error() : self deleted during handle_action, aborting", 0);
@@ -478,24 +479,29 @@ CurlSocket::event_error() {
 }
 
 void
-CurlSocket::handle_action(int fd, int ev_bitmask) {
-  assert(fd != -1 && "CurlSocket::handle_action() fd != -1");
+CurlSocket::handle_action(int ev_bitmask) {
+  assert(!is_open() && "CurlSocket::handle_action() !is_open()");
   assert(m_stack != nullptr && "CurlSocket::handle_action() m_stack != nullptr");
 
   // Processing might deallocate this CurlSocket.
-  int  count{};
-  // auto stack = m_stack;
-  auto code  = curl_multi_socket_action(m_stack->handle(), fd, ev_bitmask, &count);
+  auto stack = m_stack;
 
-  if (code != CURLM_OK)
-    throw internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
+  CurlSocket::handle_action_simple(stack, file_descriptor(), ev_bitmask);
 
   //
   // TODO: Use Thread::call_events() to process this: ?
   //
+  while (stack->process_done_handle())
+    ; // Do nothing.
+}
 
-  // while (stack->process_done_handle())
-  //   ; // Do nothing.
+void
+CurlSocket::handle_action_simple(CurlStack* stack, int fd, int ev_bitmask) {
+  int  count{};
+  auto code = curl_multi_socket_action(stack->handle(), fd, ev_bitmask, &count);
+
+  if (code != CURLM_OK)
+    throw internal_error("CurlSocket::handle_action_simple(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
 }
 
 void
