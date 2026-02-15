@@ -248,7 +248,7 @@ Listen::event_read() {
         LT_LOG("failed to accept incoming connection : socket manager triggered cleanup", 0);
 
         if (handshake && handshake->is_open())
-          handshake->destroy_connection();
+          handshake->destroy_connection(false);
       };
 
     bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);

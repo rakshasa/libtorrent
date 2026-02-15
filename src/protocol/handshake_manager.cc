@@ -197,7 +197,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       }
 
       LT_LOG_SA(sa, "failed to create outgoing connection : socket manager triggered cleanup", 0);
-      handshake->destroy_connection(true);
+      handshake->destroy_connection(false);
     };
 
   runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);

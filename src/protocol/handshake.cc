@@ -140,7 +140,7 @@ Handshake::release_connection() {
 }
 
 void
-Handshake::destroy_connection(bool no_socket_manager) {
+Handshake::destroy_connection(bool use_socket_manager) {
   if (!is_open())
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
@@ -155,10 +155,10 @@ Handshake::destroy_connection(bool no_socket_manager) {
       set_file_descriptor(-1);
     };
 
-  if (no_socket_manager)
-    fn();
-  else
+  if (use_socket_manager)
     runtime::socket_manager()->close_event_or_throw(this, fn);
+  else
+    fn();
 
   manager->connection_manager()->dec_socket_count();
 

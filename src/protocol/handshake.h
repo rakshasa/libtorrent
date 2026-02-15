@@ -81,7 +81,7 @@ public:
   Bitfield*           bitfield()                    { return &m_bitfield; }
 
   void                release_connection();
-  void                destroy_connection(bool no_socket_manager = false);
+  void                destroy_connection(bool use_socket_manager = true);
 
   const void*         unread_data()                 { return m_readBuffer.position(); }
   uint32_t            unread_size() const           { return m_readBuffer.remaining(); }
