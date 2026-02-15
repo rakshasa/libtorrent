@@ -166,10 +166,8 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   auto open_func = [&]() {
       int fd = open_and_connect_socket(connect_address.get());
 
-      if (fd == -1) {
-        download->peer_list()->disconnected(peer_info, 0);
+      if (fd == -1)
         return;
-      }
 
       int message;
 
@@ -191,10 +189,15 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
     };
 
   auto cleanup_func = [&]() {
+      if (!handshake->is_open()) {
+        LT_LOG_SA(sa, "failed to create outgoing connection: open failed", 0);
+        download->peer_list()->disconnected(peer_info, 0);
+        return;
+      }
+
       LT_LOG_SA(sa, "failed to create outgoing connection : socket manager triggered cleanup", 0);
 
-      download->peer_list()->disconnected(peer_info, 0);
-      handshake->destroy_connection();
+      handshake->destroy_connection(false);
     };
 
   runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);

@@ -140,7 +140,7 @@ Handshake::release_connection() {
 }
 
 void
-Handshake::destroy_connection() {
+Handshake::destroy_connection(bool use_socket_manager) {
   if (!is_open())
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
@@ -148,17 +148,22 @@ Handshake::destroy_connection() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+  auto fn = [this]() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(m_fileDesc);
       set_file_descriptor(-1);
-    });
+    };
+
+  if (use_socket_manager)
+    runtime::socket_manager()->close_event_or_throw(this, fn);
+  else
+    fn();
 
   manager->connection_manager()->dec_socket_count();
 
   if (m_peerInfo == NULL)
-    return;
+    return; // TODO: This should throw.
 
   m_download->peer_list()->disconnected(m_peerInfo, 0);
 
