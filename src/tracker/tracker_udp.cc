@@ -139,8 +139,8 @@ TrackerUdp::close_directly() {
   runtime::socket_manager()->close_event_or_throw(this, [this]() {
       this_thread::event_remove_and_close(this);
 
-      fd_close(m_fileDesc);
-      m_fileDesc = -1;
+      fd_close(file_descriptor());
+      set_file_descriptor(-1);
     });
 }
 
@@ -259,18 +259,36 @@ TrackerUdp::start_announce() {
   LT_LOG("starting announce : connect_address:%s bind_address:%s",
          sa_pretty_str(m_current_address).c_str(), sa_pretty_str(bind_address.get()).c_str());
 
-  runtime::socket_manager()->open_event_or_throw(this, [this, &bind_address]() {
-      m_fileDesc = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
+  auto open_fd = [this, &bind_address]() {
+      int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
 
-      if (m_fileDesc == -1)
+      if (fd == -1)
         return;
+
+      set_file_descriptor(fd);
 
       // TODO: Add socket counting.
       this_thread::event_open(this);
       this_thread::event_insert_read(this);
       this_thread::event_insert_write(this);
       this_thread::event_insert_error(this);
-    });
+    };
+
+  auto cleanup_func = [this]() {
+      if (!is_open()) {
+        LT_LOG("failed to open UDP socket : open failed", 0);
+        return;
+      }
+
+      LT_LOG("failed to open UDP socket : socket manager triggered cleanup", 0);
+
+      this_thread::event_remove_and_close(this);
+
+      fd_close(file_descriptor());
+      set_file_descriptor(-1);
+    };
+
+  runtime::socket_manager()->open_event_or_cleanup(this, open_fd, cleanup_func);
 
   if (!is_open()) {
     LT_LOG("could not open UDP socket: fd:%i error:'%s'", m_fileDesc, std::strerror(errno));
