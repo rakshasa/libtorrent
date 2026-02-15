@@ -480,7 +480,7 @@ CurlSocket::event_error() {
 
 void
 CurlSocket::handle_action(int ev_bitmask) {
-  assert(!is_open() && "CurlSocket::handle_action() !is_open()");
+  assert(is_open() && "CurlSocket::handle_action() is_open()");
   assert(m_stack != nullptr && "CurlSocket::handle_action() m_stack != nullptr");
 
   // Processing might deallocate this CurlSocket.
