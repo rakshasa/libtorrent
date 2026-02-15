@@ -167,7 +167,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       int fd = open_and_connect_socket(connect_address.get());
 
       if (fd == -1) {
-        // download->peer_list()->disconnected(peer_info, 0);
+        download->peer_list()->disconnected(peer_info, 0);
         return;
       }
 
