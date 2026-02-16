@@ -451,7 +451,22 @@ CurlSocket::event_error() {
   //       // clear and erase self.
   //     });
 
-  this_thread::poll()->remove_and_close(this);
+  if (!m_properly_opened) {
+    auto fd    = file_descriptor();
+    auto stack = m_stack;
+
+    runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
+        this_thread::poll()->remove_and_close(this);
+      });
+
+    curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
+    clear_and_erase_self_or_throw();
+
+    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
+    return;
+  }
+
+  throw internal_error("CurlSocket::event_error() : properly opened socket should not implement");
 
   curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
 
@@ -471,19 +486,24 @@ CurlSocket::handle_action(int ev_bitmask) {
   assert(m_stack != nullptr && "CurlSocket::handle_action() m_stack != nullptr");
 
   // Processing might deallocate this CurlSocket.
-  int  count{};
   auto stack = m_stack;
-  auto code  = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
 
-  if (code != CURLM_OK)
-    throw internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
+  CurlSocket::handle_action_simple(stack, file_descriptor(), ev_bitmask);
 
   //
   // TODO: Use Thread::call_events() to process this: ?
   //
-
   while (stack->process_done_handle())
     ; // Do nothing.
+}
+
+void
+CurlSocket::handle_action_simple(CurlStack* stack, int fd, int ev_bitmask) {
+  int  count{};
+  auto code = curl_multi_socket_action(stack->handle(), fd, ev_bitmask, &count);
+
+  if (code != CURLM_OK)
+    throw internal_error("CurlSocket::handle_action_simple(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
 }
 
 void
