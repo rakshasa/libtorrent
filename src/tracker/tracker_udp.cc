@@ -2,6 +2,7 @@
 
 #include "tracker_udp.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <netdb.h>
 
@@ -24,6 +25,9 @@
                          "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
 namespace torrent {
+
+// Static shared DNS cache
+TrackerUdp::dns_cache_type TrackerUdp::s_dns_cache;
 
 TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
   TrackerWorker(info, flags) {
@@ -52,6 +56,8 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   if (!parse_udp_url(info().url, hostname, m_port))
     return receive_failed("could not parse hostname or port");
 
+  m_hostname = hostname.data();  // Store for cache key
+
   lock_and_set_latest_event(new_state);
 
   m_send_state = new_state;
@@ -60,33 +66,83 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   LT_LOG("resolving hostname : address:%s", hostname.data());
 
-  // TODO: Also check failed counter....
   // TODO: Check for changes to block (NC should instead clear us on network changes)
 
-  if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
-      (this_thread::cached_time() - m_time_last_resolved) > 24h ||
-      m_failed_since_last_resolved > 3) {
+  // Check shared DNS cache
+  auto& entry = s_dns_cache[m_hostname];  // Creates entry if not exists
 
-    int family = AF_UNSPEC;
-    bool block_ipv4 = config::network_config()->is_block_ipv4();
-    bool block_ipv6 = config::network_config()->is_block_ipv6();
+  // Check if we have a valid cached result (positive or negative)
+  if (entry.time_resolved.count() > 0) {
+    auto age = this_thread::cached_time() - entry.time_resolved;
 
-    if (block_ipv4 && block_ipv6)
-      return receive_failed("cannot send tracker event, both IPv4 and IPv6 are blocked");
-    else if (block_ipv4)
-      family = AF_INET6;
-    else if (block_ipv6)
-      family = AF_INET;
+    // Negative cache entries expire after 5 minutes
+    bool negative_expired = (entry.cached_error != 0) && (age > 5min);
+    // Positive cache entries expire after 24 hours or 3+ failures
+    bool positive_expired = (entry.cached_error == 0) && ((age > 24h) || (entry.failed_count > 3));
 
-    // Currently discarding SOCK_DGRAM filter.
-    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family,
-                                          [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
-                                            receive_resolved(sin, sin6, err);
-                                          });
+    if (!negative_expired && !positive_expired) {
+      // Cache hit - check if it's a cached error
+      if (entry.cached_error != 0) {
+        LT_LOG("using cached DNS failure : hostname:%s error:%d", m_hostname.c_str(), entry.cached_error);
+        m_resolver_requesting = false;
+        return receive_failed("could not resolve hostname (cached): error:'" + std::string(gai_strerror(entry.cached_error)) + "'");
+      }
+
+      // Valid positive cache entry
+      if (entry.inet_address != nullptr || entry.inet6_address != nullptr) {
+        LT_LOG("using cached DNS : hostname:%s", m_hostname.c_str());
+
+        // Copy from shared cache to instance
+        if (entry.inet_address != nullptr) {
+          m_inet_address = sin_copy(entry.inet_address.get());
+          sa_set_port(reinterpret_cast<sockaddr*>(m_inet_address.get()), m_port);
+        } else {
+          m_inet_address = nullptr;
+        }
+
+        if (entry.inet6_address != nullptr) {
+          m_inet6_address = sin6_copy(entry.inet6_address.get());
+          sa_set_port(reinterpret_cast<sockaddr*>(m_inet6_address.get()), m_port);
+        } else {
+          m_inet6_address = nullptr;
+        }
+
+        m_resolver_requesting = false;
+        start_announce();
+        return;
+      }
+    }
+  }
+
+  // Check if a lookup is already in progress - if so, queue ourselves
+  if (entry.resolving) {
+    LT_LOG("DNS lookup already in progress, queueing : hostname:%s", m_hostname.c_str());
+
+    entry.pending_trackers.push_back(this);
     return;
   }
 
-  start_announce();
+  // Cache miss or expired - need to resolve
+  entry.resolving = true;
+
+  int family = AF_UNSPEC;
+  bool block_ipv4 = config::network_config()->is_block_ipv4();
+  bool block_ipv6 = config::network_config()->is_block_ipv6();
+
+  if (block_ipv4 && block_ipv6)
+    return receive_failed("cannot send tracker event, both IPv4 and IPv6 are blocked");
+  else if (block_ipv4)
+    family = AF_INET6;
+  else if (block_ipv6)
+    family = AF_INET;
+
+  LT_LOG("initiating DNS lookup : hostname:%s", m_hostname.c_str());
+
+  // Currently discarding SOCK_DGRAM filter.
+  this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family,
+                                        [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
+                                          receive_resolved(sin, sin6, err);
+                                        });
 }
 
 void
@@ -127,6 +183,15 @@ TrackerUdp::close_directly() {
   this_thread::resolver()->cancel(static_cast<TrackerWorker*>(this));
   this_thread::scheduler()->erase(&m_task_timeout);
 
+  // Remove ourselves from any pending DNS lookup list
+  if (!m_hostname.empty()) {
+    auto cache_it = s_dns_cache.find(m_hostname);
+    if (cache_it != s_dns_cache.end()) {
+      auto& pending = cache_it->second.pending_trackers;
+      pending.erase(std::remove(pending.begin(), pending.end(), this), pending.end());
+    }
+  }
+
   m_resolver_requesting = false;
   m_sending_announce = false;
 
@@ -151,7 +216,13 @@ TrackerUdp::type() const {
 
 void
 TrackerUdp::receive_failed(const std::string& msg) {
-  m_failed_since_last_resolved++;
+  // Increment failed count in shared cache
+  if (!m_hostname.empty()) {
+    auto cache_it = s_dns_cache.find(m_hostname);
+    if (cache_it != s_dns_cache.end()) {
+      cache_it->second.failed_count++;
+    }
+  }
 
   close_directly();
   m_slot_failure(msg);
@@ -164,18 +235,48 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
   if (std::this_thread::get_id() != torrent::main_thread::thread_id())
     throw internal_error("TrackerUdp::receive_resolved() called from a different thread.");
 
-  LT_LOG("received resolved", 0);
+  LT_LOG("received resolved : hostname:%s err:%d", m_hostname.c_str(), err);
 
   if (!m_resolver_requesting)
     throw internal_error("TrackerUdp::receive_resolved() called but m_resolver_requesting is false.");
 
   m_resolver_requesting = false;
 
+  // Update shared DNS cache
+  auto cache_it = s_dns_cache.find(m_hostname);
+  if (cache_it == s_dns_cache.end()) {
+    // This shouldn't happen, but handle gracefully
+    LT_LOG("cache entry missing for hostname:%s", m_hostname.c_str());
+  } else {
+    auto& cache_entry = cache_it->second;
+
+    // Store result (success or failure)
+    cache_entry.inet_address = sin;
+    cache_entry.inet6_address = sin6;
+    cache_entry.time_resolved = this_thread::cached_time();
+    cache_entry.cached_error = err;
+    cache_entry.failed_count = 0;
+    cache_entry.resolving = false;
+
+    // Notify all pending trackers with the result
+    auto pending = std::move(cache_entry.pending_trackers);
+    cache_entry.pending_trackers.clear();
+
+    LT_LOG("DNS resolved : hostname:%s has_ipv4:%d has_ipv6:%d err:%d pending:%zu",
+           m_hostname.c_str(), sin != nullptr, sin6 != nullptr, err, pending.size());
+
+    for (auto* tracker : pending) {
+      tracker->receive_resolved(sin, sin6, err);
+    }
+  }
+
+  // Handle error case
   if (err != 0) {
     LT_LOG("could not resolve hostname : error:'%s'", gai_strerror(err));
     return receive_failed("could not resolve hostname : error:'" + std::string(gai_strerror(err)) + "'");
   }
 
+  // Copy to instance with port set
   if (sin != nullptr) {
     m_inet_address = sin_copy(sin.get());
     sa_set_port(reinterpret_cast<sockaddr*>(m_inet_address.get()), m_port);
@@ -189,9 +290,6 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
   } else {
     m_inet6_address = nullptr;
   }
-
-  m_time_last_resolved = this_thread::cached_time();
-  m_failed_since_last_resolved = 0;
 
   start_announce();
 }
