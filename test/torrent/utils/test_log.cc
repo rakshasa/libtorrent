@@ -139,7 +139,7 @@ void
 test_log::test_file_output() {
   std::string filename = "test_log.XXXXXX";
 
-  mktemp(&*filename.begin());
+  mktemp(&filename.front());
 
   torrent::log_open_file_output("test_file", filename.c_str());
   torrent::log_add_group_output(GROUP_PARENT_1, "test_file");
@@ -163,7 +163,7 @@ void
 test_log::test_file_output_append() {
   std::string filename = "test_log.XXXXXX";
 
-  mktemp(&*filename.begin());
+  mktemp(&filename.front());
 
   torrent::log_open_file_output("test_file", filename.c_str(), false);
   torrent::log_add_group_output(GROUP_PARENT_1, "test_file");
