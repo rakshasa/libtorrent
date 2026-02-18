@@ -188,7 +188,7 @@ public:
   //
   // Consider making insert_preserve_* return std::pair<Foo*,bool> or
   // something similar.
-  map_insert_type     insert_preserve_any(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return _map().insert(map_type::value_type(k, b)); }
+  map_insert_type     insert_preserve_any(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return _map().emplace(k, b); }
   map_insert_type     insert_preserve_type(const key_type& k, Object& b);
   map_insert_type     insert_preserve_copy(const key_type& k, Object b) { return insert_preserve_type(k, b); }
 
