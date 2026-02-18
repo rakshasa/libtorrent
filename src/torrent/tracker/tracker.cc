@@ -8,6 +8,8 @@ namespace torrent::tracker {
 
 // TODO: Handle !is_valid() errors.
 
+Tracker::Tracker() = default;
+
 Tracker::Tracker(std::shared_ptr<torrent::TrackerWorker>&& worker) :
   m_worker(std::move(worker)) {
 }

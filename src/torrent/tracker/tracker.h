@@ -53,6 +53,7 @@ protected:
   friend class torrent::TrackerList;
   friend class ::TrackerTest;
 
+  Tracker();
   Tracker(std::shared_ptr<torrent::TrackerWorker>&& worker);
 
   TrackerWorker*      get_worker() { return m_worker.get(); }
