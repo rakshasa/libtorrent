@@ -48,8 +48,8 @@ public:
   const BlockList*          parent() const                               { return m_parent; }
   void                      set_parent(BlockList* p)                     { m_parent = p; }
 
-  const Piece&              piece() const                                { return m_piece; }
-  void                      set_piece(const Piece& p)                    { m_piece = p; }
+  auto                      piece() const                                { return m_piece; }
+  void                      set_piece(Piece p)                           { m_piece = p; }
 
   uint32_t                  index() const                                { return m_piece.index(); }
 
@@ -89,7 +89,7 @@ public:
   BlockFailed*              failed_list()                                { return m_failedList; }
   void                      set_failed_list(BlockFailed* f)              { m_failedList = f; }
 
-  static void               create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& piece);
+  static void               create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, Piece piece);
 
   // If the queued or transfering is already removed from the block it
   // will just delete the object. Made static so it can be called when

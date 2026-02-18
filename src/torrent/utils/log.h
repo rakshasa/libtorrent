@@ -175,12 +175,12 @@ public:
 
   void                clear_cached_outputs()             { m_cached_outputs = m_outputs; }
 
-  void                set_outputs(const outputs_type& val)        { m_outputs = val; }
-  void                set_cached_outputs(const outputs_type& val) { m_cached_outputs = val; }
+  void                set_outputs(outputs_type val)         { m_outputs = val; }
+  void                set_cached_outputs(outputs_type val)  { m_cached_outputs = val; }
 
-  void                set_output_at(size_t index, bool val)       { m_outputs[index] = val; }
+  void                set_output_at(size_t index, bool val) { m_outputs[index] = val; }
 
-  void                set_cached(log_slot* f, log_slot* l)        { m_first = f; m_last = l; }
+  void                set_cached(log_slot* f, log_slot* l)  { m_first = f; m_last = l; }
 
 private:
   outputs_type        m_outputs;

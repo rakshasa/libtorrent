@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -106,7 +106,7 @@ Block::insert(PeerInfo* peerInfo) {
 
   return m_queued.emplace_back(block);
 }
-  
+
 void
 Block::erase(BlockTransfer* transfer) {
   if (transfer->is_erased())
@@ -251,7 +251,7 @@ Block::completed(BlockTransfer* transfer) {
   // We need to invalidate those unfinished and keep the one that
   // finished for later reference.
   remove_non_leader_transfers();
-  
+
   // We now know that all transfers except the current leader we're
   // handling has been invalidated.
   if (m_transfers.empty() || m_transfers.back() != transfer)
@@ -281,7 +281,7 @@ Block::transfer_dissimilar(BlockTransfer* transfer) {
   // Why not just delete? Gets done by completed(), though when
   // erasing the leader we need to remove dissimilar unless we have
   // another leader.
-  
+
   transfer->set_state(BlockTransfer::STATE_ERASED);
   transfer->set_position(0);
   transfer->set_block(NULL);
@@ -336,7 +336,7 @@ Block::failed_leader() {
 }
 
 void
-Block::create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& piece) {
+Block::create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, Piece piece) {
   transfer->set_peer_info(peerInfo);
 
   transfer->set_block(NULL);
@@ -379,7 +379,7 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
 
   m_notStalled -= (transfer->stall() == 0);
 
-  // Do the canceling magic here. 
+  // Do the canceling magic here.
   if (transfer->peer_info()->connection() != NULL)
     transfer->peer_info()->connection()->cancel_transfer(transfer);
 }

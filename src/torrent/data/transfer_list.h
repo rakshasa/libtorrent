@@ -47,7 +47,7 @@ public:
 
   void                clear();
 
-  iterator            insert(const Piece& piece, uint32_t blockSize);
+  iterator            insert(Piece piece, uint32_t blockSize);
   iterator            erase(iterator itr);
 
   void                finished(BlockTransfer* transfer);

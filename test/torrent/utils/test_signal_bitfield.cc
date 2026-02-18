@@ -23,7 +23,7 @@ check_index(std::atomic_uint32_t& bitfield, unsigned int index) {
 }
 
 static bool
-verify_did_internal_error(std::function<unsigned int ()> func, bool should_throw) {
+verify_did_internal_error(const std::function<unsigned int ()>& func, bool should_throw) {
   bool did_throw = false;
 
   try {

@@ -381,7 +381,7 @@ PeerList::cull_peers(int flags) {
 }
 
 uint32_t
-PeerList::insert_pex_list(const raw_string& pex_list) {
+PeerList::insert_pex_list(raw_string pex_list) {
   if (pex_list.empty())
     return true;
 

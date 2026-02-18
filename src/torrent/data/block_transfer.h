@@ -56,7 +56,7 @@ public:
 
   void                set_peer_info(key_type p);
   void                set_block(Block* b)           { m_block = b; }
-  void                set_piece(const Piece& p)     { m_piece = p; }
+  void                set_piece(Piece p)            { m_piece = p; }
   void                set_state(state_type s)       { m_state = s; }
   void                set_request_time(int32_t t)   { m_request_time = t; }
 

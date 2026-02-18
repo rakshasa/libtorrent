@@ -61,7 +61,7 @@ FileList::~FileList() {
 }
 
 bool
-FileList::is_valid_piece(const Piece& piece) const {
+FileList::is_valid_piece(Piece piece) const {
   return
     piece.index() < size_chunks() &&
     piece.length() != 0 &&

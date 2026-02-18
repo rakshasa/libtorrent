@@ -525,7 +525,7 @@ DhtRouter::find_node(const sockaddr* sa) {
 }
 
 DhtRouter::DhtBucketList::iterator
-DhtRouter::split_bucket(const DhtBucketList::iterator& itr, DhtNode* node) {
+DhtRouter::split_bucket(DhtBucketList::iterator itr, DhtNode* node) {
   // Split bucket. Current bucket keeps the upper half thus keeping the
   // map key valid, new bucket is the lower half of the original bucket.
   DhtBucket* newBucket = itr->second->split(id());
@@ -586,7 +586,7 @@ DhtRouter::add_node_to_bucket(DhtNode* node) {
 }
 
 void
-DhtRouter::delete_node(const DhtNodeList::accessor& itr) {
+DhtRouter::delete_node(DhtNodeList::accessor itr) {
   if (itr == m_nodes.end())
     throw internal_error("DhtRouter::delete_node called with invalid iterator.");
 

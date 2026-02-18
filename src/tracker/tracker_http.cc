@@ -155,7 +155,7 @@ TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
 }
 
 std::string
-TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, TrackerParameters params, int family) {
+TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, const TrackerParameters& params, int family) {
   std::stringstream s;
   s.imbue(std::locale::classic());
 

@@ -16,9 +16,9 @@ AvailableList::pop_random() {
 
   size_type idx = random() % size();
 
-  auto tmp = std::move(*(begin() + idx));
+  auto tmp = *(begin() + idx);
 
-  *(begin() + idx) = std::move(back());
+  *(begin() + idx) = back();
   pop_back();
 
   return tmp;
