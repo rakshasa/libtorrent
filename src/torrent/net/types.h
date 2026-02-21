@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_NET_TYPES_H
 #define LIBTORRENT_NET_TYPES_H
 
+#include <functional>
 #include <memory>
 #include <tuple>
 #include <netinet/in.h>
@@ -43,7 +44,8 @@ using c_sin_shared_ptr  = std::shared_ptr<const sockaddr_in>;
 using c_sin6_shared_ptr = std::shared_ptr<const sockaddr_in6>;
 using c_sun_shared_ptr  = std::shared_ptr<const sockaddr_un>;
 
-using fd_sap_tuple = std::tuple<int, sa_unique_ptr>;
+using fd_sap_tuple      = std::tuple<int, sa_unique_ptr>;
+using resolver_callback = std::function<void(sin_shared_ptr, sin6_shared_ptr, int)>;
 
 struct listen_result_type {
   int fd;

@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <condition_variable>
 #include <mutex>
 #include <unistd.h>
 
@@ -72,7 +73,7 @@ Thread::stop_thread_wait() {
 void
 Thread::callback(void* target, std::function<void ()>&& fn) {
   {
-    auto lock = std::scoped_lock(m_callbacks_lock);
+    auto lock = std::lock_guard(m_callbacks_lock);
 
     m_callbacks.emplace(target, std::move(fn));
   }
@@ -83,7 +84,7 @@ Thread::callback(void* target, std::function<void ()>&& fn) {
 void
 Thread::callback_interrupt_pollling(void* target, std::function<void ()>&& fn) {
   {
-    auto lock = std::scoped_lock(m_callbacks_lock);
+    auto lock = std::lock_guard(m_callbacks_lock);
 
     m_interrupt_callbacks.emplace(target, std::move(fn));
     m_callbacks_should_interrupt_polling = true;
@@ -93,11 +94,30 @@ Thread::callback_interrupt_pollling(void* target, std::function<void ()>&& fn) {
 }
 
 void
+Thread::callback_interrupt_pollling_and_wait(void* target, std::function<void ()>&& fn) {
+  std::mutex              callback_mutex;
+  std::condition_variable callback_cv;
+
+  auto wrapped_fn = [&callback_mutex, &callback_cv, fn = std::move(fn)]() mutable {
+      auto lock = std::lock_guard(callback_mutex);
+      fn();
+      callback_cv.notify_one();
+    };
+
+  callback_interrupt_pollling(target, std::move(wrapped_fn));
+
+  {
+    auto lock = std::unique_lock(callback_mutex);
+    callback_cv.wait(lock);
+  }
+}
+
+void
 Thread::cancel_callback(void* target) {
   if (target == nullptr)
     throw internal_error("Thread::cancel_callback called with a null pointer target.");
 
-  auto lock = std::scoped_lock(m_callbacks_lock);
+  auto lock = std::lock_guard(m_callbacks_lock);
 
   m_callbacks.erase(target);
   m_interrupt_callbacks.erase(target);
@@ -108,7 +128,7 @@ Thread::cancel_callback_and_wait(void* target) {
   cancel_callback(target);
 
   if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing)
-    auto lock = std::scoped_lock(m_callbacks_processing_lock);
+    auto lock = std::lock_guard(m_callbacks_processing_lock);
 }
 
 // Fix interrupting when shutting down thread.
@@ -269,7 +289,7 @@ Thread::process_callbacks(bool only_interrupt) {
     std::function<void ()> callback;
 
     {
-      auto lock = std::scoped_lock(m_callbacks_lock);
+      auto lock = std::lock_guard(m_callbacks_lock);
 
       if (!m_interrupt_callbacks.empty())
         callback = m_interrupt_callbacks.extract(m_interrupt_callbacks.begin()).mapped();

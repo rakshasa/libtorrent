@@ -11,15 +11,13 @@
 
 struct dns_ctx;
 
-namespace torrent {
+namespace torrent::net {
 
 struct UdnsQuery;
 class  UdnsResolverInternal;
 
 class UdnsResolver : public Event {
 public:
-  using resolver_callback = std::function<void(sin_shared_ptr, sin6_shared_ptr, int)>;
-
   using query_map = std::multimap<void*, std::unique_ptr<UdnsQuery>>;
 
   UdnsResolver();
@@ -71,6 +69,6 @@ protected:
   query_map           m_malformed_queries_unsafe;
 };
 
-} // namespace torrent
+} // namespace torrent::net
 
 #endif // LIBTORRENT_NET_UDNSEVENT_H

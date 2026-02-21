@@ -3,6 +3,7 @@
 #include "net/thread_net.h"
 
 #include "net/curl_stack.h"
+#include "net/dns_buffer.h"
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
@@ -18,14 +19,17 @@ public:
 
 namespace net_thread {
 
-torrent::utils::Thread*  thread()                                            { return ThreadNetInternal::thread_net(); }
-std::thread::id          thread_id()                                         { return ThreadNetInternal::thread_net()->thread_id(); }
+torrent::utils::Thread*  thread()                                                    { return ThreadNetInternal::thread_net(); }
+std::thread::id          thread_id()                                                 { return ThreadNetInternal::thread_net()->thread_id(); }
 
-void                     callback(void* target, std::function<void ()>&& fn) { ThreadNetInternal::thread_net()->callback(target, std::move(fn)); }
-void                     cancel_callback(void* target)                       { ThreadNetInternal::thread_net()->cancel_callback(target); }
-void                     cancel_callback_and_wait(void* target)              { ThreadNetInternal::thread_net()->cancel_callback_and_wait(target); }
+void callback(void* target, std::function<void ()>&& fn)                             { ThreadNetInternal::thread_net()->callback(target, std::move(fn)); }
+void callback_interrupt_pollling(void* target, std::function<void ()>&& fn)          { ThreadNetInternal::thread_net()->callback_interrupt_pollling(target, std::move(fn)); }
+void callback_interrupt_pollling_and_wait(void* target, std::function<void ()>&& fn) { ThreadNetInternal::thread_net()->callback_interrupt_pollling_and_wait(target, std::move(fn)); }
 
-torrent::net::HttpStack* http_stack()                                        { return ThreadNetInternal::http_stack(); }
+void cancel_callback(void* target)                                                   { ThreadNetInternal::thread_net()->cancel_callback(target); }
+void cancel_callback_and_wait(void* target)                                          { ThreadNetInternal::thread_net()->cancel_callback_and_wait(target); }
+
+torrent::net::HttpStack* http_stack()                                                { return ThreadNetInternal::http_stack(); }
 
 } // namespace net_thread
 
@@ -37,8 +41,9 @@ void
 ThreadNet::create_thread() {
   auto thread = new ThreadNet;
 
-  thread->m_http_stack = std::make_unique<net::HttpStack>(thread);
-  thread->m_udns       = std::make_unique<UdnsResolver>();
+  thread->m_http_stack   = std::make_unique<net::HttpStack>(thread);
+  thread->m_dns_buffer   = std::make_unique<net::DnsBuffer>();
+  thread->m_dns_resolver = std::make_unique<net::UdnsResolver>();
 
   m_thread_net = thread;
 }
@@ -63,13 +68,13 @@ ThreadNet::init_thread() {
 
 void
 ThreadNet::init_thread_post_local() {
-  m_udns->initialize(this);
+  m_dns_resolver->initialize(this);
 }
 
 void
 ThreadNet::cleanup_thread() {
   m_http_stack->shutdown();
-  m_udns->cleanup();
+  m_dns_resolver->cleanup();
 }
 
 void
@@ -89,7 +94,7 @@ ThreadNet::call_events() {
   }
 
   process_callbacks();
-  m_udns->flush();
+  m_dns_resolver->flush();
   process_callbacks();
 }
 
