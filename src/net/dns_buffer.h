@@ -3,8 +3,8 @@
 
 #include <array>
 #include <deque>
-#include <memory>
 #include <functional>
+#include <string>
 
 #include "torrent/net/types.h"
 
