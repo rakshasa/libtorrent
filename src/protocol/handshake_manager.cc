@@ -258,7 +258,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
     });
 
   if (new_event == nullptr) {
-    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
+    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
     return;
   }
 
