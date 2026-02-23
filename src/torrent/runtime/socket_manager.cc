@@ -200,6 +200,7 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> fu
   m_socket_map.erase(itr);
 }
 
+// Always returns non-null if func() succeeds.
 Event*
 SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) {
   auto guard = lock_guard();

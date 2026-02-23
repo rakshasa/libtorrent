@@ -243,24 +243,22 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
       auto fd        = handshake->file_descriptor();
       auto peer_info = handshake->peer_info();
 
+      LT_LOG_SA(peer_info->socket_address(), "transfering handshake: type:%s id:%s", peer_type, hash_str.c_str());
+
       handshake->release_connection();
 
       auto pcb = download->connection_list()->insert(peer_info, fd,
                                                      handshake->bitfield(),
                                                      handshake->encryption()->info(),
                                                      handshake->extensions());
-      if (pcb == nullptr) {
-        error_func(e_handshake_duplicate);
+      if (pcb == nullptr)
         fd_close(fd);
-        return nullptr;
-      }
 
       return pcb;
     });
 
   if (new_event == nullptr) {
-    LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'socket transfer failed'",
-              peer_type, hash_str.c_str());
+    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
     return;
   }
 
