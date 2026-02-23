@@ -11,27 +11,11 @@
 
 namespace torrent::net {
 
+namespace {
+}
+
 DnsBuffer::DnsBuffer() = default;
 DnsBuffer::~DnsBuffer() = default;
-
-// void
-// UdnsBuffer::initialize(utils::Thread* thread) {
-//   assert(std::this_thread::get_id() == thread->thread_id());
-
-//   LT_LOG("initializing udns buffer: thread:%s", thread->name());
-
-//   m_thread = thread;
-// }
-
-// void
-// UdnsBuffer::cleanup() {
-//   assert(std::this_thread::get_id() == m_thread->thread_id());
-
-//   LT_LOG("cleaning up: thread:%s", m_thread->name());
-
-//   // m_active_queries.clear();
-//   // m_pending_queries.clear();
-// }
 
 // We don't try to resolve numeric addresses here, as that should be done in DnsCache or UdnsResolver.
 
@@ -39,13 +23,16 @@ void
 DnsBuffer::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
-  // if (requester == nullptr)
-  //   throw internal_error("DnsBuffer::resolve() called with null requester");
+  // TODO: First search active and pending queries for a matching hostname and family.
 
-  if (m_active_queries.size() < max_requests)
+  if (m_active_queries.size() < max_requests) {
     activate_query(DnsBufferQuery{requester, hostname, family, std::move(callback)});
-  else
-    m_pending_queries.emplace_back(DnsBufferQuery{requester, hostname, family, std::move(callback)});
+    return;
+  }
+
+  m_pending_queries.emplace_back(DnsBufferQuery{requester, hostname, family, std::move(callback)});
+
+  m_requesters[requester].query_iters.push_back(std::prev(m_pending_queries.end()));
 }
 
 void
@@ -64,12 +51,17 @@ DnsBuffer::cancel(void* requester) {
     }
   }
 
+  auto remove_itr = std::remove_if(m_pending_queries.begin(), m_pending_queries.end(), [requester](const auto& query) {
+      return query.requester == requester;
+    });
+
+  m_pending_queries.erase(remove_itr, m_pending_queries.end());
+  m_requesters.erase(requester);
+
+  // TODO: Replace 'requester' with address of active array slot.
+
   if (initial_count != m_active_query_count)
     ThreadNet::thread_net()->dns_resolver()->cancel(requester);
-
-  m_pending_queries.erase(std::remove_if(m_pending_queries.begin(), m_pending_queries.end(), [requester](const auto& query) {
-      return query.requester == requester;
-    }), m_pending_queries.end());
 }
 
 void
@@ -92,8 +84,10 @@ DnsBuffer::activate_query(DnsBufferQuery query) {
   *itr = std::move(query);
   m_active_query_count++;
 
-  auto fn = [this, itr](sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error) {
-      process(std::distance(m_active_queries.begin(), itr), std::move(result_sin), std::move(result_sin6), error);
+  auto index = std::distance(m_active_queries.begin(), itr);
+
+  auto fn = [this, index](sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error) {
+      process(index, std::move(result_sin), std::move(result_sin6), error);
     };
 
   ThreadNet::thread_net()->dns_resolver()->resolve(itr->requester, itr->hostname, itr->family, std::move(fn));
