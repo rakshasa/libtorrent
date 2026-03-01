@@ -5,6 +5,7 @@
 #include <functional>
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -13,20 +14,26 @@
 
 namespace torrent::net {
 
-// TODO: Currently this is just a buffer for the resolver, however we also want a cache so depending
-// on how cleanly it can be implemented we might deprecate this intermediate class.
+// It is assume that 'requester' does very few simultaneous requests, so searching for pending
+// queries is not too expensive.
+
+struct DnsBufferRequester;
+
+struct DnsBufferCallback {
+  std::weak_ptr<DnsBufferRequester> requester;
+  resolver_callback                 callback;
+};
 
 struct DnsBufferQuery {
-  int               family{-1};
-  std::string       hostname;
-
-  // Empty callbacks indicates an inactive query slot.
-  std::vector<std::pair<void*, resolver_callback>> callbacks;
+  // Family set to '-1' indicates an empty query.
+  int                            family{-1};
+  std::string                    hostname;
+  std::vector<DnsBufferCallback> callbacks;
 };
 
 struct DnsBufferRequester {
-  std::vector<unsigned int>                        active_queries;
-  std::vector<std::list<DnsBufferQuery>::iterator> pending_queries;
+  unsigned int active_query_count{};
+  unsigned int pending_query_count{};
 };
 
 class DnsBuffer {
@@ -36,7 +43,7 @@ public:
   DnsBuffer();
   ~DnsBuffer();
 
-  void                resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback);
+  void                resolve(void* requester, const std::string& hostname, int family, resolver_callback&& fn);
 
   void                cancel(void* requester);
 
@@ -45,11 +52,11 @@ public:
 
 private:
   using active_query_list = std::array<DnsBufferQuery, max_requests>;
-  using requester_list    = std::map<void*, DnsBufferRequester>;
+  using requester_list    = std::map<void*, std::shared_ptr<DnsBufferRequester>>;
 
-  unsigned int        activate_query(DnsBufferQuery query);
-  void                activate_new_query(void* requester, DnsBufferQuery query);
+  // void                activate_new_query(
   void                activate_pending_query();
+  unsigned int        activate_and_resolve_query(DnsBufferQuery query);
 
   void*               requester_from_index(unsigned int index) const;
 
