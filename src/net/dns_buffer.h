@@ -17,7 +17,7 @@ namespace torrent::net {
 // on how cleanly it can be implemented we might deprecate this intermediate class.
 
 struct DnsBufferQuery {
-  int               family{};
+  int               family{-1};
   std::string       hostname;
 
   // Empty callbacks indicates an inactive query slot.
@@ -47,7 +47,11 @@ private:
   using active_query_list = std::array<DnsBufferQuery, max_requests>;
   using requester_list    = std::map<void*, DnsBufferRequester>;
 
-  void                activate_query(DnsBufferQuery query);
+  unsigned int        activate_query(DnsBufferQuery query);
+  void                activate_new_query(void* requester, DnsBufferQuery query);
+  void                activate_pending_query();
+
+  void*               requester_from_index(unsigned int index) const;
 
   void                process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error);
 
