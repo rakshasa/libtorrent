@@ -82,6 +82,8 @@ libtorrent_other_la_SOURCES = \
 	net/curl_socket.h \
 	net/curl_stack.cc \
 	net/curl_stack.h \
+	net/dns_buffer.cc \
+	net/dns_buffer.h \
 	net/listen.cc \
 	net/listen.h \
 	net/protocol_buffer.h \

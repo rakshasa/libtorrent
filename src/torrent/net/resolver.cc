@@ -5,7 +5,7 @@
 #include <cassert>
 
 #include "net/thread_net.h"
-#include "net/udns_resolver.h"
+#include "net/dns_buffer.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/thread.h"
@@ -26,7 +26,7 @@ Resolver::resolve_both(void* requester, const std::string& hostname, int family,
           m_thread->callback(requester, std::bind(std::move(callback), std::move(sin), std::move(sin6), err));
         };
 
-      ThreadNet::thread_net()->udns()->resolve(requester, hostname, family, std::move(fn));
+      ThreadNet::thread_net()->dns_buffer()->resolve(requester, hostname, family, std::move(fn));
     };
 
   net_thread::callback(requester, std::move(cb));
@@ -60,7 +60,7 @@ Resolver::resolve_preferred(void* requester, const std::string& hostname, int fa
           m_thread->callback(requester, std::bind(std::move(callback), std::move(result), err));
         };
 
-      ThreadNet::thread_net()->udns()->resolve(requester, hostname, family, std::move(fn));
+      ThreadNet::thread_net()->dns_buffer()->resolve(requester, hostname, family, std::move(fn));
     };
 
   net_thread::callback(requester, std::move(cb));
@@ -83,7 +83,7 @@ Resolver::resolve_specific(void* requester, const std::string& hostname, int fam
           m_thread->callback(requester, std::bind(std::move(callback), std::move(result), err));
         };
 
-      ThreadNet::thread_net()->udns()->resolve(requester, hostname, family, std::move(fn));
+      ThreadNet::thread_net()->dns_buffer()->resolve(requester, hostname, family, std::move(fn));
     };
 
   net_thread::callback(requester, std::move(cb));
@@ -93,10 +93,19 @@ void
 Resolver::cancel(void* requester) {
   assert(m_thread != nullptr && std::this_thread::get_id() == m_thread->thread_id());
 
-  // While processing results, udns is locked so we only need to cancel the callback before
-  // canceling the request.
+  // While processing results, udns is locked so we need to cancel the callback before canceling the
+  // request.
   net_thread::cancel_callback_and_wait(requester);
-  ThreadNet::thread_net()->udns()->cancel(requester);
+
+  // TODO: Can we optimize this now that we use std::shared_ptr for the requesters?
+  //
+  // TODO: We'll add an atomic bool we set when canceling, and when we lock the weak_ptr it will
+  // fail if already deleted?
+
+  net_thread::callback_interrupt_polling_and_wait(requester, [requester]() {
+      ThreadNet::thread_net()->dns_buffer()->cancel(requester);
+    });
+
   m_thread->cancel_callback_and_wait(requester);
 }
 

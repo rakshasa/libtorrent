@@ -70,7 +70,9 @@ public:
   void                stop_thread_wait();
 
   void                callback(void* target, std::function<void ()>&& fn);
-  void                callback_interrupt_pollling(void* target, std::function<void ()>&& fn);
+  void                callback_interrupt_polling(void* target, std::function<void ()>&& fn);
+  void                callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn);
+
   void                cancel_callback(void* target);
   void                cancel_callback_and_wait(void* target);
 

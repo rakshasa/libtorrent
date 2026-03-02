@@ -177,7 +177,7 @@ CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback
 
   self->m_was_closed = true;
 
-  self->m_stack->thread()->callback_interrupt_pollling(self, [curl_stack = self->m_stack, curl_get]() {
+  self->m_stack->thread()->callback_interrupt_polling(self, [curl_stack = self->m_stack, curl_get]() {
       curl_stack->close_get(curl_get);
     });
 

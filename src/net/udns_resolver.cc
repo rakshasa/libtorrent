@@ -18,7 +18,7 @@
 #define LT_LOG(log_fmt, ...)                                \
   lt_log_print_subsystem(LOG_NET_DNS, "dns", log_fmt, __VA_ARGS__);
 
-namespace torrent {
+namespace torrent::net {
 
 struct UdnsQuery {
   // TODO: We already use deleted.
@@ -28,7 +28,7 @@ struct UdnsQuery {
   std::string       hostname;
   int               family{};
 
-  UdnsResolver::resolver_callback callback;
+  resolver_callback callback;
 
   // TODO: Verify canceled and deleted atomicity.
 
@@ -337,7 +337,7 @@ UdnsResolver::process_timeouts() {
     return;
   }
 
-  if (timeout <= 0)
+  if (timeout < 0)
     throw internal_error("UdnsResolver::process_timeouts() dns_timeouts returned invalid timeout: " + std::to_string(timeout));
 
   LT_LOG("processing timeouts, next in %d seconds", timeout);
@@ -443,4 +443,4 @@ UdnsResolver::process_final_result_unsafe(std::unique_ptr<UdnsQuery>&& query) {
   query->callback(query->result_sin, query->result_sin6, 0);
 }
 
-} // namespace torrent
+} // namespace torrent::net
