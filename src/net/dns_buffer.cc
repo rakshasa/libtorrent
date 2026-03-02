@@ -12,13 +12,12 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG(log_fmt, ...)                                \
+#define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_subsystem(LOG_NET_DNS, "dns-buffer", log_fmt, __VA_ARGS__);
+#define LT_LOG_REQUESTER(log_fmt, ...)                                  \
+  lt_log_print(LOG_NET_DNS, "%016p->dns-buffer : " log_fmt, requester, __VA_ARGS__);
 
 namespace torrent::net {
-
-namespace {
-}
 
 DnsBuffer::DnsBuffer() = default;
 DnsBuffer::~DnsBuffer() = default;
@@ -29,59 +28,56 @@ void
 DnsBuffer::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& fn) {
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
-  // TODO: Lock for whole function, or to activate_and_resolve_query() (or to increment counts)
-  // TODO: We don't need to synchrnoize the requester objects, they don't have dtors.
+  auto initialize_fn = [this, requester, fn = std::move(fn)](bool is_active) mutable {
+      auto requester_itr = m_requesters.find(requester);
 
-  auto requester_itr = m_requesters.find(requester);
+      if (requester_itr == m_requesters.end())
+        requester_itr = m_requesters.emplace(requester, std::make_shared<DnsBufferRequester>()).first;
 
-  if (requester_itr == m_requesters.end())
-    requester_itr = m_requesters.emplace(requester, std::make_shared<DnsBufferRequester>()).first;
+      // TODO: Add sanity check for count during development.
 
-  auto callback = DnsBufferCallback{requester_itr->second, std::move(fn)};
+      if (is_active)
+        requester_itr->second->active_query_count++;
+      else
+        requester_itr->second->pending_query_count++;
+
+      return DnsBufferCallback{requester_itr->second, std::move(fn)};
+    };
 
   // Check for existing active or pending query:
 
   if (m_active_query_count != 0) {
     for (auto& query : m_active_queries) {
       if (query.family == family && query.hostname == hostname) {
-        requester_itr->second->active_query_count++;
-        query.callbacks.push_back(std::move(callback));
+        query.callbacks.push_back(initialize_fn(true));
 
-        // TODO: Add sanity check for count during development.
-
-        LT_LOG("added to active query : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
+        LT_LOG_REQUESTER("added to active query : name:%s family:%d", hostname.c_str(), family);
         return;
       }
     }
 
     for (auto& query : m_pending_queries) {
       if (query.family == family && query.hostname == hostname) {
-        requester_itr->second->pending_query_count++;
-        query.callbacks.push_back(std::move(callback));
+        query.callbacks.push_back(initialize_fn(false));
 
-        // TODO: Add sanity check for count during development.
-
-        LT_LOG("added to pending query : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
+        LT_LOG_REQUESTER("added to pending query : name:%s family:%d", hostname.c_str(), family);
         return;
       }
     }
   }
 
   // No existing query, create a new one:
-  auto query = DnsBufferQuery{family, hostname, {std::move(callback)}};
 
   if (m_active_query_count < max_requests) {
-    requester_itr->second->active_query_count++;
-    activate_and_resolve_query(std::move(query));
+    LT_LOG_REQUESTER("added new active query : name:%s family:%d", hostname.c_str(), family);
 
-    LT_LOG("added new active query : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
+    activate_and_resolve_query(DnsBufferQuery{family, hostname, {initialize_fn(true)}});
     return;
   }
 
-  requester_itr->second->pending_query_count++;
-  m_pending_queries.insert(m_pending_queries.end(), std::move(query));
+  LT_LOG_REQUESTER("added new pending query : name:%s family:%d", hostname.c_str(), family);
 
-  LT_LOG("added new pending query : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
+  m_pending_queries.insert(m_pending_queries.end(), DnsBufferQuery{family, hostname, {initialize_fn(false)}});
 }
 
 void
@@ -100,7 +96,7 @@ DnsBuffer::cancel(void* requester) {
 
   m_requesters.erase(requester_itr);
 
-  LT_LOG("canceled : requester:%p", requester);
+  LT_LOG_REQUESTER("canceled", 0);
 }
 
 void
@@ -113,7 +109,8 @@ DnsBuffer::activate_pending_query() {
     m_pending_queries.pop_front();
 
     auto erase_itr = std::remove_if(query.callbacks.begin(), query.callbacks.end(), [](const auto& callback) {
-        auto requester = callback.requester.lock();
+        auto requester_ptr = callback.requester.lock();
+        auto requester = requester_ptr.get();
 
         if (requester == nullptr)
           return true;
@@ -123,6 +120,8 @@ DnsBuffer::activate_pending_query() {
 
         requester->pending_query_count--;
         requester->active_query_count++;
+
+        LT_LOG_REQUESTER("moved from pending to active query", 0);
 
         return false;
       });
@@ -139,8 +138,7 @@ DnsBuffer::activate_pending_query() {
   }
 }
 
-// TODO: Remove return value.
-unsigned int
+void
 DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
@@ -166,12 +164,10 @@ DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
       process(index, std::move(result_sin), std::move(result_sin6), error);
     };
 
-  LT_LOG("activating query : requesters:%zu name:%s family:%d index:%u",
-         itr->callbacks.size(), itr->hostname.c_str(), itr->family, index);
+  // LT_LOG("activating query : requesters:%zu name:%s family:%d index:%u",
+  //        itr->callbacks.size(), itr->hostname.c_str(), itr->family, index);
 
   ThreadNet::thread_net()->dns_resolver()->resolve(requester_from_index(index), itr->hostname, itr->family, std::move(fn));
-
-  return index;
 }
 
 void
@@ -186,39 +182,40 @@ DnsBuffer::process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_pt
   m_active_queries[index] = DnsBufferQuery{};
   m_active_query_count--;
 
-  if (error == 0) {
-    LT_LOG("processing result : requesters:%zu name:%s family:%d index:%u inet:%s inet6:%s",
-           query.callbacks.size(), query.hostname.c_str(), query.family, index,
-           sin_pretty_or_empty(result_sin.get()).c_str(), sin6_pretty_or_empty(result_sin6.get()).c_str());
-  } else {
-    LT_LOG("processing result : requesters:%zu name:%s family:%d index:%u : %s",
-           query.callbacks.size(), query.hostname.c_str(), query.family, index, gai_strerror(error));
-  }
-
   if (query.family != AF_UNSPEC && query.family != AF_INET && query.family != AF_INET6)
     throw internal_error("DnsBuffer::process() query.family is invalid");
 
-  for (auto& callback : query.callbacks) {
-    auto requester = callback.requester.lock();
-
-    if (requester == nullptr)
-      continue;
-
-    if (requester->active_query_count == 0)
-      throw internal_error("DnsBuffer::process() requester active_query_count is already 0");
-
-    requester->active_query_count--;
-
-    LT_LOG("processing callback : requester:%p", requester.get());
-
-    // TODO: Lock here, and check if use_count is greater than 1 before calling callback.
-
-    // Block cancel() until this is done to ensure callbacks for the requester are all canceled.
-    if (requester.use_count() > 1)
-      callback.callback(std::move(result_sin), std::move(result_sin6), error);
-  }
+  for (auto& callback : query.callbacks)
+    process_callback(callback, result_sin, result_sin6, error);
 
   activate_pending_query();
+}
+
+void
+DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error) {
+  auto requester_ptr = callback.requester.lock();
+  auto requester = requester_ptr.get();
+
+  if (requester == nullptr)
+    return;
+
+  if (requester->active_query_count == 0)
+    throw internal_error("DnsBuffer::process() requester active_query_count is already 0");
+
+  requester->active_query_count--;
+
+  if (error == 0) {
+    LT_LOG_REQUESTER("processing callback : inet:%s inet6:%s",
+                    sin_pretty_or_empty(result_sin.get()).c_str(), sin6_pretty_or_empty(result_sin6.get()).c_str());
+  } else {
+    LT_LOG_REQUESTER("processing callback : %s", gai_strerror(error));
+  }
+
+  // TODO: Lock here, and check if use_count is greater than 1 before calling callback.
+
+  // Block cancel() until this is done to ensure callbacks for the requester are all canceled.
+  if (requester_ptr.use_count() > 1)
+    callback.callback(result_sin, result_sin6, error);
 }
 
 void*
