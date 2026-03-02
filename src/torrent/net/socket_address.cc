@@ -679,7 +679,33 @@ sin_pretty_str(const sockaddr_in* sa) {
 }
 
 std::string
+sin_pretty_or_empty(const sockaddr_in* sa) {
+  if (sa == nullptr)
+    return "";
+
+  auto result = sin_addr_str(sa);
+
+  if (sa->sin_port != 0)
+    result += ':' + std::to_string(ntohs(sa->sin_port));
+
+  return result;
+}
+
+std::string
 sin6_pretty_str(const sockaddr_in6* sa) {
+  auto result = "[" + sin6_addr_str(sa) + "]";
+
+  if (sa->sin6_port != 0)
+    result += ':' + std::to_string(ntohs(sa->sin6_port));
+
+  return result;
+}
+
+std::string
+sin6_pretty_or_empty(const sockaddr_in6* sa) {
+  if (sa == nullptr)
+    return "";
+
   auto result = "[" + sin6_addr_str(sa) + "]";
 
   if (sa->sin6_port != 0)
@@ -692,8 +718,6 @@ c_sa_shared_ptr
 sa_lookup_address(const std::string& address_str, int family) {
   if (address_str.empty())
     return sa_make_unspec();
-
-  // don't use rak::, use unix getaddrinfo
 
   addrinfo hints = {};
   hints.ai_family = family;

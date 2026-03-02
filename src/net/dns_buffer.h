@@ -58,9 +58,9 @@ private:
   void                activate_pending_query();
   unsigned int        activate_and_resolve_query(DnsBufferQuery query);
 
-  void*               requester_from_index(unsigned int index) const;
-
   void                process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error);
+
+  void*               requester_from_index(unsigned int index);
 
   unsigned int              m_active_query_count{};
   active_query_list         m_active_queries;

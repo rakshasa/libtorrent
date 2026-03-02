@@ -97,7 +97,12 @@ Resolver::cancel(void* requester) {
   // request.
   net_thread::cancel_callback_and_wait(requester);
 
-  net_thread::callback_interrupt_pollling_and_wait(requester, [requester]() {
+  // TODO: Can we optimize this now that we use std::shared_ptr for the requesters?
+  //
+  // TODO: We'll add an atomic bool we set when canceling, and when we lock the weak_ptr it will
+  // fail if already deleted?
+
+  net_thread::callback_interrupt_polling_and_wait(requester, [requester]() {
       ThreadNet::thread_net()->dns_buffer()->cancel(requester);
     });
 

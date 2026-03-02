@@ -95,12 +95,9 @@ std::string sin6_addr_str(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 std::string sa_pretty_str(const sockaddr* sa) LIBTORRENT_EXPORT;
 std::string sin_pretty_str(const sockaddr_in* sa) LIBTORRENT_EXPORT;
+std::string sin_pretty_or_empty(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 std::string sin6_pretty_str(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
-
-// Rename/replace:
-void sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) LIBTORRENT_EXPORT;
-
-std::string sa_pretty_address_str(const sockaddr* sa) LIBTORRENT_EXPORT;
+std::string sin6_pretty_or_empty(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 c_sa_shared_ptr sa_lookup_address(const std::string& address_str, int family);
 

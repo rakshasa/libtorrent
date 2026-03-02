@@ -82,7 +82,7 @@ Thread::callback(void* target, std::function<void ()>&& fn) {
 }
 
 void
-Thread::callback_interrupt_pollling(void* target, std::function<void ()>&& fn) {
+Thread::callback_interrupt_polling(void* target, std::function<void ()>&& fn) {
   {
     auto lock = std::lock_guard(m_callbacks_lock);
 
@@ -94,21 +94,28 @@ Thread::callback_interrupt_pollling(void* target, std::function<void ()>&& fn) {
 }
 
 void
-Thread::callback_interrupt_pollling_and_wait(void* target, std::function<void ()>&& fn) {
+Thread::callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn) {
   std::mutex              callback_mutex;
   std::condition_variable callback_cv;
 
-  auto wrapped_fn = [&callback_mutex, &callback_cv, fn = std::move(fn)]() mutable {
-      auto lock = std::lock_guard(callback_mutex);
+  bool done{};
+
+  auto wrapped_fn = [&callback_mutex, &callback_cv, &done, fn = std::move(fn)]() {
       fn();
+
+      {
+        auto lock = std::lock_guard(callback_mutex);
+        done = true;
+      }
+
       callback_cv.notify_one();
     };
 
-  callback_interrupt_pollling(target, std::move(wrapped_fn));
+  callback_interrupt_polling(target, std::move(wrapped_fn));
 
   {
     auto lock = std::unique_lock(callback_mutex);
-    callback_cv.wait(lock);
+    callback_cv.wait(lock, [&done]() { return done; });
   }
 }
 
