@@ -1,11 +1,14 @@
 #ifndef LIBTORRENT_NET_DNS_BUFFER_H
 #define LIBTORRENT_NET_DNS_BUFFER_H
 
+// TODO: Review headers
+
 #include <array>
 #include <functional>
 #include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -43,9 +46,11 @@ public:
   DnsBuffer();
   ~DnsBuffer();
 
+  // The 'fn' callback must do work in the originating thread using callbacks with 'requester'.
   void                resolve(void* requester, const std::string& hostname, int family, resolver_callback&& fn);
 
-  void                cancel(void* requester);
+  // Calling thread must cancel callbacks with 'requester' afterwards.
+  void                cancel_safe(void* requester);
 
   // TODO: Add a slot for completed queries so we can add the entry to the cache before calling the
   // list of callbacks.
@@ -54,11 +59,11 @@ private:
   using active_query_list = std::array<DnsBufferQuery, max_requests>;
   using requester_list    = std::map<void*, std::shared_ptr<DnsBufferRequester>>;
 
-  // void                activate_new_query(
   void                activate_pending_query();
-  unsigned int        activate_and_resolve_query(DnsBufferQuery query);
+  void                activate_and_resolve_query(DnsBufferQuery query);
 
   void                process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error);
+  void                process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error);
 
   void*               requester_from_index(unsigned int index);
 
@@ -66,6 +71,7 @@ private:
   active_query_list         m_active_queries;
   std::list<DnsBufferQuery> m_pending_queries;
 
+  std::mutex                m_requesters_mutex;
   requester_list            m_requesters;
 };
 

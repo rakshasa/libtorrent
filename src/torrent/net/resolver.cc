@@ -95,18 +95,14 @@ Resolver::cancel(void* requester) {
 
   // While processing results, udns is locked so we need to cancel the callback before canceling the
   // request.
+
+  // We need this to ensure new addition don't get lazily added.
   net_thread::cancel_callback_and_wait(requester);
 
-  // TODO: Can we optimize this now that we use std::shared_ptr for the requesters?
-  //
-  // TODO: We'll add an atomic bool we set when canceling, and when we lock the weak_ptr it will
-  // fail if already deleted?
+  ThreadNet::thread_net()->dns_buffer()->cancel_safe(requester);
 
-  net_thread::callback_interrupt_polling_and_wait(requester, [requester]() {
-      ThreadNet::thread_net()->dns_buffer()->cancel(requester);
-    });
-
-  m_thread->cancel_callback_and_wait(requester);
+  // Self thread doesn't need to wait.
+  m_thread->cancel_callback(requester);
 }
 
 } // namespace torrent::net
