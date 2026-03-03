@@ -20,7 +20,23 @@
 namespace torrent::net {
 
 DnsBuffer::DnsBuffer() = default;
-DnsBuffer::~DnsBuffer() = default;
+
+DnsBuffer::~DnsBuffer() {
+  assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
+
+  // if (m_active_query_count != 0)
+  //   throw internal_error("DnsBuffer::~DnsBuffer() m_active_query_count != 0");
+
+  // if (!m_pending_queries.empty())
+  //   throw internal_error("DnsBuffer::~DnsBuffer() !m_pending_queries.empty()");
+
+  {
+    // Lock to ensure cancel_safe() calls are not in progress.
+    auto guard = std::lock_guard(m_requesters_mutex);
+
+    m_requesters.clear();
+  }
+}
 
 // We don't try to resolve numeric addresses here, as that should be done in DnsCache or UdnsResolver.
 
@@ -29,19 +45,20 @@ DnsBuffer::resolve(void* requester, const std::string& hostname, int family, res
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
   auto initialize_fn = [this, requester, fn = std::move(fn)](bool is_active) mutable {
-      auto requester_itr = m_requesters.find(requester);
+      auto guard = std::lock_guard(m_requesters_mutex);
+      auto itr   = m_requesters.find(requester);
 
-      if (requester_itr == m_requesters.end())
-        requester_itr = m_requesters.emplace(requester, std::make_shared<DnsBufferRequester>()).first;
+      if (itr == m_requesters.end())
+        itr = m_requesters.emplace(requester, std::make_shared<DnsBufferRequester>()).first;
 
       // TODO: Add sanity check for count during development.
 
       if (is_active)
-        requester_itr->second->active_query_count++;
+        itr->second->active_query_count++;
       else
-        requester_itr->second->pending_query_count++;
+        itr->second->pending_query_count++;
 
-      return DnsBufferCallback{requester_itr->second, std::move(fn)};
+      return DnsBufferCallback{itr->second, std::move(fn)};
     };
 
   // Check for existing active or pending query:
@@ -81,20 +98,21 @@ DnsBuffer::resolve(void* requester, const std::string& hostname, int family, res
 }
 
 void
-DnsBuffer::cancel(void* requester) {
+DnsBuffer::cancel_safe(void* requester) {
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
   if (requester == nullptr)
     throw internal_error("DnsBuffer::cancel() called with null requester");
 
-  // TODO: Lock m_requesters.
+  {
+    auto guard = std::lock_guard(m_requesters_mutex);
+    auto itr   = m_requesters.find(requester);
 
-  auto requester_itr = m_requesters.find(requester);
+    if (itr == m_requesters.end())
+      return;
 
-  if (requester_itr == m_requesters.end())
-    return;
-
-  m_requesters.erase(requester_itr);
+    m_requesters.erase(itr);
+  }
 
   LT_LOG_REQUESTER("canceled", 0);
 }
@@ -109,8 +127,8 @@ DnsBuffer::activate_pending_query() {
     m_pending_queries.pop_front();
 
     auto erase_itr = std::remove_if(query.callbacks.begin(), query.callbacks.end(), [](const auto& callback) {
-        auto requester_ptr = callback.requester.lock();
-        auto requester = requester_ptr.get();
+        auto ptr       = callback.requester.lock();
+        auto requester = ptr.get();
 
         if (requester == nullptr)
           return true;
@@ -211,11 +229,13 @@ DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_s
     LT_LOG_REQUESTER("processing callback : %s", gai_strerror(error));
   }
 
-  // TODO: Lock here, and check if use_count is greater than 1 before calling callback.
+  {
+    // Block cancel() until this is done to ensure callbacks for the requester are all canceled.
+    auto guard = std::lock_guard(m_requesters_mutex);
 
-  // Block cancel() until this is done to ensure callbacks for the requester are all canceled.
-  if (requester_ptr.use_count() > 1)
-    callback.callback(result_sin, result_sin6, error);
+    if (requester_ptr.use_count() > 1)
+      callback.callback(result_sin, result_sin6, error);
+  }
 }
 
 void*

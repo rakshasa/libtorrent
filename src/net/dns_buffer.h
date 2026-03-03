@@ -49,10 +49,8 @@ public:
   // The 'fn' callback must do work in the originating thread using callbacks with 'requester'.
   void                resolve(void* requester, const std::string& hostname, int family, resolver_callback&& fn);
 
-  // Rename to cancel_safe(),
-
   // Calling thread must cancel callbacks with 'requester' afterwards.
-  void                cancel(void* requester);
+  void                cancel_safe(void* requester);
 
   // TODO: Add a slot for completed queries so we can add the entry to the cache before calling the
   // list of callbacks.
