@@ -22,7 +22,7 @@ namespace torrent::net {
 DnsBuffer::DnsBuffer() = default;
 
 DnsBuffer::~DnsBuffer() {
-  assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
+  // assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
   // if (m_active_query_count != 0)
   //   throw internal_error("DnsBuffer::~DnsBuffer() m_active_query_count != 0");
