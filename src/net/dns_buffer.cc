@@ -99,8 +99,6 @@ DnsBuffer::resolve(void* requester, const std::string& hostname, int family, res
 
 void
 DnsBuffer::cancel_safe(void* requester) {
-  assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
-
   if (requester == nullptr)
     throw internal_error("DnsBuffer::cancel() called with null requester");
 
