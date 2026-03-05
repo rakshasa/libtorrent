@@ -283,7 +283,7 @@ DhtTransactionSearch::complete(bool success) {
   if (m_node == m_search->end())
     throw internal_error("DhtTransactionSearch::complete() called multiple times.");
 
-  if (m_node.search() != m_search)
+  if (m_node.search() != m_search.get())
     throw internal_error("DhtTransactionSearch::complete() called for node from wrong search.");
 
   if (!m_hasQuickTimeout)
@@ -296,9 +296,6 @@ DhtTransactionSearch::complete(bool success) {
 DhtTransactionSearch::~DhtTransactionSearch() {
   if (m_node != m_search->end())
     complete(false);
-
-  if (m_search->complete())
-    delete m_search;
 }
 
 DhtTransaction::transaction_type
