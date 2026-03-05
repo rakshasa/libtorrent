@@ -177,7 +177,9 @@ DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
   auto index = std::distance(m_active_queries.begin(), itr);
 
   auto fn = [this, index](sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error) {
-      process(index, std::move(result_sin), std::move(result_sin6), error);
+      this_thread::callback(this->requester_from_index(index), [=]() {
+          this->process(index, std::move(result_sin), std::move(result_sin6), error);
+        });
     };
 
   // LT_LOG("activating query : requesters:%zu name:%s family:%d index:%u",
