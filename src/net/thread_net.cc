@@ -4,6 +4,7 @@
 
 #include "net/curl_stack.h"
 #include "net/dns_buffer.h"
+#include "net/dns_cache.h"
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
@@ -43,6 +44,7 @@ ThreadNet::create_thread() {
 
   thread->m_http_stack   = std::make_unique<net::HttpStack>(thread);
   thread->m_dns_buffer   = std::make_unique<net::DnsBuffer>();
+  thread->m_dns_cache    = std::make_unique<net::DnsCache>();
   thread->m_dns_resolver = std::make_unique<net::UdnsResolver>();
 
   m_thread_net = thread;

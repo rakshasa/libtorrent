@@ -43,7 +43,6 @@ class DnsBuffer {
 public:
   constexpr static int max_requests = 8;
 
-  DnsBuffer();
   ~DnsBuffer();
 
   // The 'fn' callback must do work in the originating thread using callbacks with 'requester'.

@@ -6,40 +6,38 @@
 #include <functional>
 #include <string>
 
+#include "net/dns_types.h"
 #include "torrent/net/types.h"
 
 namespace torrent::net {
 
-// TODO: Currently this is just a cache for the resolver, however we also want a cache so depending
-// on how cleanly it can be implemented we might deprecate this intermediate class.
-
 struct DnsCacheEntry {
-  void*             requester{};
-  std::string       hostname;
-  int               family{};
+  sin_shared_ptr  sin;
+  sin6_shared_ptr sin6;
 
-  // Null callback indicates an inactive query slot.
-  resolver_callback callback;
+  // TODO: Add error mode, where we do not attempt o resolve for a while.
+  bool            updating{};
+  bool            no_record{};
+
+  std::chrono::minutes last_updated{};
+  std::chrono::minutes last_failed_update{};
 };
 
 class DnsCache {
 public:
-  DnsCache();
-  ~DnsCache();
+  // TODO: Add different types of resolve, e.g. force, in_error, etc.
 
   void                resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback);
 
-  // TODO: Remove this, and only allow complete cancellation of all requests. (once we have a cache)
-  void                cancel(void* requester);
+protected:
+  friend class DnsBuffer;
+
+  void                process_success(const std::string& hostname, int family, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6);
+  void                process_failure(const std::string& hostname, int family, int error);
 
 private:
-  void                activate_query(DnsCacheQuery query);
 
-  void                process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error);
-
-  // utils::Thread*      m_thread{};
-
-  std::unordered_map<DnsCacheKey, Dns
+  std::unordered_map<DnsKey, DnsCacheEntry> m_cache;
 };
 
 } // namespace torrent::net

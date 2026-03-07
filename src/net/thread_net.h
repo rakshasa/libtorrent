@@ -9,6 +9,7 @@ namespace torrent {
 namespace net {
 
 class DnsBuffer;
+class DnsCache;
 class HttpStack;
 class UdnsResolver;
 
@@ -30,6 +31,7 @@ public:
 
 protected:
   friend class ThreadNetInternal;
+  friend class torrent::net::DnsCache;
   friend class torrent::net::DnsBuffer;
   friend class torrent::net::HttpStack;
   friend class torrent::net::Resolver;
@@ -43,6 +45,7 @@ protected:
 
   net::HttpStack*     http_stack() const   { return m_http_stack.get(); }
   net::DnsBuffer*     dns_buffer() const   { return m_dns_buffer.get(); }
+  net::DnsCache*      dns_cache() const    { return m_dns_cache.get(); }
   net::UdnsResolver*  dns_resolver() const { return m_dns_resolver.get(); }
 
 private:
@@ -50,6 +53,7 @@ private:
 
   std::unique_ptr<net::HttpStack>    m_http_stack;
   std::unique_ptr<net::DnsBuffer>    m_dns_buffer;
+  std::unique_ptr<net::DnsCache>     m_dns_cache;
   std::unique_ptr<net::UdnsResolver> m_dns_resolver;
 };
 

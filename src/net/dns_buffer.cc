@@ -6,6 +6,7 @@
 #include <cassert>
 #include <netdb.h>
 
+#include "net/dns_cache.h"
 #include "net/thread_net.h"
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
@@ -18,8 +19,6 @@
   lt_log_print(LOG_NET_DNS, "%016p->dns-buffer : " log_fmt, requester, __VA_ARGS__);
 
 namespace torrent::net {
-
-DnsBuffer::DnsBuffer() = default;
 
 DnsBuffer::~DnsBuffer() {
   // assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
@@ -200,6 +199,11 @@ DnsBuffer::process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_pt
 
   if (query.family != AF_UNSPEC && query.family != AF_INET && query.family != AF_INET6)
     throw internal_error("DnsBuffer::process() query.family is invalid");
+
+  if (error == 0)
+    ThreadNet::thread_net()->dns_cache()->process_success(query.hostname, query.family, result_sin, result_sin6);
+  else
+    ThreadNet::thread_net()->dns_cache()->process_failure(query.hostname, query.family, error);
 
   for (auto& callback : query.callbacks)
     process_callback(callback, result_sin, result_sin6, error);
