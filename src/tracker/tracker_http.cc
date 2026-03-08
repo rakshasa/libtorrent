@@ -140,7 +140,7 @@ TrackerHttp::send_scrape() {
   }
 
   LT_LOG("scrape requested : url:%s", info().url.c_str());
-  this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
+  this_thread::scheduler()->update_wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
 void
@@ -329,7 +329,7 @@ TrackerHttp::receive_done() {
   process_success(b);
 
   if (m_requested_scrape && !is_busy())
-    this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
+    this_thread::scheduler()->update_wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
 void
