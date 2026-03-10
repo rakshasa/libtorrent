@@ -231,7 +231,7 @@ Listen::event_read() {
         std::tie(fd, sa) = fd_sap_accept(file_descriptor());
 
         if (fd == -1) {
-          if (errno == EAGAIN || errno == EWOULDBLOCK)
+          if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
             return;
 
           // Force a new event_read() call just to be sure we don't enter an infinite loop.
