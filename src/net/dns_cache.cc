@@ -6,8 +6,6 @@
 
 #include "net/thread_net.h"
 #include "net/dns_buffer.h"
-// #include "torrent/common.h"
-// #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
@@ -18,10 +16,11 @@
 
 namespace torrent::net {
 
-// TODO: Add callback slot to buffer.
-
 // We match family and hostname together as the key, as we want to know both A and AAAA records, and
 // don't want to do complex handling of partial results.
+//
+// TODO: Revise the above design, we want to split the results into inet/inet6 and then decide based
+// on returned results if we want to retry for missing address family.
 
 void
 DnsCache::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
@@ -95,6 +94,11 @@ DnsCache::resolve(void* requester, const std::string& hostname, int family, reso
   auto& sin  = itr->second.sin;
   auto& sin6 = itr->second.sin6;
 
+  LT_LOG_REQUESTER("matched cache entry, returning : hostname:%s family:%d sin:%s sin6:%s",
+                   hostname.c_str(), family,
+                   sin_pretty_or_empty(sin.get()).c_str(),
+                   sin6_pretty_or_empty(sin6.get()).c_str());
+
   this_thread::callback(requester, [sin, sin6, callback = std::move(callback)]() {
       callback(sin, sin6, 0);
     });
@@ -140,7 +144,7 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
 
 void
 DnsCache::process_failure(const std::string& hostname, int family, int error) {
-  // TODO: If 'updating', add to scheduled task.
+  // TODO: If 'updating', add to scheduled task?
 
   auto current_time = std::chrono::duration_cast<std::chrono::minutes>(this_thread::cached_time());
 
@@ -176,12 +180,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
     return;
   }
 
-  // itr->second.sin                = nullptr;
-  // itr->second.sin6               = nullptr;
-
-  // LT_LOG("updated cache entry with failed update : hostname:%s family:%d error:'%s'", hostname.c_str(), family, gai_strerror(error));
-
-  // TODO: Schedule new resolve? Or do we rely on new attempts?
+  LT_LOG("updated cache entry with failed update : hostname:%s family:%d error:'%s'", hostname.c_str(), family, gai_strerror(error));
 }
 
 } // namespace torrent::net

@@ -25,6 +25,8 @@
 
 namespace torrent {
 
+// TODO: Rewrite this to do resolve every time, since we now have a cache?
+
 TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
   TrackerWorker(info, flags) {
 

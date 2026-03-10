@@ -11,6 +11,8 @@
 
 namespace torrent::net {
 
+// TODO: Break this into sin/sin6 cache entries.
+
 struct DnsCacheEntry {
   sin_shared_ptr  sin;
   sin6_shared_ptr sin6;
