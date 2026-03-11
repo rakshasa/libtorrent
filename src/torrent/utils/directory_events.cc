@@ -78,7 +78,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
     in_flags |= (IN_CREATE | IN_MOVED_TO);
 
   if ((flags & flag_on_updated))
-    in_flags |= IN_CLOSE_WRITE;
+    in_flags |= (IN_CLOSE | IN_ATTRIB);
 
   if ((flags & flag_on_removed))
     in_flags |= (IN_DELETE | IN_MOVED_FROM);
