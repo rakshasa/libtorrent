@@ -621,7 +621,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
   }
 
   // We know where to insert it, so pass that as hint.
-  insertItr = m_transactions.insert(insertItr, std::make_pair(transaction->key(id), transaction));
+  insertItr = m_transactions.emplace_hint(insertItr, transaction->key(id), transaction);
 
   create_query(insertItr, id, transaction->address(), priority);
   start_write();
