@@ -21,7 +21,7 @@ namespace torrent {
 struct log_cache_entry {
   using outputs_type = log_group::outputs_type;
 
-  bool equal_outputs(const outputs_type& out) const { return out == outputs; }
+  bool equal_outputs(outputs_type out) const { return out == outputs; }
 
   void allocate(unsigned int count) { cache_first = new log_slot[count]; cache_last = cache_first + count; }
   void clear()                      { delete [] cache_first; cache_first = NULL; cache_last = NULL; }
