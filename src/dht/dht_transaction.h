@@ -44,14 +44,15 @@ struct dht_compare_closer {
   raw_string                      target_raw_string() const { return raw_string(m_target.data(), HashString::size_data); }
 
   private:
-  const HashString&    m_target;
+  HashString    m_target;
 };
 
 // DhtSearch contains a list of nodes sorted by closeness to the given target,
 // and returns what nodes to contact with up to three concurrent transactions pending.
 // The map element is the DhtSearch object itself to allow the returned accessors
 // to know which search a given node belongs to.
-class DhtSearch : protected std::map<std::unique_ptr<DhtNode>, DhtSearch*, dht_compare_closer> {
+class DhtSearch : public std::enable_shared_from_this<DhtSearch>,
+                  protected std::map<std::unique_ptr<DhtNode>, DhtSearch*, dht_compare_closer> {
   friend class DhtTransactionSearch;
 
 public:
@@ -304,7 +305,7 @@ public:
   bool                       is_search() override         { return true; }
 
   DhtSearch::const_accessor  node()                       { return m_node; }
-  DhtSearch*                 search()                     { return m_search; }
+  DhtSearch*                 search()                     { return m_search.get(); }
 
   void                       set_stalled();
 
@@ -314,11 +315,11 @@ protected:
   DhtTransactionSearch(int quick_timeout, int timeout, DhtSearch::const_accessor& node)
     : DhtTransaction(quick_timeout, timeout, node.node()->id(), node.node()->address()),
       m_node(node),
-      m_search(node.search()) { if (!m_hasQuickTimeout) m_search->m_concurrency++; }
+      m_search(node.search()->shared_from_this()) { if (!m_hasQuickTimeout) m_search->m_concurrency++; }
 
 private:
-  DhtSearch::const_accessor  m_node;
-  DhtSearch*                 m_search;
+  DhtSearch::const_accessor    m_node;
+  std::shared_ptr<DhtSearch>   m_search;
 };
 
 // Actual transaction classes.
