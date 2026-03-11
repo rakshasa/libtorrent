@@ -29,7 +29,7 @@ private:
 
   inline void         fill_write_buffer();
 
-  uint32_t            m_skipLength;
+  uint32_t            m_skipLength{};
 };
 
 } // namespace torrent
