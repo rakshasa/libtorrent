@@ -276,7 +276,7 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
       dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
 
     } else {
-      *dest = *begin();
+      *dest = front();
       std::memset(dest->mutable_upper_version(), 0, ClientInfo::max_version_size);
 
       return false;
@@ -289,7 +289,7 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     // Or not...
 
     // The first entry always contains the default ClientInfo.
-    *dest = *begin();
+    *dest = front();
     std::memset(dest->mutable_upper_version(), 0, ClientInfo::max_version_size);
 
     return false;
@@ -308,7 +308,7 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
 
 void
 ClientList::retrieve_unknown(ClientInfo* dest) const {
-  *dest = *begin();
+  *dest = front();
   std::memset(dest->mutable_upper_version(), 0, ClientInfo::max_version_size);
 }
 

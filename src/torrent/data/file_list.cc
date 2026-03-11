@@ -41,7 +41,7 @@ verify_file_list(const FileList* fl) {
   if (fl->empty())
     throw internal_error("verify_file_list() 1.", fl->data()->hash());
 
-  if ((*fl->begin())->match_depth_prev() != 0 || (*fl->rbegin())->match_depth_next() != 0)
+  if (fl->front()->match_depth_prev() != 0 || fl->back()->match_depth_next() != 0)
     throw internal_error("verify_file_list() 2.", fl->data()->hash());
 
   for (auto itr = fl->begin(), last = fl->end() - 1; itr != last; itr++)
@@ -412,7 +412,7 @@ FileList::open(bool hashing, int flags) {
 
       entry->set_flags_protected(File::flag_active);
 
-      if (!open_file(&*entry, lastPath, hashing, flags)) {
+      if (!open_file(entry.get(), lastPath, hashing, flags)) {
         // This needs to check if the error was due to open_no_create
         // being set or not.
         if (!(flags & open_no_create))
@@ -457,7 +457,7 @@ FileList::open(bool hashing, int flags) {
     utils::FileStat stat;
 
     // This probably recurses into open() once, but that is harmless.
-    if (stat.update((*begin())->frozen_path()) && stat.size() > 1)
+    if (stat.update(front()->frozen_path()) && stat.size() > 1)
       return reset_filesize(stat.size());
   }
 }
@@ -725,8 +725,8 @@ FileList::reset_filesize(int64_t size) {
   close();
   m_chunk_size = size;
   m_torrent_size = size;
-  (*begin())->set_size_bytes(size);
-  (*begin())->set_range(m_chunk_size);
+  front()->set_size_bytes(size);
+  front()->set_range(m_chunk_size);
 
   m_data.mutable_completed_bitfield()->allocate();
   m_data.mutable_completed_bitfield()->unset_all();
