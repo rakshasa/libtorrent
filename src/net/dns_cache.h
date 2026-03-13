@@ -12,6 +12,10 @@
 namespace torrent::net {
 
 struct DnsCacheInfo {
+  void reset_state();
+  void reset_updated(std::chrono::minutes current_time);
+  void reset_failed(std::chrono::minutes current_time);
+
   bool                 updating{};
   bool                 no_record{};
   std::chrono::minutes last_updated{};
@@ -19,6 +23,8 @@ struct DnsCacheInfo {
 };
 
 struct DnsCacheEntry {
+  void reset_updating(int family);
+
   sin_shared_ptr  sin_addr;
   DnsCacheInfo    sin_info;
 
