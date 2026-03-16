@@ -6,23 +6,30 @@
 #include <functional>
 #include <string>
 
-#include "net/dns_types.h"
+// #include "net/dns_types.h"
 #include "torrent/net/types.h"
 
 namespace torrent::net {
 
-// TODO: Break this into sin/sin6 cache entries.
+struct DnsCacheInfo {
+  void reset_state();
+  void reset_updated(std::chrono::minutes current_time);
+  void reset_failed(std::chrono::minutes current_time);
 
-struct DnsCacheEntry {
-  sin_shared_ptr  sin;
-  sin6_shared_ptr sin6;
-
-  // TODO: Add error mode, where we do not attempt o resolve for a while.
-  bool            updating{};
-  bool            no_record{};
-
+  bool                 updating{};
+  bool                 no_record{};
   std::chrono::minutes last_updated{};
   std::chrono::minutes last_failed_update{};
+};
+
+struct DnsCacheEntry {
+  void reset_updating(int family);
+
+  sin_shared_ptr  sin_addr;
+  DnsCacheInfo    sin_info;
+
+  sin6_shared_ptr sin6_addr;
+  DnsCacheInfo    sin6_info;
 };
 
 class DnsCache {
@@ -38,8 +45,7 @@ protected:
   void                process_failure(const std::string& hostname, int family, int error);
 
 private:
-
-  std::unordered_map<DnsKey, DnsCacheEntry> m_cache;
+  std::unordered_map<std::string, DnsCacheEntry> m_cache;
 };
 
 } // namespace torrent::net
