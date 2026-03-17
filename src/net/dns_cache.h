@@ -12,7 +12,6 @@
 namespace torrent::net {
 
 struct DnsCacheInfo {
-  void reset_state();
   void reset_updated(std::chrono::minutes current_time);
   void reset_failed(std::chrono::minutes current_time);
 
@@ -36,7 +35,7 @@ class DnsCache {
 public:
   // TODO: Add different types of resolve, e.g. force, in_error, etc.
 
-  void                resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback);
+  void                resolve(void* requester, std::string hostname, int family, resolver_callback&& callback);
 
 protected:
   friend class DnsBuffer;

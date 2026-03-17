@@ -286,7 +286,7 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   auto sa            = handshake->socket_address();
   auto handshake_ptr = find_and_erase(handshake);
 
-  handshake->destroy_connection();
+  handshake_ptr->destroy_connection();
 
   LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
 

@@ -758,4 +758,20 @@ sa_inet_union_from_sa(const sockaddr* sa) {
   }
 }
 
+const char*
+family_str(int family) {
+  switch (family) {
+  case AF_UNSPEC:
+    return "AF_UNSPEC";
+  case AF_INET:
+    return "AF_INET";
+  case AF_INET6:
+    return "AF_INET6";
+  case AF_UNIX:
+    return "AF_UNIX";
+  default:
+    return "AF_UNKNOWN";
+  }
+}
+
 } // namespace torrent
