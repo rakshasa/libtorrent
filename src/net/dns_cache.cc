@@ -70,10 +70,14 @@ DnsCacheEntry::reset_updating(int family) {
     sin6_info.updating = false;
 }
 
-// TODO: Add a helper function to convert family int to cstring.
+// TODO: Add a std::list with where we add updated entries, and the front of the list is checked for
+// removing very old unwanted entries.
 
 void
-DnsCache::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
+DnsCache::resolve(void* requester, std::string hostname, int family, resolver_callback&& callback) {
+  if (hostname.empty())
+    throw internal_error("DnsCache::resolve() hostname is empty");
+
   if (family != AF_INET && family != AF_INET6 && family != AF_UNSPEC)
     throw internal_error("DnsCache::resolve() invalid address family");
 
