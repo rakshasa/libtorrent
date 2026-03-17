@@ -12,7 +12,6 @@
 namespace torrent::net {
 
 struct DnsCacheInfo {
-  void reset_state();
   void reset_updated(std::chrono::minutes current_time);
   void reset_failed(std::chrono::minutes current_time);
 
