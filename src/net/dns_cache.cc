@@ -49,29 +49,10 @@ queue_callback(void* requester, int err, resolver_callback&& callback) {
 
 }
 
-inline void
-DnsCacheInfo::reset_updated(std::chrono::minutes current_time) {
-  last_updated       = current_time;
-  last_failed_update = std::chrono::minutes{0};
-}
-
-inline void
-DnsCacheInfo::reset_failed(std::chrono::minutes current_time) {
-  last_updated       = std::chrono::minutes{0};
-  last_failed_update = current_time;
-}
-
-inline void
-DnsCacheEntry::reset_updating(int family) {
-  if (family == AF_INET || family == AF_UNSPEC)
-    sin_info.updating = false;
-
-  if (family == AF_INET6 || family == AF_UNSPEC)
-    sin6_info.updating = false;
-}
-
 // TODO: Add a std::list with where we add updated entries, and the front of the list is checked for
 // removing very old unwanted entries.
+
+// TODO: Change timer comparisons to use a a helper function that checks the latest valid time. (and possibly add internal errors)
 
 void
 DnsCache::resolve(void* requester, std::string hostname, int family, resolver_callback&& callback) {
@@ -81,9 +62,9 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
   if (family != AF_INET && family != AF_INET6 && family != AF_UNSPEC)
     throw internal_error("DnsCache::resolve() invalid address family");
 
-  auto itr = m_cache.find(hostname);
+  auto itr = m_entries.find(hostname);
 
-  if (itr == m_cache.end()) {
+  if (itr == m_entries.end()) {
     // No need to log.
     ThreadNet::thread_net()->dns_buffer()->resolve(requester, hostname, family, std::move(callback));
     return;
@@ -266,6 +247,8 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
 
 void
 DnsCache::process_success(const std::string& hostname, int family, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6) {
+  cull_stale_entries();
+
   if (family != AF_INET && family != AF_INET6 && family != AF_UNSPEC)
     throw internal_error("DnsCache::process_success() invalid address family");
 
@@ -278,7 +261,7 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
   if (family == AF_INET6 && result_sin6 == nullptr)
     throw internal_error("DnsCache::process_success() result_sin6 is nullptr for AF_INET6");
 
-  auto [itr, inserted] = m_cache.try_emplace(hostname, DnsCacheEntry{});
+  auto [itr, inserted] = m_entries.try_emplace(hostname, DnsCacheEntry{});
 
   auto& sin_addr  = itr->second.sin_addr;
   auto& sin_info  = itr->second.sin_info;
@@ -288,14 +271,19 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
   auto current_time = std::chrono::duration_cast<std::chrono::minutes>(this_thread::cached_time());
 
   if (inserted) {
+    sin_info.cache_itr      = itr;
+    sin6_info.cache_itr     = itr;
+    sin_info.staleness_itr  = m_sin_staleness.end();
+    sin6_info.staleness_itr = m_sin6_staleness.end();
+
     if (family == AF_INET || family == AF_UNSPEC) {
-      sin_addr              = std::move(result_sin);
-      sin_info.last_updated = current_time;
+      sin_addr = std::move(result_sin);
+      reset_sin_updated(itr->second, current_time);
     }
 
     if (family == AF_INET6 || family == AF_UNSPEC) {
-      sin6_addr              = std::move(result_sin6);
-      sin6_info.last_updated = current_time;
+      sin6_addr = std::move(result_sin6);
+      reset_sin6_updated(itr->second, current_time);
     }
 
     LT_LOG("added new cache entry : hostname:%s family:%s sin:%s sin6:%s",
@@ -306,13 +294,13 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
   }
 
   // TODO: Replace with clearing updating flag in reset_updated/failed. (would need to clear both in unspec)
-  itr->second.reset_updating(family);
+  reset_updating(itr->second, family);
 
   if (family == AF_INET) {
     sin_addr           = std::move(result_sin);
     sin_info.no_record = false;
 
-    sin_info.reset_updated(current_time);
+    reset_sin_updated(itr->second, current_time);
 
     // TODO: Add helper functions to clear info.
     // TODO: Only log if address has changed?
@@ -326,7 +314,7 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
     sin6_addr           = std::move(result_sin6);
     sin6_info.no_record = false;
 
-    sin6_info.reset_updated(current_time);
+    reset_sin6_updated(itr->second, current_time);
 
     LT_LOG("updated cache entry : hostname:%s family:AF_INET6 sin6:%s",
            hostname.c_str(), sin6_pretty_or_empty(sin6_addr.get()).c_str());
@@ -342,14 +330,14 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
     sin_addr           = std::move(result_sin);
     sin_info.no_record = false;
 
-    sin_info.reset_updated(current_time);
+    reset_sin_updated(itr->second, current_time);
   }
 
   if (result_sin6) {
     sin6_addr           = std::move(result_sin6);
     sin6_info.no_record = false;
 
-    sin6_info.reset_updated(current_time);
+    reset_sin6_updated(itr->second, current_time);
   }
 
   LT_LOG("updated cache entry : hostname:%s family:AF_UNSPEC sin:%s sin6:%s",
@@ -360,6 +348,8 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
 
 void
 DnsCache::process_failure(const std::string& hostname, int family, int error) {
+  cull_stale_entries();
+
   if (family != AF_INET && family != AF_INET6 && family != AF_UNSPEC)
     throw internal_error("DnsCache::process_failure() invalid address family");
 
@@ -368,7 +358,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
 
   // TODO: If 'updating', add to scheduled task?
 
-  auto [itr, inserted] = m_cache.try_emplace(hostname, DnsCacheEntry{});
+  auto [itr, inserted] = m_entries.try_emplace(hostname, DnsCacheEntry{});
 
   auto& sin_addr  = itr->second.sin_addr;
   auto& sin_info  = itr->second.sin_info;
@@ -378,19 +368,24 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
   auto current_time = std::chrono::duration_cast<std::chrono::minutes>(this_thread::cached_time());
 
   if (inserted) {
+    sin_info.cache_itr      = itr;
+    sin6_info.cache_itr     = itr;
+    sin_info.staleness_itr  = m_sin_staleness.end();
+    sin6_info.staleness_itr = m_sin6_staleness.end();
+
     if (family == AF_INET) {
       switch (error) {
       case EAI_NONAME:
         // TODO: Should NONAME set success time?
 
-        sin_info.no_record          = true;
-        sin_info.last_failed_update = current_time;
+        sin_info.no_record = true;
+        reset_sin_failed(itr->second, current_time);
 
         LT_LOG("added new cache entry with no record : hostname:%s family:AF_INET", hostname.c_str());
         return;
 
       default:
-        sin_info.last_failed_update = current_time;
+        reset_sin_failed(itr->second, current_time);
 
         LT_LOG("added new cache entry with failed update : hostname:%s family:AF_INET error:'%s'", hostname.c_str(), gai_strerror(error));
         return;
@@ -400,14 +395,14 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
     if (family == AF_INET6) {
       switch (error) {
       case EAI_NONAME:
-        sin6_info.no_record          = true;
-        sin6_info.last_failed_update = current_time;
+        sin6_info.no_record = true;
+        reset_sin6_failed(itr->second, current_time);
 
         LT_LOG("added new cache entry with no record : hostname:%s family:AF_INET6", hostname.c_str());
         return;
 
       default:
-        sin6_info.last_failed_update = current_time;
+        reset_sin6_failed(itr->second, current_time);
 
         LT_LOG("added new cache entry with failed update : hostname:%s family:AF_INET6 error:'%s'", hostname.c_str(), gai_strerror(error));
         return;
@@ -416,8 +411,8 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
 
     // AF_UNSPEC:
 
-    sin_info.last_failed_update  = current_time;
-    sin6_info.last_failed_update = current_time;
+    reset_sin_failed(itr->second, current_time);
+    reset_sin6_failed(itr->second, current_time);
 
     // EAI_NONAME: We don't know if both are non-existent, so do separate updates for each family.
 
@@ -431,7 +426,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
 
   // TODO: EAI_NONAME should check if we're already set to no_record before doing anything.
 
-  itr->second.reset_updating(family);
+  reset_updating(itr->second, family);
 
   if (family == AF_INET) {
     switch (error) {
@@ -440,13 +435,13 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
       sin_info.no_record = true;
 
       // TODO: Should NONAME set success time?
-      sin_info.reset_failed(current_time);
+      reset_sin_failed(itr->second, current_time);
 
       LT_LOG("updated cache entry with no record : hostname:%s family:AF_INET", hostname.c_str());
       return;
 
     default:
-      sin_info.reset_failed(current_time);
+      reset_sin_failed(itr->second, current_time);
 
       LT_LOG("updated cache entry with failed update : hostname:%s family:AF_INET error:'%s'", hostname.c_str(), gai_strerror(error));
       return;
@@ -460,13 +455,13 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
       sin6_info.no_record = true;
 
       // TODO: Should NONAME set success time?
-      sin6_info.reset_failed(current_time);
+      reset_sin6_failed(itr->second, current_time);
 
       LT_LOG("updated cache entry with no record : hostname:%s family:AF_INET6", hostname.c_str());
       return;
 
     default:
-      sin6_info.reset_failed(current_time);
+      reset_sin6_failed(itr->second, current_time);
 
       LT_LOG("updated cache entry with failed update : hostname:%s family:AF_INET6 error:'%s'", hostname.c_str(), gai_strerror(error));
       return;
@@ -478,19 +473,18 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
   switch (error) {
   case EAI_NONAME:
     // TODO: We don't know if both are non-existent, so do separate updates for each family.
-
     // TODO: Check info.no_record == true, if so do nothing.
 
     // Just do naive failed counter update for now
-    sin_info.reset_failed(current_time);
-    sin6_info.reset_failed(current_time);
+    reset_sin_failed(itr->second, current_time);
+    reset_sin6_failed(itr->second, current_time);
 
     LT_LOG("updated cache entry with no record : hostname:%s family:AF_UNSPEC", hostname.c_str());
     return;
 
   default:
-    sin_info.reset_failed(current_time);
-    sin6_info.reset_failed(current_time);
+    reset_sin_failed(itr->second, current_time);
+    reset_sin6_failed(itr->second, current_time);
 
     // TODO: Do separate updates for each family here as well if it's been a while since last time?
 
@@ -500,6 +494,101 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
     LT_LOG("updated cache entry with failed update : hostname:%s family:AF_UNSPEC error:'%s'", hostname.c_str(), gai_strerror(error));
     return;
   }
+}
+
+void
+DnsCache::cull_stale_entries() {
+  auto current_time = std::chrono::duration_cast<std::chrono::minutes>(this_thread::cached_time());
+
+  while (!m_sin_staleness.empty()) {
+    auto& entry = m_sin_staleness.front().get();
+    auto& info  = entry.sin_info;
+
+    if (current_time < std::max(info.last_updated, info.last_failed_update) + 48h)
+      break;
+
+    LT_LOG("culling stale cache entry : hostname:%s family:AF_INET sin:%s",
+           info.cache_itr->first.c_str(), sin_pretty_or_empty(entry.sin_addr.get()).c_str());
+
+    m_entries.erase(info.cache_itr);
+    m_sin_staleness.pop_front();
+  }
+
+  while (!m_sin6_staleness.empty()) {
+    auto& entry = m_sin6_staleness.front().get();
+    auto& info  = entry.sin6_info;
+
+    if (current_time < std::max(info.last_updated, info.last_failed_update) + 48h)
+      break;
+
+    LT_LOG("culling stale cache entry : hostname:%s family:AF_INET6 sin6:%s",
+           info.cache_itr->first.c_str(), sin6_pretty_or_empty(entry.sin6_addr.get()).c_str());
+
+    m_entries.erase(info.cache_itr);
+    m_sin6_staleness.pop_front();
+  }
+}
+
+
+void
+DnsCache::reset_updating(DnsCacheEntry& entry, int family) {
+  if (family == AF_INET || family == AF_UNSPEC)
+    entry.sin_info.updating = false;
+
+  if (family == AF_INET6 || family == AF_UNSPEC)
+    entry.sin6_info.updating = false;
+}
+
+void
+DnsCache::reset_sin_updated(DnsCacheEntry& entry, std::chrono::minutes current_time) {
+  auto& info = entry.sin_info;
+
+  info.last_updated       = current_time;
+  info.last_failed_update = std::chrono::minutes{0};
+
+  if (info.staleness_itr != m_sin_staleness.end())
+    m_sin_staleness.erase(info.staleness_itr);
+
+  info.staleness_itr = m_sin_staleness.insert(m_sin_staleness.end(), std::ref(entry));
+}
+
+void
+DnsCache::reset_sin6_updated(DnsCacheEntry& entry, std::chrono::minutes current_time) {
+  auto& info = entry.sin6_info;
+
+  info.last_updated       = current_time;
+  info.last_failed_update = std::chrono::minutes{0};
+
+  if (info.staleness_itr != m_sin6_staleness.end())
+    m_sin6_staleness.erase(info.staleness_itr);
+
+  info.staleness_itr = m_sin6_staleness.insert(m_sin6_staleness.end(), std::ref(entry));
+}
+
+void
+DnsCache::reset_sin_failed(DnsCacheEntry& entry, std::chrono::minutes current_time) {
+  auto& info = entry.sin_info;
+
+  info.last_updated       = std::chrono::minutes{0};
+  info.last_failed_update = current_time;
+
+  if (info.staleness_itr != m_sin_staleness.end())
+    m_sin_staleness.erase(info.staleness_itr);
+
+  info.staleness_itr = m_sin_staleness.insert(m_sin_staleness.end(), std::ref(entry));
+}
+
+void
+DnsCache::reset_sin6_failed(DnsCacheEntry& entry, std::chrono::minutes current_time) {
+  auto& info = entry.sin6_info;
+
+  info.last_updated       = std::chrono::minutes{0};
+  info.last_failed_update = current_time;
+
+  if (info.staleness_itr != m_sin6_staleness.end())
+    m_sin6_staleness.erase(info.staleness_itr);
+
+  info.staleness_itr = m_sin6_staleness.insert(m_sin6_staleness.end(), std::ref(entry));
 }
 
 } // namespace torrent::net
