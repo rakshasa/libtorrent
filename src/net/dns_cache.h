@@ -14,8 +14,8 @@ namespace torrent::net {
 
 struct DnsCacheEntry;
 
-using DnsCacheEntries   = std::unordered_map<std::string, DnsCacheEntry>;
-using DnsCacheStaleness = std::list<std::reference_wrapper<DnsCacheEntry>>;
+using DnsCacheEntries   = std::unordered_map<std::string, std::unique_ptr<DnsCacheEntry>>;
+using DnsCacheStaleness = std::list<DnsCacheEntry*>;
 
 struct DnsCacheInfo {
   bool                 updating{};
@@ -23,7 +23,7 @@ struct DnsCacheInfo {
   std::chrono::minutes last_updated{};
   std::chrono::minutes last_failed_update{};
 
-  DnsCacheEntries::iterator   cache_itr{};
+  DnsCacheEntries::iterator   entry_itr{};
   DnsCacheStaleness::iterator staleness_itr{};
 };
 
@@ -48,10 +48,10 @@ protected:
   void                process_failure(const std::string& hostname, int family, int error);
 
 private:
-  void                reset_sin_updated(DnsCacheEntry& entry, std::chrono::minutes current_time);
-  void                reset_sin6_updated(DnsCacheEntry& entry, std::chrono::minutes current_time);
-  void                reset_sin_failed(DnsCacheEntry& entry, std::chrono::minutes current_time);
-  void                reset_sin6_failed(DnsCacheEntry& entry, std::chrono::minutes current_time);
+  void                reset_sin_updated(DnsCacheEntry* entry, std::chrono::minutes current_time);
+  void                reset_sin6_updated(DnsCacheEntry* entry, std::chrono::minutes current_time);
+  void                reset_sin_failed(DnsCacheEntry* entry, std::chrono::minutes current_time);
+  void                reset_sin6_failed(DnsCacheEntry* entry, std::chrono::minutes current_time);
 
   void                cull_stale_entries();
 
