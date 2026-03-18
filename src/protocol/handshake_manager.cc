@@ -211,14 +211,14 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 }
 
 void
-HandshakeManager::receive_succeeded(Handshake* handshake) {
-  if (!handshake->is_active())
+HandshakeManager::receive_succeeded(Handshake* ptr) {
+  if (!ptr->is_active())
     throw internal_error("HandshakeManager::receive_succeeded(...) called on an inactive handshake.");
 
-  auto handshake_ptr = find_and_erase(handshake);
-  auto download      = handshake->download();
-  auto peer_type     = handshake->bitfield()->is_all_set() ? "seed" : "leech";
-  auto hash_str      = hash_string_to_html_str(handshake->peer_info()->id());
+  auto handshake = find_and_erase(ptr);
+  auto download  = handshake->download();
+  auto peer_type = handshake->bitfield()->is_all_set() ? "seed" : "leech";
+  auto hash_str  = hash_string_to_html_str(handshake->peer_info()->id());
 
   auto error_func = [&](uint32_t reason) {
       LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'%s'",
@@ -239,7 +239,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 
   auto peer_info = handshake->peer_info();
 
-  auto new_event = runtime::socket_manager()->transfer_event(handshake, [&]() -> Event* {
+  auto new_event = runtime::socket_manager()->transfer_event(handshake.get(), [&]() -> Event* {
       auto fd        = handshake->file_descriptor();
       auto peer_info = handshake->peer_info();
 
@@ -279,14 +279,14 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 }
 
 void
-HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
-  if (!handshake->is_active())
+HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
+  if (!ptr->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  auto sa            = handshake->socket_address();
-  auto handshake_ptr = find_and_erase(handshake);
+  auto handshake = find_and_erase(ptr);
+  auto sa        = handshake->socket_address();
 
-  handshake_ptr->destroy_connection();
+  handshake->destroy_connection();
 
   LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
 

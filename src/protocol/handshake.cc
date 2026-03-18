@@ -141,12 +141,12 @@ Handshake::release_connection() {
 
 void
 Handshake::destroy_connection(bool use_socket_manager) {
+  this_thread::scheduler()->erase(&m_task_timeout);
+
   if (!is_open())
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
   m_state = INACTIVE;
-
-  this_thread::scheduler()->erase(&m_task_timeout);
 
   auto fn = [this]() {
       this_thread::poll()->remove_and_close(this);
@@ -155,10 +155,20 @@ Handshake::destroy_connection(bool use_socket_manager) {
       set_file_descriptor(-1);
     };
 
-  if (use_socket_manager)
-    runtime::socket_manager()->close_event_or_throw(this, fn);
-  else
-    fn();
+  try {
+    if (use_socket_manager)
+      runtime::socket_manager()->close_event_or_throw(this, fn);
+    else
+      fn();
+
+  } catch (...) {
+    if (is_open()) {
+      fd_close(m_fileDesc);
+      set_file_descriptor(-1);
+    }
+
+    throw;
+  }
 
   manager->connection_manager()->dec_socket_count();
 
