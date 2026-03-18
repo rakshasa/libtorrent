@@ -83,6 +83,8 @@ last_update_or_failed(const DnsCacheInfo& info) {
 
 void
 DnsCache::resolve(void* requester, std::string hostname, int family, resolver_callback&& callback) {
+  cull_stale_entries();
+
   if (hostname.empty())
     throw internal_error("DnsCache::resolve() hostname is empty");
 
@@ -296,10 +298,10 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
   throw internal_error("DnsCache::resolve() unreachable code : end-of-function");
 }
 
+// TODO: When we add per-family errors, change this to only handle AF_INET/AF_INET6.
+
 void
 DnsCache::process_success(const std::string& hostname, int family, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6) {
-  cull_stale_entries();
-
   if (family != AF_INET && family != AF_INET6 && family != AF_UNSPEC)
     throw internal_error("DnsCache::process_success() invalid address family");
 
@@ -350,9 +352,7 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
 
     reset_sin_updated(itr->second, current_time);
 
-    // TODO: Add helper functions to clear info.
     // TODO: Only log if address has changed?
-
     LT_LOG("updated cache entry : hostname:%s family:AF_INET sin:%s",
            hostname.c_str(), sin_pretty_or_empty(sin_addr.get()).c_str());
     return;
@@ -402,8 +402,6 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
 
 void
 DnsCache::process_failure(const std::string& hostname, int family, int error) {
-  cull_stale_entries();
-
   if (family != AF_INET && family != AF_INET6 && family != AF_UNSPEC)
     throw internal_error("DnsCache::process_failure() invalid address family");
 
