@@ -48,14 +48,16 @@ protected:
   void                process_failure(const std::string& hostname, int family, int error);
 
 private:
-  void                cull_stale_entries();
-
-  void                reset_updating(DnsCacheEntry& entry, int family);
-
   void                reset_sin_updated(DnsCacheEntry& entry, std::chrono::minutes current_time);
   void                reset_sin6_updated(DnsCacheEntry& entry, std::chrono::minutes current_time);
   void                reset_sin_failed(DnsCacheEntry& entry, std::chrono::minutes current_time);
   void                reset_sin6_failed(DnsCacheEntry& entry, std::chrono::minutes current_time);
+
+  void                cull_stale_entries();
+
+  void                queue_resolve(void* requester, const std::string& hostname, int family, DnsCacheInfo& info, resolver_callback&& callback);
+
+  void                update_stale_info(const char* reason, void* requester, const std::string& hostname, int family, DnsCacheInfo& info);
 
   DnsCacheEntries     m_entries;
   DnsCacheStaleness   m_sin_staleness;
