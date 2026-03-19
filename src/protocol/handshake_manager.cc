@@ -237,27 +237,23 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
     return;
   }
 
+  auto fd        = handshake->file_descriptor();
   auto peer_info = handshake->peer_info();
 
   auto new_event = runtime::socket_manager()->transfer_event(handshake.get(), [&]() -> Event* {
-      auto fd        = handshake->file_descriptor();
-      auto peer_info = handshake->peer_info();
-
       LT_LOG_SA(peer_info->socket_address(), "transfering handshake: type:%s id:%s", peer_type, hash_str.c_str());
 
       handshake->release_connection();
 
-      auto pcb = download->connection_list()->insert(peer_info, fd,
-                                                     handshake->bitfield(),
-                                                     handshake->encryption()->info(),
-                                                     handshake->extensions());
-      if (pcb == nullptr)
-        fd_close(fd);
-
-      return pcb;
+      return download->connection_list()->insert(peer_info, fd,
+                                                 handshake->bitfield(),
+                                                 handshake->encryption()->info(),
+                                                 handshake->extensions());
     });
 
   if (new_event == nullptr) {
+    fd_close(fd);
+
     lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
     return;
   }
