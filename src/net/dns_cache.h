@@ -7,7 +7,6 @@
 #include <list>
 #include <string>
 
-// #include "net/dns_types.h"
 #include "torrent/net/types.h"
 
 namespace torrent::net {

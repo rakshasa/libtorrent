@@ -291,12 +291,10 @@ UdnsResolver::flush() {
 
     LT_LOG_QUERY("flushing malformed query : name:%s", query->hostname.c_str());
 
-    int error = query->error_sin != 0 ? query->error_sin : query->error_sin6;
-
-    if (error == 0)
+    if (query->error_sin == 0 && query->error_sin6 == 0)
       throw internal_error("attempting to flush malformed query with no error");
 
-    query->callback(nullptr, nullptr, error);
+    query->callback(nullptr, query->error_sin, nullptr, query->error_sin6);
   }
 }
 
@@ -442,12 +440,13 @@ UdnsResolver::process_final_result_unsafe(std::unique_ptr<UdnsQuery>&& query) {
 
   LT_LOG_QUERY("processing results, calling back : name:%s", query->hostname.c_str());
 
-  if (query->result_sin == nullptr && query->result_sin6 == nullptr) {
-    query->callback(nullptr, nullptr, query->error_sin != 0 ? query->error_sin : query->error_sin6);
-    return;
-  }
+  if (query->result_sin && query->error_sin != 0)
+    throw internal_error("UdnsResolver::process_final_result_unsafe() query has both result and error for A record");
 
-  query->callback(query->result_sin, query->result_sin6, 0);
+  if (query->result_sin6 && query->error_sin6 != 0)
+    throw internal_error("UdnsResolver::process_final_result_unsafe() query has both result and error for AAAA record");
+
+  query->callback(query->result_sin, query->error_sin, query->result_sin6, query->error_sin6);
 }
 
 } // namespace torrent::net

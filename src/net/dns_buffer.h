@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "net/dns_types.h"
 #include "torrent/net/types.h"
 
 namespace torrent::net {
@@ -61,8 +60,8 @@ private:
   void                activate_pending_query();
   void                activate_and_resolve_query(DnsBufferQuery query);
 
-  void                process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error);
-  void                process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error);
+  void                process(unsigned int index, sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6);
+  void                process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6);
 
   void*               requester_from_index(unsigned int index);
 
