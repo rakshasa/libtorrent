@@ -47,28 +47,28 @@ dns_error_str(int status) {
 void
 queue_callback(void* requester, sin_shared_ptr sin_addr, resolver_callback&& callback) {
   this_thread::callback(requester, [sin_addr, callback = std::move(callback)]() {
-      callback(sin_addr, nullptr, 0);
+      callback(sin_addr, 0, nullptr, 0);
     });
 }
 
 void
 queue_callback(void* requester, sin6_shared_ptr sin6_addr, resolver_callback&& callback) {
   this_thread::callback(requester, [sin6_addr, callback = std::move(callback)]() {
-      callback(nullptr, sin6_addr, 0);
+      callback(nullptr, 0, sin6_addr, 0);
     });
 }
 
 void
 queue_callback(void* requester, sin_shared_ptr sin_addr, sin6_shared_ptr sin6_addr, resolver_callback&& callback) {
   this_thread::callback(requester, [sin_addr, sin6_addr, callback = std::move(callback)]() {
-      callback(sin_addr, sin6_addr, 0);
+      callback(sin_addr, 0, sin6_addr, 0);
     });
 }
 
 void
-queue_callback(void* requester, int err, resolver_callback&& callback) {
-  this_thread::callback(requester, [err, callback = std::move(callback)]() {
-      callback(nullptr, nullptr, err);
+queue_callback(void* requester, int error_sin, int sin6_error, resolver_callback&& callback) {
+  this_thread::callback(requester, [error_sin, sin6_error, callback = std::move(callback)]() {
+      callback(nullptr, error_sin, nullptr, sin6_error);
     });
 }
 
@@ -179,7 +179,7 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
     case DNS_NO_RECORD:
     case DNS_TRY_AGAIN:
       LT_LOG_REQUESTER("matched cache entry : hostname:%s family:AF_INET sin:%s", hostname.c_str(), dns_error_str(status_sin));
-      return queue_callback(requester, dns_error(status_sin), std::move(callback));
+      return queue_callback(requester, dns_error(status_sin), 0, std::move(callback));
     }
   }
 
@@ -200,7 +200,7 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
     case DNS_NO_RECORD:
     case DNS_TRY_AGAIN:
       LT_LOG_REQUESTER("matched cache entry : hostname:%s family:AF_INET6 sin6:%s", hostname.c_str(), dns_error_str(status_sin6));
-      return queue_callback(requester, dns_error(status_sin6), std::move(callback));
+      return queue_callback(requester, 0, dns_error(status_sin6), std::move(callback));
     }
   }
 
@@ -215,8 +215,8 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
       LT_LOG_REQUESTER("matched cache entry, resolving missing AF_INET6 : hostname:%s family:AF_UNSPEC sin:%s",
                        hostname.c_str(), sin_pretty_or_empty(sin_addr.get()).c_str());
 
-      return queue_resolve(requester, hostname, AF_INET6, sin6_info, [sin_addr, callback = std::move(callback)](auto, auto sin6_addr, int) mutable {
-          return callback(sin_addr, sin6_addr, 0);
+      return queue_resolve(requester, hostname, AF_INET6, sin6_info, [sin_addr, callback = std::move(callback)](auto, int, auto sin6_addr, int sin6_error) mutable {
+          return callback(sin_addr, 0, sin6_addr, sin6_error);
         });
 
     case DNS_VALID:
@@ -240,8 +240,8 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
       LT_LOG_REQUESTER("matched cache entry, resolving missing AF_INET : hostname:%s family:AF_UNSPEC sin6:%s",
                        hostname.c_str(), sin6_pretty_or_empty(sin6_addr.get()).c_str());
 
-      return queue_resolve(requester, hostname, AF_INET, sin_info, [sin6_addr, callback = std::move(callback)](auto sin_addr, auto, int) mutable {
-          return callback(sin_addr, sin6_addr, 0);
+      return queue_resolve(requester, hostname, AF_INET, sin_info, [sin6_addr, callback = std::move(callback)](auto sin_addr, int error_sin, auto, int) mutable {
+          return callback(sin_addr, error_sin, sin6_addr, 0);
         });
 
     case DNS_NO_RECORD:
@@ -286,13 +286,13 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
     LT_LOG_REQUESTER("matched cache entry, returning no record error : hostname:%s family:AF_UNSPEC sin:%s sin6:%s",
                      hostname.c_str(), dns_error_str(status_sin), dns_error_str(status_sin6));
 
-    return queue_callback(requester, EAI_NONAME, std::move(callback));
+    return queue_callback(requester, dns_error(status_sin), dns_error(status_sin6), std::move(callback));
   }
 
   if (status_sin == DNS_TRY_AGAIN && status_sin6 == DNS_TRY_AGAIN) {
     LT_LOG_REQUESTER("matched cache entry, returning try again error : hostname:%s family:AF_UNSPEC sin:EAI_AGAIN sin6:EAI_AGAIN", hostname.c_str());
 
-    return queue_callback(requester, EAI_AGAIN, std::move(callback));
+    return queue_callback(requester, EAI_AGAIN, EAI_AGAIN, std::move(callback));
   }
 
   throw internal_error("DnsCache::resolve() unreachable code : end-of-function");
@@ -332,21 +332,25 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
     sin_info.staleness_itr  = m_sin_staleness.end();
     sin6_info.staleness_itr = m_sin6_staleness.end();
 
-    if (family == AF_INET || family == AF_UNSPEC) {
+    if (family == AF_INET) {
       sin_addr = std::move(result_sin);
       reset_sin_updated(itr->second.get(), current_time);
+
+      LT_LOG("added new cache entry : hostname:%s family:AF_INET sin:%s",
+             hostname.c_str(), sin_pretty_or_empty(sin_addr.get()).c_str());
+      return;
     }
 
-    if (family == AF_INET6 || family == AF_UNSPEC) {
+    if (family == AF_INET6) {
       sin6_addr = std::move(result_sin6);
       reset_sin6_updated(itr->second.get(), current_time);
+
+      LT_LOG("added new cache entry : hostname:%s family:AF_INET6 sin6:%s",
+             hostname.c_str(), sin6_pretty_or_empty(sin6_addr.get()).c_str());
+      return;
     }
 
-    LT_LOG("added new cache entry : hostname:%s family:%s sin:%s sin6:%s",
-           hostname.c_str(), family_str(family),
-           sin_pretty_or_empty(sin_addr.get()).c_str(),
-           sin6_pretty_or_empty(sin6_addr.get()).c_str());
-    return;
+    throw internal_error("DnsCache::process_success() unreachable code : inserted");
   }
 
   if (family == AF_INET) {
@@ -372,35 +376,7 @@ DnsCache::process_success(const std::string& hostname, int family, sin_shared_pt
     return;
   }
 
-  // AF_UNSPEC:
-
-  // It's too complicated to deal with possible errors from one of the families, so just ignore
-  // the family that didn't get updated.
-
-  if (result_sin) {
-    sin_addr           = std::move(result_sin);
-    sin_info.no_record = false;
-
-    reset_sin_updated(itr->second.get(), current_time);
-
-  } else {
-    sin_info.updating  = false;
-  }
-
-  if (result_sin6) {
-    sin6_addr           = std::move(result_sin6);
-    sin6_info.no_record = false;
-
-    reset_sin6_updated(itr->second.get(), current_time);
-
-  } else {
-    sin6_info.updating  = false;
-  }
-
-  LT_LOG("updated cache entry : hostname:%s family:AF_UNSPEC sin:%s sin6:%s",
-         hostname.c_str(),
-         sin_pretty_or_empty(sin_addr.get()).c_str(),
-         sin6_pretty_or_empty(sin6_addr.get()).c_str());
+  throw internal_error("DnsCache::process_success() unreachable code");
 }
 
 void
@@ -467,20 +443,8 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
       };
     }
 
-    // AF_UNSPEC:
-
-    reset_sin_failed(itr->second.get(), current_time);
-    reset_sin6_failed(itr->second.get(), current_time);
-
-    // EAI_NONAME: We don't know if both are non-existent, so do separate updates for each family.
-
-    // TODO: Do background updates here for EAI_NONAME
-
-    LT_LOG("added new cache entry with (possibly) no record : hostname:%s family:AF_UNSPEC", hostname.c_str());
-    return;
+    throw internal_error("DnsCache::process_failure() unreachable code : inserted");
   }
-
-  // We update the cache entry even if it doesn't exist to remove stale addresses.
 
   // TODO: EAI_NONAME should check if we're already set to no_record before doing anything.
 
@@ -524,34 +488,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
     };
   }
 
-  // AF_UNSPEC:
-
-  // TODO: Change dns resolver to return both error values.
-
-  switch (error) {
-  case EAI_NONAME:
-    // TODO: We don't know if both are non-existent, so do separate updates for each family.
-    // TODO: Check info.no_record == true, if so do nothing.
-
-    // Just do naive failed counter update for now
-    reset_sin_failed(itr->second.get(), current_time);
-    reset_sin6_failed(itr->second.get(), current_time);
-
-    LT_LOG("updated cache entry with no record : hostname:%s family:AF_UNSPEC", hostname.c_str());
-    return;
-
-  default:
-    reset_sin_failed(itr->second.get(), current_time);
-    reset_sin6_failed(itr->second.get(), current_time);
-
-    // TODO: Do separate updates for each family here as well if it's been a while since last time?
-
-    // TODO: However should we not just rely on initial insert to handle errors aggressively, and
-    // then just let nature take its course with the updates?
-
-    LT_LOG("updated cache entry with failed update : hostname:%s family:AF_UNSPEC error:'%s'", hostname.c_str(), gai_strerror(error));
-    return;
-  }
+  throw internal_error("DnsCache::process_failure() unreachable code");
 }
 
 void
@@ -654,7 +591,7 @@ DnsCache::update_stale_info(const char* reason, void* requester, const std::stri
   LT_LOG_REQUESTER("stale cache entry with %s, retrying in background : hostname:%s family:%s",
                    reason, hostname.c_str(), family_str(family));
 
-  ThreadNet::thread_net()->dns_buffer()->resolve(this, hostname, family, {});
+  ThreadNet::thread_net()->dns_buffer()->resolve(this, hostname, family, []( auto, int, auto, int) {});
   info.updating = true;
 }
 

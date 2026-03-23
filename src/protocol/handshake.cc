@@ -162,6 +162,9 @@ Handshake::destroy_connection(bool use_socket_manager) {
       fn();
 
   } catch (...) {
+    if (is_polling())
+      this_thread::poll()->remove_and_close(this);
+
     if (is_open()) {
       fd_close(m_fileDesc);
       set_file_descriptor(-1);

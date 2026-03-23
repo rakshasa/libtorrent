@@ -65,6 +65,8 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Also check failed counter....
   // TODO: Check for changes to block (NC should instead clear us on network changes)
 
+  // TODO: Change to always do resolve and rely on cache.
+
   if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
       (this_thread::cached_time() - m_time_last_resolved) > 24h ||
       m_failed_since_last_resolved > 3) {
@@ -80,11 +82,12 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
     else if (block_ipv6)
       family = AF_INET;
 
+    auto fn = [this](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
+        receive_resolved(sin, err, sin6, err6);
+      };
+
     // Currently discarding SOCK_DGRAM filter.
-    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family,
-                                          [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
-                                            receive_resolved(sin, sin6, err);
-                                          });
+    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family, std::move(fn));
     return;
   }
 
@@ -162,7 +165,7 @@ TrackerUdp::receive_failed(const std::string& msg) {
 // TODO: Only resolve when we don't have a valid address, failed too many times or network change
 // events.
 void
-TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err) {
+TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
   if (std::this_thread::get_id() != torrent::main_thread::thread_id())
     throw internal_error("TrackerUdp::receive_resolved() called from a different thread.");
 
@@ -173,9 +176,11 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
 
   m_resolver_requesting = false;
 
-  if (err != 0) {
-    LT_LOG("could not resolve hostname : error:'%s'", gai_strerror(err));
-    return receive_failed("could not resolve hostname : error:'" + std::string(gai_strerror(err)) + "'");
+  if (err != 0 && err6 != 0) {
+    // TODO: Replace with error codes.
+    LT_LOG("could not resolve hostname : sin_error:'%s' sin6_error:'%s'", gai_strerror(err), gai_strerror(err6));
+    return receive_failed("could not resolve hostname : sin_error:'" + std::string(gai_strerror(err)) +
+                          "' sin6_error:'" + std::string(gai_strerror(err6)) + "'");
   }
 
   if (sin != nullptr) {

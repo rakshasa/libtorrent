@@ -175,9 +175,9 @@ DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
 
   auto index = std::distance(m_active_queries.begin(), itr);
 
-  auto fn = [this, index](sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error) {
+  auto fn = [this, index](sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6) {
       this_thread::callback(this->requester_from_index(index), [=]() {
-          this->process(index, std::move(result_sin), std::move(result_sin6), error);
+          this->process(index, std::move(result_sin), error_sin, std::move(result_sin6), error_sin6);
         });
     };
 
@@ -188,7 +188,7 @@ DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
 }
 
 void
-DnsBuffer::process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error) {
+DnsBuffer::process(unsigned int index, sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6) {
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
   if (index >= max_requests)
@@ -202,19 +202,33 @@ DnsBuffer::process(unsigned int index, sin_shared_ptr result_sin, sin6_shared_pt
   if (query.family != AF_UNSPEC && query.family != AF_INET && query.family != AF_INET6)
     throw internal_error("DnsBuffer::process() query.family is invalid");
 
-  if (error == 0)
-    ThreadNet::thread_net()->dns_cache()->process_success(query.hostname, query.family, result_sin, result_sin6);
-  else
-    ThreadNet::thread_net()->dns_cache()->process_failure(query.hostname, query.family, error);
+  if (result_sin && error_sin != 0)
+    throw internal_error("DnsBuffer::process() query has both result and error for A record");
+
+  if (result_sin6 && error_sin6 != 0)
+    throw internal_error("DnsBuffer::process() query has both result and error for AAAA record");
+
+  if (!result_sin && !result_sin6 && (error_sin == 0 || error_sin6 == 0))
+    throw internal_error("DnsBuffer::process() query has no result and no error");
+
+  if (result_sin)
+    ThreadNet::thread_net()->dns_cache()->process_success(query.hostname, AF_INET, result_sin, nullptr);
+  else if (error_sin != 0)
+    ThreadNet::thread_net()->dns_cache()->process_failure(query.hostname, AF_INET, error_sin);
+
+  if (result_sin6)
+    ThreadNet::thread_net()->dns_cache()->process_success(query.hostname, AF_INET6, nullptr, result_sin6);
+  else if (error_sin6 != 0)
+    ThreadNet::thread_net()->dns_cache()->process_failure(query.hostname, AF_INET6, error_sin6);
 
   for (auto& callback : query.callbacks)
-    process_callback(callback, result_sin, result_sin6, error);
+    process_callback(callback, result_sin, error_sin, result_sin6, error_sin6);
 
   activate_pending_query();
 }
 
 void
-DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, sin6_shared_ptr result_sin6, int error) {
+DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6) {
   auto requester_ptr = callback.requester.lock();
   auto requester = requester_ptr.get();
 
@@ -226,19 +240,16 @@ DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_s
 
   requester->active_query_count--;
 
-  if (error == 0) {
-    LT_LOG_REQUESTER("processing callback : inet:%s inet6:%s",
-                    sin_pretty_or_empty(result_sin.get()).c_str(), sin6_pretty_or_empty(result_sin6.get()).c_str());
-  } else {
-    LT_LOG_REQUESTER("processing callback : %s", gai_strerror(error));
-  }
+  LT_LOG_REQUESTER("processing callback : inet:%s inet6:%s",
+                   (error_sin == 0) ? sin_pretty_or_empty(result_sin.get()).c_str() : gai_strerror(error_sin),
+                   (error_sin6 == 0) ? sin6_pretty_or_empty(result_sin6.get()).c_str() : gai_strerror(error_sin6));
 
   {
     // Block cancel() until this is done to ensure callbacks for the requester are all canceled.
     auto guard = std::lock_guard(m_requesters_mutex);
 
     if (requester_ptr.use_count() > 1)
-      callback.callback(result_sin, result_sin6, error);
+      callback.callback(result_sin, error_sin, result_sin6, error_sin6);
   }
 }
 

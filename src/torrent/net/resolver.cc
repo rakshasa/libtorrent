@@ -23,8 +23,8 @@ Resolver::init() {
 void
 Resolver::resolve_both(void* requester, const std::string& hostname, int family, both_callback&& callback) {
   auto cb = [this, requester, hostname, family, callback = std::move(callback)]() mutable {
-      auto fn = [this, requester, callback = std::move(callback)](sin_shared_ptr sin, sin6_shared_ptr sin6, int err) mutable {
-          m_thread->callback(requester, std::bind(std::move(callback), std::move(sin), std::move(sin6), err));
+      auto fn = [this, requester, callback = std::move(callback)](sin_shared_ptr sin, int err, sin6_shared_ptr sin6, int err6) mutable {
+          m_thread->callback(requester, std::bind(std::move(callback), std::move(sin), err, std::move(sin6), err6));
         };
 
       ThreadNet::thread_net()->dns_cache()->resolve(requester, hostname, family, std::move(fn));
@@ -36,29 +36,34 @@ Resolver::resolve_both(void* requester, const std::string& hostname, int family,
 void
 Resolver::resolve_preferred(void* requester, const std::string& hostname, int family, int preferred, single_callback&& callback) {
   if (preferred != AF_INET && preferred != AF_INET6)
-    throw internal_error("Invalid preferred family.");
+    throw internal_error("Resolver::resolve_preferred() invalid preferred family.");
 
   auto cb = [this, requester, hostname, family, preferred, callback = std::move(callback)] () mutable {
-      auto fn = [this, requester, preferred, callback = std::move(callback)](const auto& sin, const auto& sin6, int err) mutable {
+      auto fn = [this, requester, preferred, callback = std::move(callback)](const auto& sin, int err, const auto& sin6, int err6) mutable {
           // 'result' copies the deleter from the unique_ptr returned by sa_copy_in.
           sa_shared_ptr result;
+          int           error{};
 
-          if (err == 0) {
-            if (sin != nullptr && sin6 != nullptr) {
-              if (preferred == AF_INET)
-                result = sa_copy_in(sin.get());
-              else
-                result = sa_copy_in6(sin6.get());
+          // TODO: Do we need to handle no-record differently?
 
-            } else if (sin != nullptr) {
+          if (preferred == AF_INET) {
+            if (err == 0 && sin != nullptr)
               result = sa_copy_in(sin.get());
-
-            } else if (sin6 != nullptr) {
+            else if (err6 == 0 && sin6 != nullptr)
               result = sa_copy_in6(sin6.get());
-            }
+            else
+              error = err != 0 ? err : err6;
+
+          } else {
+            if (err6 == 0 && sin6 != nullptr)
+              result = sa_copy_in6(sin6.get());
+            else if (err == 0 && sin != nullptr)
+              result = sa_copy_in(sin.get());
+            else
+              error = err6 != 0 ? err6 : err;
           }
 
-          m_thread->callback(requester, std::bind(std::move(callback), std::move(result), err));
+          m_thread->callback(requester, std::bind(std::move(callback), std::move(result), error));
         };
 
       ThreadNet::thread_net()->dns_cache()->resolve(requester, hostname, family, std::move(fn));
@@ -69,19 +74,36 @@ Resolver::resolve_preferred(void* requester, const std::string& hostname, int fa
 
 void
 Resolver::resolve_specific(void* requester, const std::string& hostname, int family, single_callback&& callback) {
+  if (family != AF_INET && family != AF_INET6)
+    throw internal_error("Resolver::resolve_specific() invalid family.");
+
   auto cb = [this, requester, hostname, family, callback = std::move(callback)]() mutable {
-      auto fn = [this, requester, family, callback = std::move(callback)](const auto& sin, const auto& sin6, int err) mutable {
+      auto fn = [this, requester, family, callback = std::move(callback)](const auto& sin, int err, const auto& sin6, int err6) mutable {
           sa_shared_ptr result;
+          int           error{};
 
-          if (err == 0) {
-            if (family == AF_INET && sin != nullptr)
+          // if (err == 0) {
+          //   if (family == AF_INET && sin != nullptr)
+          //     result = sa_copy_in(sin.get());
+
+          //   if (family == AF_INET6 && sin6 != nullptr)
+          //     result = sa_copy_in6(sin6.get());
+          // }
+
+          if (family == AF_INET) {
+            if (err == 0 && sin != nullptr)
               result = sa_copy_in(sin.get());
+            else
+              error = err;
 
-            if (family == AF_INET6 && sin6 != nullptr)
+          } else {
+            if (err6 == 0 && sin6 != nullptr)
               result = sa_copy_in6(sin6.get());
+            else
+              error = err6;
           }
 
-          m_thread->callback(requester, std::bind(std::move(callback), std::move(result), err));
+          m_thread->callback(requester, std::bind(std::move(callback), std::move(result), error));
         };
 
       ThreadNet::thread_net()->dns_cache()->resolve(requester, hostname, family, std::move(fn));

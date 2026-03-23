@@ -45,7 +45,7 @@ using c_sin6_shared_ptr = std::shared_ptr<const sockaddr_in6>;
 using c_sun_shared_ptr  = std::shared_ptr<const sockaddr_un>;
 
 using fd_sap_tuple      = std::tuple<int, sa_unique_ptr>;
-using resolver_callback = std::function<void(sin_shared_ptr, sin6_shared_ptr, int)>;
+using resolver_callback = std::function<void(sin_shared_ptr, int, sin6_shared_ptr, int)>;
 
 struct listen_result_type {
   int fd;

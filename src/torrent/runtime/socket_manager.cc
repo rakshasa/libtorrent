@@ -154,9 +154,8 @@ SocketManager::register_event_or_throw(Event* event, std::function<void ()> func
            itr->second.thread->name(), itr->second.event->type_name());
 
     throw internal_error("SocketManager::register_event_or_throw(): tried to register an existing file descriptor: " +
-                         std::string(itr->second.thread->name()) + ":" +
-                         std::string(itr->second.event->type_name()) + ":" +
-                         std::to_string(fd));
+                         std::string(this_thread::thread()->name()) + ":" + std::string(event->type_name()) + ":" + std::to_string(fd) + " -> " +
+                         std::string(itr->second.thread->name()) + ":" + std::string(itr->second.event->type_name()));
   }
 
   func();
@@ -228,6 +227,7 @@ SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) 
     LT_LOG("transfer_event() : %s:%s:%i : socket transfer function returned nullptr",
            this_thread::thread()->name(), event_from->type_name(), fd);
 
+    m_socket_map.erase(itr);
     return nullptr;
   }
 
