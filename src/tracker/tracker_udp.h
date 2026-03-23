@@ -46,7 +46,7 @@ private:
   void                close_directly();
 
   void                receive_failed(const std::string& msg);
-  void                receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err);
+  void                receive_resolved(c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
   void                receive_timeout();
 
   void                start_announce();

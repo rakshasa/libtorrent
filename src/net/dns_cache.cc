@@ -66,9 +66,9 @@ queue_callback(void* requester, sin_shared_ptr sin_addr, sin6_shared_ptr sin6_ad
 }
 
 void
-queue_callback(void* requester, int error_sin, int error_sin6, resolver_callback&& callback) {
-  this_thread::callback(requester, [error_sin, error_sin6, callback = std::move(callback)]() {
-      callback(nullptr, error_sin, nullptr, error_sin6);
+queue_callback(void* requester, int error_sin, int sin6_error, resolver_callback&& callback) {
+  this_thread::callback(requester, [error_sin, sin6_error, callback = std::move(callback)]() {
+      callback(nullptr, error_sin, nullptr, sin6_error);
     });
 }
 
@@ -215,8 +215,8 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
       LT_LOG_REQUESTER("matched cache entry, resolving missing AF_INET6 : hostname:%s family:AF_UNSPEC sin:%s",
                        hostname.c_str(), sin_pretty_or_empty(sin_addr.get()).c_str());
 
-      return queue_resolve(requester, hostname, AF_INET6, sin6_info, [sin_addr, callback = std::move(callback)](auto, int, auto sin6_addr, int error_sin6) mutable {
-          return callback(sin_addr, 0, sin6_addr, error_sin6);
+      return queue_resolve(requester, hostname, AF_INET6, sin6_info, [sin_addr, callback = std::move(callback)](auto, int, auto sin6_addr, int sin6_error) mutable {
+          return callback(sin_addr, 0, sin6_addr, sin6_error);
         });
 
     case DNS_VALID:
@@ -240,8 +240,8 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
       LT_LOG_REQUESTER("matched cache entry, resolving missing AF_INET : hostname:%s family:AF_UNSPEC sin6:%s",
                        hostname.c_str(), sin6_pretty_or_empty(sin6_addr.get()).c_str());
 
-      return queue_resolve(requester, hostname, AF_INET, sin_info, [sin6_addr, callback = std::move(callback)](auto sin_addr, auto, int) mutable {
-          return callback(sin_addr, sin6_addr, 0);
+      return queue_resolve(requester, hostname, AF_INET, sin_info, [sin6_addr, callback = std::move(callback)](auto sin_addr, int error_sin, auto, int) mutable {
+          return callback(sin_addr, error_sin, sin6_addr, 0);
         });
 
     case DNS_NO_RECORD:
@@ -286,13 +286,13 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
     LT_LOG_REQUESTER("matched cache entry, returning no record error : hostname:%s family:AF_UNSPEC sin:%s sin6:%s",
                      hostname.c_str(), dns_error_str(status_sin), dns_error_str(status_sin6));
 
-    return queue_callback(requester, EAI_NONAME, std::move(callback));
+    return queue_callback(requester, dns_error(status_sin), dns_error(status_sin6), std::move(callback));
   }
 
   if (status_sin == DNS_TRY_AGAIN && status_sin6 == DNS_TRY_AGAIN) {
     LT_LOG_REQUESTER("matched cache entry, returning try again error : hostname:%s family:AF_UNSPEC sin:EAI_AGAIN sin6:EAI_AGAIN", hostname.c_str());
 
-    return queue_callback(requester, EAI_AGAIN, std::move(callback));
+    return queue_callback(requester, EAI_AGAIN, EAI_AGAIN, std::move(callback));
   }
 
   throw internal_error("DnsCache::resolve() unreachable code : end-of-function");
@@ -591,7 +591,7 @@ DnsCache::update_stale_info(const char* reason, void* requester, const std::stri
   LT_LOG_REQUESTER("stale cache entry with %s, retrying in background : hostname:%s family:%s",
                    reason, hostname.c_str(), family_str(family));
 
-  ThreadNet::thread_net()->dns_buffer()->resolve(this, hostname, family, {});
+  ThreadNet::thread_net()->dns_buffer()->resolve(this, hostname, family, []( auto, int, auto, int) {});
   info.updating = true;
 }
 
