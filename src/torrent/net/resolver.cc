@@ -82,14 +82,6 @@ Resolver::resolve_specific(void* requester, const std::string& hostname, int fam
           sa_shared_ptr result;
           int           error{};
 
-          // if (err == 0) {
-          //   if (family == AF_INET && sin != nullptr)
-          //     result = sa_copy_in(sin.get());
-
-          //   if (family == AF_INET6 && sin6 != nullptr)
-          //     result = sa_copy_in6(sin6.get());
-          // }
-
           if (family == AF_INET) {
             if (err == 0 && sin != nullptr)
               result = sa_copy_in(sin.get());
@@ -119,10 +111,15 @@ Resolver::cancel(void* requester) {
   // While processing results, udns is locked so we need to cancel the callback before canceling the
   // request.
 
-  // We need this to ensure new addition don't get lazily added.
   net_thread::cancel_callback_and_wait(requester);
 
   ThreadNet::thread_net()->dns_buffer()->cancel_safe(requester);
+
+  // TODO: This is wrong.
+
+  // // DnsBuffer might have added callbacks if it locked DnsBufferRequester shared_ptr right after
+  // // cancel_safe().
+  // net_thread::cancel_callback_and_wait(requester);
 
   // Self thread doesn't need to wait.
   m_thread->cancel_callback(requester);

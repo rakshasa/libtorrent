@@ -33,6 +33,9 @@ struct DnsBufferQuery {
   std::vector<DnsBufferCallback> callbacks;
 };
 
+// TODO: Add sanity checks using resolve_unique() and resolve_multi() which checks to make sure we
+// don't get duplicate requests.
+
 struct DnsBufferRequester {
   unsigned int active_query_count{};
   unsigned int pending_query_count{};

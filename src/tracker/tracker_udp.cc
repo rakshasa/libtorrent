@@ -57,7 +57,6 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   lock_and_set_latest_event(new_state);
 
   m_send_state = new_state;
-  m_resolver_requesting = true;
   m_sending_announce = true;
 
   LT_LOG("resolving hostname : address:%s", hostname.data());
@@ -81,6 +80,8 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
       family = AF_INET6;
     else if (block_ipv6)
       family = AF_INET;
+
+    m_resolver_requesting = true;
 
     auto fn = [this](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
         receive_resolved(sin, err, sin6, err6);

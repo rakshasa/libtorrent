@@ -134,8 +134,12 @@ void
 Thread::cancel_callback_and_wait(void* target) {
   cancel_callback(target);
 
-  if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing)
+  if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing) {
     auto lock = std::lock_guard(m_callbacks_processing_lock);
+
+    // Remove 'target' again in case it was added by the currently processing callback.
+    cancel_callback(target);
+  }
 }
 
 // Fix interrupting when shutting down thread.

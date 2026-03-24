@@ -96,6 +96,8 @@ DnsBuffer::resolve(void* requester, const std::string& hostname, int family, res
   m_pending_queries.insert(m_pending_queries.end(), DnsBufferQuery{family, hostname, {initialize_fn(false)}});
 }
 
+// TODO: We're not flushing old m_requesters. (do we make calling cancel_safe() required for all requesters?)
+
 void
 DnsBuffer::cancel_safe(void* requester) {
   if (requester == nullptr)
@@ -230,7 +232,7 @@ DnsBuffer::process(unsigned int index, sin_shared_ptr result_sin, int error_sin,
 void
 DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6) {
   auto requester_ptr = callback.requester.lock();
-  auto requester = requester_ptr.get();
+  auto requester     = requester_ptr.get();
 
   if (requester == nullptr)
     return;
