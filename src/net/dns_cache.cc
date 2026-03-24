@@ -200,9 +200,9 @@ DnsCache::resolve(void* requester, std::string hostname, int family, resolver_ca
     case DNS_NO_RECORD:
     case DNS_TRY_AGAIN:
       LT_LOG_REQUESTER("matched cache entry : hostname:%s family:AF_UNSPEC sin:%s sin6:%s",
-                       hostname.c_str(), sin_pretty_or_empty(sin_addr.get()).c_str(), dns_error_str(status_sin));
+                       hostname.c_str(), sin_pretty_or_empty(sin_addr.get()).c_str(), dns_error_str(status_sin6));
 
-      return callback(sin_addr, 0, nullptr, dns_error(status_sin));
+      return callback(sin_addr, 0, nullptr, dns_error(status_sin6));
     };
   }
 
