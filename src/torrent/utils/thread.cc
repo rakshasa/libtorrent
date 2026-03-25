@@ -122,7 +122,7 @@ Thread::callback_interrupt_polling_and_wait(void* target, std::function<void ()>
 void
 Thread::cancel_callback(void* target) {
   if (target == nullptr)
-    throw internal_error("Thread::cancel_callback called with a null pointer target.");
+    throw internal_error("Thread::cancel_callback called() with a null pointer target.");
 
   auto lock = std::lock_guard(m_callbacks_lock);
 
@@ -135,9 +135,11 @@ Thread::cancel_callback_and_wait(void* target) {
   cancel_callback(target);
 
   if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing) {
-    auto lock = std::lock_guard(m_callbacks_processing_lock);
+    {
+      auto lock = std::lock_guard(m_callbacks_processing_lock);
+    }
 
-    // Remove 'target' again in case it was added by the currently processing callback.
+    // Remove 'target' again in case it was added by the processed callback.
     cancel_callback(target);
   }
 }

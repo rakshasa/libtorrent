@@ -108,18 +108,14 @@ void
 Resolver::cancel(void* requester) {
   assert(m_thread != nullptr && std::this_thread::get_id() == m_thread->thread_id());
 
-  // While processing results, udns is locked so we need to cancel the callback before canceling the
-  // request.
-
+  // Make sure no new resolve requests get added.
   net_thread::cancel_callback_and_wait(requester);
 
+  // No new resolve results will be added after this.
   ThreadNet::thread_net()->dns_buffer()->cancel_safe(requester);
 
-  // TODO: This is wrong.
-
-  // // DnsBuffer might have added callbacks if it locked DnsBufferRequester shared_ptr right after
-  // // cancel_safe().
-  // net_thread::cancel_callback_and_wait(requester);
+  // Remove any new resolve results that got added before between the above two calls.
+  net_thread::cancel_callback_and_wait(requester);
 
   // Self thread doesn't need to wait.
   m_thread->cancel_callback(requester);
