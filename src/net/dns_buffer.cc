@@ -210,8 +210,22 @@ DnsBuffer::process(unsigned int index, sin_shared_ptr result_sin, int error_sin,
   if (result_sin6 && error_sin6 != 0)
     throw internal_error("DnsBuffer::process() query has both result and error for AAAA record");
 
-  if (!result_sin && !result_sin6 && (error_sin == 0 || error_sin6 == 0))
-    throw internal_error("DnsBuffer::process() query has no result and no error");
+  if (query.family == AF_UNSPEC) {
+    if (result_sin == nullptr && result_sin6 == nullptr && (error_sin == 0 || error_sin6 == 0))
+      throw internal_error("DnsBuffer::process() query has no result and no error for AF_UNSPEC");
+
+  } else if (query.family == AF_INET) {
+    if (result_sin == nullptr && error_sin == 0)
+      throw internal_error("DnsBuffer::process() query has no result and no error for AF_INET");
+    if (result_sin6 != nullptr || error_sin6 != 0)
+      throw internal_error("DnsBuffer::process() query has result or error for AF_INET6 when family is AF_INET");
+
+  } else if (query.family == AF_INET6) {
+    if (result_sin6 == nullptr && error_sin6 == 0)
+      throw internal_error("DnsBuffer::process() query has no result and no error for AF_INET6");
+    if (result_sin != nullptr || error_sin != 0)
+      throw internal_error("DnsBuffer::process() query has result or error for AF_INET when family is AF_INET6");
+  }
 
   if (result_sin)
     ThreadNet::thread_net()->dns_cache()->process_success(query.hostname, AF_INET, result_sin, nullptr);
