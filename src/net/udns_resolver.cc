@@ -213,7 +213,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
   addrinfo  hints{};
-  addrinfo* result;
+  addrinfo* result{};
 
   hints.ai_family = query->family;
   hints.ai_socktype = SOCK_STREAM; // Not used, but required.
@@ -236,6 +236,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
     query->result_sin6 = sin6_copy(reinterpret_cast<sockaddr_in6*>(result->ai_addr));
     query->error_sin6 = 0;
   } else {
+    ::freeaddrinfo(result);
     throw internal_error("getaddrinfo returned unsupported family");
   }
 
