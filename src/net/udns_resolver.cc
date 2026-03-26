@@ -132,6 +132,7 @@ UdnsResolver::cleanup() {
 void
 UdnsResolver::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(family == AF_INET || family == AF_INET6 || family == AF_UNSPEC);
 
   auto query = std::make_unique<UdnsQuery>();
 
@@ -220,7 +221,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
 
   int ret = ::getaddrinfo(query->hostname.c_str(), nullptr, &hints, &result);
 
-  if (ret == EAI_NONAME)
+  if (ret == EAI_NONAME || ret == EAI_ADDRFAMILY)
     return false; // No numeric address found.
 
   if (ret != 0)

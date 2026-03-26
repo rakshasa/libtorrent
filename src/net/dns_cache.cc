@@ -51,7 +51,7 @@ last_update_or_failed(const DnsCacheInfo& info) {
 
 } // namespace
 
-// TODO: Change timer comparisons to use a a helper function that checks the latest valid time. (and possibly add internal errors)
+// TODO: replace gai_strerror with torrent::net::gai_enum_error
 
 void
 DnsCache::resolve(void* requester, std::string hostname, int family, resolver_callback&& callback) {
