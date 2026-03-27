@@ -372,7 +372,7 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
   // Clear current query handle
   query->a4_query = nullptr;
 
-  // ❌ No result at all
+  // No result
   if (result == nullptr) {
     query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
 
@@ -383,7 +383,7 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
     return;
   }
 
-  // ✅ Got A records → DONE
+  // Got A records -> DONE
   if (result->dnsa4_nrr > 0) {
     query->result_sin = sin_make();
     query->result_sin->sin_addr = result->dnsa4_addr[0];
@@ -395,7 +395,7 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
     return;
   }
 
-  // 🔁 Handle CNAME (no A records but alias present)
+  // Handle CNAME (no A records but alias present)
   if (result->dnsa4_cname != nullptr) {
     // Optional: add loop protection
     if (++query->cname_depth > 8) {
@@ -415,22 +415,15 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
       query->requester, query->hostname.c_str(), query->cname_depth);
 
     // Re-submit query for the CNAME target
-    query->a4_query = ::dns_submit_a4(
-      ctx,
-      query->hostname.c_str(),
-      0,
-      &UdnsResolverInternal::a4_callback_wrapper,
-      query
-    );
+    query->a4_query = ::dns_submit_a4(ctx, query->hostname.c_str(), 0, &UdnsResolverInternal::a4_callback_wrapper, query);
 
     return;
   }
 
-  // ❌ No A records and no CNAME
+  // No A records and no CNAME
   query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
 
-  LT_LOG_QUERY("no A records and no CNAME : name:%s error:'%s'",
-    query->hostname.c_str(), gai_strerror(query->error_sin));
+  LT_LOG_QUERY("no A records and no CNAME : name:%s error:'%s'", query->hostname.c_str(), gai_strerror(query->error_sin));
 
   UdnsResolver::process_partial_result_unsafe(itr);
 }
