@@ -41,6 +41,7 @@ struct UdnsQuery {
   bool              deleted{};
   ::dns_query*      a4_query{};
   ::dns_query*      a6_query{};
+  int               cname_depth{0};
 
   sin_shared_ptr    result_sin;
   sin6_shared_ptr   result_sin6;
