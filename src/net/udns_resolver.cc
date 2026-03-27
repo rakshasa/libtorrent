@@ -357,6 +357,28 @@ UdnsResolver::process_timeouts() {
   this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, timeout * 1s);
 }
 
+bool
+UdnsResolverInternal::handle_cname_recursion(::dns_ctx *ctx, UdnsQuery* query, const char* cname, bool is_ipv6) {
+  if (cname == nullptr) return false;
+
+  if (++query->cname_depth > 8) {
+    query->error_sin = EAI_FAIL; // Or error_sin6 for IPv6
+    LT_LOG_QUERY("CNAME depth exceeded : original:%s current:%s", query->requester, query->hostname.c_str());
+    return false; 
+  }
+
+  query->hostname = cname;
+  LT_LOG_QUERY("CNAME encountered, retrying : original:%s cname:%s depth:%d", query->requester, query->hostname.c_str(), query->cname_depth);
+
+  if (is_ipv6) {
+    query->a6_query = ::dns_submit_a6(ctx, query->hostname.c_str(), 0, &UdnsResolverInternal::a6_callback_wrapper, query);
+  } else {
+    query->a4_query = ::dns_submit_a4(ctx, query->hostname.c_str(), 0, &UdnsResolverInternal::a4_callback_wrapper, query);
+  }
+
+  return true;
+}
+
 void
 UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, void *data) {
   auto query = static_cast<UdnsQuery*>(data);
@@ -368,62 +390,26 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
   }
 
   auto itr = query->parent->find_query_or_fail_unsafe(query);
-
-  // Clear current query handle
   query->a4_query = nullptr;
 
-  // No result
-  if (result == nullptr) {
-    query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
-
-    LT_LOG_QUERY("no A records received (null result) : name:%s error:'%s'",
-      query->hostname.c_str(), gai_strerror(query->error_sin));
-
-    UdnsResolver::process_partial_result_unsafe(itr);
-    return;
-  }
-
-  // Got A records -> DONE
-  if (result->dnsa4_nrr > 0) {
+  // 1. Handle Success
+  if (result != nullptr && result->dnsa4_nrr > 0) {
     query->result_sin = sin_make();
     query->result_sin->sin_addr = result->dnsa4_addr[0];
-
-    LT_LOG_QUERY("A records received : name:%s nrr:%d",
-      query->hostname.c_str(), result->dnsa4_nrr);
-
+    LT_LOG_QUERY("A records received : name:%s nrr:%d", query->hostname.c_str(), result->dnsa4_nrr);
     UdnsResolver::process_partial_result_unsafe(itr);
     return;
   }
 
-  // Handle CNAME (no A records but alias present)
-  if (result->dnsa4_cname != nullptr) {
-    // Optional: add loop protection
-    if (++query->cname_depth > 8) {
-      query->error_sin = EAI_FAIL;
-
-      LT_LOG_QUERY("CNAME depth exceeded : original:%s current:%s",
-        query->requester, query->hostname.c_str());
-
-      UdnsResolver::process_partial_result_unsafe(itr);
-      return;
-    }
-
-    // Update hostname to CNAME target
-    query->hostname = result->dnsa4_cname;
-
-    LT_LOG_QUERY("CNAME encountered, retrying : original:%s cname:%s depth:%d",
-      query->requester, query->hostname.c_str(), query->cname_depth);
-
-    // Re-submit query for the CNAME target
-    query->a4_query = ::dns_submit_a4(ctx, query->hostname.c_str(), 0, &UdnsResolverInternal::a4_callback_wrapper, query);
-
-    return;
+  // 2. Handle CNAME Recursion (via helper)
+  const char* cname = (result != nullptr) ? result->dnsa4_cname : ::dns_cname(ctx);
+  if (handle_cname_recursion(ctx, query, cname, false)) {
+    return; // New query submitted, wait for next callback
   }
 
-  // No A records and no CNAME
+  // 3. Handle Final Error (No result and no valid CNAME to follow)
   query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
-
-  LT_LOG_QUERY("no A records and no CNAME : name:%s error:'%s'", query->hostname.c_str(), gai_strerror(query->error_sin));
+  LT_LOG_QUERY("No A records found : name:%s error:'%s'",  query->hostname.c_str(), gai_strerror(query->error_sin));
 
   UdnsResolver::process_partial_result_unsafe(itr);
 }
