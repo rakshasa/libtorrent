@@ -414,6 +414,9 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
 
   query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
 
+  if (query->error_sin6 == 0)
+    query->error_sin6 = EAI_NODATA;
+
   LT_LOG_QUERY("No A records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin));
   UdnsResolver::process_partial_result_unsafe(itr);
 }
@@ -470,6 +473,9 @@ UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, v
   }
 
   query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
+
+  if (query->error_sin6 == 0)
+    query->error_sin6 = EAI_NODATA;
 
   LT_LOG_QUERY("No AAAA records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin6));
   UdnsResolver::process_partial_result_unsafe(itr);
