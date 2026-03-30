@@ -297,7 +297,7 @@ DhtTransactionSearch::~DhtTransactionSearch() {
   if (m_node != m_search->end())
     complete(false);
 
-  if (m_search->complete())
+  if (!m_search->is_pinned() && m_search->complete())
     delete m_search;
 }
 

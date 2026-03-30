@@ -453,6 +453,14 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtM
 
 void
 DhtServer::find_node_next(DhtTransactionSearch* transaction) {
+  // Pin the search to prevent premature deletion during this function.
+  // When add_transaction() fails (returns -1, e.g. all 256 transaction IDs
+  // for a given IP are exhausted), the failed transaction's destructor
+  // decrements m_pending. If m_pending reaches zero on a started search,
+  // the destructor would delete the search object, causing use-after-free
+  // in the loop iterator and subsequent calls.
+  transaction->search()->pin();
+
   int priority = packet_prio_low;
 
   if (transaction->search()->is_announce())
@@ -465,8 +473,10 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
     node = transaction->search()->get_contact();
   }
 
-  if (!transaction->search()->is_announce())
+  if (!transaction->search()->is_announce()) {
+    transaction->search()->unpin();
     return;
+  }
 
   auto announce = static_cast<DhtAnnounce*>(transaction->search());
 
@@ -476,6 +486,13 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
     for (node = announce->start_announce(); node != announce->end(); ++node)
       add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(node)), packet_prio_high);
   }
+
+  announce->unpin();
+
+  // If search is complete after unpin (all transactions failed), the calling
+  // transaction's destructor will handle cleanup. Do not access the pointer.
+  if (announce->complete())
+    return;
 
   announce->update_status();
 }

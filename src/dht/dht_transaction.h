@@ -99,6 +99,10 @@ public:
   const HashString&    target() const                    { return m_target; }
   raw_string           target_raw_string() const         { return raw_string(m_target.data(), HashString::size_data); }
 
+  void                 pin()                            { m_pinned = true; }
+  void                 unpin()                          { m_pinned = false; }
+  bool                 is_pinned() const                { return m_pinned; }
+
   virtual bool         is_announce() const               { return false; }
 
   // Expose the otherwise private end() function but return an accessor,
@@ -120,6 +124,7 @@ protected:
   unsigned int         m_concurrency{3};
 
   bool                 m_restart{false};  // If true, trim nodes and reset m_next on the following get_contact call.
+  bool                 m_pinned{false};
   bool                 m_started{false};
 
   // Next node to return in get_contact, is end() if we have no more contactable nodes.
