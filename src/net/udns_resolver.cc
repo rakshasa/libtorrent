@@ -132,6 +132,7 @@ UdnsResolver::cleanup() {
 void
 UdnsResolver::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(family == AF_INET || family == AF_INET6 || family == AF_UNSPEC);
 
   auto query = std::make_unique<UdnsQuery>();
 
@@ -212,7 +213,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
   addrinfo  hints{};
-  addrinfo* result;
+  addrinfo* result{};
 
   hints.ai_family = query->family;
   hints.ai_socktype = SOCK_STREAM; // Not used, but required.
@@ -220,7 +221,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
 
   int ret = ::getaddrinfo(query->hostname.c_str(), nullptr, &hints, &result);
 
-  if (ret == EAI_NONAME)
+  if (ret == EAI_NONAME || ret == EAI_ADDRFAMILY)
     return false; // No numeric address found.
 
   if (ret != 0)
@@ -235,6 +236,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
     query->result_sin6 = sin6_copy(reinterpret_cast<sockaddr_in6*>(result->ai_addr));
     query->error_sin6 = 0;
   } else {
+    ::freeaddrinfo(result);
     throw internal_error("getaddrinfo returned unsupported family");
   }
 
