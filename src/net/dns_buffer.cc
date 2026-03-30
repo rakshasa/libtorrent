@@ -257,8 +257,8 @@ DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_s
   requester->active_query_count--;
 
   LT_LOG_REQUESTER("processing callback : inet:%s inet6:%s",
-                   (error_sin == 0) ? sin_pretty_or_empty(result_sin.get()).c_str() : gai_strerror(error_sin),
-                   (error_sin6 == 0) ? sin6_pretty_or_empty(result_sin6.get()).c_str() : gai_strerror(error_sin6));
+                   (error_sin == 0) ? sin_pretty_or_empty(result_sin.get()).c_str() : gai_enum_error(error_sin),
+                   (error_sin6 == 0) ? sin6_pretty_or_empty(result_sin6.get()).c_str() : gai_enum_error(error_sin6));
 
   {
     // Block cancel() until this is done to ensure callbacks for the requester are all canceled.
