@@ -44,8 +44,13 @@ struct UdnsQuery {
 
   sin_shared_ptr    result_sin;
   sin6_shared_ptr   result_sin6;
-  int               error_sin{0};
-  int               error_sin6{0};
+  int               error_sin{};
+  int               error_sin6{};
+
+  std::string       cname4_name;
+  std::string       cname6_name;
+  unsigned int      cname4_depth{};
+  unsigned int      cname6_depth{};
 };
 
 class UdnsResolverInternal {
@@ -225,7 +230,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
     return false; // No numeric address found.
 
   if (ret != 0)
-    throw internal_error("getaddrinfo failed: " + std::string(gai_strerror(ret)));
+    throw internal_error("getaddrinfo failed: " + std::string(gai_enum_error(ret)));
 
   LT_LOG_QUERY("resolving : numeric found : name:%s family:%d", query->hostname.c_str(), query->family);
 
@@ -367,22 +372,49 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
   }
 
   auto itr = query->parent->find_query_or_fail_unsafe(query);
-
-  // TODO: Do we need to release a4_query?
   query->a4_query = nullptr;
 
-  if (result == nullptr || result->dnsa4_nrr == 0) {
+  if (result == nullptr) {
     query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
 
-    LT_LOG_QUERY("no A records received : name:%s error:'%s'", query->hostname.c_str(), gai_strerror(query->error_sin));
+    LT_LOG_QUERY("no A records received, calling back with error : name:%s error:%s",
+                 query->hostname.c_str(), gai_enum_error(query->error_sin));
 
-  } else {
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
+  }
+
+  if (result->dnsa4_nrr > 0) {
     query->result_sin = sin_make();
     query->result_sin->sin_addr = result->dnsa4_addr[0];
 
     LT_LOG_QUERY("A records received : name:%s nrr:%d", query->hostname.c_str(), result->dnsa4_nrr);
+
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
   }
 
+  if (result->dnsa4_cname != nullptr) {
+    if (query->cname4_depth++ >= 8) {
+      query->error_sin = EAI_FAIL;
+
+      LT_LOG_QUERY("A CNAME depth exceeded : original:%s current:%s", query->hostname.c_str(), query->cname4_name.c_str());
+
+      UdnsResolver::process_partial_result_unsafe(itr);
+      return;
+    }
+
+    query->cname4_name = result->dnsa4_cname;
+    query->a4_query = ::dns_submit_a4(ctx, query->cname4_name.c_str(), 0, &UdnsResolverInternal::a4_callback_wrapper, query);
+
+    LT_LOG_QUERY("A CNAME encountered, retrying : original:%s cname:%s depth:%u",
+                 query->hostname.c_str(), query->cname4_name.c_str(), query->cname4_depth);
+    return;
+  }
+
+  query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
+
+  LT_LOG_QUERY("No A records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin));
   UdnsResolver::process_partial_result_unsafe(itr);
 }
 
@@ -397,22 +429,49 @@ UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, v
   }
 
   auto itr = query->parent->find_query_or_fail_unsafe(query);
-
   query->a6_query = nullptr;
 
-  if (result == nullptr || result->dnsa6_nrr == 0) {
+  if (result == nullptr) {
     query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
 
-    LT_LOG_QUERY("no AAAA records received, calling back with error : name:%s error:'%s'",
-                 query->hostname.c_str(), gai_strerror(query->error_sin6));
+    LT_LOG_QUERY("no AAAA records received, calling back with error : name:%s error:%s",
+                 query->hostname.c_str(), gai_enum_error(query->error_sin6));
 
-  } else {
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
+  }
+
+  if (result->dnsa6_nrr > 0) {
     query->result_sin6 = sin6_make();
     query->result_sin6->sin6_addr = result->dnsa6_addr[0];
 
     LT_LOG_QUERY("AAAA records received : name:%s nrr:%d", query->hostname.c_str(), result->dnsa6_nrr);
+
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
   }
 
+  if (result->dnsa6_cname != nullptr) {
+    if (query->cname6_depth++ >= 8) {
+      query->error_sin6 = EAI_FAIL;
+
+      LT_LOG_QUERY("AAAA CNAME depth exceeded : original:%s current:%s", query->hostname.c_str(), query->cname6_name.c_str());
+
+      UdnsResolver::process_partial_result_unsafe(itr);
+      return;
+    }
+
+    query->cname6_name = result->dnsa6_cname;
+    query->a6_query = ::dns_submit_a6(ctx, query->cname6_name.c_str(), 0, &UdnsResolverInternal::a6_callback_wrapper, query);
+
+    LT_LOG_QUERY("AAAA CNAME encountered, retrying : original:%s cname:%s depth:%u",
+                 query->hostname.c_str(), query->cname6_name.c_str(), query->cname6_depth);
+    return;
+  }
+
+  query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
+
+  LT_LOG_QUERY("No AAAA records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin6));
   UdnsResolver::process_partial_result_unsafe(itr);
 }
 

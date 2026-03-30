@@ -51,8 +51,6 @@ last_update_or_failed(const DnsCacheInfo& info) {
 
 } // namespace
 
-// TODO: replace gai_strerror with torrent::net::gai_enum_error
-
 void
 DnsCache::resolve(void* requester, std::string hostname, int family, resolver_callback&& callback) {
   cull_stale_entries();
@@ -393,7 +391,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
       default:
         reset_sin_failed(itr->second.get(), current_time);
 
-        LT_LOG("added new cache entry with failed update : hostname:%s family:AF_INET error:'%s'", hostname.c_str(), gai_strerror(error));
+        LT_LOG("added new cache entry with failed update : hostname:%s family:AF_INET error:%s", hostname.c_str(), gai_enum_error(error));
         return;
       };
     }
@@ -410,7 +408,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
       default:
         reset_sin6_failed(itr->second.get(), current_time);
 
-        LT_LOG("added new cache entry with failed update : hostname:%s family:AF_INET6 error:'%s'", hostname.c_str(), gai_strerror(error));
+        LT_LOG("added new cache entry with failed update : hostname:%s family:AF_INET6 error:%s", hostname.c_str(), gai_enum_error(error));
         return;
       };
     }
@@ -435,7 +433,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
     default:
       reset_sin_failed(itr->second.get(), current_time);
 
-      LT_LOG("updated cache entry with failed update : hostname:%s family:AF_INET error:'%s'", hostname.c_str(), gai_strerror(error));
+      LT_LOG("updated cache entry with failed update : hostname:%s family:AF_INET error:%s", hostname.c_str(), gai_enum_error(error));
       return;
     };
   }
@@ -455,7 +453,7 @@ DnsCache::process_failure(const std::string& hostname, int family, int error) {
     default:
       reset_sin6_failed(itr->second.get(), current_time);
 
-      LT_LOG("updated cache entry with failed update : hostname:%s family:AF_INET6 error:'%s'", hostname.c_str(), gai_strerror(error));
+      LT_LOG("updated cache entry with failed update : hostname:%s family:AF_INET6 error:%s", hostname.c_str(), gai_enum_error(error));
       return;
     };
   }
