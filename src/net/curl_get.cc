@@ -339,16 +339,22 @@ CurlGet::retry_resolve() {
   if (m_retrying_resolve || m_retry_resolve == RESOLVE_NONE)
     return false;
 
-  // TODO: Is this correct if we fail?
+  // Remove handle, deactivate, and reactivate after prepare_resolve
   CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
 
   if (code != CURLM_OK)
     throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
 
+  m_active = false;
+
   m_retrying_resolve = true;
 
   try {
-    return prepare_resolve(m_retry_resolve);
+    if (!prepare_resolve(m_retry_resolve))
+      return false;
+
+    activate_unsafe();
+    return true;
 
   } catch (const torrent::input_error& e) {
     // TODO: Consider adding to error message.
