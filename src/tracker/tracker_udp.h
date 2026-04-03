@@ -60,10 +60,10 @@ private:
 
   static bool         parse_udp_url(const std::string& url, hostname_type& hostname, int& port);
 
-  bool                m_resolver_requesting{false};
-  bool                m_sending_announce{false};
+  bool                m_resolver_requesting{};
+  bool                m_sending_announce{};
 
-  sockaddr*           m_current_address{nullptr};
+  sockaddr*           m_current_address{};
   sin_unique_ptr      m_inet_address;
   sin6_unique_ptr     m_inet6_address;
 

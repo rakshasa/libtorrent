@@ -54,6 +54,7 @@ private:
 
   void                cull_stale_entries();
 
+  bool                try_resolve_numeric(void* requester, const std::string& hostname, int family, resolver_callback&& callback);
   void                queue_resolve(void* requester, const std::string& hostname, int family, DnsCacheInfo& info, resolver_callback&& callback);
 
   void                update_stale_info(const char* reason, void* requester, const std::string& hostname, int family, DnsCacheInfo& info);
