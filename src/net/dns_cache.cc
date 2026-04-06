@@ -51,6 +51,10 @@ last_update_or_failed(const DnsCacheInfo& info) {
 
 } // namespace
 
+//
+// TODO: Replace cull_stale_entries() with a 6h scheduled task.
+//
+
 void
 DnsCache::resolve(void* requester, std::string hostname, int family, resolver_callback&& callback) {
   cull_stale_entries();
