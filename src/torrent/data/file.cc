@@ -29,7 +29,7 @@ File::is_created() const {
   // rather than as a way to find out if it is starting on a blank
   // slate.
   if (!fs.update(frozen_path()))
-//     return rak::error_number::current() == rak::error_number::e_access;
+//     return errno == EACCES;
     return false;
 
   return fs.is_regular();

@@ -123,8 +123,9 @@ test_chunk_list::test_blocking() {
   // torrent::ChunkHandle handle_1 = chunk_list->get(0, torrent::ChunkList::get_writable);
 
   torrent::ChunkHandle handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_not_hashing | torrent::ChunkList::get_writable | torrent::ChunkList::get_nonblock);
+
   CPPUNIT_ASSERT(!handle_0_rw.is_valid());
-  CPPUNIT_ASSERT(handle_0_rw.error_number() == rak::error_number::e_again);
+  CPPUNIT_ASSERT(handle_0_rw.error_number() == EAGAIN);
 
   chunk_list->release(&handle_0_ro, torrent::ChunkList::release_default);
 

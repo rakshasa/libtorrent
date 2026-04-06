@@ -14,7 +14,6 @@ EXTRA_DIST= \
 	rak/address_info.h \
 	rak/algorithm.h \
 	rak/allocators.h \
-	rak/error_number.h \
 	rak/partial_queue.h \
 	rak/string_manip.h \
 	rak/unordered_vector.h

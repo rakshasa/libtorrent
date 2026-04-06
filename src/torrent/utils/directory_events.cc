@@ -3,7 +3,6 @@
 #include "directory_events.h"
 
 #include <algorithm>
-#include <cerrno>
 #include <string>
 #include <unistd.h>
 
