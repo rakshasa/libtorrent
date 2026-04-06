@@ -3,6 +3,8 @@
 
 #include "chunk_list_node.h"
 
+#include <cerrno>
+
 namespace torrent {
 
 class ChunkListNode;
@@ -27,7 +29,7 @@ public:
 
   uint32_t            index() const           { return m_node->index(); }
 
-  static ChunkHandle  from_error(int e)       { ChunkHandle h; h.set_error_number(e); return h; }
+  static ChunkHandle  from_error(int err);
 
 private:
   ChunkListNode*      m_node;
@@ -36,6 +38,16 @@ private:
 
   int                 m_errno;
 };
+
+inline ChunkHandle
+ChunkHandle::from_error(int err) {
+  if (err == 0)
+    err = ENOENT;
+
+  ChunkHandle h;
+  h.set_error_number(err);
+  return h;
+}
 
 } // namespace torrent
 

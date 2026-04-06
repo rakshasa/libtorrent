@@ -109,17 +109,15 @@ ChunkList::get(size_type index, get_flags flags) {
       throw internal_error("ChunkList::get(...) called with get_hashing and get_not_hashing flags set.");
 
     if (chunk == nullptr) {
+      int err = errno;
+
       LT_LOG_THIS(DEBUG, "Could not create: memory:%" PRIu64 " block:%" PRIu32 " errno:%i errmsg:%s.",
                   m_manager->memory_usage(),
                   m_manager->memory_block_count(),
-                  errno, std::strerror(errno));
+                  err, std::strerror(err));
 
       m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);
-
-      if (errno == 0)
-        return ChunkHandle::from_error(ENOENT);
-
-      return ChunkHandle::from_error(errno);
+      return ChunkHandle::from_error(err);
     }
 
     node->set_chunk(chunk);
@@ -135,12 +133,8 @@ ChunkList::get(size_type index, get_flags flags) {
 
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
-    if (chunk == nullptr) {
-      if (errno == 0)
-        return ChunkHandle::from_error(ENOENT);
-
+    if (chunk == nullptr)
       return ChunkHandle::from_error(errno);
-    }
 
     delete node->chunk();
 
