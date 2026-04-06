@@ -26,8 +26,6 @@ bool sa_is_port_any(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 size_t          sa_length(const sockaddr* sa) LIBTORRENT_EXPORT;
 
-void            sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
-
 sa_unique_ptr   sa_make_unspec() LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_make_inet() LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_make_inet_any() LIBTORRENT_EXPORT;

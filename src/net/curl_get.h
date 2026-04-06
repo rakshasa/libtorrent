@@ -90,6 +90,7 @@ protected:
 
   [[nodiscard]] bool  prepare_start_unsafe(CurlStack* stack);
   void                activate_unsafe();
+  void                deactivate_unsafe();
   void                cleanup_unsafe();
 
   bool                retry_resolve();
