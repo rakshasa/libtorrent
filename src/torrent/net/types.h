@@ -12,20 +12,19 @@ struct sockaddr_in;
 struct sockaddr_in6;
 struct sockaddr_un;
 
-namespace torrent {
-
-namespace net {
+namespace torrent::net {
 
 const char* gai_enum_error(int status) LIBTORRENT_EXPORT;
+void        sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 } // namespace torrent::net
 
-void        sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
+namespace torrent {
 
 struct sockaddr_deleter {
   constexpr sockaddr_deleter() noexcept = default;
 
-  void operator()(const sockaddr* sa) const { sa_free(sa); }
+  void operator()(const sockaddr* sa) const { net::sa_free(sa); }
 };
 
 using sa_unique_ptr   = std::unique_ptr<sockaddr, sockaddr_deleter>;

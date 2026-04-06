@@ -278,6 +278,9 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
 void
 CurlGet::activate_unsafe() {
+  if (m_active)
+    throw torrent::internal_error("CurlGet::activate() called on an already active handle.");
+
   CURLMcode code = curl_multi_add_handle(m_stack->handle(), m_handle);
 
   if (code != CURLM_OK)
@@ -287,16 +290,23 @@ CurlGet::activate_unsafe() {
 }
 
 void
+CurlGet::deactivate_unsafe() {
+  if (!m_active)
+    throw torrent::internal_error("CurlGet::deactivate() called on an inactive handle.");
+
+  CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
+
+  if (code != CURLM_OK)
+    throw torrent::internal_error("CurlGet::deactivate() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
+
+  m_active = false;
+}
+
+void
 CurlGet::cleanup_unsafe() {
   if (m_handle != nullptr) {
-    if (m_active) {
-      CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
-
-      if (code != CURLM_OK)
-        throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
-
-      m_active = false;
-    }
+    if (m_active)
+      deactivate_unsafe();
 
     curl_easy_cleanup(m_handle);
 
@@ -339,13 +349,7 @@ CurlGet::retry_resolve() {
   if (m_retrying_resolve || m_retry_resolve == RESOLVE_NONE)
     return false;
 
-  // Remove handle, deactivate, and reactivate after prepare_resolve
-  CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
-
-  if (code != CURLM_OK)
-    throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
-
-  m_active = false;
+  deactivate_unsafe();
 
   m_retrying_resolve = true;
 
@@ -366,6 +370,9 @@ void
 CurlGet::trigger_done() {
   auto guard = lock_guard();
 
+  // Not really needed, but just in case.
+  m_retrying_resolve = true;
+
   if (m_was_closed)
     return;
 
@@ -375,6 +382,8 @@ CurlGet::trigger_done() {
 void
 CurlGet::trigger_failed(const std::string& message) {
   auto guard = lock_guard();
+
+  m_retrying_resolve = true;
 
   if (m_was_closed)
     return;
