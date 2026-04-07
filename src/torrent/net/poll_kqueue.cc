@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cerrno>
 #include <map>
 #include <unistd.h>
 #include <sys/event.h>

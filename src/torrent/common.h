@@ -1,8 +1,10 @@
 #ifndef LIBTORRENT_COMMON_H
 #define LIBTORRENT_COMMON_H
 
+#include <cerrno>
 #include <cinttypes>
 #include <cstddef>
+#include <cstring>
 #include <chrono>
 #include <functional>
 #include <thread>
