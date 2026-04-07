@@ -100,6 +100,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
         });
 
       socket->clear_and_erase_self_or_throw();
+      curl_multi_assign(stack->handle(), fd, nullptr);
+
       return 0;
     }
 

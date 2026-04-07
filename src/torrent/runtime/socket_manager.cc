@@ -191,7 +191,13 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> fu
     throw internal_error("SocketManager::unregister_event_or_throw(): event mismatch when trying to unregister socket fd");
   }
 
-  func();
+  try {
+    func();
+
+  } catch (...) {
+    m_socket_map.erase(itr);
+    throw;
+  }
 
   LT_LOG("unregister_event_or_throw() : %s:%s:%i : unregistered socket",
          this_thread::thread()->name(), event->type_name(), fd);
