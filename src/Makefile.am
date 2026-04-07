@@ -152,6 +152,7 @@ libtorrent_other_la_SOURCES = \
 	utils/functional.h \
 	utils/instrumentation.cc \
 	utils/instrumentation.h \
+	utils/partial_queue.h \
 	utils/rc4.h \
 	utils/sha1.h \
 	utils/signal_interrupt.cc \

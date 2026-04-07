@@ -4,19 +4,14 @@
 #include <functional>
 #include <string>
 
-#include "rak/unordered_vector.h"
 #include "torrent/connection_manager.h"
+#include "torrent/utils/unordered_vector.h"
 
 namespace torrent {
 
-class Handshake;
-class DownloadManager;
-class DownloadMain;
-class PeerConnectionBase;
-
-class HandshakeManager : private rak::unordered_vector<std::unique_ptr<Handshake>> {
+class HandshakeManager : private utils::unordered_vector<std::unique_ptr<Handshake>> {
 public:
-  using base_type = rak::unordered_vector<std::unique_ptr<Handshake>>;
+  using base_type = utils::unordered_vector<std::unique_ptr<Handshake>>;
   using base_type::size;
 
   using slot_download = std::function<DownloadMain*(const char*)>;

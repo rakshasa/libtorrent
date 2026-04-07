@@ -12,8 +12,6 @@ EXTRA_DIST= \
 	doc/http.xml \
 	doc/torrent.xml \
 	rak/algorithm.h \
-	rak/partial_queue.h \
-	rak/string_manip.h \
-	rak/unordered_vector.h
+	rak/string_manip.h
 
 ACLOCAL_AMFLAGS = -I scripts
