@@ -11,9 +11,7 @@ EXTRA_DIST= \
 	doc/main.xml \
 	doc/http.xml \
 	doc/torrent.xml \
-	rak/address_info.h \
 	rak/algorithm.h \
-	rak/allocators.h \
 	rak/partial_queue.h \
 	rak/string_manip.h \
 	rak/unordered_vector.h

@@ -91,8 +91,6 @@ libtorrent_other_la_SOURCES = \
 	net/protocol_buffer.h \
 	net/socket_datagram.cc \
 	net/socket_datagram.h \
-	net/socket_set.cc \
-	net/socket_set.h \
 	net/socket_stream.cc \
 	net/socket_stream.h \
 	net/thread_net.cc \
