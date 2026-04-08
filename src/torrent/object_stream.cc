@@ -1,17 +1,16 @@
 #include "config.h"
 
+#include "torrent/object_stream.h"
+
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <stdexcept>
 
-#include <rak/algorithm.h>
-
+#include "torrent/object.h"
+#include "torrent/object_static_map.h"
+#include "utils/functional.h"
 #include "utils/sha1.h"
-
-#include "object.h"
-#include "object_stream.h"
-#include "object_static_map.h"
 
 namespace torrent {
 
@@ -78,7 +77,7 @@ object_read_bencode_c_string(const char* first, const char* last) {
 
   if (length + 1 > static_cast<unsigned int>(std::distance(first, last)) || length + 1 == 0 || *first++ != ':')
     throw torrent::bencode_error("Invalid bencode data.");
-  
+
   return raw_string(first, length);
 }
 
@@ -166,9 +165,9 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
   default:
     if (c >= '0' && c <= '9') {
       *object = Object::create_string();
-      
+
       if (object_read_string(input, object->as_string()))
-	return;
+        return;
     }
 
     break;
@@ -572,7 +571,7 @@ object_write_bencode_c(object_write_t writeFunc,
 }
 
 object_buffer_t
-object_write_to_buffer(void* data, object_buffer_t buffer) {
+object_write_to_buffer([[maybe_unused]] void* data, object_buffer_t buffer) {
   if (buffer.first == buffer.second)
     throw internal_error("object_write_to_buffer(...) buffer overflow.");
 
@@ -629,7 +628,7 @@ static_map_read_bencode_c(const char* first,
 
   if (first == last || *first++ != 'd')
     throw torrent::bencode_error("Invalid bencode data.");
-  
+
   static_map_stack_type stack[8];
   static_map_stack_type* stack_itr = stack;
   stack_itr->clear();
@@ -666,7 +665,7 @@ static_map_read_bencode_c(const char* first,
 
     // Locate the right key. Optimize this by remembering previous
     // position...
-    static_map_key_search_result key_search = find_key_match(first_key, last_key, current_key);    
+    static_map_key_search_result key_search = find_key_match(first_key, last_key, current_key);
 
     // We're not interest in this object, skip it.
     if (key_search.second == 0) {
@@ -757,7 +756,7 @@ static_map_read_bencode_c(const char* first,
       throw internal_error("static_map_read_bencode_c: key_search.first->key[base] returned invalid character.");
     }
   }
-  
+
   throw torrent::bencode_error("Invalid bencode data.");
 }
 
@@ -782,8 +781,8 @@ static_map_write_bencode_c_values(object_write_data_t* output,
 
     // Compare the keys to see if they are part of the same
     // dictionaries/lists.
-    unsigned int base_size = rak::count_base(first_key->key, first_key->key + stack_itr->next_key,
-                                             prev_key, prev_key + stack_itr->next_key);
+    unsigned int base_size = ::utils::count_base(first_key->key, first_key->key + stack_itr->next_key,
+                                                 prev_key, prev_key + stack_itr->next_key);
 
     while (base_size < stack_itr->next_key) {
       object_write_bencode_c_char(output, 'e');
@@ -797,7 +796,7 @@ static_map_write_bencode_c_values(object_write_data_t* output,
 
       if (stack_itr->obj_type == Object::TYPE_MAP)
         object_write_bencode_c_obj_string(output, key_begin, std::distance(key_begin, key_end));
-    
+
       // Check if '::' or '[' were found...
       if (*key_end == ':' && *(key_end + 1) == ':') {
         (++stack_itr)->set_key_index(std::distance(first_key->key, key_begin),

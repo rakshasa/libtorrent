@@ -10,8 +10,6 @@ EXTRA_DIST= \
 	scripts/ssl.m4 \
 	doc/main.xml \
 	doc/http.xml \
-	doc/torrent.xml \
-	rak/algorithm.h \
-	rak/string_manip.h
+	doc/torrent.xml
 
 ACLOCAL_AMFLAGS = -I scripts

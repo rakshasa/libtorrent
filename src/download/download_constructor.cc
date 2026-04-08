@@ -1,20 +1,18 @@
 #include "config.h"
 
-#include "download_constructor.h"
+#include "download/download_constructor.h"
 
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
 
+#include "manager.h"
 #include "download/download_wrapper.h"
-#include "rak/string_manip.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "tracker/tracker_list.h"
-
-#include "manager.h"
 
 namespace torrent {
 

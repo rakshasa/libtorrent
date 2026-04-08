@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "log.h"
+#include "torrent/utils/log.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/hash_string.h"
@@ -132,12 +132,13 @@ void
 log_group::internal_print(const HashString* hash, const char* subsystem, const void* dump_data, size_t dump_size, const char* fmt, ...) {
   va_list ap;
   const unsigned int buffer_size = 4096;
+
   char buffer[buffer_size];
   char* first = buffer;
 
   if (subsystem != NULL) {
     if (hash != NULL) {
-      first = hash_string_to_hex(*hash, first);
+      first = hash_string_to_hex(*hash, first, first + 40);
       first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
     } else {
       first += snprintf(first, 4096 - (first - buffer), "%s: ", subsystem);

@@ -1,21 +1,10 @@
 #include "config.h"
 
-#include <rak/string_manip.h>
-
 #include "hash_string.h"
 
+#include "torrent/utils/string_manip.h"
+
 namespace torrent {
-
-// TODO: Move to src/utils.
-static bool
-hash_string_is_alnum(char c) {
-  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
-}
-
-static bool
-hash_string_is_hex(char c) {
-  return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9');
-}
 
 const char*
 hash_string_from_hex_c_str(const char* first, HashString& hash) {
@@ -24,10 +13,29 @@ hash_string_from_hex_c_str(const char* first, HashString& hash) {
   torrent::HashString::iterator itr = hash.begin();
 
   while (itr != hash.end()) {
-    if (!hash_string_is_hex(*first) || !hash_string_is_hex(*(first + 1)))
+    char high = *(first) << 4;
+    char low  = *(first + 1);
+
+    if (high >= '0' && high <= '9')
+      high = high - '0';
+    else if (high >= 'A' && high <= 'F')
+      high = high - 'A' + 10;
+    else if (high >= 'a' && high <= 'f')
+      high = high - 'a' + 10;
+    else
       return hash_first;
 
-    *itr++ = (rak::hexchar_to_value(*first) << 4) + rak::hexchar_to_value(*(first + 1));
+    if (low >= '0' && low <= '9')
+      low = low - '0';
+    else if (low >= 'A' && low <= 'F')
+      low = low - 'A' + 10;
+    else if (low >= 'a' && low <= 'f')
+      low = low - 'a' + 10;
+    else
+      return hash_first;
+
+    *itr++ = (high << 4) + low;
+
     first += 2;
   }
 
@@ -35,43 +43,18 @@ hash_string_from_hex_c_str(const char* first, HashString& hash) {
 }
 
 char*
-hash_string_to_hex(const HashString& hash, char* first) {
-  return rak::transform_hex(hash.begin(), hash.end(), first);
+hash_string_to_hex(const HashString& hash, char* first, char* last) {
+  return utils::transform_hex(hash.begin(), hash.end(), first, last);
 }
 
 std::string
 hash_string_to_hex_str(const HashString& hash) {
-  std::string str(HashString::size_data * 2, '\0');
-  rak::transform_hex(hash.begin(), hash.end(), str.begin());
-
-  return str;
+  return utils::transform_hex(hash.begin(), hash.end());
 }
 
-// TODO: Replace rak::copy_escape_html.
 std::string
 hash_string_to_html_str(const HashString& hash) {
-  std::string str;
-  str.reserve(HashString::size_data * 3);
-
-  for (char c : hash) {
-    if (hash_string_is_alnum(c) || c == '-') {
-      str.push_back(c);
-      continue;
-    }
-
-    auto convert = [](unsigned char c) {
-      if (c < 10)
-        return '0' + c;
-
-      return 'A' + c - 10;
-    };
-
-    str.push_back('%');
-    str.push_back(convert(c >> 4));
-    str.push_back(convert(c & 0x0F));
-  }
-
-  return str;
+  return utils::copy_escape_html(hash.begin(), hash.end());
 }
 
 } // namespace torrent

@@ -2,6 +2,8 @@
 
 #include "torrent/torrent.h"
 
+#include <algorithm>
+#include <random>
 #include <curl/curl.h>
 
 #include "data/file_manager.h"
@@ -14,7 +16,6 @@
 #include "net/thread_net.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
-#include "rak/string_manip.h"
 #include "thread_main.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download/resource_manager.h"
@@ -90,6 +91,21 @@ calculate_reserved(uint32_t open_max) {
     return 32;
   else // Assumes we don't try less than 64.
     return 16;
+}
+
+std::string
+generate_random(size_t length) {
+  std::random_device rd;
+  std::mt19937 mt(rd());
+
+  using bytes_randomizer = std::independent_bits_engine<std::mt19937, CHAR_BIT, uint8_t>;
+  bytes_randomizer bytes(mt);
+
+  std::string s;
+  s.reserve(length);
+
+  std::generate_n(std::back_inserter(s), length, std::ref(bytes));
+  return s;
 }
 
 }
@@ -222,7 +238,7 @@ download_add(Object* object, uint32_t tracker_key) {
     download->main()->set_metadata_size(metadata_size);
   }
 
-  std::string local_id = PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size());
+  std::string local_id = PEER_NAME + generate_random(20 - std::string(PEER_NAME).size());
 
   download->set_hash_queue(ThreadMain::thread_main()->hash_queue());
   download->initialize(infoHash, local_id, tracker_key);

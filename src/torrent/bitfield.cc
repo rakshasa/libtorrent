@@ -5,8 +5,30 @@
 #include <algorithm>
 
 #include "exceptions.h"
-#include "rak/algorithm.h"
 #include "utils/instrumentation.h"
+
+namespace {
+
+template<typename T>
+inline int
+popcount_wrapper(T t) {
+#if USE_BUILTIN_POPCOUNT
+  return __builtin_popcountll(t);
+#else
+#error __builtin_popcount not found.
+
+  unsigned int count = 0;
+
+  while (t) {
+    count += t & 0x1;
+    t >> 1;
+  }
+
+  return count;
+#endif
+}
+
+}
 
 namespace torrent {
 
@@ -57,12 +79,12 @@ Bitfield::update() {
   iterator last = end();
 
   while (itr + sizeof(unsigned int) <= last) {
-    m_set += rak::popcount_wrapper(*reinterpret_cast<unsigned int*>(itr));
+    m_set += popcount_wrapper(*reinterpret_cast<unsigned int*>(itr));
     itr += sizeof(unsigned int);
   }
 
   while (itr != last) {
-    m_set += rak::popcount_wrapper(*itr++);
+    m_set += popcount_wrapper(*itr++);
   }
 }
 

@@ -110,6 +110,7 @@ libtorrent_torrent_la_SOURCES = \
 	utils/string_manip.h \
 	utils/thread.cc \
 	utils/thread.h \
+	utils/unordered_vector.h \
 	utils/uri_parser.cc \
 	utils/uri_parser.h \
 \
@@ -225,6 +226,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/signal_bitfield.h \
 	utils/string_manip.h \
 	utils/thread.h \
+	utils/unordered_vector.h \
 	utils/uri_parser.h
 
 libtorrent_torrent_includedir = $(includedir)/torrent

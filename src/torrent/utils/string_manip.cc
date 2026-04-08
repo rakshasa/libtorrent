@@ -21,18 +21,20 @@ to_hex_char(char val, bool pos) {
 
 } // namespace
 
-std::string
-trim_string(const std::string& str) {
-  std::string::size_type pos{};
-  std::string::size_type end{str.length()};
+std::string_view
+trim_spaces(std::string_view s) {
+  auto first = std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+    return ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' && ch != '\f' && ch != '\v';
+  });
 
-  while (pos != end && str[pos] >= ' ' && str[pos] <= '~')
-    pos++;
+  auto last = std::find_if(s.rbegin(), std::make_reverse_iterator(first), [](unsigned char ch) {
+    return ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' && ch != '\f' && ch != '\v';
+  }).base();
 
-  while (end != pos && str[end - 1] >= ' ' && str[end - 1] <= '~')
-    end--;
+  if (first >= last)
+    return std::string_view();
 
-  return str.substr(pos, end - pos);
+  return std::string_view(first, last - first);
 }
 
 std::string
