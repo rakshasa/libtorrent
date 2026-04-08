@@ -2,9 +2,6 @@
 
 #include "torrent/utils/log.h"
 
-#include "torrent/exceptions.h"
-#include "torrent/hash_string.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
@@ -15,6 +12,10 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+
+#include "torrent/exceptions.h"
+#include "torrent/hash_string.h"
+#include "torrent/utils/string_manip.h"
 
 namespace torrent {
 
@@ -138,7 +139,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 
   if (subsystem != NULL) {
     if (hash != NULL) {
-      first = hash_string_to_hex(*hash, first, first + 40);
+      first = utils::transform_to_hex(hash->begin(), hash->end(), first, first + 40);
       first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
     } else {
       first += snprintf(first, 4096 - (first - buffer), "%s: ", subsystem);

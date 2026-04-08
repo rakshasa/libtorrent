@@ -4,23 +4,6 @@
 
 namespace torrent::utils {
 
-namespace {
-
-inline char
-to_hex_char(char val, bool pos) {
-  if (pos)
-    val = (val >> 4) & 0x0F;
-  else
-    val = val & 0x0F;
-
-  if (val < 10)
-    return '0' + val;
-
-  return 'A' + (val - 10);
-}
-
-} // namespace
-
 std::string_view
 trim_spaces(std::string_view s) {
   auto first = std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -38,14 +21,19 @@ trim_spaces(std::string_view s) {
 }
 
 std::string
+trim_spaces_str(std::string_view s) {
+  return std::string(trim_spaces(s));
+}
+
+std::string
 string_with_escape_codes(const std::string& str) {
   std::string result;
 
   for (auto c : str) {
     if (c < ' ' || c > '~') {
       result += '%';
-      result += to_hex_char(c, true);
-      result += to_hex_char(c, false);
+      result += value_to_hex1(c);
+      result += value_to_hex0(c);
       continue;
     }
 
@@ -85,7 +73,7 @@ sanitize_string(const std::string& str) {
     space        = false;
   }
 
-  return trim_string(result);
+  return trim_spaces_str(result);
 }
 
 std::string
@@ -104,8 +92,8 @@ sanitize_string_with_escape_codes(const std::string& str) {
       }
 
       result += '%';
-      result += to_hex_char(c, true);
-      result += to_hex_char(c, false);
+      result += value_to_hex1(c);
+      result += value_to_hex0(c);
 
       space = false;
       continue;
@@ -115,7 +103,7 @@ sanitize_string_with_escape_codes(const std::string& str) {
     space = false;
   }
 
-  return trim_string(result);
+  return trim_spaces_str(result);
 }
 
 std::string
@@ -138,10 +126,10 @@ sanitize_string_with_tags(const std::string& str) {
     result += c;
   }
 
-  result = trim_string(result);
+  result = trim_spaces_str(result);
 
   if (result.empty())
-    return trim_string(sanitized);
+    return trim_spaces_str(sanitized);
 
   return result;
 }

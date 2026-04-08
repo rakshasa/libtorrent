@@ -206,7 +206,7 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     dest->mutable_key()[1] = id[2];
 
     for (int i = 0; i < 4; i++)
-      dest->mutable_version()[i] = dest->mutable_upper_version()[i] = utils::hex_to_value(id[3 + i]);
+      dest->mutable_version()[i] = dest->mutable_upper_version()[i] = utils::hex_to_value_or_zero(id[3 + i]);
 
   } else if (std::isalpha(id[0]) && id[4] == '-' &&
              std::isxdigit(id[1]) && std::isxdigit(id[2]) && std::isxdigit(id[3])) {
@@ -215,9 +215,9 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     dest->mutable_key()[0] = id[0];
     dest->mutable_key()[1] = '\0';
 
-    dest->mutable_version()[0] = dest->mutable_upper_version()[0] = utils::hex_to_value(id[1]);
-    dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value(id[2]);
-    dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value(id[3]);
+    dest->mutable_version()[0] = dest->mutable_upper_version()[0] = utils::hex_to_value_or_zero(id[1]);
+    dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value_or_zero(id[2]);
+    dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value_or_zero(id[3]);
     dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
 
   } else if (std::isalpha(id[0]) && std::isdigit(id[1]) && id[2] == '-' &&
@@ -228,16 +228,16 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     dest->mutable_key()[0] = id[0];
     dest->mutable_key()[1] = '\0';
 
-    dest->mutable_version()[0] = dest->mutable_upper_version()[0] = utils::hex_to_value(id[1]);
+    dest->mutable_version()[0] = dest->mutable_upper_version()[0] = utils::hex_to_value_or_zero(id[1]);
 
     if (id[4] == '-' && std::isdigit(id[5]) && id[6] == '-') {
-      dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value(id[3]);
-      dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value(id[5]);
+      dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value_or_zero(id[3]);
+      dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value_or_zero(id[5]);
       dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
 
     } else if (std::isdigit(id[4]) && id[5] == '-' && std::isdigit(id[6]) && id[7] == '-') {
-      dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value(id[3]) * 10 + utils::hex_to_value(id[4]);
-      dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value(id[6]);
+      dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value_or_zero(id[3]) * 10 + utils::hex_to_value_or_zero(id[4]);
+      dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value_or_zero(id[6]);
       dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
 
     } else {

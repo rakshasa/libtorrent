@@ -8,10 +8,11 @@
 
 #include "manager.h"
 #include "download/download_wrapper.h"
-#include "torrent/data/file.h"
-#include "torrent/data/file_list.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
+#include "torrent/data/file.h"
+#include "torrent/data/file_list.h"
+#include "torrent/utils/string_manip.h"
 #include "tracker/tracker_list.h"
 
 namespace torrent {
@@ -175,7 +176,7 @@ DownloadConstructor::add_tracker_single(const Object& b, int group) {
   if (!b.is_string())
     throw bencode_error("Tracker entry not a string");
 
-  m_download->main()->tracker_list()->insert_url(group, rak::trim_classic(b.as_string()));
+  m_download->main()->tracker_list()->insert_url(group, utils::trim_spaces_str(b.as_string()));
 }
 
 bool
@@ -353,9 +354,11 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
 
   while (*pos) {
     const char* tagStart = pos;
-    while (*pos != '=')
+
+    while (*pos != '=') {
       if (!*pos++)
         break;
+    }
 
     raw_string tag(tagStart, pos - tagStart);
     pos++;
@@ -368,8 +371,9 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
       pos += 9;
 
       const char* nextPos = parse_base32_sha1(pos, hash);
+
       if (nextPos != NULL) {
-        pos = nextPos;
+        pos       = nextPos;
         hashValid = true;
         continue;
       }
@@ -377,6 +381,7 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
 
     // everything else, including sometimes the hash, is url encoded.
     std::string decoded;
+
     while (*pos) {
       char c = *pos++;
       if (c == '%') {
@@ -393,16 +398,18 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
     }
 
     if (raw_bencode_equal_c_str(tag, "xt")) {
-      // url-encoded hash as per magnet URN specs
       if (decoded.length() == torrent::HashString::size_data) {
-        hash = *HashString::cast_from(decoded);
+        // url-encoded hash as per magnet URN specs
+
+        hash      = *HashString::cast_from(decoded);
         hashValid = true;
 
-      // hex-encoded hash as per BEP 0009
       } else if (decoded.length() == torrent::HashString::size_data * 2) {
-        std::string::iterator hexItr = decoded.begin();
-        for (HashString::iterator itr = hash.begin(), last = hash.end(); itr != last; itr++, hexItr += 2)
-          *itr = (rak::hexchar_to_value(*hexItr) << 4) + rak::hexchar_to_value(*(hexItr + 1));
+        // hex-encoded hash as per BEP 0009
+
+        if (utils::transform_from_hex(decoded.begin(), decoded.end(), hash.begin(), hash.end()) != hash.end())
+          throw input_error("Invalid magnet URI.");
+
         hashValid = true;
 
       } else {
@@ -419,8 +426,9 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
     throw input_error("Invalid magnet URI.");
 
   Object& info = b.insert_key("info", Object::create_map());
+
   info.insert_key("pieces", hash.str());
-  info.insert_key("name", rak::transform_hex(hash.str()) + ".meta");
+  info.insert_key("name", utils::transform_to_hex_str(hash) + ".meta");
   info.insert_key("meta_download", static_cast<int64_t>(1));
 
   if (!trackers.as_list().empty()) {

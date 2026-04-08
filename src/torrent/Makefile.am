@@ -130,7 +130,6 @@ libtorrent_torrent_la_SOURCES = \
 	event.h \
 	exceptions.cc \
 	exceptions.h \
-	hash_string.cc \
 	hash_string.h \
 	object.cc \
 	object.h \

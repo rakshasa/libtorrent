@@ -10,6 +10,7 @@
 #include "torrent/data/download_data.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/string_manip.h"
 
 #define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
   lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
@@ -124,7 +125,7 @@ HashQueue::work() {
 
     LT_LOG_DATA(itr->id(), DEBUG, "Passing index:%" PRIu32 " to owner: %s.",
                 hash_chunk->handle().index(),
-                hash_string_to_hex_str(hash_value).c_str());
+                utils::transform_to_hex_str(hash_value).c_str());
 
     HashQueueNode::slot_done_type slotDone = itr->slot_done();
     base_type::erase(itr);
