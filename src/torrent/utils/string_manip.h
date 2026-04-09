@@ -5,6 +5,7 @@
 #include <string_view>
 #include <exception>
 #include <torrent/common.h>
+#include <torrent/exceptions.h>
 
 namespace torrent::utils {
 
@@ -195,7 +196,7 @@ template <typename SrcItr, typename DestItr>
 DestItr
 transform_to_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last) {
   if (std::distance(src_first, src_last) * 2 != std::distance(dst_first, dst_last))
-    throw std::invalid_argument("transform_to_hex() incorrect destination size");
+    throw internal_error("transform_to_hex() incorrect destination size");
 
   while (src_first != src_last) {
     if (dst_first == dst_last)
