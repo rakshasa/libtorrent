@@ -18,6 +18,7 @@
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/string_manip.h"
 
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sa_addr_str(sa).c_str(), __VA_ARGS__);
@@ -218,7 +219,7 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
   auto handshake = find_and_erase(ptr);
   auto download  = handshake->download();
   auto peer_type = handshake->bitfield()->is_all_set() ? "seed" : "leech";
-  auto hash_str  = hash_string_to_html_str(handshake->peer_info()->id());
+  auto hash_str  = utils::copy_escape_html(handshake->peer_info()->id());
 
   auto error_func = [&](uint32_t reason) {
       LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'%s'",

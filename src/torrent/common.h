@@ -73,7 +73,6 @@ class Piece;
 class ProtocolExtension;
 class Rate;
 class ResourceManager;
-class SocketSet;
 class Throttle;
 class TrackerController;
 class TrackerList;

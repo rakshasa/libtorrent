@@ -9,6 +9,7 @@
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/thread.h"
+#include "torrent/utils/string_manip.h"
 #include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
 #include "tracker/tracker_worker.h"
@@ -44,7 +45,7 @@ Manager::add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerCont
   if (!result.second)
     throw internal_error("tracker::Manager::add_controller(...) controller already exists.");
 
-  LT_LOG_TRACKER_EVENTS("added controller: info_hash:%s", hash_string_to_hex_str(download_info->hash()).c_str());
+  LT_LOG_TRACKER_EVENTS("added controller: info_hash:%s", utils::transform_to_hex_str(download_info->hash()).c_str());
 
   return wrapper;
 }
@@ -62,7 +63,7 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
   for (auto& tracker : *controller.get()->tracker_list())
     remove_events(tracker.get_worker());
 
-  LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", hash_string_to_hex_str(controller.info_hash()).c_str());
+  LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", utils::transform_to_hex_str(controller.info_hash()).c_str());
 }
 
 void
