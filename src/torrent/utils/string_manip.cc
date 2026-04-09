@@ -2,6 +2,7 @@
 
 #include "torrent/utils/string_manip.h"
 
+#include <algorithm>
 #include <exception>
 
 #include "torrent/common.h"
