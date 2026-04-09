@@ -2,6 +2,8 @@
 
 #include "torrent/utils/string_manip.h"
 
+#include "torrent/common.h"
+
 namespace torrent::utils {
 
 std::string_view
