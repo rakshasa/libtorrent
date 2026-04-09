@@ -2,6 +2,8 @@
 
 #include "torrent/utils/string_manip.h"
 
+#include <exception>
+
 #include "torrent/common.h"
 
 namespace torrent::utils {
