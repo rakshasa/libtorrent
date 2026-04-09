@@ -69,8 +69,6 @@ private:
   char                m_data[size_data];
 };
 
-const char* hash_string_from_hex_c_str(const char* first, HashString& hash) LIBTORRENT_EXPORT;
-
 inline HashString
 HashString::new_zero() {
   HashString hash;
