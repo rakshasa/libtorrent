@@ -97,7 +97,7 @@ std::string sin_pretty_or_empty(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 std::string sin6_pretty_str(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 std::string sin6_pretty_or_empty(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
-c_sa_shared_ptr sa_lookup_address(const std::string& address_str, int family);
+c_sa_shared_ptr sa_lookup_address(const std::string& address_str, int family) LIBTORRENT_EXPORT;
 
 //
 // Other types:
