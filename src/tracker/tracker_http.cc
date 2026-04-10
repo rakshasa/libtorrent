@@ -144,11 +144,9 @@ TrackerHttp::send_scrape() {
 
 void
 TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
-  auto hash = utils::copy_escape_html(info().info_hash);
-
   *stream << url
           << (m_drop_deliminator ? '&' : '?')
-          << "info_hash=" << hash;
+          << "info_hash=" << utils::copy_escape_html_str(info().info_hash);
 }
 
 std::string
@@ -157,7 +155,7 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
   s.imbue(std::locale::classic());
 
   auto tracker_id = this->tracker_id();
-  auto local_id   = utils::copy_escape_html(info().local_id);
+  auto local_id   = utils::copy_escape_html_str(info().local_id);
 
   request_prefix(&s, info().url);
 
@@ -168,7 +166,7 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
     s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << info().key << std::dec;
 
   if (!tracker_id.empty())
-    s << "&trackerid=" << utils::copy_escape_html(tracker_id);
+    s << "&trackerid=" << utils::copy_escape_html_str(tracker_id);
 
   auto local_inet_address  = config::network_config()->local_inet_address_or_null();
   auto local_inet6_address = config::network_config()->local_inet6_address_or_null();

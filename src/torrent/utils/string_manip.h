@@ -27,22 +27,22 @@ char             value_to_hex0(char value);
 char             value_to_hex1(char value);
 
 template <typename Container>
-std::string      copy_escape_html(const Container& src);
+std::string      copy_escape_html_str(const Container& src);
 
 template <typename SrcItr>
-std::string      copy_escape_html(SrcItr src_first, SrcItr src_last);
+std::string      copy_escape_html_str(SrcItr src_first, SrcItr src_last);
 
-// template <typename SrcItr, typename DestItr>
-// DestItr          copy_escape_html(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
+template <typename SrcItr, typename DestItr>
+DestItr          copy_escape_html(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
 
-// template <typename SrcContainer, typename DestItr>
-// DestItr          copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
+template <typename SrcContainer, typename DestItr>
+DestItr          copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
 
-// template <typename SrcContainer, typename DstContainer>
-// typename DstContainer::iterator copy_escape_html(SrcContainer& src, DstContainer dst);
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator copy_escape_html(SrcContainer& src, DstContainer dst);
 
-// template <typename SrcItr, typename DstContainer>
-// typename DstContainer::iterator copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst);
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst);
 
 template <typename SrcItr, typename DestItr>
 DestItr          transform_from_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
@@ -163,45 +163,45 @@ copy_escape_html(SrcItr src_first, SrcItr src_last) {
   return dest;
 }
 
-// template <typename SrcItr, typename DestItr>
-// DestItr
-// copy_escape_html(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last) {
-//   while (src_first != src_last) {
-//     if ((*src_first >= 'A' && *src_first <= 'Z') ||
-//         (*src_first >= 'a' && *src_first <= 'z') ||
-//         (*src_first >= '0' && *src_first <= '9') || *src_first == '-') {
+template <typename SrcItr, typename DestItr>
+DestItr
+copy_escape_html(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last) {
+  while (src_first != src_last) {
+    if ((*src_first >= 'A' && *src_first <= 'Z') ||
+        (*src_first >= 'a' && *src_first <= 'z') ||
+        (*src_first >= '0' && *src_first <= '9') || *src_first == '-') {
 
-//       if (dst_first == dst_last) break; else *(dst_first++) = *src_first;
+      if (dst_first == dst_last) break; else *(dst_first++) = *src_first;
 
-//     } else {
-//       if (dst_first == dst_last) break; else *(dst_first++) = '%';
-//       if (dst_first == dst_last) break; else *(dst_first++) = value_to_hex1(*src_first);
-//       if (dst_first == dst_last) break; else *(dst_first++) = value_to_hex0(*src_first);
-//     }
+    } else {
+      if (dst_first == dst_last) break; else *(dst_first++) = '%';
+      if (dst_first == dst_last) break; else *(dst_first++) = value_to_hex1(*src_first);
+      if (dst_first == dst_last) break; else *(dst_first++) = value_to_hex0(*src_first);
+    }
 
-//     ++src_first;
-//   }
+    ++src_first;
+  }
 
-//   return dst_first;
-// }
+  return dst_first;
+}
 
-// template <typename SrcContainer, typename DestItr>
-// DestItr
-// copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last) {
-//   return copy_escape_html(src.begin(), src.end(), dst_first, dst_last);
-// }
+template <typename SrcContainer, typename DestItr>
+DestItr
+copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last) {
+  return copy_escape_html(src.begin(), src.end(), dst_first, dst_last);
+}
 
-// template <typename SrcContainer, typename DstContainer>
-// typename DstContainer::iterator
-// copy_escape_html(SrcContainer& src, DstContainer dst) {
-//   return copy_escape_html(src.begin(), src.end(), dst.begin(), dst.end());
-// }
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator
+copy_escape_html(SrcContainer& src, DstContainer dst) {
+  return copy_escape_html(src.begin(), src.end(), dst.begin(), dst.end());
+}
 
-// template <typename SrcItr, typename DstContainer>
-// typename DstContainer::iterator
-// copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst) {
-//   return copy_escape_html(src_first, src_last, dst.begin(), dst.end());
-// }
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator
+copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst) {
+  return copy_escape_html(src_first, src_last, dst.begin(), dst.end());
+}
 
 
 //

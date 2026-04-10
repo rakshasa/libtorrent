@@ -219,7 +219,7 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
   auto handshake = find_and_erase(ptr);
   auto download  = handshake->download();
   auto peer_type = handshake->bitfield()->is_all_set() ? "seed" : "leech";
-  auto hash_str  = utils::copy_escape_html(handshake->peer_info()->id());
+  auto hash_str  = utils::copy_escape_html_str(handshake->peer_info()->id());
 
   auto error_func = [&](uint32_t reason) {
       LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'%s'",
