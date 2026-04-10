@@ -1119,8 +1119,7 @@ Handshake::prepare_peer_info() {
   m_peerInfo->mutable_id().assign(reinterpret_cast<const char*>(m_readBuffer.position()));
   m_readBuffer.consume(20);
 
-  utils::transform_to_hex(m_peerInfo->id().begin(), m_peerInfo->id().end(),
-                          m_peerInfo->mutable_id_hex(), m_peerInfo->mutable_id_hex() + 40);
+  utils::transform_to_hex(m_peerInfo->id(), m_peerInfo->mutable_id_hex(), m_peerInfo->mutable_id_hex() + 40);
 
   // For meta downloads, we require support of the extension protocol.
   if (m_download->info()->is_meta_download() && !m_peerInfo->supports_extensions())
