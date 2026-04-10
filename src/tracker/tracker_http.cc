@@ -144,7 +144,7 @@ TrackerHttp::send_scrape() {
 
 void
 TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
-  auto hash = utils::copy_escape_html(info().info_hash.begin(), info().info_hash.end());
+  auto hash = utils::copy_escape_html(info().info_hash);
 
   *stream << url
           << (m_drop_deliminator ? '&' : '?')
@@ -157,7 +157,7 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
   s.imbue(std::locale::classic());
 
   auto tracker_id = this->tracker_id();
-  auto local_id   = utils::copy_escape_html(info().local_id.begin(), info().local_id.end());
+  auto local_id   = utils::copy_escape_html(info().local_id);
 
   request_prefix(&s, info().url);
 

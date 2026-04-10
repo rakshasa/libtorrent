@@ -617,7 +617,7 @@ static_map_read_bencode_c(const char* first,
 //   {
 //     torrent::Object obj;
 //     if (object_read_bencode_c(first, last, &obj) != last) {
-//       std::string escaped = rak::copy_escape_html(first, last);
+//       std::string escaped = copy_escape_html(first, last);
 
 //       char buffer[1024];
 //       sprintf(buffer, "Verified wrong, %u, '%u', '%s'.", std::distance(first, last), (unsigned int)*first, escaped.c_str());
@@ -855,7 +855,7 @@ static_map_write_bencode_c_wrap(object_write_t writeFunc,
 //   {
 //     torrent::Object obj;
 //     if (object_read_bencode_c(output.buffer.first, output.pos, &obj) != output.pos) {
-//       std::string escaped = rak::copy_escape_html(output.buffer.first, output.pos);
+//       std::string escaped = copy_escape_html(output.buffer.first, output.pos);
 
 //       //char buffer[1024];
 //       //      sprintf(buffer, "Verified wrong, %u, '%u', '%s'.", std::distanescaped.c_str());

@@ -10,6 +10,7 @@
 namespace torrent::utils {
 
 // TODO: Add a copy_escape_html() version that copies to a perfect sized std::string.
+// TODO: Add copy/transform that take Sequence+itr-pair.
 
 std::string_view trim_spaces(std::string_view s) LIBTORRENT_EXPORT;
 std::string      trim_spaces_str(std::string_view s) LIBTORRENT_EXPORT;
@@ -25,8 +26,8 @@ char             hex_to_value_or_error(char c);
 char             value_to_hex0(char value);
 char             value_to_hex1(char value);
 
-template <typename Sequence>
-std::string      copy_escape_html(const Sequence& src);
+template <typename Container>
+std::string      copy_escape_html(const Container& src);
 
 template <typename SrcItr>
 std::string      copy_escape_html(SrcItr src_first, SrcItr src_last);
@@ -34,14 +35,41 @@ std::string      copy_escape_html(SrcItr src_first, SrcItr src_last);
 template <typename SrcItr, typename DestItr>
 DestItr          copy_escape_html(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
 
+template <typename SrcContainer, typename DestItr>
+DestItr          copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
+
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator copy_escape_html(SrcContainer& src, DstContainer dst);
+
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst);
+
 template <typename SrcItr, typename DestItr>
 DestItr          transform_from_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
+
+template <typename SrcContainer, typename DestItr>
+DestItr          transform_from_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
+
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator transform_from_hex(const SrcContainer& src, DstContainer dst);
+
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator transform_from_hex(SrcItr src_first, SrcItr src_last, DstContainer dst);
 
 template <typename SrcItr, typename DestItr>
 DestItr          transform_to_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
 
-template <typename Sequence>
-std::string      transform_to_hex_str(const Sequence& src);
+template <typename SrcContainer, typename DestItr>
+DestItr          transform_to_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
+
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator transform_to_hex(const SrcContainer& src, DstContainer dst);
+
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator transform_to_hex(SrcItr src_first, SrcItr src_last, DstContainer dst);
+
+template <typename Container>
+std::string      transform_to_hex_str(const Container& src);
 
 template <typename SrcItr>
 std::string      transform_to_hex_str(SrcItr src_first, SrcItr src_last);
@@ -104,14 +132,14 @@ value_to_hex1(char value) {
 // Escape all characters that are not alphanumeric or '-' with %XX.
 //
 
-template <typename Sequence>
-inline std::string
-copy_escape_html(const Sequence& src) {
+template <typename Container>
+std::string
+copy_escape_html(const Container& src) {
   return copy_escape_html(src.begin(), src.end());
 }
 
 template <typename SrcItr>
-inline std::string
+std::string
 copy_escape_html(SrcItr src_first, SrcItr src_last) {
   std::string dest;
   dest.reserve(std::distance(src_first, src_last) * 3);
@@ -136,7 +164,7 @@ copy_escape_html(SrcItr src_first, SrcItr src_last) {
 }
 
 template <typename SrcItr, typename DestItr>
-inline DestItr
+DestItr
 copy_escape_html(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last) {
   while (src_first != src_last) {
     if ((*src_first >= 'A' && *src_first <= 'Z') ||
@@ -157,12 +185,31 @@ copy_escape_html(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr d
   return dst_first;
 }
 
+template <typename SrcContainer, typename DestItr>
+DestItr
+copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last) {
+  return copy_escape_html(src.begin(), src.end(), dst_first, dst_last);
+}
+
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator
+copy_escape_html(SrcContainer& src, DstContainer dst) {
+  return copy_escape_html(src.begin(), src.end(), dst.begin(), dst.end());
+}
+
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator
+copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst) {
+  return copy_escape_html(src_first, src_last, dst.begin(), dst.end());
+}
+
+
 //
 // Transform a sequence of bytes from/to a hex string.
 //
 
 template <typename SrcItr, typename DestItr>
-inline DestItr
+DestItr
 transform_from_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last) {
   auto dst_first_start = dst_first;
 
@@ -192,6 +239,25 @@ transform_from_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr
   return dst_first;
 }
 
+template <typename SrcContainer, typename DestItr>
+DestItr
+transform_from_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last) {
+  return transform_from_hex(src.begin(), src.end(), dst_first, dst_last);
+}
+
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator
+transform_from_hex(const SrcContainer& src, DstContainer dst) {
+  return transform_from_hex(src.begin(), src.end(), dst.begin(), dst.end());
+}
+
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator
+transform_from_hex(SrcItr src_first, SrcItr src_last, DstContainer dst) {
+  return transform_from_hex(src_first, src_last, dst.begin(), dst.end());
+}
+
+
 template <typename SrcItr, typename DestItr>
 DestItr
 transform_to_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last) {
@@ -215,14 +281,32 @@ transform_to_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr d
   return dst_first;
 }
 
-template <typename Sequence>
-inline std::string
-transform_to_hex_str(const Sequence& src) {
+template <typename SrcContainer, typename DestItr>
+DestItr
+transform_to_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last) {
+  return transform_to_hex(src.begin(), src.end(), dst_first, dst_last);
+}
+
+template <typename SrcContainer, typename DstContainer>
+typename DstContainer::iterator
+transform_to_hex(const SrcContainer& src, DstContainer dst) {
+  return transform_to_hex(src.begin(), src.end(), dst.begin(), dst.end());
+}
+
+template <typename SrcItr, typename DstContainer>
+typename DstContainer::iterator
+transform_to_hex(SrcItr src_first, SrcItr src_last, DstContainer dst) {
+  return transform_to_hex(src_first, src_last, dst.begin(), dst.end());
+}
+
+template <typename Container>
+std::string
+transform_to_hex_str(const Container& src) {
   return transform_to_hex_str(src.begin(), src.end());
 }
 
 template <typename SrcItr>
-inline std::string
+std::string
 transform_to_hex_str(SrcItr src_first, SrcItr src_last) {
   std::string dest;
   dest.reserve(std::distance(src_first, src_last) * 2);

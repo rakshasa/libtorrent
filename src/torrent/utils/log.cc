@@ -139,7 +139,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 
   if (subsystem != NULL) {
     if (hash != NULL) {
-      first = utils::transform_to_hex(hash->begin(), hash->end(), first, first + 40);
+      first = utils::transform_to_hex(hash, first, first + 40);
       first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
     } else {
       first += snprintf(first, 4096 - (first - buffer), "%s: ", subsystem);

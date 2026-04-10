@@ -407,7 +407,7 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
       } else if (decoded.length() == torrent::HashString::size_data * 2) {
         // hex-encoded hash as per BEP 0009
 
-        if (utils::transform_from_hex(decoded.begin(), decoded.end(), hash.begin(), hash.end()) != hash.end())
+        if (utils::transform_from_hex(decoded, hash) != hash.end())
           throw input_error("Invalid magnet URI.");
 
         hashValid = true;
