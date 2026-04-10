@@ -10,7 +10,7 @@
 namespace torrent::utils {
 
 // TODO: Add a copy_escape_html() version that copies to a perfect sized std::string.
-// TODO: Add copy/transform that take Sequence+itr-pair.
+// TODO: Consider forward declaring these functions, and instantiating the required specializations in the .cc file.
 
 std::string_view trim_spaces(std::string_view s) LIBTORRENT_EXPORT;
 std::string      trim_spaces_str(std::string_view s) LIBTORRENT_EXPORT;
@@ -134,13 +134,13 @@ value_to_hex1(char value) {
 
 template <typename Container>
 std::string
-copy_escape_html(const Container& src) {
-  return copy_escape_html(src.begin(), src.end());
+copy_escape_html_str(const Container& src) {
+  return copy_escape_html_str(src.begin(), src.end());
 }
 
 template <typename SrcItr>
 std::string
-copy_escape_html(SrcItr src_first, SrcItr src_last) {
+copy_escape_html_str(SrcItr src_first, SrcItr src_last) {
   std::string dest;
   dest.reserve(std::distance(src_first, src_last) * 3);
 
