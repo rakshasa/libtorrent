@@ -39,10 +39,10 @@ template <typename SrcContainer, typename DestItr>
 DestItr          copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
 
 template <typename SrcContainer, typename DstContainer>
-typename DstContainer::iterator copy_escape_html(SrcContainer& src, DstContainer dst);
+typename DstContainer::iterator copy_escape_html(const SrcContainer& src, DstContainer& dst);
 
 template <typename SrcItr, typename DstContainer>
-typename DstContainer::iterator copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst);
+typename DstContainer::iterator copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer& dst);
 
 template <typename SrcItr, typename DestItr>
 DestItr          transform_from_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
@@ -51,10 +51,10 @@ template <typename SrcContainer, typename DestItr>
 DestItr          transform_from_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
 
 template <typename SrcContainer, typename DstContainer>
-typename DstContainer::iterator transform_from_hex(const SrcContainer& src, DstContainer dst);
+typename DstContainer::iterator transform_from_hex(const SrcContainer& src, DstContainer& dst);
 
 template <typename SrcItr, typename DstContainer>
-typename DstContainer::iterator transform_from_hex(SrcItr src_first, SrcItr src_last, DstContainer dst);
+typename DstContainer::iterator transform_from_hex(SrcItr src_first, SrcItr src_last, DstContainer& dst);
 
 template <typename SrcItr, typename DestItr>
 DestItr          transform_to_hex(SrcItr src_first, SrcItr src_last, DestItr dst_first, DestItr dst_last);
@@ -63,10 +63,10 @@ template <typename SrcContainer, typename DestItr>
 DestItr          transform_to_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last);
 
 template <typename SrcContainer, typename DstContainer>
-typename DstContainer::iterator transform_to_hex(const SrcContainer& src, DstContainer dst);
+typename DstContainer::iterator transform_to_hex(const SrcContainer& src, DstContainer& dst);
 
 template <typename SrcItr, typename DstContainer>
-typename DstContainer::iterator transform_to_hex(SrcItr src_first, SrcItr src_last, DstContainer dst);
+typename DstContainer::iterator transform_to_hex(SrcItr src_first, SrcItr src_last, DstContainer& dst);
 
 template <typename Container>
 std::string      transform_to_hex_str(const Container& src);
@@ -193,13 +193,13 @@ copy_escape_html(const SrcContainer& src, DestItr dst_first, DestItr dst_last) {
 
 template <typename SrcContainer, typename DstContainer>
 typename DstContainer::iterator
-copy_escape_html(SrcContainer& src, DstContainer dst) {
+copy_escape_html(const SrcContainer& src, DstContainer& dst) {
   return copy_escape_html(src.begin(), src.end(), dst.begin(), dst.end());
 }
 
 template <typename SrcItr, typename DstContainer>
 typename DstContainer::iterator
-copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer dst) {
+copy_escape_html(SrcItr src_first, SrcItr src_last, DstContainer& dst) {
   return copy_escape_html(src_first, src_last, dst.begin(), dst.end());
 }
 
@@ -247,13 +247,13 @@ transform_from_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last)
 
 template <typename SrcContainer, typename DstContainer>
 typename DstContainer::iterator
-transform_from_hex(const SrcContainer& src, DstContainer dst) {
+transform_from_hex(const SrcContainer& src, DstContainer& dst) {
   return transform_from_hex(src.begin(), src.end(), dst.begin(), dst.end());
 }
 
 template <typename SrcItr, typename DstContainer>
 typename DstContainer::iterator
-transform_from_hex(SrcItr src_first, SrcItr src_last, DstContainer dst) {
+transform_from_hex(SrcItr src_first, SrcItr src_last, DstContainer& dst) {
   return transform_from_hex(src_first, src_last, dst.begin(), dst.end());
 }
 
@@ -289,13 +289,13 @@ transform_to_hex(const SrcContainer& src, DestItr dst_first, DestItr dst_last) {
 
 template <typename SrcContainer, typename DstContainer>
 typename DstContainer::iterator
-transform_to_hex(const SrcContainer& src, DstContainer dst) {
+transform_to_hex(const SrcContainer& src, DstContainer& dst) {
   return transform_to_hex(src.begin(), src.end(), dst.begin(), dst.end());
 }
 
 template <typename SrcItr, typename DstContainer>
 typename DstContainer::iterator
-transform_to_hex(SrcItr src_first, SrcItr src_last, DstContainer dst) {
+transform_to_hex(SrcItr src_first, SrcItr src_last, DstContainer& dst) {
   return transform_to_hex(src_first, src_last, dst.begin(), dst.end());
 }
 
