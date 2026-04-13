@@ -108,7 +108,7 @@ private:
   void                find_node_next(DhtTransactionSearch* t);
 
   void                add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority);
-  void                drop_packet(DhtTransactionPacket* packet);
+  void                drop_packet(const DhtTransactionPacket* packet);
 
   void                create_query(transaction_itr itr, int tID, const sockaddr* sa, int priority);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
@@ -129,6 +129,7 @@ private:
   void                receive_timeout();
 
   DhtRouter*          m_router{};
+
   packet_queue        m_highQueue;
   packet_queue        m_lowQueue;
   transaction_map     m_transactions;

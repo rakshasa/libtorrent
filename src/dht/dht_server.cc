@@ -5,10 +5,11 @@
 #include <algorithm>
 #include <cstdio>
 
+#include "manager.h"
 #include "dht/dht_bucket.h"
 #include "dht/dht_router.h"
 #include "dht/dht_transaction.h"
-#include "manager.h"
+#include "dht/transactions/dht_announce.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
@@ -191,9 +192,9 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
 // Contact nodes in given bucket and ask for their nodes closest to target.
 void
 DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
-  auto search = new DhtSearch(target, contacts);
+  auto search = std::make_shared<dht::DhtSearch>(target, contacts);
+  auto n      = search->get_contact();
 
-  auto n = search->get_contact();
   while (n != search->end()) {
     add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(n)), packet_prio_low);
     n = search->get_contact();
@@ -201,12 +202,13 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
 
   // This shouldn't happen, it means we had no contactable nodes at all.
   if (!search->start())
-    delete search;
+    // No need to reset here.
+    search.reset(); // TODO: We to have a more strict ownership model for DhtSearch and DhtTransactionSearch.
 }
 
 void
 DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker) {
-  auto announce = new DhtAnnounce(infoHash, tracker, contacts);
+  auto announce = std::make_shared<dht::DhtAnnounce>(infoHash, tracker, contacts);
   auto n        = announce->get_contact();
 
   while (n != announce->end()) {
@@ -216,7 +218,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, Track
 
   // This can only happen if all nodes we know are bad.
   if (!announce->start())
-    delete announce;
+    announce.reset(); // TODO: We to have a more strict ownership model for DhtSearch and DhtTransactionSearch.
   else
     announce->update_status();
 }
@@ -227,10 +229,13 @@ DhtServer::cancel_announce(const HashString* info_hash, const TrackerDht* tracke
 
   while (itr != m_transactions.end()) {
     if (itr->second->is_search() && itr->second->as_search()->search()->is_announce()) {
-      auto announce = static_cast<DhtAnnounce*>(itr->second->as_search()->search());
+      auto announce = dynamic_cast<dht::DhtAnnounce*>(itr->second->as_search()->search().get());
+
+      if (announce == nullptr)
+        throw internal_error("DhtServer::cancel_announce dynamic_cast to DhtAnnounce failed.");
 
       if ((info_hash == nullptr || announce->target() == *info_hash) && (tracker == nullptr || announce->tracker() == tracker)) {
-        drop_packet(itr->second->packet());
+        drop_packet(itr->second->packet().get());
         m_transactions.erase(itr++);
         continue;
       }
@@ -381,14 +386,14 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
     m_router->node_replied(id, sa);
 
   } catch (const std::exception&) {
-    drop_packet(itr->second->packet());
+    drop_packet(itr->second->packet().get());
     m_transactions.erase(itr);
 
     m_errorsCaught++;
     throw;
   }
 
-  drop_packet(itr->second->packet());
+  drop_packet(itr->second->packet().get());
   m_transactions.erase(itr);
 }
 
@@ -408,7 +413,7 @@ DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
   // If it consistently returns errors for valid queries it's probably broken.  But a
   // few error messages are acceptable. So we do nothing and pretend the query never happened.
 
-  drop_packet(itr->second->packet());
+  drop_packet(itr->second->packet().get());
   m_transactions.erase(itr);
 }
 
@@ -434,7 +439,10 @@ DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, raw_string n
 
 void
 DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtMessage& response) {
-  auto announce = static_cast<DhtAnnounce*>(transaction->as_search()->search());
+  auto announce = dynamic_cast<dht::DhtAnnounce*>(transaction->as_search()->search().get());
+
+  if (announce == nullptr)
+    throw internal_error("DhtServer::parse_get_peers_reply dynamic_cast to DhtAnnounce failed.");
 
   transaction->complete(true);
 
@@ -468,7 +476,10 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   if (!transaction->search()->is_announce())
     return;
 
-  auto announce = static_cast<DhtAnnounce*>(transaction->search());
+  auto announce = dynamic_cast<dht::DhtAnnounce*>(transaction->search().get());
+
+  if (announce == nullptr)
+    throw internal_error("DhtServer::find_node_next dynamic_cast to DhtAnnounce failed.");
 
   if (announce->complete()) {
     // We have found the 8 closest nodes to the info hash. Retrieve peers
@@ -507,7 +518,7 @@ DhtServer::add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority
 }
 
 void
-DhtServer::drop_packet(DhtTransactionPacket* packet) {
+DhtServer::drop_packet(const DhtTransactionPacket* packet) {
   m_highQueue.erase(std::remove_if(m_highQueue.begin(), m_highQueue.end(), [packet](auto& p) { return p.get() == packet; }),
                     m_highQueue.end());
   m_lowQueue.erase(std::remove_if(m_lowQueue.begin(), m_lowQueue.end(), [packet](auto& p) { return p.get() == packet; }),
@@ -655,7 +666,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
     } catch (const std::exception&) {
       if (!quick) {
-        drop_packet(transaction->packet());
+        drop_packet(transaction->packet().get());
         m_transactions.erase(itr);
       }
 
@@ -667,7 +678,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
     return ++itr;         // don't actually delete the transaction until the final timeout
 
   } else {
-    drop_packet(transaction->packet());
+    drop_packet(transaction->packet().get());
     m_transactions.erase(itr++);
     return itr;
   }
@@ -676,7 +687,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 void
 DhtServer::clear_transactions() {
   for (auto& transaction : m_transactions)
-    drop_packet(transaction.second->packet());
+    drop_packet(transaction.second->packet().get());
 
   m_transactions.clear();
 }
@@ -841,7 +852,7 @@ DhtServer::process_queue(packet_queue& queue) {
       auto itr = m_transactions.find(transactionKey);
 
       if (itr != m_transactions.end())
-        packet->transaction()->set_packet(NULL);
+        packet->transaction()->reset_packet();
     }
   }
 }
