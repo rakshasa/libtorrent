@@ -192,8 +192,10 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
 // Contact nodes in given bucket and ask for their nodes closest to target.
 void
 DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
-  auto search = std::make_shared<dht::DhtSearch>(target, contacts);
-  auto n      = search->get_contact();
+  auto search = std::make_shared<dht::DhtSearch>(this, target);
+  search->add_contacts(contacts);
+
+  auto n = search->get_contact();
 
   while (n != search->end()) {
     add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(n)), packet_prio_low);
@@ -202,14 +204,18 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
 
   // This shouldn't happen, it means we had no contactable nodes at all.
   if (!search->start())
-    // No need to reset here.
-    search.reset(); // TODO: We to have a more strict ownership model for DhtSearch and DhtTransactionSearch.
+    // return;
+    throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");  ///////////////// TMP
+
+  m_searches.insert(search);
 }
 
 void
 DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker) {
-  auto announce = std::make_shared<dht::DhtAnnounce>(infoHash, tracker, contacts);
-  auto n        = announce->get_contact();
+  auto announce = std::make_shared<dht::DhtAnnounce>(this, infoHash, tracker);
+  announce->add_contacts(contacts);
+
+  auto n = announce->get_contact();
 
   while (n != announce->end()) {
     add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(n)), packet_prio_high);
@@ -218,14 +224,18 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, Track
 
   // This can only happen if all nodes we know are bad.
   if (!announce->start())
-    announce.reset(); // TODO: We to have a more strict ownership model for DhtSearch and DhtTransactionSearch.
-  else
-    announce->update_status();
+    // return;
+    throw internal_error("DhtServer::announce search start failed, no contactable nodes.");  ///////////////// TMP
+
+  m_searches.insert(announce);
+  announce->update_status();
 }
 
 void
 DhtServer::cancel_announce(const HashString* info_hash, const TrackerDht* tracker) {
   auto itr = m_transactions.begin();
+
+  // TODO: Verify this removes us from m_searches.
 
   while (itr != m_transactions.end()) {
     if (itr->second->is_search() && itr->second->as_search()->search()->is_announce()) {
@@ -251,6 +261,41 @@ DhtServer::update() {
   // any valid packets. This allows detecting when the entire network goes
   // down, and prevents all nodes from getting removed as unresponsive.
   m_networkUp = false;
+}
+
+void
+DhtServer::check_search_completed(std::shared_ptr<dht::DhtSearch> search) {
+  if (!search->complete())
+    return;
+
+  // Removing search if has completed.
+
+  auto itr = m_searches.find(search);
+
+  // TODO: Insert?
+  if (itr == m_searches.end())
+    throw internal_error("DhtServer::mark_search_completed search not found.");
+
+  // TODO: Verify we got ref_count == 2.
+
+  m_searches.erase(itr);
+}
+
+void
+DhtServer::check_search_trimming(std::shared_ptr<dht::DhtSearch> search) {
+  // Make sure trimming search does not delete searches that have not completed.
+
+  if (search->complete())
+    return;
+
+  // TODO: Should we erase if complete?
+
+  auto itr = m_searches.lower_bound(search);
+
+  if (itr != m_searches.end() && *itr == search)
+    return;
+
+  m_searches.insert(itr, search);
 }
 
 void

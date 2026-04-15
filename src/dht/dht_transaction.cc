@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "dht/dht_bucket.h"
+#include "dht/dht_server.h"
 #include "torrent/exceptions.h"
 #include "torrent/object_stream.h"
 #include "torrent/net/socket_address.h"
@@ -91,6 +92,13 @@ DhtTransactionSearch::DhtTransactionSearch(int quick_timeout, int timeout, dht::
     m_search->m_concurrency++;
 }
 
+DhtTransactionSearch::~DhtTransactionSearch() {
+  if (m_node != m_search->end())
+    complete(false);
+
+  m_search->server()->check_search_completed(std::move(m_search));
+}
+
 void
 DhtTransactionSearch::set_stalled() {
   if (!m_hasQuickTimeout)
@@ -113,14 +121,6 @@ DhtTransactionSearch::complete(bool success) {
 
   m_search->node_status(m_node.node(), success);
   m_node = m_search->end();
-}
-
-DhtTransactionSearch::~DhtTransactionSearch() {
-  if (m_node != m_search->end())
-    complete(false);
-
-  if (m_search->complete())
-    m_search.reset(); // TODO: We to have a more strict ownership model for DhtSearch and DhtTransactionSearch.
 }
 
 DhtTransaction::transaction_type

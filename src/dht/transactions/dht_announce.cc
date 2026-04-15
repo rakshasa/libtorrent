@@ -10,8 +10,8 @@
 
 namespace torrent::dht {
 
-DhtAnnounce::DhtAnnounce(const HashString& infoHash, TrackerDht* tracker, const DhtBucket& contacts)
-  : DhtSearch(infoHash, contacts),
+DhtAnnounce::DhtAnnounce(DhtServer* server, const HashString& infoHash, TrackerDht* tracker)
+  : DhtSearch(server, infoHash),
     m_tracker(tracker) {
 }
 

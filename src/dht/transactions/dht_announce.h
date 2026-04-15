@@ -20,7 +20,7 @@ namespace torrent::dht {
 
 class DhtAnnounce : public DhtSearch {
 public:
-  DhtAnnounce(const HashString& infoHash, TrackerDht* tracker, const DhtBucket& contacts);
+  DhtAnnounce(DhtServer* server, const HashString& infoHash, TrackerDht* tracker);
   ~DhtAnnounce() override;
 
   bool                 is_announce() const override      { return true; }

@@ -14,7 +14,6 @@
 namespace torrent::dht {
 
 class DhtSearch;
-class DhtAnnounce;
 
 }
 
@@ -146,7 +145,7 @@ public:
   bool                has_quick_timeout() const { return m_hasQuickTimeout; }
 
   auto&               packet() const                                       { return m_packet; }
-  void                set_packet(std::shared_ptr<DhtTransactionPacket>& p) { m_packet = std::move(p); }
+  void                set_packet(std::shared_ptr<DhtTransactionPacket>& p) { m_packet = p; }
   void                reset_packet()                                       { m_packet.reset(); }
 
   DhtTransactionSearch*       as_search();

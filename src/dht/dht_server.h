@@ -4,6 +4,7 @@
 #include <array>
 #include <deque>
 #include <map>
+#include <set>
 
 #include "dht/dht_transaction.h"
 #include "net/socket_datagram.h"
@@ -58,6 +59,9 @@ public:
   // Called every 15 minutes.
   void                update();
 
+  void                check_search_completed(std::shared_ptr<dht::DhtSearch> search);
+  void                check_search_trimming(std::shared_ptr<dht::DhtSearch> search);
+
   void                event_read() override;
   void                event_write() override;
   void                event_error() override;
@@ -78,6 +82,8 @@ private:
 
   using packet_queue   = std::deque<std::shared_ptr<DhtTransactionPacket>>;
   using node_info_list = std::list<compact_node_info>;
+
+  using search_set      = std::set<std::shared_ptr<dht::DhtSearch>>;
 
   // Pending transactions.
   using transaction_map = std::map<DhtTransaction::key_type, std::shared_ptr<DhtTransaction>>;
@@ -129,6 +135,8 @@ private:
   void                receive_timeout();
 
   DhtRouter*          m_router{};
+
+  search_set          m_searches;
 
   packet_queue        m_highQueue;
   packet_queue        m_lowQueue;

@@ -22,6 +22,7 @@ namespace torrent {
 
 class DhtBucket;
 class DhtNode;
+class DhtServer;
 class DhtTransactionSearch;
 class TrackerDht;
 
@@ -42,7 +43,9 @@ private:
   const HashString&   m_target;
 };
 
-class DhtSearch : protected std::map<std::unique_ptr<DhtNode>, std::shared_ptr<DhtSearch>, dht_compare_closer> {
+// Use std::enable_shared_from_this as a temporary hack.
+
+class DhtSearch : public std::enable_shared_from_this<DhtSearch>, protected std::map<std::unique_ptr<DhtNode>, std::shared_ptr<DhtSearch>, dht_compare_closer> {
 public:
   using base_type = std::map<std::unique_ptr<DhtNode>, std::shared_ptr<DhtSearch>, dht_compare_closer>;
 
@@ -51,7 +54,7 @@ public:
   static constexpr unsigned int max_contacts = 18;
   static constexpr unsigned int max_announce = 3;
 
-  DhtSearch(const HashString& target, const DhtBucket& contacts);
+  DhtSearch(DhtServer* server, const HashString& target);
   virtual ~DhtSearch();
 
   // Wrapper for iterators, allowing more convenient access to the key
@@ -62,8 +65,8 @@ public:
     accessor_wrapper() = default;
     accessor_wrapper(const T& itr) : T(itr) { }
 
-    const auto& node() const     { return (**this).first; }
-    auto&       search() const   { return (**this).second; }
+    const auto&                       node() const     { return (**this).first; }
+    const std::shared_ptr<DhtSearch>& search() const   { return (**this).second; }
   };
 
   using const_accessor = accessor_wrapper<base_type::const_iterator>;
@@ -99,6 +102,8 @@ public:
 protected:
   friend class torrent::DhtTransactionSearch;
 
+  DhtServer*           server() const                    { return m_server; }
+
   void                 trim(bool is_final);
 
   void                 node_status(const std::unique_ptr<DhtNode>& n, bool success);
@@ -122,6 +127,7 @@ private:
 
   static bool          node_uncontacted(const std::unique_ptr<DhtNode>& node);
 
+  DhtServer*           m_server;
   HashString           m_target;
 };
 

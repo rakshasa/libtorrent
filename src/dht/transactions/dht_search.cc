@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "dht/dht_node.h"
+#include "dht/dht_server.h"
 
 namespace torrent::dht {
 
@@ -13,12 +14,14 @@ dht_compare_closer::operator () (const std::unique_ptr<DhtNode>& one, const std:
   return DhtSearch::is_closer(one->id(), two->id(), m_target);
 }
 
-DhtSearch::DhtSearch(const HashString& target, const DhtBucket& contacts)
+DhtSearch::DhtSearch(DhtServer* server, const HashString& target)
   : base_type(dht_compare_closer(target)),
     m_next(end()),
+    m_server(server),
     m_target(target) {
 
-  add_contacts(contacts);
+  // TODO: Must be done manually to ensure we got a shared_ptr.
+  // add_contacts(contacts);
 }
 
 DhtSearch::~DhtSearch() {
@@ -27,16 +30,24 @@ DhtSearch::~DhtSearch() {
   // case.
   assert(!m_pending && "DhtSearch::~DhtSearch called with pending transactions.");
   assert(m_concurrency == 3 && "DhtSearch::~DhtSearch called with invalid concurrency limit.");
+
+  // TODO: Hack.
+  // for (auto& itr : *this)
+  //   itr.second->server()->check_search_trimming(itr.second);
 }
 
 // TODO: Check if DhtSearch gets stored somewhere, and DhtBucket seems the most likely candidate.
 //
 // This seems to be storing self in the map.
 
+//
+// TODO: Remove self stored in the map, and when getting accessor from map, also pass the (self) DhtSearch.
+//
+
 bool
 DhtSearch::add_contact(const HashString& id, const sockaddr* sa) {
   auto n     = std::make_unique<DhtNode>(id, sa);
-  bool added = emplace(std::move(n), this).second;
+  bool added = emplace(std::move(n), shared_from_this()).second;
 
   if (added)
     m_restart = true;
@@ -103,6 +114,14 @@ DhtSearch::trim(bool is_final) {
     // If we have all we need, delete current node unless it is
     // currently being contacted.
     if (!itr.node()->is_active() && needClosest <= 0 && (!itr.node()->is_good() || needGood <= 0)) {
+      // TODO: Temporary hack.
+        // TODO: Add server function to add it to m_search if not complete.
+        // TODO: We should replace m_pending with a vector of txs.
+
+      // TODO: We're somehow storying self in the map, and erasing causes crash as m_pending == 2.
+
+      // itr.search()->server()->check_search_trimming(itr.search());
+
       erase(itr++);
       continue;
     }
@@ -129,6 +148,8 @@ DhtSearch::is_closer(const HashString& one, const HashString& two, const HashStr
 
   return false;
 }
+
+// TODO: Change m_pending to a vector of weak_ref.
 
 DhtSearch::const_accessor
 DhtSearch::get_contact() {
