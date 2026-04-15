@@ -206,8 +206,8 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
 
   // This shouldn't happen, it means we had no contactable nodes at all.
   if (!search->start())
-    // return;
-    throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");  ///////////////// TMP
+    return;
+    // throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");  ///////////////// TMP
 
   m_searches.insert(search);
 }
@@ -226,8 +226,8 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, Track
 
   // This can only happen if all nodes we know are bad.
   if (!announce->start())
-    // return;
-    throw internal_error("DhtServer::announce search start failed, no contactable nodes.");  ///////////////// TMP
+    return;
+    // throw internal_error("DhtServer::announce search start failed, no contactable nodes.");  ///////////////// TMP
 
   m_searches.insert(announce);
   announce->update_status();
