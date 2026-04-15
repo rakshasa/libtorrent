@@ -156,6 +156,8 @@ DhtServer::stop() {
 
   LT_LOG_THIS("stopping", 0);
 
+  LT_LOG_THIS("searches : count:%zu", m_searches.size());
+
   clear_transactions();
 
   this_thread::scheduler()->erase(&m_task_timeout);
