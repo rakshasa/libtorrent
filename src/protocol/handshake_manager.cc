@@ -255,6 +255,9 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
   if (new_event == nullptr) {
     fd_close(fd);
 
+    manager->connection_manager()->dec_socket_count();
+    download->peer_list()->disconnected(peer_info, 0);
+
     lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
     return;
   }
