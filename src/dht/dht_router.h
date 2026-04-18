@@ -126,6 +126,7 @@ private:
   DhtNodeList         m_nodes;
   DhtBucketList       m_routingTable;
   DhtTrackerList      m_trackers;
+  HashString          m_contactId;
 
   std::optional<std::deque<contact_t>> m_contacts;
 

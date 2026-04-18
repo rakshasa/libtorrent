@@ -687,13 +687,14 @@ DhtServer::event_read() {
     Object request;
     int type = '?';
     DhtMessage message;
+    raw_string nodeIdStr;
     const HashString* nodeId = NULL;
+    char buffer[2048];
 
     sockaddr_in6 sa_raw{};
     sockaddr* sa = reinterpret_cast<sockaddr*>(&sa_raw);
 
     try {
-      char buffer[2048];
       int32_t read = read_datagram_sa(buffer, sizeof(buffer), sa, sizeof(sa_raw));
 
       if (read < 0)
@@ -738,7 +739,7 @@ DhtServer::event_read() {
         if (!message[type == 'q' ? key_a_id : key_r_id].is_raw_string())
           throw dht_error(dht_error_protocol, "Invalid `id' value");
 
-        raw_string nodeIdStr = message[type == 'q' ? key_a_id : key_r_id].as_raw_string();
+        nodeIdStr = message[type == 'q' ? key_a_id : key_r_id].as_raw_string();
 
         if (nodeIdStr.size() < HashString::size_data)
           throw dht_error(dht_error_protocol, "`id' value too short");
