@@ -10,6 +10,8 @@
 
 namespace torrent {
 
+Event::Event() = default;
+
 Event::~Event() {
   assert(m_poll_event == nullptr && "Event::~Event() called with m_poll_event != nullptr.");
 }
