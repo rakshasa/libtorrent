@@ -9,6 +9,33 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 
+namespace torrent::net {
+
+void
+sa_free(const sockaddr* sa) {
+  if (sa == nullptr)
+    return;
+
+  switch (sa->sa_family) {
+  case AF_UNSPEC:
+    delete reinterpret_cast<const sockaddr*>(sa);
+    break;
+  case AF_INET:
+    delete reinterpret_cast<const sockaddr_in*>(sa);
+    break;
+  case AF_INET6:
+    delete reinterpret_cast<const sockaddr_in6*>(sa);
+    break;
+  case AF_UNIX:
+    delete reinterpret_cast<const sockaddr_un*>(sa);
+    break;
+  default:
+    throw internal_error("torrent::sa_free() invalid family type");
+  }
+}
+
+} // torrent::net
+
 namespace torrent {
 
 static constexpr uint32_t
@@ -295,29 +322,6 @@ sin6_copy(const sockaddr_in6* sa) {
   sin6_unique_ptr result(new sockaddr_in6);
   std::memcpy(result.get(), sa, sizeof(sockaddr_in6));
   return result;
-}
-
-void
-sa_free(const sockaddr* sa) {
-  if (sa == nullptr)
-    return;
-
-  switch (sa->sa_family) {
-  case AF_UNSPEC:
-    delete reinterpret_cast<const sockaddr*>(sa);
-    break;
-  case AF_INET:
-    delete reinterpret_cast<const sockaddr_in*>(sa);
-    break;
-  case AF_INET6:
-    delete reinterpret_cast<const sockaddr_in6*>(sa);
-    break;
-  case AF_UNIX:
-    delete reinterpret_cast<const sockaddr_un*>(sa);
-    break;
-  default:
-    throw internal_error("torrent::sa_free() invalid family type");
-  }
 }
 
 sin_unique_ptr
@@ -679,7 +683,33 @@ sin_pretty_str(const sockaddr_in* sa) {
 }
 
 std::string
+sin_pretty_or_empty(const sockaddr_in* sa) {
+  if (sa == nullptr)
+    return "";
+
+  auto result = sin_addr_str(sa);
+
+  if (sa->sin_port != 0)
+    result += ':' + std::to_string(ntohs(sa->sin_port));
+
+  return result;
+}
+
+std::string
 sin6_pretty_str(const sockaddr_in6* sa) {
+  auto result = "[" + sin6_addr_str(sa) + "]";
+
+  if (sa->sin6_port != 0)
+    result += ':' + std::to_string(ntohs(sa->sin6_port));
+
+  return result;
+}
+
+std::string
+sin6_pretty_or_empty(const sockaddr_in6* sa) {
+  if (sa == nullptr)
+    return "";
+
   auto result = "[" + sin6_addr_str(sa) + "]";
 
   if (sa->sin6_port != 0)
@@ -692,8 +722,6 @@ c_sa_shared_ptr
 sa_lookup_address(const std::string& address_str, int family) {
   if (address_str.empty())
     return sa_make_unspec();
-
-  // don't use rak::, use unix getaddrinfo
 
   addrinfo hints = {};
   hints.ai_family = family;
@@ -731,6 +759,22 @@ sa_inet_union_from_sa(const sockaddr* sa) {
     return su;
   default:
     throw internal_error("torrent::sa_inet_union_from_sa() sockaddr is not inet or inet6");
+  }
+}
+
+const char*
+family_str(int family) {
+  switch (family) {
+  case AF_UNSPEC:
+    return "AF_UNSPEC";
+  case AF_INET:
+    return "AF_INET";
+  case AF_INET6:
+    return "AF_INET6";
+  case AF_UNIX:
+    return "AF_UNIX";
+  default:
+    return "AF_UNKNOWN";
   }
 }
 

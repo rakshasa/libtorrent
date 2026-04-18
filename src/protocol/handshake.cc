@@ -20,6 +20,7 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/string_manip.h"
 #include "utils/diffie_hellman.h"
 #include "utils/sha1.h"
 
@@ -140,25 +141,43 @@ Handshake::release_connection() {
 }
 
 void
-Handshake::destroy_connection() {
+Handshake::destroy_connection(bool use_socket_manager) {
+  this_thread::scheduler()->erase(&m_task_timeout);
+
   if (!is_open())
     throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
 
   m_state = INACTIVE;
 
-  this_thread::scheduler()->erase(&m_task_timeout);
-
-  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+  auto fn = [this]() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(m_fileDesc);
       set_file_descriptor(-1);
-    });
+    };
+
+  try {
+    if (use_socket_manager)
+      runtime::socket_manager()->close_event_or_throw(this, fn);
+    else
+      fn();
+
+  } catch (...) {
+    if (is_polling())
+      this_thread::poll()->remove_and_close(this);
+
+    if (is_open()) {
+      fd_close(m_fileDesc);
+      set_file_descriptor(-1);
+    }
+
+    throw;
+  }
 
   manager->connection_manager()->dec_socket_count();
 
   if (m_peerInfo == NULL)
-    return;
+    return; // TODO: This should throw.
 
   m_download->peer_list()->disconnected(m_peerInfo, 0);
 
@@ -1100,7 +1119,7 @@ Handshake::prepare_peer_info() {
   m_peerInfo->mutable_id().assign(reinterpret_cast<const char*>(m_readBuffer.position()));
   m_readBuffer.consume(20);
 
-  hash_string_to_hex(m_peerInfo->id(), m_peerInfo->mutable_id_hex());
+  utils::transform_to_hex(m_peerInfo->id(), m_peerInfo->mutable_id_hex(), m_peerInfo->mutable_id_hex() + 40);
 
   // For meta downloads, we require support of the extension protocol.
   if (m_download->info()->is_meta_download() && !m_peerInfo->supports_extensions())

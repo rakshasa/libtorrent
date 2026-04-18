@@ -320,7 +320,7 @@ PeerConnectionBase::load_up_chunk() {
   m_upChunk = m_download->chunk_list()->get(m_upPiece.index(), ChunkList::get_not_hashing);
 
   if (!m_upChunk.is_valid())
-    throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
+    throw storage_error("File chunk read error: " + std::string(std::strerror(m_upChunk.error_number())));
 
   if (is_encrypted() && m_encryptBuffer == nullptr) {
     m_encryptBuffer = std::make_unique<EncryptBuffer>();
@@ -410,7 +410,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
     m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_not_hashing | ChunkList::get_writable);
 
     if (!m_downChunk.is_valid())
-      throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
+      throw storage_error("File chunk write error: " + std::string(std::strerror(m_downChunk.error_number())));
   }
 
   LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,

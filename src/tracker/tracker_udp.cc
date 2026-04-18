@@ -25,6 +25,8 @@
 
 namespace torrent {
 
+// TODO: Rewrite this to do resolve every time, since we now have a cache?
+
 TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
   TrackerWorker(info, flags) {
 
@@ -55,13 +57,14 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   lock_and_set_latest_event(new_state);
 
   m_send_state = new_state;
-  m_resolver_requesting = true;
   m_sending_announce = true;
 
   LT_LOG("resolving hostname : address:%s", hostname.data());
 
   // TODO: Also check failed counter....
   // TODO: Check for changes to block (NC should instead clear us on network changes)
+
+  // TODO: Change to always do resolve and rely on cache.
 
   if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
       (this_thread::cached_time() - m_time_last_resolved) > 24h ||
@@ -78,11 +81,14 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
     else if (block_ipv6)
       family = AF_INET;
 
+    m_resolver_requesting = true;
+
+    auto fn = [this](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
+        receive_resolved(sin, err, sin6, err6);
+      };
+
     // Currently discarding SOCK_DGRAM filter.
-    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family,
-                                          [this](c_sin_shared_ptr sin, c_sin6_shared_ptr sin6, int err) {
-                                            receive_resolved(sin, sin6, err);
-                                          });
+    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family, std::move(fn));
     return;
   }
 
@@ -139,8 +145,8 @@ TrackerUdp::close_directly() {
   runtime::socket_manager()->close_event_or_throw(this, [this]() {
       this_thread::event_remove_and_close(this);
 
-      fd_close(m_fileDesc);
-      m_fileDesc = -1;
+      fd_close(file_descriptor());
+      set_file_descriptor(-1);
     });
 }
 
@@ -160,7 +166,7 @@ TrackerUdp::receive_failed(const std::string& msg) {
 // TODO: Only resolve when we don't have a valid address, failed too many times or network change
 // events.
 void
-TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err) {
+TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
   if (std::this_thread::get_id() != torrent::main_thread::thread_id())
     throw internal_error("TrackerUdp::receive_resolved() called from a different thread.");
 
@@ -171,9 +177,11 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int
 
   m_resolver_requesting = false;
 
-  if (err != 0) {
-    LT_LOG("could not resolve hostname : error:'%s'", gai_strerror(err));
-    return receive_failed("could not resolve hostname : error:'" + std::string(gai_strerror(err)) + "'");
+  if (err != 0 && err6 != 0) {
+    // TODO: Replace with error codes.
+    LT_LOG("could not resolve hostname : sin_error:'%s' sin6_error:'%s'", gai_strerror(err), gai_strerror(err6));
+    return receive_failed("could not resolve hostname : sin_error:'" + std::string(gai_strerror(err)) +
+                          "' sin6_error:'" + std::string(gai_strerror(err6)) + "'");
   }
 
   if (sin != nullptr) {
@@ -259,18 +267,36 @@ TrackerUdp::start_announce() {
   LT_LOG("starting announce : connect_address:%s bind_address:%s",
          sa_pretty_str(m_current_address).c_str(), sa_pretty_str(bind_address.get()).c_str());
 
-  runtime::socket_manager()->open_event_or_throw(this, [this, &bind_address]() {
-      m_fileDesc = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
+  auto open_fd = [this, &bind_address]() {
+      int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, bind_address->sa_family);
 
-      if (m_fileDesc == -1)
+      if (fd == -1)
         return;
+
+      set_file_descriptor(fd);
 
       // TODO: Add socket counting.
       this_thread::event_open(this);
       this_thread::event_insert_read(this);
       this_thread::event_insert_write(this);
       this_thread::event_insert_error(this);
-    });
+    };
+
+  auto cleanup_func = [this]() {
+      if (!is_open()) {
+        LT_LOG("failed to open UDP socket : open failed", 0);
+        return;
+      }
+
+      LT_LOG("failed to open UDP socket : socket manager triggered cleanup", 0);
+
+      this_thread::event_remove_and_close(this);
+
+      fd_close(file_descriptor());
+      set_file_descriptor(-1);
+    };
+
+  runtime::socket_manager()->open_event_or_cleanup(this, open_fd, cleanup_func);
 
   if (!is_open()) {
     LT_LOG("could not open UDP socket: fd:%i error:'%s'", m_fileDesc, std::strerror(errno));

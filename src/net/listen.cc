@@ -231,7 +231,7 @@ Listen::event_read() {
         std::tie(fd, sa) = fd_sap_accept(file_descriptor());
 
         if (fd == -1) {
-          if (errno == EAGAIN || errno == EWOULDBLOCK)
+          if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
             return;
 
           // Force a new event_read() call just to be sure we don't enter an infinite loop.
@@ -248,7 +248,7 @@ Listen::event_read() {
         LT_LOG("failed to accept incoming connection : socket manager triggered cleanup", 0);
 
         if (handshake && handshake->is_open())
-          handshake->destroy_connection();
+          handshake->destroy_connection(false);
       };
 
     bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);

@@ -198,15 +198,20 @@ DhtRouter::find_bucket(const HashString& id) {
 }
 
 void
-DhtRouter::add_contact(const std::string& host, int port) {
+DhtRouter::add_bootstrap_contact(const std::string& host, int port) {
+  if (!m_contacts.has_value()) {
+    LT_LOG_THIS("ignoring bootstrap contact : %s:%d", host.c_str(), port);
+    return;
+  }
+
   // Externally obtained nodes are added to the contact list, but only if
   // we're still bootstrapping. We don't contact external nodes after that.
-  if (m_contacts.has_value()) {
-    if (m_contacts->size() >= num_bootstrap_contacts)
-      m_contacts->pop_front();
+  if (m_contacts->size() >= num_bootstrap_contacts)
+    m_contacts->pop_front();
 
-    m_contacts->emplace_back(host, port);
-  }
+  m_contacts->emplace_back(host, port);
+
+  LT_LOG_THIS("added bootstrap contact : %s:%d", host.c_str(), port);
 }
 
 void
@@ -227,6 +232,8 @@ DhtRouter::contact(const sockaddr* sa, int port) {
     throw input_error("DhtRouter::contact() called with any address.");
 
   sap_set_port(sa_tmp, port);
+
+  LT_LOG_THIS("contacting node : %s:%d", sa_addr_str(sa_tmp.get()).c_str(), port);
 
   m_server.ping(zero_id, sa_tmp.get());
 }
@@ -644,16 +651,15 @@ DhtRouter::bootstrap_bucket(const DhtBucket* bucket) {
   // own when bootstrapping our own bucket. We don't search for
   // our own exact ID to avoid receiving only our own node info
   // instead of closest nodes, from nodes that know us already.
-  HashString contactId;
 
   if (bucket == this->bucket()) {
-    contactId = id();
-    contactId[torrent::HashString::size() - 1] ^= 1;
+    m_contactId = id();
+    m_contactId[torrent::HashString::size() - 1] ^= 1;
   } else {
-    bucket->get_random_id(&contactId);
+    bucket->get_random_id(&m_contactId);
   }
 
-  m_server.find_node(*bucket, contactId);
+  m_server.find_node(*bucket, m_contactId);
 }
 
 } // namespace torrent

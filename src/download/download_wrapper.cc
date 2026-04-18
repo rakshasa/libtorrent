@@ -127,7 +127,7 @@ DownloadWrapper::receive_initial_hash() {
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
   if (!m_hash_checker->is_checking()) {
-    receive_storage_error("Hash checker was unable to map chunk: " + std::string(rak::error_number(m_hash_checker->error_number()).c_str()));
+    receive_storage_error("Hash checker was unable to map chunk: " + std::string(std::strerror(m_hash_checker->error_number())));
 
   } else {
     m_hash_checker->confirm_checked();

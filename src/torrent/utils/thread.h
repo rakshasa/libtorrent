@@ -58,6 +58,7 @@ public:
   state_type          state() const        { return m_state; }
   int                 flags() const        { return m_flags; }
 
+  // TODO: This shouldn't be atomic, and should be in torrent::this_thread::cached_time().
   auto                cached_time() const  { return m_cached_time.load(); }
 
   // Only call these from the same thread, or before start_thread.
@@ -70,7 +71,9 @@ public:
   void                stop_thread_wait();
 
   void                callback(void* target, std::function<void ()>&& fn);
-  void                callback_interrupt_pollling(void* target, std::function<void ()>&& fn);
+  void                callback_interrupt_polling(void* target, std::function<void ()>&& fn);
+  void                callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn);
+
   void                cancel_callback(void* target);
   void                cancel_callback_and_wait(void* target);
 

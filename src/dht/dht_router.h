@@ -59,7 +59,7 @@ public:
 
   // TODO: Remoce add_contact.... And make it check that sa is inet.
 
-  void                add_contact(const std::string& host, int port);
+  void                add_bootstrap_contact(const std::string& host, int port);
   void                contact(const sockaddr* sa, int port);
 
   // Retrieve node of given ID in constant time. Return NULL if not found, unless
@@ -126,6 +126,7 @@ private:
   DhtNodeList         m_nodes;
   DhtBucketList       m_routingTable;
   DhtTrackerList      m_trackers;
+  HashString          m_contactId;
 
   std::optional<std::deque<contact_t>> m_contacts;
 

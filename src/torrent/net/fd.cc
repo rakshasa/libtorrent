@@ -2,7 +2,6 @@
 
 #include "fd.h"
 
-#include <cerrno>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -315,6 +314,25 @@ fd_listen(int fd, int backlog) {
   return true;
 }
 
+c_sa_unique_ptr
+fd_get_peer_name(int fd) {
+  sa_inet_union sau{};
+  sockaddr*     sa         = &sau.sa;
+  socklen_t     sau_length = sizeof(sockaddr_in6);
+
+  if (getpeername(fd, sa, &sau_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_peer_name() failed");
+    return nullptr;
+  }
+  if (sau_length < sa_length(sa)) {
+    LT_LOG_FD_ERROR("fd_get_peer_name() returned invalid length");
+    return nullptr;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
+  return sa_copy(sa);
+}
+
 bool
 fd_get_socket_error(int fd, int* value) {
   socklen_t length = sizeof(int);
@@ -325,6 +343,38 @@ fd_get_socket_error(int fd, int* value) {
   }
 
   LT_LOG_FD_VALUE("fd_get_socket_error() succeeded", *value);
+  return true;
+}
+
+c_sa_unique_ptr
+fd_get_socket_name(int fd) {
+  sa_inet_union sau{};
+  sockaddr*     sa         = &sau.sa;
+  socklen_t     sau_length = sizeof(sockaddr_in6);
+
+  if (getsockname(fd, sa, &sau_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_socket_name() failed");
+    return nullptr;
+  }
+  if (sau_length < sa_length(sa)) {
+    LT_LOG_FD_ERROR("fd_get_socket_name() returned invalid length");
+    return nullptr;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
+  return sa_copy(sa);
+}
+
+bool
+fd_get_type(int fd, int* value) {
+  socklen_t length = sizeof(int);
+
+  if (getsockopt(fd, SOL_SOCKET, SO_TYPE, value, &length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_type() failed");
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_get_type() succeeded", *value);
   return true;
 }
 
@@ -341,7 +391,13 @@ fd_set_dont_route(int fd, bool state) {
 
 bool
 fd_set_nonblock(int fd) {
-  if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
+  int flags = fd__fcntl_int(fd, F_GETFL, 0);
+  if (flags == -1) {
+    LT_LOG_FD_ERROR("fd_set_nonblock() failed reading flags");
+    return false;
+  }
+
+  if (fd__fcntl_int(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
     LT_LOG_FD_ERROR("fd_set_nonblock() failed");
     return false;
   }

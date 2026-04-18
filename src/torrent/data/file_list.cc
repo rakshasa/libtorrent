@@ -76,7 +76,7 @@ FileList::is_root_dir_created() const {
   utils::FileStat fs;
 
   if (!fs.update(m_root_dir))
-//     return rak::error_number::current() == rak::error_number::e_access;
+    // return errno == EACCES
     return false;
 
   return fs.is_directory();

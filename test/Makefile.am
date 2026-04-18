@@ -114,8 +114,6 @@ LibTorrent_Test_Tracker_SOURCES = $(LibTorrent_Test_Common) \
 
 LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\
-	rak/allocators_test.cc \
-	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
 	\

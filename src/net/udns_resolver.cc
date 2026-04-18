@@ -16,9 +16,13 @@
 #include "torrent/utils/thread.h"
 
 #define LT_LOG(log_fmt, ...)                                \
-  lt_log_print_subsystem(LOG_NET_DNS, "dns", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(LOG_NET_DNS, "dns-resolver", log_fmt, __VA_ARGS__);
+#define LT_LOG_QUERY(log_fmt, ...)                                  \
+  lt_log_print(LOG_NET_DNS, "%016p->dns-resolver : " log_fmt, query->requester, __VA_ARGS__);
+#define LT_LOG_REQUESTER(log_fmt, ...)                                  \
+  lt_log_print(LOG_NET_DNS, "%016p->dns-resolver : " log_fmt, requester, __VA_ARGS__);
 
-namespace torrent {
+namespace torrent::net {
 
 struct UdnsQuery {
   // TODO: We already use deleted.
@@ -28,7 +32,7 @@ struct UdnsQuery {
   std::string       hostname;
   int               family{};
 
-  UdnsResolver::resolver_callback callback;
+  resolver_callback callback;
 
   // TODO: Verify canceled and deleted atomicity.
 
@@ -40,8 +44,13 @@ struct UdnsQuery {
 
   sin_shared_ptr    result_sin;
   sin6_shared_ptr   result_sin6;
-  int               error_sin{0};
-  int               error_sin6{0};
+  int               error_sin{};
+  int               error_sin6{};
+
+  std::string       cname4_name;
+  std::string       cname6_name;
+  unsigned int      cname4_depth{};
+  unsigned int      cname6_depth{};
 };
 
 class UdnsResolverInternal {
@@ -76,6 +85,7 @@ udnserror_to_gaierror(int udnserror) {
 UdnsResolver::UdnsResolver() {
   if (!m_initialized) {
     LT_LOG("initializing udns", 0);
+
     ::dns_init(nullptr, 0);
     m_initialized = true;
   }
@@ -127,6 +137,7 @@ UdnsResolver::cleanup() {
 void
 UdnsResolver::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& callback) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
+  assert(family == AF_INET || family == AF_INET6 || family == AF_UNSPEC);
 
   auto query = std::make_unique<UdnsQuery>();
 
@@ -143,7 +154,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
     query->a4_query = ::dns_submit_a4(m_ctx, hostname.c_str(), 0, UdnsResolverInternal::a4_callback_wrapper, query.get());
 
     if (query->a4_query == nullptr) {
-      LT_LOG("malformed A query : requester:%p name:%s", requester, hostname.c_str());
+      LT_LOG_REQUESTER("malformed A query : name:%s", hostname.c_str());
 
       // Unrecoverable errors, like ENOMEM.
       if (::dns_status(m_ctx) != DNS_E_BADQUERY)
@@ -170,7 +181,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
     // It should be impossible for dns_submit_a6 to fail if dns_submit_a4
     // succeeded, but just in case, make it a hard failure.
     if (query->a6_query == nullptr) {
-      LT_LOG("malformed AAAA query : requester:%p name:%s", requester, hostname.c_str());
+      LT_LOG_REQUESTER("malformed AAAA query : name:%s", hostname.c_str());
 
       if (query->a4_query != nullptr) {
         ::dns_cancel(m_ctx, query->a4_query);
@@ -192,7 +203,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
     }
   }
 
-  LT_LOG("resolving : requester:%p name:%s family:%d", requester, hostname.c_str(), family);
+  LT_LOG_REQUESTER("resolving : name:%s family:%d", hostname.c_str(), family);
 
   {
     auto lock = std::lock_guard(m_mutex);
@@ -206,8 +217,8 @@ bool
 UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
-  addrinfo hints{};
-  addrinfo* result;
+  addrinfo  hints{};
+  addrinfo* result{};
 
   hints.ai_family = query->family;
   hints.ai_socktype = SOCK_STREAM; // Not used, but required.
@@ -215,13 +226,13 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
 
   int ret = ::getaddrinfo(query->hostname.c_str(), nullptr, &hints, &result);
 
-  if (ret == EAI_NONAME)
+  if (ret == EAI_NONAME || ret == EAI_ADDRFAMILY)
     return false; // No numeric address found.
 
   if (ret != 0)
-    throw internal_error("getaddrinfo failed: " + std::string(gai_strerror(ret)));
+    throw internal_error("getaddrinfo failed: " + std::string(gai_enum_error(ret)));
 
-  LT_LOG("resolving : numeric found : requester:%p name:%s family:%d", query->requester, query->hostname.c_str(), query->family);
+  LT_LOG_QUERY("resolving : numeric found : name:%s family:%d", query->hostname.c_str(), query->family);
 
   if (result->ai_family == AF_INET) {
     query->result_sin = sin_copy(reinterpret_cast<sockaddr_in*>(result->ai_addr));
@@ -230,6 +241,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
     query->result_sin6 = sin6_copy(reinterpret_cast<sockaddr_in6*>(result->ai_addr));
     query->error_sin6 = 0;
   } else {
+    ::freeaddrinfo(result);
     throw internal_error("getaddrinfo returned unsupported family");
   }
 
@@ -267,7 +279,7 @@ UdnsResolver::cancel(void* requester) {
   unsigned int query_count     = cancel_fn(m_queries_unsafe.equal_range(requester));
   unsigned int malformed_count = cancel_fn(m_malformed_queries_unsafe.equal_range(requester));
 
-  LT_LOG("canceled : requester:%p queries:%d malformed:%d", requester, query_count, malformed_count);
+  LT_LOG_REQUESTER("canceled : queries:%d malformed:%d", query_count, malformed_count);
 }
 
 void
@@ -278,17 +290,18 @@ UdnsResolver::flush() {
   auto lock              = std::lock_guard(m_mutex);
   auto malformed_queries = std::move(m_malformed_queries_unsafe);
 
-  for (auto& query : malformed_queries) {
-    if (query.second->canceled)
+  for (auto& malformed : malformed_queries) {
+    auto query = malformed.second.get();
+
+    if (query->canceled)
       continue;
 
-    LT_LOG("flushing malformed query : requester:%p name:%s", query.first, query.second->hostname.c_str());
+    LT_LOG_QUERY("flushing malformed query : name:%s", query->hostname.c_str());
 
-    int error = query.second->error_sin != 0 ? query.second->error_sin : query.second->error_sin6;
-    if (error == 0)
+    if (query->error_sin == 0 && query->error_sin6 == 0)
       throw internal_error("attempting to flush malformed query with no error");
 
-    query.second->callback(nullptr, nullptr, error);
+    query->callback(nullptr, query->error_sin, nullptr, query->error_sin6);
   }
 }
 
@@ -337,7 +350,7 @@ UdnsResolver::process_timeouts() {
     return;
   }
 
-  if (timeout <= 0)
+  if (timeout < 0)
     throw internal_error("UdnsResolver::process_timeouts() dns_timeouts returned invalid timeout: " + std::to_string(timeout));
 
   LT_LOG("processing timeouts, next in %d seconds", timeout);
@@ -354,29 +367,57 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
   auto lock  = std::lock_guard(query->parent->m_mutex);
 
   if (query->deleted) {
-    LT_LOG("A records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
+    LT_LOG_QUERY("A records received, but query was deleted : name:%s", query->requester, query->hostname.c_str());
     throw internal_error("UdnsResolver::a4_callback_wrapper called with deleted query");
   }
 
   auto itr = query->parent->find_query_or_fail_unsafe(query);
-
-  // TODO: Do we need to release a4_query?
   query->a4_query = nullptr;
 
-  if (result == nullptr || result->dnsa4_nrr == 0) {
+  if (result == nullptr) {
     query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
 
-    LT_LOG("no A records received : requester:%p name:%s error:'%s'",
-           query->requester, query->hostname.c_str(), gai_strerror(query->error_sin));
+    LT_LOG_QUERY("no A records received, calling back with error : name:%s error:%s",
+                 query->hostname.c_str(), gai_enum_error(query->error_sin));
 
-  } else {
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
+  }
+
+  if (result->dnsa4_nrr > 0) {
     query->result_sin = sin_make();
     query->result_sin->sin_addr = result->dnsa4_addr[0];
 
-    LT_LOG("A records received : requester:%p name:%s nrr:%d",
-           query->requester, query->hostname.c_str(), result->dnsa4_nrr);
+    LT_LOG_QUERY("A records received : name:%s nrr:%d", query->hostname.c_str(), result->dnsa4_nrr);
+
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
   }
 
+  if (result->dnsa4_cname != nullptr) {
+    if (query->cname4_depth++ >= 8) {
+      query->error_sin = EAI_FAIL;
+
+      LT_LOG_QUERY("A CNAME depth exceeded : original:%s current:%s", query->hostname.c_str(), query->cname4_name.c_str());
+
+      UdnsResolver::process_partial_result_unsafe(itr);
+      return;
+    }
+
+    query->cname4_name = result->dnsa4_cname;
+    query->a4_query = ::dns_submit_a4(ctx, query->cname4_name.c_str(), 0, &UdnsResolverInternal::a4_callback_wrapper, query);
+
+    LT_LOG_QUERY("A CNAME encountered, retrying : original:%s cname:%s depth:%u",
+                 query->hostname.c_str(), query->cname4_name.c_str(), query->cname4_depth);
+    return;
+  }
+
+  query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
+
+  if (query->error_sin6 == 0)
+    query->error_sin6 = EAI_NODATA;
+
+  LT_LOG_QUERY("No A records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin));
   UdnsResolver::process_partial_result_unsafe(itr);
 }
 
@@ -386,61 +427,93 @@ UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, v
   auto lock  = std::lock_guard(query->parent->m_mutex);
 
   if (query->deleted) {
-    LT_LOG("AAAA records received, but query was deleted : requester:%p name:%s", query->requester, query->hostname.c_str());
+    LT_LOG_QUERY("AAAA records received, but query was deleted : name:%s", query->hostname.c_str());
     throw internal_error("UdnsResolver::a6_callback_wrapper called with deleted query");
   }
 
   auto itr = query->parent->find_query_or_fail_unsafe(query);
-
   query->a6_query = nullptr;
 
-  if (result == nullptr || result->dnsa6_nrr == 0) {
+  if (result == nullptr) {
     query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
 
-    LT_LOG("no AAAA records received, calling back with error : requester:%p name:%s error:'%s'",
-           query->requester, query->hostname.c_str(), gai_strerror(query->error_sin6));
+    LT_LOG_QUERY("no AAAA records received, calling back with error : name:%s error:%s",
+                 query->hostname.c_str(), gai_enum_error(query->error_sin6));
 
-  } else {
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
+  }
+
+  if (result->dnsa6_nrr > 0) {
     query->result_sin6 = sin6_make();
     query->result_sin6->sin6_addr = result->dnsa6_addr[0];
 
-    LT_LOG("AAAA records received : requester:%p name:%s nrr:%d",
-           query->requester, query->hostname.c_str(), result->dnsa6_nrr);
+    LT_LOG_QUERY("AAAA records received : name:%s nrr:%d", query->hostname.c_str(), result->dnsa6_nrr);
+
+    UdnsResolver::process_partial_result_unsafe(itr);
+    return;
   }
 
+  if (result->dnsa6_cname != nullptr) {
+    if (query->cname6_depth++ >= 8) {
+      query->error_sin6 = EAI_FAIL;
+
+      LT_LOG_QUERY("AAAA CNAME depth exceeded : original:%s current:%s", query->hostname.c_str(), query->cname6_name.c_str());
+
+      UdnsResolver::process_partial_result_unsafe(itr);
+      return;
+    }
+
+    query->cname6_name = result->dnsa6_cname;
+    query->a6_query = ::dns_submit_a6(ctx, query->cname6_name.c_str(), 0, &UdnsResolverInternal::a6_callback_wrapper, query);
+
+    LT_LOG_QUERY("AAAA CNAME encountered, retrying : original:%s cname:%s depth:%u",
+                 query->hostname.c_str(), query->cname6_name.c_str(), query->cname6_depth);
+    return;
+  }
+
+  query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
+
+  if (query->error_sin6 == 0)
+    query->error_sin6 = EAI_NODATA;
+
+  LT_LOG_QUERY("No AAAA records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin6));
   UdnsResolver::process_partial_result_unsafe(itr);
 }
 
 void
 UdnsResolver::process_partial_result_unsafe(query_map::iterator itr) {
-  if (itr->second->a4_query != nullptr || itr->second->a6_query != nullptr) {
-    LT_LOG("processing results, waiting for other queries : requester:%p name:%s", itr->second->requester, itr->second->hostname.c_str());
+  auto& query = itr->second;
+
+  if (query->a4_query != nullptr || query->a6_query != nullptr) {
+    LT_LOG_QUERY("processing results, waiting for other queries : name:%s", query->hostname.c_str());
     return;
   }
 
-  auto query = std::move(itr->second);
+  auto tmp = std::move(itr->second);
 
-  query->deleted = true;
-  query->parent->m_queries_unsafe.erase(itr);
+  tmp->deleted = true;
+  tmp->parent->m_queries_unsafe.erase(itr);
 
-  process_final_result_unsafe(std::move(query));
+  process_final_result_unsafe(std::move(tmp));
 }
 
 void
 UdnsResolver::process_final_result_unsafe(std::unique_ptr<UdnsQuery>&& query) {
   if (query->canceled) {
-    LT_LOG("processing results, canceled : requester:%p name:%s", query->requester, query->hostname.c_str());
+    LT_LOG_QUERY("processing results, canceled : name:%s", query->hostname.c_str());
     return;
   }
 
-  LT_LOG("processing results, calling back : requester:%p name:%s", query->requester, query->hostname.c_str());
+  LT_LOG_QUERY("processing results, calling back : name:%s", query->hostname.c_str());
 
-  if (query->result_sin == nullptr && query->result_sin6 == nullptr) {
-    query->callback(nullptr, nullptr, query->error_sin != 0 ? query->error_sin : query->error_sin6);
-    return;
-  }
+  if (query->result_sin && query->error_sin != 0)
+    throw internal_error("UdnsResolver::process_final_result_unsafe() query has both result and error for A record");
 
-  query->callback(query->result_sin, query->result_sin6, 0);
+  if (query->result_sin6 && query->error_sin6 != 0)
+    throw internal_error("UdnsResolver::process_final_result_unsafe() query has both result and error for AAAA record");
+
+  query->callback(query->result_sin, query->error_sin, query->result_sin6, query->error_sin6);
 }
 
-} // namespace torrent
+} // namespace torrent::net

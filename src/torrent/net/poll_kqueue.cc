@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cerrno>
 #include <map>
 #include <unistd.h>
 #include <sys/event.h>
@@ -36,7 +35,7 @@
 #define LT_LOG_DEBUG(log_fmt, ...)                                  \
   lt_log_print(LOG_CONNECTION_FD, "kqueue: " log_fmt, __VA_ARGS__);
 #define LT_LOG_DEBUG_IDENT(log_fmt, ...)                                \
-  lt_log_print(LOG_CONNECTION_FD, "kqueue->%u: " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_FD, "kqueue->%u : " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
 
 #endif
 

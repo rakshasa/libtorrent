@@ -10,13 +10,6 @@ EXTRA_DIST= \
 	scripts/ssl.m4 \
 	doc/main.xml \
 	doc/http.xml \
-	doc/torrent.xml \
-	rak/address_info.h \
-	rak/algorithm.h \
-	rak/allocators.h \
-	rak/error_number.h \
-	rak/partial_queue.h \
-	rak/string_manip.h \
-	rak/unordered_vector.h
+	doc/torrent.xml
 
 ACLOCAL_AMFLAGS = -I scripts

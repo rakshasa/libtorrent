@@ -1,8 +1,10 @@
 #ifndef LIBTORRENT_COMMON_H
 #define LIBTORRENT_COMMON_H
 
+#include <cerrno>
 #include <cinttypes>
 #include <cstddef>
+#include <cstring>
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -71,7 +73,6 @@ class Piece;
 class ProtocolExtension;
 class Rate;
 class ResourceManager;
-class SocketSet;
 class Throttle;
 class TrackerController;
 class TrackerList;
@@ -189,6 +190,8 @@ torrent::utils::Thread* thread() LIBTORRENT_EXPORT;
 std::thread::id         thread_id() LIBTORRENT_EXPORT;
 
 void                    callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
+void                    callback_interrupt_polling(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
+void                    callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
 void                    cancel_callback(void* target) LIBTORRENT_EXPORT;
 void                    cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
 

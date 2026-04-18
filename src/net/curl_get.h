@@ -1,5 +1,5 @@
-#ifndef RTORRENT_CORE_CURL_GET_H
-#define RTORRENT_CORE_CURL_GET_H
+#ifndef LIBTORRENT_NET_CURL_GET_H
+#define LIBTORRENT_NET_CURL_GET_H
 
 #include <condition_variable>
 #include <iosfwd>
@@ -90,6 +90,7 @@ protected:
 
   [[nodiscard]] bool  prepare_start_unsafe(CurlStack* stack);
   void                activate_unsafe();
+  void                deactivate_unsafe();
   void                cleanup_unsafe();
 
   bool                retry_resolve();
@@ -105,7 +106,7 @@ private:
 
   static size_t       receive_write(const char* data, size_t size, size_t nmemb, CurlGet* handle);
 
-  bool                prepare_resolve(resolve_type current_resolve);
+  bool                prepare_resolve_unsafe(resolve_type current_resolve);
 
   mutable std::mutex  m_mutex;
 
@@ -187,4 +188,4 @@ CurlGet::timeout() const {
 
 } // namespace torrent::net
 
-#endif
+#endif // LIBTORRENT_NET_CURL_GET_H

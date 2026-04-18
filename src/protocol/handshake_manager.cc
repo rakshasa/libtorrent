@@ -18,6 +18,7 @@
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/string_manip.h"
 
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sa_addr_str(sa).c_str(), __VA_ARGS__);
@@ -166,10 +167,8 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   auto open_func = [&]() {
       int fd = open_and_connect_socket(connect_address.get());
 
-      if (fd == -1) {
-        download->peer_list()->disconnected(peer_info, 0);
+      if (fd == -1)
         return;
-      }
 
       int message;
 
@@ -191,10 +190,15 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
     };
 
   auto cleanup_func = [&]() {
+      if (!handshake->is_open()) {
+        LT_LOG_SA(sa, "failed to create outgoing connection: open failed", 0);
+        download->peer_list()->disconnected(peer_info, 0);
+        return;
+      }
+
       LT_LOG_SA(sa, "failed to create outgoing connection : socket manager triggered cleanup", 0);
 
-      download->peer_list()->disconnected(peer_info, 0);
-      handshake->destroy_connection();
+      handshake->destroy_connection(false);
     };
 
   runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);
@@ -208,17 +212,18 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 }
 
 void
-HandshakeManager::receive_succeeded(Handshake* handshake) {
-  if (!handshake->is_active())
+HandshakeManager::receive_succeeded(Handshake* ptr) {
+  if (!ptr->is_active())
     throw internal_error("HandshakeManager::receive_succeeded(...) called on an inactive handshake.");
 
-  auto handshake_ptr = find_and_erase(handshake);
-  auto download      = handshake->download();
-  auto peer_type     = handshake->bitfield()->is_all_set() ? "seed" : "leech";
+  auto handshake = find_and_erase(ptr);
+  auto download  = handshake->download();
+  auto peer_type = handshake->bitfield()->is_all_set() ? "seed" : "leech";
+  auto hash_str  = utils::copy_escape_html_str(handshake->peer_info()->id());
 
   auto error_func = [&](uint32_t reason) {
       LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'%s'",
-                peer_type, hash_string_to_html_str(handshake->peer_info()->id()).c_str(), strerror(reason));
+                peer_type, hash_str.c_str(), strerror(reason));
     };
 
   if (!download->info()->is_active()) {
@@ -233,30 +238,27 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
     return;
   }
 
+  auto fd        = handshake->file_descriptor();
   auto peer_info = handshake->peer_info();
 
-  auto new_event = runtime::socket_manager()->transfer_event(handshake, [&]() -> Event* {
-      auto fd        = handshake->file_descriptor();
-      auto peer_info = handshake->peer_info();
+  auto new_event = runtime::socket_manager()->transfer_event(handshake.get(), [&]() -> Event* {
+      LT_LOG_SA(peer_info->socket_address(), "transfering handshake: type:%s id:%s", peer_type, hash_str.c_str());
 
       handshake->release_connection();
 
-      auto pcb = download->connection_list()->insert(peer_info, fd,
-                                                     handshake->bitfield(),
-                                                     handshake->encryption()->info(),
-                                                     handshake->extensions());
-      if (pcb == nullptr) {
-        error_func(e_handshake_duplicate);
-        fd_close(fd);
-        return nullptr;
-      }
-
-      return pcb;
+      return download->connection_list()->insert(peer_info, fd,
+                                                 handshake->bitfield(),
+                                                 handshake->encryption()->info(),
+                                                 handshake->extensions());
     });
 
   if (new_event == nullptr) {
-    LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'socket transfer failed'",
-              peer_type, hash_string_to_html_str(handshake->peer_info()->id()).c_str());
+    fd_close(fd);
+
+    manager->connection_manager()->dec_socket_count();
+    download->peer_list()->disconnected(peer_info, 0);
+
+    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
     return;
   }
 
@@ -265,8 +267,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
   manager->client_list()->retrieve_id(&peer_info->mutable_client_info(), peer_info->id());
   pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
 
-  LT_LOG_SA(peer_info->socket_address(), "handshake success: type:%s id:%s",
-            peer_type, hash_string_to_html_str(peer_info->id()).c_str());
+  LT_LOG_SA(peer_info->socket_address(), "handshake success: type:%s id:%s", peer_type, hash_str.c_str());
 
   if (handshake->unread_size() != 0) {
     if (handshake->unread_size() > PeerConnectionBase::ProtocolRead::buffer_size)
@@ -278,12 +279,12 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 }
 
 void
-HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
-  if (!handshake->is_active())
+HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
+  if (!ptr->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  auto sa            = handshake->socket_address();
-  auto handshake_ptr = find_and_erase(handshake);
+  auto handshake = find_and_erase(ptr);
+  auto sa        = handshake->socket_address();
 
   handshake->destroy_connection();
 

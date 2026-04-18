@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_NET_TYPES_H
 #define LIBTORRENT_NET_TYPES_H
 
+#include <functional>
 #include <memory>
 #include <tuple>
 #include <netinet/in.h>
@@ -11,14 +12,19 @@ struct sockaddr_in;
 struct sockaddr_in6;
 struct sockaddr_un;
 
-namespace torrent {
+namespace torrent::net {
 
-void sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
+const char* gai_enum_error(int status) LIBTORRENT_EXPORT;
+void        sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
+
+} // namespace torrent::net
+
+namespace torrent {
 
 struct sockaddr_deleter {
   constexpr sockaddr_deleter() noexcept = default;
 
-  void operator()(const sockaddr* sa) const { sa_free(sa); }
+  void operator()(const sockaddr* sa) const { net::sa_free(sa); }
 };
 
 using sa_unique_ptr   = std::unique_ptr<sockaddr, sockaddr_deleter>;
@@ -43,7 +49,8 @@ using c_sin_shared_ptr  = std::shared_ptr<const sockaddr_in>;
 using c_sin6_shared_ptr = std::shared_ptr<const sockaddr_in6>;
 using c_sun_shared_ptr  = std::shared_ptr<const sockaddr_un>;
 
-using fd_sap_tuple = std::tuple<int, sa_unique_ptr>;
+using fd_sap_tuple      = std::tuple<int, sa_unique_ptr>;
+using resolver_callback = std::function<void(sin_shared_ptr, int, sin6_shared_ptr, int)>;
 
 struct listen_result_type {
   int fd;

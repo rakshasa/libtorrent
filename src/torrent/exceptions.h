@@ -10,7 +10,6 @@
 #include <exception>
 #include <string>
 #include <torrent/common.h>
-#include <torrent/hash_string.h>
 
 namespace torrent {
 
@@ -24,10 +23,8 @@ class LIBTORRENT_EXPORT base_error : public std::exception {
 class LIBTORRENT_EXPORT internal_error : public base_error {
 public:
   internal_error(const char* msg)        { initialize(msg); }
-  internal_error(const char* msg, const std::string& context) {
-    initialize(std::string(msg) + " [" + context + "]"); }
-  internal_error(const char* msg, const HashString& hash) {
-    initialize(std::string(msg) + " [#" + hash_string_to_hex_str(hash) + "]"); }
+  internal_error(const char* msg, const std::string& context);
+  internal_error(const char* msg, const HashString& hash);
   internal_error(const std::string& msg) { initialize(msg); }
 
   const char*        what() const noexcept override;
