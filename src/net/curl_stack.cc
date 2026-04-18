@@ -126,6 +126,10 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
 
     base_type::push_back(curl_get);
 
+    // Calling curl_multi_add_handle() can result in CurlSocket::receive_socket() being called,
+    // which calls CurlStack::is_running().
+    m_mutex.unlock();
+
     curl_get->activate_unsafe();
   }
 }

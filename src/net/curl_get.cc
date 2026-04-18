@@ -252,7 +252,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
   try {
     try {
-      if (prepare_resolve(m_initial_resolve))
+      if (prepare_resolve_unsafe(m_initial_resolve))
         return true;
 
     } catch (const torrent::input_error& e) {
@@ -264,7 +264,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
     m_retrying_resolve = true;
 
-    if (prepare_resolve(m_retry_resolve))
+    if (prepare_resolve_unsafe(m_retry_resolve))
       return true;
 
     throw torrent::input_error("Exhausted all resolve options.");
@@ -354,7 +354,7 @@ CurlGet::retry_resolve() {
   m_retrying_resolve = true;
 
   try {
-    if (!prepare_resolve(m_retry_resolve))
+    if (!prepare_resolve_unsafe(m_retry_resolve))
       return false;
 
     activate_unsafe();
@@ -401,7 +401,7 @@ CurlGet::receive_write(const char* data, size_t size, size_t nmemb, CurlGet* han
 }
 
 bool
-CurlGet::prepare_resolve(resolve_type current_resolve) {
+CurlGet::prepare_resolve_unsafe(resolve_type current_resolve) {
   auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_or_null();
 
   int detected_family = utils::uri_detect_numeric(m_url);
@@ -437,7 +437,7 @@ CurlGet::prepare_resolve(resolve_type current_resolve) {
     return false;
 
   default:
-    throw torrent::internal_error("CurlGet::prepare_start_unsafe() reached unreachable code with invalid current_resolve.");
+    throw torrent::internal_error("CurlGet::prepare_resolve_unsafe() reached unreachable code with invalid current_resolve.");
   }
 }
 
