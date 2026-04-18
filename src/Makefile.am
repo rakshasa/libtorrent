@@ -58,6 +58,11 @@ libtorrent_other_la_SOURCES = \
 	dht/dht_transaction.cc \
 	dht/dht_transaction.h \
 	\
+	dht/transactions/dht_announce.cc \
+	dht/transactions/dht_announce.h \
+	dht/transactions/dht_search.cc \
+	dht/transactions/dht_search.h \
+	\
 	download/available_list.cc \
 	download/available_list.h \
 	download/chunk_selector.cc \
