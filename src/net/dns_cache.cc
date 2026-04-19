@@ -531,6 +531,9 @@ DnsCache::cull_stale_entries() {
     LT_LOG("culling stale cache entry : hostname:%s family:AF_INET sin:%s",
            info.entry_itr->first.c_str(), sin_pretty_or_empty(entry->sin_addr.get()).c_str());
 
+    if (entry->sin6_info.staleness_itr != m_sin6_staleness.end())
+      m_sin6_staleness.erase(entry->sin6_info.staleness_itr);
+
     m_entries.erase(info.entry_itr);
     m_sin_staleness.pop_front();
   }
@@ -544,6 +547,9 @@ DnsCache::cull_stale_entries() {
 
     LT_LOG("culling stale cache entry : hostname:%s family:AF_INET6 sin6:%s",
            info.entry_itr->first.c_str(), sin6_pretty_or_empty(entry->sin6_addr.get()).c_str());
+
+    if (entry->sin_info.staleness_itr != m_sin_staleness.end())
+      m_sin_staleness.erase(entry->sin_info.staleness_itr);
 
     m_entries.erase(info.entry_itr);
     m_sin6_staleness.pop_front();
