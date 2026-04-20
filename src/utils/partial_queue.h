@@ -65,7 +65,7 @@ private:
 
   static size_type    ceiling(size_type layer)                { return (2 << layer) - 1; }
 
-  std::unique_ptr<mapped_type> m_data;
+  std::unique_ptr<mapped_type[]> m_data;
 
   size_type           m_max_layer_size{};
   size_type           m_index{};
