@@ -8,7 +8,7 @@
 #include "runtime.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/signal_bitfield.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_signal_bitfield, "torrent/utils");
 

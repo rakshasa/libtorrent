@@ -85,6 +85,11 @@ libtorrent_torrent_la_SOURCES = \
 	shm/segment.cc \
 	shm/segment.h \
 \
+	system/process.cc \
+	system/process.h \
+	system/thread.cc \
+	system/thread.h \
+\
 	tracker/dht_controller.cc \
 	tracker/dht_controller.h \
 	tracker/manager.cc \
@@ -106,8 +111,6 @@ libtorrent_torrent_la_SOURCES = \
 	utils/log_buffer.h \
 	utils/option_strings.cc \
 	utils/option_strings.h \
-	utils/process.cc \
-	utils/process.h \
 	utils/random.cc \
 	utils/random.h \
 	utils/ranges.h \
@@ -119,8 +122,6 @@ libtorrent_torrent_la_SOURCES = \
 	utils/signal_bitfield.h \
 	utils/string_manip.cc \
 	utils/string_manip.h \
-	utils/thread.cc \
-	utils/thread.h \
 	utils/unordered_vector.h \
 	utils/uri_parser.cc \
 	utils/uri_parser.h \
@@ -219,6 +220,11 @@ libtorrent_torrent_shm_include_HEADERS = \
 	shm/router.h \
 	shm/segment.h
 
+libtorrent_torrent_system_includedir = $(includedir)/torrent/system
+libtorrent_torrent_system_include_HEADERS = \
+	system/process.h \
+	system/thread.h
+
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
 libtorrent_torrent_tracker_include_HEADERS = \
 	tracker/dht_controller.h \
@@ -242,7 +248,6 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/scheduler.h \
 	utils/signal_bitfield.h \
 	utils/string_manip.h \
-	utils/thread.h \
 	utils/unordered_vector.h \
 	utils/uri_parser.h
 

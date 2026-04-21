@@ -26,7 +26,7 @@ public:
   void                cancel(void* requester);
 
 protected:
-  friend class utils::Thread;
+  friend class system::Thread;
 
   void                init();
 
@@ -34,7 +34,7 @@ private:
   Resolver(const Resolver&) = delete;
   Resolver& operator=(const Resolver&) = delete;
 
-  utils::Thread* m_thread{nullptr};
+  system::Thread* m_thread{nullptr};
 };
 
 } // namespace torrent::net

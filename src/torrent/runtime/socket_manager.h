@@ -23,7 +23,7 @@ struct SocketInfo {
 
   int                 fd{-1};
   Event*              event{};
-  utils::Thread*      thread{};
+  system::Thread*     thread{};
   int                 flags{};
 };
 

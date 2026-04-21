@@ -25,7 +25,7 @@ public:
 
   const char*         type_name() const override { return "udns"; }
 
-  void                initialize(utils::Thread* thread);
+  void                initialize(system::Thread* thread);
   void                cleanup();
 
   // Callback must happen in thread_net and cannot call back into the resolver.
@@ -59,7 +59,7 @@ protected:
 
   static bool         m_initialized;
 
-  utils::Thread*      m_thread{};
+  system::Thread*     m_thread{};
   ::dns_ctx*          m_ctx{};
 
   utils::SchedulerEntry m_task_timeout;

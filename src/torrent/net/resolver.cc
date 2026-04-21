@@ -10,7 +10,7 @@
 #include "net/dns_cache.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent::net {
 
@@ -72,7 +72,7 @@ gai_enum_error(int status) {
 
 void
 Resolver::init() {
-  m_thread = torrent::utils::Thread::self();
+  m_thread = torrent::system::Thread::self();
 
   assert(m_thread != nullptr && "Resolver::m_thread is nullptr.");
 }

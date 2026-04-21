@@ -37,7 +37,7 @@ public:
   void                update_wait_for_ceil_seconds(SchedulerEntry* entry, time_type time);
 
 protected:
-  friend class Thread;
+  friend class system::Thread;
 
   void                perform(time_type time);
 
@@ -59,6 +59,7 @@ public:
 
   SchedulerEntry() = default;
   ~SchedulerEntry();
+
   bool                is_valid() const     { return m_slot != nullptr; }
   bool                is_scheduled() const { return m_scheduler != nullptr; }
 

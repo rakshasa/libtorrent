@@ -12,7 +12,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 #include "torrent/utils/uri_parser.h"
 #include "utils/functional.h"
 
@@ -144,7 +144,7 @@ CurlGet::start(const std::shared_ptr<CurlGet>& curl_get, CurlStack* stack) {
 }
 
 void
-CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback_thread, bool wait) {
+CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, system::Thread* callback_thread, bool wait) {
   auto self = curl_get.get();
 
   std::unique_lock<std::mutex> guard(self->m_mutex);

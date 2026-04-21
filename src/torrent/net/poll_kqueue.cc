@@ -207,8 +207,8 @@ Poll::process() {
   m_closed_events.clear();
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
-    if (utils::Thread::self()->callbacks_should_interrupt_polling())
-      utils::Thread::self()->process_callbacks(true);
+    if (system::Thread::self()->callbacks_should_interrupt_polling())
+      system::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->udata);
 

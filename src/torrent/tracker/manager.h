@@ -18,7 +18,7 @@ struct TrackerListEvent {
 class LIBTORRENT_EXPORT Manager {
 public:
 
-  Manager(utils::Thread* main_thread, utils::Thread* tracker_thread);
+  Manager(system::Thread* main_thread, system::Thread* tracker_thread);
   ~Manager() = default;
 
 protected:
@@ -45,8 +45,8 @@ private:
   Manager(const Manager&) = delete;
   Manager& operator=(const Manager&) = delete;
 
-  utils::Thread*      m_main_thread{nullptr};
-  utils::Thread*      m_tracker_thread{nullptr};
+  system::Thread*     m_main_thread{nullptr};
+  system::Thread*     m_tracker_thread{nullptr};
   unsigned int        m_signal_process_events{~0u};
 
   std::mutex                         m_lock;

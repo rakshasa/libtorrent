@@ -5,7 +5,7 @@
 
 #include "torrent/common.h"
 #include "torrent/tracker/tracker.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent {
 
@@ -18,11 +18,11 @@ struct TrackerSendEvent {
   tracker::TrackerState::event_enum event;
 };
 
-class LIBTORRENT_EXPORT ThreadTracker : public utils::Thread {
+class LIBTORRENT_EXPORT ThreadTracker : public system::Thread {
 public:
   ~ThreadTracker() override;
 
-  static void           create_thread(utils::Thread* main_thread);
+  static void           create_thread(system::Thread* main_thread);
   static void           destroy_thread();
   static ThreadTracker* thread_tracker();
 

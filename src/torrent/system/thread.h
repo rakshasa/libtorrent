@@ -11,10 +11,12 @@
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
+
 class SignalInterrupt;
+
 } // namespace torrent
 
-namespace torrent::utils {
+namespace torrent::system {
 
 class ThreadInternal;
 
@@ -89,7 +91,7 @@ protected:
   friend class ThreadInternal;
 
   net::Resolver*      resolver()  { return m_resolver.get(); }
-  Scheduler*          scheduler() { return m_scheduler.get(); }
+  utils::Scheduler*   scheduler() { return m_scheduler.get(); }
 
   bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
 
@@ -128,10 +130,10 @@ protected:
 
   int                          m_instrumentation_index;
 
-  std::unique_ptr<net::Poll>       m_poll;
-  std::unique_ptr<net::Resolver>   m_resolver;
-  std::unique_ptr<Scheduler>       m_scheduler;
-  class signal_bitfield            m_signal_bitfield;
+  std::unique_ptr<net::Poll>        m_poll;
+  std::unique_ptr<net::Resolver>    m_resolver;
+  std::unique_ptr<utils::Scheduler> m_scheduler;
+  class signal_bitfield             m_signal_bitfield;
 
   std::unique_ptr<SignalInterrupt> m_interrupt_sender;
   std::unique_ptr<SignalInterrupt> m_interrupt_receiver;

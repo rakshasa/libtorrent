@@ -2,7 +2,7 @@
 #define LIBTORRENT_NET_THREAD_NET_H
 
 #include "torrent/common.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent {
 
@@ -15,7 +15,7 @@ class UdnsResolver;
 
 } // namespace net
 
-class LIBTORRENT_EXPORT ThreadNet : public utils::Thread {
+class LIBTORRENT_EXPORT ThreadNet : public system::Thread {
 public:
   ~ThreadNet() override;
 

@@ -6,9 +6,10 @@
 
 // TODO: Add to common.h
 namespace torrent::shm {
-class Channel;
+
 class Router;
-class Segment;
+class RouterFactory;
+
 } // namespace torrent::shm
 
 namespace torrent::utils {
@@ -17,24 +18,24 @@ class ProcessInternal;
 
 class LIBTORRENT_EXPORT Process {
 public:
-  Process();
-  virtual ~Process();
+  Process()  = default;
+  ~Process() = default;
 
   pid_t               process_id() const;
 
-  void                start_process();
+  shm::Router*        router();
+
+  void                start(std::function<void()> fn);
 
 protected:
   pid_t               m_pid{};
 
-  std::unique_ptr<shm::Segment> m_read_segment;
-  std::unique_ptr<shm::Router>  m_read_router;
-
-  std::unique_ptr<shm::Segment> m_write_segment;
-  std::unique_ptr<shm::Router>  m_write_router;
+  std::unique_ptr<shm::Router>        m_router;
+  std::unique_ptr<shm::RouterFactory> m_router_factory;
 };
 
-inline pid_t Process::process_id() const { return m_pid; }
+inline pid_t        Process::process_id() const { return m_pid; }
+inline shm::Router* Process::router()           { return m_router.get(); }
 
 } // namespace torrent::utils
 

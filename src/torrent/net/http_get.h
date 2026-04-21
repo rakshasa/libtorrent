@@ -29,7 +29,7 @@ public:
   // use callbacks to thread_net. Some functions throw internal_error if they don't wait for close
   // to finish.
   void                close_and_keep_callbacks();
-  void                close_and_cancel_callbacks(utils::Thread* callback_thread);
+  void                close_and_cancel_callbacks(system::Thread* callback_thread);
 
   // Always call before reset() if the HttpGet is being reused.
   void                wait_for_close();

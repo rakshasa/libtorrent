@@ -23,7 +23,7 @@ public:
   using base_type       = std::vector<std::shared_ptr<CurlGet>>;
   using socket_map_type = std::map<curl_socket_t, std::unique_ptr<CurlSocket>>;
 
-  CurlStack(utils::Thread* thread);
+  CurlStack(system::Thread* thread);
   ~CurlStack();
 
   bool                is_running() const;
@@ -63,7 +63,7 @@ public:
 
   bool                process_done_handle();
 
-  utils::Thread*      thread() const                         { return m_thread; }
+  system::Thread*     thread() const                         { return m_thread; }
 
 protected:
   friend class CurlGet;
@@ -89,7 +89,7 @@ private:
 
   // Unprotected members (including base_type vector), only changed in ways that are implicitly
   // thread-safe. E.g. before any threads are started or only within the owning thread.
-  utils::Thread*        m_thread{};
+  system::Thread*       m_thread{};
   CURLM*                m_handle{};
   utils::SchedulerEntry m_task_timeout;
 

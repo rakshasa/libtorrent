@@ -15,8 +15,8 @@ public:
 
 namespace main_thread {
 
-torrent::utils::Thread* thread()          { return torrent::ThreadMainInternal::thread_main(); }
-std::thread::id         thread_id()       { return torrent::ThreadMainInternal::thread_main()->thread_id(); }
+torrent::system::Thread* thread()          { return torrent::ThreadMainInternal::thread_main(); }
+std::thread::id          thread_id()       { return torrent::ThreadMainInternal::thread_main()->thread_id(); }
 
 void                    callback(void* target, std::function<void ()>&& fn) { ThreadMainInternal::thread_main()->callback(target, std::move(fn)); }
 void                    cancel_callback(void* target)                       { ThreadMainInternal::thread_main()->cancel_callback(target); }

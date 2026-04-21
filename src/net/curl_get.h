@@ -9,7 +9,7 @@
 #include <string>
 #include <curl/curl.h>
 
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent::net {
 
@@ -28,10 +28,10 @@ public:
   ~CurlGet();
 
   static void         start(const std::shared_ptr<CurlGet>& curl_get, CurlStack* stack);
-  static void         close(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread, bool wait);
+  static void         close(const std::shared_ptr<CurlGet>& curl_get, system::Thread* thread, bool wait);
 
   static void         close_and_keep_callbacks(const std::shared_ptr<CurlGet>& curl_get);
-  static void         close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* callback_thread);
+  static void         close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, system::Thread* callback_thread);
   static void         close_and_wait(const std::shared_ptr<CurlGet>& curl_get);
 
   bool                is_stacked() const;
@@ -112,7 +112,7 @@ private:
 
   CURL*               m_handle{};
   CurlStack*          m_stack{};
-  utils::Thread*      m_stack_thread{};
+  system::Thread*     m_stack_thread{};
 
   bool                m_active{};
   bool                m_prepare_canceled{};
@@ -141,7 +141,7 @@ CurlGet::close_and_keep_callbacks(const std::shared_ptr<CurlGet>& curl_get) {
 }
 
 inline void
-CurlGet::close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, utils::Thread* thread) {
+CurlGet::close_and_cancel_callbacks(const std::shared_ptr<CurlGet>& curl_get, system::Thread* thread) {
   close(curl_get, thread, false);
 }
 
