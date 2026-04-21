@@ -8,13 +8,17 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/shm/channel.h"
+#include "torrent/shm/segment.h"
 
 namespace torrent::shm {
 
-Router::Router(int fd, Channel* read_channel, Channel* write_channel)
-  : m_read_channel(read_channel),
-    m_write_channel(write_channel),
+Router::Router(int fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment)
+  : m_read_segment(std::move(read_segment)),
+    m_write_segment(std::move(write_segment)),
     m_fd(fd) {
+
+  m_read_channel  = static_cast<Channel*>(m_read_segment->address());
+  m_write_channel = static_cast<Channel*>(m_write_segment->address());
 }
 
 Router::~Router() = default;
@@ -87,8 +91,8 @@ bool
 Router::write(uint32_t id, uint32_t size, void* data) {
   assert(m_handlers.find(id) != m_handlers.end());
 
-  if (size == 0)
-    return true;
+  // if (size == 0)
+  //   return true;
 
   return m_write_channel->write(id, size, data);
 }
@@ -117,6 +121,8 @@ Router::process_reads() {
 
     if (header->size != 0 && !itr->second.is_closed_read())
       itr->second.on_read(header->data, header->size);
+
+    // TODO: Error on size == 0 and not close?
 
     if (header->id & Router::flag_close) {
       if (itr->second.is_closed_read()) {

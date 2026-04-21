@@ -38,6 +38,9 @@ public:
   void                consume_header(header_type* header);
 
 protected:
+  Channel() = delete;
+  ~Channel() = delete;
+
   // These are offset by size of ChannelBase.
   void*                 m_addr{};
   uint32_t              m_size{};

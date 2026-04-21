@@ -2,6 +2,7 @@
 #define LIBTORRENT_TORRENT_SHM_ROUTER_H
 
 #include <map>
+#include <memory>
 #include <torrent/common.h>
 
 // Uses read and write shm::Channel for inter-process communication.
@@ -22,6 +23,7 @@ namespace torrent::shm {
 
 // Add to common.h
 class Channel;
+class Segment;
 
 struct RouterHandler {
   // We use on_error to indicate close() was called on this side, as we never call on_error after
@@ -45,7 +47,7 @@ public:
   constexpr static uint32_t flag_close = 0x80000000;
   constexpr static uint32_t flag_mask  = 0xF0000000;
 
-  Router(int fd, Channel* read_channel, Channel* write_channel);
+  Router(int fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment);
   ~Router();
 
   int                 file_descriptor() const;
@@ -67,6 +69,9 @@ public:
 
 private:
   using handler_map = std::map<uint32_t, RouterHandler>;
+
+  std::unique_ptr<Segment> m_read_segment;
+  std::unique_ptr<Segment> m_write_segment;
 
   Channel*            m_read_channel{};
   Channel*            m_write_channel{};

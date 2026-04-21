@@ -15,24 +15,18 @@ public:
   ~Segment();
 
   void                create(uint32_t size);
+  void                destroy();
 
   void*               address()    { return m_addr; }
   size_t              size() const { return m_size; }
 
 private:
-  void                unlink();
-
-  void                attach();
-  void                detach();
-
-  int                 m_shm_id{-1};
   size_t              m_size{};
   void*               m_addr{};
 };
 
 inline
 Segment::~Segment() {
-  m_shm_id = -1;
   m_size = 0;
   m_addr = nullptr;
 }

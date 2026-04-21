@@ -3,8 +3,9 @@
 #include "torrent/shm/segment.h"
 
 #include <cerrno>
+#include <cstring>
 #include <unistd.h>
-#include <sys/shm.h>
+#include <sys/mman.h>
 
 #include "torrent/exceptions.h"
 
@@ -12,7 +13,7 @@ namespace torrent::shm {
 
 void
 Segment::create(uint32_t size) {
-  if (m_shm_id != -1)
+  if (m_addr != nullptr)
     throw torrent::internal_error("Segment::create() segment already created");
 
   if (m_size != 0)
@@ -21,57 +22,31 @@ Segment::create(uint32_t size) {
   if (size == 0 || (size % page_size) != 0)
     throw std::invalid_argument("Segment::create() size must be non-zero and a multiple of page size");
 
-  auto fd = shmget(IPC_PRIVATE, size, IPC_CREAT | 0600);
+  void* addr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
-  if (fd == -1) {
+  if (addr == MAP_FAILED) {
     if (errno == ENOMEM)
-      throw torrent::internal_error("shmget() failed with ENOMEM: not enough shared memory available (try deleting unused shared memory segments with 'ipcrm -m <id>')");
+      throw torrent::internal_error("mmap() failed with ENOMEM: not enough shared memory available (try deleting unused shared memory segments with 'ipcrm -m <id>')");
 
-    throw torrent::internal_error("shmget() failed: " + std::string(strerror(errno)));
+    throw torrent::internal_error("mmap() failed: " + std::string(std::strerror(errno)));
   }
 
-  m_shm_id = fd;
-  m_size   = size;
+  std::memset(addr, 0, size);
 
-  try {
-    attach();
-    unlink();
-  } catch (...) {
-    // If we don't unlink the shared memory it will stick around after all processes are done.
-    unlink();
-    throw;
-  }
-}
-
-void
-Segment::unlink() {
-  if (m_shm_id == -1)
-    return;
-
-  if (shmctl(m_shm_id, IPC_RMID, nullptr) == -1)
-    throw torrent::internal_error("shmctl(IPC_RMID) failed: " + std::string(strerror(errno)));
-}
-
-void
-Segment::attach() {
-  if (m_addr != nullptr)
-    throw torrent::internal_error("Segment::attach() segment already attached");
-
-  void* addr = shmat(m_shm_id, nullptr, 0);
-
-  if (addr == (void*)-1)
-    throw torrent::internal_error("shmat() failed: " + std::string(strerror(errno)));
-
+  m_size = size;
   m_addr = addr;
 }
 
 void
-Segment::detach() {
+Segment::destroy() {
   if (m_addr == nullptr)
     return;
 
-  if (shmdt(m_addr) == -1)
-    throw torrent::internal_error("shmdt() failed: " + std::string(strerror(errno)));
+  if (munmap(m_addr, m_size) == -1)
+    throw torrent::internal_error("munmap() failed: " + std::string(std::strerror(errno)));
+
+  m_size = 0;
+  m_addr = nullptr;
 }
 
 } // namespace torrent::shm

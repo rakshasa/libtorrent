@@ -78,6 +78,8 @@ libtorrent_torrent_la_SOURCES = \
 \
 	shm/channel.cc \
 	shm/channel.h \
+	shm/factory.cc \
+	shm/factory.h \
 	shm/router.cc \
 	shm/router.h \
 	shm/segment.cc \
@@ -213,6 +215,7 @@ libtorrent_torrent_runtime_include_HEADERS = \
 libtorrent_torrent_shm_includedir = $(includedir)/torrent/shm
 libtorrent_torrent_shm_include_HEADERS = \
 	shm/channel.h \
+	shm/factory.h \
 	shm/router.h \
 	shm/segment.h
 
