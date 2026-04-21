@@ -139,8 +139,8 @@ HashTorrent::queue(bool quick) {
         return m_chunk_list->release(&handle, ChunkList::release_dont_log);
       }
 
-      if (errno != 0 && errno != ENOENT) {
-        LT_LOG_THIS(DEBUG, "Return on handle errno != E_NOENT: position:%u.", m_position);
+      if (handle.error_number() != 0 && handle.error_number() != ENOENT) {
+        LT_LOG_THIS(DEBUG, "Return on handle handle.error_number() != E_NOENT: position:%u.", m_position);
         return;
       }
 
@@ -151,7 +151,7 @@ HashTorrent::queue(bool quick) {
     // If the error number is not valid, then we've just encountered a
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
-    if (errno != 0 && errno != ENOENT) {
+    if (handle.error_number() != 0 && handle.error_number() != ENOENT) {
       if (handle.is_valid())
         throw internal_error("HashTorrent::queue() error, but handle.is_valid().");
 
@@ -176,7 +176,7 @@ HashTorrent::queue(bool quick) {
 
     m_position++;
 
-    if (!handle.is_valid() && errno == 0)
+    if (!handle.is_valid() && handle.error_number() == 0)
       throw internal_error("HashTorrent::queue() invalid handle but no error.");
 
     // Missing file, skip the hash check.
