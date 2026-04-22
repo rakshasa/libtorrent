@@ -139,7 +139,7 @@ HashTorrent::queue(bool quick) {
         return m_chunk_list->release(&handle, ChunkList::release_dont_log);
       }
 
-      if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent) {
+      if (errno != 0 && errno != ENOENT) {
         LT_LOG_THIS(DEBUG, "Return on handle errno != E_NOENT: position:%u.", m_position);
         return;
       }
@@ -151,7 +151,7 @@ HashTorrent::queue(bool quick) {
     // If the error number is not valid, then we've just encountered a
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
-    if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent) {
+    if (errno != 0 && errno != ENOENT) {
       if (handle.is_valid())
         throw internal_error("HashTorrent::queue() error, but handle.is_valid().");
 
@@ -165,10 +165,10 @@ HashTorrent::queue(bool quick) {
       // DownloadWrapper::receive_hash_done. Obsolete.
       clear();
 
-      m_errno = handle.error_number().value();
+      m_errno = handle.error_number();
 
       LT_LOG_THIS(INFO, "Completed (error): position:%u try_quick:%u errno:%i msg:'%s'.",
-                  m_position, quick, m_errno, handle.error_number().c_str());
+                  m_position, quick, m_errno, std::strerror(handle.error_number()));
 
       this_thread::scheduler()->update_wait_for(&m_delay_checked, 0s);
       return;
@@ -176,8 +176,8 @@ HashTorrent::queue(bool quick) {
 
     m_position++;
 
-    if (!handle.is_valid() && !handle.error_number().is_valid())
-      throw internal_error("Hash torrent errno == 0.");
+    if (!handle.is_valid() && errno == 0)
+      throw internal_error("HashTorrent::queue() invalid handle but no error.");
 
     // Missing file, skip the hash check.
     if (!handle.is_valid())

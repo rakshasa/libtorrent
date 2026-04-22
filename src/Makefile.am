@@ -58,6 +58,11 @@ libtorrent_other_la_SOURCES = \
 	dht/dht_transaction.cc \
 	dht/dht_transaction.h \
 	\
+	dht/transactions/dht_announce.cc \
+	dht/transactions/dht_announce.h \
+	dht/transactions/dht_search.cc \
+	dht/transactions/dht_search.h \
+	\
 	download/available_list.cc \
 	download/available_list.h \
 	download/chunk_selector.cc \
@@ -91,8 +96,6 @@ libtorrent_other_la_SOURCES = \
 	net/protocol_buffer.h \
 	net/socket_datagram.cc \
 	net/socket_datagram.h \
-	net/socket_set.cc \
-	net/socket_set.h \
 	net/socket_stream.cc \
 	net/socket_stream.h \
 	net/thread_net.cc \
@@ -154,6 +157,7 @@ libtorrent_other_la_SOURCES = \
 	utils/functional.h \
 	utils/instrumentation.cc \
 	utils/instrumentation.h \
+	utils/partial_queue.h \
 	utils/rc4.h \
 	utils/sha1.h \
 	utils/signal_interrupt.cc \

@@ -1,9 +1,9 @@
-#ifndef RAK_UNORDERED_VECTOR_H
-#define RAK_UNORDERED_VECTOR_H
+#ifndef LIBTORRENT_TORRENT_UTILS_UNORDERED_VECTOR_H
+#define LIBTORRENT_TORRENT_UTILS_UNORDERED_VECTOR_H
 
 #include <vector>
 
-namespace rak {
+namespace torrent::utils {
 
 template <typename _Tp>
 class unordered_vector : private std::vector<_Tp> {

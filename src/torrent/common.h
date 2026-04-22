@@ -1,8 +1,10 @@
 #ifndef LIBTORRENT_COMMON_H
 #define LIBTORRENT_COMMON_H
 
+#include <cerrno>
 #include <cinttypes>
 #include <cstddef>
+#include <cstring>
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -71,7 +73,6 @@ class Piece;
 class ProtocolExtension;
 class Rate;
 class ResourceManager;
-class SocketSet;
 class Throttle;
 class TrackerController;
 class TrackerList;

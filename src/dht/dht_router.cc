@@ -651,16 +651,15 @@ DhtRouter::bootstrap_bucket(const DhtBucket* bucket) {
   // own when bootstrapping our own bucket. We don't search for
   // our own exact ID to avoid receiving only our own node info
   // instead of closest nodes, from nodes that know us already.
-  HashString contactId;
 
   if (bucket == this->bucket()) {
-    contactId = id();
-    contactId[torrent::HashString::size() - 1] ^= 1;
+    m_contactId = id();
+    m_contactId[torrent::HashString::size() - 1] ^= 1;
   } else {
-    bucket->get_random_id(&contactId);
+    bucket->get_random_id(&m_contactId);
   }
 
-  m_server.find_node(*bucket, contactId);
+  m_server.find_node(*bucket, m_contactId);
 }
 
 } // namespace torrent

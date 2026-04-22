@@ -252,7 +252,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
   try {
     try {
-      if (prepare_resolve(m_initial_resolve))
+      if (prepare_resolve_unsafe(m_initial_resolve))
         return true;
 
     } catch (const torrent::input_error& e) {
@@ -264,7 +264,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
     m_retrying_resolve = true;
 
-    if (prepare_resolve(m_retry_resolve))
+    if (prepare_resolve_unsafe(m_retry_resolve))
       return true;
 
     throw torrent::input_error("Exhausted all resolve options.");
@@ -278,6 +278,9 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
 void
 CurlGet::activate_unsafe() {
+  if (m_active)
+    throw torrent::internal_error("CurlGet::activate() called on an already active handle.");
+
   CURLMcode code = curl_multi_add_handle(m_stack->handle(), m_handle);
 
   if (code != CURLM_OK)
@@ -287,16 +290,23 @@ CurlGet::activate_unsafe() {
 }
 
 void
+CurlGet::deactivate_unsafe() {
+  if (!m_active)
+    throw torrent::internal_error("CurlGet::deactivate() called on an inactive handle.");
+
+  CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
+
+  if (code != CURLM_OK)
+    throw torrent::internal_error("CurlGet::deactivate() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
+
+  m_active = false;
+}
+
+void
 CurlGet::cleanup_unsafe() {
   if (m_handle != nullptr) {
-    if (m_active) {
-      CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
-
-      if (code != CURLM_OK)
-        throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
-
-      m_active = false;
-    }
+    if (m_active)
+      deactivate_unsafe();
 
     curl_easy_cleanup(m_handle);
 
@@ -339,16 +349,16 @@ CurlGet::retry_resolve() {
   if (m_retrying_resolve || m_retry_resolve == RESOLVE_NONE)
     return false;
 
-  // TODO: Is this correct if we fail?
-  CURLMcode code = curl_multi_remove_handle(m_stack->handle(), m_handle);
-
-  if (code != CURLM_OK)
-    throw torrent::internal_error("CurlGet::cleanup() error calling curl_multi_remove_handle: " + std::string(curl_multi_strerror(code)));
+  deactivate_unsafe();
 
   m_retrying_resolve = true;
 
   try {
-    return prepare_resolve(m_retry_resolve);
+    if (!prepare_resolve_unsafe(m_retry_resolve))
+      return false;
+
+    activate_unsafe();
+    return true;
 
   } catch (const torrent::input_error& e) {
     // TODO: Consider adding to error message.
@@ -360,6 +370,9 @@ void
 CurlGet::trigger_done() {
   auto guard = lock_guard();
 
+  // Not really needed, but just in case.
+  m_retrying_resolve = true;
+
   if (m_was_closed)
     return;
 
@@ -369,6 +382,8 @@ CurlGet::trigger_done() {
 void
 CurlGet::trigger_failed(const std::string& message) {
   auto guard = lock_guard();
+
+  m_retrying_resolve = true;
 
   if (m_was_closed)
     return;
@@ -386,7 +401,7 @@ CurlGet::receive_write(const char* data, size_t size, size_t nmemb, CurlGet* han
 }
 
 bool
-CurlGet::prepare_resolve(resolve_type current_resolve) {
+CurlGet::prepare_resolve_unsafe(resolve_type current_resolve) {
   auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_or_null();
 
   int detected_family = utils::uri_detect_numeric(m_url);
@@ -422,7 +437,7 @@ CurlGet::prepare_resolve(resolve_type current_resolve) {
     return false;
 
   default:
-    throw torrent::internal_error("CurlGet::prepare_start_unsafe() reached unreachable code with invalid current_resolve.");
+    throw torrent::internal_error("CurlGet::prepare_resolve_unsafe() reached unreachable code with invalid current_resolve.");
   }
 }
 

@@ -9,6 +9,33 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 
+namespace torrent::net {
+
+void
+sa_free(const sockaddr* sa) {
+  if (sa == nullptr)
+    return;
+
+  switch (sa->sa_family) {
+  case AF_UNSPEC:
+    delete reinterpret_cast<const sockaddr*>(sa);
+    break;
+  case AF_INET:
+    delete reinterpret_cast<const sockaddr_in*>(sa);
+    break;
+  case AF_INET6:
+    delete reinterpret_cast<const sockaddr_in6*>(sa);
+    break;
+  case AF_UNIX:
+    delete reinterpret_cast<const sockaddr_un*>(sa);
+    break;
+  default:
+    throw internal_error("torrent::sa_free() invalid family type");
+  }
+}
+
+} // torrent::net
+
 namespace torrent {
 
 static constexpr uint32_t
@@ -295,29 +322,6 @@ sin6_copy(const sockaddr_in6* sa) {
   sin6_unique_ptr result(new sockaddr_in6);
   std::memcpy(result.get(), sa, sizeof(sockaddr_in6));
   return result;
-}
-
-void
-sa_free(const sockaddr* sa) {
-  if (sa == nullptr)
-    return;
-
-  switch (sa->sa_family) {
-  case AF_UNSPEC:
-    delete reinterpret_cast<const sockaddr*>(sa);
-    break;
-  case AF_INET:
-    delete reinterpret_cast<const sockaddr_in*>(sa);
-    break;
-  case AF_INET6:
-    delete reinterpret_cast<const sockaddr_in6*>(sa);
-    break;
-  case AF_UNIX:
-    delete reinterpret_cast<const sockaddr_un*>(sa);
-    break;
-  default:
-    throw internal_error("torrent::sa_free() invalid family type");
-  }
 }
 
 sin_unique_ptr

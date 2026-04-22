@@ -1,15 +1,13 @@
 #include "config.h"
 
-#include <rak/error_number.h>
+#include "chunk_list.h"
 
+#include "data/chunk.h"
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/data/download_data.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
-
-#include "chunk_list.h"
-#include "chunk.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                              \
   lt_log_print_data(LOG_STORAGE_##log_level, m_data, "chunk_list", log_fmt, __VA_ARGS__);
@@ -87,7 +85,7 @@ ChunkHandle
 ChunkList::get(size_type index, get_flags flags) {
   LT_LOG_THIS(DEBUG, "Get: index:%" PRIu32 " flags:%#x.", index, flags);
 
-  rak::error_number::clear_global();
+  errno = 0;
 
   ChunkListNode* node = &base_type::at(index);
 
@@ -98,7 +96,7 @@ ChunkList::get(size_type index, get_flags flags) {
     if (!m_manager->allocate(m_chunk_size, allocate_flags)) {
       LT_LOG_THIS(DEBUG, "Could not allocate: memory:%" PRIu64 " block:%" PRIu32 ".",
                   m_manager->memory_usage(), m_manager->memory_block_count());
-      return ChunkHandle::from_error(rak::error_number::e_nomem);
+      return ChunkHandle::from_error(ENOMEM);
     }
 
     Chunk* chunk;
@@ -110,17 +108,16 @@ ChunkList::get(size_type index, get_flags flags) {
     else
       throw internal_error("ChunkList::get(...) called with get_hashing and get_not_hashing flags set.");
 
-    if (chunk == NULL) {
-      rak::error_number current_error = rak::error_number::current();
+    if (chunk == nullptr) {
+      int err = errno;
 
       LT_LOG_THIS(DEBUG, "Could not create: memory:%" PRIu64 " block:%" PRIu32 " errno:%i errmsg:%s.",
                   m_manager->memory_usage(),
                   m_manager->memory_block_count(),
-                  current_error.value(),
-                  current_error.c_str());
+                  err, std::strerror(err));
 
       m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);
-      return ChunkHandle::from_error(current_error.is_valid() ? current_error : rak::error_number::e_noent);
+      return ChunkHandle::from_error(err);
     }
 
     node->set_chunk(chunk);
@@ -129,15 +126,15 @@ ChunkList::get(size_type index, get_flags flags) {
   } else if (flags & get_writable && !node->chunk()->is_writable()) {
     if (node->blocking() != 0) {
       if ((flags & get_nonblock))
-        return ChunkHandle::from_error(rak::error_number::e_again);
+        return ChunkHandle::from_error(EAGAIN);
 
       throw internal_error("No support yet for getting write permission for blocked chunk.");
     }
 
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
-    if (chunk == NULL)
-      return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
+    if (chunk == nullptr)
+      return ChunkHandle::from_error(errno);
 
     delete node->chunk();
 
@@ -320,7 +317,7 @@ ChunkList::sync_chunks(sync_flags flags) {
   // The caller must either make sure that it is safe to close the
   // download or set the sync_ignore_error flag.
   if (failed && !(flags & sync_ignore_error))
-    m_slot_storage_error("Could not sync chunk: " + std::string(rak::error_number::current().c_str()));
+    m_slot_storage_error("Could not sync chunk: " + std::string(std::strerror(errno)));
 
   return failed;
 }

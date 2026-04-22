@@ -20,6 +20,7 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/string_manip.h"
 #include "utils/diffie_hellman.h"
 #include "utils/sha1.h"
 
@@ -1118,7 +1119,7 @@ Handshake::prepare_peer_info() {
   m_peerInfo->mutable_id().assign(reinterpret_cast<const char*>(m_readBuffer.position()));
   m_readBuffer.consume(20);
 
-  hash_string_to_hex(m_peerInfo->id(), m_peerInfo->mutable_id_hex());
+  utils::transform_to_hex(m_peerInfo->id(), m_peerInfo->mutable_id_hex(), m_peerInfo->mutable_id_hex() + 40);
 
   // For meta downloads, we require support of the extension protocol.
   if (m_download->info()->is_meta_download() && !m_peerInfo->supports_extensions())
