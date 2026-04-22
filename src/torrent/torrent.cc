@@ -154,7 +154,9 @@ errno_enum(int status) {
   case EMFILE:          return "EMFILE";
   case EMLINK:          return "EMLINK";
   case EMSGSIZE:        return "EMSGSIZE";
+#if defined(EMULTIHOP)
   case EMULTIHOP:       return "EMULTIHOP";
+#endif
   case ENAMETOOLONG:    return "ENAMETOOLONG";
   case ENETDOWN:        return "ENETDOWN";
   case ENETRESET:       return "ENETRESET";
