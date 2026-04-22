@@ -101,7 +101,7 @@ HashTorrent::receive_chunk_cleared(uint32_t index) {
 
 void
 HashTorrent::queue(bool quick) {
-  LT_LOG_THIS(DEBUG, "Queue: position:%u outstanding:%i try_quick:%u.", m_position, m_outstanding, quick);
+  LT_LOG_THIS(INFO, "queuing : position:%u outstanding:%i quick:%u.", m_position, m_outstanding, quick);
 
   if (!is_checking())
     throw internal_error("HashTorrent::queue() called but it's not running.");
@@ -135,12 +135,13 @@ HashTorrent::queue(bool quick) {
         throw internal_error("HashTorrent::queue() quick hashing but m_outstanding != 0.");
 
       if (handle.is_valid()) {
-        LT_LOG_THIS(DEBUG, "Return on handle.is_valid(): position:%u.", m_position);
+        LT_LOG_THIS(DEBUG, "quick : skip valid handle : position:%u", m_position);
         return m_chunk_list->release(&handle, ChunkList::release_dont_log);
       }
 
       if (handle.error_number() != 0 && handle.error_number() != ENOENT) {
-        LT_LOG_THIS(DEBUG, "Return on handle handle.error_number() != E_NOENT: position:%u.", m_position);
+        LT_LOG_THIS(DEBUG, "quick : skip invalid handle with non-ENOENT error : position:%u errno:%s",
+                    m_position, system::errno_enum(handle.error_number()));
         return;
       }
 
@@ -167,8 +168,7 @@ HashTorrent::queue(bool quick) {
 
       m_errno = handle.error_number();
 
-      LT_LOG_THIS(INFO, "Completed (error): position:%u try_quick:%u errno:%i msg:'%s'.",
-                  m_position, quick, m_errno, std::strerror(handle.error_number()));
+      LT_LOG_THIS(INFO, "completed with error: position:%u errno:%s", m_position, system::errno_enum(handle.error_number()));
 
       this_thread::scheduler()->update_wait_for(&m_delay_checked, 0s);
       return;
@@ -190,7 +190,7 @@ HashTorrent::queue(bool quick) {
   }
 
   if (m_outstanding == 0) {
-    LT_LOG_THIS(INFO, "Completed (normal): position:%u try_quick:%u.", m_position, quick);
+    LT_LOG_THIS(INFO, "completed : position:%u", m_position);
 
     // Update the scheduled item just to make sure that if hashing is
     // started again during the delay it won't cause an exception.
