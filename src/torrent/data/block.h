@@ -102,7 +102,7 @@ private:
   void                      remove_erased_transfers() LIBTORRENT_NO_EXPORT;
   void                      remove_non_leader_transfers() LIBTORRENT_NO_EXPORT;
 
-  BlockList*                m_parent;
+  BlockList*                m_parent{};
   Piece                     m_piece;
 
   state_type                m_state{STATE_INCOMPLETE};

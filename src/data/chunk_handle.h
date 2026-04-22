@@ -32,11 +32,11 @@ public:
   static ChunkHandle  from_error(int err);
 
 private:
-  ChunkListNode*      m_node;
-  bool                m_writable;
-  bool                m_blocking;
+  ChunkListNode*      m_node{};
+  bool                m_writable{};
+  bool                m_blocking{};
 
-  int                 m_errno;
+  int                 m_errno{};
 };
 
 inline ChunkHandle

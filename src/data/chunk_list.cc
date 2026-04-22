@@ -96,6 +96,7 @@ ChunkList::get(size_type index, get_flags flags) {
     if (!m_manager->allocate(m_chunk_size, allocate_flags)) {
       LT_LOG_THIS(DEBUG, "Could not allocate: memory:%" PRIu64 " block:%" PRIu32 ".",
                   m_manager->memory_usage(), m_manager->memory_block_count());
+
       return ChunkHandle::from_error(ENOMEM);
     }
 
