@@ -3,11 +3,11 @@
 
 #include "data/hash_check_queue.h"
 #include "torrent/common.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT ThreadDisk : public utils::Thread {
+class LIBTORRENT_EXPORT ThreadDisk : public system::Thread {
 public:
   ~ThreadDisk() override;
 

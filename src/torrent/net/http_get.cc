@@ -9,7 +9,7 @@
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent::net {
 
@@ -32,7 +32,7 @@ HttpGet::close_and_keep_callbacks() {
 }
 
 void
-HttpGet::close_and_cancel_callbacks(utils::Thread* callback_thread) {
+HttpGet::close_and_cancel_callbacks(system::Thread* callback_thread) {
   if (!is_valid())
     throw torrent::internal_error("HttpGet::close_and_cancel_callbacks() called on an invalid HttpGet object.");
 

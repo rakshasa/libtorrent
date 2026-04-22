@@ -4,13 +4,13 @@
 #include <memory>
 
 #include "torrent/common.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent {
 
 class HashQueue;
 
-class LIBTORRENT_EXPORT ThreadMain : public utils::Thread {
+class LIBTORRENT_EXPORT ThreadMain : public system::Thread {
 public:
   ~ThreadMain() override;
 

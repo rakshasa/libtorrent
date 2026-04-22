@@ -76,6 +76,9 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/socket_manager.cc \
 	runtime/socket_manager.h \
 \
+	system/thread.cc \
+	system/thread.h \
+\
 	tracker/dht_controller.cc \
 	tracker/dht_controller.h \
 	tracker/manager.cc \
@@ -108,8 +111,6 @@ libtorrent_torrent_la_SOURCES = \
 	utils/signal_bitfield.h \
 	utils/string_manip.cc \
 	utils/string_manip.h \
-	utils/thread.cc \
-	utils/thread.h \
 	utils/unordered_vector.h \
 	utils/uri_parser.cc \
 	utils/uri_parser.h \
@@ -201,6 +202,10 @@ libtorrent_torrent_runtime_include_HEADERS = \
 	runtime/network_manager.h \
 	runtime/socket_manager.h
 
+libtorrent_torrent_system_includedir = $(includedir)/torrent/system
+libtorrent_torrent_system_include_HEADERS = \
+	system/thread.h
+
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
 libtorrent_torrent_tracker_include_HEADERS = \
 	tracker/dht_controller.h \
@@ -224,7 +229,6 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/scheduler.h \
 	utils/signal_bitfield.h \
 	utils/string_manip.h \
-	utils/thread.h \
 	utils/unordered_vector.h \
 	utils/uri_parser.h
 

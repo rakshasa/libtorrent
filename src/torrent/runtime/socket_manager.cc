@@ -8,7 +8,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_NET_SOCKET, "socket_manager: " log_fmt, __VA_ARGS__);

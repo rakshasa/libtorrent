@@ -15,7 +15,7 @@ class CurlStack;
 
 class LIBTORRENT_EXPORT HttpStack {
 public:
-  HttpStack(utils::Thread* thread);
+  HttpStack(system::Thread* thread);
   ~HttpStack();
 
   void                shutdown();

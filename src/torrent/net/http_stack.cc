@@ -9,11 +9,11 @@
 #include "net/thread_net.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_get.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent::net {
 
-HttpStack::HttpStack(utils::Thread* thread) :
+HttpStack::HttpStack(system::Thread* thread) :
     m_stack(new CurlStack(thread)) {
 }
 

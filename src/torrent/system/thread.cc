@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 #include <cassert>
 #include <cstring>
@@ -19,7 +19,7 @@
 #include "utils/signal_interrupt.h"
 #include "utils/thread_internal.h"
 
-namespace torrent::utils {
+namespace torrent::system {
 
 thread_local Thread* Thread::m_self{nullptr};
 
@@ -35,11 +35,11 @@ void Thread::cleanup_thread() {}
 Thread::Thread() :
     m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
     m_poll(net::Poll::create()),
-    m_scheduler(new Scheduler) {
+    m_scheduler(new utils::Scheduler) {
 
   std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
 
-  m_cached_time = time_since_epoch();
+  m_cached_time = utils::time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);
 }
 
@@ -249,7 +249,7 @@ Thread::init_thread_local() {
   m_scheduler->set_thread_id(m_thread_id);
   m_signal_bitfield.handover(m_thread_id);
 
-  set_cached_time(time_since_epoch());
+  set_cached_time(utils::time_since_epoch());
 
   if (m_resolver)
     m_resolver->init();
@@ -275,12 +275,12 @@ Thread::process_events() {
   // TODO: We should call process_callbacks() here before and after call_events, however due to the
   // many different cached times in the code, we need to let each thread manage this themselves.
 
-  set_cached_time(time_since_epoch());
+  set_cached_time(utils::time_since_epoch());
 
   call_events();
   m_signal_bitfield.work();
 
-  set_cached_time(time_since_epoch());
+  set_cached_time(utils::time_since_epoch());
 
   m_scheduler->perform(m_cached_time);
 }
@@ -334,18 +334,18 @@ Thread::set_cached_time(std::chrono::microseconds t) {
 
 namespace torrent::this_thread {
 
-torrent::utils::Thread*   thread()                                            { return utils::ThreadInternal::thread(); }
-std::thread::id           thread_id()                                         { return utils::ThreadInternal::thread_id(); }
+torrent::system::Thread*  thread()                                            { return system::ThreadInternal::thread(); }
+std::thread::id           thread_id()                                         { return system::ThreadInternal::thread_id(); }
 
-std::chrono::microseconds cached_time()                                       { return utils::ThreadInternal::cached_time(); }
-std::chrono::seconds      cached_seconds()                                    { return utils::ThreadInternal::cached_seconds(); }
+std::chrono::microseconds cached_time()                                       { return system::ThreadInternal::cached_time(); }
+std::chrono::seconds      cached_seconds()                                    { return system::ThreadInternal::cached_seconds(); }
 
-void                      callback(void* target, std::function<void ()>&& fn) { utils::ThreadInternal::callback(target, std::move(fn)); }
-void                      cancel_callback(void* target)                       { utils::ThreadInternal::cancel_callback(target); }
-void                      cancel_callback_and_wait(void* target)              { utils::ThreadInternal::cancel_callback_and_wait(target); }
+void                      callback(void* target, std::function<void ()>&& fn) { system::ThreadInternal::callback(target, std::move(fn)); }
+void                      cancel_callback(void* target)                       { system::ThreadInternal::cancel_callback(target); }
+void                      cancel_callback_and_wait(void* target)              { system::ThreadInternal::cancel_callback_and_wait(target); }
 
-net::Poll*                poll()                                              { return utils::ThreadInternal::poll(); }
-net::Resolver*            resolver()                                          { return utils::ThreadInternal::resolver(); }
-utils::Scheduler*         scheduler()                                         { return utils::ThreadInternal::scheduler(); }
+net::Poll*                poll()                                              { return system::ThreadInternal::poll(); }
+net::Resolver*            resolver()                                          { return system::ThreadInternal::resolver(); }
+utils::Scheduler*         scheduler()                                         { return system::ThreadInternal::scheduler(); }
 
 } // namespace torrent::this_thread

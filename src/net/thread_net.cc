@@ -20,7 +20,7 @@ public:
 
 namespace net_thread {
 
-torrent::utils::Thread*  thread()                                                    { return ThreadNetInternal::thread_net(); }
+torrent::system::Thread* thread()                                                    { return ThreadNetInternal::thread_net(); }
 std::thread::id          thread_id()                                                 { return ThreadNetInternal::thread_net()->thread_id(); }
 
 void callback(void* target, std::function<void ()>&& fn)                            { ThreadNetInternal::thread_net()->callback(target, std::move(fn)); }

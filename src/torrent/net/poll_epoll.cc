@@ -5,13 +5,13 @@
 #include "torrent/net/poll.h"
 
 #include <cassert>
-#include <sys/epoll.h>
 #include <unistd.h>
+#include <sys/epoll.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
+#include "torrent/system/thread.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
 
 #define LT_LOG(log_fmt, ...)                                        \
   lt_log_print(LOG_CONNECTION_FD, "epoll: " log_fmt, __VA_ARGS__);
@@ -209,8 +209,8 @@ Poll::process() {
   m_closed_events.clear();
 
   for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
-    if (utils::Thread::self()->callbacks_should_interrupt_polling())
-      utils::Thread::self()->process_callbacks(true);
+    if (system::Thread::self()->callbacks_should_interrupt_polling())
+      system::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->data.ptr);
 

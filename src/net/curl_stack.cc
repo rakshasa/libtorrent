@@ -9,11 +9,11 @@
 #include "net/curl_get.h"
 #include "net/curl_socket.h"
 #include "torrent/exceptions.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent::net {
 
-CurlStack::CurlStack(utils::Thread* thread)
+CurlStack::CurlStack(system::Thread* thread)
   : m_thread(thread),
     m_handle(curl_multi_init()) {
 

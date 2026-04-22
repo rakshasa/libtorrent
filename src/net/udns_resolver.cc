@@ -13,7 +13,7 @@
 #include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 #define LT_LOG(log_fmt, ...)                                \
   lt_log_print_subsystem(LOG_NET_DNS, "dns-resolver", log_fmt, __VA_ARGS__);
@@ -98,7 +98,7 @@ UdnsResolver::~UdnsResolver() {
 }
 
 void
-UdnsResolver::initialize(utils::Thread* thread) {
+UdnsResolver::initialize(system::Thread* thread) {
   assert(std::this_thread::get_id() == thread->thread_id());
 
   LT_LOG("initializing udns resolver: thread:%s", thread->name());

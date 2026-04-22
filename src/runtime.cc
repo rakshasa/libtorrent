@@ -19,7 +19,7 @@ uint16_t         listen_port()                                        { return g
 
 } // namespace runtime
 
-Runtime::Runtime(utils::Thread* main_thread)
+Runtime::Runtime(system::Thread* main_thread)
   : m_main_thread(main_thread),
 
     m_network_manager(new runtime::NetworkManager(main_thread)),
@@ -33,7 +33,7 @@ Runtime::~Runtime() {
 }
 
 void
-Runtime::initialize(utils::Thread* main_thread) {
+Runtime::initialize(system::Thread* main_thread) {
   g_runtime = new Runtime(main_thread);
 }
 

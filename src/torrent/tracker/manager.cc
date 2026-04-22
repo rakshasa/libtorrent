@@ -8,7 +8,7 @@
 #include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 #include "torrent/utils/string_manip.h"
 #include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
@@ -19,7 +19,7 @@
 
 namespace torrent::tracker {
 
-Manager::Manager(utils::Thread* main_thread, utils::Thread* tracker_thread) :
+Manager::Manager(system::Thread* main_thread, system::Thread* tracker_thread) :
   m_main_thread(main_thread),
   m_tracker_thread(tracker_thread) {
 

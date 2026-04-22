@@ -7,7 +7,7 @@
 #include "torrent/net/network_config.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 // TODO: Add runtime category and add it to important/complete log outputs.
 
@@ -16,7 +16,7 @@
 
 namespace torrent::runtime {
 
-NetworkManager::NetworkManager(utils::Thread* main_thread)
+NetworkManager::NetworkManager(system::Thread* main_thread)
   : m_main_thread(main_thread),
 
     m_listen_inet(new Listen),

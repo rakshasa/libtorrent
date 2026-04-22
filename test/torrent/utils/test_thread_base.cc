@@ -12,7 +12,7 @@
 #include "helpers/test_utils.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_thread_base, "torrent/utils");
 
@@ -34,11 +34,11 @@ test_thread_base::test_lifecycle() {
 
   torrent::Runtime::initialize(thread.get());
 
-  CPPUNIT_ASSERT(thread->state() == torrent::utils::Thread::STATE_UNKNOWN);
+  CPPUNIT_ASSERT(thread->state() == torrent::system::Thread::STATE_UNKNOWN);
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_NONE);
 
   thread->init_thread();
-  CPPUNIT_ASSERT(thread->state() == torrent::utils::Thread::STATE_INITIALIZED);
+  CPPUNIT_ASSERT(thread->state() == torrent::system::Thread::STATE_INITIALIZED);
   CPPUNIT_ASSERT(thread->is_initialized());
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_PRE_START);
 

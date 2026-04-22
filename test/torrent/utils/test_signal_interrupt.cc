@@ -8,7 +8,7 @@
 #include "test/helpers/test_thread.h"
 #include "test/helpers/network.h"
 #include "torrent/exceptions.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 #include "utils/signal_interrupt.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(TestSignalInterrupt, "torrent/utils");
