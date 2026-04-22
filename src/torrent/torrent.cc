@@ -177,7 +177,6 @@ errno_enum(int status) {
   case ENOTDIR:         return "ENOTDIR";
   case ENOTEMPTY:       return "ENOTEMPTY";
   case ENOTSOCK:        return "ENOTSOCK";
-  case ENOTSUP:         return "ENOTSUP";
   case ENOTTY:          return "ENOTTY";
   case ENXIO:           return "ENXIO";
   case EOPNOTSUPP:      return "EOPNOTSUPP";
@@ -200,6 +199,7 @@ errno_enum(int status) {
   default: return "Unknown error";
     // Handle potentially duplicate error numbers here.
     switch (status) {
+    case ENOTSUP:         return "ENOTSUP";
     case EWOULDBLOCK: return "EWOULDBLOCK";
     default: return "Unknown error";
     };
