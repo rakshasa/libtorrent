@@ -85,8 +85,6 @@ libtorrent_torrent_la_SOURCES = \
 	shm/segment.cc \
 	shm/segment.h \
 \
-	system/process.cc \
-	system/process.h \
 	system/thread.cc \
 	system/thread.h \
 \
@@ -222,7 +220,6 @@ libtorrent_torrent_shm_include_HEADERS = \
 
 libtorrent_torrent_system_includedir = $(includedir)/torrent/system
 libtorrent_torrent_system_include_HEADERS = \
-	system/process.h \
 	system/thread.h
 
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
