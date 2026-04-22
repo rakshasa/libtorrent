@@ -144,6 +144,7 @@ uint16_t                  listen_port() LIBTORRENT_EXPORT;
 namespace torrent::system {
 
 const char* errno_enum(int status) LIBTORRENT_EXPORT;
+std::string errno_enum_str(int status) LIBTORRENT_EXPORT;
 
 } // namespace torrent::system
 

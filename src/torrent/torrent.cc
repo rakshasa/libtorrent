@@ -206,6 +206,11 @@ errno_enum(int status) {
   };
 }
 
+std::string
+errno_enum_str(int status) {
+  return errno_enum(status);
+}
+
 } // namespace torrent::system
 
 void
