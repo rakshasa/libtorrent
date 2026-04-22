@@ -118,6 +118,7 @@ const char*
 errno_enum(int status) {
   // The Open Group Base Specifications Issue 6
   switch (status) {
+  case 0:               return "0";
   case E2BIG:           return "E2BIG";
   case EACCES:          return "EACCES";
   case EADDRINUSE:      return "EADDRINUSE";
@@ -196,12 +197,16 @@ errno_enum(int status) {
   case ETXTBSY:         return "ETXTBSY";
   case EXDEV:           return "EXDEV";
 
-  default: return "Unknown error";
+  default:
     // Handle potentially duplicate error numbers here.
     switch (status) {
-    case ENOTSUP:         return "ENOTSUP";
-    case EWOULDBLOCK: return "EWOULDBLOCK";
-    default: return "Unknown error";
+    case ENOTSUP:       return "ENOTSUP";
+    case EWOULDBLOCK:   return "EWOULDBLOCK";
+    default:
+      static thread_local char buffer[16];
+      std::snprintf(buffer, sizeof(buffer), "E%d", status);
+
+      return buffer;
     };
   };
 }
