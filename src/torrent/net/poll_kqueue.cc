@@ -11,9 +11,9 @@
 #include <sys/event.h>
 
 #include "utils/log.h"
-#include "utils/thread.h"
-#include "torrent/exceptions.h"
 #include "torrent/event.h"
+#include "torrent/exceptions.h"
+#include "torrent/system/thread.h"
 
 // TODO: Change to LOG_CONNECTION_POLL
 

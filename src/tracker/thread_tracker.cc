@@ -15,7 +15,7 @@ std::atomic<ThreadTracker*> ThreadTracker::m_thread_tracker{nullptr};
 ThreadTracker::~ThreadTracker() = default;
 
 void
-ThreadTracker::create_thread(utils::Thread* main_thread) {
+ThreadTracker::create_thread(system::Thread* main_thread) {
   assert(m_thread_tracker == nullptr);
 
   m_thread_tracker = new ThreadTracker();
@@ -39,7 +39,7 @@ ThreadTracker::init_thread() {
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
 
-  // m_signal_send_event = utils::Thread::self()->signal_bitfield()->add_signal([this]() {
+  // m_signal_send_event = system::Thread::self()->signal_bitfield()->add_signal([this]() {
   //   process_send_events();
   // });
 }

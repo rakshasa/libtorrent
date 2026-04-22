@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "torrent/utils/process.h"
+#include "torrent/system/process.h"
 
 #include <cstdlib>
 #include <unistd.h>

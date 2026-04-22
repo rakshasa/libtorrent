@@ -5,13 +5,13 @@
 #include "torrent/net/poll.h"
 
 #include <cassert>
-#include <sys/epoll.h>
 #include <unistd.h>
+#include <sys/epoll.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
-#include "torrent/utils/log.h"
 #include "torrent/system/thread.h"
+#include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                        \
   lt_log_print(LOG_CONNECTION_FD, "epoll: " log_fmt, __VA_ARGS__);
