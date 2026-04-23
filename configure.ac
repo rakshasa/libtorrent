@@ -1,4 +1,4 @@
-AC_INIT([[libtorrent]],[[0.16.9]],[[sundell.software@gmail.com]])
+AC_INIT([[libtorrent]],[[0.16.10]],[[sundell.software@gmail.com]])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIRS([scripts])
@@ -8,10 +8,10 @@ LT_INIT([[disable-static]])
 
 # When releasing the first 1.x.y version, we need to start with 1.1.0 (or higher) as we've already
 # used 0.16.x.
-AC_DEFINE([[PEER_NAME]], [["-lt1009-"]], [[Identifier that is part of the default peer id.]])
-AC_DEFINE([[PEER_VERSION]], [["lt\x10\x09"]], [[4 byte client and version identifier for DHT.]])
+AC_DEFINE([[PEER_NAME]], [["-lt100A-"]], [[Identifier that is part of the default peer id.]])
+AC_DEFINE([[PEER_VERSION]], [["lt\x10\x0A"]], [[4 byte client and version identifier for DHT.]])
 
-LIBTORRENT_CURRENT=39
+LIBTORRENT_CURRENT=40
 LIBTORRENT_REVISION=0
 LIBTORRENT_AGE=0
 
