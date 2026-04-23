@@ -11,12 +11,15 @@
 #include "torrent/shm/factory.h"
 #include "torrent/shm/router.h"
 #include "torrent/shm/segment.h"
+#include "torrent/utils/log.h"
 
-// TODO: Move to 'torrent/system' (also move thread)
+// #define LT_LOG(log_fmt, ...)                                            \
+//   lt_log_print(LOG_SYSTEM, "system: " log_fmt, __VA_ARGS__);
 
-// TODO: Add system logging.
+namespace torrent::system {
 
-namespace torrent::utils {
+Process::Process() = default;
+Process::~Process() = default;
 
 void
 Process::start(std::function<void()> fn) {

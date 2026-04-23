@@ -12,14 +12,14 @@ class RouterFactory;
 
 } // namespace torrent::shm
 
-namespace torrent::utils {
+namespace torrent::system {
 
 class ProcessInternal;
 
 class LIBTORRENT_EXPORT Process {
 public:
-  Process()  = default;
-  ~Process() = default;
+  Process();
+  ~Process();
 
   pid_t               process_id() const;
 
