@@ -98,7 +98,10 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
   if (curl_get == nullptr)
     throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
 
-  { auto guard = std::scoped_lock(m_mutex, curl_get->mutex());
+  { auto lock_main = std::unique_lock(m_mutex, std::defer_lock);
+    auto lock_get  = std::unique_lock(curl_get->mutex(), std::defer_lock);
+
+    std::lock(lock_main, lock_get);
 
     // TODO: Check is_running, if not return error. Do not throw internal_error.
     if (!m_running)
@@ -128,7 +131,7 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
 
     // Calling curl_multi_add_handle() can result in CurlSocket::receive_socket() being called,
     // which calls CurlStack::is_running().
-    m_mutex.unlock();
+    lock_main.unlock();
 
     curl_get->activate_unsafe();
   }
