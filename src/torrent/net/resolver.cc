@@ -14,45 +14,6 @@
 
 namespace torrent::net {
 
-namespace {
-
-std::pair<sin_shared_ptr, sin6_shared_ptr>
-try_resolve_numeric(const std::string& hostname, int family) {
-  addrinfo  hints{};
-  addrinfo* result{};
-
-  hints.ai_family   = family;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags    = AI_NUMERICHOST;
-
-  auto ret = ::getaddrinfo(hostname.c_str(), nullptr, &hints, &result);
-
-  if (ret == EAI_NONAME || ret == EAI_ADDRFAMILY)
-    return {nullptr, nullptr};
-
-  if (ret != 0)
-    throw internal_error("getaddrinfo failed: " + std::string(gai_strerror(ret)));
-
-  if (result->ai_family == AF_INET) {
-    sin_shared_ptr sin_addr = sin_copy(reinterpret_cast<sockaddr_in*>(result->ai_addr));
-    ::freeaddrinfo(result);
-
-    return {sin_addr, nullptr};
-  }
-
-  if (result->ai_family == AF_INET6) {
-    sin6_shared_ptr sin6_addr = sin6_copy(reinterpret_cast<sockaddr_in6*>(result->ai_addr));
-    ::freeaddrinfo(result);
-
-    return {nullptr, sin6_addr};
-  }
-
-  ::freeaddrinfo(result);
-  throw internal_error("getaddrinfo returned unsupported family");
-}
-
-}
-
 const char*
 gai_enum_error(int status) {
   switch (status) {
@@ -79,7 +40,7 @@ Resolver::init() {
 
 void
 Resolver::resolve_both(void* requester, const std::string& hostname, int family, both_callback&& callback) {
-  auto [sin, sin6] = try_resolve_numeric(hostname, family);
+  auto [sin, sin6] = try_lookup_numeric(hostname, family);
 
   if (sin || sin6) {
     m_thread->callback(requester, [family, callback = std::move(callback), sin = std::move(sin), sin6 = std::move(sin6)]() mutable {
@@ -107,7 +68,7 @@ Resolver::resolve_preferred(void* requester, const std::string& hostname, int fa
   if (preferred != AF_INET && preferred != AF_INET6)
     throw internal_error("Resolver::resolve_preferred() invalid preferred family.");
 
-  auto [sin, sin6] = try_resolve_numeric(hostname, family);
+  auto [sin, sin6] = try_lookup_numeric(hostname, family);
 
   if (sin || sin6) {
     sa_shared_ptr sa = sin ? sa_copy_in(sin.get()) : sa_copy_in6(sin6.get());
@@ -157,7 +118,7 @@ Resolver::resolve_specific(void* requester, const std::string& hostname, int fam
   if (family != AF_INET && family != AF_INET6)
     throw internal_error("Resolver::resolve_specific() invalid family.");
 
-  auto [sin, sin6] = try_resolve_numeric(hostname, family);
+  auto [sin, sin6] = try_lookup_numeric(hostname, family);
 
   if (sin || sin6) {
     sa_shared_ptr sa = sin ? sa_copy_in(sin.get()) : sa_copy_in6(sin6.get());

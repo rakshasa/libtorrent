@@ -4,7 +4,6 @@
 #include <iosfwd>
 #include <memory>
 
-#include "torrent/object.h"
 #include "tracker/tracker_worker.h"
 #include "torrent/net/http_get.h"
 #include "torrent/tracker/tracker_state.h"
@@ -27,6 +26,7 @@ public:
 
   void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
+
   void                close() override;
 
 private:
