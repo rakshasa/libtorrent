@@ -106,17 +106,19 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask, uint32_t ol
       throw internal_error("PollInternal::modify(): epoll_ctl(ADD) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
 
     case EPOLL_CTL_MOD:
+      if (errno == EBADF) {
+        LT_LOG_EVENT("modify event EPOLL_CTL_MOD failed with EBADF, clearing event", 0);
+        set_event_mask(event, 0);
+        return;
+      }
+
       if (errno == ENOENT) {
         LT_LOG_EVENT("modify event EPOLL_CTL_MOD failed with ENOENT", 0);
-        // TODO: We might be getting removed because EPOLLERR is not considered being in the poll?
-        //
-        // We still seem to be getting error events (verify with libcurl idle poll).
-        //
-        // Add a test here to see if we're moving from no events to some events, and only retry in that case.
 
         if (old_mask & (EPOLLIN | EPOLLOUT)) {
-          LT_LOG_EVENT("modify event EPOLL_CTL_MOD cannot retry as old mask had read/write", 0);
-          throw internal_error("PollInternal::modify(): epoll_ctl(MOD) error for event: " + event->print_name_fd_str() + " : in read/write but got ENOENT");
+          LT_LOG_EVENT("modify event EPOLL_CTL_MOD ENOENT with old read/write mask, clearing event", 0);
+          set_event_mask(event, 0);
+          return;
         }
 
         if (epoll_ctl(m_fd, EPOLL_CTL_ADD, event->file_descriptor(), &e) == 0) {
@@ -129,6 +131,12 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask, uint32_t ol
       throw internal_error("PollInternal::modify(): epoll_ctl(MOD) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
 
     case EPOLL_CTL_DEL:
+      if (errno == EBADF || errno == ENOENT) {
+        LT_LOG_EVENT("modify event EPOLL_CTL_DEL failed with %s, ignoring", std::strerror(errno));
+        set_event_mask(event, 0);
+        return;
+      }
+
       LT_LOG_EVENT("modify event EPOLL_CTL_DEL failed: %s", std::strerror(errno));
       throw internal_error("PollInternal::modify(): epoll_ctl(DEL) error for event: " + event->print_name_fd_str() + " : " + std::string(std::strerror(errno)));
 
