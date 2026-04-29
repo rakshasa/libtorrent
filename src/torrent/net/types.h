@@ -65,16 +65,16 @@ union sa_inet_union {
   sockaddr     sa;
 };
 
-namespace net {
-
 // TODO: Move to a separate header file.
-
-std::tuple<std::string, uint16_t> parse_uri_host_port(const std::string& uri) LIBTORRENT_EXPORT;
 
 c_sa_shared_ptr   sa_lookup_address(const std::string& address_str, int family) LIBTORRENT_EXPORT;
 sin46_shared_pair try_lookup_numeric(const std::string& hostname, int family) LIBTORRENT_EXPORT;
 
 const char*       family_str(int family) LIBTORRENT_EXPORT;
+
+namespace net {
+
+std::tuple<std::string, uint16_t> parse_uri_host_port(const std::string& uri) LIBTORRENT_EXPORT;
 
 } // namespace net
 
