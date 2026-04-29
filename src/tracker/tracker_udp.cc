@@ -49,14 +49,18 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Don't close fd for every new request.
   close_directly();
 
-  hostname_type hostname;
+  auto [hostname, port] = net::parse_uri_host_port(info().url);
 
-  if (!parse_udp_url(info().url, hostname, m_port))
-    return receive_failed("could not parse hostname or port");
+  if (hostname.empty())
+    return receive_failed("could not parse hostname from url");
+
+  if (port == 0)
+    return receive_failed("could not parse port from url");
 
   lock_and_set_latest_event(new_state);
 
-  m_send_state = new_state;
+  m_port             = port;
+  m_send_state       = new_state;
   m_sending_announce = true;
 
   LT_LOG("resolving hostname : address:%s", hostname.data());
@@ -98,20 +102,6 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 void
 TrackerUdp::send_scrape() {
   throw internal_error("Tracker type UDP does not support scrape.");
-}
-
-// TODO: Remove.
-bool
-TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) {
-  if (std::sscanf(url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
-      port > 0 && port < (1 << 16))
-    return true;
-
-  if (std::sscanf(url.c_str(), "udp://[%1023[^]]]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
-      port > 0 && port < (1 << 16))
-    return true;
-
-  return false;
 }
 
 // TODO: Controller should not need to close the tracker when starting a new request.
