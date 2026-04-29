@@ -746,6 +746,45 @@ sa_lookup_address(const std::string& address_str, int family) {
   }
 }
 
+//
+// Other types:
+//
+
+sin46_shared_pair
+try_lookup_numeric(const std::string& hostname, int family) {
+  addrinfo  hints{};
+  addrinfo* result{};
+
+  hints.ai_family   = family;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags    = AI_NUMERICHOST;
+
+  auto ret = ::getaddrinfo(hostname.c_str(), nullptr, &hints, &result);
+
+  if (ret == EAI_NONAME || ret == EAI_ADDRFAMILY)
+    return {nullptr, nullptr};
+
+  if (ret != 0)
+    throw internal_error("getaddrinfo failed: " + std::string(gai_strerror(ret)));
+
+  if (result->ai_family == AF_INET) {
+    sin_shared_ptr sin_addr = sin_copy(reinterpret_cast<sockaddr_in*>(result->ai_addr));
+    ::freeaddrinfo(result);
+
+    return {sin_addr, nullptr};
+  }
+
+  if (result->ai_family == AF_INET6) {
+    sin6_shared_ptr sin6_addr = sin6_copy(reinterpret_cast<sockaddr_in6*>(result->ai_addr));
+    ::freeaddrinfo(result);
+
+    return {nullptr, sin6_addr};
+  }
+
+  ::freeaddrinfo(result);
+  throw internal_error("getaddrinfo returned unsupported family");
+}
+
 sa_inet_union
 sa_inet_union_from_sa(const sockaddr* sa) {
   sa_inet_union su{};

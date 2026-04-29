@@ -37,7 +37,7 @@ DnsBuffer::~DnsBuffer() {
   }
 }
 
-// We don't try to resolve numeric addresses here, as that should be done in DnsCache or UdnsResolver.
+// Numeric addresses are resolved in torrent/net/resolver, with no use of ThreadNet.
 
 void
 DnsBuffer::resolve(void* requester, const std::string& hostname, int family, resolver_callback&& fn) {

@@ -100,6 +100,7 @@ TrackerUdp::send_scrape() {
   throw internal_error("Tracker type UDP does not support scrape.");
 }
 
+// TODO: Remove.
 bool
 TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) {
   if (std::sscanf(url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
