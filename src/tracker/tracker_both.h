@@ -9,8 +9,6 @@
 
 namespace torrent {
 
-class Both;
-
 class TrackerBoth : public TrackerWorker {
 public:
   using tracker_ptr = std::unique_ptr<TrackerWorker>;
