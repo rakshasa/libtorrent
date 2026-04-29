@@ -12,6 +12,7 @@
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "tracker/thread_tracker.h"
+#include "tracker/tracker_both.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_udp.h"
@@ -269,8 +270,6 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
 // TODO: Use proper flags for insert options.
 void
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
-  TrackerWorker* worker{};
-
   int flags = tracker::TrackerState::flag_enabled;
 
   if (extra_tracker)
@@ -284,15 +283,21 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   tracker_info.url = url;
   tracker_info.key = m_key;
 
-  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
-      std::strncmp("https://", url.c_str(), 8) == 0) {
-    worker = new TrackerHttp(tracker_info, flags);
+  if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
+    auto worker = std::make_shared<TrackerDht>(tracker_info, flags);
 
-  } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    worker = new TrackerUdp(tracker_info, flags);
+    insert(group, tracker::Tracker(std::move(worker)));
+    return;
+  }
 
-  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    worker = new TrackerDht(tracker_info, flags);
+  bool is_udp{};
+
+  if (std::strncmp("udp://", url.c_str(), 6) == 0) {
+    is_udp = true;
+
+  } else if (std::strncmp("http://", url.c_str(), 7) == 0 ||
+             std::strncmp("https://", url.c_str(), 8) == 0) {
+    is_udp = false;
 
   } else {
     LT_LOG("could find matching tracker protocol : url:%s", url.c_str());
@@ -303,7 +308,29 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     return;
   }
 
-  insert(group, tracker::Tracker(std::shared_ptr<TrackerWorker>(worker)));
+  auto [hostname, port] = net::parse_uri_host_port(url);
+
+  if (hostname.empty()) {
+    LT_LOG("could not parse hostname from url : url:%s", url.c_str());
+
+    if (extra_tracker)
+      throw torrent::input_error("could not parse hostname from url (url:" + url + ")");
+
+    return;
+  }
+
+  auto sin46_pair = net::try_lookup_numeric(hostname, AF_UNSPEC);
+
+  std::shared_ptr<TrackerWorker> worker;
+
+  if (sin46_pair.first == nullptr && sin46_pair.second == nullptr)
+    worker = std::make_shared<TrackerBoth>(tracker_info, flags, is_udp);
+  else if (is_udp)
+    worker = std::make_shared<TrackerUdp>(tracker_info, flags);
+  else
+    worker = std::make_shared<TrackerHttp>(tracker_info, flags);
+
+  insert(group, tracker::Tracker(std::move(worker)));
 }
 
 TrackerList::iterator

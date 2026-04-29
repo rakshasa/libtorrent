@@ -50,6 +50,7 @@ using c_sin6_shared_ptr = std::shared_ptr<const sockaddr_in6>;
 using c_sun_shared_ptr  = std::shared_ptr<const sockaddr_un>;
 
 using fd_sap_tuple      = std::tuple<int, sa_unique_ptr>;
+using sin46_shared_pair = std::pair<sin_shared_ptr, sin6_shared_ptr>;
 using resolver_callback = std::function<void(sin_shared_ptr, int, sin6_shared_ptr, int)>;
 
 struct listen_result_type {
@@ -63,6 +64,19 @@ union sa_inet_union {
   sockaddr_in  inet;
   sockaddr     sa;
 };
+
+namespace net {
+
+// TODO: Move to a separate header file.
+
+std::tuple<std::string, uint16_t> parse_uri_host_port(const std::string& uri) LIBTORRENT_EXPORT;
+
+c_sa_shared_ptr   sa_lookup_address(const std::string& address_str, int family) LIBTORRENT_EXPORT;
+sin46_shared_pair try_lookup_numeric(const std::string& hostname, int family) LIBTORRENT_EXPORT;
+
+const char*       family_str(int family) LIBTORRENT_EXPORT;
+
+} // namespace net
 
 } // namespace torrent
 

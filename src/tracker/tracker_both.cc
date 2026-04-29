@@ -7,32 +7,8 @@
 
 namespace torrent {
 
-TrackerBoth::TrackerBoth(const TrackerInfo& info, int flags)
+TrackerBoth::TrackerBoth(const TrackerInfo& info, int flags, bool is_udp)
   : TrackerWorker(info, flags) {
-
-  // TODO: Check the tracker URL to determine if we need to create one or both trackers, and what kind.
-
-  // m_inet_tracker = std::make_unique<TrackerHttp>(info, flags);
-  // m_inet6_tracker = std::make_unique<TrackerHttp>(info, flags);
-
-  // if (std::strncmp("http://", url.c_str(), 7) == 0 ||
-  //     std::strncmp("https://", url.c_str(), 8) == 0) {
-  //   worker = new TrackerHttp(tracker_info, flags);
-
-  // } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-  //   worker = new TrackerUdp(tracker_info, flags);
-
-  // } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-  //   worker = new TrackerDht(tracker_info, flags);
-
-  // } else {
-  //   LT_LOG("could find matching tracker protocol : url:%s", url.c_str());
-
-  //   if (extra_tracker)
-  //     throw torrent::input_error("could find matching tracker protocol (url:" + url + ")");
-
-  //   return;
-  // }
 
 
 
@@ -40,8 +16,6 @@ TrackerBoth::TrackerBoth(const TrackerInfo& info, int flags)
 
 
 
-
-
-
-
 }
+
+} // namespace torrent

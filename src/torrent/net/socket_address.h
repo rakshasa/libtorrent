@@ -101,12 +101,7 @@ std::string sin6_pretty_or_empty(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 // Other types:
 //
 
-c_sa_shared_ptr                            sa_lookup_address(const std::string& address_str, int family) LIBTORRENT_EXPORT;
-std::pair<sin_shared_ptr, sin6_shared_ptr> try_lookup_numeric(const std::string& hostname, int family) LIBTORRENT_EXPORT;
-
 sa_inet_union sa_inet_union_from_sa(const sockaddr* sa) LIBTORRENT_EXPORT;
-
-const char*   family_str(int family) LIBTORRENT_EXPORT;
 
 bool          fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) LIBTORRENT_EXPORT;
 

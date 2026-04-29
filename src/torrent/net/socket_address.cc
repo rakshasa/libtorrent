@@ -750,7 +750,7 @@ sa_lookup_address(const std::string& address_str, int family) {
 // Other types:
 //
 
-std::pair<sin_shared_ptr, sin6_shared_ptr>
+sin46_shared_pair
 try_lookup_numeric(const std::string& hostname, int family) {
   addrinfo  hints{};
   addrinfo* result{};

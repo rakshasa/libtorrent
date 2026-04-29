@@ -13,7 +13,9 @@ class Both;
 
 class TrackerBoth : public TrackerWorker {
 public:
-  TrackerBoth(const TrackerInfo& info, int flags = 0);
+  using tracker_ptr = std::unique_ptr<TrackerWorker>;
+
+  TrackerBoth(const TrackerInfo& info, int flags, bool is_udp);
   ~TrackerBoth() override;
 
   tracker_enum        type() const override;
@@ -34,8 +36,8 @@ private:
   void                process_success(const Object& object);
   void                process_scrape(const Object& object);
 
-  std::unique_ptr<TrackerWorker> m_inet_tracker;
-  std::unique_ptr<TrackerWorker> m_inet6_tracker;
+  tracker_ptr         m_inet_tracker;
+  tracker_ptr         m_inet6_tracker;
 };
 
 } // namespace torrent
