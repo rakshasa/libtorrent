@@ -16,6 +16,7 @@
 namespace torrent::net {
 
 // TODO: This should be in a net/utils file.
+// TODO: Require scheme to also be returned / checked?
 
 std::tuple<std::string, uint16_t>
 parse_uri_host_port(const std::string& uri) {
@@ -23,7 +24,7 @@ parse_uri_host_port(const std::string& uri) {
   char*  port_ptr{};
   CURLU* curlu = curl_url();
 
-  if (curl_url_set(curlu, CURLUPART_URL, uri.c_str(), 0) != CURLUE_OK) {
+  if (curl_url_set(curlu, CURLUPART_URL, uri.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK) {
     curl_url_cleanup(curlu);
     return {"", 0};
   }

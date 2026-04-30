@@ -74,10 +74,8 @@ private:
   std::unique_ptr<WriteBuffer> m_write_buffer;
 
   uint32_t            m_tries{};
-  uint32_t            m_failed_since_last_resolved{};
 
-  utils::SchedulerEntry     m_task_timeout;
-  std::chrono::microseconds m_time_last_resolved{};
+  utils::SchedulerEntry m_task_timeout;
 };
 
 } // namespace torrent
