@@ -274,9 +274,8 @@ DhtServer::check_search_completed(std::shared_ptr<dht::DhtSearch> search) {
 
   auto itr = m_searches.find(search);
 
-  // TODO: Insert?
   if (itr == m_searches.end())
-    throw internal_error("DhtServer::mark_search_completed search not found.");
+    return; // throw internal_error("DhtServer::mark_search_completed search not found.");
 
   // TODO: Verify we got ref_count == 2.
 
@@ -721,14 +720,14 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
     }
   }
 
-  if (quick) {
-    return ++itr;         // don't actually delete the transaction until the final timeout
+  // don't actually delete the transaction until the final timeout
+  if (quick)
+    return ++itr;
 
-  } else {
-    drop_packet(transaction->packet().get());
-    m_transactions.erase(itr++);
-    return itr;
-  }
+  drop_packet(transaction->packet().get());
+
+  m_transactions.erase(itr++);
+  return itr;
 }
 
 void
@@ -933,6 +932,7 @@ DhtServer::start_write() {
 void
 DhtServer::receive_timeout() {
   auto itr = m_transactions.begin();
+
   while (itr != m_transactions.end()) {
     if (itr->second->has_quick_timeout() && itr->second->quick_timeout() < this_thread::cached_seconds().count()) {
       itr = failed_transaction(itr, true);
