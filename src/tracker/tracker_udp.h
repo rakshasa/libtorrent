@@ -14,8 +14,6 @@ namespace torrent {
 
 class TrackerUdp : public SocketDatagram, public TrackerWorker {
 public:
-  using hostname_type = std::array<char, 1024>;
-
   using ReadBuffer  = ProtocolBuffer<512>;
   using WriteBuffer = ProtocolBuffer<512>;
 
@@ -58,8 +56,6 @@ private:
   bool                process_announce_output();
   bool                process_error_output();
 
-  static bool         parse_udp_url(const std::string& url, hostname_type& hostname, int& port);
-
   bool                m_resolver_requesting{};
   bool                m_sending_announce{};
 
@@ -78,10 +74,8 @@ private:
   std::unique_ptr<WriteBuffer> m_write_buffer;
 
   uint32_t            m_tries{};
-  uint32_t            m_failed_since_last_resolved{};
 
-  utils::SchedulerEntry     m_task_timeout;
-  std::chrono::microseconds m_time_last_resolved{};
+  utils::SchedulerEntry m_task_timeout;
 };
 
 } // namespace torrent

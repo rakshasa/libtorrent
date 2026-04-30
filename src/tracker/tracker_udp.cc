@@ -26,6 +26,7 @@
 namespace torrent {
 
 // TODO: Rewrite this to do resolve every time, since we now have a cache?
+// TODO: Add UDP listening socket used by all UDP trackers, make it handle retries and timeouts. It waits for reply.
 
 TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
   TrackerWorker(info, flags) {
@@ -49,14 +50,18 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Don't close fd for every new request.
   close_directly();
 
-  hostname_type hostname;
+  auto [hostname, port] = net::parse_uri_host_port(info().url);
 
-  if (!parse_udp_url(info().url, hostname, m_port))
-    return receive_failed("could not parse hostname or port");
+  if (hostname.empty())
+    return receive_failed("could not parse hostname from url");
+
+  if (port == 0)
+    return receive_failed("could not parse port from url");
 
   lock_and_set_latest_event(new_state);
 
-  m_send_state = new_state;
+  m_port             = port;
+  m_send_state       = new_state;
   m_sending_announce = true;
 
   LT_LOG("resolving hostname : address:%s", hostname.data());
@@ -64,53 +69,30 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Also check failed counter....
   // TODO: Check for changes to block (NC should instead clear us on network changes)
 
-  // TODO: Change to always do resolve and rely on cache.
+  int family = AF_UNSPEC;
+  bool block_ipv4 = config::network_config()->is_block_ipv4();
+  bool block_ipv6 = config::network_config()->is_block_ipv6();
 
-  if ((m_inet_address == nullptr && m_inet6_address == nullptr) ||
-      (this_thread::cached_time() - m_time_last_resolved) > 24h ||
-      m_failed_since_last_resolved > 3) {
+  if (block_ipv4 && block_ipv6)
+    return receive_failed("cannot send tracker event, both IPv4 and IPv6 are blocked");
+  else if (block_ipv4)
+    family = AF_INET6;
+  else if (block_ipv6)
+    family = AF_INET;
 
-    int family = AF_UNSPEC;
-    bool block_ipv4 = config::network_config()->is_block_ipv4();
-    bool block_ipv6 = config::network_config()->is_block_ipv6();
+  m_resolver_requesting = true;
 
-    if (block_ipv4 && block_ipv6)
-      return receive_failed("cannot send tracker event, both IPv4 and IPv6 are blocked");
-    else if (block_ipv4)
-      family = AF_INET6;
-    else if (block_ipv6)
-      family = AF_INET;
+  auto fn = [this](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
+      receive_resolved(sin, err, sin6, err6);
+    };
 
-    m_resolver_requesting = true;
-
-    auto fn = [this](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
-        receive_resolved(sin, err, sin6, err6);
-      };
-
-    // Currently discarding SOCK_DGRAM filter.
-    this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family, std::move(fn));
-    return;
-  }
-
-  start_announce();
+  // Currently discarding SOCK_DGRAM filter.
+  this_thread::resolver()->resolve_both(static_cast<TrackerWorker*>(this), hostname.data(), family, std::move(fn));
 }
 
 void
 TrackerUdp::send_scrape() {
   throw internal_error("Tracker type UDP does not support scrape.");
-}
-
-bool
-TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) {
-  if (std::sscanf(url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
-      port > 0 && port < (1 << 16))
-    return true;
-
-  if (std::sscanf(url.c_str(), "udp://[%1023[^]]]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
-      port > 0 && port < (1 << 16))
-    return true;
-
-  return false;
 }
 
 // TODO: Controller should not need to close the tracker when starting a new request.
@@ -157,14 +139,13 @@ TrackerUdp::type() const {
 
 void
 TrackerUdp::receive_failed(const std::string& msg) {
-  m_failed_since_last_resolved++;
+  LT_LOG("received failure : hostname:%s port:%u msg:'%s'", sa_pretty_str(m_current_address).c_str(), m_port, msg.c_str());
 
   close_directly();
+
   m_slot_failure(msg);
 }
 
-// TODO: Only resolve when we don't have a valid address, failed too many times or network change
-// events.
 void
 TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
   if (std::this_thread::get_id() != torrent::main_thread::thread_id())
@@ -184,22 +165,18 @@ TrackerUdp::receive_resolved(c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& 
                           "' sin6_error:'" + std::string(gai_strerror(err6)) + "'");
   }
 
+  m_inet_address = nullptr;
+  m_inet6_address = nullptr;
+
   if (sin != nullptr) {
     m_inet_address = sin_copy(sin.get());
     sa_set_port(reinterpret_cast<sockaddr*>(m_inet_address.get()), m_port);
-  } else {
-    m_inet_address = nullptr;
   }
 
   if (sin6 != nullptr) {
     m_inet6_address = sin6_copy(sin6.get());
     sa_set_port(reinterpret_cast<sockaddr*>(m_inet6_address.get()), m_port);
-  } else {
-    m_inet6_address = nullptr;
   }
-
-  m_time_last_resolved = this_thread::cached_time();
-  m_failed_since_last_resolved = 0;
 
   start_announce();
 }
@@ -243,11 +220,11 @@ TrackerUdp::start_announce() {
     }
 
   } else if (m_inet_address != nullptr) {
-    bind_address = config::network_config()->bind_address_for_connect(AF_INET);
+    bind_address      = config::network_config()->bind_address_for_connect(AF_INET);
     m_current_address = reinterpret_cast<sockaddr*>(m_inet_address.get());
 
   } else if (m_inet6_address != nullptr) {
-    bind_address = config::network_config()->bind_address_for_connect(AF_INET6);
+    bind_address      = config::network_config()->bind_address_for_connect(AF_INET6);
     m_current_address = reinterpret_cast<sockaddr*>(m_inet6_address.get());
 
   } else {

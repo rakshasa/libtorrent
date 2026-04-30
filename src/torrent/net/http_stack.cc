@@ -3,6 +3,8 @@
 #include "torrent/net/http_stack.h"
 
 #include <cassert>
+#include <charconv>
+#include <curl/curl.h>
 
 #include "net/curl_get.h"
 #include "net/curl_stack.h"
@@ -12,6 +14,46 @@
 #include "torrent/system/thread.h"
 
 namespace torrent::net {
+
+// TODO: This should be in a net/utils file.
+// TODO: Require scheme to also be returned / checked?
+
+std::tuple<std::string, uint16_t>
+parse_uri_host_port(const std::string& uri) {
+  char*  host_ptr{};
+  char*  port_ptr{};
+  CURLU* curlu = curl_url();
+
+  if (curl_url_set(curlu, CURLUPART_URL, uri.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK) {
+    curl_url_cleanup(curlu);
+    return {"", 0};
+  }
+
+  if (curl_url_get(curlu, CURLUPART_HOST, &host_ptr, 0) != CURLUE_OK) {
+    curl_url_cleanup(curlu);
+    return {"", 0};
+  }
+
+  std::string host(host_ptr);
+  uint16_t    port{};
+
+  curl_free(host_ptr);
+
+  if (curl_url_get(curlu, CURLUPART_PORT, &port_ptr, 0) != CURLUE_OK) {
+    curl_url_cleanup(curlu);
+    return {host, 0};
+  }
+
+  auto result = std::from_chars(port_ptr, port_ptr + std::strlen(port_ptr), port);
+
+  curl_free(port_ptr);
+  curl_url_cleanup(curlu);
+
+  if (result.ec != std::errc())
+     return {"", 0};
+
+  return {host, port};
+}
 
 HttpStack::HttpStack(system::Thread* thread) :
     m_stack(new CurlStack(thread)) {
