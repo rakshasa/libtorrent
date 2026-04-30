@@ -32,6 +32,9 @@ public:
 private:
   void                close_directly();
 
+  void                send_event_unsafe(tracker::TrackerState::event_enum state, int family);
+  bool                send_next_family();
+
   void                request_prefix(std::stringstream* stream, const std::string& url);
   std::string         request_announce_url(tracker::TrackerState::event_enum state, TrackerParameters params, int family);
 
@@ -49,6 +52,8 @@ private:
 
   net::HttpGet                       m_get;
   std::shared_ptr<std::stringstream> m_data;
+
+  int                   m_next_family{};
 
   bool                  m_drop_deliminator{};
   std::string           m_current_tracker_id;
