@@ -53,10 +53,10 @@ Thread::start_thread() {
 
   init_thread_pre_start();
 
-#ifdef USE_MUSL_LIBC
+#ifdef USE_PTHREAD_SETSTACKSIZE
   pthread_attr_t attr;
   pthread_attr_init(&attr);
-  pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+  pthread_attr_setstacksize(&attr, DEFAULT_PTHREAD_STACKSIZE);
 
   if (pthread_create(&m_thread, &attr, &Thread::enter_event_loop, this)) {
     pthread_attr_destroy(&attr);
