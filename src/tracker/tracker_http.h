@@ -54,8 +54,9 @@ private:
   std::shared_ptr<std::stringstream> m_data;
 
   int                   m_next_family{};
+  bool                  m_last_success{};
+  std::string           m_last_error_message;
 
-  bool                  m_drop_deliminator{};
   std::string           m_current_tracker_id;
 
   bool                  m_requested_scrape{};

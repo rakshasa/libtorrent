@@ -32,8 +32,7 @@ namespace torrent {
 // TODO: Make sure stopped events are finished before deleting a torrent. (disown the request)
 
 TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags)
-  : TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags),
-    m_drop_deliminator(utils::uri_has_query(info.url)) {
+  : TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags) {
 
   m_get.reset(info.url, nullptr);
 
@@ -102,6 +101,9 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
     m_next_family = AF_INET6;
   }
 
+  m_last_success       = false;
+  m_last_error_message = "";
+
   send_event_unsafe(new_state, family);
 }
 
@@ -120,6 +122,7 @@ TrackerHttp::send_scrape() {
   }
 
   LT_LOG("scrape requested : url:%s", info().url.c_str());
+
   this_thread::scheduler()->update_wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
@@ -175,7 +178,7 @@ TrackerHttp::send_next_family() {
 void
 TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
   *stream << url
-          << (m_drop_deliminator ? '&' : '?')
+          << (utils::uri_has_query(url) ? '&' : '?')
           << "info_hash=" << utils::copy_escape_html_str(info().info_hash);
 }
 
@@ -265,7 +268,11 @@ TrackerHttp::delayed_send_scrape() {
   m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
 
+  m_last_success       = true;
+  m_last_error_message = "";
+
   LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
+
   torrent::net_thread::http_stack()->start_get(m_get);
 }
 
@@ -384,12 +391,23 @@ TrackerHttp::receive_failed(const std::string& msg) {
 
   if (send_next_family()) {
     LT_LOG("received failure : retrying next family : url:%s : %s", info().url.c_str(), msg.c_str());
+    m_last_success       = false;
+    m_last_error_message = msg;
     return;
   }
 
-  LT_LOG("received failure : url:%s : %s", info().url.c_str(), msg.c_str());
+  if (m_last_success) {
+    LT_LOG("received failure : previous family succeeded : url:%s : %s", info().url.c_str(), msg.c_str());
+    m_slot_success(AddressList());
 
-  m_slot_failure(msg);
+  } else if (!m_last_error_message.empty()) {
+    LT_LOG("received failure : previous family also failed : url:%s : %s /// %s", info().url.c_str(), msg.c_str(), m_last_error_message.c_str());
+    m_slot_failure(msg + " /// " + m_last_error_message);
+
+  } else {
+    LT_LOG("received failure : url:%s : %s", info().url.c_str(), msg.c_str());
+    m_slot_failure(msg);
+  }
 
   if (m_requested_scrape && !is_busy())
     this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
@@ -477,6 +495,9 @@ TrackerHttp::process_success(const Object& object) {
   close_directly();
 
   if (send_next_family()) {
+    m_last_success       = true;
+    m_last_error_message = "";
+
     m_slot_new_peers(std::move(address_list));
     return;
   }
