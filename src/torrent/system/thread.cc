@@ -53,8 +53,21 @@ Thread::start_thread() {
 
   init_thread_pre_start();
 
+#ifdef USE_MUSL_LIBC
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+
+  if (pthread_create(&m_thread, &attr, &Thread::enter_event_loop, this)) {
+    pthread_attr_destroy(&attr);
+    throw internal_error("Failed to create thread.");
+  }
+
+  pthread_attr_destroy(&attr);
+#else
   if (pthread_create(&m_thread, nullptr, &Thread::enter_event_loop, this))
     throw internal_error("Failed to create thread.");
+#endif
 
   while (m_state != STATE_ACTIVE)
     usleep(100);

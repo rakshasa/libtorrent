@@ -87,6 +87,13 @@ fi
 AX_PTHREAD
 CHECK_ATOMIC
 
+AC_CANONICAL_HOST
+case "$host" in
+  *-musl*)
+    AC_DEFINE([USE_MUSL_LIBC], [1], [Building with musl libc])
+    ;;
+esac
+
 PKG_CHECK_MODULES([LIBCURL], [libcurl],, [LIBCURL_CHECK_CONFIG])
 PKG_CHECK_MODULES([CPPUNIT], [cppunit],, [no_cppunit="yes"])
 PKG_CHECK_MODULES([ZLIB], [zlib])
