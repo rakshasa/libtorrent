@@ -54,6 +54,7 @@ protected:
 
   void                lock_and_clear_intervals();
   void                lock_and_clear_stats();
+  auto                lock_and_latest_event();
   void                lock_and_set_latest_event(tracker::TrackerState::event_enum new_state);
 
   void                lock() const                          { m_mutex.lock(); }
@@ -106,6 +107,8 @@ private:
   tracker::TrackerState m_state{};
   std::string           m_tracker_id;
   uint32_t              m_group{0};
+
+  std::mutex            __force_new_cacheline;
 };
 
 inline void
@@ -118,6 +121,12 @@ inline void
 TrackerWorker::lock_and_clear_stats() {
   auto guard = lock_guard();
   m_state.clear_stats();
+}
+
+inline auto
+TrackerWorker::lock_and_latest_event() {
+  auto guard = lock_guard();
+  return m_state.m_latest_event;
 }
 
 inline void
