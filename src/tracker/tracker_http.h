@@ -34,7 +34,8 @@ private:
   void                close_directly();
 
   void                send_event_unsafe(tracker::TrackerState::event_enum state);
-  bool                send_next_family();
+  void                send_scrape_unsafe();
+  bool                send_next_family(bool scrape = false);
 
   void                delayed_send_scrape();
 

@@ -94,18 +94,7 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
 
   lock_and_set_latest_event(new_state);
 
-  // TODO: Move to network config and add simple retry other AF logic.
-  //
-  // TODO: We need to handle retry logic here, not in http stack, as we need to change the bind
-  // address? Or is this handled by the http stack?
-  //
-  // TODO: We need to include ipv4/ipv6 param in tracker requests if we bind to the other, so it
-  // needs to be handled here.
-
   auto [current_family, next_family] = request_families();
-
-  if (current_family == AF_UNSPEC)
-    throw internal_error("TrackerHttp::send_event() cannot send event, no valid address family to use.");
 
   m_current_family = current_family;
   m_next_family    = next_family;
@@ -150,10 +139,9 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   else if (m_current_family == AF_INET6)
     m_get.use_ipv6();
   else
-    throw torrent::internal_error("TrackerHttp::send_event_unsafe() called with invalid address family.");
+    throw torrent::internal_error("TrackerHttp::send_event_unsafe() cannot send event, no valid address family to use.");
 
   LT_LOG("sending event : state:%s family:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family), info().url.c_str());
-
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s family:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
               option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
@@ -162,8 +150,30 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   torrent::net_thread::http_stack()->start_get(m_get);
 }
 
+void
+TrackerHttp::send_scrape_unsafe() {
+  auto request_url = request_prefix(utils::uri_generate_scrape_url(info().url)).str();
+
+  m_data = std::make_unique<std::stringstream>();
+
+  m_get.try_wait_for_close();
+  m_get.reset(request_url, m_data);
+
+  if (m_current_family == AF_INET)
+    m_get.use_ipv4();
+  else if (m_current_family == AF_INET6)
+    m_get.use_ipv6();
+  else
+    throw torrent::internal_error("TrackerHttp::send_scrape_unsafe() cannot send event, no valid address family to use.");
+
+  LT_LOG("sending scrape : family:%s url:%s", family_str(m_current_family), info().url.c_str());
+  LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
+
+  torrent::net_thread::http_stack()->start_get(m_get);
+}
+
 bool
-TrackerHttp::send_next_family() {
+TrackerHttp::send_next_family(bool scrape) {
   if (m_next_family == AF_UNSPEC)
     return false;
 
@@ -178,7 +188,11 @@ TrackerHttp::send_next_family() {
       (m_current_family == AF_INET6 && config::network_config()->is_block_ipv6()))
     return false;
 
-  send_event_unsafe(state);
+  if (scrape)
+    send_scrape_unsafe();
+  else
+    send_event_unsafe(state);
+
   return true;
 }
 
@@ -193,17 +207,7 @@ TrackerHttp::delayed_send_scrape() {
 
   lock_and_set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
 
-  std::string request_url = request_prefix(utils::uri_generate_scrape_url(info().url)).str();
-
-  m_data = std::make_unique<std::stringstream>();
-
-  m_get.try_wait_for_close();
-  m_get.reset(request_url, m_data);
-
   auto [current_family, next_family] = request_families();
-
-  if (current_family == AF_UNSPEC)
-    throw internal_error("TrackerHttp::delayed_send_scrape() cannot send scrape, no valid address family to use.");
 
   m_current_family = current_family;
   m_next_family    = next_family;
@@ -211,10 +215,7 @@ TrackerHttp::delayed_send_scrape() {
   m_last_success       = true;
   m_last_error_message = "";
 
-  LT_LOG("sending delayed scrape request : family:%s url:%s", family_str(m_current_family), info().url.c_str());
-  LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
-
-  torrent::net_thread::http_stack()->start_get(m_get);
+  send_scrape_unsafe();
 }
 
 std::stringstream
@@ -401,15 +402,16 @@ TrackerHttp::receive_failed(const std::string& msg) {
   close_directly();
 
   if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE) {
-    LT_LOG("received scrape failure : url:%s : %s", info().url.c_str(), msg.c_str());
+    if (send_next_family(true))
+      return;
 
+    LT_LOG("received scrape failure : url:%s : %s", info().url.c_str(), msg.c_str());
     m_requested_scrape = false;
     m_slot_scrape_failure(msg);
     return;
   }
 
   if (send_next_family()) {
-    LT_LOG("received failure : retrying next family : url:%s : %s", info().url.c_str(), msg.c_str());
     m_last_success       = false;
     m_last_error_message = msg;
     return;
