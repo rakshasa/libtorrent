@@ -32,15 +32,29 @@ namespace torrent {
 // TODO: Make sure stopped events are finished before deleting a torrent. (disown the request)
 // TODO: If scrape fails, try next family.
 
-TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags)
-  : TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags) {
+TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
+  : TrackerWorker(raw_info, utils::uri_can_scrape(raw_info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags) {
 
-  m_get.reset(info.url, nullptr);
+  m_get.reset(raw_info.url, nullptr);
 
   m_get.add_done_slot([this] { receive_done(); });
   m_get.add_failed_slot([this](const auto& str) { receive_signal_failed(str); });
 
   m_delay_scrape.slot() = [this] { delayed_send_scrape(); };
+
+  auto [hostname, port] = net::parse_uri_host_port(raw_info.url);
+
+  if (hostname.empty())
+    return;
+
+  auto [sa_inet, sa_inet6] = try_lookup_numeric(hostname, AF_UNSPEC);
+
+  if (sa_inet)
+    m_hostname_family = AF_INET;
+  else if (sa_inet6)
+    m_hostname_family = AF_INET6;
+  else
+    m_hostname_family = AF_UNSPEC;
 }
 
 TrackerHttp::~TrackerHttp() {
@@ -101,6 +115,11 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
 
   m_last_success       = false;
   m_last_error_message = "";
+
+  if (m_current_family == AF_UNSPEC) {
+    LT_LOG("send event : no valid address family available : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
+    return receive_failed("No valid address family available.");
+  }
 
   send_event_unsafe(new_state);
 }
@@ -174,11 +193,11 @@ TrackerHttp::send_scrape_unsafe() {
 
 bool
 TrackerHttp::send_next_family(bool scrape) {
-  if (m_next_family == AF_UNSPEC)
-    return false;
-
   m_current_family = m_next_family;
   m_next_family    = AF_UNSPEC;
+
+  if (m_current_family == AF_UNSPEC)
+    return false;
 
   auto state = lock_and_latest_event();
 
@@ -212,8 +231,13 @@ TrackerHttp::delayed_send_scrape() {
   m_current_family = current_family;
   m_next_family    = next_family;
 
-  m_last_success       = true;
+  m_last_success       = false;
   m_last_error_message = "";
+
+  if (m_current_family == AF_UNSPEC) {
+    LT_LOG("send scrape : no valid address family available : url:%s", info().url.c_str());
+    return;
+  }
 
   send_scrape_unsafe();
 }
@@ -293,6 +317,20 @@ TrackerHttp::request_families() {
   bool is_block_ipv4  = config::network_config()->is_block_ipv4();
   bool is_block_ipv6  = config::network_config()->is_block_ipv6();
   bool is_prefer_ipv6 = config::network_config()->is_prefer_ipv6();
+
+  if (m_hostname_family == AF_INET) {
+    if (is_block_ipv4)
+      return {AF_UNSPEC, AF_UNSPEC};
+
+    return {AF_INET, AF_UNSPEC};
+  }
+
+  if (m_hostname_family == AF_INET6) {
+    if (is_block_ipv6)
+      return {AF_UNSPEC, AF_UNSPEC};
+
+    return {AF_INET6, AF_UNSPEC};
+  }
 
   // If both IPv4 and IPv6 are blocked, we cannot send the request.
   //
@@ -391,8 +429,11 @@ TrackerHttp::receive_signal_failed(const std::string& msg) {
 
 void
 TrackerHttp::receive_failed(const std::string& msg) {
-  if (m_data == nullptr)
-    throw internal_error("TrackerHttp::receive_failed() called on an invalid object");
+  if (m_data == nullptr) {
+    LT_LOG("received failure with no data : url:%s : %s", info().url.c_str(), msg.c_str());
+    m_slot_failure(msg);
+    return;
+  }
 
   if (lt_log_is_valid(LOG_TRACKER_DUMP)) {
     std::string dump = m_data->str();

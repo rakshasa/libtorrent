@@ -56,6 +56,7 @@ private:
   net::HttpGet                       m_get;
   std::shared_ptr<std::stringstream> m_data;
 
+  int                   m_hostname_family{};
   int                   m_current_family{};
   int                   m_next_family{};
 
