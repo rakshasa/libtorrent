@@ -28,8 +28,11 @@ namespace torrent {
 // TODO: Rewrite this to do resolve every time, since we now have a cache?
 // TODO: Add UDP listening socket used by all UDP trackers, make it handle retries and timeouts. It waits for reply.
 
-TrackerUdp::TrackerUdp(const TrackerInfo& info, int flags) :
-  TrackerWorker(info, flags) {
+TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
+  TrackerWorker(raw_info, flags) {
+
+  if (info().key == 0)
+    throw internal_error("TrackerUdp cannot be created with key 0.");
 
   m_task_timeout.slot() = [this] { receive_timeout(); };
 }
@@ -389,6 +392,7 @@ TrackerUdp::prepare_announce_input() {
 
   auto local_address = config::network_config()->local_inet_address();
 
+  // TODO: Set to 0 when sending using IPv6.
   if (local_address->sa_family == AF_INET)
     m_write_buffer->write_32_n(reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr);
   else

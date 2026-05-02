@@ -56,6 +56,9 @@ private:
   bool                process_announce_output();
   bool                process_error_output();
 
+  // TODO: Create a helper struct for connections (retries, failures, etc) and use that for each
+  // inet/inet6 for both http and udp trackers.
+
   bool                m_resolver_requesting{};
   bool                m_sending_announce{};
 
