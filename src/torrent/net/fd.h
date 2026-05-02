@@ -18,7 +18,7 @@ enum fd_flags : int {
   fd_flag_all           = 0x1ff,
 };
 
-constexpr bool fd_valid_flags(fd_flags flags);
+constexpr bool  fd_valid_flags(fd_flags flags);
 
 int             fd_open(fd_flags flags) LIBTORRENT_EXPORT;
 int             fd_open_family(fd_flags flags, int family) LIBTORRENT_EXPORT;

@@ -42,6 +42,7 @@ protected:
   friend class runtime::SocketManager;
 
   void                set_file_descriptor(int fd);
+  void                set_socket_address(c_sa_unique_ptr address);
 
   bool                update_socket_address();
   bool                update_peer_address();

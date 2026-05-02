@@ -15,7 +15,7 @@ public:
   int                 write_datagram(const void* buffer, unsigned int length);
 
   int                 read_datagram_sa(void* buffer, unsigned int length, sockaddr* from_sa, socklen_t from_length);
-  int                 write_datagram_sa(const void* buffer, unsigned int length, sockaddr* sa);
+  int                 write_datagram_sa(const void* buffer, unsigned int length, const sockaddr* sa);
 };
 
 } // namespace torrent
