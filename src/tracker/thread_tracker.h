@@ -10,7 +10,10 @@
 namespace torrent {
 
 namespace tracker {
+
 class Manager;
+class UdpRouter;
+
 } // namespace tracker
 
 struct TrackerSendEvent {
@@ -33,6 +36,9 @@ public:
 
   tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
 
+  auto                  udp_inet_router() { return m_udp_inet_router.get(); }
+  auto                  udp_inet6_router() { return m_udp_inet6_router.get(); }
+
   // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
 
 protected:
@@ -46,9 +52,12 @@ private:
 
   // void                process_send_events();
 
-  static std::atomic<ThreadTracker*> m_thread_tracker;
+  static std::atomic<ThreadTracker*>  m_thread_tracker;
 
-  std::unique_ptr<tracker::Manager>  m_tracker_manager;
+  std::unique_ptr<tracker::Manager>   m_tracker_manager;
+  std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;
+  std::unique_ptr<tracker::UdpRouter> m_udp_inet6_router;
+
   unsigned int                       m_signal_send_event{~0u};
 
   // std::mutex                    m_send_events_lock;

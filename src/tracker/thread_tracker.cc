@@ -4,6 +4,7 @@
 
 #include <cassert>
 
+#include "tracker/udp_router.h"
 #include "torrent/exceptions.h"
 #include "torrent/tracker/manager.h"
 #include "utils/instrumentation.h"
@@ -20,6 +21,9 @@ ThreadTracker::create_thread(system::Thread* main_thread) {
 
   m_thread_tracker = new ThreadTracker();
   m_thread_tracker.load()->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
+
+  m_thread_tracker.load()->m_udp_inet_router = std::make_unique<tracker::UdpRouter>();
+  m_thread_tracker.load()->m_udp_inet_router->open(AF_INET);
 }
 
 void
@@ -47,6 +51,12 @@ ThreadTracker::init_thread() {
 void
 ThreadTracker::cleanup_thread() {
   m_tracker_manager.reset();
+
+  m_udp_inet_router->close();
+  m_udp_inet_router.reset();
+
+  // m_udp_inet6_router->close();
+  // m_udp_inet6_router.reset();
 }
 
 // void
