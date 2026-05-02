@@ -58,6 +58,7 @@ private:
   void                event_error() override;
 
   // TODO: Add timeout queue.
+  // TODO: Use deque for write queue, zero out connection_info when removing.
 
   connection_map      m_connections;
   queue_type          m_write_queue;
