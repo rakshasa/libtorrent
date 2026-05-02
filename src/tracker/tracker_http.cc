@@ -30,6 +30,7 @@
 namespace torrent {
 
 // TODO: Make sure stopped events are finished before deleting a torrent. (disown the request)
+// TODO: If scrape fails, try next family.
 
 TrackerHttp::TrackerHttp(const TrackerInfo& info, int flags)
   : TrackerWorker(info, utils::uri_can_scrape(info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags) {
@@ -58,6 +59,35 @@ TrackerHttp::is_busy() const {
 }
 
 void
+TrackerHttp::close() {
+  LT_LOG("closing event : state:%s url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
+  this_thread::scheduler()->erase(&m_delay_scrape);
+  m_requested_scrape = false;
+
+  close_directly();
+}
+
+void
+TrackerHttp::close_directly() {
+  if (m_data == nullptr) {
+    // LT_LOG("closing directly (already closed) : state:%s url:%s",
+    //        option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
+    m_slot_close();
+    return;
+  }
+
+  LT_LOG("closing directly : state:%s family:%s url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), family_str(m_current_family), info().url.c_str());
+
+  m_slot_close();
+  m_get.close_and_cancel_callbacks(this_thread::thread());
+  m_data.reset();
+}
+
+void
 TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   close_directly();
   this_thread::scheduler()->erase(&m_delay_scrape);
@@ -72,47 +102,24 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: We need to include ipv4/ipv6 param in tracker requests if we bind to the other, so it
   // needs to be handled here.
 
-  bool is_block_ipv4 = config::network_config()->is_block_ipv4();
-  bool is_block_ipv6 = config::network_config()->is_block_ipv6();
-  bool is_prefer_ipv6 = config::network_config()->is_prefer_ipv6();
+  auto [current_family, next_family] = request_families();
 
-  int family = AF_UNSPEC;
+  if (current_family == AF_UNSPEC)
+    throw internal_error("TrackerHttp::send_event() cannot send event, no valid address family to use.");
 
-  // If both IPv4 and IPv6 are blocked, we cannot send the request.
-  //
-  // TODO: Properly handle this case without throwing an error.
-
-  if (is_block_ipv4 && is_block_ipv6)
-    throw torrent::internal_error("Cannot send tracker event, both IPv4 and IPv6 are blocked.");
-
-  // TODO: When sending 'stopped', only send to confirmed working protocol.
-
-  if (is_block_ipv4) {
-    family        = AF_INET6;
-    m_next_family = AF_UNSPEC;
-  } else if (is_block_ipv6) {
-    family        = AF_INET;
-    m_next_family = AF_UNSPEC;
-  } else if (is_prefer_ipv6) {
-    family        = AF_INET6;
-    m_next_family = AF_INET;
-  } else {
-    family        = AF_INET;
-    m_next_family = AF_INET6;
-  }
+  m_current_family = current_family;
+  m_next_family    = next_family;
 
   m_last_success       = false;
   m_last_error_message = "";
 
-  send_event_unsafe(new_state, family);
+  send_event_unsafe(new_state);
 }
 
 void
 TrackerHttp::send_scrape() {
-  if (m_requested_scrape) {
-    LT_LOG("scrape already requested : url:%s", info().url.c_str());
+  if (m_requested_scrape)
     return;
-  }
 
   m_requested_scrape = true;
 
@@ -127,29 +134,29 @@ TrackerHttp::send_scrape() {
 }
 
 void
-TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state, int family) {
+TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   // TODO: When retrying next protocol, recheck network_config (do in caller)
 
-  auto params = m_slot_parameters();
-  auto request_url = request_announce_url(state, params, family);
+  auto params      = m_slot_parameters();
+  auto request_url = request_announce_url(state, params, m_current_family);
 
   m_data = std::make_unique<std::stringstream>();
 
   m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
 
-  if (family == AF_INET)
+  if (m_current_family == AF_INET)
     m_get.use_ipv4();
-  else if (family == AF_INET6)
+  else if (m_current_family == AF_INET6)
     m_get.use_ipv6();
   else
     throw torrent::internal_error("TrackerHttp::send_event_unsafe() called with invalid address family.");
 
-  LT_LOG("sending event : state:%s family:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state), family_str(family), info().url.c_str());
+  LT_LOG("sending event : state:%s family:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family), info().url.c_str());
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s family:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
-              option_as_string(OPTION_TRACKER_EVENT, state), family_str(family),
+              option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
               params.uploaded_adjusted, params.completed_adjusted, params.download_left);
 
   torrent::net_thread::http_stack()->start_get(m_get);
@@ -160,37 +167,74 @@ TrackerHttp::send_next_family() {
   if (m_next_family == AF_UNSPEC)
     return false;
 
+  m_current_family = m_next_family;
+  m_next_family    = AF_UNSPEC;
+
   auto state = lock_and_latest_event();
-  auto family = m_next_family;
 
   // TODO: If stopped state, don't bother if the other protocol hasn't been confirmed to work. (add vars to track this)
 
-  m_next_family = AF_UNSPEC;
-
-  if ((family == AF_INET && config::network_config()->is_block_ipv4()) ||
-      (family == AF_INET6 && config::network_config()->is_block_ipv6()))
+  if ((m_current_family == AF_INET && config::network_config()->is_block_ipv4()) ||
+      (m_current_family == AF_INET6 && config::network_config()->is_block_ipv6()))
     return false;
 
-  send_event_unsafe(state, family);
+  send_event_unsafe(state);
   return true;
 }
 
+// We delay scrape for 10 seconds after any tracker activity to ensure all callbacks are process
+// before starting.
 void
-TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
-  *stream << url
-          << (utils::uri_has_query(url) ? '&' : '?')
-          << "info_hash=" << utils::copy_escape_html_str(info().info_hash);
+TrackerHttp::delayed_send_scrape() {
+  if (is_busy())
+    throw internal_error("TrackerHttp::delayed_send_scrape() called while busy");
+
+  close_directly();
+
+  lock_and_set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
+
+  std::string request_url = request_prefix(utils::uri_generate_scrape_url(info().url)).str();
+
+  m_data = std::make_unique<std::stringstream>();
+
+  m_get.try_wait_for_close();
+  m_get.reset(request_url, m_data);
+
+  auto [current_family, next_family] = request_families();
+
+  if (current_family == AF_UNSPEC)
+    throw internal_error("TrackerHttp::delayed_send_scrape() cannot send scrape, no valid address family to use.");
+
+  m_current_family = current_family;
+  m_next_family    = next_family;
+
+  m_last_success       = true;
+  m_last_error_message = "";
+
+  LT_LOG("sending delayed scrape request : family:%s url:%s", family_str(m_current_family), info().url.c_str());
+  LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
+
+  torrent::net_thread::http_stack()->start_get(m_get);
+}
+
+std::stringstream
+TrackerHttp::request_prefix(const std::string& url) {
+  std::stringstream stream;
+  stream.imbue(std::locale::classic());
+
+  stream << url
+         << (utils::uri_has_query(url) ? '&' : '?')
+         << "info_hash=" << utils::copy_escape_html_str(info().info_hash);
+
+  return stream;
 }
 
 std::string
 TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, TrackerParameters params, int family) {
-  std::stringstream s;
-  s.imbue(std::locale::classic());
-
   auto tracker_id = this->tracker_id();
   auto local_id   = utils::copy_escape_html_str(info().local_id);
 
-  request_prefix(&s, info().url);
+  auto s = request_prefix(info().url);
 
   s << "&peer_id=" << local_id
     << "&compact=1";
@@ -243,66 +287,41 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
   return s.str();
 }
 
-// We delay scrape for 10 seconds after any tracker activity to ensure all callbacks are process
-// before starting.
-void
-TrackerHttp::delayed_send_scrape() {
-  if (is_busy())
-    throw internal_error("TrackerHttp::delayed_send_scrape() called while busy");
+std::tuple<int,int>
+TrackerHttp::request_families() {
+  bool is_block_ipv4  = config::network_config()->is_block_ipv4();
+  bool is_block_ipv6  = config::network_config()->is_block_ipv6();
+  bool is_prefer_ipv6 = config::network_config()->is_prefer_ipv6();
 
-  LT_LOG("sending delayed scrape request : url:%s", info().url.c_str());
+  // If both IPv4 and IPv6 are blocked, we cannot send the request.
+  //
+  // TODO: Properly handle this case without throwing an error.
 
-  close_directly();
+  if (is_block_ipv4 && is_block_ipv6)
+    return {AF_UNSPEC, AF_UNSPEC};
 
-  lock_and_set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
+  // TODO: When sending 'stopped', only send to confirmed working protocol.
+  // TODO: Don't constantly retry family that keeps failing.
 
-  std::stringstream s;
-  s.imbue(std::locale::classic());
-
-  request_prefix(&s, utils::uri_generate_scrape_url(info().url));
-
-  std::string request_url = s.str();
-
-  m_data = std::make_unique<std::stringstream>();
-
-  m_get.try_wait_for_close();
-  m_get.reset(request_url, m_data);
-
-  m_last_success       = true;
-  m_last_error_message = "";
-
-  LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
-
-  torrent::net_thread::http_stack()->start_get(m_get);
+  if (is_block_ipv4)
+    return {AF_INET6, AF_UNSPEC};
+  else if (is_block_ipv6)
+    return {AF_INET, AF_UNSPEC};
+  else if (is_prefer_ipv6)
+    return {AF_INET6, AF_INET};
+  else
+    return {AF_INET, AF_INET6};
 }
 
 void
-TrackerHttp::close() {
-  LT_LOG("closing event : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-  this_thread::scheduler()->erase(&m_delay_scrape);
-  m_requested_scrape = false;
-
-  close_directly();
-}
-
-void
-TrackerHttp::close_directly() {
-  if (m_data == nullptr) {
-    // LT_LOG("closing directly (already closed) : state:%s url:%s",
-    //        option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-    m_slot_close();
+TrackerHttp::update_tracker_id(const std::string& id) {
+  if (id.empty())
     return;
-  }
 
-  LT_LOG("closing directly : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  if (m_current_tracker_id == id)
+    return;
 
-  m_slot_close();
-  m_get.close_and_cancel_callbacks(this_thread::thread());
-  m_data.reset();
+  set_tracker_id(id);
 }
 
 void
@@ -536,17 +555,6 @@ TrackerHttp::process_scrape(const Object& object) {
 
   close_directly();
   m_slot_scrape_success();
-}
-
-void
-TrackerHttp::update_tracker_id(const std::string& id) {
-  if (id.empty())
-    return;
-
-  if (m_current_tracker_id == id)
-    return;
-
-  set_tracker_id(id);
 }
 
 } // namespace torrent
