@@ -35,6 +35,8 @@ UdpRouter::open(int family) {
   if (family != AF_INET)
     throw internal_error("UdpRouter::open() called with unsupported family.");
 
+  // TODO: Do a reopen_if_necessary() that checks if the bind address has changed.
+
   auto bind_address = config::network_config()->bind_address_for_connect(AF_INET);
 
   if (bind_address == nullptr) {
@@ -133,6 +135,29 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
   this_thread::resolver()->resolve_both(this, hostname, socket_address()->sa_family, std::move(fn));
 
   return itr->first;
+}
+
+uint32_t
+UdpRouter::transfer_connection(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
+  auto itr = m_connections.find(id);
+
+  if (itr == m_connections.end())
+    throw internal_error("UdpRouter::transfer_connection() called with invalid connection ID.");
+
+  if (itr->second.address == nullptr)
+    throw internal_error("UdpRouter::transfer_connection() called but connection does not have an address.");
+
+  if (!is_open())
+    return 0;
+
+  auto new_itr = connect_unsafe(std::move(itr->second.address), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
+
+  disconnect_unsafe(itr);
+
+  if (!try_write(new_itr->first, &new_itr->second))
+    queue_write(new_itr->first, &new_itr->second);
+
+  return new_itr->first;
 }
 
 void

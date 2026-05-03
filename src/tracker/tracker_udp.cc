@@ -64,7 +64,6 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   if (m_port == 0)
     return receive_failed("cannot send tracker event, port is 0");
 
-  m_port             = port;
   m_send_state       = new_state;
   m_sending_announce = true;
 

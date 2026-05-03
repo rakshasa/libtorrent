@@ -52,26 +52,16 @@ private:
   // TODO: Create a helper struct for connections (retries, failures, etc) and use that for each
   // inet/inet6 for both http and udp trackers.
 
-  bool                m_resolver_requesting{};
-  bool                m_sending_announce{};
-
   std::string         m_hostname;
   uint16_t            m_port{};
 
-  sa_shared_ptr       m_inet_address;
   uint64_t            m_inet_connection_id{};
   uint32_t            m_inet_transaction_id{};
 
-  sa_shared_ptr       m_inet6_address;
   uint64_t            m_inet6_connection_id{};
   uint32_t            m_inet6_transaction_id{};
 
   int                 m_send_state{};
-
-  uint32_t            m_action{};
-
-  // TODO: Timeout should be handled by UdpRouter
-  // utils::SchedulerEntry m_task_timeout;
 };
 
 } // namespace torrent
