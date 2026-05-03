@@ -34,12 +34,13 @@ public:
 
 private:
   void                close_directly();
+  void                close_family(int family);
 
   void                receive_failed(const std::string& msg);
-  void                receive_resolved(c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
-  void                receive_timeout();
 
   void                start_announce();
+
+  int                 process_header(int family, uint32_t action, buffer_type& buffer);
 
   void                prepare_connect(int family, uint32_t id, buffer_type& buffer);
   bool                process_connect(int family, uint32_t id, buffer_type& buffer);
@@ -47,7 +48,10 @@ private:
   void                prepare_announce(int family, uint32_t id, buffer_type& buffer);
   bool                process_announce(int family, uint32_t id, buffer_type& buffer);
 
-  void                process_error(int family, uint32_t id, int errno_err, int gai_err);
+  void                process_error(int family, uint32_t id, buffer_type& buffer);
+
+  bool                handle_parse_error(int family, uint32_t id, const std::string& msg);
+  void                handle_udp_error(int family, uint32_t id, int errno_err, int gai_err);
 
   // TODO: Create a helper struct for connections (retries, failures, etc) and use that for each
   // inet/inet6 for both http and udp trackers.
