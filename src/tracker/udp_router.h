@@ -21,7 +21,7 @@ public:
   UdpRouter();
   ~UdpRouter() = default;
 
-  const char*         type_name() const override { return "tracker_udp_router"; }
+  const char*         type_name() const override { return "udp_router"; }
 
   // TODO: Listen to network_config updates and reopen if necessary.
 
@@ -31,6 +31,7 @@ public:
   // TODO: Add option for single-try.
 
   uint32_t            connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn);
+  uint32_t            connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn);
   void                disconnect(uint32_t id);
 
 private:
@@ -44,9 +45,14 @@ private:
     c_sa_shared_ptr      address;
     prepare_func         prepare;
     process_func         process;
+    // error/timeout handling
 
     queue_type::iterator queue_itr;
   };
+
+  connection_map::iterator connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn);
+
+  void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 
   bool                try_write(uint32_t id, const connection_info& info);
   void                queue_write(uint32_t id, connection_info& info);

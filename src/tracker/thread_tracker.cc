@@ -22,6 +22,8 @@ ThreadTracker::create_thread(system::Thread* main_thread) {
   m_thread_tracker = new ThreadTracker();
   m_thread_tracker.load()->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
 
+  // TODO: Reopen routers on network config changes.
+
   m_thread_tracker.load()->m_udp_inet_router = std::make_unique<tracker::UdpRouter>();
   m_thread_tracker.load()->m_udp_inet_router->open(AF_INET);
 }

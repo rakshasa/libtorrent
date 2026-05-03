@@ -34,9 +34,9 @@ public:
   void                  init_thread() override;
   void                  cleanup_thread() override;
 
-  tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
+  tracker::Manager*     tracker_manager()  { return m_tracker_manager.get(); }
 
-  auto                  udp_inet_router() { return m_udp_inet_router.get(); }
+  auto                  udp_inet_router()  { return m_udp_inet_router.get(); }
   auto                  udp_inet6_router() { return m_udp_inet6_router.get(); }
 
   // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);

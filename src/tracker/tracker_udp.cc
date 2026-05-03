@@ -1,20 +1,20 @@
 #include "config.h"
 
-#include "tracker_udp.h"
+#include "tracker/tracker_udp.h"
 
 #include <cstdio>
 #include <netdb.h>
 
 #include "manager.h"
 #include "net/address_list.h"
-#include "torrent/connection_manager.h"
-#include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "tracker/thread_tracker.h"
+#include "tracker/udp_router.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
@@ -34,7 +34,10 @@ TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
   if (info().key == 0)
     throw internal_error("TrackerUdp cannot be created with key 0.");
 
-  m_task_timeout.slot() = [this] { receive_timeout(); };
+  auto [hostname, port] = net::parse_uri_host_port(info().url);
+
+  m_hostname = std::move(hostname);
+  m_port     = port;
 }
 
 TrackerUdp::~TrackerUdp() {
@@ -53,15 +56,13 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Don't close fd for every new request.
   close_directly();
 
-  auto [hostname, port] = net::parse_uri_host_port(info().url);
-
-  if (hostname.empty())
-    return receive_failed("could not parse hostname from url");
-
-  if (port == 0)
-    return receive_failed("could not parse port from url");
-
   lock_and_set_latest_event(new_state);
+
+  if (m_hostname.empty())
+    return receive_failed("cannot send tracker event, hostname is empty");
+
+  if (m_port == 0)
+    return receive_failed("cannot send tracker event, port is 0");
 
   m_port             = port;
   m_send_state       = new_state;

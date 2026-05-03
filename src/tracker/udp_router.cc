@@ -2,11 +2,13 @@
 
 #include "udp_router.h"
 
+#include <cassert>
 #include <iterator>
 
 #include "torrent/net/fd.h"
 #include "torrent/net/network_config.h"
 #include "torrent/net/poll.h"
+#include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
@@ -105,6 +107,61 @@ UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_fun
   if (address->sa_family != socket_address()->sa_family)
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
+  if (!is_open())
+    return 0;
+
+  auto itr = connect_unsafe(std::move(address), std::move(prepare_fn), std::move(process_fn));
+
+  if (!try_write(itr->first, itr->second))
+    queue_write(itr->first, itr->second);
+
+  return itr->first;
+}
+
+uint32_t
+UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn) {
+  if (!is_open())
+    return 0;
+
+  auto itr = connect_unsafe(nullptr, std::move(prepare_fn), std::move(process_fn));
+
+  auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
+      resolved_hostname(id, port, sin, err, sin6, err6);
+    };
+
+  this_thread::resolver()->resolve_both(this, hostname, socket_address()->sa_family, std::move(fn));
+
+  return itr->first;
+}
+
+void
+UdpRouter::disconnect(uint32_t id) {
+  auto itr = m_connections.find(id);
+
+  if (itr == m_connections.end())
+    throw internal_error("UdpRouter::disconnect() called with invalid connection ID.");
+
+  if (itr->second.address == nullptr) {
+    assert(itr->second.queue_itr == m_write_queue.end());
+
+    itr->second.prepare = nullptr;
+    itr->second.process = nullptr;
+    return;
+  }
+
+  if (itr->second.queue_itr != m_write_queue.end())
+    m_write_queue.erase(itr->second.queue_itr);
+
+  m_connections.erase(itr);
+}
+
+UdpRouter::connection_map::iterator
+UdpRouter::connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn) {
+  assert(address->sa_family == socket_address()->sa_family);
+  assert(prepare_fn);
+  assert(process_fn);
+  assert(is_open());
+
   connection_map::iterator itr;
 
   while (true) {
@@ -126,23 +183,57 @@ UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_fun
   itr->second.process   = std::move(process_fn);
   itr->second.queue_itr = m_write_queue.end();
 
-  if (!try_write(itr->first, itr->second))
-    queue_write(itr->first, itr->second);
-
-  return itr->first;
+  return itr;
 }
 
 void
-UdpRouter::disconnect(uint32_t id) {
+UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
   auto itr = m_connections.find(id);
 
   if (itr == m_connections.end())
-    throw internal_error("UdpRouter::disconnect() called with invalid connection ID.");
+    throw internal_error("UdpRouter::resolved_hostname() called but connection ID is not found.");
 
-  if (itr->second.queue_itr != m_write_queue.end())
-    m_write_queue.erase(itr->second.queue_itr);
+  if (itr->second.address != nullptr)
+    throw internal_error("UdpRouter::resolved_hostname() called but connection already has an address.");
 
-  m_connections.erase(itr);
+  if (itr->second.prepare == nullptr) {
+    assert(itr->second.queue_itr == m_write_queue.end());
+
+    m_connections.erase(itr);
+    return;
+  }
+
+  sa_unique_ptr sa;
+
+  switch (socket_address()->sa_family) {
+  case AF_INET:
+    if (err != 0) {
+      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, net::gai_enum_error(err));
+      throw internal_error("UdpRouter::resolved_hostname() failed to resolve hostname: " + net::gai_enum_error_str(err));
+    }
+
+    sa = sa_copy_in(sin.get());
+    break;
+
+  case AF_INET6:
+    if (err6 != 0) {
+      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, net::gai_enum_error(err6));
+      throw internal_error("UdpRouter::resolved_hostname() failed to resolve hostname: " + net::gai_enum_error_str(err6));
+    }
+
+    sa = sa_copy_in6(sin6.get());
+    break;
+
+  default:
+    throw internal_error("UdpRouter::resolved_hostname() called but router socket address has unsupported family.");
+  };
+
+  sap_set_port(sa, port);
+
+  itr->second.address = std::move(sa);
+
+  if (!try_write(id, itr->second))
+    queue_write(id, itr->second);
 }
 
 bool

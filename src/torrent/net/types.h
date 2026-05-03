@@ -15,6 +15,8 @@ struct sockaddr_un;
 namespace torrent::net {
 
 const char* gai_enum_error(int status) LIBTORRENT_EXPORT;
+std::string gai_enum_error_str(int status) LIBTORRENT_EXPORT;
+
 void        sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 } // namespace torrent::net
