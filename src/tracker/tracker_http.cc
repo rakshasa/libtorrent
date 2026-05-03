@@ -97,6 +97,7 @@ TrackerHttp::close_directly() {
          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), family_str(m_current_family), info().url.c_str());
 
   m_slot_close();
+
   m_get.close_and_cancel_callbacks(this_thread::thread());
   m_data.reset();
 }

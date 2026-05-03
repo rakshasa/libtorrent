@@ -13,13 +13,12 @@ namespace torrent {
 
 class TrackerUdp : public TrackerWorker {
 public:
-  using ReadBuffer  = ProtocolBuffer<512>;
-  using WriteBuffer = ProtocolBuffer<512>;
+  using buffer_type = ProtocolBuffer<512>;
 
   static constexpr uint64_t magic_connection_id = 0x0000041727101980ll;
 
-  static constexpr uint32_t udp_timeout = 30;
-  static constexpr uint32_t udp_tries = 2;
+  // static constexpr uint32_t udp_timeout = 30;
+  // static constexpr uint32_t udp_tries = 2;
 
   TrackerUdp(const TrackerInfo& info, int flags = 0);
   ~TrackerUdp() override;
@@ -42,12 +41,13 @@ private:
 
   void                start_announce();
 
-  void                prepare_connect_input();
-  void                prepare_announce_input();
+  void                prepare_connect(uint32_t id, buffer_type& buffer);
+  bool                process_connect(uint32_t id, buffer_type& buffer);
 
-  bool                process_connect_output();
-  bool                process_announce_output();
-  bool                process_error_output();
+  void                prepare_announce(uint32_t id, buffer_type& buffer);
+  bool                process_announce(uint32_t id, buffer_type& buffer);
+
+  void                process_error(uint32_t id, int errno_err, int gai_err);
 
   // TODO: Create a helper struct for connections (retries, failures, etc) and use that for each
   // inet/inet6 for both http and udp trackers.
