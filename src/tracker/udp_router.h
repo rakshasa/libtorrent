@@ -1,8 +1,8 @@
 #ifndef LIBTORRENT_TRACKER_UDP_ROUTER_H
 #define LIBTORRENT_TRACKER_UDP_ROUTER_H
 
+#include <deque>
 #include <functional>
-#include <list>
 #include <memory>
 #include <random>
 #include <unordered_map>
@@ -17,6 +17,7 @@ public:
   using buffer_type  = ProtocolBuffer<512>;
   using prepare_func = std::function<void(uint32_t, buffer_type&)>;
   using process_func = std::function<bool(uint32_t, const buffer_type&)>;
+  using failure_func = std::function<void(uint32_t, int, int)>;
 
   UdpRouter();
   ~UdpRouter() = default;
@@ -30,32 +31,34 @@ public:
 
   // TODO: Add option for single-try.
 
-  uint32_t            connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn);
-  uint32_t            connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn);
+  uint32_t            connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
+  uint32_t            connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
   void                disconnect(uint32_t id);
 
 private:
   struct connection_info;
 
   using connection_map = std::unordered_map<uint32_t, connection_info>;
-  using queue_type     = std::list<std::pair<uint32_t, connection_info>>;
+  using queue_type     = std::deque<std::pair<uint32_t, connection_info*>>;
   using random_engine  = std::independent_bits_engine<std::default_random_engine, 32, uint32_t>;
 
   struct connection_info {
     c_sa_shared_ptr      address;
-    prepare_func         prepare;
-    process_func         process;
-    // error/timeout handling
 
-    queue_type::iterator queue_itr;
+    prepare_func         prepare{};
+    process_func         process{};
+    failure_func         failure{};
+
+    connection_info**    queue_ptr{};
   };
 
-  connection_map::iterator connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn);
+  connection_map::iterator connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
+  void                     disconnect_unsafe(connection_map::iterator itr);
 
   void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 
-  bool                try_write(uint32_t id, const connection_info& info);
-  void                queue_write(uint32_t id, connection_info& info);
+  bool                try_write(uint32_t id, connection_info* info);
+  void                queue_write(uint32_t id, connection_info* info);
 
   uint32_t            peek_transaction_id(buffer_type& buffer) const;
 
@@ -65,6 +68,7 @@ private:
 
   // TODO: Add timeout queue.
   // TODO: Use deque for write queue, zero out connection_info when removing.
+  // TODO: Change Thread/Scheduler callbacks to use deque, and create callback handles.
 
   connection_map      m_connections;
   queue_type          m_write_queue;
