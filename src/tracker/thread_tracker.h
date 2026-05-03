@@ -24,6 +24,7 @@ public:
   const char*           name() const override     { return "rtorrent tracker"; }
 
   void                  init_thread() override;
+  void                  init_thread_post_local() override;
   void                  cleanup_thread() override;
 
   // TODO: Make protected?

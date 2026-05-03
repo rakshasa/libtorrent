@@ -67,9 +67,9 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   m_inet_transaction_id = ThreadTracker::thread_tracker()->udp_inet_router()->connect(
     m_hostname, m_port,
-    [this](uint32_t transaction_id, auto& buffer)               { return prepare_connect(transaction_id, buffer); },
-    [this](uint32_t transaction_id, auto& buffer)               { return process_connect(transaction_id, buffer); },
-    [this](uint32_t transaction_id, int errno_err, int gai_err) { return process_error(transaction_id, errno_err, gai_err); });
+    [this](uint32_t transaction_id, auto& buffer)               { return prepare_connect(AF_INET, transaction_id, buffer); },
+    [this](uint32_t transaction_id, auto& buffer)               { return process_connect(AF_INET, transaction_id, buffer); },
+    [this](uint32_t transaction_id, int errno_err, int gai_err) { return process_error(AF_INET, transaction_id, errno_err, gai_err); });
 
   LT_LOG("started announce : state:%s url:%s inet_tx:%u inet6_tx:%u",
          option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str(),
@@ -175,7 +175,7 @@ TrackerUdp::receive_failed(const std::string& msg) {
 // }
 
 void
-TrackerUdp::prepare_connect(uint32_t id, buffer_type& buffer) {
+TrackerUdp::prepare_connect(int family, uint32_t id, buffer_type& buffer) {
   if (id != m_inet_transaction_id)
     throw internal_error("TrackerUdp::prepare_connect() called with wrong transaction id.");
 
@@ -183,13 +183,17 @@ TrackerUdp::prepare_connect(uint32_t id, buffer_type& buffer) {
   buffer.write_32(0);
   buffer.write_32(id);
 
-  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "prepare connect (id:%" PRIx32 ")", id);
+  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "prepare connect : family:%s id:%" PRIx32, family_str(family), id);
 }
 
 bool
-TrackerUdp::process_connect(uint32_t id, buffer_type& buffer) {
+TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
   if (id != m_inet_transaction_id)
     throw internal_error("TrackerUdp::process_connect() called with wrong transaction id.");
+
+  // TODO: if (process_error(id, buffer))
+
+  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process connect : family:%s id:%" PRIx32, family_str(family), id);
 
   if (buffer.size_end() < 16)
     return false;
@@ -205,102 +209,130 @@ TrackerUdp::process_connect(uint32_t id, buffer_type& buffer) {
   if (m_inet_connection_id == 0)
     return false;
 
-  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process connect", 0);
+  ThreadTracker::thread_tracker()->udp_inet_router()->transfer(m_inet_transaction_id,
+    [family, this](uint32_t transaction_id, auto& buffer)               { return prepare_announce(family, transaction_id, buffer); },
+    [family, this](uint32_t transaction_id, auto& buffer)               { return process_announce(family, transaction_id, buffer); },
+    [family, this](uint32_t transaction_id, int errno_err, int gai_err) { return process_error(family, transaction_id, errno_err, gai_err); });
 
   return true;
 }
 
-// void
-// TrackerUdp::prepare_announce_input() {
-//   m_write_buffer->reset();
+void
+TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
+  if (id != m_inet_transaction_id)
+    throw internal_error("TrackerUdp::prepare_announce() called with wrong transaction id.");
 
-//   m_write_buffer->write_64(m_connection_id);
-//   m_write_buffer->write_32(m_action = 1);
-//   m_write_buffer->write_32(m_transaction_id = random());
+  buffer.write_64(m_inet_connection_id);
+  buffer.write_32(1);
+  buffer.write_32(m_inet_transaction_id);
 
-//   m_write_buffer->write_range(info().info_hash.begin(), info().info_hash.end());
-//   m_write_buffer->write_range(info().local_id.begin(), info().local_id.end());
+  buffer.write_range(info().info_hash.begin(), info().info_hash.end());
+  buffer.write_range(info().local_id.begin(), info().local_id.end());
 
-//   auto parameters = m_slot_parameters();
+  auto parameters = m_slot_parameters();
 
-//   m_write_buffer->write_64(parameters.completed_adjusted);
-//   m_write_buffer->write_64(parameters.download_left);
-//   m_write_buffer->write_64(parameters.uploaded_adjusted);
-//   m_write_buffer->write_32(m_send_state);
+  buffer.write_64(parameters.completed_adjusted);
+  buffer.write_64(parameters.download_left);
+  buffer.write_64(parameters.uploaded_adjusted);
+  buffer.write_32(m_send_state);
 
-//   auto local_address = config::network_config()->local_inet_address();
+  auto local_address = config::network_config()->local_inet_address();
 
-//   // TODO: Set to 0 when sending using IPv6.
-//   if (local_address->sa_family == AF_INET)
-//     m_write_buffer->write_32_n(reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr);
-//   else
-//     m_write_buffer->write_32_n(0);
+  // TODO: Set to 0 when sending using IPv6.
+  if (local_address->sa_family == AF_INET)
+    buffer.write_32_n(reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr);
+  else
+    buffer.write_32_n(0);
 
-//   m_write_buffer->write_32(info().key);
-//   m_write_buffer->write_32(parameters.numwant);
-//   m_write_buffer->write_16(runtime::listen_port());
+  buffer.write_32(info().key);
+  buffer.write_32(parameters.numwant);
+  buffer.write_16(runtime::listen_port());
 
-//   if (m_write_buffer->size_end() != 98)
-//     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
+  if (buffer.size_end() != 98)
+    throw internal_error("TrackerUdp::prepare_announce() unexpected buffer size.");
 
-//   LT_LOG_DUMP(m_write_buffer->begin(), m_write_buffer->size_end(),
-//               "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
-//               option_as_string(OPTION_TRACKER_EVENT, m_send_state),
-//               m_transaction_id, parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
-// }
+  LT_LOG_DUMP(buffer.begin(), buffer.size_end(),
+              "prepare announce : state:%s family:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
+              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), m_inet_transaction_id,
+              parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
+}
 
-// bool
-// TrackerUdp::process_announce_output() {
-//   if (m_read_buffer->size_end() < 20 ||
-//       m_read_buffer->read_32() != m_transaction_id)
-//     return false;
+bool
+TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
+  if (id != m_inet_transaction_id)
+    throw internal_error("TrackerUdp::process_announce() called with wrong transaction id.");
 
-//   {
-//     auto guard = lock_guard();
+  // TODO: if (process_error(id, buffer))
 
-//     state().set_normal_interval(m_read_buffer->read_32());
-//     state().set_min_interval(tracker::TrackerState::default_min_interval);
+  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process announce : family:%s id:%" PRIx32, family_str(family), id);
 
-//     state().m_scrape_incomplete = m_read_buffer->read_32(); // leechers
-//     state().m_scrape_complete   = m_read_buffer->read_32(); // seeders
-//     state().m_scrape_time_last  = this_thread::cached_seconds().count();
-//   }
+  if (buffer.size_end() < 20)
+    return false;
 
-//   AddressList l;
+  // TODO: Add a process_check_header(action) function.
 
-//   // TODO: This might not handle IPv4-mapped IPv6 addresses correctly.
+  uint32_t action         = buffer.read_32();
+  uint32_t transaction_id = buffer.read_32();
 
-//   switch (m_current_address->sa_family) {
-//   case AF_INET:
-//     std::copy(reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->position()),
-//               reinterpret_cast<const SocketAddressCompact*>(m_read_buffer->end() - m_read_buffer->remaining() % sizeof(SocketAddressCompact)),
-//               std::back_inserter(l));
-//     break;
-//   case AF_INET6:
-//     std::copy(reinterpret_cast<const SocketAddressCompact6*>(m_read_buffer->position()),
-//               reinterpret_cast<const SocketAddressCompact6*>(m_read_buffer->end() - m_read_buffer->remaining() % sizeof(SocketAddressCompact6)),
-//               std::back_inserter(l));
-//     break;
-//   default:
-//     throw internal_error("TrackerUdp::process_announce_output() m_current_address is not inet or inet6.");
-//   }
+  if (action != 1 || transaction_id != m_inet_transaction_id)
+    return false;
 
-//   // Some logic here to decided on whetever we're going to close the
-//   // connection or not?
-//   close_directly();
+  {
+    auto guard = lock_guard();
 
-//   m_slot_success(std::move(l));
+    state().set_normal_interval(buffer.read_32());
+    state().set_min_interval(tracker::TrackerState::default_min_interval);
 
-//   return true;
-// }
+    state().m_scrape_incomplete = buffer.read_32(); // leechers
+    state().m_scrape_complete   = buffer.read_32(); // seeders
+    state().m_scrape_time_last  = this_thread::cached_seconds().count();
+  }
+
+  AddressList l;
+
+  // TODO: This might not handle IPv4-mapped IPv6 addresses correctly.
+
+  switch (family) {
+  case AF_INET:
+    std::copy(reinterpret_cast<const SocketAddressCompact*>(buffer.position()),
+              reinterpret_cast<const SocketAddressCompact*>(buffer.end() - buffer.remaining() % sizeof(SocketAddressCompact)),
+              std::back_inserter(l));
+
+    ThreadTracker::thread_tracker()->udp_inet_router()->disconnect(m_inet_transaction_id);
+    m_inet_transaction_id = 0;
+    m_inet_connection_id  = 0;
+
+    break;
+  case AF_INET6:
+    std::copy(reinterpret_cast<const SocketAddressCompact6*>(buffer.position()),
+              reinterpret_cast<const SocketAddressCompact6*>(buffer.end() - buffer.remaining() % sizeof(SocketAddressCompact6)),
+              std::back_inserter(l));
+
+    ThreadTracker::thread_tracker()->udp_inet_router()->disconnect(m_inet6_transaction_id);
+    m_inet6_transaction_id = 0;
+    m_inet6_connection_id  = 0;
+
+    break;
+  default:
+    throw internal_error("TrackerUdp::process_announce_output() m_current_address is not inet or inet6.");
+  }
+
+  // Some logic here to decided on whetever we're going to close the
+  // connection or not?
+  // close_directly();
+
+  m_slot_success(std::move(l));
+
+  return true;
+}
 
 // bool
 // TrackerUdp::process_error_output() {
-//   if (m_read_buffer->size_end() < 8 ||
-//       m_read_buffer->read_32() != m_transaction_id)
+//   if (buffer.size_end() < 8 ||
+//       buffer.read_32() != m_transaction_id)
 //     return false;
 
-//   receive_failed("received error message: " + std::string(m_read_buffer->position(), m_read_buffer->end()));
+//   receive_failed("received error message: " + std::string(buffer.position(), buffer.end()));
 //   return true;
 // }
 

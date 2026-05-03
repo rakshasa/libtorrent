@@ -34,7 +34,7 @@ public:
   uint32_t            connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
   uint32_t            connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
 
-  uint32_t            transfer_connection(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
+  uint32_t            transfer(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
 
   void                disconnect(uint32_t id);
 

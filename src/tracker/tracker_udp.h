@@ -41,13 +41,13 @@ private:
 
   void                start_announce();
 
-  void                prepare_connect(uint32_t id, buffer_type& buffer);
-  bool                process_connect(uint32_t id, buffer_type& buffer);
+  void                prepare_connect(int family, uint32_t id, buffer_type& buffer);
+  bool                process_connect(int family, uint32_t id, buffer_type& buffer);
 
-  void                prepare_announce(uint32_t id, buffer_type& buffer);
-  bool                process_announce(uint32_t id, buffer_type& buffer);
+  void                prepare_announce(int family, uint32_t id, buffer_type& buffer);
+  bool                process_announce(int family, uint32_t id, buffer_type& buffer);
 
-  void                process_error(uint32_t id, int errno_err, int gai_err);
+  void                process_error(int family, uint32_t id, int errno_err, int gai_err);
 
   // TODO: Create a helper struct for connections (retries, failures, etc) and use that for each
   // inet/inet6 for both http and udp trackers.

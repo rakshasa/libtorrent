@@ -102,16 +102,19 @@ UdpRouter::close() {
       set_file_descriptor(-1);
     });
 
+  // TODO: Do we just let timeout expire connections, or do we send errors?
+  // this_thread::resolver()->cancel_all_for_requester(this);
+
   LT_LOG("closed udp router", 0);
 }
 
 uint32_t
 UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
-  if (address->sa_family != socket_address()->sa_family)
-    throw internal_error("UdpRouter::connect() called with unsupported address family.");
-
   if (!is_open())
     return 0;
+
+  if (address != nullptr && address->sa_family != socket_address()->sa_family)
+    throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
   auto itr = connect_unsafe(std::move(address), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
 
@@ -138,7 +141,7 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
 }
 
 uint32_t
-UdpRouter::transfer_connection(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
+UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
   auto itr = m_connections.find(id);
 
   if (itr == m_connections.end())
@@ -182,7 +185,7 @@ UdpRouter::disconnect(uint32_t id) {
 
 UdpRouter::connection_map::iterator
 UdpRouter::connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
-  assert(address->sa_family == socket_address()->sa_family);
+  assert(address == nullptr || address->sa_family == socket_address()->sa_family);
   assert(prepare_fn);
   assert(process_fn);
   assert(failure_fn);

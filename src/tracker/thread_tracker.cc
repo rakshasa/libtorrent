@@ -38,7 +38,6 @@ ThreadTracker::create_thread(system::Thread* main_thread) {
   // TODO: Reopen routers on network config changes.
 
   m_thread_tracker->m_udp_inet_router = std::make_unique<tracker::UdpRouter>();
-  m_thread_tracker->m_udp_inet_router->open(AF_INET);
 }
 
 void
@@ -57,6 +56,11 @@ ThreadTracker::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
+}
+
+void
+ThreadTracker::init_thread_post_local() {
+  m_thread_tracker->m_udp_inet_router->open(AF_INET);
 }
 
 void
