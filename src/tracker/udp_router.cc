@@ -105,11 +105,13 @@ UdpRouter::close() {
   // TODO: Do we just let timeout expire connections, or do we send errors?
   // this_thread::resolver()->cancel_all_for_requester(this);
 
+  // TODO: Send error to all?
+
   LT_LOG("closed udp router", 0);
 }
 
 uint32_t
-UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
+UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn) {
   if (!is_open())
     return 0;
 
@@ -117,6 +119,9 @@ UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_fun
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
   auto itr = connect_unsafe(std::move(address), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
+
+  if (update_fn)
+    update_fn(itr->first);
 
   if (!try_write(itr->first, &itr->second))
     queue_write(itr->first, &itr->second);
@@ -141,7 +146,7 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
 }
 
 uint32_t
-UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
+UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn) {
   auto itr = m_connections.find(id);
 
   if (itr == m_connections.end())
@@ -150,12 +155,12 @@ UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_f
   if (itr->second.address == nullptr)
     throw internal_error("UdpRouter::transfer_connection() called but connection does not have an address.");
 
-  if (!is_open())
-    return 0;
-
   auto new_itr = connect_unsafe(std::move(itr->second.address), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
 
   disconnect_unsafe(itr);
+
+  if (update_fn)
+    update_fn(new_itr->first);
 
   if (!try_write(new_itr->first, &new_itr->second))
     queue_write(new_itr->first, &new_itr->second);
@@ -372,19 +377,23 @@ UdpRouter::event_read() {
     uint32_t transaction_id = peek_transaction_id(m_buffer);
 
     if (transaction_id == 0) {
-      LT_LOG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
+      // LT_LOG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
       continue;
     }
 
+    // It's quicker to do transaction-id lookup and then verify the address.
     auto itr = m_connections.find(transaction_id);
 
     if (itr == m_connections.end()) {
-      LT_LOG("received datagram with unknown transaction ID : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
+      // LT_LOG("received datagram with unknown transaction ID : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
       continue;
     }
 
+    if (!sa_equal(&from_sa.sa, itr->second.address.get()))
+      continue;
+
     if (!itr->second.process(transaction_id, m_buffer)) {
-      LT_LOG("processing datagram failed : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
+      // LT_LOG("processing datagram failed : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
 
       auto failure_fn = std::move(itr->second.failure);
 

@@ -11,6 +11,11 @@
 
 namespace torrent {
 
+namespace tracker {
+class UdpRouter;
+} // namespace tracker
+
+
 class TrackerUdp : public TrackerWorker {
 public:
   using buffer_type = ProtocolBuffer<512>;
@@ -36,7 +41,10 @@ private:
   void                close_directly();
   void                reset_family_with_error(int family, const std::string& msg);
 
-  void                start_announce();
+  uint32_t&           transaction_id_for_family(int family);
+  tracker::UdpRouter* router_for_family(int family);
+
+  void                connect_family(int family);
 
   int                 process_header(int family, uint32_t action, buffer_type& buffer);
 

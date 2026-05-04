@@ -65,11 +65,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   m_send_state = new_state;
 
-  m_inet_transaction_id = ThreadTracker::thread_tracker()->udp_inet_router()->connect(
-    m_hostname, m_port,
-    [this](uint32_t transaction_id, auto& buffer)               { return prepare_connect(AF_INET, transaction_id, buffer); },
-    [this](uint32_t transaction_id, auto& buffer)               { return process_connect(AF_INET, transaction_id, buffer); },
-    [this](uint32_t transaction_id, int errno_err, int gai_err) { return handle_udp_error(AF_INET, transaction_id, errno_err, gai_err); });
+  connect_family(AF_INET);
 
   LT_LOG("started announce : state:%s url:%s inet_tx:%u inet6_tx:%u",
          option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str(),
@@ -149,6 +145,41 @@ TrackerUdp::type() const {
   return TRACKER_UDP;
 }
 
+uint32_t&
+TrackerUdp::transaction_id_for_family(int family) {
+  switch (family) {
+  case AF_INET:
+    return m_inet_transaction_id;
+  case AF_INET6:
+    return m_inet6_transaction_id;
+  default:
+    throw internal_error("TrackerUdp::transaction_id_for_family() called with invalid address family.");
+  }
+}
+
+tracker::UdpRouter*
+TrackerUdp::router_for_family(int family) {
+  switch (family) {
+  case AF_INET:
+    return ThreadTracker::thread_tracker()->udp_inet_router();
+  case AF_INET6:
+    return ThreadTracker::thread_tracker()->udp_inet_router();
+  default:
+    throw internal_error("TrackerUdp::router_for_family() called with invalid address family.");
+  }
+}
+
+void
+TrackerUdp::connect_family(int family) {
+  auto new_id = router_for_family(family)->connect(
+    m_hostname, m_port,
+    [family, this](uint32_t id, auto& buffer)               { return prepare_connect(family, id, buffer); },
+    [family, this](uint32_t id, auto& buffer)               { return process_connect(family, id, buffer); },
+    [family, this](uint32_t id, int errno_err, int gai_err) { return handle_udp_error(family, id, errno_err, gai_err); });
+
+  transaction_id_for_family(family) = new_id;
+}
+
 int
 TrackerUdp::process_header(int family, uint32_t action, buffer_type& buffer) {
   if (buffer.size_end() < 8)
@@ -157,18 +188,8 @@ TrackerUdp::process_header(int family, uint32_t action, buffer_type& buffer) {
   uint32_t read_action    = buffer.read_32();
   uint32_t transaction_id = buffer.read_32();
 
-  switch (family) {
-  case AF_INET:
-    if (transaction_id != m_inet_transaction_id)
-      return 0;
-    break;
-  case AF_INET6:
-    if (transaction_id != m_inet6_transaction_id)
-      return 0;
-    break;
-  default:
-    throw internal_error("TrackerUdp::process_header() called with invalid address family.");
-  }
+  if (transaction_id != transaction_id_for_family(family))
+    return 0;
 
   if (read_action == 3) {
     process_error(family, transaction_id, buffer);
@@ -183,7 +204,7 @@ TrackerUdp::process_header(int family, uint32_t action, buffer_type& buffer) {
 
 void
 TrackerUdp::prepare_connect(int family, uint32_t id, buffer_type& buffer) {
-  if (id != m_inet_transaction_id)
+  if (id != transaction_id_for_family(family))
     throw internal_error("TrackerUdp::prepare_connect() called with wrong transaction id.");
 
   buffer.write_64(magic_connection_id);
@@ -204,8 +225,6 @@ TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
     return true;
   };
 
-  // TODO: Return true when it's an invalid packet / wrong action.
-
   if (buffer.size_end() < 16)
     return handle_parse_error(family, id, "invalid connect response size");
 
@@ -214,17 +233,22 @@ TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
   if (m_inet_connection_id == 0)
     return handle_parse_error(family, id, "connection id is 0");
 
-  ThreadTracker::thread_tracker()->udp_inet_router()->transfer(m_inet_transaction_id,
-    [family, this](uint32_t transaction_id, auto& buffer)               { return prepare_announce(family, transaction_id, buffer); },
-    [family, this](uint32_t transaction_id, auto& buffer)               { return process_announce(family, transaction_id, buffer); },
-    [family, this](uint32_t transaction_id, int errno_err, int gai_err) { return handle_udp_error(family, transaction_id, errno_err, gai_err); });
+  auto update_fn = [family, this](uint32_t id) {
+      transaction_id_for_family(family) = id;
+    };
+
+  ThreadTracker::thread_tracker()->udp_inet_router()->transfer(id,
+    [family, this](uint32_t id, auto& buffer)               { return prepare_announce(family, id, buffer); },
+    [family, this](uint32_t id, auto& buffer)               { return process_announce(family, id, buffer); },
+    [family, this](uint32_t id, int errno_err, int gai_err) { return handle_udp_error(family, id, errno_err, gai_err); },
+    update_fn);
 
   return true;
 }
 
 void
 TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
-  if (id != m_inet_transaction_id)
+  if (id != transaction_id_for_family(family))
     throw internal_error("TrackerUdp::prepare_announce() called with wrong transaction id.");
 
   buffer.write_64(m_inet_connection_id);
@@ -264,7 +288,8 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
 
 bool
 TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
-  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process announce : family:%s id:%" PRIx32, family_str(family), id);
+  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process announce : state:%s family:%s id:%" PRIx32,
+              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), id);
 
   switch (process_header(family, 1, buffer)) {
   case -1:
@@ -330,17 +355,6 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
 }
 
 void
-TrackerUdp::handle_setup_error(const std::string& msg) {
-  LT_LOG("setup error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
-
-  if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0)
-    throw internal_error("TrackerUdp::handle_setup_error() called but inet/inet6 transaction id is not 0.");
-
-  m_slot_close();
-  m_slot_failure(msg);
-}
-
-void
 TrackerUdp::process_error(int family, [[maybe_unused]] uint32_t id, buffer_type& buffer) {
   std::string msg(buffer.position(), buffer.end());
 
@@ -351,10 +365,24 @@ TrackerUdp::process_error(int family, [[maybe_unused]] uint32_t id, buffer_type&
 }
 
 void
-TrackerUdp::handle_udp_error(int family, uint32_t id, int errno_err, int gai_err) {
-  if (id != m_inet_transaction_id)
-    throw internal_error("TrackerUdp::process_error() called with wrong transaction id.");
+TrackerUdp::handle_setup_error(const std::string& msg) {
+  LT_LOG("setup error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
 
+  if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0)
+    throw internal_error("TrackerUdp::handle_setup_error() called but inet/inet6 transaction id is not 0.");
+
+  m_slot_close();
+  m_slot_failure(msg);
+}
+
+bool
+TrackerUdp::handle_parse_error(int family, uint32_t id, const std::string& msg) {
+  reset_family_with_error(family, "parse error: " + msg);
+  return false;
+}
+
+void
+TrackerUdp::handle_udp_error(int family, uint32_t id, int errno_err, int gai_err) {
   std::string msg = "network error: ";
 
   // TODO: Add flag to reset_family_with_error() to indicate the error is low-siginificance if it's
