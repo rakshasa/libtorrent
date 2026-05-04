@@ -254,13 +254,13 @@ initialize() {
   net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(max_open));
   net_thread::http_stack()->set_max_total_connections(max_http_connections);
 
-  thread_disk()->init_thread();
+  disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();
-  thread_tracker()->init_thread();
+  tracker_thread::thread()->init_thread();
 
-  thread_disk()->start_thread();
+  disk_thread::thread()->start_thread();
   net_thread::thread()->start_thread();
-  thread_tracker()->start_thread();
+  tracker_thread::thread()->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -273,8 +273,8 @@ cleanup() {
   // Might need to wait for the threads to finish?
   runtime::network_manager()->cleanup();
 
-  thread_tracker()->stop_thread_wait();
-  thread_disk()->stop_thread_wait();
+  tracker_thread::thread()->stop_thread_wait();
+  disk_thread::thread()->stop_thread_wait();
   net_thread::thread()->stop_thread_wait();
 
   ThreadTracker::destroy_thread();
@@ -282,7 +282,6 @@ cleanup() {
   ThreadNet::destroy_thread();
 
   manager->cleanup();
-
   Runtime::cleanup();
 
   delete manager;

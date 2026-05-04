@@ -33,8 +33,6 @@ public:
 
   tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
 
-  // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
-
 protected:
   friend class Manager;
 
@@ -44,20 +42,11 @@ protected:
 private:
   ThreadTracker() = default;
 
-  // void                process_send_events();
-
-  static std::atomic<ThreadTracker*> m_thread_tracker;
+  static ThreadTracker*              m_thread_tracker;
 
   std::unique_ptr<tracker::Manager>  m_tracker_manager;
   unsigned int                       m_signal_send_event{~0u};
-
-  // std::mutex                    m_send_events_lock;
-  // std::vector<TrackerSendEvent> m_send_events;
 };
-
-inline ThreadTracker* thread_tracker() {
-  return ThreadTracker::thread_tracker();
-}
 
 } // namespace torrent
 

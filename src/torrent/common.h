@@ -183,6 +183,13 @@ utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
 
 } // namespace torrent::this_thread
 
+namespace torrent::disk_thread {
+
+system::Thread*          thread() LIBTORRENT_EXPORT;
+std::thread::id          thread_id() LIBTORRENT_EXPORT;
+
+} // namespace torrent::disk_thread
+
 namespace torrent::main_thread {
 
 system::Thread*          thread() LIBTORRENT_EXPORT;
@@ -210,5 +217,12 @@ void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPOR
 torrent::net::HttpStack* http_stack() LIBTORRENT_EXPORT;
 
 } // namespace torrent::net_thread
+
+namespace torrent::tracker_thread {
+
+system::Thread*          thread() LIBTORRENT_EXPORT;
+std::thread::id          thread_id() LIBTORRENT_EXPORT;
+
+} // namespace torrent::tracker_thread
 
 #endif
