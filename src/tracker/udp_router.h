@@ -58,6 +58,8 @@ private:
     connection_info**    queue_ptr{};
   };
 
+  int                 router_family() const;
+
   connection_map::iterator connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
   void                     disconnect_unsafe(connection_map::iterator itr);
 
@@ -84,6 +86,8 @@ private:
   buffer_type         m_buffer;
 
 };
+
+inline int UdpRouter::router_family() const { return socket_address()->sa_family; }
 
 } // namespace torrent::tracker
 

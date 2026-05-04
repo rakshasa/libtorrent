@@ -115,7 +115,7 @@ UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_fun
   if (!is_open())
     return 0;
 
-  if (address != nullptr && address->sa_family != socket_address()->sa_family)
+  if (address != nullptr && address->sa_family != router_family())
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
   auto itr = connect_unsafe(std::move(address), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
@@ -134,13 +134,21 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
   if (!is_open())
     return 0;
 
+  auto [sa, family_mismatch] = sa_lookup_numeric(hostname, router_family());
+
+  if (family_mismatch)
+    return 0;
+
+  if (sa)
+    return connect(std::move(sa), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
+
   auto itr = connect_unsafe(nullptr, std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
 
   auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
       resolved_hostname(id, port, sin, err, sin6, err6);
     };
 
-  this_thread::resolver()->resolve_both(this, hostname, socket_address()->sa_family, std::move(fn));
+  this_thread::resolver()->resolve_both(this, hostname, router_family(), std::move(fn));
 
   return itr->first;
 }
@@ -190,7 +198,7 @@ UdpRouter::disconnect(uint32_t id) {
 
 UdpRouter::connection_map::iterator
 UdpRouter::connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
-  assert(address == nullptr || address->sa_family == socket_address()->sa_family);
+  assert(address == nullptr || address->sa_family == router_family());
   assert(prepare_fn);
   assert(process_fn);
   assert(failure_fn);
@@ -249,7 +257,7 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
 
   sa_unique_ptr sa;
 
-  switch (socket_address()->sa_family) {
+  switch (router_family()) {
   case AF_INET:
     if (sin == nullptr && err == 0)
       throw internal_error("UdpRouter::resolved_hostname() sin == nullptr but err == 0");

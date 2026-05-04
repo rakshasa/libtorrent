@@ -66,6 +66,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   m_send_state = new_state;
 
   connect_family(AF_INET);
+  connect_family(AF_INET6);
 
   LT_LOG("started announce : state:%s url:%s inet_tx:%u inet6_tx:%u",
          option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str(),
@@ -265,13 +266,17 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
   buffer.write_64(parameters.uploaded_adjusted);
   buffer.write_32(m_send_state);
 
-  auto local_address = config::network_config()->local_inet_address();
+  buffer.write_32_n([family]() -> uint32_t {
+      if (family != AF_INET)
+        return 0;
 
-  // TODO: Set to 0 when sending using IPv6.
-  if (local_address->sa_family == AF_INET)
-    buffer.write_32_n(reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr);
-  else
-    buffer.write_32_n(0);
+      auto local_address = config::network_config()->local_inet_address();
+
+      if (local_address == nullptr || local_address->sa_family != AF_INET)
+        return 0;
+
+      return reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr;
+    }());
 
   buffer.write_32(info().key);
   buffer.write_32(parameters.numwant);

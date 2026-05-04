@@ -68,8 +68,11 @@ union sa_inet_union {
 };
 
 // TODO: Move to a separate header file.
+// TODO: Rename sa_lookup_address.
 
-c_sa_shared_ptr   sa_lookup_address(const std::string& address_str, int family) LIBTORRENT_EXPORT;
+c_sa_shared_ptr                sa_lookup_address(const std::string& address_str, int family) LIBTORRENT_EXPORT;
+std::tuple<sa_unique_ptr,bool> sa_lookup_numeric(const std::string& address_str, int family) LIBTORRENT_EXPORT;
+
 sin46_shared_pair try_lookup_numeric(const std::string& hostname, int family) LIBTORRENT_EXPORT;
 
 // TODO: Rename to family_enum and add family_enum_str.
