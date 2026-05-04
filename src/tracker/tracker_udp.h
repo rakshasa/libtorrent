@@ -34,9 +34,7 @@ public:
 
 private:
   void                close_directly();
-  void                close_family(int family);
-
-  void                receive_failed(const std::string& msg);
+  void                reset_family_with_error(int family, const std::string& msg);
 
   void                start_announce();
 
@@ -50,6 +48,7 @@ private:
 
   void                process_error(int family, uint32_t id, buffer_type& buffer);
 
+  void                handle_setup_error(const std::string& msg);
   bool                handle_parse_error(int family, uint32_t id, const std::string& msg);
   void                handle_udp_error(int family, uint32_t id, int errno_err, int gai_err);
 
