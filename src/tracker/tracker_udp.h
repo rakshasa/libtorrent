@@ -41,6 +41,7 @@ private:
   void                close_directly();
   void                reset_family_with_error(int family, const std::string& msg);
 
+  uint64_t&           connection_id_for_family(int family);
   uint32_t&           transaction_id_for_family(int family);
   tracker::UdpRouter* router_for_family(int family);
 

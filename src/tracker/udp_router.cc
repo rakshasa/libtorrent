@@ -32,12 +32,12 @@ UdpRouter::open(int family) {
   if (is_open())
     return;
 
-  if (family != AF_INET)
+  if (family != AF_INET && family != AF_INET6)
     throw internal_error("UdpRouter::open() called with unsupported family.");
 
   // TODO: Do a reopen_if_necessary() that checks if the bind address has changed.
 
-  auto bind_address = config::network_config()->bind_address_for_connect(AF_INET);
+  auto bind_address = config::network_config()->bind_address_for_connect(family);
 
   if (bind_address == nullptr) {
     LT_LOG("could not open udp router : blocked or invalid bind address : family:%s", family_str(family));
@@ -134,9 +134,9 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
   if (!is_open())
     return 0;
 
-  auto [sa, family_mismatch] = sa_lookup_numeric(hostname, router_family());
+  auto [sa, sa_success] = sa_lookup_numeric(hostname, router_family());
 
-  if (family_mismatch)
+  if (!sa_success)
     return 0;
 
   if (sa)

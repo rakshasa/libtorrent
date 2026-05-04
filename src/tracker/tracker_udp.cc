@@ -25,8 +25,7 @@
 
 namespace torrent {
 
-// TODO: Rewrite this to do resolve every time, since we now have a cache?
-// TODO: Add UDP listening socket used by all UDP trackers, make it handle retries and timeouts. It waits for reply.
+// TODO: Handle network config changes.
 
 TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
   TrackerWorker(raw_info, flags) {
@@ -146,6 +145,18 @@ TrackerUdp::type() const {
   return TRACKER_UDP;
 }
 
+uint64_t&
+TrackerUdp::connection_id_for_family(int family) {
+  switch (family) {
+  case AF_INET:
+    return m_inet_connection_id;
+  case AF_INET6:
+    return m_inet6_connection_id;
+  default:
+    throw internal_error("TrackerUdp::connection_id_for_family() called with invalid address family.");
+  }
+}
+
 uint32_t&
 TrackerUdp::transaction_id_for_family(int family) {
   switch (family) {
@@ -164,7 +175,7 @@ TrackerUdp::router_for_family(int family) {
   case AF_INET:
     return ThreadTracker::thread_tracker()->udp_inet_router();
   case AF_INET6:
-    return ThreadTracker::thread_tracker()->udp_inet_router();
+    return ThreadTracker::thread_tracker()->udp_inet6_router();
   default:
     throw internal_error("TrackerUdp::router_for_family() called with invalid address family.");
   }
@@ -229,20 +240,16 @@ TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
   if (buffer.size_end() < 16)
     return handle_parse_error(family, id, "invalid connect response size");
 
-  m_inet_connection_id = buffer.read_64();
+  connection_id_for_family(family) = buffer.read_64();
 
-  if (m_inet_connection_id == 0)
+  if (connection_id_for_family(family) == 0)
     return handle_parse_error(family, id, "connection id is 0");
 
-  auto update_fn = [family, this](uint32_t id) {
-      transaction_id_for_family(family) = id;
-    };
-
-  ThreadTracker::thread_tracker()->udp_inet_router()->transfer(id,
+  router_for_family(family)->transfer(id,
     [family, this](uint32_t id, auto& buffer)               { return prepare_announce(family, id, buffer); },
     [family, this](uint32_t id, auto& buffer)               { return process_announce(family, id, buffer); },
     [family, this](uint32_t id, int errno_err, int gai_err) { return handle_udp_error(family, id, errno_err, gai_err); },
-    update_fn);
+    [family, this](uint32_t id)                             { transaction_id_for_family(family) = id; });
 
   return true;
 }
@@ -252,9 +259,9 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
   if (id != transaction_id_for_family(family))
     throw internal_error("TrackerUdp::prepare_announce() called with wrong transaction id.");
 
-  buffer.write_64(m_inet_connection_id);
+  buffer.write_64(connection_id_for_family(family));
   buffer.write_32(1);
-  buffer.write_32(m_inet_transaction_id);
+  buffer.write_32(transaction_id_for_family(family));
 
   buffer.write_range(info().info_hash.begin(), info().info_hash.end());
   buffer.write_range(info().local_id.begin(), info().local_id.end());
@@ -287,7 +294,7 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
 
   LT_LOG_DUMP(buffer.begin(), buffer.size_end(),
               "prepare announce : state:%s family:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
-              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), m_inet_transaction_id,
+              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), transaction_id_for_family(family),
               parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
 }
 
