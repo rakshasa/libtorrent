@@ -6,6 +6,7 @@
 #include <random>
 #include <curl/curl.h>
 
+#include "runtime.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/thread_disk.h"
@@ -234,6 +235,8 @@ initialize() {
   instrumentation_initialize();
   curl_global_init(CURL_GLOBAL_ALL);
 
+  Runtime::initialize(torrent::this_thread::thread());
+
   manager = new Manager;
 
   ThreadDisk::create_thread();
@@ -278,8 +281,12 @@ cleanup() {
   ThreadDisk::destroy_thread();
   ThreadNet::destroy_thread();
 
+  manager->cleanup();
+
+  Runtime::cleanup();
+
   delete manager;
-  manager = NULL;
+  manager = nullptr;
 
   curl_global_cleanup();
 }

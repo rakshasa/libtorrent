@@ -23,10 +23,6 @@ public:
 
   auto*               network_config()     { return m_network_config.get(); }
 
-  // TODO: Remove.
-  auto*               network_manager()    { return runtime::network_manager(); }
-  auto*               socket_manager()     { return runtime::socket_manager(); }
-
   auto*               chunk_manager()      { return m_chunk_manager.get(); }
   auto*               connection_manager() { return m_connection_manager.get(); }
   auto*               download_manager()   { return m_download_manager.get(); }
@@ -40,6 +36,8 @@ public:
 
   Throttle*           upload_throttle()    { return m_uploadThrottle; }
   Throttle*           download_throttle()  { return m_downloadThrottle; }
+
+  void                cleanup();
 
   void                initialize_download(DownloadWrapper* d);
   void                cleanup_download(DownloadWrapper* d);
