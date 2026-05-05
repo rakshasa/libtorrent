@@ -10,7 +10,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/object_stream.h"
-!#include "torrent/net/http_stack.h"
+#include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/utils/log.h"
