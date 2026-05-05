@@ -13,10 +13,10 @@
 #include "torrent/download/download_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/object_stream.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/network_config.h"
 
 namespace torrent {
 
@@ -103,8 +103,8 @@ ProtocolExtension::generate_handshake_message() {
 
   // Add "e" key if encryption is enabled, set it to 1 if we require
   // encryption for incoming connections, or 0 otherwise.
-  if ((config::network_config()->encryption_options() & net::NetworkConfig::encryption_allow_incoming) != 0)
-    message[key_e] = (config::network_config()->encryption_options() & net::NetworkConfig::encryption_require) != 0;
+  if ((runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_allow_incoming) != 0)
+    message[key_e] = (runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_require) != 0;
 
   message[key_p] = runtime::listen_port();
   message[key_v] = raw_string::from_c_str("libTorrent " VERSION);

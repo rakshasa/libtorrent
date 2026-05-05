@@ -78,15 +78,15 @@ TestFixtureWithMainAndDiskThread::setUp() {
   // m_hash_check_queue.slot_chunk_done() binds to main_thread().
 
   torrent::ThreadDisk::create_thread();
-  torrent::thread_disk()->init_thread();
-  torrent::thread_disk()->start_thread();
+  torrent::disk_thread::thread()->init_thread();
+  torrent::disk_thread::thread()->start_thread();
 
   signal(SIGUSR1, [](auto){});
 }
 
 void
 TestFixtureWithMainAndDiskThread::tearDown() {
-  torrent::thread_disk()->stop_thread_wait();
+  torrent::disk_thread::thread()->stop_thread_wait();
 
   torrent::Runtime::cleanup();
 
@@ -108,13 +108,13 @@ TestFixtureWithMainAndTrackerThread::setUp() {
   log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
 
   torrent::ThreadTracker::create_thread(m_main_thread.get());
-  torrent::thread_tracker()->init_thread();
-  torrent::thread_tracker()->start_thread();
+  torrent::tracker_thread::thread()->init_thread();
+  torrent::tracker_thread::thread()->start_thread();
 }
 
 void
 TestFixtureWithMainAndTrackerThread::tearDown() {
-  torrent::thread_tracker()->stop_thread_wait();
+  torrent::tracker_thread::thread()->stop_thread_wait();
 
   torrent::Runtime::cleanup();
   torrent::ThreadTracker::destroy_thread();
@@ -139,15 +139,15 @@ TestFixtureWithMainNetTrackerThread::setUp() {
   torrent::ThreadTracker::create_thread(m_main_thread.get());
 
   torrent::net_thread::thread()->init_thread();
-  torrent::thread_tracker()->init_thread();
+  torrent::tracker_thread::thread()->init_thread();
 
   torrent::net_thread::thread()->start_thread();
-  torrent::thread_tracker()->start_thread();
+  torrent::tracker_thread::thread()->start_thread();
 }
 
 void
 TestFixtureWithMainNetTrackerThread::tearDown() {
-  torrent::thread_tracker()->stop_thread_wait();
+  torrent::tracker_thread::thread()->stop_thread_wait();
   torrent::net_thread::thread()->stop_thread_wait();
 
   torrent::Runtime::cleanup();

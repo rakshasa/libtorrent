@@ -10,8 +10,8 @@
 #include "net/curl_socket.h"
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/system/thread.h"
 #include "torrent/utils/uri_parser.h"
 #include "utils/functional.h"
@@ -402,7 +402,7 @@ CurlGet::receive_write(const char* data, size_t size, size_t nmemb, CurlGet* han
 
 bool
 CurlGet::prepare_resolve_unsafe(resolve_type current_resolve) {
-  auto [bind_inet_address, bind_inet6_address] = config::network_config()->bind_addresses_or_null();
+  auto [bind_inet_address, bind_inet6_address] = runtime::network_config()->bind_addresses_or_null();
 
   int detected_family = utils::uri_detect_numeric(m_url);
 

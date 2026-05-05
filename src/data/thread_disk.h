@@ -33,10 +33,6 @@ private:
   HashCheckQueue  m_hash_check_queue;
 };
 
-inline ThreadDisk* thread_disk() {
-  return ThreadDisk::thread_disk();
-}
-
 } // namespace torrent
 
 #endif // LIBTORRENT_DATA_THREAD_DISK_H

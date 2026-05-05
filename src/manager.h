@@ -21,12 +21,6 @@ public:
   Manager();
   ~Manager();
 
-  auto*               network_config()     { return m_network_config.get(); }
-
-  // TODO: Remove.
-  auto*               network_manager()    { return runtime::network_manager(); }
-  auto*               socket_manager()     { return runtime::socket_manager(); }
-
   auto*               chunk_manager()      { return m_chunk_manager.get(); }
   auto*               connection_manager() { return m_connection_manager.get(); }
   auto*               download_manager()   { return m_download_manager.get(); }
@@ -41,14 +35,14 @@ public:
   Throttle*           upload_throttle()    { return m_uploadThrottle; }
   Throttle*           download_throttle()  { return m_downloadThrottle; }
 
+  void                cleanup();
+
   void                initialize_download(DownloadWrapper* d);
   void                cleanup_download(DownloadWrapper* d);
 
   void                receive_tick();
 
 private:
-  std::unique_ptr<net::NetworkConfig>  m_network_config;
-
   std::unique_ptr<ChunkManager>      m_chunk_manager;
   std::unique_ptr<ConnectionManager> m_connection_manager;
   std::unique_ptr<DownloadManager>   m_download_manager;
