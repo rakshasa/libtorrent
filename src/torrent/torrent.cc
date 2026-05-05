@@ -281,8 +281,10 @@ cleanup() {
   ThreadDisk::destroy_thread();
   ThreadNet::destroy_thread();
 
-  manager->cleanup();
   Runtime::cleanup();
+  manager->cleanup();
+
+  Runtime::destroy();
 
   delete manager;
   manager = nullptr;

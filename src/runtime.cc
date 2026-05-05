@@ -26,11 +26,7 @@ Runtime::Runtime(system::Thread* main_thread)
     m_socket_manager(new runtime::SocketManager) {
 }
 
-Runtime::~Runtime() {
-  // Order matters for destruction.
-  m_network_manager.reset();
-  m_socket_manager.reset();
-}
+Runtime::~Runtime() = default;
 
 void
 Runtime::initialize(system::Thread* main_thread) {
@@ -39,6 +35,15 @@ Runtime::initialize(system::Thread* main_thread) {
 
 void
 Runtime::cleanup() {
+  runtime::network_manager()->listen_close();
+}
+
+void
+Runtime::destroy() {
+  // Order matters for destruction.
+  g_runtime->m_network_manager.reset();
+  g_runtime->m_socket_manager.reset();
+
   delete g_runtime;
   g_runtime = nullptr;
 }

@@ -82,7 +82,6 @@ namespace net {
 
 class HttpGet;
 class HttpStack;
-class NetworkConfig;
 class Poll;
 class Resolver;
 
@@ -90,6 +89,7 @@ class Resolver;
 
 namespace runtime {
 
+class NetworkConfig;
 class NetworkManager;
 class SocketManager;
 
@@ -126,17 +126,9 @@ class SchedulerEntry;
   #define LIBTORRENT_EXPORT
 #endif
 
-namespace torrent::config {
-
-torrent::net::NetworkConfig* network_config() LIBTORRENT_EXPORT;
-
-} // namespace torrent::config
-
-// TODO: Move to runtime/common.h
-
 namespace torrent::runtime {
 
-// add fd_manager here...
+NetworkConfig*            network_config() LIBTORRENT_EXPORT;
 
 NetworkManager*           network_manager() LIBTORRENT_EXPORT;
 SocketManager*            socket_manager() LIBTORRENT_EXPORT;
@@ -148,8 +140,8 @@ uint16_t                  listen_port() LIBTORRENT_EXPORT;
 
 namespace torrent::system {
 
-const char* errno_enum(int status) LIBTORRENT_EXPORT;
-std::string errno_enum_str(int status) LIBTORRENT_EXPORT;
+const char*               errno_enum(int status) LIBTORRENT_EXPORT;
+std::string               errno_enum_str(int status) LIBTORRENT_EXPORT;
 
 } // namespace torrent::system
 

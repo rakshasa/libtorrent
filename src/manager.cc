@@ -87,8 +87,6 @@ void
 Manager::cleanup() {
   torrent::this_thread::scheduler()->erase(&m_task_tick);
 
-  runtime::network_manager()->listen_close();
-
   m_handshake_manager->clear();
   m_download_manager->clear();
 

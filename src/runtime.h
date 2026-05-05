@@ -11,6 +11,7 @@ class LIBTORRENT_EXPORT Runtime {
 public:
   static void         initialize(system::Thread* main_thread);
   static void         cleanup();
+  static void         destroy();
 
   auto*               network_manager()    { return m_network_manager.get(); }
   auto*               socket_manager()     { return m_socket_manager.get(); }

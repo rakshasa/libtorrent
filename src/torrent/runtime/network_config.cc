@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "torrent/net/network_config.h"
+#include "torrent/runtime/network_config.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
@@ -8,12 +8,12 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
 
-// TODO: Add net category and add it to important/complete log outputs.
+// TODO: Add runtime category and add it to important/complete log outputs.
 
 #define LT_LOG_NOTICE(log_fmt, ...)                                     \
-  lt_log_print_subsystem(LOG_NOTICE, "net::network_config", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(LOG_NOTICE, "runtime::network_config", log_fmt, __VA_ARGS__);
 
-namespace torrent::net {
+namespace torrent::runtime {
 
 namespace {
 
