@@ -9,9 +9,9 @@
 #include "net/address_list.h"
 #include "torrent/connection_manager.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
@@ -70,8 +70,8 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   // TODO: Check for changes to block (NC should instead clear us on network changes)
 
   int family = AF_UNSPEC;
-  bool block_ipv4 = config::network_config()->is_block_ipv4();
-  bool block_ipv6 = config::network_config()->is_block_ipv6();
+  bool block_ipv4 = runtime::network_config()->is_block_ipv4();
+  bool block_ipv6 = runtime::network_config()->is_block_ipv6();
 
   if (block_ipv4 && block_ipv6)
     return receive_failed("cannot send tracker event, both IPv4 and IPv6 are blocked");
@@ -210,7 +210,7 @@ TrackerUdp::start_announce() {
   // TODO: This does not properly handle blocked protocols.
 
   if (m_inet_address != nullptr && m_inet6_address != nullptr) {
-    bind_address = config::network_config()->bind_address_or_any_and_null();
+    bind_address = runtime::network_config()->bind_address_or_any_and_null();
 
     if (bind_address != nullptr) {
       if (bind_address->sa_family == AF_INET6)
@@ -220,11 +220,11 @@ TrackerUdp::start_announce() {
     }
 
   } else if (m_inet_address != nullptr) {
-    bind_address      = config::network_config()->bind_address_for_connect(AF_INET);
+    bind_address      = runtime::network_config()->bind_address_for_connect(AF_INET);
     m_current_address = reinterpret_cast<sockaddr*>(m_inet_address.get());
 
   } else if (m_inet6_address != nullptr) {
-    bind_address      = config::network_config()->bind_address_for_connect(AF_INET6);
+    bind_address      = runtime::network_config()->bind_address_for_connect(AF_INET6);
     m_current_address = reinterpret_cast<sockaddr*>(m_inet6_address.get());
 
   } else {
@@ -387,7 +387,7 @@ TrackerUdp::prepare_announce_input() {
   m_write_buffer->write_64(parameters.uploaded_adjusted);
   m_write_buffer->write_32(m_send_state);
 
-  auto local_address = config::network_config()->local_inet_address();
+  auto local_address = runtime::network_config()->local_inet_address();
 
   if (local_address->sa_family == AF_INET)
     m_write_buffer->write_32_n(reinterpret_cast<const sockaddr_in*>(local_address.get())->sin_addr.s_addr);

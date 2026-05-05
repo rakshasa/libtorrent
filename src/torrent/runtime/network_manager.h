@@ -44,7 +44,7 @@ public:
 
 protected:
   friend class torrent::Manager;
-  friend class torrent::net::NetworkConfig;
+  friend class NetworkConfig;
 
   void                lock() const                    { m_mutex.lock(); }
   auto                lock_guard() const              { return std::lock_guard(m_mutex); }
@@ -56,6 +56,7 @@ protected:
   auto                listen_inet_unsafe()            { return m_listen_inet.get(); }
   auto                listen_inet6_unsafe()           { return m_listen_inet6.get(); }
 
+  // TODO: Rename updated_network_config()
   void                restart_listen();
 
 private:

@@ -16,17 +16,17 @@
 #include "protocol/initial_seed.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
-#include "torrent/data/file_list.h"
 #include "torrent/download.h"
+#include "torrent/exceptions.h"
+#include "torrent/throttle.h"
+#include "torrent/data/file_list.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download_info.h"
-#include "torrent/exceptions.h"
-#include "torrent/net/network_config.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/throttle.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
@@ -285,7 +285,7 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 
 void
 DownloadMain::add_peer(const sockaddr* sa) {
-  if (config::network_config()->is_block_outgoing())
+  if (runtime::network_config()->is_block_outgoing())
     return;
 
   m_slot_start_handshake(sa, this);
@@ -305,7 +305,7 @@ DownloadMain::receive_connect_peers() {
     alist->clear();
   }
 
-  if (config::network_config()->is_block_outgoing())
+  if (runtime::network_config()->is_block_outgoing())
     return;
 
   while (!peer_list()->available_list()->empty() &&

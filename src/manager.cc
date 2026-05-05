@@ -17,7 +17,6 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download/resource_manager.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/poll.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/runtime/network_manager.h"
@@ -28,12 +27,6 @@
 namespace torrent {
 
 Manager* manager = nullptr;
-
-namespace config {
-
-net::NetworkConfig* network_config() { return manager->network_config(); }
-
-} // namespace config
 
 namespace this_thread {
 
@@ -53,9 +46,7 @@ void event_remove_and_close(Event* event) { system::ThreadInternal::poll()->remo
 } // namespace this_thread
 
 Manager::Manager()
-  : m_network_config(new net::NetworkConfig),
-
-    m_chunk_manager(new ChunkManager),
+  : m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),

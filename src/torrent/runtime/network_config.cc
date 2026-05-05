@@ -3,7 +3,6 @@
 #include "torrent/runtime/network_config.h"
 
 #include "torrent/exceptions.h"
-#include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
