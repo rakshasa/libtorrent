@@ -6,7 +6,7 @@
 #include "src/manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/net/network_config.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
 
@@ -69,7 +69,7 @@ DhtController::start() {
   if (m_router == nullptr)
     throw internal_error("DhtController::start() called without initializing first.");
 
-  auto port = config::network_config()->override_dht_port();
+  auto port = runtime::network_config()->override_dht_port();
 
   if (port == 0)
     port = runtime::network_manager()->listen_port_or_throw();

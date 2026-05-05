@@ -17,7 +17,6 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download/resource_manager.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/poll.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/runtime/network_manager.h"
@@ -28,12 +27,6 @@
 namespace torrent {
 
 Manager* manager = nullptr;
-
-namespace config {
-
-net::NetworkConfig* network_config() { return manager->network_config(); }
-
-} // namespace config
 
 namespace this_thread {
 
@@ -53,9 +46,7 @@ void event_remove_and_close(Event* event) { system::ThreadInternal::poll()->remo
 } // namespace this_thread
 
 Manager::Manager()
-  : m_network_config(new net::NetworkConfig),
-
-    m_chunk_manager(new ChunkManager),
+  : m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),
@@ -67,26 +58,25 @@ Manager::Manager()
     m_uploadThrottle(Throttle::create_throttle()),
     m_downloadThrottle(Throttle::create_throttle()) {
 
-  Runtime::initialize(torrent::this_thread::thread());
-
   m_task_tick.slot() = [this] { receive_tick(); };
   torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_tick, 1s);
 
   m_handshake_manager->slot_download_id()         = [this](auto hash) { return m_download_manager->find_main(hash); };
   m_handshake_manager->slot_download_obfuscated() = [this](auto hash) { return m_download_manager->find_main_obfuscated(hash); };
 
-  network_manager()->listen_inet_unsafe()->slot_accepted()  = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
-  network_manager()->listen_inet6_unsafe()->slot_accepted() = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
+  runtime::network_manager()->listen_inet_unsafe()->slot_accepted()  = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
+  runtime::network_manager()->listen_inet6_unsafe()->slot_accepted() = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
 
   m_resource_manager->push_group("default");
   m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
   m_resource_manager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 }
 
-Manager::~Manager() {
-  torrent::this_thread::scheduler()->erase(&m_task_tick);
+Manager::~Manager() = default;
 
-  network_manager()->listen_close();
+void
+Manager::cleanup() {
+  torrent::this_thread::scheduler()->erase(&m_task_tick);
 
   m_handshake_manager->clear();
   m_download_manager->clear();
@@ -95,8 +85,6 @@ Manager::~Manager() {
   Throttle::destroy_throttle(m_downloadThrottle);
 
   instrumentation_tick();
-
-  Runtime::cleanup();
 }
 
 void

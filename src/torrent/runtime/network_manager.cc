@@ -4,10 +4,10 @@
 
 #include "net/listen.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/network_config.h"
+#include "torrent/runtime/network_config.h"
+#include "torrent/system/thread.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
-#include "torrent/system/thread.h"
 
 // TODO: Add runtime category and add it to important/complete log outputs.
 
@@ -140,13 +140,13 @@ NetworkManager::restart_listen() {
 
 bool
 NetworkManager::listen_open_unsafe(uint16_t begin, uint16_t end) {
-  auto config_guard = config::network_config()->lock_guard();
-  auto backlog      = config::network_config()->listen_backlog_unsafe();
+  auto config_guard = runtime::network_config()->lock_guard();
+  auto backlog      = runtime::network_config()->listen_backlog_unsafe();
 
   if (m_listen_inet->is_open() || m_listen_inet6->is_open())
     throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");
 
-  auto [inet_address, inet6_address, block_ipv4in6] = config::network_config()->listen_addresses_unsafe();
+  auto [inet_address, inet6_address, block_ipv4in6] = runtime::network_config()->listen_addresses_unsafe();
 
   if (inet_address == nullptr && inet6_address == nullptr)
     throw input_error("Neither IPv4 nor IPv6 listen address are suitable for opening listen sockets, check block_ipv4 and block_ipv6 settings.");

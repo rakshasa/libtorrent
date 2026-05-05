@@ -11,17 +11,12 @@
 
 namespace torrent {
 
-class ThreadTrackerInternal {
-public:
-  static ThreadTracker*  thread_tracker() { return ThreadTracker::internal_thread_tracker(); }
-};
-
 namespace tracker_thread {
 
-torrent::system::Thread* thread()    { return ThreadTrackerInternal::thread_tracker(); }
-std::thread::id          thread_id() { return ThreadTrackerInternal::thread_tracker()->thread_id(); }
+torrent::system::Thread* thread()    { return ThreadTracker::thread_tracker(); }
+std::thread::id          thread_id() { return ThreadTracker::thread_tracker()->thread_id(); }
 
-} // namespace tracker_thread
+} // namespace tracker
 
 
 ThreadTracker* ThreadTracker::m_thread_tracker{};

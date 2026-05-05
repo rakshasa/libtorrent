@@ -6,7 +6,7 @@
 #include <netinet/ip.h>
 #include <torrent/net/types.h>
 
-namespace torrent::net {
+namespace torrent::runtime {
 
 class LIBTORRENT_EXPORT NetworkConfig {
 public:
@@ -162,6 +162,6 @@ private:
   uint32_t            m_receive_buffer_size{0};
 };
 
-} // namespace torrent::net
+} // namespace torrent::config
 
 #endif

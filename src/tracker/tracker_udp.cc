@@ -7,9 +7,11 @@
 
 #include "manager.h"
 #include "net/address_list.h"
-#include "torrent/net/network_config.h"
+#include "torrent/connection_manager.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"

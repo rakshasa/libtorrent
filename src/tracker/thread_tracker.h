@@ -36,9 +36,6 @@ public:
 
 protected:
   friend class Manager;
-  friend class ThreadTrackerInternal;
-
-  static auto           internal_thread_tracker() { return m_thread_tracker; }
 
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
@@ -52,10 +49,6 @@ private:
   std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;
   std::unique_ptr<tracker::UdpRouter> m_udp_inet6_router;
 };
-
-inline ThreadTracker* thread_tracker() {
-  return ThreadTracker::thread_tracker();
-}
 
 } // namespace torrent
 

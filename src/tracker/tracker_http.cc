@@ -9,10 +9,10 @@
 #include "net/address_list.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/http_stack.h"
-#include "torrent/net/network_config.h"
-#include "torrent/net/socket_address.h"
 #include "torrent/object_stream.h"
+#include "torrent/net/http_stack.h"
+#include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/utils/string_manip.h"
@@ -204,8 +204,8 @@ TrackerHttp::send_next_family(bool scrape) {
 
   // TODO: If stopped state, don't bother if the other protocol hasn't been confirmed to work. (add vars to track this)
 
-  if ((m_current_family == AF_INET && config::network_config()->is_block_ipv4()) ||
-      (m_current_family == AF_INET6 && config::network_config()->is_block_ipv6()))
+  if ((m_current_family == AF_INET && runtime::network_config()->is_block_ipv4()) ||
+      (m_current_family == AF_INET6 && runtime::network_config()->is_block_ipv6()))
     return false;
 
   if (scrape)
@@ -271,8 +271,8 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
   if (!tracker_id.empty())
     s << "&trackerid=" << utils::copy_escape_html_str(tracker_id);
 
-  auto local_inet_address  = config::network_config()->local_inet_address_or_null();
-  auto local_inet6_address = config::network_config()->local_inet6_address_or_null();
+  auto local_inet_address  = runtime::network_config()->local_inet_address_or_null();
+  auto local_inet6_address = runtime::network_config()->local_inet6_address_or_null();
 
   if (local_inet_address != nullptr) {
     if (family == AF_INET6)
@@ -315,9 +315,9 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
 
 std::tuple<int,int>
 TrackerHttp::request_families() {
-  bool is_block_ipv4  = config::network_config()->is_block_ipv4();
-  bool is_block_ipv6  = config::network_config()->is_block_ipv6();
-  bool is_prefer_ipv6 = config::network_config()->is_prefer_ipv6();
+  bool is_block_ipv4  = runtime::network_config()->is_block_ipv4();
+  bool is_block_ipv6  = runtime::network_config()->is_block_ipv6();
+  bool is_prefer_ipv6 = runtime::network_config()->is_prefer_ipv6();
 
   if (m_hostname_family == AF_INET) {
     if (is_block_ipv4)
