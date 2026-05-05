@@ -63,6 +63,8 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_log.h \
 	torrent/utils/test_log_buffer.cc \
 	torrent/utils/test_log_buffer.h \
+	torrent/utils/directory_events_test.cc \
+	torrent/utils/directory_events_test.h \
 	torrent/utils/test_option_strings.cc \
 	torrent/utils/test_option_strings.h \
 	torrent/utils/test_queue_buckets.cc \

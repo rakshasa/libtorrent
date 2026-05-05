@@ -3,6 +3,8 @@
 #include "directory_events.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 #include <unistd.h>
 
@@ -15,6 +17,37 @@
 #include "torrent/net/poll.h"
 
 namespace torrent {
+
+namespace {
+
+std::string
+normalize_directory_event_path(const std::string& path) {
+  char* resolved = ::realpath(path.c_str(), nullptr);
+
+  if (resolved == nullptr)
+    throw input_error("Could not resolve watch directory '" + path + "': " + std::string(std::strerror(errno)));
+
+  std::string normalized(resolved);
+  std::free(resolved);
+
+  while (normalized.size() > 1 && normalized.back() == '/')
+    normalized.pop_back();
+
+  return normalized;
+}
+
+bool
+directory_event_flags_include_added_mode(int flags) {
+  return flags & directory_events::flag_on_added;
+}
+
+bool
+directory_event_flags_conflict(int lhs, int rhs) {
+  return ((lhs & directory_events::flag_on_ready) && directory_event_flags_include_added_mode(rhs)) ||
+         ((rhs & directory_events::flag_on_ready) && directory_event_flags_include_added_mode(lhs));
+}
+
+} // namespace
 
 bool
 directory_events::open() {
@@ -63,6 +96,14 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
     throw input_error("Cannot add notification event for empty paths.");
 
 #ifdef USE_INOTIFY
+  std::string normalized_path = normalize_directory_event_path(path);
+
+  for (const auto& wd : m_wd_list) {
+    if (directory_event_flags_conflict(wd.flags, flags) &&
+        wd.canonical_path == normalized_path)
+      throw input_error("Conflicting directory watch modes for watch directories: " + wd.canonical_path + " and " + normalized_path);
+  }
+
   int in_flags = IN_MASK_ADD;
 
 #ifdef IN_EXCL_UNLINK
@@ -79,18 +120,23 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   if ((flags & flag_on_updated))
     in_flags |= IN_CLOSE_WRITE;
 
+  if ((flags & flag_on_ready))
+    in_flags |= (IN_MOVED_TO | IN_CLOSE_WRITE);
+
   if ((flags & flag_on_removed))
     in_flags |= (IN_DELETE | IN_MOVED_FROM);
 
-  int result = inotify_add_watch(m_fileDesc, path.c_str(), in_flags);
+  int result = inotify_add_watch(m_fileDesc, normalized_path.c_str(), in_flags);
 
   if (result == -1)
     throw input_error("Call to inotify_add_watch(...) failed: " + std::string(std::strerror(errno)));
 
-  auto& wd = m_wd_list.emplace_back();
-  wd.descriptor = result;
-  wd.path = path + (path.back() != '/' ? "/" : "");
-  wd.slot = slot;
+  auto& wd          = m_wd_list.emplace_back();
+  wd.descriptor     = result;
+  wd.flags          = flags;
+  wd.canonical_path = normalized_path;
+  wd.path           = path + (path.back() != '/' ? "/" : "");
+  wd.slot           = slot;
 
 #else
   throw input_error("No support for inotify.");
@@ -100,7 +146,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
 void
 directory_events::event_read() {
 #ifdef USE_INOTIFY
-  char buffer[2048];
+  char    buffer[2048];
   ssize_t result = ::read(m_fileDesc, buffer, 2048);
 
   if (result < static_cast<ssize_t>(sizeof(struct inotify_event)))
