@@ -103,7 +103,7 @@ DownloadMain::post_initialize() {
   m_tracker_list->slot_tracker_enabled()  = [tc](const auto& t)                  { tc->receive_tracker_enabled(t); };
   m_tracker_list->slot_tracker_disabled() = [tc](const auto& t)                  { tc->receive_tracker_disabled(t); };
 
-  m_tracker_controller = thread_tracker()->tracker_manager()->add_controller(info(), std::move(tc));
+  m_tracker_controller = ThreadTracker::thread_tracker()->tracker_manager()->add_controller(info(), std::move(tc));
 }
 
 std::pair<ThrottleList*, ThrottleList*>

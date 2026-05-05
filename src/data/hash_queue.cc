@@ -52,8 +52,8 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
 
   base_type::push_back(HashQueueNode(id, hash_chunk, std::move(d)));
 
-  thread_disk()->hash_check_queue()->push_back(hash_chunk);
-  thread_disk()->interrupt();
+  ThreadDisk::thread_disk()->hash_check_queue()->push_back(hash_chunk);
+  ThreadDisk::thread_disk()->interrupt();
 }
 
 bool
@@ -76,7 +76,7 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
     LT_LOG_DATA(id, DEBUG, "Removing index:%" PRIu32 " from queue.", hash_chunk->handle().index());
 
-    bool result = thread_disk()->hash_check_queue()->remove(hash_chunk);
+    bool result = ThreadDisk::thread_disk()->hash_check_queue()->remove(hash_chunk);
 
     // The hash chunk was not found, so we need to wait until the hash
     // check finishes.
@@ -92,7 +92,6 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
     return true;
   }), end());
-
 }
 
 void

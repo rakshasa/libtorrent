@@ -10,7 +10,7 @@
 
 namespace torrent {
 
-namespace tracker {
+namespace tracker_thread {
 
 torrent::system::Thread* thread()    { return ThreadTracker::thread_tracker(); }
 std::thread::id          thread_id() { return ThreadTracker::thread_tracker()->thread_id(); }
