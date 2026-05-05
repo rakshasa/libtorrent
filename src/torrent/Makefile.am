@@ -44,8 +44,6 @@ libtorrent_torrent_la_SOURCES = \
 	net/http_get.h \
 	net/http_stack.cc \
 	net/http_stack.h \
-	net/network_config.cc \
-	net/network_config.h \
 	net/poll.h \
 	net/poll_epoll.cc \
 	net/poll_kqueue.cc \
@@ -71,6 +69,8 @@ libtorrent_torrent_la_SOURCES = \
 	peer/peer_list.cc \
 	peer/peer_list.h \
 \
+	runtime/network_config.cc \
+	runtime/network_config.h \
 	runtime/network_manager.cc \
 	runtime/network_manager.h \
 	runtime/socket_manager.cc \
@@ -180,7 +180,6 @@ libtorrent_torrent_net_include_HEADERS = \
 	net/fd.h \
 	net/http_get.h \
 	net/http_stack.h \
-	net/network_config.h \
 	net/poll.h \
 	net/resolver.h \
 	net/socket_address.h \
@@ -199,6 +198,7 @@ libtorrent_torrent_peer_include_HEADERS = \
 
 libtorrent_torrent_runtime_includedir = $(includedir)/torrent/runtime
 libtorrent_torrent_runtime_include_HEADERS = \
+	runtime/network_config.h \
 	runtime/network_manager.h \
 	runtime/socket_manager.h
 

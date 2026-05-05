@@ -11,8 +11,8 @@
 #include "torrent/error.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
@@ -112,9 +112,9 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
   manager->connection_manager()->inc_socket_count();
 
   if (sa_is_v4mapped(sa))
-    handshake->initialize_incoming(this, fd, sa_from_v4mapped(sa).get(), config::network_config()->encryption_options());
+    handshake->initialize_incoming(this, fd, sa_from_v4mapped(sa).get(), runtime::network_config()->encryption_options());
   else
-    handshake->initialize_incoming(this, fd, sa, config::network_config()->encryption_options());
+    handshake->initialize_incoming(this, fd, sa, runtime::network_config()->encryption_options());
 
   base_type::push_back(std::move(handshake));
 }
@@ -125,13 +125,13 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
       !manager->connection_manager()->filter(sa))
     return;
 
-  auto encryption_options = config::network_config()->encryption_options();
+  auto encryption_options = runtime::network_config()->encryption_options();
 
   if (download->info()->is_meta_download()) {
-    encryption_options &= ~net::NetworkConfig::encryption_try_outgoing;
-    encryption_options &= ~net::NetworkConfig::encryption_require;
-    encryption_options &= ~net::NetworkConfig::encryption_require_RC4;
-    encryption_options &= ~net::NetworkConfig::encryption_enable_retry;
+    encryption_options &= ~runtime::NetworkConfig::encryption_try_outgoing;
+    encryption_options &= ~runtime::NetworkConfig::encryption_require;
+    encryption_options &= ~runtime::NetworkConfig::encryption_require_RC4;
+    encryption_options &= ~runtime::NetworkConfig::encryption_enable_retry;
   }
 
   if (sa_is_v4mapped(sa))
@@ -144,7 +144,7 @@ void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
   int connection_options = PeerList::connect_keep_handshakes;
 
-  if (!(encryption_options & net::NetworkConfig::encryption_retrying))
+  if (!(encryption_options & runtime::NetworkConfig::encryption_retrying))
     connection_options |= PeerList::connect_filter_recent;
 
   PeerInfo* peer_info = download->peer_list()->connected(sa, connection_options);
@@ -155,11 +155,11 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   }
 
   auto connect_address = sa_copy(sa);
-  auto proxy_address = config::network_config()->proxy_address();
+  auto proxy_address = runtime::network_config()->proxy_address();
 
   if (proxy_address->sa_family != AF_UNSPEC) {
     connect_address = sa_copy(proxy_address.get());
-    encryption_options |= net::NetworkConfig::encryption_use_proxy;
+    encryption_options |= runtime::NetworkConfig::encryption_use_proxy;
   }
 
   auto handshake = std::make_unique<Handshake>();
@@ -172,9 +172,9 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 
       int message;
 
-      if (encryption_options & net::NetworkConfig::encryption_use_proxy)
+      if (encryption_options & runtime::NetworkConfig::encryption_use_proxy)
         message = ConnectionManager::handshake_outgoing_proxy;
-      else if (encryption_options & (net::NetworkConfig::encryption_try_outgoing | net::NetworkConfig::encryption_require))
+      else if (encryption_options & (runtime::NetworkConfig::encryption_try_outgoing | runtime::NetworkConfig::encryption_require))
         message = ConnectionManager::handshake_outgoing_encrypted;
       else
         message = ConnectionManager::handshake_outgoing;
@@ -291,10 +291,10 @@ HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
   LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
 
   if (handshake->encryption()->should_retry()) {
-    int retry_options = handshake->retry_options() | net::NetworkConfig::encryption_retrying;
+    int retry_options = handshake->retry_options() | runtime::NetworkConfig::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SA(sa, "Retrying %s.", retry_options & net::NetworkConfig::encryption_try_outgoing ? "encrypted" : "plaintext");
+    LT_LOG_SA(sa, "Retrying %s.", retry_options & runtime::NetworkConfig::encryption_try_outgoing ? "encrypted" : "plaintext");
 
     create_outgoing(sa, download, retry_options);
   }
@@ -310,7 +310,7 @@ HandshakeManager::receive_timeout(Handshake* h) {
 
 int
 HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
-  auto bind_address = config::network_config()->bind_address_for_connect(connect_address->sa_family);
+  auto bind_address = runtime::network_config()->bind_address_for_connect(connect_address->sa_family);
 
   if (bind_address == nullptr) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: blocked or invalid bind address", 0);
@@ -347,13 +347,13 @@ HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
 
 bool
 HandshakeManager::setup_socket(int fd, int family) {
-  auto priority         = config::network_config()->priority();
-  auto send_buffer_size = config::network_config()->send_buffer_size();
-  auto recv_buffer_size = config::network_config()->receive_buffer_size();
+  auto priority         = runtime::network_config()->priority();
+  auto send_buffer_size = runtime::network_config()->send_buffer_size();
+  auto recv_buffer_size = runtime::network_config()->receive_buffer_size();
 
   errno = 0;
 
-  if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
+  if (priority != runtime::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
     return false;
 
   if (send_buffer_size != 0 && !fd_set_send_buffer_size(fd, send_buffer_size))

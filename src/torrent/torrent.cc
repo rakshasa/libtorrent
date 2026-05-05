@@ -6,6 +6,7 @@
 #include <random>
 #include <curl/curl.h>
 
+#include "runtime.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/thread_disk.h"
@@ -234,6 +235,8 @@ initialize() {
   instrumentation_initialize();
   curl_global_init(CURL_GLOBAL_ALL);
 
+  Runtime::initialize(torrent::this_thread::thread());
+
   manager = new Manager;
 
   ThreadDisk::create_thread();
@@ -251,13 +254,13 @@ initialize() {
   net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(max_open));
   net_thread::http_stack()->set_max_total_connections(max_http_connections);
 
-  thread_disk()->init_thread();
+  disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();
-  thread_tracker()->init_thread();
+  tracker_thread::thread()->init_thread();
 
-  thread_disk()->start_thread();
+  disk_thread::thread()->start_thread();
   net_thread::thread()->start_thread();
-  thread_tracker()->start_thread();
+  tracker_thread::thread()->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -270,16 +273,21 @@ cleanup() {
   // Might need to wait for the threads to finish?
   runtime::network_manager()->cleanup();
 
-  thread_tracker()->stop_thread_wait();
-  thread_disk()->stop_thread_wait();
+  tracker_thread::thread()->stop_thread_wait();
+  disk_thread::thread()->stop_thread_wait();
   net_thread::thread()->stop_thread_wait();
 
   ThreadTracker::destroy_thread();
   ThreadDisk::destroy_thread();
   ThreadNet::destroy_thread();
 
+  Runtime::cleanup();
+  manager->cleanup();
+
+  Runtime::destroy();
+
   delete manager;
-  manager = NULL;
+  manager = nullptr;
 
   curl_global_cleanup();
 }

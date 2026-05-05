@@ -12,6 +12,14 @@
 
 namespace torrent {
 
+namespace disk_thread {
+
+torrent::system::Thread* thread()    { return ThreadDisk::thread_disk(); }
+std::thread::id          thread_id() { return ThreadDisk::thread_disk()->thread_id(); }
+
+} // namespace disk_thread
+
+
 ThreadDisk* ThreadDisk::m_thread_disk{nullptr};
 
 ThreadDisk::~ThreadDisk() = default;
