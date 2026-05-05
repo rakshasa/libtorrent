@@ -15,8 +15,8 @@
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/poll.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
@@ -84,7 +84,7 @@ Handshake::initialize_incoming(HandshakeManager* handshake_manager, int fd, cons
   m_address    = sa_copy(sa);
   m_encryption = encryption_options;
 
-  if (m_encryption.options() & (net::NetworkConfig::encryption_allow_incoming | net::NetworkConfig::encryption_require))
+  if (m_encryption.options() & (runtime::NetworkConfig::encryption_allow_incoming | runtime::NetworkConfig::encryption_require))
     m_state = READ_ENC_KEY;
   else
     m_state = READ_INFO;
@@ -192,12 +192,12 @@ Handshake::destroy_connection(bool use_socket_manager) {
 
 int
 Handshake::retry_options() {
-  uint32_t options = m_encryption.options() & ~net::NetworkConfig::encryption_enable_retry;
+  uint32_t options = m_encryption.options() & ~runtime::NetworkConfig::encryption_enable_retry;
 
   if (m_encryption.retry() == HandshakeEncryption::RETRY_PLAIN)
-    options &= ~net::NetworkConfig::encryption_try_outgoing;
+    options &= ~runtime::NetworkConfig::encryption_try_outgoing;
   else if (m_encryption.retry() == HandshakeEncryption::RETRY_ENCRYPTED)
-    options |= net::NetworkConfig::encryption_try_outgoing;
+    options |= runtime::NetworkConfig::encryption_try_outgoing;
   else
     throw internal_error("Invalid retry type.");
 
@@ -252,7 +252,7 @@ Handshake::read_encryption_key() {
 
     if (m_readBuffer.peek_8() == 19 && std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) == 0) {
       // got unencrypted BT handshake
-      if (m_encryption.options() & net::NetworkConfig::encryption_require)
+      if (m_encryption.options() & runtime::NetworkConfig::encryption_require)
         throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unencrypted_rejected);
 
       m_state = READ_INFO;
@@ -396,10 +396,10 @@ Handshake::read_encryption_negotiation() {
 
   // choose one of the offered encryptions, or check the chosen one is valid
   if (m_incoming) {
-    if ((m_encryption.options() & net::NetworkConfig::encryption_prefer_plaintext) && m_encryption.has_crypto_plain()) {
+    if ((m_encryption.options() & runtime::NetworkConfig::encryption_prefer_plaintext) && m_encryption.has_crypto_plain()) {
       m_encryption.set_crypto(HandshakeEncryption::crypto_plain);
 
-    } else if ((m_encryption.options() & net::NetworkConfig::encryption_require_RC4) && !m_encryption.has_crypto_rc4()) {
+    } else if ((m_encryption.options() & runtime::NetworkConfig::encryption_require_RC4) && !m_encryption.has_crypto_rc4()) {
       throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unencrypted_rejected);
 
     } else if (m_encryption.has_crypto_rc4()) {
@@ -421,7 +421,7 @@ Handshake::read_encryption_negotiation() {
     if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4 && m_encryption.crypto() != HandshakeEncryption::crypto_plain)
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
 
-    if ((m_encryption.options() & net::NetworkConfig::encryption_require_RC4) && (m_encryption.crypto() != HandshakeEncryption::crypto_rc4))
+    if ((m_encryption.options() & runtime::NetworkConfig::encryption_require_RC4) && (m_encryption.crypto() != HandshakeEncryption::crypto_rc4))
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
   }
 
@@ -935,7 +935,7 @@ Handshake::event_write() {
 
       this_thread::poll()->insert_read(this);
 
-      if (m_encryption.options() & net::NetworkConfig::encryption_use_proxy) {
+      if (m_encryption.options() & runtime::NetworkConfig::encryption_use_proxy) {
         prepare_proxy_connect();
 
         m_state = PROXY_CONNECT;
@@ -952,11 +952,11 @@ Handshake::event_write() {
 
       m_writeBuffer.reset();
 
-      if (m_encryption.options() & (net::NetworkConfig::encryption_try_outgoing | net::NetworkConfig::encryption_require)) {
+      if (m_encryption.options() & (runtime::NetworkConfig::encryption_try_outgoing | runtime::NetworkConfig::encryption_require)) {
         prepare_key_plus_pad();
 
         // if connection fails, peer probably closed it because it was encrypted, so retry encrypted if enabled
-        if (!(m_encryption.options() & net::NetworkConfig::encryption_require))
+        if (!(m_encryption.options() & runtime::NetworkConfig::encryption_require))
           m_encryption.set_retry(HandshakeEncryption::RETRY_PLAIN);
 
         m_state = READ_ENC_KEY;
@@ -1056,7 +1056,7 @@ Handshake::prepare_enc_negotiation() {
   HandshakeEncryption::copy_vc(m_writeBuffer.end());
   m_writeBuffer.move_end(HandshakeEncryption::vc_length);
 
-  if (m_encryption.options() & net::NetworkConfig::encryption_require_RC4)
+  if (m_encryption.options() & runtime::NetworkConfig::encryption_require_RC4)
     m_writeBuffer.write_32(HandshakeEncryption::crypto_rc4);
   else
     m_writeBuffer.write_32(HandshakeEncryption::crypto_plain | HandshakeEncryption::crypto_rc4);

@@ -8,8 +8,8 @@
 #include "torrent/object.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
-#include "torrent/net/network_config.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/utils/option_strings.h"
 
 namespace torrent {
@@ -54,14 +54,14 @@ constexpr option_pair option_list_heuristics_upload[] = {
 };
 
 constexpr option_pair option_list_encryption[] = {
-  { "none",             torrent::net::NetworkConfig::encryption_none },
-  { "allow_incoming",   torrent::net::NetworkConfig::encryption_allow_incoming },
-  { "try_outgoing",     torrent::net::NetworkConfig::encryption_try_outgoing },
-  { "require",          torrent::net::NetworkConfig::encryption_require },
-  { "require_RC4",      torrent::net::NetworkConfig::encryption_require_RC4 },
-  { "require_rc4",      torrent::net::NetworkConfig::encryption_require_RC4 },
-  { "enable_retry",     torrent::net::NetworkConfig::encryption_enable_retry },
-  { "prefer_plaintext", torrent::net::NetworkConfig::encryption_prefer_plaintext },
+  { "none",             runtime::NetworkConfig::encryption_none },
+  { "allow_incoming",   runtime::NetworkConfig::encryption_allow_incoming },
+  { "try_outgoing",     runtime::NetworkConfig::encryption_try_outgoing },
+  { "require",          runtime::NetworkConfig::encryption_require },
+  { "require_RC4",      runtime::NetworkConfig::encryption_require_RC4 },
+  { "require_rc4",      runtime::NetworkConfig::encryption_require_RC4 },
+  { "enable_retry",     runtime::NetworkConfig::encryption_enable_retry },
+  { "prefer_plaintext", runtime::NetworkConfig::encryption_prefer_plaintext },
   { NULL, 0 }
 };
 
@@ -72,10 +72,10 @@ constexpr option_pair option_list_ip_filter[] = {
 };
 
 constexpr option_pair option_list_ip_tos[] = {
-  { "default",     torrent::net::NetworkConfig::iptos_default },
-  { "lowdelay",    torrent::net::NetworkConfig::iptos_lowdelay },
-  { "throughput",  torrent::net::NetworkConfig::iptos_throughput },
-  { "reliability", torrent::net::NetworkConfig::iptos_reliability },
+  { "default",     runtime::NetworkConfig::iptos_default },
+  { "lowdelay",    runtime::NetworkConfig::iptos_lowdelay },
+  { "throughput",  runtime::NetworkConfig::iptos_throughput },
+  { "reliability", runtime::NetworkConfig::iptos_reliability },
   { NULL, 0 }
 };
 

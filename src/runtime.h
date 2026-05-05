@@ -11,6 +11,9 @@ class LIBTORRENT_EXPORT Runtime {
 public:
   static void         initialize(system::Thread* main_thread);
   static void         cleanup();
+  static void         destroy();
+
+  auto*               network_config()     { return m_network_config.get(); }
 
   auto*               network_manager()    { return m_network_manager.get(); }
   auto*               socket_manager()     { return m_socket_manager.get(); }
@@ -21,6 +24,7 @@ private:
 
   system::Thread*     m_main_thread;
 
+  std::unique_ptr<runtime::NetworkConfig>  m_network_config;
   std::unique_ptr<runtime::NetworkManager> m_network_manager;
   std::unique_ptr<runtime::SocketManager>  m_socket_manager;
 };
