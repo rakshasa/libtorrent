@@ -18,7 +18,8 @@
   lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", log_fmt, __VA_ARGS__);
   // lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
-// TODO: Add m_connections::iterator to info so we don't need to look them up.
+// TODO: Add m_connections::iterator to info so we don't need to look them up. We should be able to
+// replace unordered_map with map then to reduce memory usage after initial startup tracker rush.
 
 namespace torrent::tracker {
 
@@ -331,22 +332,35 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
   if (info->retry_count >= 3)
     throw internal_error("UdpRouter::try_write() called but retry_count is not 0.");
 
+  if (!is_open())
+    throw internal_error("UdpRouter::try_write() called but router is not open.");
+
   clear_timeout(info);
 
-  // TODO: Add to queue here...
-  if (!do_write(id, info))
-    return false;
+  if (!do_write(id, info)) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+      return false;
+
+    if (errno == ENETUNREACH) {
+      auto failure_fn = std::move(info->failure);
+      disconnect_unsafe(m_connections.find(id));
+
+      failure_fn(id, errno, 0);
+      return true;
+    }
+
+    LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(errno).c_str());
+
+    // TODO: Need to be handled differently.
+    throw internal_error("UdpRouter::try_write() failed to write datagram: " + system::errno_enum_str(errno));
+  }
 
   queue_timeout(id, info);
-
   return true;
 }
 
 bool
 UdpRouter::do_write(uint32_t id, connection_info* info) {
-  if (!is_open())
-    return false;
-
   m_buffer.reset();
 
   info->prepare(id, m_buffer);
@@ -357,22 +371,8 @@ UdpRouter::do_write(uint32_t id, connection_info* info) {
   auto address       = info->address.get();
   auto bytes_written = write_datagram_sa(m_buffer.begin(), m_buffer.size_end(), address);
 
-  if (bytes_written == -1) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-      return false;
-
-    if (errno == ENETUNREACH) {
-      auto failure_fn = std::move(info->failure);
-      disconnect_unsafe(m_connections.find(id));
-
-      failure_fn(id, errno, 0);
-    }
-
-    LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(address).c_str(), system::errno_enum_str(errno).c_str());
-
-    // TODO: Need to be handled differently.
-    throw internal_error("UdpRouter::try_write() failed to write datagram: " + system::errno_enum_str(errno));
-  }
+  if (bytes_written == -1)
+    return false;
 
   if (bytes_written != m_buffer.size_end()) {
     LT_LOG("failed to write datagram : address:%s : only %d of %d bytes written", sa_pretty_str(address).c_str(), bytes_written, m_buffer.size_end());
