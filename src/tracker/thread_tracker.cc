@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "thread_tracker.h"
+#include "tracker/thread_tracker.h"
 
 #include <cassert>
 
@@ -8,6 +8,8 @@
 #include "torrent/exceptions.h"
 #include "torrent/tracker/manager.h"
 #include "utils/instrumentation.h"
+
+#include "thread_main.h"
 
 namespace torrent {
 

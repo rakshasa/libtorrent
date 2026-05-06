@@ -68,9 +68,6 @@ ThreadMain::init_thread() {
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
     };
-
-  m_thread_main->m_udp_inet_router->open(AF_INET);
-  m_thread_main->m_udp_inet6_router->open(AF_INET6);
 }
 
 void
