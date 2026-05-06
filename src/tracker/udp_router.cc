@@ -18,6 +18,8 @@
   lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", log_fmt, __VA_ARGS__);
   // lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
+// TODO: Add m_connections::iterator to info so we don't need to look them up.
+
 namespace torrent::tracker {
 
 UdpRouter::UdpRouter() {
@@ -358,6 +360,13 @@ UdpRouter::do_write(uint32_t id, connection_info* info) {
   if (bytes_written == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
       return false;
+
+    if (errno == ENETUNREACH) {
+      auto failure_fn = std::move(info->failure);
+      disconnect_unsafe(m_connections.find(id));
+
+      failure_fn(id, errno, 0);
+    }
 
     LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(address).c_str(), system::errno_enum_str(errno).c_str());
 
