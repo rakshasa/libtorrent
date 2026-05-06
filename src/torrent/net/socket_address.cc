@@ -718,6 +718,10 @@ sin6_pretty_or_empty(const sockaddr_in6* sa) {
   return result;
 }
 
+//
+// Other types:
+//
+
 c_sa_shared_ptr
 sa_lookup_address(const std::string& address_str, int family) {
   if (address_str.empty())
@@ -746,9 +750,41 @@ sa_lookup_address(const std::string& address_str, int family) {
   }
 }
 
-//
-// Other types:
-//
+// Returns ptr if numeric of family, if numeric of other family return nullptr+false, else nullptr+true.
+
+std::tuple<sa_unique_ptr,bool>
+sa_lookup_numeric(const std::string& address_str, int family) {
+  auto [sin, sin6] = try_lookup_numeric(address_str, AF_UNSPEC);
+
+  switch (family) {
+  case AF_UNSPEC:
+    if (sin)
+      return {sa_copy_in(sin.get()), true};
+    if (sin6)
+      return {sa_copy_in6(sin6.get()), true};
+
+    return {nullptr, true};
+
+  case AF_INET:
+    if (sin)
+      return {sa_copy_in(sin.get()), true};
+    if (sin6)
+      return {nullptr, false};
+
+    return {nullptr, true};
+
+  case AF_INET6:
+    if (sin6)
+      return {sa_copy_in6(sin6.get()), true};
+    if (sin)
+      return {nullptr, false};
+
+    return {nullptr, true};
+
+  default:
+    throw internal_error("torrent::sa_lookup_numeric() invalid family");
+  }
+}
 
 sin46_shared_pair
 try_lookup_numeric(const std::string& hostname, int family) {

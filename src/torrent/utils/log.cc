@@ -329,11 +329,13 @@ log_file_write(const std::unique_ptr<std::ostream>& outfile, const char* data, s
   } else if (group >= 0) {
     *outfile << this_thread::cached_seconds().count() << ' ' << log_level_char[group % 6] << ' ' << data << '\n';
   } else if (group == -1) {
-    *outfile << "---DUMP---" << '\n';
+    *outfile << "---DUMP---" << length << "---" << '\n';
+
     if (length != 0) {
       outfile->rdbuf()->sputn(data, length);
       *outfile << '\n';
     }
+
     *outfile << "---END---" << '\n';
   }
 }
@@ -356,7 +358,9 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
     gzwrite(outfile->gz_file.get(), "\n", 1);
 
   } else if (group == -1) {
-    gzwrite(outfile->gz_file.get(), "---DUMP---\n", sizeof("---DUMP---\n") - 1);
+    int buffer_length = snprintf(buffer, 64, "---DUMP---%zu---\n", length);
+
+    gzwrite(outfile->gz_file.get(), buffer, buffer_length);
 
     if (length != 0)
       gzwrite(outfile->gz_file.get(), data, length);

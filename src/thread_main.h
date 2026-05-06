@@ -8,6 +8,12 @@
 
 namespace torrent {
 
+namespace tracker {
+
+class UdpRouter;
+
+} // namespace tracker
+
 class HashQueue;
 
 class LIBTORRENT_EXPORT ThreadMain : public system::Thread {
@@ -26,6 +32,9 @@ public:
 
   auto&               slot_do_work()        { return m_slot_do_work; }
 
+  auto                  udp_inet_router()         { return m_udp_inet_router.get(); }
+  auto                  udp_inet6_router()        { return m_udp_inet6_router.get(); }
+
 protected:
   friend class ThreadMainInternal;
 
@@ -38,6 +47,9 @@ protected:
 
   std::unique_ptr<HashQueue> m_hash_queue;
   std::function<void()>      m_slot_do_work;
+
+  std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;
+  std::unique_ptr<tracker::UdpRouter> m_udp_inet6_router;
 };
 
 } // namespace torrent
