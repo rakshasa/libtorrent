@@ -26,7 +26,6 @@ public:
   const char*         name() const override { return "rtorrent main"; }
 
   void                init_thread() override;
-  void                init_thread_post_local() override;
   void                cleanup_thread() override;
 
   HashQueue*          hash_queue()          { return m_hash_queue.get(); }
