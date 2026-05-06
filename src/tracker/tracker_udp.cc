@@ -279,7 +279,7 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
       if (family != AF_INET)
         return 0;
 
-      auto local_address = config::network_config()->local_inet_address();
+      auto local_address = runtime::network_config()->local_inet_address();
 
       if (local_address == nullptr || local_address->sa_family != AF_INET)
         return 0;

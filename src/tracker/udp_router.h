@@ -1,14 +1,17 @@
 #ifndef LIBTORRENT_TRACKER_UDP_ROUTER_H
 #define LIBTORRENT_TRACKER_UDP_ROUTER_H
 
+#include <chrono>
 #include <deque>
 #include <functional>
 #include <memory>
 #include <random>
+#include <tuple>
 #include <unordered_map>
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
+#include "torrent/utils/scheduler.h"
 
 namespace torrent::tracker {
 
@@ -22,7 +25,7 @@ public:
   using update_func  = std::function<void(uint32_t)>;
 
   UdpRouter();
-  ~UdpRouter() = default;
+  ~UdpRouter();
 
   const char*         type_name() const override { return "udp_router"; }
 
@@ -42,11 +45,15 @@ public:
   void                disconnect(uint32_t id);
 
 private:
+  UdpRouter(const UdpRouter&) = delete;
+  UdpRouter& operator=(const UdpRouter&) = delete;
+
   struct connection_info;
 
-  using connection_map = std::unordered_map<uint32_t, connection_info>;
-  using queue_type     = std::deque<std::pair<uint32_t, connection_info*>>;
-  using random_engine  = std::independent_bits_engine<std::default_random_engine, 32, uint32_t>;
+  using random_engine      = std::independent_bits_engine<std::default_random_engine, 32, uint32_t>;
+  using connection_map     = std::unordered_map<uint32_t, connection_info>;
+  using write_queue_type   = std::deque<std::pair<uint32_t, connection_info*>>;
+  using timeout_queue_type = std::deque<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
 
   struct connection_info {
     c_sa_shared_ptr      address;
@@ -55,7 +62,10 @@ private:
     process_func         process{};
     failure_func         failure{};
 
+    unsigned int         retry_count{};
+
     connection_info**    queue_ptr{};
+    connection_info**    timeout_ptr{};
   };
 
   int                 router_family() const;
@@ -66,25 +76,27 @@ private:
   void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 
   bool                try_write(uint32_t id, connection_info* info);
+  bool                do_write(uint32_t id, connection_info* info);
   void                queue_write(uint32_t id, connection_info* info);
 
   uint32_t            peek_transaction_id(buffer_type& buffer) const;
+
+  void                receive_timeout();
 
   void                event_read() override;
   void                event_write() override;
   void                event_error() override;
 
-  // TODO: Add timeout queue.
-  // TODO: Use deque for write queue, zero out connection_info when removing.
   // TODO: Change Thread/Scheduler callbacks to use deque, and create callback handles.
 
-  connection_map      m_connections;
-  queue_type          m_write_queue;
   random_engine       m_random_engine;
 
-  // TODO: Set Event::m_socket_address.
-  buffer_type         m_buffer;
+  connection_map      m_connections;
+  write_queue_type    m_write_queue;
+  timeout_queue_type  m_timeout_queue;
 
+  utils::SchedulerEntry m_task_timeout;
+  buffer_type           m_buffer;
 };
 
 inline int UdpRouter::router_family() const { return socket_address()->sa_family; }

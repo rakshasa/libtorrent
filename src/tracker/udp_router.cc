@@ -7,10 +7,10 @@
 #include <netdb.h>
 
 #include "torrent/net/fd.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/poll.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 
@@ -25,7 +25,11 @@ UdpRouter::UdpRouter() {
   std::mt19937       mt(rd());
 
   m_random_engine.seed(mt());
+
+  m_task_timeout.slot() = [this] { receive_timeout(); };
 }
+
+UdpRouter::~UdpRouter() = default;
 
 void
 UdpRouter::open(int family) {
@@ -37,7 +41,7 @@ UdpRouter::open(int family) {
 
   // TODO: Do a reopen_if_necessary() that checks if the bind address has changed.
 
-  auto bind_address = config::network_config()->bind_address_for_connect(family);
+  auto bind_address = runtime::network_config()->bind_address_for_connect(family);
 
   if (bind_address == nullptr) {
     LT_LOG("could not open udp router : blocked or invalid bind address : family:%s", family_str(family));
@@ -64,10 +68,11 @@ UdpRouter::open(int family) {
 
       set_file_descriptor(fd);
 
-      this_thread::event_open(this);
-      this_thread::event_insert_read(this);
-      // this_thread::event_insert_write(this);
-      this_thread::event_insert_error(this);
+      this_thread::poll()->open(this);
+      this_thread::poll()->insert_read(this);
+      this_thread::poll()->insert_error(this);
+
+      // manager->connection_manager()->inc_socket_count();
     };
 
   auto cleanup_func = [this, family]() {
@@ -76,10 +81,12 @@ UdpRouter::open(int family) {
 
       LT_LOG("opening router failed : socket manager triggered cleanup : family:%s", family_str(family));
 
-      this_thread::event_remove_and_close(this);
+      this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
       set_file_descriptor(-1);
+
+      // manager->connection_manager()->dec_socket_count();
     };
 
   if (!runtime::socket_manager()->open_event_or_cleanup(this, open_fd, cleanup_func))
@@ -96,7 +103,7 @@ UdpRouter::close() {
     return;
 
   runtime::socket_manager()->close_event_or_throw(this, [this]() {
-      this_thread::event_remove_and_close(this);
+      this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
       set_file_descriptor(-1);
@@ -237,6 +244,11 @@ UdpRouter::disconnect_unsafe(connection_map::iterator itr) {
     itr->second.queue_ptr = nullptr;
   }
 
+  if (itr->second.timeout_ptr != nullptr) {
+    *itr->second.timeout_ptr = nullptr;
+    itr->second.timeout_ptr = nullptr;
+  }
+
   m_connections.erase(itr);
 }
 
@@ -264,6 +276,8 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
 
     if (err != 0) {
       LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, net::gai_enum_error(err));
+
+      ///// TODO: Need to disconnect?
 
       itr->second.failure(id, 0, err);
       return;
@@ -298,8 +312,31 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
     queue_write(id, &itr->second);
 }
 
+// TODO: try_write
 bool
 UdpRouter::try_write(uint32_t id, connection_info* info) {
+  if (!do_write(id, info))
+    return false;
+
+  if (info->timeout_ptr != nullptr) {
+    *info->timeout_ptr = nullptr;
+    info->timeout_ptr = nullptr;
+  }
+
+  if (m_timeout_queue.empty())
+    this_thread::scheduler()->wait_until(&m_task_timeout, this_thread::cached_seconds() + 15s);
+
+  m_timeout_queue.emplace_back(id, this_thread::cached_seconds() + 15s, info);
+
+  // TODO: Set to 1 to indicate the first write is done?
+  info->retry_count = 0;
+  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
+
+  return true;
+}
+
+bool
+UdpRouter::do_write(uint32_t id, connection_info* info) {
   if (!is_open())
     return false;
 
@@ -358,6 +395,40 @@ UdpRouter::peek_transaction_id(buffer_type& buffer) const {
 }
 
 void
+UdpRouter::receive_timeout() {
+  auto now = this_thread::cached_seconds();
+
+  while (!m_timeout_queue.empty()) {
+    auto& [id, timeout_time, info] = m_timeout_queue.front();
+
+    if (timeout_time > now)
+      break;
+
+    if (info == nullptr) {
+      m_timeout_queue.pop_front();
+      continue;
+    }
+
+    if (info->timeout_ptr != &std::get<2>(m_timeout_queue.front()))
+      throw internal_error("UdpRouter::receive_timeout() timeout queue entry does not match connection info.");
+
+    if (info->failure == nullptr)
+      throw internal_error("UdpRouter::receive_timeout() connection info failure callback is null.");
+
+
+    auto failure_fn = std::move(info->failure);
+
+    disconnect_unsafe(m_connections.find(id));
+    failure_fn(id, ETIMEDOUT, 0);
+
+    m_timeout_queue.pop_front();
+  }
+
+  if (!m_timeout_queue.empty())
+    this_thread::scheduler()->wait_until(&m_task_timeout, std::get<1>(m_timeout_queue.front()));
+}
+
+void
 UdpRouter::event_read() {
   while (true) {
     sa_inet_union from_sa;
@@ -400,14 +471,24 @@ UdpRouter::event_read() {
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
 
+    // TODO: Save previous timeout value, only update timeout scheduler if changed.
+
+    // TODO: Return two bools from process(), disconnect or ignored package (invalidate timeout / keep timeout)
+
     if (!itr->second.process(transaction_id, m_buffer)) {
       // LT_LOG("processing datagram failed : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
 
-      auto failure_fn = std::move(itr->second.failure);
-
+      // auto failure_fn = std::move(itr->second.failure);
       disconnect_unsafe(itr);
-      failure_fn(transaction_id, 0, 0); // Use EINVAL?
+      // failure_fn(transaction_id, 0, 0); // Use EINVAL?
       continue;
+    }
+
+    // TODO: Check if process indicates parse was successful:
+
+    if (itr->second.timeout_ptr != nullptr) {
+      *itr->second.timeout_ptr = nullptr;
+      itr->second.timeout_ptr = nullptr;
     }
   }
 }
