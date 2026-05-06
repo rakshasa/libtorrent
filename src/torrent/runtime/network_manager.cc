@@ -9,6 +9,11 @@
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 
+// TODO: Allow us to add callbacks on network update events.
+
+#include "thread_main.h"
+#include "tracker/udp_router.h"
+
 // TODO: Add runtime category and add it to important/complete log outputs.
 
 #define LT_LOG_NOTICE(log_fmt, ...)                                     \
@@ -126,9 +131,15 @@ NetworkManager::is_listening_unsafe() const {
   return m_listen_inet->is_open() || m_listen_inet6->is_open();
 }
 
+// TODO: Rename to updated_config() or something.
 void
 NetworkManager::restart_listen() {
   auto guard = lock_guard();
+
+  m_main_thread->callback(this, []() {
+      ThreadMain::thread_main()->udp_inet_router()->updated_network_config(AF_INET);
+      ThreadMain::thread_main()->udp_inet6_router()->updated_network_config(AF_INET6);
+    });
 
   if (m_listen_restarting || !is_listening_unsafe())
     return;

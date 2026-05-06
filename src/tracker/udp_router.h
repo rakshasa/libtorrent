@@ -34,6 +34,8 @@ public:
   void                open(int family);
   void                close();
 
+  void                updated_network_config(int family);
+
   // TODO: Add option for single-try.
 
   // These may call prepare_fn with the new id before returning, except for when hostname lookup is

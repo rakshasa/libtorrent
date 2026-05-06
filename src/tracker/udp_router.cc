@@ -123,8 +123,35 @@ UdpRouter::close() {
 
   // TODO: Send error to all?
 
+  set_socket_address(sa_make_unspec());
+
   LT_LOG("closed udp router", 0);
 }
+
+void
+UdpRouter::updated_network_config(int family) {
+  assert(m_thread == this_thread::thread());
+
+  auto bind_address = runtime::network_config()->bind_address_for_connect(family);
+
+  if (bind_address == nullptr) {
+    LT_LOG("closing udp router due to invalid or blocked bind address : family:%s", family_str(family));
+    close();
+    return;
+  }
+
+  if (bind_address->sa_family != family)
+    throw internal_error("UdpRouter::updated_network_config() got bind address with wrong family.");
+
+  if (sa_equal(bind_address.get(), socket_address()))
+    return;
+
+  LT_LOG("udp router bind address changed : old:%s new:%s", sa_pretty_str(socket_address()).c_str(), sa_pretty_str(bind_address.get()).c_str());
+
+  close();
+  open(family);
+}
+
 
 uint32_t
 UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn) {
