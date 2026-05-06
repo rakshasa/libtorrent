@@ -490,25 +490,8 @@ UdpRouter::event_read() {
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
 
-    switch (itr->second.process(transaction_id, m_buffer)) {
-    case 0:
-      break;
-
-    case 1:
-      clear_timeout(&itr->second);
-      itr->second.retry_count = 0;
-
-      if (!try_write(transaction_id, &itr->second))
-        queue_write(transaction_id, &itr->second);
-      break;
-
-    case -1:
+    if (!itr->second.process(transaction_id, m_buffer))
       disconnect_unsafe(itr);
-      break;
-
-    default:
-      throw internal_error("UdpRouter::event_read() process() returned invalid value.");
-    }
   }
 }
 

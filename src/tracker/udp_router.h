@@ -20,7 +20,7 @@ public:
   using buffer_type  = ProtocolBuffer<512>;
 
   using prepare_func = std::function<void(uint32_t, buffer_type&)>;
-  using process_func = std::function<int(uint32_t, buffer_type&)>;
+  using process_func = std::function<bool(uint32_t, buffer_type&)>;
   using failure_func = std::function<void(uint32_t, int, int)>;
   using update_func  = std::function<void(uint32_t)>;
 
@@ -36,7 +36,12 @@ public:
 
   // TODO: Add option for single-try.
 
-  // These may call prepare_fn with the new id before returning, except for when hostname lookup is required.
+  // These may call prepare_fn with the new id before returning, except for when hostname lookup is
+  // required.
+  //
+  // When process_fn is called, return false to disconnect and true to do nothing. (E.g. unknown
+  // packet or transferred connection)
+
   uint32_t            connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn = nullptr);
   uint32_t            connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
 
