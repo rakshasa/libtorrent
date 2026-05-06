@@ -6,6 +6,8 @@
 #include "torrent/net/resolver.h"
 #include "utils/instrumentation.h"
 
+#include "tracker/udp_router.h"
+
 namespace torrent {
 
 class ThreadMainInternal {
@@ -38,6 +40,8 @@ ThreadMain::create_thread() {
   m_thread_main = new ThreadMain;
 
   m_thread_main->m_hash_queue = std::make_unique<HashQueue>();
+  m_thread_main->m_udp_inet_router  = std::make_unique<tracker::UdpRouter>();
+  m_thread_main->m_udp_inet6_router = std::make_unique<tracker::UdpRouter>();
 }
 
 ThreadMain*
@@ -67,8 +71,20 @@ ThreadMain::init_thread() {
 }
 
 void
+ThreadMain::init_thread_post_local() {
+  m_thread_main->m_udp_inet_router->open(AF_INET);
+  m_thread_main->m_udp_inet6_router->open(AF_INET6);
+}
+
+void
 ThreadMain::cleanup_thread() {
   m_hash_queue.reset();
+
+  m_udp_inet_router->close();
+  m_udp_inet_router.reset();
+
+  m_udp_inet6_router->close();
+  m_udp_inet6_router.reset();
 
   m_thread_main = nullptr;
   m_self = nullptr;

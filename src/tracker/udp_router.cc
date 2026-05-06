@@ -34,10 +34,12 @@ UdpRouter::~UdpRouter() = default;
 void
 UdpRouter::open(int family) {
   if (is_open())
-    return;
+    throw internal_error("UdpRouter::open() called but router is already open.");
 
   if (family != AF_INET && family != AF_INET6)
     throw internal_error("UdpRouter::open() called with unsupported family.");
+
+  m_thread = this_thread::thread();
 
   // TODO: Do a reopen_if_necessary() that checks if the bind address has changed.
 
@@ -102,6 +104,10 @@ UdpRouter::close() {
   if (!is_open())
     return;
 
+  assert(m_thread == this_thread::thread());
+
+  this_thread::scheduler()->erase(&m_task_timeout);
+
   runtime::socket_manager()->close_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
 
@@ -122,6 +128,8 @@ UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_fun
   if (!is_open())
     return 0;
 
+  assert(m_thread == this_thread::thread());
+
   if (address != nullptr && address->sa_family != router_family())
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
@@ -140,6 +148,8 @@ uint32_t
 UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
   if (!is_open())
     return 0;
+
+  assert(m_thread == this_thread::thread());
 
   auto [sa, sa_success] = sa_lookup_numeric(hostname, router_family());
 
@@ -162,6 +172,8 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
 
 uint32_t
 UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn) {
+  assert(m_thread == this_thread::thread());
+
   auto itr = m_connections.find(id);
 
   if (itr == m_connections.end())
@@ -185,6 +197,8 @@ UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_f
 
 void
 UdpRouter::disconnect(uint32_t id) {
+  assert(m_thread == this_thread::thread());
+
   auto itr = m_connections.find(id);
 
   if (itr == m_connections.end())

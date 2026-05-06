@@ -31,8 +31,8 @@ public:
 
   tracker::Manager*     tracker_manager()         { return m_tracker_manager.get(); }
 
-  auto                  udp_inet_router()         { return m_udp_inet_router.get(); }
-  auto                  udp_inet6_router()        { return m_udp_inet6_router.get(); }
+  // auto                  udp_inet_router()         { return m_udp_inet_router.get(); }
+  // auto                  udp_inet6_router()        { return m_udp_inet6_router.get(); }
 
 protected:
   friend class Manager;
@@ -46,8 +46,8 @@ private:
   static ThreadTracker*               m_thread_tracker;
 
   std::unique_ptr<tracker::Manager>   m_tracker_manager;
-  std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;
-  std::unique_ptr<tracker::UdpRouter> m_udp_inet6_router;
+  // std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;
+  // std::unique_ptr<tracker::UdpRouter> m_udp_inet6_router;
 };
 
 } // namespace torrent

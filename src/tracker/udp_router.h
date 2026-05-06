@@ -97,6 +97,7 @@ private:
 
   // TODO: Change Thread/Scheduler callbacks to use deque, and create callback handles.
 
+  system::Thread*     m_thread;
   random_engine       m_random_engine;
 
   connection_map      m_connections;
