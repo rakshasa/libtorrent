@@ -20,7 +20,7 @@ public:
   using buffer_type  = ProtocolBuffer<512>;
 
   using prepare_func = std::function<void(uint32_t, buffer_type&)>;
-  using process_func = std::function<bool(uint32_t, buffer_type&)>;
+  using process_func = std::function<int(uint32_t, buffer_type&)>;
   using failure_func = std::function<void(uint32_t, int, int)>;
   using update_func  = std::function<void(uint32_t)>;
 
@@ -77,6 +77,9 @@ private:
 
   bool                try_write(uint32_t id, connection_info* info);
   bool                do_write(uint32_t id, connection_info* info);
+
+  void                clear_timeout(connection_info* info);
+  void                queue_timeout(uint32_t id, connection_info* info);
   void                queue_write(uint32_t id, connection_info* info);
 
   uint32_t            peek_transaction_id(buffer_type& buffer) const;

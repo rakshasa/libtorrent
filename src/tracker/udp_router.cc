@@ -244,10 +244,7 @@ UdpRouter::disconnect_unsafe(connection_map::iterator itr) {
     itr->second.queue_ptr = nullptr;
   }
 
-  if (itr->second.timeout_ptr != nullptr) {
-    *itr->second.timeout_ptr = nullptr;
-    itr->second.timeout_ptr = nullptr;
-  }
+  clear_timeout(&itr->second);
 
   m_connections.erase(itr);
 }
@@ -312,25 +309,19 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
     queue_write(id, &itr->second);
 }
 
-// TODO: try_write
+
 bool
 UdpRouter::try_write(uint32_t id, connection_info* info) {
+  if (info->retry_count >= 3)
+    throw internal_error("UdpRouter::try_write() called but retry_count is not 0.");
+
+  clear_timeout(info);
+
+  // TODO: Add to queue here...
   if (!do_write(id, info))
     return false;
 
-  if (info->timeout_ptr != nullptr) {
-    *info->timeout_ptr = nullptr;
-    info->timeout_ptr = nullptr;
-  }
-
-  if (m_timeout_queue.empty())
-    this_thread::scheduler()->wait_until(&m_task_timeout, this_thread::cached_seconds() + 15s);
-
-  m_timeout_queue.emplace_back(id, this_thread::cached_seconds() + 15s, info);
-
-  // TODO: Set to 1 to indicate the first write is done?
-  info->retry_count = 0;
-  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
+  queue_timeout(id, info);
 
   return true;
 }
@@ -369,6 +360,29 @@ UdpRouter::do_write(uint32_t id, connection_info* info) {
 }
 
 void
+UdpRouter::clear_timeout(connection_info* info) {
+  if (info->timeout_ptr == nullptr)
+    return;
+
+  *info->timeout_ptr = nullptr;
+  info->timeout_ptr = nullptr;
+}
+
+void
+UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
+  if (info->timeout_ptr != nullptr)
+    throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
+
+  if (m_timeout_queue.empty())
+    this_thread::scheduler()->wait_until(&m_task_timeout, this_thread::cached_seconds() + 15s);
+
+  m_timeout_queue.emplace_back(id, this_thread::cached_seconds() + 15s, info);
+
+  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
+  info->retry_count++;
+}
+
+void
 UdpRouter::queue_write(uint32_t id, connection_info* info) {
   if (info->queue_ptr != nullptr)
     throw internal_error("UdpRouter::queue_write() called for connection that is already queued for writing.");
@@ -399,13 +413,14 @@ UdpRouter::receive_timeout() {
   auto now = this_thread::cached_seconds();
 
   while (!m_timeout_queue.empty()) {
-    auto& [id, timeout_time, info] = m_timeout_queue.front();
+    auto [id, timeout_time, info] = m_timeout_queue.front();
 
     if (timeout_time > now)
       break;
 
+    m_timeout_queue.pop_front();
+
     if (info == nullptr) {
-      m_timeout_queue.pop_front();
       continue;
     }
 
@@ -415,13 +430,17 @@ UdpRouter::receive_timeout() {
     if (info->failure == nullptr)
       throw internal_error("UdpRouter::receive_timeout() connection info failure callback is null.");
 
+    if (info->retry_count < 3) {
+      if (!try_write(id, info))
+        queue_write(id, info);
+
+      continue;
+    }
 
     auto failure_fn = std::move(info->failure);
 
     disconnect_unsafe(m_connections.find(id));
     failure_fn(id, ETIMEDOUT, 0);
-
-    m_timeout_queue.pop_front();
   }
 
   if (!m_timeout_queue.empty())
@@ -471,24 +490,24 @@ UdpRouter::event_read() {
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
 
-    // TODO: Save previous timeout value, only update timeout scheduler if changed.
+    switch (itr->second.process(transaction_id, m_buffer)) {
+    case 0:
+      break;
 
-    // TODO: Return two bools from process(), disconnect or ignored package (invalidate timeout / keep timeout)
+    case 1:
+      clear_timeout(&itr->second);
+      itr->second.retry_count = 0;
 
-    if (!itr->second.process(transaction_id, m_buffer)) {
-      // LT_LOG("processing datagram failed : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
+      if (!try_write(transaction_id, &itr->second))
+        queue_write(transaction_id, &itr->second);
+      break;
 
-      // auto failure_fn = std::move(itr->second.failure);
+    case -1:
       disconnect_unsafe(itr);
-      // failure_fn(transaction_id, 0, 0); // Use EINVAL?
-      continue;
-    }
+      break;
 
-    // TODO: Check if process indicates parse was successful:
-
-    if (itr->second.timeout_ptr != nullptr) {
-      *itr->second.timeout_ptr = nullptr;
-      itr->second.timeout_ptr = nullptr;
+    default:
+      throw internal_error("UdpRouter::event_read() process() returned invalid value.");
     }
   }
 }
