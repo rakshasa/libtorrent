@@ -31,6 +31,11 @@ gai_enum_error(int status) {
   }
 }
 
+std::string
+gai_enum_error_str(int status) {
+  return std::string(gai_enum_error(status));
+}
+
 void
 Resolver::init() {
   m_thread = torrent::system::Thread::self();

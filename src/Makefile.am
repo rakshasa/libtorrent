@@ -151,6 +151,8 @@ libtorrent_other_la_SOURCES = \
 	tracker/tracker_udp.h \
 	tracker/tracker_worker.cc \
 	tracker/tracker_worker.h \
+	tracker/udp_router.cc \
+	tracker/udp_router.h \
 	\
 	utils/diffie_hellman.cc \
 	utils/diffie_hellman.h \

@@ -36,8 +36,6 @@ protected:
   friend class torrent::net::HttpStack;
   friend class torrent::net::Resolver;
 
-  ThreadNet() = default;
-
   static auto         internal_thread_net() { return m_thread_net; }
 
   void                      call_events() override;
@@ -49,6 +47,8 @@ protected:
   net::UdnsResolver*  dns_resolver() const { return m_dns_resolver.get(); }
 
 private:
+  ThreadNet() = default;
+
   static ThreadNet*   m_thread_net;
 
   std::unique_ptr<net::HttpStack>    m_http_stack;
