@@ -223,6 +223,8 @@ errno_enum_str(int status) {
 
 void
 initialize_main_thread() {
+  Runtime::initialize(torrent::this_thread::thread());
+
   ThreadMain::create_thread();
   ThreadMain::thread_main()->init_thread();
 }
@@ -234,8 +236,6 @@ initialize() {
 
   instrumentation_initialize();
   curl_global_init(CURL_GLOBAL_ALL);
-
-  Runtime::initialize(torrent::this_thread::thread());
 
   manager = new Manager;
 
