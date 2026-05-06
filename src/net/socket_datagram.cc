@@ -39,7 +39,7 @@ SocketDatagram::read_datagram_sa(void* buffer, unsigned int length, sockaddr* fr
 }
 
 int
-SocketDatagram::write_datagram_sa(const void* buffer, unsigned int length, sockaddr* sa) {
+SocketDatagram::write_datagram_sa(const void* buffer, unsigned int length, const sockaddr* sa) {
   if (length == 0)
     throw internal_error("Tried to send buffer length 0");
 

@@ -61,6 +61,10 @@ mock_cleanup() {
 
 void
 mock_redirect_defaults([[maybe_unused]] mock_redirect_flags flags) {
+  mock_redirect(torrent::fd__bind, std::function<int(int socket, const sockaddr *address, socklen_t address_len)>([](int socket, const sockaddr *address, socklen_t address_len) {
+      return ::bind(socket, address, address_len);
+    }));
+
   mock_redirect(torrent::fd__close, std::function<int(int fildes)>([](int fildes) { return ::close(fildes); }));
   mock_redirect(torrent::fd__fcntl_int, std::function<int(int fildes, int cmd, int arg)>([](int fildes, int cmd, int arg) { return ::fcntl(fildes, cmd, arg); }));
   mock_redirect(torrent::fd__setsockopt_int, std::function<int(int socket, int level, int option_name, int option_value)>([](int socket, int level, int option_name, int option_value) { return ::setsockopt(socket, level, option_name, &option_value, sizeof(int)); }));

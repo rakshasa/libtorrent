@@ -32,6 +32,8 @@
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
 
+#include "tracker/udp_router.h"
+
 namespace torrent {
 
 namespace {
@@ -225,6 +227,8 @@ void
 initialize_main_thread() {
   ThreadMain::create_thread();
   ThreadMain::thread_main()->init_thread();
+
+  Runtime::initialize(torrent::this_thread::thread());
 }
 
 void
@@ -235,7 +239,9 @@ initialize() {
   instrumentation_initialize();
   curl_global_init(CURL_GLOBAL_ALL);
 
-  Runtime::initialize(torrent::this_thread::thread());
+  // TODO: TEMP
+  ThreadMain::thread_main()->udp_inet_router()->open(AF_INET);
+  ThreadMain::thread_main()->udp_inet6_router()->open(AF_INET6);
 
   manager = new Manager;
 
@@ -280,6 +286,9 @@ cleanup() {
   ThreadTracker::destroy_thread();
   ThreadDisk::destroy_thread();
   ThreadNet::destroy_thread();
+
+  ThreadMain::thread_main()->udp_inet_router()->close();
+  ThreadMain::thread_main()->udp_inet6_router()->close();
 
   Runtime::cleanup();
   manager->cleanup();
