@@ -5,6 +5,7 @@
 
 #include "net/address_list.h"
 #include "torrent/object.h"
+#include "torrent/utils/scheduler.h"
 #include "tracker/tracker_worker.h"
 
 namespace torrent {
@@ -41,7 +42,7 @@ public:
   void                close() override;
 
   state_type          get_dht_state() const            { return m_dht_state; }
-  void                set_dht_state(state_type state)  { m_dht_state = state; }
+  void                set_dht_announce_state();
 
   bool                has_peers() const                { return !m_peers.empty(); }
 
@@ -58,6 +59,8 @@ private:
 
   int                 m_replied;
   int                 m_contacted;
+
+  utils::SchedulerEntry m_delay_clear_state;
 };
 
 } // namespace torrent
