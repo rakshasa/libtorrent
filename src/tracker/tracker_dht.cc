@@ -22,16 +22,15 @@ TrackerDht::TrackerDht(const TrackerInfo& info, int flags)
     throw internal_error("Trying to add DHT tracker with no DHT manager.");
 
   m_delay_clear_state.slot() = [this] {
-    auto guard = lock_guard();
-
     m_dht_state = state_idle;
     update_requesting_state();
   };
 }
 
 TrackerDht::~TrackerDht() {
-  if (m_dht_state != state_idle)
-    runtime::network_manager()->dht_controller()->cancel_announce(NULL, this);
+  this_thread::scheduler()->erase(&m_delay_clear_state);
+
+  runtime::network_manager()->dht_controller()->cancel_announce(NULL, this);
 }
 
 tracker_enum
@@ -94,8 +93,7 @@ TrackerDht::close() {
   LT_LOG("closing event : dht_state:%s replied:%d contacted:%d",
          states[m_dht_state], m_replied, m_contacted);
 
-  if (m_dht_state != state_idle)
-    runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
+  runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
 
   // TODO: Moved check from send_event(), verify if this is correct.
   // if (m_dht_state != state_idle)
