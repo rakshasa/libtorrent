@@ -27,14 +27,14 @@ TrackerDht::~TrackerDht() {
     runtime::network_manager()->dht_controller()->cancel_announce(NULL, this);
 }
 
-bool
-TrackerDht::is_allowed() {
-  return runtime::network_manager()->dht_controller()->is_valid();
+tracker_enum
+TrackerDht::type() const {
+  return TRACKER_DHT;
 }
 
 bool
-TrackerDht::is_busy() const {
-  return m_dht_state != state_idle;
+TrackerDht::is_allowed() {
+  return runtime::network_manager()->dht_controller()->is_valid();
 }
 
 bool
@@ -60,19 +60,13 @@ TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
 
   close();
 
-  if (m_dht_state != state_idle) {
-    runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
-
-    if (m_dht_state != state_idle)
-      throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
-  }
-
   lock_and_set_latest_event(new_state);
 
   if (new_state == tracker::TrackerState::EVENT_STOPPED)
     return;
 
   m_dht_state = state_searching;
+  update_requesting_state();
 
   if (!runtime::network_manager()->dht_controller()->is_active())
     return receive_failed("DHT server not active.");
@@ -93,15 +87,16 @@ TrackerDht::close() {
   LT_LOG("closing event : dht_state:%s replied:%d contacted:%d",
          states[m_dht_state], m_replied, m_contacted);
 
-  m_slot_close();
-
   if (m_dht_state != state_idle)
     runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
-}
 
-tracker_enum
-TrackerDht::type() const {
-  return TRACKER_DHT;
+  // TODO: Moved check from send_event(), verify if this is correct.
+  if (m_dht_state != state_idle)
+    throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
+
+  update_requesting_state();
+
+  m_slot_close();
 }
 
 void
@@ -130,6 +125,7 @@ TrackerDht::receive_success() {
     throw internal_error("TrackerDht::receive_success called while not busy.");
 
   m_dht_state = state_idle;
+  update_requesting_state();
 
   m_slot_success(std::move(m_peers));
 }
@@ -143,6 +139,7 @@ TrackerDht::receive_failed(const char* msg) {
     throw internal_error("TrackerDht::receive_failed called while not busy.");
 
   m_dht_state = state_idle;
+  update_requesting_state();
 
   m_slot_failure(msg);
   m_peers.clear();
@@ -158,6 +155,16 @@ TrackerDht::receive_progress(int replied, int contacted) {
 
   m_replied = replied;
   m_contacted = contacted;
+}
+
+void
+TrackerDht::update_requesting_state() {
+  auto guard = lock_guard();
+
+  if (m_dht_state != state_idle)
+    state().m_flags |= tracker::TrackerState::flag_requesting;
+  else
+    state().m_flags &= ~tracker::TrackerState::flag_requesting;
 }
 
 } // namespace torrent

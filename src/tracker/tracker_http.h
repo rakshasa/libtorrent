@@ -23,15 +23,15 @@ public:
 
   tracker_enum        type() const override;
 
-  bool                is_busy() const override;
-
-  void                close() override;
-
   void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
 
+  void                close() override;
+
 private:
   void                close_directly();
+
+  void                update_requesting_state();
 
   void                send_event_unsafe(tracker::TrackerState::event_enum state);
   void                send_scrape_unsafe();

@@ -47,9 +47,9 @@ TrackerUdp::~TrackerUdp() {
   close_directly();
 }
 
-bool
-TrackerUdp::is_busy() const {
-  return m_inet_transaction_id != 0 || m_inet6_transaction_id != 0;
+tracker_enum
+TrackerUdp::type() const {
+  return TRACKER_UDP;
 }
 
 void
@@ -77,6 +77,8 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 
   if (m_inet_transaction_id == 0 && m_inet6_transaction_id == 0)
     return handle_setup_error("cannot send tracker event, no available network protocol(s)");
+
+  update_requesting_state();
 }
 
 void
@@ -111,6 +113,8 @@ TrackerUdp::close_directly() {
     m_inet6_connection_id  = 0;
   }
 
+  update_requesting_state();
+
   m_slot_close();
 }
 
@@ -140,13 +144,20 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
 
   LT_LOG("closing with error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
 
+  update_requesting_state();
+
   m_slot_close();
   m_slot_failure(msg);
 }
 
-tracker_enum
-TrackerUdp::type() const {
-  return TRACKER_UDP;
+void
+TrackerUdp::update_requesting_state() {
+  auto guard = lock_guard();
+
+  if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0)
+    state().m_flags |= tracker::TrackerState::flag_requesting;
+  else
+    state().m_flags &= ~tracker::TrackerState::flag_requesting;
 }
 
 uint64_t&
@@ -364,6 +375,8 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
 
   LT_LOG("received announce success : family:%s hostname:%s port:%u peers:%zu", family_str(family), m_hostname.c_str(), m_port, l.size());
 
+  update_requesting_state();
+
   m_slot_close();
   m_slot_success(std::move(l));
 
@@ -386,6 +399,8 @@ TrackerUdp::handle_setup_error(const std::string& msg) {
 
   if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0)
     throw internal_error("TrackerUdp::handle_setup_error() called but inet/inet6 transaction id is not 0.");
+
+  // update_requesting_state();
 
   m_slot_close();
   m_slot_failure(msg);

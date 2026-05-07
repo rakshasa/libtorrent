@@ -27,8 +27,9 @@ public:
   };
 
   static constexpr int flag_enabled       = 0x1;
-  static constexpr int flag_extra_tracker = 0x2;
-  static constexpr int flag_scrapable     = 0x4;
+  static constexpr int flag_requesting    = 0x2;
+  static constexpr int flag_extra_tracker = 0x4;
+  static constexpr int flag_scrapable     = 0x8;
 
   // TODO: Remove these:
   // static constexpr int max_flag_size   = 0x10;
@@ -45,6 +46,7 @@ public:
   int                 flags() const              { return m_flags; }
 
   bool                is_enabled() const         { return (m_flags & flag_enabled); }
+  bool                is_requesting() const      { return (m_flags & flag_requesting); }
   bool                is_extra_tracker() const   { return (m_flags & flag_extra_tracker); }
   bool                is_in_use() const          { return is_enabled() && m_success_counter != 0; }
   bool                is_scrapable() const       { return (m_flags & flag_scrapable); }
