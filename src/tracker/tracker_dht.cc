@@ -109,8 +109,7 @@ TrackerDht::close() {
 // TODO: We don't really need to track announcing state in Tracker?
 void
 TrackerDht::set_dht_announce_state() {
-  if (m_dht_state == state_idle)
-    this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_clear_state, 5min);
+  this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_clear_state, 2min);
 
   m_dht_state = state_announcing;
 
