@@ -468,14 +468,14 @@ UdpRouter::receive_timeout() {
     if (timeout_time > now)
       break;
 
+    if (info && info->timeout_ptr != &std::get<2>(m_timeout_queue.front()))
+      throw internal_error("UdpRouter::receive_timeout() timeout queue entry does not match connection info.");
+
     m_timeout_queue.pop_front();
 
     if (info == nullptr) {
       continue;
     }
-
-    if (info->timeout_ptr != &std::get<2>(m_timeout_queue.front()))
-      throw internal_error("UdpRouter::receive_timeout() timeout queue entry does not match connection info.");
 
     if (info->failure == nullptr)
       throw internal_error("UdpRouter::receive_timeout() connection info failure callback is null.");
