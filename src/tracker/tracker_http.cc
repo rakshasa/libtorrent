@@ -30,7 +30,6 @@
 namespace torrent {
 
 // TODO: Make sure stopped events are finished before deleting a torrent. (disown the request)
-// TODO: If scrape fails, try next family.
 
 TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
   : TrackerWorker(raw_info, utils::uri_can_scrape(raw_info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags) {
@@ -67,41 +66,6 @@ TrackerHttp::type() const {
   return TRACKER_HTTP;
 }
 
-bool
-TrackerHttp::is_busy() const {
-  return m_data != nullptr;
-}
-
-void
-TrackerHttp::close() {
-  LT_LOG("closing event : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-  this_thread::scheduler()->erase(&m_delay_scrape);
-  m_requested_scrape = false;
-
-  close_directly();
-}
-
-void
-TrackerHttp::close_directly() {
-  if (m_data == nullptr) {
-    // LT_LOG("closing directly (already closed) : state:%s url:%s",
-    //        option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-    m_slot_close();
-    return;
-  }
-
-  LT_LOG("closing directly : state:%s family:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), family_str(m_current_family), info().url.c_str());
-
-  m_slot_close();
-
-  m_get.close_and_cancel_callbacks(this_thread::thread());
-  m_data.reset();
-}
-
 void
 TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
   close_directly();
@@ -132,7 +96,7 @@ TrackerHttp::send_scrape() {
 
   m_requested_scrape = true;
 
-  if (is_busy()) {
+  if (m_data != nullptr) {
     LT_LOG("scrape requested, but tracker is busy : url:%s", info().url.c_str());
     return;
   }
@@ -143,6 +107,48 @@ TrackerHttp::send_scrape() {
 }
 
 void
+TrackerHttp::close() {
+  LT_LOG("closing event : state:%s url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
+  this_thread::scheduler()->erase(&m_delay_scrape);
+  m_requested_scrape = false;
+
+  close_directly();
+}
+
+void
+TrackerHttp::close_directly() {
+  if (m_data == nullptr) {
+    // LT_LOG("closing directly (already closed) : state:%s url:%s",
+    //        option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
+    m_slot_close();
+    return;
+  }
+
+  LT_LOG("closing directly : state:%s family:%s url:%s",
+         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), family_str(m_current_family), info().url.c_str());
+
+  m_slot_close();
+
+  m_get.close_and_cancel_callbacks(this_thread::thread());
+  m_data.reset();
+
+  update_requesting_state();
+}
+
+void
+TrackerHttp::update_requesting_state() {
+  auto guard = lock_guard();
+
+  if (m_data != nullptr)
+    state().m_flags |= tracker::TrackerState::flag_requesting;
+  else
+    state().m_flags &= ~tracker::TrackerState::flag_requesting;
+}
+
+void
 TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   // TODO: When retrying next protocol, recheck network_config (do in caller)
 
@@ -150,6 +156,8 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   auto request_url = request_announce_url(state, params, m_current_family);
 
   m_data = std::make_unique<std::stringstream>();
+
+  update_requesting_state();
 
   m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
@@ -162,6 +170,7 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
     throw torrent::internal_error("TrackerHttp::send_event_unsafe() cannot send event, no valid address family to use.");
 
   LT_LOG("sending event : state:%s family:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family), info().url.c_str());
+
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s family:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
               option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
@@ -175,6 +184,8 @@ TrackerHttp::send_scrape_unsafe() {
   auto request_url = request_prefix(utils::uri_generate_scrape_url(info().url)).str();
 
   m_data = std::make_unique<std::stringstream>();
+
+  update_requesting_state();
 
   m_get.try_wait_for_close();
   m_get.reset(request_url, m_data);
@@ -220,10 +231,10 @@ TrackerHttp::send_next_family(bool scrape) {
 // before starting.
 void
 TrackerHttp::delayed_send_scrape() {
-  if (is_busy())
+  if (m_data != nullptr)
     throw internal_error("TrackerHttp::delayed_send_scrape() called while busy");
 
-  close_directly();
+  // close_directly();
 
   lock_and_set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
 
@@ -417,7 +428,7 @@ TrackerHttp::receive_done() {
 
   process_success(b);
 
-  if (m_requested_scrape && !is_busy())
+  if (m_requested_scrape && m_data == nullptr)
     this_thread::scheduler()->update_wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 
@@ -472,7 +483,7 @@ TrackerHttp::receive_failed(const std::string& msg) {
     m_slot_failure(msg);
   }
 
-  if (m_requested_scrape && !is_busy())
+  if (m_requested_scrape && m_data == nullptr)
     this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_scrape, 10s);
 }
 

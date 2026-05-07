@@ -5,6 +5,7 @@
 
 #include "net/address_list.h"
 #include "torrent/object.h"
+#include "torrent/utils/scheduler.h"
 #include "tracker/tracker_worker.h"
 
 namespace torrent {
@@ -27,9 +28,10 @@ public:
 
   static constexpr std::array states{ "Idle", "Searching", "Announcing" };
 
+  tracker_enum        type() const override;
+
   static bool         is_allowed();
 
-  bool                is_busy() const override;
   bool                is_usable() const override;
 
   std::string         lock_and_status() const override;
@@ -39,10 +41,8 @@ public:
 
   void                close() override;
 
-  tracker_enum        type() const override;
-
   state_type          get_dht_state() const            { return m_dht_state; }
-  void                set_dht_state(state_type state)  { m_dht_state = state; }
+  void                set_dht_announce_state();
 
   bool                has_peers() const                { return !m_peers.empty(); }
 
@@ -52,11 +52,15 @@ public:
   void                receive_progress(int replied, int contacted);
 
 private:
+  void                update_requesting_state();
+
   AddressList         m_peers;
   state_type          m_dht_state{state_idle};
 
   int                 m_replied;
   int                 m_contacted;
+
+  utils::SchedulerEntry m_delay_clear_state;
 };
 
 } // namespace torrent
