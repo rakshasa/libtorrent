@@ -63,10 +63,7 @@ protected:
 
   // Protected members that require locking:
 
-  virtual bool        is_busy() const = 0;
   virtual bool        is_usable() const                     { return m_state.is_enabled(); }
-
-  bool                is_busy_not_scrape() const;
 
   std::string         tracker_id() const                    { return m_tracker_id; }
   void                set_tracker_id(const std::string& id) { m_tracker_id = id; }
@@ -133,11 +130,6 @@ inline void
 TrackerWorker::lock_and_set_latest_event(tracker::TrackerState::event_enum new_state) {
   auto guard = lock_guard();
   m_state.m_latest_event = new_state;
-}
-
-inline bool
-TrackerWorker::is_busy_not_scrape() const {
-  return is_busy() && state().latest_event() != tracker::TrackerState::EVENT_SCRAPE;
 }
 
 } // namespace torrent
