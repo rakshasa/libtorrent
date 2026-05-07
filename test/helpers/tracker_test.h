@@ -12,10 +12,9 @@ public:
   // TODO: Clean up tracker related enums.
   TrackerTest(torrent::TrackerInfo info, int flags = torrent::tracker::TrackerState::flag_enabled);
 
-  bool                is_busy() const override { return m_busy; }
   bool                is_open() const          { return m_open; }
 
-  torrent::tracker_enum type() const override { return (torrent::tracker_enum)(torrent::TRACKER_DHT + 1); }
+  torrent::tracker_enum type() const override  { return (torrent::tracker_enum)(torrent::TRACKER_DHT + 1); }
 
   int                 requesting_state() const { return m_requesting_state; }
 
@@ -38,7 +37,8 @@ public:
 
   void                send_event(torrent::tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
-  void                close() override  { m_busy = false; m_open = false; m_requesting_state = -1; }
+
+  void                close() override;
 
   static torrent::tracker::Tracker       new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
   static void                            insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker);

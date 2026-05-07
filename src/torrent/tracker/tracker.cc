@@ -16,14 +16,17 @@ bool
 Tracker::is_busy() const {
   auto lock_guard = m_worker->lock_guard();
 
-  return m_worker->is_busy();
+  return m_worker->m_state.is_requesting();
 }
 
 bool
 Tracker::is_busy_not_scrape() const {
   auto lock_guard = m_worker->lock_guard();
 
-  return m_worker->is_busy_not_scrape();
+  if (m_worker->m_state.is_requesting())
+    return m_worker->m_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE;
+
+  return false;
 }
 
 bool
@@ -68,7 +71,10 @@ Tracker::can_request_state() const {
   if (!m_worker->is_usable())
     return false;
 
-  return !m_worker->is_busy_not_scrape();
+  if (m_worker->m_state.is_requesting())
+    return m_worker->m_state.latest_event() == tracker::TrackerState::EVENT_SCRAPE;
+
+  return true;
 }
 
 void

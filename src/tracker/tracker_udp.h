@@ -28,18 +28,18 @@ public:
   TrackerUdp(const TrackerInfo& info, int flags = 0);
   ~TrackerUdp() override;
 
-  bool                is_busy() const override;
+  tracker_enum        type() const override;
 
   void                send_event(tracker::TrackerState::event_enum new_state) override;
   void                send_scrape() override;
 
   void                close() override;
 
-  tracker_enum        type() const override;
-
 private:
   void                close_directly();
   void                reset_family_with_error(int family, const std::string& msg);
+
+  void                update_requesting_state();
 
   uint64_t&           connection_id_for_family(int family);
   uint32_t&           transaction_id_for_family(int family);

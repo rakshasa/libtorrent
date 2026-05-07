@@ -51,7 +51,7 @@ DhtAnnounce::start_announce() {
 
   m_contacted = m_pending = size();
   m_replied = 0;
-  m_tracker->set_dht_state(TrackerDht::state_announcing);
+  m_tracker->set_dht_announce_state();
 
   for (const auto& [node, _] : *this)
     set_node_active(node, true);

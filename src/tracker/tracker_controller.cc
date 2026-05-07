@@ -340,8 +340,8 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
 
   tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
     activity_time_last = state.activity_time_last();
-    latest_event = state.latest_event();
-    normal_interval = state.normal_interval();
+    latest_event       = state.latest_event();
+    normal_interval    = state.normal_interval();
   });
 
   if ((tracker.is_busy() && latest_event != tracker::TrackerState::EVENT_SCRAPE) ||
