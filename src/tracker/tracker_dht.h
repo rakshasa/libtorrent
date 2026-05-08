@@ -32,12 +32,10 @@ public:
 
   static bool         is_allowed();
 
-  bool                is_usable() const override;
-
   std::string         lock_and_status() const override;
 
-  void                send_event(tracker::TrackerState::event_enum new_state) override;
-  void                send_scrape() override;
+  void                send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) override;
+  void                send_scrape(tracker::TrackerParams params) override;
 
   void                close() override;
 
@@ -53,6 +51,8 @@ public:
 
 private:
   void                update_requesting_state();
+
+  tracker::TrackerParams m_params;
 
   AddressList         m_peers;
   state_type          m_dht_state{state_idle};

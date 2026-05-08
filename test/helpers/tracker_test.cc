@@ -13,14 +13,15 @@
 uint32_t return_new_peers = 0xdeadbeef;
 
 torrent::tracker::Tracker
-TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const std::string& url, int flags) {
+TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, uint32_t group, const std::string& url, int flags) {
   auto tracker_info = torrent::TrackerInfo{
     // .info_hash = m_info->hash(),
     // .obfuscated_hash = m_info->hash_obfuscated(),
     // .local_id = m_info->local_id(),
     // .key = m_key
   };
-  tracker_info.url = url;
+  tracker_info.url   = url;
+  tracker_info.group = group;
 
   return torrent::tracker::Tracker(std::make_shared<TrackerTest>(std::move(tracker_info), flags));
 }
@@ -29,7 +30,9 @@ void
 TrackerTest::insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker) {
   // Insert into partent then override slots.
 
-  parent->insert(group, tracker);
+  tracker.get_worker()->m_info.group = group;
+
+  parent->insert(tracker);
 
   tracker.get_worker()->m_slot_enabled = [parent, tracker]() {
       if (parent->slot_tracker_enabled())
@@ -102,7 +105,7 @@ TrackerTest::set_new_min_interval(uint32_t timeout) {
 }
 
 void
-TrackerTest::send_event(torrent::tracker::TrackerState::event_enum new_state) {
+TrackerTest::send_event([[maybe_unused]] torrent::tracker::TrackerParams params, torrent::tracker::TrackerState::event_enum new_state) {
   // Trackers close on-going requests when new state is sent.
   m_busy = true;
   m_open = true;
@@ -116,7 +119,7 @@ TrackerTest::send_event(torrent::tracker::TrackerState::event_enum new_state) {
 }
 
 void
-TrackerTest::send_scrape() {
+TrackerTest::send_scrape([[maybe_unused]] torrent::tracker::TrackerParams params) {
   // We ignore scrapes if we're already making a request.
   // if (m_open)
   //   return;

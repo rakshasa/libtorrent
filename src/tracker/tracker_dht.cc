@@ -38,16 +38,11 @@ TrackerDht::type() const {
   return TRACKER_DHT;
 }
 
+// TODO: Remove?
 bool
 TrackerDht::is_allowed() {
   return runtime::network_manager()->dht_controller()->is_valid();
 }
-
-bool
-TrackerDht::is_usable() const {
-  return state().is_enabled() && runtime::network_manager()->dht_controller()->is_active();
-}
-
 
 std::string
 TrackerDht::lock_and_status() const {
@@ -60,7 +55,7 @@ TrackerDht::lock_and_status() const {
 }
 
 void
-TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
+TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) {
   LT_LOG("sending event : state:%s dht_state:%s replied:%d contacted:%d",
          option_as_string(OPTION_TRACKER_EVENT, new_state), states[m_dht_state], m_replied, m_contacted);
 
@@ -71,11 +66,13 @@ TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
   if (new_state == tracker::TrackerState::EVENT_STOPPED)
     return;
 
-  m_dht_state = state_searching;
-  update_requesting_state();
-
   if (!runtime::network_manager()->dht_controller()->is_active())
-    return receive_failed("DHT server not active.");
+    return receive_failed("DHT is not enabled.");
+
+  m_params    = params;
+  m_dht_state = state_searching;
+
+  update_requesting_state();
 
   runtime::network_manager()->dht_controller()->announce(info().info_hash, this);
 
@@ -84,7 +81,7 @@ TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
 }
 
 void
-TrackerDht::send_scrape() {
+TrackerDht::send_scrape(tracker::TrackerParams params) {
   throw internal_error("Tracker type DHT does not support scrape.");
 }
 
@@ -168,7 +165,7 @@ TrackerDht::receive_progress(int replied, int contacted) {
   // if (m_dht_state == state_idle)
   //   throw internal_error("TrackerDht::receive_status called while not busy.");
 
-  m_replied = replied;
+  m_replied   = replied;
   m_contacted = contacted;
 }
 

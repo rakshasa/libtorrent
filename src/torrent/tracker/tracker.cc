@@ -3,6 +3,7 @@
 #include "torrent/tracker/tracker.h"
 
 #include "tracker/tracker_worker.h"
+#include "torrent/runtime/network_manager.h"
 
 namespace torrent::tracker {
 
@@ -54,7 +55,10 @@ bool
 Tracker::is_usable() const {
   auto lock_guard = m_worker->lock_guard();
 
-  return m_worker->is_usable();
+  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->dht_is_active())
+    return false;
+
+  return m_worker->m_state.is_enabled();
 }
 
 bool
@@ -68,13 +72,36 @@ bool
 Tracker::can_request_state() const {
   auto lock_guard = m_worker->lock_guard();
 
-  if (!m_worker->is_usable())
+  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->dht_is_active())
+    return false;
+
+  if (!m_worker->m_state.is_enabled())
     return false;
 
   if (m_worker->m_state.is_requesting())
     return m_worker->m_state.latest_event() == tracker::TrackerState::EVENT_SCRAPE;
 
   return true;
+}
+
+tracker_enum
+Tracker::type() const {
+  return m_worker->type();
+}
+
+const std::string&
+Tracker::url() const {
+  return m_worker->info().url;
+}
+
+uint32_t
+Tracker::group() const {
+  return m_worker->info().group;
+}
+
+std::string
+Tracker::tracker_id() const {
+  return m_worker->tracker_id_safe();
 }
 
 void
@@ -111,30 +138,6 @@ Tracker::disable() {
     m_worker->m_slot_disabled();
 }
 
-tracker_enum
-Tracker::type() const {
-  return m_worker->type();
-}
-
-const std::string&
-Tracker::url() const {
-  return m_worker->info().url;
-}
-
-std::string
-Tracker::tracker_id() const {
-  auto lock_guard = m_worker->lock_guard();
-
-  return m_worker->tracker_id();
-}
-
-uint32_t
-Tracker::group() const {
-  auto lock_guard = m_worker->lock_guard();
-
-  return m_worker->group();
-}
-
 tracker::TrackerState
 Tracker::state() const {
   auto lock_guard = m_worker->lock_guard();
@@ -148,10 +151,10 @@ Tracker::status() const {
 }
 
 void
-Tracker::lock_and_call_state(const std::function<void(const TrackerState&)>& f) const {
+Tracker::lock_and_call_state(const std::function<void(const TrackerState&)>& fn) const {
   auto lock_guard = m_worker->lock_guard();
 
-  f(m_worker->state());
+  fn(m_worker->state());
 }
 
 void

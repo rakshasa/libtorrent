@@ -22,14 +22,8 @@ struct TrackerInfo {
   HashString  local_id{HashString::new_zero()};
 
   std::string url;
-  uint32_t    key{0};
-};
-
-struct TrackerParameters {
-  int32_t  numwant{-1};
-  uint64_t uploaded_adjusted{0};
-  uint64_t completed_adjusted{0};
-  uint64_t download_left{0};
+  uint32_t    group{};
+  uint32_t    key{};
 };
 
 class TrackerWorker {
@@ -40,17 +34,20 @@ public:
   // Public members do not require locking:
 
   const TrackerInfo&   info() const { return m_info; }
+
   virtual tracker_enum type() const = 0;
 
   virtual std::string  lock_and_status() const { return ""; }
 
-  virtual void        send_event(tracker::TrackerState::event_enum state) = 0;
-  virtual void        send_scrape() = 0;
+  virtual void         send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum state) = 0;
+  virtual void         send_scrape(tracker::TrackerParams params) = 0;
 
 protected:
   friend class TrackerList;
   friend class tracker::Tracker;
   friend class ::TrackerTest;
+
+  virtual void        close() = 0;
 
   void                lock_and_clear_intervals();
   void                lock_and_clear_stats();
@@ -63,13 +60,8 @@ protected:
 
   // Protected members that require locking:
 
-  virtual bool        is_usable() const                     { return m_state.is_enabled(); }
-
-  std::string         tracker_id() const                    { return m_tracker_id; }
-  void                set_tracker_id(const std::string& id) { m_tracker_id = id; }
-
-  uint32_t            group() const                         { return m_group; }
-  void                set_group(uint32_t v)                 { m_group = v; }
+  std::string         tracker_id_safe() const;
+  void                set_tracker_id_safe(const std::string& id);
 
   tracker::TrackerState&       state()                      { return m_state; }
   const tracker::TrackerState& state() const                { return m_state; }
@@ -81,8 +73,6 @@ protected:
   // The slots should put a work order into the tracker controller thread, which will be correctly
   // ordered as it pertains to a single tracker's slot calls.
 
-  virtual void        close() = 0;
-
   std::function<void()>              m_slot_enabled;
   std::function<void()>              m_slot_disabled;
   std::function<void()>              m_slot_close;
@@ -91,7 +81,6 @@ protected:
   std::function<void()>              m_slot_scrape_success;
   std::function<void(std::string)>   m_slot_scrape_failure;
   std::function<void(AddressList&&)> m_slot_new_peers;
-  std::function<TrackerParameters()> m_slot_parameters;
 
 private:
   TrackerWorker(const TrackerWorker&) = delete;
@@ -103,7 +92,6 @@ private:
 
   tracker::TrackerState m_state{};
   std::string           m_tracker_id;
-  uint32_t              m_group{0};
 
   std::mutex            __force_new_cacheline;
 };
@@ -130,6 +118,18 @@ inline void
 TrackerWorker::lock_and_set_latest_event(tracker::TrackerState::event_enum new_state) {
   auto guard = lock_guard();
   m_state.m_latest_event = new_state;
+}
+
+inline std::string
+TrackerWorker::tracker_id_safe() const {
+  auto guard = lock_guard();
+  return m_tracker_id;
+}
+
+inline void
+TrackerWorker::set_tracker_id_safe(const std::string& id) {
+  auto guard = lock_guard();
+  m_tracker_id = id;
 }
 
 } // namespace torrent
