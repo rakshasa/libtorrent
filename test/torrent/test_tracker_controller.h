@@ -67,6 +67,9 @@ public:
 
 #define TRACKER_CONTROLLER_SETUP()                                      \
   torrent::DownloadInfo download_info;                                  \
+  download_info.slot_left() = []() { return 0; };                       \
+  download_info.slot_completed() = []() { return 0; };                  \
+                                                                        \
   torrent::TrackerList tracker_list;                                    \
   TestTrackerListWrapper(&tracker_list).set_info(&download_info);       \
                                                                         \

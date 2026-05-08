@@ -53,7 +53,7 @@ TrackerUdp::type() const {
 }
 
 void
-TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
+TrackerUdp::send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) {
   LT_LOG("sending event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
 
   close_directly();
@@ -66,6 +66,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
   if (m_port == 0)
     return handle_setup_error("cannot send tracker event, port is 0");
 
+  m_params     = params;
   m_send_state = new_state;
 
   connect_family(AF_INET);
@@ -82,7 +83,7 @@ TrackerUdp::send_event(tracker::TrackerState::event_enum new_state) {
 }
 
 void
-TrackerUdp::send_scrape() {
+TrackerUdp::send_scrape([[maybe_unused]] tracker::TrackerParams params) {
   throw internal_error("Tracker type UDP does not support scrape.");
 }
 
@@ -281,11 +282,9 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
   buffer.write_range(info().info_hash.begin(), info().info_hash.end());
   buffer.write_range(info().local_id.begin(), info().local_id.end());
 
-  auto parameters = m_slot_parameters();
-
-  buffer.write_64(parameters.completed_adjusted);
-  buffer.write_64(parameters.download_left);
-  buffer.write_64(parameters.uploaded_adjusted);
+  buffer.write_64(m_params.completed_adjusted);
+  buffer.write_64(m_params.download_left);
+  buffer.write_64(m_params.uploaded_adjusted);
   buffer.write_32(m_send_state);
 
   buffer.write_32_n([family]() -> uint32_t {
@@ -301,7 +300,7 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
     }());
 
   buffer.write_32(info().key);
-  buffer.write_32(parameters.numwant);
+  buffer.write_32(m_params.numwant);
   buffer.write_16(runtime::listen_port());
 
   if (buffer.size_end() != 98)
@@ -310,7 +309,7 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
   LT_LOG_DUMP(buffer.begin(), buffer.size_end(),
               "prepare announce : state:%s family:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
               option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), transaction_id_for_family(family),
-              parameters.uploaded_adjusted, parameters.completed_adjusted, parameters.download_left);
+              m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 }
 
 bool

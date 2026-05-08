@@ -38,6 +38,7 @@ public:
 
   auto*               dht_controller();
   uint16_t            dht_port();
+  bool                dht_is_active() const;
 
   void                dht_add_bootstrap_node(std::string host, int port);
   void                dht_add_peer_node(const sockaddr* sa, int port);

@@ -99,11 +99,11 @@ void
 TestTrackerList::test_tracker_flags() {
   TRACKER_LIST_SETUP();
 
-  tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, ""));
-  tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "", 0));
-  tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "", torrent::tracker::TrackerState::flag_enabled));
-  tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "", torrent::tracker::TrackerState::flag_extra_tracker));
-  tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "", torrent::tracker::TrackerState::flag_enabled | torrent::tracker::TrackerState::flag_extra_tracker));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 0, ""));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 0, "", 0));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 0, "", torrent::tracker::TrackerState::flag_enabled));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 0, "", torrent::tracker::TrackerState::flag_extra_tracker));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 0, "", torrent::tracker::TrackerState::flag_enabled | torrent::tracker::TrackerState::flag_extra_tracker));
 
   CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list.at(0)) & 0xf) == torrent::tracker::TrackerState::flag_enabled);
   CPPUNIT_ASSERT((TrackerTest::test_flags(tracker_list.at(1)) & 0xf) == 0);
@@ -116,9 +116,9 @@ void
 TestTrackerList::test_find_url() {
   TRACKER_LIST_SETUP();
 
-  tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "http://1"));
-  tracker_list.insert(0, TrackerTest::new_tracker(&tracker_list, "http://2"));
-  tracker_list.insert(1, TrackerTest::new_tracker(&tracker_list, "http://3"));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 0, "http://1"));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 0, "http://2"));
+  tracker_list.insert(TrackerTest::new_tracker(&tracker_list, 1, "http://3"));
 
   CPPUNIT_ASSERT(tracker_list.find_url("http://") == tracker_list.end());
 

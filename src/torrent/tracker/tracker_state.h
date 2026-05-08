@@ -16,6 +16,13 @@ class TrackerWorker;
 
 namespace tracker {
 
+struct TrackerParams {
+  int32_t  numwant{-1};
+  uint64_t uploaded_adjusted{};
+  uint64_t completed_adjusted{};
+  uint64_t download_left{};
+};
+
 class TrackerState {
 public:
   enum event_enum {
@@ -95,26 +102,26 @@ protected:
 
   int                 m_flags;
 
-  uint32_t            m_normal_interval{0};
-  uint32_t            m_min_interval{0};
+  uint32_t            m_normal_interval{};
+  uint32_t            m_min_interval{};
 
   event_enum          m_latest_event{EVENT_NONE};
-  uint32_t            m_latest_new_peers{0};
-  uint32_t            m_latest_new_peers_delta{0};
-  uint32_t            m_latest_sum_peers{0};
+  uint32_t            m_latest_new_peers{};
+  uint32_t            m_latest_new_peers_delta{};
+  uint32_t            m_latest_sum_peers{};
 
-  uint32_t            m_success_time_last{0};
-  uint32_t            m_success_counter{0};
+  uint32_t            m_success_time_last{};
+  uint32_t            m_success_counter{};
 
-  uint32_t            m_failed_time_last{0};
-  uint32_t            m_failed_counter{0};
+  uint32_t            m_failed_time_last{};
+  uint32_t            m_failed_counter{};
 
-  uint32_t            m_scrape_time_last{0};
-  uint32_t            m_scrape_counter{0};
+  uint32_t            m_scrape_time_last{};
+  uint32_t            m_scrape_counter{};
 
-  uint32_t            m_scrape_complete{0};
-  uint32_t            m_scrape_incomplete{0};
-  uint32_t            m_scrape_downloaded{0};
+  uint32_t            m_scrape_complete{};
+  uint32_t            m_scrape_incomplete{};
+  uint32_t            m_scrape_downloaded{};
 };
 
 inline uint32_t
