@@ -16,6 +16,13 @@ class TrackerWorker;
 
 namespace tracker {
 
+struct TrackerParams {
+  int32_t  numwant{-1};
+  uint64_t uploaded_adjusted{};
+  uint64_t completed_adjusted{};
+  uint64_t download_left{};
+};
+
 class TrackerState {
 public:
   enum event_enum {

@@ -80,6 +80,8 @@ test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
 
 void
 TestTrackerController::test_basic() {
+  // mock_expect(&torrent::fd__bind, 0, fd, bind_sap.get(), (socklen_t)torrent::sap_length(bind_sap));
+
   torrent::TrackerController tracker_controller(nullptr);
 
   CPPUNIT_ASSERT(tracker_controller.flags() == 0);

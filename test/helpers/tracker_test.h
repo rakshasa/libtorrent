@@ -35,12 +35,12 @@ public:
   void                set_new_normal_interval(uint32_t timeout);
   void                set_new_min_interval(uint32_t timeout);
 
-  void                send_event(torrent::tracker::TrackerState::event_enum new_state) override;
-  void                send_scrape() override;
+  void                send_event(torrent::tracker::TrackerParams params, torrent::tracker::TrackerState::event_enum new_state) override;
+  void                send_scrape(torrent::tracker::TrackerParams params) override;
 
   void                close() override;
 
-  static torrent::tracker::Tracker       new_tracker(torrent::TrackerList* parent, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
+  static torrent::tracker::Tracker       new_tracker(torrent::TrackerList* parent, uint32_t group, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
   static void                            insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker);
 
   torrent::tracker::TrackerState&        test_state() { return state(); }

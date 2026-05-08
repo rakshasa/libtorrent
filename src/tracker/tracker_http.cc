@@ -67,14 +67,16 @@ TrackerHttp::type() const {
 }
 
 void
-TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
+TrackerHttp::send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) {
   close_directly();
+
   this_thread::scheduler()->erase(&m_delay_scrape);
 
   lock_and_set_latest_event(new_state);
 
   auto [current_family, next_family] = request_families();
 
+  m_params         = params;
   m_current_family = current_family;
   m_next_family    = next_family;
 
@@ -90,10 +92,11 @@ TrackerHttp::send_event(tracker::TrackerState::event_enum new_state) {
 }
 
 void
-TrackerHttp::send_scrape() {
+TrackerHttp::send_scrape(tracker::TrackerParams params) {
   if (m_requested_scrape)
     return;
 
+  m_params           = params;
   m_requested_scrape = true;
 
   if (m_data != nullptr) {
@@ -152,8 +155,7 @@ void
 TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   // TODO: When retrying next protocol, recheck network_config (do in caller)
 
-  auto params      = m_slot_parameters();
-  auto request_url = request_announce_url(state, params, m_current_family);
+  auto request_url = request_announce_url(state, m_current_family);
 
   m_data = std::make_unique<std::stringstream>();
 
@@ -174,7 +176,7 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s family:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
               option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
-              params.uploaded_adjusted, params.completed_adjusted, params.download_left);
+              m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 
   torrent::net_thread::http_stack()->start_get(m_get);
 }
@@ -267,8 +269,8 @@ TrackerHttp::request_prefix(const std::string& url) {
 }
 
 std::string
-TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, TrackerParameters params, int family) {
-  auto tracker_id = this->tracker_id();
+TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, int family) {
+  auto tracker_id = this->tracker_id_safe();
   auto local_id   = utils::copy_escape_html_str(info().local_id);
 
   auto s = request_prefix(info().url);
@@ -299,13 +301,13 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, Track
     s << "&ipv6=" << sa_addr_str(local_inet6_address.get());
   }
 
-  if (params.numwant >= 0 && state != tracker::TrackerState::EVENT_STOPPED)
-    s << "&numwant=" << params.numwant;
+  if (m_params.numwant >= 0 && state != tracker::TrackerState::EVENT_STOPPED)
+    s << "&numwant=" << m_params.numwant;
 
-  s << "&port=" << runtime::listen_port()
-    << "&uploaded=" << params.uploaded_adjusted
-    << "&downloaded=" << params.completed_adjusted
-    << "&left=" << params.download_left;
+  s << "&port="       << runtime::listen_port()
+    << "&uploaded="   << m_params.uploaded_adjusted
+    << "&downloaded=" << m_params.completed_adjusted
+    << "&left="       << m_params.download_left;
 
   switch (state) {
   case tracker::TrackerState::EVENT_STARTED:
@@ -369,10 +371,7 @@ TrackerHttp::update_tracker_id(const std::string& id) {
   if (id.empty())
     return;
 
-  if (m_current_tracker_id == id)
-    return;
-
-  set_tracker_id(id);
+  set_tracker_id_safe(id);
 }
 
 void

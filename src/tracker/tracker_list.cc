@@ -108,7 +108,14 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
   LT_LOG("sending %s : requester:%p url:%s",
          option_as_string(OPTION_TRACKER_EVENT, event), tracker.get_worker(), tracker.url().c_str());
 
-  ThreadTracker::thread_tracker()->tracker_manager()->send_event(tracker, event);
+  tracker::TrackerParams params;
+
+  params.numwant            = m_numwant;
+  params.uploaded_adjusted  = m_info->uploaded_adjusted();
+  params.completed_adjusted = m_info->completed_adjusted();
+  params.download_left      = m_info->slot_left()();
+
+  ThreadTracker::thread_tracker()->tracker_manager()->send_event(tracker, params, event);
 }
 
 void
@@ -132,7 +139,14 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
 
   LT_LOG("sending scrape : requester:%p url:%s", tracker.get_worker(), tracker.url().c_str());
 
-  ThreadTracker::thread_tracker()->tracker_manager()->send_scrape(tracker);
+  tracker::TrackerParams params;
+
+  params.numwant            = m_numwant;
+  params.uploaded_adjusted  = m_info->uploaded_adjusted();
+  params.completed_adjusted = m_info->completed_adjusted();
+  params.download_left      = m_info->slot_left()();
+
+  ThreadTracker::thread_tracker()->tracker_manager()->send_scrape(tracker, params);
 }
 
 TrackerList::iterator
@@ -245,21 +259,6 @@ TrackerList::insert(const tracker::Tracker& tracker) {
         });
     };
 
-  // TODO: Replace with argument to send_event?
-
-  worker->m_slot_parameters = [this]() {
-      // TODO: Lock here!
-
-      TrackerParameters tp;
-
-      tp.numwant            = m_numwant;
-      tp.uploaded_adjusted  = m_info->uploaded_adjusted();
-      tp.completed_adjusted = m_info->completed_adjusted();
-      tp.download_left      = m_info->slot_left()();
-
-      return tp;
-    };
-
   LT_LOG("added tracker : requester:%p group:%u url:%s", worker, itr->group(), itr->url().c_str());
 
   if (m_slot_tracker_enabled)
@@ -294,7 +293,8 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
     worker = std::make_shared<TrackerUdp>(tracker_info, flags);
 
-  } else if (std::strncmp("dht://", url.c_str(), 6) == 0) {
+  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
+    // TODO: Don't check TrackerDht::is_allowed().
     worker = std::make_shared<TrackerDht>(tracker_info, flags);
 
   } else {

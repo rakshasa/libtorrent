@@ -101,9 +101,7 @@ Tracker::group() const {
 
 std::string
 Tracker::tracker_id() const {
-  auto lock_guard = m_worker->lock_guard();
-
-  return m_worker->tracker_id();
+  return m_worker->tracker_id_safe();
 }
 
 void

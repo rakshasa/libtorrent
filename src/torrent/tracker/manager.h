@@ -32,8 +32,8 @@ protected:
   TrackerControllerWrapper add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerController> controller);
   void                     remove_controller(TrackerControllerWrapper controller);
 
-  void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
-  void                send_scrape(tracker::Tracker& tracker);
+  void                send_event(tracker::Tracker& tracker, TrackerParams params, tracker::TrackerState::event_enum new_event);
+  void                send_scrape(tracker::Tracker& tracker, TrackerParams params);
 
   // Any thread:
 

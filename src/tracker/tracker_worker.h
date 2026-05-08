@@ -26,13 +26,6 @@ struct TrackerInfo {
   uint32_t    key{};
 };
 
-struct TrackerParameters {
-  int32_t  numwant{-1};
-  uint64_t uploaded_adjusted{};
-  uint64_t completed_adjusted{};
-  uint64_t download_left{};
-};
-
 class TrackerWorker {
 public:
   TrackerWorker(TrackerInfo info, int flags = 0);
@@ -46,8 +39,8 @@ public:
 
   virtual std::string  lock_and_status() const { return ""; }
 
-  virtual void         send_event(tracker::TrackerState::event_enum state) = 0;
-  virtual void         send_scrape() = 0;
+  virtual void         send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum state) = 0;
+  virtual void         send_scrape(tracker::TrackerParams params) = 0;
 
 protected:
   friend class TrackerList;
@@ -67,7 +60,8 @@ protected:
 
   // Protected members that require locking:
 
-  std::string         tracker_id_unsafe() const             { return m_tracker_id; }
+  std::string         tracker_id_safe() const;
+  void                set_tracker_id_safe(const std::string& id);
 
   tracker::TrackerState&       state()                      { return m_state; }
   const tracker::TrackerState& state() const                { return m_state; }
@@ -87,7 +81,6 @@ protected:
   std::function<void()>              m_slot_scrape_success;
   std::function<void(std::string)>   m_slot_scrape_failure;
   std::function<void(AddressList&&)> m_slot_new_peers;
-  std::function<TrackerParameters()> m_slot_parameters;
 
 private:
   TrackerWorker(const TrackerWorker&) = delete;
@@ -125,6 +118,18 @@ inline void
 TrackerWorker::lock_and_set_latest_event(tracker::TrackerState::event_enum new_state) {
   auto guard = lock_guard();
   m_state.m_latest_event = new_state;
+}
+
+inline std::string
+TrackerWorker::tracker_id_safe() const {
+  auto guard = lock_guard();
+  return m_tracker_id;
+}
+
+inline void
+TrackerWorker::set_tracker_id_safe(const std::string& id) {
+  auto guard = lock_guard();
+  m_tracker_id = id;
 }
 
 } // namespace torrent
