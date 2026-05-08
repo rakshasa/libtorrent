@@ -368,7 +368,7 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
     if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
       return false;
 
-    if (errno == ENETUNREACH) {
+    if (errno == ENETUNREACH || errno == EPERM) {
       auto failure_fn = std::move(info->failure);
       disconnect_unsafe(m_connections.find(id));
 
