@@ -59,6 +59,9 @@ struct TestTrackerListWrapper {
 
 #define TRACKER_LIST_SETUP()                                            \
   torrent::DownloadInfo download_info;                                  \
+  download_info.slot_left() = []() { return 0; };                       \
+  download_info.slot_completed() = []() { return 0; };                  \
+                                                                        \
   torrent::TrackerList tracker_list;                                    \
   TestTrackerListWrapper(&tracker_list).set_info(&download_info);       \
                                                                         \
@@ -72,8 +75,8 @@ struct TestTrackerListWrapper {
   tracker_list.slot_scrape_success() = std::bind(&increment_value_void, &scrape_success_counter); \
   tracker_list.slot_scrape_failure() = std::bind(&increment_value_void, &scrape_failure_counter);
 
-#define TRACKER_INSERT(group, name)                         \
-  auto name = TrackerTest::new_tracker(&tracker_list, "");  \
+#define TRACKER_INSERT(group, name)                                 \
+  auto name = TrackerTest::new_tracker(&tracker_list, group, "");   \
   TrackerTest::insert_tracker(&tracker_list, group, name);
 
 #define TEST_TRACKER_IS_BUSY(tracker, state)            \

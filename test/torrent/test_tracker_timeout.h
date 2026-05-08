@@ -1,7 +1,7 @@
 #include "test/helpers/test_main_thread.h"
 
-class test_tracker_timeout : public TestFixtureWithMainAndTrackerThread {
-  CPPUNIT_TEST_SUITE(test_tracker_timeout);
+class TestTrackerTimeout : public TestFixtureWithMainAndTrackerThread {
+  CPPUNIT_TEST_SUITE(TestTrackerTimeout);
 
   CPPUNIT_TEST(test_set_timeout);
 

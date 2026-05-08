@@ -67,19 +67,19 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
 }
 
 void
-Manager::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event) {
+Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::TrackerState::event_enum new_event) {
   assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
   // TODO: Currently executing in main thread, but should be in tracker thread.
-  tracker.get_worker()->send_event(new_event);
+  tracker.get_worker()->send_event(params, new_event);
 }
 
 void
-Manager::send_scrape(tracker::Tracker& tracker) {
+Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
   assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
   // TODO: Currently executing in main thread, but should be in tracker thread.
-  tracker.get_worker()->send_scrape();
+  tracker.get_worker()->send_scrape(params);
 }
 
 // Events are queued by the trackers and run in the main thread.

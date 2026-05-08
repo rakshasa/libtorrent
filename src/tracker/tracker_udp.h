@@ -30,8 +30,8 @@ public:
 
   tracker_enum        type() const override;
 
-  void                send_event(tracker::TrackerState::event_enum new_state) override;
-  void                send_scrape() override;
+  void                send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) override;
+  void                send_scrape(tracker::TrackerParams params) override;
 
   void                close() override;
 
@@ -66,6 +66,8 @@ private:
 
   std::string         m_hostname;
   uint16_t            m_port{};
+
+  tracker::TrackerParams m_params;
 
   uint64_t            m_inet_connection_id{};
   uint32_t            m_inet_transaction_id{};

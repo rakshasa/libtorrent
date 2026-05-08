@@ -23,8 +23,8 @@ public:
 
   tracker_enum        type() const override;
 
-  void                send_event(tracker::TrackerState::event_enum new_state) override;
-  void                send_scrape() override;
+  void                send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) override;
+  void                send_scrape(tracker::TrackerParams params) override;
 
   void                close() override;
 
@@ -40,7 +40,7 @@ private:
   void                delayed_send_scrape();
 
   std::stringstream   request_prefix(const std::string& url);
-  std::string         request_announce_url(tracker::TrackerState::event_enum state, TrackerParameters params, int family);
+  std::string         request_announce_url(tracker::TrackerState::event_enum state, int family);
   std::tuple<int,int> request_families();
 
   void                update_tracker_id(const std::string& id);
@@ -53,19 +53,19 @@ private:
   void                process_success(const Object& object);
   void                process_scrape(const Object& object);
 
+  tracker::TrackerParams m_params;
+
   net::HttpGet                       m_get;
   std::shared_ptr<std::stringstream> m_data;
 
-  int                   m_hostname_family{};
-  int                   m_current_family{};
-  int                   m_next_family{};
+  int                 m_hostname_family{};
+  int                 m_current_family{};
+  int                 m_next_family{};
 
-  bool                  m_last_success{};
-  std::string           m_last_error_message;
+  bool                m_last_success{};
+  std::string         m_last_error_message;
+  bool                m_requested_scrape{};
 
-  std::string           m_current_tracker_id;
-
-  bool                  m_requested_scrape{};
   utils::SchedulerEntry m_delay_scrape;
 };
 
