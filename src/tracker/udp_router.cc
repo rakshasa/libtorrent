@@ -480,6 +480,8 @@ UdpRouter::receive_timeout() {
     if (info->failure == nullptr)
       throw internal_error("UdpRouter::receive_timeout() connection info failure callback is null.");
 
+    info->timeout_ptr = nullptr;
+
     if (info->retry_count < 3) {
       if (!try_write(id, info))
         queue_write(id, info);
