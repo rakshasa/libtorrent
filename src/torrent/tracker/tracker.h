@@ -30,18 +30,19 @@ public:
 
   bool                can_request_state() const;
 
+  tracker_enum        type() const;
+  const std::string&  url() const;
+  uint32_t            group() const;
+
+  std::string         tracker_id() const;
+
   void                enable();
   void                disable();
 
-  torrent::tracker_enum type() const;
-  const std::string&    url() const;
+  TrackerState        state() const;
+  std::string         status() const;
 
-  std::string           tracker_id() const;
-  uint32_t              group() const;
-  TrackerState          state() const;
-  std::string           status() const;
-
-  void                lock_and_call_state(const std::function<void(const TrackerState&)>& f) const;
+  void                lock_and_call_state(const std::function<void(const TrackerState&)>& fn) const;
 
   bool                operator< (const Tracker& rhs) const { return m_worker < rhs.m_worker; }
   bool                operator==(const Tracker& rhs) const { return m_worker == rhs.m_worker; }

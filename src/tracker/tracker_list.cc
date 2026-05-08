@@ -136,8 +136,8 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
 }
 
 TrackerList::iterator
-TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
-  auto itr = base_type::insert(end_group(group), tracker);
+TrackerList::insert(const tracker::Tracker& tracker) {
+  auto itr = base_type::insert(end_group(tracker.group()), tracker);
 
   // These slots are called from within the worker thread, so we need to
   // use proper signal passing to the main thread.
@@ -155,9 +155,7 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
   // shared_ptr.
 
   auto weak_tracker = std::weak_ptr<TrackerWorker>(itr->m_worker);
-  auto worker = itr->get_worker();
-
-  worker->set_group(group);
+  auto worker       = itr->get_worker();
 
   worker->m_slot_enabled = [this, weak_tracker, worker]() {
       ThreadTracker::thread_tracker()->tracker_manager()->add_event(worker, [this, weak_tracker]() {
@@ -247,14 +245,18 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
         });
     };
 
+  // TODO: Replace with argument to send_event?
+
   worker->m_slot_parameters = [this]() {
       // TODO: Lock here!
 
       TrackerParameters tp;
-      tp.numwant = m_numwant;
-      tp.uploaded_adjusted = m_info->uploaded_adjusted();
+
+      tp.numwant            = m_numwant;
+      tp.uploaded_adjusted  = m_info->uploaded_adjusted();
       tp.completed_adjusted = m_info->completed_adjusted();
-      tp.download_left = m_info->slot_left()();
+      tp.download_left      = m_info->slot_left()();
+
       return tp;
     };
 
@@ -269,8 +271,6 @@ TrackerList::insert(unsigned int group, const tracker::Tracker& tracker) {
 // TODO: Use proper flags for insert options.
 void
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
-  TrackerWorker* worker{};
-
   int flags = tracker::TrackerState::flag_enabled;
 
   if (extra_tracker)
@@ -278,21 +278,24 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
 
   TrackerInfo tracker_info;
 
-  tracker_info.info_hash = m_info->hash();
+  tracker_info.info_hash       = m_info->hash();
   tracker_info.obfuscated_hash = m_info->hash_obfuscated();
-  tracker_info.local_id = m_info->local_id();
-  tracker_info.url = url;
-  tracker_info.key = m_key;
+  tracker_info.local_id        = m_info->local_id();
+  tracker_info.url             = url;
+  tracker_info.group           = group;
+  tracker_info.key             = m_key;
+
+  std::shared_ptr<TrackerWorker> worker;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
-    worker = new TrackerHttp(tracker_info, flags);
+    worker = std::make_shared<TrackerHttp>(tracker_info, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    worker = new TrackerUdp(tracker_info, flags);
+    worker = std::make_shared<TrackerUdp>(tracker_info, flags);
 
-  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    worker = new TrackerDht(tracker_info, flags);
+  } else if (std::strncmp("dht://", url.c_str(), 6) == 0) {
+    worker = std::make_shared<TrackerDht>(tracker_info, flags);
 
   } else {
     LT_LOG("could find matching tracker protocol : url:%s", url.c_str());
@@ -303,7 +306,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     return;
   }
 
-  insert(group, tracker::Tracker(std::shared_ptr<TrackerWorker>(worker)));
+  insert(tracker::Tracker(std::move(worker)));
 }
 
 TrackerList::iterator

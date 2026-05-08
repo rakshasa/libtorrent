@@ -4,6 +4,7 @@
 // TODO: Reduce includes, don't inline everything.
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <vector>
 #include <torrent/tracker/tracker.h>
@@ -60,7 +61,7 @@ public:
   void                clear();
   void                clear_stats();
 
-  iterator            insert(unsigned int group, const tracker::Tracker& tracker);
+  iterator            insert(const tracker::Tracker& tracker);
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   // TODO: Move these to controller / tracker.
@@ -126,8 +127,8 @@ private:
   int                 m_state{};
 
   // TODO: Key should be part of download static info.
-  uint32_t            m_key{0};
-  int32_t             m_numwant{-1};
+  uint32_t             m_key{0};
+  std::atomic<int32_t> m_numwant{-1};
 
   std::function<uint32_t(tracker::Tracker, AddressList*)>   m_slot_success;
   std::function<void(tracker::Tracker, const std::string&)> m_slot_failed;

@@ -38,16 +38,11 @@ TrackerDht::type() const {
   return TRACKER_DHT;
 }
 
+// TODO: Remove?
 bool
 TrackerDht::is_allowed() {
   return runtime::network_manager()->dht_controller()->is_valid();
 }
-
-bool
-TrackerDht::is_usable() const {
-  return state().is_enabled() && runtime::network_manager()->dht_controller()->is_active();
-}
-
 
 std::string
 TrackerDht::lock_and_status() const {
@@ -71,11 +66,11 @@ TrackerDht::send_event(tracker::TrackerState::event_enum new_state) {
   if (new_state == tracker::TrackerState::EVENT_STOPPED)
     return;
 
+  if (!runtime::network_manager()->dht_controller()->is_active())
+    return receive_failed("DHT is not enabled.");
+
   m_dht_state = state_searching;
   update_requesting_state();
-
-  if (!runtime::network_manager()->dht_controller()->is_active())
-    return receive_failed("DHT server not active.");
 
   runtime::network_manager()->dht_controller()->announce(info().info_hash, this);
 
