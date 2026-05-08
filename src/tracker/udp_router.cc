@@ -496,7 +496,7 @@ UdpRouter::receive_timeout() {
   }
 
   if (!m_timeout_queue.empty())
-    this_thread::scheduler()->wait_until(&m_task_timeout, std::get<1>(m_timeout_queue.front()));
+    this_thread::scheduler()->update_wait_until(&m_task_timeout, std::get<1>(m_timeout_queue.front()));
 }
 
 void
