@@ -108,7 +108,7 @@ TrackerUdp::close_directly() {
   }
 
   if (m_inet6_transaction_id != 0) {
-    ThreadMain::thread_main()->udp_inet_router()->disconnect(m_inet6_transaction_id);
+    ThreadMain::thread_main()->udp_inet6_router()->disconnect(m_inet6_transaction_id);
 
     m_inet6_transaction_id = 0;
     m_inet6_connection_id  = 0;
