@@ -108,12 +108,6 @@ NetworkManager::dht_port() {
   return m_dht_controller->port();
 }
 
-bool
-NetworkManager::dht_is_active() const {
-  // auto guard = lock_guard();
-  return m_dht_controller->is_active();
-}
-
 // TODO: Make bootstrap nodes explicit, and when we add them also try adding as node if we're
 // already running.
 
