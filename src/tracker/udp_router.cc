@@ -56,46 +56,27 @@ UdpRouter::open(int family) {
   if (bind_address->sa_family != family)
     throw internal_error("UdpRouter::open() bind address family does not match requested family.");
 
-  auto open_fd = [this, family, &bind_address]() {
-      int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, family);
+  int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, family);
 
-      if (fd == -1) {
-        LT_LOG("opening router failed : open failed : family:%s errno:%s", family_str(family), system::errno_enum_str(errno).c_str());
-        return;
-      }
+  if (fd == -1) {
+    LT_LOG("opening router failed : open failed : family:%s errno:%s", family_str(family), system::errno_enum_str(errno).c_str());
+    return;
+  }
 
-      if (!fd_bind(fd, bind_address.get())) {
-        LT_LOG("opening router failed : bind failed : family:%s bind_address:%s errno:%s",
-               family_str(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(errno).c_str());
-        fd_close(fd);
-        return;
-      }
+  if (!fd_bind(fd, bind_address.get())) {
+    LT_LOG("opening router failed : bind failed : family:%s bind_address:%s errno:%s",
+           family_str(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(errno).c_str());
+    fd_close(fd);
+    return;
+  }
 
-      set_file_descriptor(fd);
+  set_file_descriptor(fd);
 
+  runtime::socket_manager()->register_event_or_throw(this, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
       this_thread::poll()->insert_error(this);
-
-      // manager->connection_manager()->inc_socket_count();
-    };
-
-  auto cleanup_func = [this, family]() {
-      if (!is_open())
-        return;
-
-      LT_LOG("opening router failed : socket manager triggered cleanup : family:%s", family_str(family));
-
-      this_thread::poll()->remove_and_close(this);
-
-      fd_close(file_descriptor());
-      set_file_descriptor(-1);
-
-      // manager->connection_manager()->dec_socket_count();
-    };
-
-  if (!runtime::socket_manager()->open_event_or_cleanup(this, open_fd, cleanup_func))
-    return;
+    });
 
   set_socket_address(sa_copy(bind_address.get()));
 
@@ -111,7 +92,7 @@ UdpRouter::close() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+  runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
@@ -438,7 +419,7 @@ UdpRouter::queue_write(uint32_t id, connection_info* info) {
     throw internal_error("UdpRouter::queue_write() called for connection that is already queued for writing.");
 
   if (m_write_queue.empty())
-    this_thread::event_insert_write(this);
+    this_thread::poll()->insert_write(this);
 
   m_write_queue.emplace_back(id, info);
 
@@ -560,7 +541,7 @@ UdpRouter::event_write() {
   }
 
   if (m_write_queue.empty())
-    this_thread::event_remove_write(this);
+    this_thread::poll()->remove_write(this);
 }
 
 void

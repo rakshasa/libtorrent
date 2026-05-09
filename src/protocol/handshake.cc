@@ -174,8 +174,6 @@ Handshake::destroy_connection(bool use_socket_manager) {
     throw;
   }
 
-  manager->connection_manager()->dec_socket_count();
-
   if (m_peerInfo == NULL)
     return; // TODO: This should throw.
 

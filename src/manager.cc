@@ -28,23 +28,6 @@ namespace torrent {
 
 Manager* manager = nullptr;
 
-namespace this_thread {
-
-// TODO: Deprecate these.
-
-void event_open(Event* event)             { system::ThreadInternal::poll()->open(event); }
-void event_open_and_count(Event* event)   { system::ThreadInternal::poll()->open(event); manager->connection_manager()->inc_socket_count(); }
-void event_close_and_count(Event* event)  { system::ThreadInternal::poll()->close(event); manager->connection_manager()->dec_socket_count(); }
-void event_insert_read(Event* event)      { system::ThreadInternal::poll()->insert_read(event); }
-void event_insert_write(Event* event)     { system::ThreadInternal::poll()->insert_write(event); }
-void event_insert_error(Event* event)     { system::ThreadInternal::poll()->insert_error(event); }
-void event_remove_read(Event* event)      { system::ThreadInternal::poll()->remove_read(event); }
-void event_remove_write(Event* event)     { system::ThreadInternal::poll()->remove_write(event); }
-void event_remove_error(Event* event)     { system::ThreadInternal::poll()->remove_error(event); }
-void event_remove_and_close(Event* event) { system::ThreadInternal::poll()->remove_and_close(event); }
-
-} // namespace this_thread
-
 Manager::Manager()
   : m_chunk_manager(new ChunkManager),
     m_connection_manager(new ConnectionManager),
