@@ -37,8 +37,6 @@ public:
 
   virtual tracker_enum type() const = 0;
 
-  virtual std::string  lock_and_status() const { return ""; }
-
   virtual void         send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum state) = 0;
   virtual void         send_scrape(tracker::TrackerParams params) = 0;
 
