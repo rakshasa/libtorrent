@@ -5,12 +5,12 @@
 #include <cassert>
 #include <cstring>
 
+#include "manager.h"
 #include "data/chunk_list.h"
 #include "download/available_list.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_wrapper.h"
-#include "manager.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/initial_seed.h"
@@ -27,6 +27,7 @@
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/runtime/network_config.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
@@ -308,10 +309,21 @@ DownloadMain::receive_connect_peers() {
   if (runtime::network_config()->is_block_outgoing())
     return;
 
-  while (!peer_list()->available_list()->empty() &&
-         manager->connection_manager()->can_connect() &&
-         connection_list()->size() < connection_list()->min_size() &&
-         connection_list()->size() + m_slot_count_handshakes(this) < connection_list()->max_size()) {
+  // while (!peer_list()->available_list()->empty() &&
+  //        manager->connection_manager()->can_connect() &&
+  //        connection_list()->size() < connection_list()->min_size() &&
+  //        connection_list()->size() + m_slot_count_handshakes(this) < connection_list()->max_size()) {
+
+  while (!peer_list()->available_list()->empty()) {
+    if (connection_list()->size() >= connection_list()->min_size())
+      break;
+
+    if (connection_list()->size() + m_slot_count_handshakes(this) >= connection_list()->max_size())
+      break;
+
+    if (!runtime::socket_manager()->can_open_socket())
+      break;
+
     auto sa = peer_list()->available_list()->pop_random();
 
     if (connection_list()->find(&sa.sa) == connection_list()->end())

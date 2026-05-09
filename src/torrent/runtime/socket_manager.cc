@@ -23,6 +23,42 @@ SocketManager::~SocketManager() {
   assert(m_socket_map.empty() && "SocketManager::~SocketManager(): socket map not empty on destruction.");
 }
 
+uint32_t
+SocketManager::size() {
+  return m_managed_size + m_unmanaged_size;
+}
+
+uint32_t
+SocketManager::max_size() {
+  return m_max_size;
+}
+
+void
+SocketManager::set_max_size(uint32_t max_size) {
+  auto guard = lock_guard();
+  m_max_size = max_size;
+}
+
+void
+SocketManager::add_unmanaged_socket() {
+  m_unmanaged_size++;
+}
+
+void
+SocketManager::remove_unmanaged_socket() {
+  uint32_t old_size = m_unmanaged_size.fetch_sub(1);
+
+  if (old_size == 0)
+    throw internal_error("SocketManager::remove_unmanaged_socket(): no unmanaged sockets to remove");
+}
+
+// TODO: Add check to open_event_*.
+bool
+SocketManager::can_open_socket() {
+  auto guard = lock_guard();
+  return size() < max_size();
+}
+
 void
 SocketManager::open_event_or_throw(Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
@@ -56,20 +92,30 @@ SocketManager::open_event_or_throw(Event* event, std::function<void ()> func) {
          this_thread::thread()->name(), event->type_name(), fd);
 
   m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  m_managed_size++;
 }
 
 bool
-SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void ()> cleanup) {
+SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void (bool)> cleanup) {
   auto guard = lock_guard();
 
   if (event->is_open())
     throw internal_error("SocketManager::open_event_or_cleanup(): event is already open");
 
+  if (m_managed_size + m_unmanaged_size >= m_max_size) {
+    LT_LOG("open_event_or_cleanup() : %s:%s : cannot open socket, max open sockets reached",
+           this_thread::thread()->name(), event->type_name());
+
+    cleanup(false);
+    return false;
+  }
+
   func();
 
   if (!event->is_open()) {
     LT_LOG("open_event_or_cleanup() : %s:%s : failed to open socket", this_thread::thread()->name(), event->type_name());
-    cleanup();
+
+    cleanup(true);
     return false;
   }
 
@@ -83,7 +129,7 @@ SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, 
              this_thread::thread()->name(), event->type_name(), fd,
              itr->second.thread->name(), itr->second.event->type_name());
 
-      cleanup();
+      cleanup(true);
       return false;
     }
 
@@ -99,6 +145,7 @@ SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, 
          this_thread::thread()->name(), event->type_name(), fd);
 
   m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  m_managed_size++;
   return true;
 }
 
@@ -136,6 +183,7 @@ SocketManager::close_event_or_throw(Event* event, std::function<void ()> func) {
          this_thread::thread()->name(), event->type_name(), fd);
 
   m_socket_map.erase(itr);
+  m_managed_size--;
 }
 
 void
@@ -164,6 +212,7 @@ SocketManager::register_event_or_throw(Event* event, std::function<void ()> func
          this_thread::thread()->name(), event->type_name(), fd);
 
   m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  m_managed_size++;
 }
 
 void
@@ -197,6 +246,7 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> fu
          this_thread::thread()->name(), event->type_name(), fd);
 
   m_socket_map.erase(itr);
+  m_managed_size--;
 }
 
 // Always returns non-null if func() succeeds.
@@ -228,6 +278,7 @@ SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) 
            this_thread::thread()->name(), event_from->type_name(), fd);
 
     m_socket_map.erase(itr);
+    m_managed_size--;
     return nullptr;
   }
 

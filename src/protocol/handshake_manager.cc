@@ -86,12 +86,6 @@ HandshakeManager::erase_download(DownloadMain* info) {
 
 void
 HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, const sockaddr* sa) {
-  if (!manager->connection_manager()->can_connect()) {
-    LT_LOG_SA(sa, "rejected incoming connection: fd:%i : rejected by connection manager", fd);
-    fd_close(fd);
-    return;
-  }
-
   if (!manager->connection_manager()->filter(sa)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : filtered", fd);
     fd_close(fd);
@@ -109,8 +103,6 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
 
   LT_LOG_SA(sa, "accepted incoming connection: fd:%i", fd);
 
-  manager->connection_manager()->inc_socket_count();
-
   if (sa_is_v4mapped(sa))
     handshake->initialize_incoming(this, fd, sa_from_v4mapped(sa).get(), runtime::network_config()->encryption_options());
   else
@@ -121,7 +113,7 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
 
 void
 HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
-  if (!manager->connection_manager()->can_connect() ||
+  if (!runtime::socket_manager()->can_open_socket() ||
       !manager->connection_manager()->filter(sa))
     return;
 
@@ -189,7 +181,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       handshake->initialize_outgoing(this, fd, sa, encryption_options, download, peer_info);
     };
 
-  auto cleanup_func = [&]() {
+  auto cleanup_func = [&](bool) {
       if (!handshake->is_open()) {
         LT_LOG_SA(sa, "failed to create outgoing connection: open failed", 0);
         download->peer_list()->disconnected(peer_info, 0);
@@ -205,8 +197,6 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 
   if (!handshake->is_open())
     return;
-
-  manager->connection_manager()->inc_socket_count();
 
   base_type::push_back(std::move(handshake));
 }
@@ -255,7 +245,6 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
   if (new_event == nullptr) {
     fd_close(fd);
 
-    manager->connection_manager()->dec_socket_count();
     download->peer_list()->disconnected(peer_info, 0);
 
     lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
