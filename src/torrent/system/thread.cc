@@ -301,6 +301,11 @@ Thread::process_callbacks(bool only_interrupt) {
   while (true) {
     std::function<void ()> callback;
 
+    // The 'm_callbacks_processing_lock' is used by 'cancel_callback_and_wait' as a way to wait
+    // for the processing of the callbacks to finish.
+    auto processing_lock = std::lock_guard(m_callbacks_processing_lock);
+    m_callbacks_processing = true;
+
     {
       auto lock = std::lock_guard(m_callbacks_lock);
 
@@ -308,19 +313,15 @@ Thread::process_callbacks(bool only_interrupt) {
         callback = m_interrupt_callbacks.extract(m_interrupt_callbacks.begin()).mapped();
       else if (!only_interrupt && !m_callbacks.empty())
         callback = m_callbacks.extract(m_callbacks.begin()).mapped();
-      else
+      else {
+        m_callbacks_processing = false;
         break;
-
-      // The 'm_callbacks_processing_lock' is used by 'cancel_callback_and_wait' as a way to wait
-      // for the processing of the callbacks to finish.
-      m_callbacks_processing_lock.lock();
-      m_callbacks_processing = true;
+      }
     }
 
     callback();
 
     m_callbacks_processing = false;
-    m_callbacks_processing_lock.unlock();
   }
 }
 
