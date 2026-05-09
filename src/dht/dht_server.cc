@@ -115,29 +115,28 @@ DhtServer::start(int port) {
   if (bind_address->sa_family == AF_INET)
     open_flags |= fd_flag_v4;
 
+  int fd = fd_open(open_flags);
+
+  if (fd == -1) {
+    LT_LOG_THIS("could not open datagram socket : %s", std::strerror(errno));
+
+    throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
+  }
+
+  if (!fd_bind(fd, bind_address.get())) {
+    LT_LOG_THIS("could not bind datagram socket : %s", std::strerror(errno));
+
+    fd_close(fd);
+    throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
+  }
+
+  set_file_descriptor(fd);
+
   // TODO: This throws internal_error on failure.
-  runtime::socket_manager()->open_event_or_throw(this, [&]() {
-      int fd = fd_open(open_flags);
-
-      if (fd == -1) {
-        LT_LOG_THIS("could not open datagram socket : %s", std::strerror(errno));
-        throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
-      }
-
-      // Figure out how to bind to both inet and inet6.
-      if (!fd_bind(fd, bind_address.get())) {
-        LT_LOG_THIS("could not bind datagram socket : %s", std::strerror(errno));
-        fd_close(fd);
-        throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
-      }
-
-      set_file_descriptor(fd);
-
+  runtime::socket_manager()->register_event_or_throw(this, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
       this_thread::poll()->insert_error(this);
-
-      return file_descriptor();
     });
 }
 

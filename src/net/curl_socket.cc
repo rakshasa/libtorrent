@@ -304,7 +304,7 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
       return fd;
     };
 
-  auto cleanup_func = [&]() {
+  auto cleanup_func = [&](bool) {
       if (!event->is_open())
         return;
 

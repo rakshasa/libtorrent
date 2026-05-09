@@ -86,12 +86,6 @@ HandshakeManager::erase_download(DownloadMain* info) {
 
 void
 HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, const sockaddr* sa) {
-  if (!runtime::socket_manager()->can_open_socket()) {
-    LT_LOG_SA(sa, "rejected incoming connection: fd:%i : rejected by connection manager", fd);
-    fd_close(fd);
-    return;
-  }
-
   if (!manager->connection_manager()->filter(sa)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : filtered", fd);
     fd_close(fd);
@@ -187,7 +181,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       handshake->initialize_outgoing(this, fd, sa, encryption_options, download, peer_info);
     };
 
-  auto cleanup_func = [&]() {
+  auto cleanup_func = [&](bool) {
       if (!handshake->is_open()) {
         LT_LOG_SA(sa, "failed to create outgoing connection: open failed", 0);
         download->peer_list()->disconnected(peer_info, 0);

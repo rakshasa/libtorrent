@@ -59,7 +59,7 @@ public:
   // Try to reuse existing socket, if that fails call cleanup.
   //
   // This is used for listen accept and other cases where the caller doesn't mind ignoring failures.
-  bool                open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void ()> cleanup);
+  bool                open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void (bool)> cleanup);
 
   void                close_event_or_throw(Event* event, std::function<void ()> func);
 

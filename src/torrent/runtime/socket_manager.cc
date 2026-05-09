@@ -96,17 +96,26 @@ SocketManager::open_event_or_throw(Event* event, std::function<void ()> func) {
 }
 
 bool
-SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void ()> cleanup) {
+SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void (bool)> cleanup) {
   auto guard = lock_guard();
 
   if (event->is_open())
     throw internal_error("SocketManager::open_event_or_cleanup(): event is already open");
 
+  if (m_managed_size + m_unmanaged_size >= m_max_size) {
+    LT_LOG("open_event_or_cleanup() : %s:%s : cannot open socket, max open sockets reached",
+           this_thread::thread()->name(), event->type_name());
+
+    cleanup(false);
+    return false;
+  }
+
   func();
 
   if (!event->is_open()) {
     LT_LOG("open_event_or_cleanup() : %s:%s : failed to open socket", this_thread::thread()->name(), event->type_name());
-    cleanup();
+
+    cleanup(true);
     return false;
   }
 
@@ -120,7 +129,7 @@ SocketManager::open_event_or_cleanup(Event* event, std::function<void ()> func, 
              this_thread::thread()->name(), event->type_name(), fd,
              itr->second.thread->name(), itr->second.event->type_name());
 
-      cleanup();
+      cleanup(true);
       return false;
     }
 

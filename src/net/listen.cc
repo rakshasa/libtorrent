@@ -219,32 +219,43 @@ Listen::event_read() {
     // TODO: Optimize this by adding handshake immediately to poll and put the slot_accepted() call
     // outside of open_func().
 
+    int           fd;
+    sa_unique_ptr sa;
+
+    std::tie(fd, sa) = fd_sap_accept(file_descriptor());
+
+    if (fd == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+        return;
+
+      // Force a new event_read() call just to be sure we don't enter an infinite loop.
+      if (errno == ECONNABORTED)
+        return;
+
+      throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
+    }
+
     auto open_func = [&]() {
-        int fd;
-        sa_unique_ptr sa;
+        // TODO: Figure out a clean way of doing this.
+        int tmp_fd = fd;
+        fd = -1;
 
-        std::tie(fd, sa) = fd_sap_accept(file_descriptor());
-
-        if (fd == -1) {
-          if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-            return;
-
-          // Force a new event_read() call just to be sure we don't enter an infinite loop.
-          if (errno == ECONNABORTED)
-            return;
-
-          throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
-        }
-
-        m_slot_accepted(handshake, fd, sa.get());
+        m_slot_accepted(handshake, tmp_fd, sa.get());
       };
 
-    auto cleanup_func = [&]() {
+    auto cleanup_func = [fd, &handshake](bool opened) {
         LT_LOG("failed to accept incoming connection : socket manager triggered cleanup", 0);
+
+        if (!opened) {
+          fd_close(fd);
+          return;
+        }
 
         if (handshake && handshake->is_open())
           handshake->destroy_connection(false);
       };
+
+    // TODO: This needs to be handled differently as open_ isn't done, we're doing accept_event_or_cleanup? Add a close callback?
 
     bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);
 
