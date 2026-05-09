@@ -7,6 +7,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
+#include "torrent/runtime/network_manager.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
@@ -293,7 +294,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
     worker = std::make_shared<TrackerUdp>(tracker_info, flags);
 
-  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
+  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && runtime::network_manager()->is_dht_valid()) {
     // TODO: Don't check TrackerDht::is_allowed().
     worker = std::make_shared<TrackerDht>(tracker_info, flags);
 
