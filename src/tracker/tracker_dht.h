@@ -2,6 +2,7 @@
 #define LIBTORRENT_TRACKER_TRACKER_DHT_H
 
 #include <array>
+#include <memory>
 
 #include "net/address_list.h"
 #include "torrent/object.h"
@@ -30,19 +31,18 @@ public:
 
   tracker_enum        type() const override;
 
-  static bool         is_allowed();
-
-  std::string         lock_and_status() const override;
-
   void                send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) override;
   void                send_scrape(tracker::TrackerParams params) override;
 
   void                close() override;
 
-  state_type          get_dht_state() const            { return m_dht_state; }
+  state_type          dht_state() const;
   void                set_dht_announce_state();
 
-  bool                has_peers() const                { return !m_peers.empty(); }
+  int                 replied() const;
+  int                 contacted() const;
+
+  bool                has_peers_unsafe() const;
 
   void                receive_peers(raw_list peers);
   void                receive_success();
@@ -52,16 +52,21 @@ public:
 private:
   void                update_requesting_state();
 
-  tracker::TrackerParams m_params;
+  tracker::TrackerParams  m_params;
+  AddressList             m_peers;
 
-  AddressList         m_peers;
-  state_type          m_dht_state{state_idle};
+  std::atomic<state_type> m_dht_state{state_idle};
 
-  int                 m_replied;
-  int                 m_contacted;
+  std::atomic<int>        m_replied;
+  std::atomic<int>        m_contacted;
 
-  utils::SchedulerEntry m_delay_clear_state;
+  utils::SchedulerEntry   m_delay_clear_state;
 };
+
+TrackerDht::state_type TrackerDht::dht_state() const        { return m_dht_state; }
+int                    TrackerDht::replied() const          { return m_replied; }
+int                    TrackerDht::contacted() const        { return m_contacted; }
+bool                   TrackerDht::has_peers_unsafe() const { return !m_peers.empty(); }
 
 } // namespace torrent
 

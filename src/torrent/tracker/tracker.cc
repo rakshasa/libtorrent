@@ -2,6 +2,7 @@
 
 #include "torrent/tracker/tracker.h"
 
+#include "tracker/tracker_dht.h"
 #include "tracker/tracker_worker.h"
 #include "torrent/runtime/network_manager.h"
 
@@ -147,7 +148,14 @@ Tracker::state() const {
 
 std::string
 Tracker::status() const {
-  return m_worker->lock_and_status();
+  auto lock_guard = m_worker->lock_guard();
+
+  if (m_worker->type() != tracker_enum::TRACKER_DHT)
+    return "";
+
+  auto tracker = dynamic_cast<TrackerDht*>(m_worker.get());
+
+  return "[" + std::string(TrackerDht::states[tracker->dht_state()]) + ": " + std::to_string(tracker->replied()) + "/" + std::to_string(tracker->contacted()) + " nodes replied]";
 }
 
 void

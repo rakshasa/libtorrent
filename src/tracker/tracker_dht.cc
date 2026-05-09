@@ -38,12 +38,6 @@ TrackerDht::type() const {
   return TRACKER_DHT;
 }
 
-// TODO: Remove?
-bool
-TrackerDht::is_allowed() {
-  return runtime::network_manager()->dht_controller()->is_valid();
-}
-
 std::string
 TrackerDht::lock_and_status() const {
   auto guard = lock_guard();
