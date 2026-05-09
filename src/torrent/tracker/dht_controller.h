@@ -71,10 +71,9 @@ public:
 protected:
   friend class torrent::TrackerDht;
 
-  // Thread-safe:
-
+  // Called from tracker_thread.
   void                announce(const HashString& info_hash, TrackerDht* tracker);
-  void                cancel_announce(const HashString* info_hash, const torrent::TrackerDht* tracker);
+  void                cancel_announce(const HashString* info_hash, TrackerDht* tracker);
 
 private:
   std::mutex          m_lock;

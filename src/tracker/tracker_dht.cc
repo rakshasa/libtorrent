@@ -50,7 +50,7 @@ TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
   if (new_state == tracker::TrackerState::EVENT_STOPPED)
     return;
 
-  if (!runtime::network_manager()->dht_controller()->is_active())
+  if (!runtime::network_manager()->is_dht_active())
     return receive_failed("DHT is not enabled.");
 
   m_params    = params;

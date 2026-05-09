@@ -37,7 +37,6 @@ protected:
 
   // Any thread:
 
-  // remove_events() only removes events from the main thread.
   void                add_event(torrent::TrackerWorker* tracker_worker, std::function<void()> event);
   void                remove_events(torrent::TrackerWorker* tracker_worker);
 

@@ -70,6 +70,11 @@ void
 Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::TrackerState::event_enum new_event) {
   assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
+  // TODO: When making these into callbacks, we need to make sure they don't get cancelled by
+  // remove_events. (called by close slot)
+  //
+  // TODO: Use weak_ptr and don't cancel callbacks?
+
   // TODO: Currently executing in main thread, but should be in tracker thread.
   tracker.get_worker()->send_event(params, new_event);
 }
