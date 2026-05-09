@@ -11,11 +11,6 @@ namespace torrent {
 ConnectionManager::ConnectionManager() = default;
 ConnectionManager::~ConnectionManager() = default;
 
-bool
-ConnectionManager::can_connect() const {
-  return m_size < m_maxSize;
-}
-
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
   // TODO: Reverse order of checks, NC should be last.

@@ -11,7 +11,6 @@
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
 #include "torrent/chunk_manager.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
 #include "torrent/data/block.h"
@@ -171,8 +170,6 @@ PeerConnectionBase::cleanup() {
       fd_close(m_fileDesc);
       m_fileDesc = -1;
     });
-
-  manager->connection_manager()->dec_socket_count();
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
   m_down->throttle()->erase(m_peerChunks.download_throttle());

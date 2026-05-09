@@ -6,19 +6,18 @@
 #include <random>
 #include <curl/curl.h>
 
+#include "manager.h"
 #include "runtime.h"
+#include "thread_main.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/thread_disk.h"
 #include "download/download_constructor.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-#include "manager.h"
 #include "net/thread_net.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
-#include "thread_main.h"
-#include "torrent/connection_manager.h"
 #include "torrent/download/resource_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
@@ -29,6 +28,7 @@
 #include "torrent/net/http_stack.h"
 #include "torrent/net/poll.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
 
@@ -254,7 +254,8 @@ initialize() {
   auto max_http_connections = calculate_max_http_total_connections(max_open);
   auto reserved = calculate_reserved(max_open);
 
-  manager->connection_manager()->set_max_size(max_open - max_files - max_http_connections - reserved);
+  runtime::socket_manager()->set_max_size(max_open - max_files - max_http_connections - reserved);
+
   manager->file_manager()->set_max_open_files(max_files);
 
   net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(max_open));
