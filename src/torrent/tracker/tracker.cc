@@ -56,7 +56,7 @@ bool
 Tracker::is_usable() const {
   auto lock_guard = m_worker->lock_guard();
 
-  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->dht_is_active())
+  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->is_dht_active())
     return false;
 
   return m_worker->m_state.is_enabled();
@@ -73,7 +73,7 @@ bool
 Tracker::can_request_state() const {
   auto lock_guard = m_worker->lock_guard();
 
-  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->dht_is_active())
+  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->is_dht_active())
     return false;
 
   if (!m_worker->m_state.is_enabled())
