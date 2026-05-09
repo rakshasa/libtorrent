@@ -20,7 +20,7 @@ DhtAnnounce::~DhtAnnounce() {
 
   const char* failure = NULL;
 
-  if (m_tracker->get_dht_state() != TrackerDht::state_announcing) {
+  if (m_tracker->dht_state() != TrackerDht::state_announcing) {
     if (!m_contacted)
       failure = "No DHT nodes available for peer search.";
     else
@@ -29,7 +29,7 @@ DhtAnnounce::~DhtAnnounce() {
   } else {
     if (!m_contacted)
       failure = "DHT search unsuccessful.";
-    else if (m_replied == 0 && !m_tracker->has_peers())
+    else if (m_replied == 0 && !m_tracker->has_peers_unsafe())
       failure = "Announce failed";
   }
 

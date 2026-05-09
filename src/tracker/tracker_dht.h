@@ -63,10 +63,10 @@ private:
   utils::SchedulerEntry   m_delay_clear_state;
 };
 
-TrackerDht::state_type TrackerDht::dht_state() const        { return m_dht_state; }
-int                    TrackerDht::replied() const          { return m_replied; }
-int                    TrackerDht::contacted() const        { return m_contacted; }
-bool                   TrackerDht::has_peers_unsafe() const { return !m_peers.empty(); }
+inline TrackerDht::state_type TrackerDht::dht_state() const        { return m_dht_state; }
+inline int                    TrackerDht::replied() const          { return m_replied; }
+inline int                    TrackerDht::contacted() const        { return m_contacted; }
+inline bool                   TrackerDht::has_peers_unsafe() const { return !m_peers.empty(); }
 
 } // namespace torrent
 
