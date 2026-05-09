@@ -10,7 +10,6 @@
 #include "dht/dht_router.h"
 #include "dht/dht_transaction.h"
 #include "dht/transactions/dht_announce.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/object_static_map.h"
@@ -79,18 +78,11 @@ DhtServer::DhtServer(DhtRouter* router)
   m_fileDesc = -1;
   reset_statistics();
 
-  // Reserve a socket for the DHT server, even though we don't
-  // actually open it until the server is started, which may not
-  // happen until the first non-private torrent is started.
-  manager->connection_manager()->inc_socket_count();
-
   m_task_timeout.slot() = [this] { receive_timeout(); };
 }
 
 DhtServer::~DhtServer() {
   stop();
-
-  manager->connection_manager()->dec_socket_count();
 }
 
 void

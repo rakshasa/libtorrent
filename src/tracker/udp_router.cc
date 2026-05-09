@@ -438,7 +438,7 @@ UdpRouter::queue_write(uint32_t id, connection_info* info) {
     throw internal_error("UdpRouter::queue_write() called for connection that is already queued for writing.");
 
   if (m_write_queue.empty())
-    this_thread::event_insert_write(this);
+    this_thread::poll()->insert_write(this);
 
   m_write_queue.emplace_back(id, info);
 
@@ -560,7 +560,7 @@ UdpRouter::event_write() {
   }
 
   if (m_write_queue.empty())
-    this_thread::event_remove_write(this);
+    this_thread::poll()->remove_write(this);
 }
 
 void

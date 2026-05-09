@@ -4,7 +4,6 @@
 
 #include "manager.h"
 #include "protocol/handshake.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/poll.h"
@@ -189,8 +188,6 @@ Listen::open_done(int fd, uint16_t port, int backlog) {
   set_file_descriptor(fd);
   m_port = port;
 
-  manager->connection_manager()->inc_socket_count();
-
   runtime::socket_manager()->register_event_or_throw(this, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
@@ -210,8 +207,6 @@ void Listen::close() {
       fd_close(file_descriptor());
       set_file_descriptor(-1);
     });
-
-  manager->connection_manager()->dec_socket_count();
 
   m_port = 0;
 }

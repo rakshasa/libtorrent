@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H
 #define LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H
 
+#include <atomic>
 #include <mutex>
 #include <unordered_map>
 #include <torrent/common.h>
@@ -33,6 +34,16 @@ public:
 
   SocketManager();
   ~SocketManager();
+
+  uint32_t            size();
+  uint32_t            max_size();
+
+  void                set_max_size(uint32_t max_size);
+
+  void                add_unmanaged_socket();
+  void                remove_unmanaged_socket();
+
+  bool                can_open_socket();
 
   // TODO: Rename / change _or_throw to be more specific about what we throw, as it currently calls
   // internal errors. DHT server should probably throw resource_error instead? Or retry. (this
@@ -76,6 +87,10 @@ private:
   using socket_map = std::unordered_map<int, SocketInfo>;
 
   bool                handle_reused_socket(socket_map::iterator itr);
+
+  std::atomic<uint32_t> m_managed_size{};
+  std::atomic<uint32_t> m_unmanaged_size{};
+  std::atomic<uint32_t> m_max_size{};
 
   std::mutex          m_mutex;
 

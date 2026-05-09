@@ -161,18 +161,6 @@ net::Poll*                poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
 utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
 
-[[gnu::weak]] void event_open(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_open_and_count(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_close_and_count(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_closed_and_count(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_insert_read(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_insert_write(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_insert_error(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_remove_read(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_remove_write(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_remove_error(Event* event) LIBTORRENT_EXPORT;
-[[gnu::weak]] void event_remove_and_close(Event* event) LIBTORRENT_EXPORT;
-
 } // namespace torrent::this_thread
 
 namespace torrent::disk_thread {

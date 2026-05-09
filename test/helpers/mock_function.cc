@@ -29,18 +29,6 @@ mock_clear(bool ignore_assert) {
   MOCK_CLEANUP_MAP(torrent::fd__setsockopt_int);
   MOCK_CLEANUP_MAP(torrent::fd__socket);
 
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_open);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_open_and_count);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_close_and_count);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_closed_and_count);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_insert_read);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_insert_write);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_insert_error);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_read);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_write);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_error);
-  MOCK_CLEANUP_MAP(torrent::this_thread::event_remove_and_close);
-
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint16);
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint32);
 
