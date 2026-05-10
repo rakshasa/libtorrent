@@ -239,6 +239,9 @@ TestTrackerController::test_send_stop_normal() {
   tracker_controller.send_stop_event();
   tracker_controller.disable();
 
+  std::this_thread::sleep_for(500ms);
+
+  // This checks that trackers finish requests even after controller is disabled.
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   tracker_0_0_worker->trigger_success();
 
@@ -268,6 +271,9 @@ TestTrackerController::test_send_completed_normal() {
   tracker_controller.send_completed_event();
   tracker_controller.disable();
 
+  std::this_thread::sleep_for(500ms);
+
+  // This checks that trackers finish requests even after controller is disabled.
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   tracker_0_0_worker->trigger_success();
 
@@ -331,7 +337,12 @@ TestTrackerController::test_send_close_on_enable() {
   tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_STOPPED);
   tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_COMPLETED);
 
+  // TODO: This closes all trackers, except tracker_3.
   tracker_controller.enable();
+
+  // TODO: Replace sleep with process_callbacks for tracker thread.
+  std::this_thread::sleep_for(500ms);
+  m_main_thread->test_process_events_without_cached_time();
 
   CPPUNIT_ASSERT(!tracker_0.is_busy());
   CPPUNIT_ASSERT(!tracker_1.is_busy());

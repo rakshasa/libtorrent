@@ -156,22 +156,16 @@ TrackerList::insert(const tracker::Tracker& tracker) {
 
   // These slots are called from within the worker thread, so we need to
   // use proper signal passing to the main thread.
-
-  // TODO: When a tracker is sent to tracker thread to do a request, it needs to hold the shared_ptr
-  // for the duration of the request.
-
-  // TODO: TrackerList should be a shared_ptr held by DownloadMain, and send_* should pass through
-  // tracker::Manager, which will hold the  weak_ptr and collect results. It should poke signal main
-  // thread it has work and if weak_ptr locks it performs the work.
   //
-  // This means we can remove the slots below and tracker just need to have tracker::Manager*.
-
   // The weak_ptr should always return a valid shared_ptr, as the tracker thread will hold a
   // shared_ptr.
 
   auto weak_ptr        = itr->get_weak_ptr();
   auto worker          = itr->get_worker();
   auto tracker_manager = ThreadTracker::thread_tracker()->tracker_manager();
+
+  // TODO: enable/disable slots are called from main-thread, and should not use events? Or rather,
+  // remove them from tracker::Tracker.
 
   worker->m_slot_enabled = [this, tracker_manager, weak_ptr, worker]() {
       tracker_manager->add_event(worker, [this, weak_ptr]() {

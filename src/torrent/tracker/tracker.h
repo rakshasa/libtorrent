@@ -59,6 +59,8 @@ protected:
   TrackerWorker*      get_worker()         { return m_worker.get(); }
   auto                get_weak_ptr() const { return std::weak_ptr<torrent::TrackerWorker>(m_worker); }
 
+  void                close();
+
   void                clear_stats();
 
 private:

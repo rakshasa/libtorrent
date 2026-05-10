@@ -57,6 +57,8 @@ TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
 }
 
 TrackerHttp::~TrackerHttp() {
+  // TODO: Disown http requests to ensure they are finished.
+
   close_directly();
   this_thread::scheduler()->erase(&m_delay_scrape);
 }
