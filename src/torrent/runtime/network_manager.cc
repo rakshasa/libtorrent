@@ -149,13 +149,20 @@ NetworkManager::restart_listen() {
 
 bool
 NetworkManager::listen_open_unsafe(uint16_t begin, uint16_t end) {
-  auto config_guard = runtime::network_config()->lock_guard();
-  auto backlog      = runtime::network_config()->listen_backlog_unsafe();
+  int backlog = 0;
+  NetworkConfig::listen_addresses listen_addresses = {};
 
   if (m_listen_inet->is_open() || m_listen_inet6->is_open())
     throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");
 
-  auto [inet_address, inet6_address, block_ipv4in6] = runtime::network_config()->listen_addresses_unsafe();
+  {
+    auto config_guard = runtime::network_config()->lock_guard();
+    backlog           = runtime::network_config()->listen_backlog_unsafe();
+
+    listen_addresses = runtime::network_config()->listen_addresses_unsafe();
+  }
+
+  auto& [inet_address, inet6_address, block_ipv4in6] = listen_addresses;
 
   if (inet_address == nullptr && inet6_address == nullptr)
     throw input_error("Neither IPv4 nor IPv6 listen address are suitable for opening listen sockets, check block_ipv4 and block_ipv6 settings.");
