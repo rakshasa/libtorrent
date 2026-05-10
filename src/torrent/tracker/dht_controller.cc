@@ -164,7 +164,7 @@ DhtController::announce(const HashString& info_hash, TrackerDht* tracker) {
 }
 
 void
-DhtController::cancel_announce(const HashString* info_hash, const torrent::TrackerDht* tracker) {
+DhtController::cancel_announce(const HashString* info_hash, torrent::TrackerDht* tracker) {
   auto lock = std::lock_guard(m_lock);
 
   if (!m_router)

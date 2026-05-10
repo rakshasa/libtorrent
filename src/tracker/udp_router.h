@@ -30,6 +30,7 @@ public:
   const char*         type_name() const override { return "udp_router"; }
 
   // TODO: Listen to network_config updates and reopen if necessary.
+  // TODO: Add callback subscription for network_config updates.
 
   void                open(int family);
   void                close();

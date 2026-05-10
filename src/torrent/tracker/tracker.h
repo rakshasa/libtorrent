@@ -56,7 +56,8 @@ protected:
 
   Tracker(std::shared_ptr<torrent::TrackerWorker>&& worker);
 
-  TrackerWorker*      get_worker() { return m_worker.get(); }
+  TrackerWorker*      get_worker()         { return m_worker.get(); }
+  auto                get_weak_ptr() const { return std::weak_ptr<torrent::TrackerWorker>(m_worker); }
 
   void                clear_stats();
 

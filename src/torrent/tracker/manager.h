@@ -37,8 +37,8 @@ protected:
 
   // Any thread:
 
-  void                add_event(torrent::TrackerWorker* tracker_worker, std::function<void()> event);
-  void                remove_events(torrent::TrackerWorker* tracker_worker);
+  void                add_event(TrackerWorker* worker, std::function<void ()>&& event);
+  void                remove_events(TrackerWorker* worker);
 
 private:
   Manager(const Manager&) = delete;

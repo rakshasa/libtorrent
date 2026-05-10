@@ -18,8 +18,6 @@
 #include "tracker/thread_tracker.h"
 #include "tracker/udp_router.h"
 
-#include "thread_main.h"
-
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
@@ -101,14 +99,14 @@ TrackerUdp::close_directly() {
          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   if (m_inet_transaction_id != 0) {
-    ThreadMain::thread_main()->udp_inet_router()->disconnect(m_inet_transaction_id);
+    ThreadTracker::thread_tracker()->udp_inet_router()->disconnect(m_inet_transaction_id);
 
     m_inet_transaction_id = 0;
     m_inet_connection_id  = 0;
   }
 
   if (m_inet6_transaction_id != 0) {
-    ThreadMain::thread_main()->udp_inet6_router()->disconnect(m_inet6_transaction_id);
+    ThreadTracker::thread_tracker()->udp_inet6_router()->disconnect(m_inet6_transaction_id);
 
     m_inet6_transaction_id = 0;
     m_inet6_connection_id  = 0;
@@ -189,9 +187,9 @@ tracker::UdpRouter*
 TrackerUdp::router_for_family(int family) {
   switch (family) {
   case AF_INET:
-    return ThreadMain::thread_main()->udp_inet_router();
+    return ThreadTracker::thread_tracker()->udp_inet_router();
   case AF_INET6:
-    return ThreadMain::thread_main()->udp_inet6_router();
+    return ThreadTracker::thread_tracker()->udp_inet6_router();
   default:
     throw internal_error("TrackerUdp::router_for_family() called with invalid address family.");
   }
