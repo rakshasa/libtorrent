@@ -128,6 +128,7 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
     curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
 
     base_type::push_back(curl_get);
+    m_size = base_type::size();
 
     // Calling curl_multi_add_handle() can result in CurlSocket::receive_socket() being called,
     // which calls CurlStack::is_running().
@@ -150,6 +151,7 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
         throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not in the stack.");
 
       base_type::erase(itr);
+      m_size = base_type::size();
     }
 
     curl_get->cleanup_unsafe();

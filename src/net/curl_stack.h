@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_NET_CURL_STACK_H
 #define LIBTORRENT_NET_CURL_STACK_H
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -97,6 +98,9 @@ private:
 
   mutable std::mutex  m_mutex;
 
+  // Mirrors base::size()
+  std::atomic_size_t  m_size{0};
+
   // Use lock guard when accessing these members, and when modifying the underlying vector.
   bool                m_running{true};
 
@@ -122,8 +126,7 @@ CurlStack::is_running() const {
 
 inline unsigned int
 CurlStack::size() const {
-  auto guard = lock_guard();
-  return base_type::size();
+  return m_size;
 }
 
 inline unsigned int
