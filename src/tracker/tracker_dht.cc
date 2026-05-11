@@ -30,7 +30,11 @@ TrackerDht::TrackerDht(const TrackerInfo& info, int flags)
 TrackerDht::~TrackerDht() {
   this_thread::scheduler()->erase(&m_delay_clear_state);
 
-  runtime::network_manager()->dht_controller()->cancel_announce(NULL, this);
+  // This still queues a cancel request, however 'this' is never accessed.
+  //
+  // Even if we accidentally create a new TrackerDht with the same address, the cancel request will
+  // not do anything harmful.
+  runtime::network_manager()->dht_controller()->cancel_announce_and_wait(nullptr, this);
 }
 
 tracker_enum

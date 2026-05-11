@@ -23,7 +23,8 @@
 namespace torrent {
 
 TrackerList::TrackerList() :
-  m_state(DownloadInfo::STOPPED) {
+  m_state(DownloadInfo::STOPPED),
+  m_lifetime_keeper(std::make_shared<int>(0)) {
 }
 
 TrackerList::~TrackerList() {
@@ -68,19 +69,9 @@ TrackerList::has_usable() const {
 }
 
 void
-TrackerList::close_all_excluding(int event_bitmap) {
-  LT_LOG("closing all trackers with event bitmap: 0x%x", event_bitmap);
-
-  for (auto tracker : *this) {
-    if ((event_bitmap & (1 << tracker.state().latest_event())))
-      continue;
-
-    tracker.get_worker()->close();
-  }
-}
-
-void
 TrackerList::clear() {
+  m_lifetime_keeper.reset();
+
   // Make sure the tracker_list is cleared before the trackers are deleted.
   auto list = std::move(*static_cast<base_type*>(this));
 }
@@ -163,30 +154,31 @@ TrackerList::insert(const tracker::Tracker& tracker) {
   auto weak_ptr        = itr->get_weak_ptr();
   auto worker          = itr->get_worker();
   auto tracker_manager = ThreadTracker::thread_tracker()->tracker_manager();
+  auto lifetime_keeper = std::weak_ptr<void>(m_lifetime_keeper);
 
   // TODO: enable/disable slots are called from main-thread, and should not use events? Or rather,
   // remove them from tracker::Tracker.
 
-  worker->m_slot_enabled = [this, tracker_manager, weak_ptr, worker]() {
-      tracker_manager->add_event(worker, [this, weak_ptr]() {
+  worker->m_slot_enabled = [this, tracker_manager, lifetime_keeper, weak_ptr, worker]() {
+      tracker_manager->add_event(worker, [this, lifetime_keeper, weak_ptr]() {
           if (!m_slot_tracker_enabled)
             return;
 
           auto tracker_shared_ptr = weak_ptr.lock();
 
-          if (tracker_shared_ptr)
+          if (tracker_shared_ptr && lifetime_keeper.lock())
             m_slot_tracker_enabled(tracker::Tracker(std::move(tracker_shared_ptr)));
         });
     };
 
-  worker->m_slot_disabled = [this, tracker_manager, weak_ptr, worker]() {
-      tracker_manager->add_event(worker, [this, weak_ptr]() {
+  worker->m_slot_disabled = [this, tracker_manager, lifetime_keeper, weak_ptr, worker]() {
+      tracker_manager->add_event(worker, [this, lifetime_keeper, weak_ptr]() {
           if (!m_slot_tracker_disabled)
             return;
 
           auto tracker_shared_ptr = weak_ptr.lock();
 
-          if (tracker_shared_ptr)
+          if (tracker_shared_ptr && lifetime_keeper.lock())
             m_slot_tracker_disabled(tracker::Tracker(std::move(tracker_shared_ptr)));
         });
     };
@@ -195,62 +187,62 @@ TrackerList::insert(const tracker::Tracker& tracker) {
       tracker_manager->remove_events(worker);
     };
 
-  worker->m_slot_success = [this, tracker_manager, weak_ptr, worker](AddressList&& l) {
-      tracker_manager->add_event(worker, [this, weak_ptr, l = std::move(l)]() {
+  worker->m_slot_success = [this, tracker_manager, lifetime_keeper, weak_ptr, worker](AddressList&& l) {
+      tracker_manager->add_event(worker, [this, weak_ptr, lifetime_keeper, l = std::move(l)]() {
           if (!m_slot_success)
             return;
 
           auto tracker_shared_ptr = weak_ptr.lock();
 
-          if (tracker_shared_ptr)
+          if (tracker_shared_ptr && lifetime_keeper.lock())
             receive_success(tracker::Tracker(std::move(tracker_shared_ptr)), const_cast<AddressList*>(&l));
         });
     };
 
-  worker->m_slot_failure = [this, tracker_manager, weak_ptr, worker](const std::string& msg) {
-      tracker_manager->add_event(worker, [this, weak_ptr, msg]() {
+  worker->m_slot_failure = [this, tracker_manager, lifetime_keeper, weak_ptr, worker](const std::string& msg) {
+      tracker_manager->add_event(worker, [this, weak_ptr, lifetime_keeper, msg]() {
           if (!m_slot_failed)
             return;
 
           auto tracker_shared_ptr = weak_ptr.lock();
 
-          if (tracker_shared_ptr)
+          if (tracker_shared_ptr && lifetime_keeper.lock())
             receive_failed(tracker::Tracker(std::move(tracker_shared_ptr)), msg);
         });
     };
 
-  worker->m_slot_scrape_success = [this, tracker_manager, weak_ptr, worker]() {
-      tracker_manager->add_event(worker, [this, weak_ptr]() {
+  worker->m_slot_scrape_success = [this, tracker_manager, lifetime_keeper, weak_ptr, worker]() {
+      tracker_manager->add_event(worker, [this, lifetime_keeper, weak_ptr]() {
           if (!m_slot_scrape_success)
             return;
 
           auto tracker_shared_ptr = weak_ptr.lock();
 
-          if (tracker_shared_ptr)
+          if (tracker_shared_ptr && lifetime_keeper.lock())
             receive_scrape_success(tracker::Tracker(std::move(tracker_shared_ptr)));
         });
     };
 
-  worker->m_slot_scrape_failure = [this, tracker_manager, weak_ptr, worker](const std::string& msg) {
-      tracker_manager->add_event(worker, [this, weak_ptr, msg]() {
+  worker->m_slot_scrape_failure = [this, tracker_manager, lifetime_keeper, weak_ptr, worker](const std::string& msg) {
+      tracker_manager->add_event(worker, [this, weak_ptr, lifetime_keeper, msg]() {
           if (!m_slot_scrape_failed)
             return;
 
           auto tracker_shared_ptr = weak_ptr.lock();
 
-          if (tracker_shared_ptr)
+          if (tracker_shared_ptr && lifetime_keeper.lock())
             receive_scrape_failed(tracker::Tracker(std::move(tracker_shared_ptr)), msg);
         });
     };
 
-  worker->m_slot_new_peers = [this, tracker_manager, weak_ptr, worker](AddressList&& l) {
-      tracker_manager->add_event(worker, [this, weak_ptr, l = std::move(l)]() {
+  worker->m_slot_new_peers = [this, tracker_manager, lifetime_keeper, weak_ptr, worker](AddressList&& l) {
+      tracker_manager->add_event(worker, [this, weak_ptr, lifetime_keeper, l = std::move(l)]() {
           if (!m_slot_new_peers)
             return;
 
           auto tracker_shared_ptr = weak_ptr.lock();
 
-          if (tracker_shared_ptr)
+          if (tracker_shared_ptr && lifetime_keeper.lock())
             receive_new_peers(tracker::Tracker(std::move(tracker_shared_ptr)), const_cast<AddressList*>(&l));
         });
     };

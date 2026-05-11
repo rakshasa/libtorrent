@@ -74,6 +74,7 @@ protected:
   // Called from tracker_thread.
   void                announce(const HashString& info_hash, TrackerDht* tracker);
   void                cancel_announce(const HashString* info_hash, TrackerDht* tracker);
+  void                cancel_announce_and_wait(const HashString* info_hash, TrackerDht* tracker);
 
 private:
   std::mutex          m_lock;

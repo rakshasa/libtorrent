@@ -18,6 +18,8 @@ struct TrackerListEvent {
 class LIBTORRENT_EXPORT Manager {
 public:
 
+  // TODO: Use global varaibles even in tests.
+
   Manager(system::Thread* main_thread, system::Thread* tracker_thread);
   ~Manager() = default;
 

@@ -155,22 +155,33 @@ DhtController::reset_statistics() {
 
 void
 DhtController::announce(const HashString& info_hash, TrackerDht* tracker) {
-  auto lock = std::lock_guard(m_lock);
+  main_thread::callback(tracker, [this, info_hash, tracker] {
+      auto lock = std::lock_guard(m_lock);
 
-  if (!m_router)
-    throw internal_error("DhtController::announce() called but DHT not initialized.");
+      if (!m_router)
+        throw internal_error("DhtController::announce() called but DHT not initialized.");
 
-  m_router->announce(info_hash, tracker);
+      m_router->announce(info_hash, tracker);
+    });
 }
 
 void
-DhtController::cancel_announce(const HashString* info_hash, torrent::TrackerDht* tracker) {
-  auto lock = std::lock_guard(m_lock);
+DhtController::cancel_announce(const HashString* info_hash, TrackerDht* tracker) {
+  main_thread::callback(tracker, [this, info_hash, tracker] {
+      auto lock = std::lock_guard(m_lock);
 
-  if (!m_router)
-    throw internal_error("DhtController::cancel_announce() called but DHT not initialized.");
+      if (!m_router)
+        throw internal_error("DhtController::cancel_announce() called but DHT not initialized.");
 
-  m_router->cancel_announce(info_hash, tracker);
+      m_router->cancel_announce(info_hash, tracker);
+    });
+}
+
+void
+DhtController::cancel_announce_and_wait(const HashString* info_hash, TrackerDht* tracker) {
+  main_thread::cancel_callback_and_wait(tracker);
+
+  cancel_announce(info_hash, tracker);
 }
 
 } // namespace torrent::tracker

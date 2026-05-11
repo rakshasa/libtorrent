@@ -27,7 +27,7 @@
 
 namespace torrent {
 
-// TODO: Handle network config changes.
+// TODO: Don't bother waiting for replies from STOPPED requests when closing.
 
 TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
   TrackerWorker(raw_info, flags) {
