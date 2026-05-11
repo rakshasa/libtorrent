@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <vector>
 #include <torrent/tracker/tracker.h>
 
@@ -55,9 +56,6 @@ public:
   bool                has_active_not_scrape_in_group(uint32_t group) const;
   bool                has_usable() const;
 
-  void                close_all() { close_all_excluding(0); }
-  void                close_all_excluding(int event_bitmap);
-
   void                clear();
   void                clear_stats();
 
@@ -69,7 +67,6 @@ public:
   // TODO: CHECK PEX CAUSES PEER CONNECTS.
 
   void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
-
   void                send_scrape(tracker::Tracker& tracker);
 
   const DownloadInfo* info() const                            { return m_info; }
@@ -137,6 +134,8 @@ private:
   std::function<uint32_t(AddressList*)>                     m_slot_new_peers;
   std::function<void(tracker::Tracker)>                     m_slot_tracker_enabled;
   std::function<void(tracker::Tracker)>                     m_slot_tracker_disabled;
+
+  std::shared_ptr<void> m_lifetime_keeper;
 };
 
 } // namespace torrent

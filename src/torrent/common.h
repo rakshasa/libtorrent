@@ -203,6 +203,10 @@ namespace torrent::tracker_thread {
 system::Thread*          thread() LIBTORRENT_EXPORT;
 std::thread::id          thread_id() LIBTORRENT_EXPORT;
 
+void                     callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
+void                     cancel_callback(void* target) LIBTORRENT_EXPORT;
+void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
+
 } // namespace torrent::tracker_thread
 
 #endif

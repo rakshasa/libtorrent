@@ -70,28 +70,43 @@ void
 Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::TrackerState::event_enum new_event) {
   assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
-  // TODO: Currently executing in main thread, but should be in tracker thread.
-  tracker.get_worker()->send_event(params, new_event);
+  auto weak_ptr = tracker.get_weak_ptr();
+
+  m_tracker_thread->callback(nullptr, [weak_ptr, params, new_event]() {
+      auto tracker = weak_ptr.lock();
+
+      if (tracker == nullptr)
+        return;
+
+      tracker->send_event(params, new_event);
+    });
 }
 
 void
 Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
   assert(std::this_thread::get_id() == m_main_thread->thread_id());
 
-  // TODO: Currently executing in main thread, but should be in tracker thread.
-  tracker.get_worker()->send_scrape(params);
+  auto weak_ptr = tracker.get_weak_ptr();
+
+  m_tracker_thread->callback(nullptr, [weak_ptr, params]() {
+      auto tracker = weak_ptr.lock();
+
+      if (tracker == nullptr)
+        return;
+
+      tracker->send_scrape(params);
+    });
 }
 
-// Events are queued by the trackers and run in the main thread.
 void
-Manager::add_event(torrent::TrackerWorker* tracker_worker, std::function<void()> event) {
-  m_main_thread->callback(tracker_worker, std::move(event));
+Manager::add_event(TrackerWorker* worker, std::function<void ()>&& event) {
+  m_main_thread->callback(worker, std::move(event));
 }
 
 void
-Manager::remove_events(torrent::TrackerWorker* tracker_worker) {
-  m_main_thread->cancel_callback_and_wait(tracker_worker);
-  m_tracker_thread->cancel_callback_and_wait(tracker_worker);
+Manager::remove_events(torrent::TrackerWorker* worker) {
+  m_main_thread->cancel_callback_and_wait(worker);
+  m_tracker_thread->cancel_callback_and_wait(worker);
 }
 
 } // namespace torrent::tracker

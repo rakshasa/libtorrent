@@ -266,7 +266,6 @@ void
 TrackerController::close() {
   m_flags &= ~(flag_requesting | flag_promiscuous_mode);
 
-  m_tracker_list->close_all();
   this_thread::scheduler()->erase(&m_task_timeout);
 }
 
@@ -279,8 +278,6 @@ TrackerController::enable(int enable_flags) {
   // fast. In the future do this based on flags passed.
   m_flags |= flag_active;
   m_flags &= ~flag_send_stop;
-
-  m_tracker_list->close_all_excluding((1 << tracker::TrackerState::EVENT_COMPLETED));
 
   if (!(enable_flags & enable_dont_reset_stats))
     m_tracker_list->clear_stats();
@@ -300,7 +297,6 @@ TrackerController::disable() {
   // Disable other flags?...
   m_flags &= ~(flag_active | flag_requesting | flag_promiscuous_mode);
 
-  m_tracker_list->close_all_excluding((1 << tracker::TrackerState::EVENT_STOPPED) | (1 << tracker::TrackerState::EVENT_COMPLETED));
   this_thread::scheduler()->erase(&m_task_timeout);
 
   LT_LOG_TRACKER_EVENTS("disabled : trackers:%zu", m_tracker_list->size());

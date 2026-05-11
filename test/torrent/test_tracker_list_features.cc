@@ -69,24 +69,37 @@ TestTrackerListFeatures::test_has_active() {
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
   tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(tracker_list.has_active_not_scrape());
   tracker_0_0_worker->trigger_success();
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
-  tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
+  CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_1_0_worker->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
   // Test multiple active trackers.
-  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
+  CPPUNIT_ASSERT(tracker_list.has_active());
 
   tracker_list.send_event(tracker_list.at(1), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
   tracker_0_0_worker->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_0_1_worker->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
   tracker_1_0_worker->set_scrapable();
+
   tracker_list.send_scrape(tracker_1_0);
+
+  process_main_and_tracker(this);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 }
