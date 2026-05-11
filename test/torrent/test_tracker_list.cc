@@ -61,6 +61,10 @@ TestTrackerList::test_close() {
   tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_STOPPED);
   tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_COMPLETED);
 
+  std::this_thread::sleep_for(100ms);
+  m_main_thread->test_process_events_without_cached_time();
+  std::this_thread::sleep_for(100ms);
+
   CPPUNIT_ASSERT(tracker_0.is_busy());
   CPPUNIT_ASSERT(tracker_1.is_busy());
   CPPUNIT_ASSERT(tracker_2.is_busy());
