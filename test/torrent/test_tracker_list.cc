@@ -8,6 +8,13 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerList);
 
 void
+process_main_and_tracker(TestFixtureWithMainNetTrackerThread* fixture) {
+  std::this_thread::sleep_for(100ms);
+  fixture->m_main_thread->test_process_events_without_cached_time();
+  std::this_thread::sleep_for(100ms);
+}
+
+void
 TestTrackerList::test_basic() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);
@@ -61,9 +68,7 @@ TestTrackerList::test_close() {
   tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_STOPPED);
   tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_COMPLETED);
 
-  std::this_thread::sleep_for(100ms);
-  m_main_thread->test_process_events_without_cached_time();
-  std::this_thread::sleep_for(100ms);
+  process_main_and_tracker(this);
 
   CPPUNIT_ASSERT(tracker_0.is_busy());
   CPPUNIT_ASSERT(tracker_1.is_busy());
@@ -185,6 +190,8 @@ TestTrackerList::test_single_success() {
 
   tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_STARTED);
 
+  process_main_and_tracker(this);
+
   CPPUNIT_ASSERT(tracker_0.is_busy());
   CPPUNIT_ASSERT(tracker_0.is_busy_not_scrape());
   CPPUNIT_ASSERT(tracker_0_worker->is_open());
@@ -242,6 +249,8 @@ TestTrackerList::test_single_closing() {
   tracker_0_worker->set_close_on_done(false);
   tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
 
+  process_main_and_tracker(this);
+
   CPPUNIT_ASSERT(tracker_0_worker->is_open());
   CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
 
@@ -276,6 +285,8 @@ TestTrackerList::test_multiple_success() {
 
   tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
 
+  process_main_and_tracker(this);
+
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   CPPUNIT_ASSERT(!tracker_0_1.is_busy());
   CPPUNIT_ASSERT(!tracker_1_0.is_busy());
@@ -290,6 +301,8 @@ TestTrackerList::test_multiple_success() {
 
   tracker_list.send_event(tracker_list.at(1), torrent::tracker::TrackerState::EVENT_NONE);
   tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
 
   CPPUNIT_ASSERT(!tracker_0_0.is_busy());
   CPPUNIT_ASSERT(tracker_0_1.is_busy());
@@ -322,6 +335,8 @@ TestTrackerList::test_scrape_success() {
 
   tracker_0_worker->set_scrapable();
   tracker_list.send_scrape(tracker_0);
+
+  process_main_and_tracker(this);
 
   CPPUNIT_ASSERT(tracker_0.is_busy());
   CPPUNIT_ASSERT(!tracker_0.is_busy_not_scrape());
@@ -410,6 +425,8 @@ TestTrackerList::test_has_active() {
   CPPUNIT_ASSERT(check_has_active_in_group(&tracker_list, "000000", true));
 
   tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
   TEST_TRACKERS_IS_BUSY_5("10000", "10000");
   CPPUNIT_ASSERT( tracker_list.has_active());
   CPPUNIT_ASSERT( tracker_list.has_active_not_scrape());
@@ -425,6 +442,8 @@ TestTrackerList::test_has_active() {
 
   tracker_list.send_event(tracker_list.at(1), torrent::tracker::TrackerState::EVENT_NONE);
   tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
   TEST_TRACKERS_IS_BUSY_5("01010", "01010");
   CPPUNIT_ASSERT( tracker_list.has_active());
   CPPUNIT_ASSERT( tracker_list.has_active_not_scrape());
@@ -436,6 +455,8 @@ TestTrackerList::test_has_active() {
 
   tracker_list.send_event(tracker_list.at(1), torrent::tracker::TrackerState::EVENT_NONE);
   tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
   TEST_TRACKERS_IS_BUSY_5("01110", "01110");
   CPPUNIT_ASSERT( tracker_list.has_active());
   CPPUNIT_ASSERT( tracker_list.has_active_not_scrape());
