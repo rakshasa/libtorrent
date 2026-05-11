@@ -80,6 +80,7 @@ test_tracker_controller_features::test_requesting_timeout() {
   CPPUNIT_ASSERT(tracker_3_0_worker->trigger_failure());
 
   // CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
+  process_main_and_tracker(this);
   TEST_MULTI3_IS_BUSY("01000", "01000");
 
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 5));
@@ -141,6 +142,7 @@ test_tracker_controller_features::test_promiscious_failed() {
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
 
+  process_main_and_tracker(this);
   TEST_MULTI3_IS_BUSY("01111", "01111");
   CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
 
@@ -232,12 +234,15 @@ test_tracker_controller_features::test_scrape_priority() {
   tracker_controller.scrape_request(0);
 
   TEST_GOTO_NEXT_SCRAPE(0);
+
+  process_main_and_tracker(this);
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   CPPUNIT_ASSERT(tracker_0_0.state().latest_event() == torrent::tracker::TrackerState::EVENT_SCRAPE);
 
   // Check the other event types too?
   tracker_controller.send_update_event();
 
+  process_main_and_tracker(this);
   CPPUNIT_ASSERT(tracker_0_0.is_busy());
   CPPUNIT_ASSERT(tracker_0_0.state().latest_event() == torrent::tracker::TrackerState::EVENT_NONE);
 

@@ -1,6 +1,8 @@
 #ifndef LIBTORRENT_HELPER_TRACKER_TEST_H
 #define LIBTORRENT_HELPER_TRACKER_TEST_H
 
+#include <atomic>
+
 #include "tracker/tracker_list.h"
 #include "tracker/tracker_worker.h"
 
@@ -53,9 +55,9 @@ public:
   static int count_usable(torrent::TrackerList* parent);
 
 private:
-  bool                m_busy{false};
-  bool                m_open{false};
-  int                 m_requesting_state{-1};
+  std::atomic<bool>   m_busy{false};
+  std::atomic<bool>   m_open{false};
+  std::atomic<int>    m_requesting_state{-1};
 };
 
 inline

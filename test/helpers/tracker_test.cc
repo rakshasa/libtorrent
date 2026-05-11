@@ -146,6 +146,10 @@ TrackerTest::close()  {
 
 bool
 TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
   CPPUNIT_ASSERT(m_busy && "TrackerTest::trigger_success: m_busy");
   CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_success: is_open()");
 
@@ -166,6 +170,10 @@ TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
 
 bool
 TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_peers) {
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
   CPPUNIT_ASSERT(m_busy && "TrackerTest::trigger_success: m_busy");
   CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_success: is_open()");
   CPPUNIT_ASSERT(address_list != nullptr && "TrackerTest::trigger_success: address_list == nullptr");
@@ -202,6 +210,10 @@ TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_pe
 
 bool
 TrackerTest::trigger_failure() {
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
   CPPUNIT_ASSERT(m_busy && "TrackerTest::trigger_failure: m_busy");
   CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_failure: is_open()");
 
@@ -236,6 +248,10 @@ TrackerTest::trigger_failure() {
 
 bool
 TrackerTest::trigger_scrape() {
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
   if (!m_busy || !is_open())
     return false;
 
@@ -247,10 +263,14 @@ TrackerTest::trigger_scrape() {
 
 int
 TrackerTest::count_active(torrent::TrackerList* parent) {
+  std::this_thread::sleep_for(500ms);
+
   return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_busy));
 }
 
 int
 TrackerTest::count_usable(torrent::TrackerList* parent) {
+  std::this_thread::sleep_for(500ms);
+
   return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_usable));
 }

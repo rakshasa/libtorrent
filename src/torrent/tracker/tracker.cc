@@ -133,7 +133,7 @@ Tracker::disable() {
 
   // TODO: This should be called through manager? It works atm as the trackers are all running on main
   // thread.
-  m_worker->close();
+  // m_worker->close();
 
   if (m_worker->m_slot_disabled)
     m_worker->m_slot_disabled();

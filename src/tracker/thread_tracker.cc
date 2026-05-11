@@ -6,6 +6,7 @@
 
 #include "tracker/udp_router.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/resolver.h"
 #include "torrent/tracker/manager.h"
 #include "utils/instrumentation.h"
 
@@ -15,8 +16,12 @@ namespace torrent {
 
 namespace tracker_thread {
 
-torrent::system::Thread* thread()    { return ThreadTracker::thread_tracker(); }
-std::thread::id          thread_id() { return ThreadTracker::thread_tracker()->thread_id(); }
+torrent::system::Thread* thread()                        { return ThreadTracker::thread_tracker(); }
+std::thread::id          thread_id()                     { return ThreadTracker::thread_tracker()->thread_id(); }
+
+void callback(void* target, std::function<void ()>&& fn) { ThreadTracker::thread_tracker()->callback(target, std::move(fn)); }
+void cancel_callback(void* target)                       { ThreadTracker::thread_tracker()->cancel_callback(target); }
+void cancel_callback_and_wait(void* target)              { ThreadTracker::thread_tracker()->cancel_callback_and_wait(target); }
 
 } // namespace tracker
 
@@ -31,9 +36,10 @@ ThreadTracker::create_thread(system::Thread* main_thread) {
 
   m_thread_tracker = new ThreadTracker();
 
+  m_thread_tracker->m_resolver         = std::make_unique<net::Resolver>();
   m_thread_tracker->m_tracker_manager  = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
-  // m_thread_tracker->m_udp_inet_router  = std::make_unique<tracker::UdpRouter>();
-  // m_thread_tracker->m_udp_inet6_router = std::make_unique<tracker::UdpRouter>();
+  m_thread_tracker->m_udp_inet_router  = std::make_unique<tracker::UdpRouter>();
+  m_thread_tracker->m_udp_inet6_router = std::make_unique<tracker::UdpRouter>();
 }
 
 void
@@ -56,19 +62,19 @@ ThreadTracker::init_thread() {
 
 void
 ThreadTracker::init_thread_post_local() {
-  // m_thread_tracker->m_udp_inet_router->open(AF_INET);
-  // m_thread_tracker->m_udp_inet6_router->open(AF_INET6);
+  m_thread_tracker->m_udp_inet_router->open(AF_INET);
+  m_thread_tracker->m_udp_inet6_router->open(AF_INET6);
 }
 
 void
 ThreadTracker::cleanup_thread() {
   m_tracker_manager.reset();
 
-  // m_udp_inet_router->close();
-  // m_udp_inet_router.reset();
+  m_udp_inet_router->close();
+  m_udp_inet_router.reset();
 
-  // m_udp_inet6_router->close();
-  // m_udp_inet6_router.reset();
+  m_udp_inet6_router->close();
+  m_udp_inet6_router.reset();
 }
 
 void

@@ -6,8 +6,6 @@
 #include "torrent/net/resolver.h"
 #include "utils/instrumentation.h"
 
-#include "tracker/udp_router.h"
-
 namespace torrent {
 
 class ThreadMainInternal {
@@ -20,12 +18,12 @@ namespace main_thread {
 torrent::system::Thread* thread()          { return torrent::ThreadMainInternal::thread_main(); }
 std::thread::id          thread_id()       { return torrent::ThreadMainInternal::thread_main()->thread_id(); }
 
-void                    callback(void* target, std::function<void ()>&& fn) { ThreadMainInternal::thread_main()->callback(target, std::move(fn)); }
-void                    cancel_callback(void* target)                       { ThreadMainInternal::thread_main()->cancel_callback(target); }
-void                    cancel_callback_and_wait(void* target)              { ThreadMainInternal::thread_main()->cancel_callback_and_wait(target); }
+void                     callback(void* target, std::function<void ()>&& fn) { ThreadMainInternal::thread_main()->callback(target, std::move(fn)); }
+void                     cancel_callback(void* target)                       { ThreadMainInternal::thread_main()->cancel_callback(target); }
+void                     cancel_callback_and_wait(void* target)              { ThreadMainInternal::thread_main()->cancel_callback_and_wait(target); }
 
 // TODO: Not thread safe.
-uint32_t                hash_queue_size() { return torrent::ThreadMainInternal::thread_main()->hash_queue()->size(); }
+uint32_t                 hash_queue_size() { return torrent::ThreadMainInternal::thread_main()->hash_queue()->size(); }
 
 } // namespace main_thread
 
@@ -40,8 +38,6 @@ ThreadMain::create_thread() {
   m_thread_main = new ThreadMain;
 
   m_thread_main->m_hash_queue = std::make_unique<HashQueue>();
-  m_thread_main->m_udp_inet_router  = std::make_unique<tracker::UdpRouter>();
-  m_thread_main->m_udp_inet6_router = std::make_unique<tracker::UdpRouter>();
 }
 
 ThreadMain*
@@ -52,7 +48,7 @@ ThreadMain::thread_main() {
 void
 ThreadMain::init_thread() {
   m_resolver = std::make_unique<net::Resolver>();
-  m_state = STATE_INITIALIZED;
+  m_state    = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
 
@@ -73,12 +69,6 @@ ThreadMain::init_thread() {
 void
 ThreadMain::cleanup_thread() {
   m_hash_queue.reset();
-
-  m_udp_inet_router->close();
-  m_udp_inet_router.reset();
-
-  m_udp_inet6_router->close();
-  m_udp_inet6_router.reset();
 
   m_thread_main = nullptr;
   m_self = nullptr;

@@ -11,7 +11,7 @@
 
 // TODO: Allow us to add callbacks on network update events.
 
-#include "thread_main.h"
+#include "tracker/thread_tracker.h"
 #include "tracker/udp_router.h"
 
 // TODO: Add runtime category and add it to important/complete log outputs.
@@ -137,8 +137,8 @@ NetworkManager::restart_listen() {
   auto guard = lock_guard();
 
   m_main_thread->callback(this, []() {
-      ThreadMain::thread_main()->udp_inet_router()->updated_network_config(AF_INET);
-      ThreadMain::thread_main()->udp_inet6_router()->updated_network_config(AF_INET6);
+      ThreadTracker::thread_tracker()->udp_inet_router()->updated_network_config(AF_INET);
+      ThreadTracker::thread_tracker()->udp_inet6_router()->updated_network_config(AF_INET6);
     });
 
   if (m_listen_restarting || !is_listening_unsafe())
