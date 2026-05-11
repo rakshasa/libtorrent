@@ -47,6 +47,8 @@ public:
   void test_has_active();
 };
 
+void process_main_and_tracker(TestFixtureWithMainAndTrackerThread* fixture);
+void process_main_and_tracker(TestFixtureWithMainNetTrackerThread* fixture);
 bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* states, bool scrape);
 
 struct TestTrackerListWrapper {

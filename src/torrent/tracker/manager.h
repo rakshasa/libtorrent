@@ -18,6 +18,8 @@ struct TrackerListEvent {
 class LIBTORRENT_EXPORT Manager {
 public:
 
+  // TODO: Use global varaibles even in tests.
+
   Manager(system::Thread* main_thread, system::Thread* tracker_thread);
   ~Manager() = default;
 
@@ -37,9 +39,8 @@ protected:
 
   // Any thread:
 
-  // remove_events() only removes events from the main thread.
-  void                add_event(torrent::TrackerWorker* tracker_worker, std::function<void()> event);
-  void                remove_events(torrent::TrackerWorker* tracker_worker);
+  void                add_event(TrackerWorker* worker, std::function<void ()>&& event);
+  void                remove_events(TrackerWorker* worker);
 
 private:
   Manager(const Manager&) = delete;
