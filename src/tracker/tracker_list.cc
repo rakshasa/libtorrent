@@ -92,10 +92,15 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
   if (!tracker.is_usable() || event == tracker::TrackerState::EVENT_SCRAPE)
     return;
 
-  // TODO: Should always send if we are trying to send a started/completed event.
+  if (tracker.is_busy()) {
+    if (tracker.state().latest_event() == event)
+      return;
 
-  if (tracker.is_busy() && tracker.state().latest_event() != tracker::TrackerState::EVENT_SCRAPE)
-    return;
+    if (tracker.state().latest_event() != tracker::TrackerState::EVENT_SCRAPE) {
+      if (event == tracker::TrackerState::EVENT_NONE)
+        return;
+    }
+  }
 
   LT_LOG("sending %s : requester:%p url:%s",
          option_as_string(OPTION_TRACKER_EVENT, event), tracker.get_worker(), tracker.url().c_str());

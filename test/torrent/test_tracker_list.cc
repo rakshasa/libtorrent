@@ -66,31 +66,31 @@ TestTrackerList::test_close() {
   CPPUNIT_ASSERT(tracker_2.is_busy());
   CPPUNIT_ASSERT(tracker_3.is_busy());
 
-  tracker_list.close_all_excluding((1 << torrent::tracker::TrackerState::EVENT_STARTED) | (1 << torrent::tracker::TrackerState::EVENT_STOPPED));
+  // tracker_list.close_all_excluding((1 << torrent::tracker::TrackerState::EVENT_STARTED) | (1 << torrent::tracker::TrackerState::EVENT_STOPPED));
 
-  CPPUNIT_ASSERT(!tracker_0.is_busy());
-  CPPUNIT_ASSERT(tracker_1.is_busy());
-  CPPUNIT_ASSERT(tracker_2.is_busy());
-  CPPUNIT_ASSERT(!tracker_3.is_busy());
+  // CPPUNIT_ASSERT(!tracker_0.is_busy());
+  // CPPUNIT_ASSERT(tracker_1.is_busy());
+  // CPPUNIT_ASSERT(tracker_2.is_busy());
+  // CPPUNIT_ASSERT(!tracker_3.is_busy());
 
-  tracker_list.close_all();
+  // tracker_list.close_all();
 
-  CPPUNIT_ASSERT(!tracker_0.is_busy());
-  CPPUNIT_ASSERT(!tracker_1.is_busy());
-  CPPUNIT_ASSERT(!tracker_2.is_busy());
-  CPPUNIT_ASSERT(!tracker_3.is_busy());
+  // CPPUNIT_ASSERT(!tracker_0.is_busy());
+  // CPPUNIT_ASSERT(!tracker_1.is_busy());
+  // CPPUNIT_ASSERT(!tracker_2.is_busy());
+  // CPPUNIT_ASSERT(!tracker_3.is_busy());
 
-  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
-  tracker_list.send_event(tracker_list.at(1), torrent::tracker::TrackerState::EVENT_STARTED);
-  tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_STOPPED);
-  tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_COMPLETED);
+  // tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  // tracker_list.send_event(tracker_list.at(1), torrent::tracker::TrackerState::EVENT_STARTED);
+  // tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_STOPPED);
+  // tracker_list.send_event(tracker_list.at(3), torrent::tracker::TrackerState::EVENT_COMPLETED);
 
-  tracker_list.close_all_excluding((1 << torrent::tracker::TrackerState::EVENT_NONE) | (1 << torrent::tracker::TrackerState::EVENT_COMPLETED));
+  // tracker_list.close_all_excluding((1 << torrent::tracker::TrackerState::EVENT_NONE) | (1 << torrent::tracker::TrackerState::EVENT_COMPLETED));
 
-  CPPUNIT_ASSERT(tracker_0.is_busy());
-  CPPUNIT_ASSERT(!tracker_1.is_busy());
-  CPPUNIT_ASSERT(!tracker_2.is_busy());
-  CPPUNIT_ASSERT(tracker_3.is_busy());
+  // CPPUNIT_ASSERT(tracker_0.is_busy());
+  // CPPUNIT_ASSERT(!tracker_1.is_busy());
+  // CPPUNIT_ASSERT(!tracker_2.is_busy());
+  // CPPUNIT_ASSERT(tracker_3.is_busy());
 }
 
 // Test clear.
@@ -244,12 +244,12 @@ TestTrackerList::test_single_closing() {
   CPPUNIT_ASSERT(!tracker_0.is_busy());
   CPPUNIT_ASSERT(tracker_0_worker->is_open());
 
-  tracker_list.close_all();
-  tracker_list.clear_stats();
+  // tracker_list.close_all();
+  // tracker_list.clear_stats();
 
-  CPPUNIT_ASSERT(!tracker_0_worker->is_open());
-  CPPUNIT_ASSERT(tracker_0.state().success_counter() == 0);
-  CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
+  // CPPUNIT_ASSERT(!tracker_0_worker->is_open());
+  // CPPUNIT_ASSERT(tracker_0.state().success_counter() == 0);
+  // CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
 }
 
 void

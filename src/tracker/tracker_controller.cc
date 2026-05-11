@@ -152,6 +152,8 @@ TrackerController::send_start_event() {
   // go into promiscious.
   LT_LOG_TRACKER_EVENTS("sending start event : requesting", 0);
 
+  close();
+
   // std::any_of(m_tracker_list->begin(), m_tracker_list->end(), [&](tracker::Tracker& tracker) {
   //   if (!tracker.is_usable())
   //     return false;
@@ -195,6 +197,8 @@ TrackerController::send_stop_event() {
 
   LT_LOG_TRACKER_EVENTS("sending stop event : requesting", 0);
 
+  close();
+
   for (auto tracker : *m_tracker_list) {
     if (!tracker.is_in_use())
       continue;
@@ -221,6 +225,8 @@ TrackerController::send_completed_event() {
   }
 
   LT_LOG_TRACKER_EVENTS("sending completed event : requesting", 0);
+
+  close();
 
   for (auto tracker : *m_tracker_list) {
     if (!tracker.is_in_use())
