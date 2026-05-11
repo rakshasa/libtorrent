@@ -19,6 +19,14 @@
 #include "utils/signal_interrupt.h"
 #include "utils/thread_internal.h"
 
+// TODO: Reimplement callbacks with a handle object that can be used to cancel the callback.
+//
+// Use std::atomic<>::notify_all() to synchronize cancel and processing of callbacks, and just clear
+// a flag (pointer to position in queue) in the handle cancel.
+//
+// For multiple callbacks tied to a pointer value, keep the old implementation while
+// converting. Then use e.g. std::shared_ptr and std::map (clean up when ref==1) to keep track?
+
 namespace torrent::system {
 
 thread_local Thread* Thread::m_self{nullptr};
