@@ -8,26 +8,22 @@
 
 namespace torrent {
 
-class ThreadMainInternal {
-public:
-  static ThreadMain*  thread_main() { return ThreadMain::m_thread_main; }
-};
-
 namespace main_thread {
 
-torrent::system::Thread* thread()          { return torrent::ThreadMainInternal::thread_main(); }
-std::thread::id          thread_id()       { return torrent::ThreadMainInternal::thread_main()->thread_id(); }
+system::Thread* thread()                                            { return ThreadMain::thread_base(); }
+std::thread::id thread_id()                                         { return ThreadMain::thread_base()->thread_id(); }
 
-void                     callback(void* target, std::function<void ()>&& fn) { ThreadMainInternal::thread_main()->callback(target, std::move(fn)); }
-void                     cancel_callback(void* target)                       { ThreadMainInternal::thread_main()->cancel_callback(target); }
-void                     cancel_callback_and_wait(void* target)              { ThreadMainInternal::thread_main()->cancel_callback_and_wait(target); }
+void            callback(void* target, std::function<void ()>&& fn) { ThreadMain::thread_base()->callback(target, std::move(fn)); }
+void            cancel_callback(void* target)                       { ThreadMain::thread_base()->cancel_callback(target); }
+void            cancel_callback_and_wait(void* target)              { ThreadMain::thread_base()->cancel_callback_and_wait(target); }
 
 // TODO: Not thread safe.
-uint32_t                 hash_queue_size() { return torrent::ThreadMainInternal::thread_main()->hash_queue()->size(); }
+uint32_t        hash_queue_size()                                   { return ThreadMain::thread_main()->hash_queue()->size(); }
 
 } // namespace main_thread
 
-ThreadMain* ThreadMain::m_thread_main{nullptr};
+ThreadMain*     ThreadMain::m_thread_main{};
+system::Thread* ThreadMain::m_thread_base{};
 
 ThreadMain::~ThreadMain() {
   cleanup_thread();
@@ -36,13 +32,9 @@ ThreadMain::~ThreadMain() {
 void
 ThreadMain::create_thread() {
   m_thread_main = new ThreadMain;
+  m_thread_base = m_thread_main;
 
   m_thread_main->m_hash_queue = std::make_unique<HashQueue>();
-}
-
-ThreadMain*
-ThreadMain::thread_main() {
-  return m_thread_main;
 }
 
 void
@@ -71,7 +63,8 @@ ThreadMain::cleanup_thread() {
   m_hash_queue.reset();
 
   m_thread_main = nullptr;
-  m_self = nullptr;
+  m_thread_base = nullptr;
+  m_self        = nullptr;
 }
 
 void

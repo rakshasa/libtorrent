@@ -19,20 +19,11 @@
 
 namespace torrent::tracker {
 
-Manager::Manager(system::Thread* main_thread, system::Thread* tracker_thread) :
-  m_main_thread(main_thread),
-  m_tracker_thread(tracker_thread) {
-
-  if (m_main_thread == nullptr)
-    throw internal_error("tracker::Manager::Manager(...) main_thread is null.");
-
-  if (m_tracker_thread == nullptr)
-    throw internal_error("tracker::Manager::Manager(...) tracker_thread is null.");
-}
+Manager::Manager() = default;
 
 TrackerControllerWrapper
 Manager::add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerController> controller) {
-  assert(std::this_thread::get_id() == m_main_thread->thread_id());
+  assert(std::this_thread::get_id() == main_thread::thread_id());
 
   if (download_info->hash() == HashString::new_zero())
     throw internal_error("tracker::Manager::add(...) invalid info_hash.");
@@ -52,7 +43,7 @@ Manager::add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerCont
 
 void
 Manager::remove_controller(TrackerControllerWrapper controller) {
-  assert(std::this_thread::get_id() == m_main_thread->thread_id());
+  assert(std::this_thread::get_id() == main_thread::thread_id());
 
   auto lock = std::scoped_lock(m_lock);
 
@@ -68,11 +59,11 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
 
 void
 Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::TrackerState::event_enum new_event) {
-  assert(std::this_thread::get_id() == m_main_thread->thread_id());
+  assert(std::this_thread::get_id() == main_thread::thread_id());
 
   auto weak_ptr = tracker.get_weak_ptr();
 
-  m_tracker_thread->callback(nullptr, [weak_ptr, params, new_event]() {
+  tracker_thread::thread()->callback(nullptr, [weak_ptr, params, new_event]() {
       auto tracker = weak_ptr.lock();
 
       if (tracker == nullptr)
@@ -84,11 +75,11 @@ Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::Tr
 
 void
 Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
-  assert(std::this_thread::get_id() == m_main_thread->thread_id());
+  assert(std::this_thread::get_id() == main_thread::thread_id());
 
   auto weak_ptr = tracker.get_weak_ptr();
 
-  m_tracker_thread->callback(nullptr, [weak_ptr, params]() {
+  tracker_thread::thread()->callback(nullptr, [weak_ptr, params]() {
       auto tracker = weak_ptr.lock();
 
       if (tracker == nullptr)
@@ -100,13 +91,13 @@ Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
 
 void
 Manager::add_event(TrackerWorker* worker, std::function<void ()>&& event) {
-  m_main_thread->callback(worker, std::move(event));
+  main_thread::thread()->callback(worker, std::move(event));
 }
 
 void
 Manager::remove_events(torrent::TrackerWorker* worker) {
-  m_main_thread->cancel_callback_and_wait(worker);
-  m_tracker_thread->cancel_callback_and_wait(worker);
+  main_thread::thread()->cancel_callback_and_wait(worker);
+  tracker_thread::thread()->cancel_callback_and_wait(worker);
 }
 
 } // namespace torrent::tracker

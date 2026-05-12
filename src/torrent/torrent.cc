@@ -224,9 +224,9 @@ errno_enum_str(int status) {
 void
 initialize_main_thread() {
   ThreadMain::create_thread();
-  ThreadMain::thread_main()->init_thread();
 
-  Runtime::initialize(torrent::this_thread::thread());
+  Runtime::initialize();
+  ThreadMain::thread_main()->init_thread();
 }
 
 void
@@ -241,12 +241,12 @@ initialize() {
 
   ThreadDisk::create_thread();
   ThreadNet::create_thread();
-  ThreadTracker::create_thread(ThreadMain::thread_main());
+  ThreadTracker::create_thread();
 
-  auto max_open = this_thread::poll()->open_max();
-  auto max_files = calculate_max_open_files(max_open);
+  auto max_open             = this_thread::poll()->open_max();
+  auto max_files            = calculate_max_open_files(max_open);
   auto max_http_connections = calculate_max_http_total_connections(max_open);
-  auto reserved = calculate_reserved(max_open);
+  auto reserved             = calculate_reserved(max_open);
 
   runtime::socket_manager()->set_max_size(max_open - max_files - max_http_connections - reserved);
 
@@ -320,11 +320,11 @@ total_handshakes() {
 }
 
 Throttle* down_throttle_global() { return manager->download_throttle(); }
-Throttle* up_throttle_global() { return manager->upload_throttle(); }
+Throttle* up_throttle_global()   { return manager->upload_throttle(); }
 
-const Rate* down_rate() { return manager->download_throttle()->rate(); }
-const Rate* up_rate() { return manager->upload_throttle()->rate(); }
-const char* version() { return VERSION; }
+const Rate* down_rate()          { return manager->download_throttle()->rate(); }
+const Rate* up_rate()            { return manager->upload_throttle()->rate(); }
+const char* version()            { return VERSION; }
 
 EncodingList*
 encoding_list() {

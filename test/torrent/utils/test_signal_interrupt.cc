@@ -57,7 +57,7 @@ TestSignalInterrupt::test_thread_interrupt() {
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   thread->init_thread();
-  torrent::Runtime::initialize(thread.get());
+  torrent::Runtime::initialize();
   thread->start_thread();
 
   std::this_thread::sleep_for(10ms);
@@ -83,7 +83,7 @@ TestSignalInterrupt::test_latency() {
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   thread->init_thread();
-  torrent::Runtime::initialize(thread.get());
+  torrent::Runtime::initialize();
   thread->start_thread();
 
   std::this_thread::sleep_for(10ms);
@@ -127,7 +127,7 @@ TestSignalInterrupt::test_hammer() {
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
   thread->init_thread();
-  torrent::Runtime::initialize(thread.get());
+  torrent::Runtime::initialize();
   thread->start_thread();
 
   std::this_thread::sleep_for(10ms);
