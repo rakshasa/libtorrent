@@ -32,7 +32,7 @@ void
 test_thread_base::test_lifecycle() {
   auto thread = test_thread::create();
 
-  torrent::Runtime::initialize(thread.get());
+  torrent::Runtime::initialize();
 
   CPPUNIT_ASSERT(thread->state() == torrent::system::Thread::STATE_UNKNOWN);
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_NONE);
@@ -61,7 +61,7 @@ void
 test_thread_base::test_interrupt() {
   auto thread = test_thread::create();
 
-  torrent::Runtime::initialize(thread.get());
+  torrent::Runtime::initialize();
 
   thread->set_test_flag(test_thread::test_flag_long_timeout);
 
@@ -92,7 +92,7 @@ test_thread_base::test_stop() {
   for (int i = 0; i < 20; i++) {
     auto thread = test_thread::create();
 
-    torrent::Runtime::initialize(thread.get());
+    torrent::Runtime::initialize();
 
     thread->set_test_flag(test_thread::test_flag_do_work);
 

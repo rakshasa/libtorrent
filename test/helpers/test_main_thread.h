@@ -12,6 +12,7 @@ class TestMainThread : public torrent::system::Thread {
 public:
   static std::unique_ptr<TestMainThread> create();
   static std::unique_ptr<TestMainThread> create_with_mock();
+  static void                            destroy();
 
   const char*         name() const override  { return "rtorrent test main"; }
 
