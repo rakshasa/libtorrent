@@ -105,7 +105,7 @@ test_signal_bitfield::test_threaded() {
   auto thread = test_thread::create();
   // thread->set_test_flag(test_thread::test_flag_long_timeout);
 
-  torrent::Runtime::initialize(thread.get());
+  torrent::Runtime::initialize();
 
   for (unsigned int i = 0; i < torrent::signal_bitfield::max_size; i++)
     CPPUNIT_ASSERT(thread->signal_bitfield()->add_signal([i, &marked_bitfield] () { bitfield_mark_index(marked_bitfield, i); }) == i);

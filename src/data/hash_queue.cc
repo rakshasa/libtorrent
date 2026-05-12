@@ -5,6 +5,7 @@
 #include <functional>
 #include <utility>
 
+#include "data/hash_check_queue.h"
 #include "data/hash_chunk.h"
 #include "data/thread_disk.h"
 #include "torrent/data/download_data.h"
