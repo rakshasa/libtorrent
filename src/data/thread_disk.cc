@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "thread_main.h"
+#include "data/hash_check_queue.h"
 #include "data/hash_queue.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
@@ -29,6 +30,8 @@ ThreadDisk::create_thread() {
   assert(m_thread_disk == nullptr && "ThreadDisk already created.");
 
   m_thread_disk = new ThreadDisk;
+
+  m_thread_disk->m_hash_check_queue = std::make_unique<HashCheckQueue>();
 }
 
 void
@@ -49,14 +52,14 @@ ThreadDisk::init_thread() {
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
 
-  m_hash_check_queue.slot_chunk_done() = [](auto hc, const auto& hv) {
+  m_hash_check_queue->slot_chunk_done() = [](auto hc, const auto& hv) {
       ThreadMain::thread_main()->hash_queue()->chunk_done(hc, hv);
     };
 }
 
 void
 ThreadDisk::cleanup_thread() {
-  assert(m_hash_check_queue.empty() && "ThreadDisk::cleanup_thread(): m_hash_check_queue not empty.");
+  assert(m_hash_check_queue->empty() && "ThreadDisk::cleanup_thread(): m_hash_check_queue not empty.");
 }
 
 void
@@ -72,7 +75,8 @@ ThreadDisk::call_events() {
     throw shutdown_exception();
   }
 
-  m_hash_check_queue.perform();
+  m_hash_check_queue->perform();
+
   process_callbacks();
 }
 
