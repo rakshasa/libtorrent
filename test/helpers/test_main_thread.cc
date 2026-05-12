@@ -5,6 +5,7 @@
 #include <signal.h>
 
 #include "runtime.h"
+#include "thread_main.h"
 #include "data/thread_disk.h"
 #include "net/thread_net.h"
 #include "test/helpers/mock_function.h"
@@ -18,12 +19,24 @@ std::unique_ptr<TestMainThread>
 TestMainThread::create() {
   // Needs to be called before Thread is created.
   mock_redirect_defaults();
-  return std::unique_ptr<TestMainThread>(new TestMainThread());
+
+  auto main_thread = std::unique_ptr<TestMainThread>(new TestMainThread());
+
+  torrent::ThreadMain::set_thread_base(main_thread.get());
+  return main_thread;
 }
 
 std::unique_ptr<TestMainThread>
 TestMainThread::create_with_mock() {
-  return std::unique_ptr<TestMainThread>(new TestMainThread());
+  auto main_thread = std::unique_ptr<TestMainThread>(new TestMainThread());
+
+  torrent::ThreadMain::set_thread_base(main_thread.get());
+  return main_thread;
+}
+
+void
+TestMainThread::destroy() {
+  torrent::ThreadMain::set_thread_base(nullptr);
 }
 
 void
@@ -55,14 +68,17 @@ TestFixtureWithMainThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
-  torrent::Runtime::initialize(m_main_thread.get());
+
+  torrent::Runtime::initialize();
   m_main_thread->init_thread();
 }
 
 void
 TestFixtureWithMainThread::tearDown() {
   torrent::Runtime::cleanup();
+
   m_main_thread.reset();
+  TestMainThread::destroy();
 
   test_fixture::tearDown();
 }
@@ -72,7 +88,8 @@ TestFixtureWithMainAndDiskThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
-  torrent::Runtime::initialize(m_main_thread.get());
+
+  torrent::Runtime::initialize();
   m_main_thread->init_thread();
 
   // m_hash_check_queue.slot_chunk_done() binds to main_thread().
@@ -91,6 +108,7 @@ TestFixtureWithMainAndDiskThread::tearDown() {
   torrent::Runtime::cleanup();
 
   torrent::ThreadDisk::destroy_thread();
+  TestMainThread::destroy();
   m_main_thread.reset();
 
   test_fixture::tearDown();
@@ -101,13 +119,14 @@ TestFixtureWithMainAndTrackerThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
-  torrent::Runtime::initialize(m_main_thread.get());
+
+  torrent::Runtime::initialize();
   m_main_thread->init_thread();
 
   log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
   log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
 
-  torrent::ThreadTracker::create_thread(m_main_thread.get());
+  torrent::ThreadTracker::create_thread();
   torrent::tracker_thread::thread()->init_thread();
   torrent::tracker_thread::thread()->start_thread();
 }
@@ -119,6 +138,7 @@ TestFixtureWithMainAndTrackerThread::tearDown() {
   torrent::Runtime::cleanup();
   torrent::ThreadTracker::destroy_thread();
 
+  TestMainThread::destroy();
   m_main_thread.reset();
 
   test_fixture::tearDown();
@@ -129,14 +149,15 @@ TestFixtureWithMainNetTrackerThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create();
-  torrent::Runtime::initialize(m_main_thread.get());
+
+  torrent::Runtime::initialize();
   m_main_thread->init_thread();
 
   log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
   log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
 
   torrent::ThreadNet::create_thread();
-  torrent::ThreadTracker::create_thread(m_main_thread.get());
+  torrent::ThreadTracker::create_thread();
 
   torrent::net_thread::thread()->init_thread();
   torrent::tracker_thread::thread()->init_thread();
@@ -154,6 +175,7 @@ TestFixtureWithMainNetTrackerThread::tearDown() {
   torrent::ThreadTracker::destroy_thread();
   torrent::ThreadNet::destroy_thread();
 
+  TestMainThread::destroy();
   m_main_thread.reset();
 
   test_fixture::tearDown();
@@ -164,13 +186,16 @@ TestFixtureWithMockAndMainThread::setUp() {
   test_fixture::setUp();
 
   m_main_thread = TestMainThread::create_with_mock();
-  torrent::Runtime::initialize(m_main_thread.get());
+
+  torrent::Runtime::initialize();
   m_main_thread->init_thread();
 }
 
 void
 TestFixtureWithMockAndMainThread::tearDown() {
   torrent::Runtime::cleanup();
+
+  TestMainThread::destroy();
   m_main_thread.reset();
 
   test_fixture::tearDown();

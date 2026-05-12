@@ -20,7 +20,7 @@ public:
 
   // TODO: Use global varaibles even in tests.
 
-  Manager(system::Thread* main_thread, system::Thread* tracker_thread);
+  Manager();
   ~Manager() = default;
 
 protected:
@@ -45,10 +45,6 @@ protected:
 private:
   Manager(const Manager&) = delete;
   Manager& operator=(const Manager&) = delete;
-
-  system::Thread*     m_main_thread{nullptr};
-  system::Thread*     m_tracker_thread{nullptr};
-  unsigned int        m_signal_process_events{~0u};
 
   std::mutex                         m_lock;
   std::set<TrackerControllerWrapper> m_controllers;

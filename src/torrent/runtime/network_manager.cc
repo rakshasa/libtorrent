@@ -21,16 +21,14 @@
 
 namespace torrent::runtime {
 
-NetworkManager::NetworkManager(system::Thread* main_thread)
-  : m_main_thread(main_thread),
-
-    m_listen_inet(new Listen),
+NetworkManager::NetworkManager()
+  : m_listen_inet(new Listen),
     m_listen_inet6(new Listen),
     m_dht_controller(new tracker::DhtController) {
 }
 
 NetworkManager::~NetworkManager() {
-  m_main_thread->cancel_callback_and_wait(this);
+  main_thread::thread()->cancel_callback_and_wait(this);
 }
 
 bool
@@ -136,7 +134,7 @@ void
 NetworkManager::restart_listen() {
   auto guard = lock_guard();
 
-  m_main_thread->callback(this, []() {
+  main_thread::thread()->callback(this, []() {
       ThreadTracker::thread_tracker()->udp_inet_router()->updated_network_config(AF_INET);
       ThreadTracker::thread_tracker()->udp_inet6_router()->updated_network_config(AF_INET6);
     });
@@ -146,7 +144,7 @@ NetworkManager::restart_listen() {
 
   m_listen_restarting = true;
 
-  m_main_thread->callback(this, [this]() { perform_restart_listen(); });
+  main_thread::thread()->callback(this, [this]() { perform_restart_listen(); });
 }
 
 bool

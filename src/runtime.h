@@ -9,7 +9,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Runtime {
 public:
-  static void         initialize(system::Thread* main_thread);
+  static void         initialize();
   static void         cleanup();
   static void         destroy();
 
@@ -19,12 +19,11 @@ public:
   auto*               socket_manager()     { return m_socket_manager.get(); }
 
 private:
-  Runtime(system::Thread* main_thread);
+  Runtime();
   ~Runtime();
 
-  system::Thread*     m_main_thread;
-
   std::unique_ptr<runtime::NetworkConfig>  m_network_config;
+
   std::unique_ptr<runtime::NetworkManager> m_network_manager;
   std::unique_ptr<runtime::SocketManager>  m_socket_manager;
 };

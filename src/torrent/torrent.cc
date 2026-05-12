@@ -224,9 +224,9 @@ errno_enum_str(int status) {
 void
 initialize_main_thread() {
   ThreadMain::create_thread();
-  ThreadMain::thread_main()->init_thread();
 
-  Runtime::initialize(torrent::this_thread::thread());
+  Runtime::initialize();
+  ThreadMain::thread_main()->init_thread();
 }
 
 void
@@ -241,7 +241,7 @@ initialize() {
 
   ThreadDisk::create_thread();
   ThreadNet::create_thread();
-  ThreadTracker::create_thread(ThreadMain::thread_main());
+  ThreadTracker::create_thread();
 
   auto max_open = this_thread::poll()->open_max();
   auto max_files = calculate_max_open_files(max_open);

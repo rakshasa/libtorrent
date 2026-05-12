@@ -17,11 +17,11 @@ class LIBTORRENT_EXPORT ThreadTracker : public system::Thread {
 public:
   ~ThreadTracker() override;
 
-  static void           create_thread(system::Thread* main_thread);
+  static void           create_thread();
   static void           destroy_thread();
   static ThreadTracker* thread_tracker();
 
-  const char*           name() const override     { return "rtorrent tracker"; }
+  const char*           name() const override     { return "rtorrent-tracker"; }
 
   void                  init_thread() override;
   void                  init_thread_post_local() override;
