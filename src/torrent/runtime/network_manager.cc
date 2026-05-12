@@ -134,7 +134,7 @@ void
 NetworkManager::restart_listen() {
   auto guard = lock_guard();
 
-  main_thread::thread()->callback(this, []() {
+  ThreadTracker::thread_tracker()->callback(this, []() {
       ThreadTracker::thread_tracker()->udp_inet_router()->updated_network_config(AF_INET);
       ThreadTracker::thread_tracker()->udp_inet6_router()->updated_network_config(AF_INET6);
     });
