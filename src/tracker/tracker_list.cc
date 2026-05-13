@@ -12,6 +12,7 @@
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/string_manip.h"
 #include "tracker/thread_tracker.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
@@ -21,9 +22,44 @@
   lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
 
 #define LT_LOG_FAILURE(log_fmt, ...)                                    \
-  lt_log_print_hash(LOG_TRACKER_FAILURES, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
+  lt_log_print(LOG_TRACKER_FAILURE_MESSAGES, log_fmt, __VA_ARGS__);
 
 namespace torrent {
+
+namespace {
+
+std::string
+tracker_short_log_url(const std::string& url) {
+  const auto scheme_end = url.find("://");
+
+  if (scheme_end == std::string::npos) {
+    const auto end = url.find_first_of("?#");
+    auto result = url.substr(0, end);
+
+    if (result.size() > 80)
+      result = result.substr(0, 60) + "..." + result.substr(result.size() - 17);
+
+    return result;
+  }
+
+  const auto authority_start = scheme_end + 3;
+  const auto authority_end = url.find_first_of("/?#", authority_start);
+  std::string result = url.substr(0, authority_end);
+
+  if (authority_end != std::string::npos && url[authority_end] == '/') {
+    const auto path_end = url.find_first_of("?#", authority_end);
+    const auto path = url.substr(authority_end, path_end - authority_end);
+
+    if (path == "/announce" || path == "/scrape")
+      result += path;
+    else if (path.size() > 1)
+      result += "/...";
+  }
+
+  return result;
+}
+
+} // namespace
 
 TrackerList::TrackerList() :
   m_state(DownloadInfo::STOPPED),
@@ -448,8 +484,10 @@ void
 TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
-  LT_LOG_FAILURE("received failure : group:%u url:%s msg:'%s'",
-                 tracker.group(), tracker.url().c_str(), msg.c_str());
+  LT_LOG_FAILURE("%s/%s : %s",
+                 utils::transform_to_hex_str(info()->info_hash()).c_str(),
+                 tracker_short_log_url(tracker.url()).c_str(),
+                 msg.c_str());
 
   auto itr = find(tracker);
 
@@ -497,8 +535,10 @@ void
 TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& msg) {
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
-  LT_LOG_FAILURE("received scrape failure : group:%u url:%s msg:'%s'",
-                 tracker.group(), tracker.url().c_str(), msg.c_str());
+  LT_LOG_FAILURE("%s/%s : %s",
+                 utils::transform_to_hex_str(info()->info_hash()).c_str(),
+                 tracker_short_log_url(tracker.url()).c_str(),
+                 msg.c_str());
 
   auto itr = find(tracker);
 
