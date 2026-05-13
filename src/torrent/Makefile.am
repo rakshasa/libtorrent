@@ -73,6 +73,7 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/network_config.h \
 	runtime/network_manager.cc \
 	runtime/network_manager.h \
+	runtime/runtime.cc \
 	runtime/runtime.h \
 	runtime/socket_manager.cc \
 	runtime/socket_manager.h \
