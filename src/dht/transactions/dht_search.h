@@ -40,7 +40,7 @@ struct dht_compare_closer {
   bool operator () (const std::unique_ptr<DhtNode>& one, const std::unique_ptr<DhtNode>& two) const;
 
 private:
-  const HashString&   m_target;
+  const HashString    m_target;
 };
 
 // Use std::enable_shared_from_this as a temporary hack.
