@@ -190,6 +190,7 @@ constexpr const char* option_list_log_group[] = {
 
   "tracker_dump",
   "tracker_events",
+  "tracker_failures",
   "tracker_requests",
 
   "ui_events",

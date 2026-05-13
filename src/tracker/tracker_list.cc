@@ -20,6 +20,9 @@
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
 
+#define LT_LOG_FAILURE(log_fmt, ...)                                    \
+  lt_log_print_hash(LOG_TRACKER_FAILURES, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
+
 namespace torrent {
 
 TrackerList::TrackerList() :
@@ -445,6 +448,8 @@ void
 TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
+  LT_LOG_FAILURE("received failure : group:%u url:%s msg:'%s'",
+                 tracker.group(), tracker.url().c_str(), msg.c_str());
 
   auto itr = find(tracker);
 
@@ -492,6 +497,8 @@ void
 TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& msg) {
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
+  LT_LOG_FAILURE("received scrape failure : group:%u url:%s msg:'%s'",
+                 tracker.group(), tracker.url().c_str(), msg.c_str());
 
   auto itr = find(tracker);
 
