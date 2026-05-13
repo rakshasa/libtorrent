@@ -4,6 +4,8 @@
 
 #include "data/hash_queue.h"
 #include "torrent/net/resolver.h"
+#include "torrent/runtime/network_config.h"
+#include "torrent/runtime/network_manager.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
@@ -56,10 +58,22 @@ ThreadMain::init_thread() {
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
     };
+
+  runtime::network_config()->subscribe_to_changes(this, [this]() {
+      cancel_callback(this);
+
+      callback(this, []() {
+          runtime::network_manager()->listen_restart();
+
+          // TODO: Restart DHT.
+        });
+    });
 }
 
 void
 ThreadMain::cleanup_thread() {
+  runtime::network_config()->unsubscribe_from_changes(this);
+
   m_hash_queue.reset();
 
   m_thread_main = nullptr;

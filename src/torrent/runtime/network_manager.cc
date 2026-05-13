@@ -9,11 +9,6 @@
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 
-// TODO: Allow us to add callbacks on network update events.
-
-#include "tracker/thread_tracker.h"
-#include "tracker/udp_router.h"
-
 // TODO: Add runtime category and add it to important/complete log outputs.
 
 #define LT_LOG_NOTICE(log_fmt, ...)                                     \
@@ -64,10 +59,8 @@ NetworkManager::cleanup() {
   listen_close_unsafe();
 }
 
-// TODO: Currently only opens one listen socket, either ipv4 or ipv6 based on bind address.
 // TODO: Log here
 // TODO: Verify various combinations of addresses/block_ipv4in6 match tcp46/udp46 sockets
-
 // TODO: Fix DHT
 
 bool
@@ -82,6 +75,22 @@ NetworkManager::listen_close() {
   listen_close_unsafe();
 
   // m_dht_controller->stop();
+}
+
+void
+NetworkManager::listen_restart() {
+  auto guard = lock_guard();
+
+  if (!is_listening_unsafe())
+    return;
+
+  listen_close_unsafe();
+
+  try {
+    listen_open_unsafe(m_listen_port, m_listen_port);
+  } catch (const base_error& e) {
+    LT_LOG_NOTICE("could not restart listen socket: %s", e.what());
+  }
 }
 
 uint16_t
@@ -127,24 +136,6 @@ NetworkManager::dht_add_peer_node([[maybe_unused]] const sockaddr* sa, [[maybe_u
 bool
 NetworkManager::is_listening_unsafe() const {
   return m_listen_inet->is_open() || m_listen_inet6->is_open();
-}
-
-// TODO: Rename to updated_config() or something.
-void
-NetworkManager::restart_listen() {
-  auto guard = lock_guard();
-
-  ThreadTracker::thread_tracker()->callback(this, []() {
-      ThreadTracker::thread_tracker()->udp_inet_router()->updated_network_config(AF_INET);
-      ThreadTracker::thread_tracker()->udp_inet6_router()->updated_network_config(AF_INET6);
-    });
-
-  if (m_listen_restarting || !is_listening_unsafe())
-    return;
-
-  m_listen_restarting = true;
-
-  main_thread::thread()->callback(this, [this]() { perform_restart_listen(); });
 }
 
 bool
@@ -199,26 +190,6 @@ void
 NetworkManager::listen_close_unsafe() {
   m_listen_inet->close();
   m_listen_inet6->close();
-}
-
-void
-NetworkManager::perform_restart_listen() {
-  auto guard = lock_guard();
-
-  m_listen_restarting = false;
-
-  if (!is_listening_unsafe())
-    return;
-
-  // TODO: Move DHT here and restart.
-
-  listen_close_unsafe();
-
-  try {
-    listen_open_unsafe(m_listen_port, m_listen_port);
-  } catch (const base_error& e) {
-    LT_LOG_NOTICE("could not restart listen socket: %s", e.what());
-  }
 }
 
 } // namespace torrent::runtime

@@ -2,6 +2,7 @@
 #define LIBTORRENT_TORRENT_NET_NETWORK_CONFIG_H
 
 #include <mutex>
+#include <vector>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <torrent/net/types.h>
@@ -112,21 +113,29 @@ public:
   uint32_t            receive_buffer_size() const;
   void                set_receive_buffer_size(uint32_t s);
 
+  // The lock is held while the callback is called, so use Thread::callback().
+  void                subscribe_to_changes(void* target, const std::function<void()>& callback);
+  void                unsubscribe_from_changes(void* target);
+
 protected:
   friend class torrent::ConnectionManager;
   friend class torrent::runtime::NetworkManager;
 
-  typedef std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool> listen_addresses;
+  using listen_addresses = std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool>;
+  using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
 
   void                lock() const                    { m_mutex.lock(); }
   auto                lock_guard() const              { return std::lock_guard(m_mutex); }
   void                unlock() const                  { m_mutex.unlock(); }
   auto&               mutex() const                   { return m_mutex; }
 
-  listen_addresses    listen_addresses_unsafe();
+  void                notify_changes() const;
+
+  listen_addresses    listen_addresses_unsafe() const;
   int                 listen_backlog_unsafe() const;
 
 private:
+
   c_sa_shared_ptr     generic_address_best_match(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
   std::string         generic_address_best_match_str(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
   c_sa_shared_ptr     generic_address_or_unspec_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
@@ -140,11 +149,11 @@ private:
 
   mutable std::mutex  m_mutex;
 
-  bool                m_block_ipv4{false};
-  bool                m_block_ipv6{false};
-  bool                m_block_ipv4in6{false};
-  bool                m_block_outgoing{false};
-  bool                m_prefer_ipv6{false};
+  bool                m_block_ipv4{};
+  bool                m_block_ipv6{};
+  bool                m_block_ipv4in6{};
+  bool                m_block_outgoing{};
+  bool                m_prefer_ipv6{};
 
   // TODO: Rename m_tos_priority.
   int                 m_priority{iptos_throughput};
@@ -160,6 +169,8 @@ private:
   uint16_t            m_override_dht_port{0};
   uint32_t            m_send_buffer_size{0};
   uint32_t            m_receive_buffer_size{0};
+
+  subscriber_list     m_change_subscribers;
 };
 
 } // namespace torrent::config

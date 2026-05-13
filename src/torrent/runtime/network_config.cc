@@ -2,9 +2,10 @@
 
 #include "torrent/runtime/network_config.h"
 
+#include <algorithm>
+
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/runtime/network_manager.h"
 #include "torrent/utils/log.h"
 
 // TODO: Add runtime category and add it to important/complete log outputs.
@@ -16,17 +17,17 @@ namespace torrent::runtime {
 
 namespace {
 
-c_sa_shared_ptr inet_any_value = sa_make_inet_any();
+c_sa_shared_ptr inet_any_value  = sa_make_inet_any();
 c_sa_shared_ptr inet6_any_value = sa_make_inet6_any();
 
 }
 
 NetworkConfig::NetworkConfig() {
-  m_bind_inet_address = sa_make_unspec();
-  m_bind_inet6_address = sa_make_unspec();
-  m_local_inet_address = sa_make_unspec();
+  m_bind_inet_address   = sa_make_unspec();
+  m_bind_inet6_address  = sa_make_unspec();
+  m_local_inet_address  = sa_make_unspec();
   m_local_inet6_address = sa_make_unspec();
-  m_proxy_address = sa_make_unspec();
+  m_proxy_address       = sa_make_unspec();
 }
 
 bool
@@ -64,7 +65,7 @@ NetworkConfig::set_block_ipv4(bool v) {
   auto guard = lock_guard();
 
   m_block_ipv4 = v;
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 void
@@ -72,7 +73,7 @@ NetworkConfig::set_block_ipv6(bool v) {
   auto guard = lock_guard();
 
   m_block_ipv6 = v;
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 void
@@ -80,7 +81,7 @@ NetworkConfig::set_block_ipv4in6(bool v) {
   auto guard = lock_guard();
 
   m_block_ipv4in6 = v;
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 void
@@ -88,7 +89,7 @@ NetworkConfig::set_block_outgoing(bool v) {
   auto guard = lock_guard();
 
   m_block_outgoing = v;
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 void
@@ -261,14 +262,12 @@ NetworkConfig::proxy_address_str() const {
   return sa_pretty_str(m_proxy_address.get());
 }
 
-// TODO: Move all management tasks here.
-
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
   set_generic_address_unsafe("bind", m_bind_inet_address, m_bind_inet6_address, sa);
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 void
@@ -281,7 +280,7 @@ NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
   set_generic_inet_address_unsafe("bind", m_bind_inet_address, sa);
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 void
@@ -294,7 +293,7 @@ NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
   set_generic_inet6_address_unsafe("bind", m_bind_inet6_address, sa);
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 void
@@ -389,7 +388,7 @@ NetworkConfig::set_listen_backlog(int backlog) {
   auto guard = lock_guard();
 
   m_listen_backlog = backlog;
-  runtime::network_manager()->restart_listen();
+  notify_changes();
 }
 
 uint16_t
@@ -428,8 +427,30 @@ NetworkConfig::set_receive_buffer_size(uint32_t s) {
   m_receive_buffer_size = s;
 }
 
+void
+NetworkConfig::subscribe_to_changes(void* target, const std::function<void()>& callback) {
+  auto guard = lock_guard();
+  m_change_subscribers.push_back(std::make_pair(target, callback));
+}
+
+void
+NetworkConfig::unsubscribe_from_changes(void* target) {
+  auto guard = lock_guard();
+
+  auto itr = std::remove_if(m_change_subscribers.begin(), m_change_subscribers.end(),
+                            [target](auto& p) { return p.first == target; });
+
+  m_change_subscribers.erase(itr, m_change_subscribers.end());
+}
+
+void
+NetworkConfig::notify_changes() const {
+  for (auto& p : m_change_subscribers)
+    p.second();
+}
+
 NetworkConfig::listen_addresses
-NetworkConfig::listen_addresses_unsafe() {
+NetworkConfig::listen_addresses_unsafe() const {
   auto inet_address  = m_block_ipv4 ? nullptr : m_bind_inet_address;
   auto inet6_address = m_block_ipv6 ? nullptr : m_bind_inet6_address;
 
