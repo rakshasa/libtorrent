@@ -17,6 +17,8 @@
 
 namespace torrent::runtime {
 
+SocketManager* socket_manager() LIBTORRENT_EXPORT;
+
 struct SocketInfo {
   // TODO: Replace with Event*, and add thread to PollEvent?
   // TODO: Event should contain the owning thread, and not be included here.

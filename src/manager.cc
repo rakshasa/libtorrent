@@ -26,6 +26,12 @@
 
 namespace torrent {
 
+namespace runtime {
+
+uint32_t total_handshakes() { return manager->handshake_manager()->size(); }
+
+} // namespace runtime
+
 Manager* manager = nullptr;
 
 Manager::Manager()

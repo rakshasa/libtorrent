@@ -25,9 +25,9 @@ public:
   void                   init_thread() override;
   void                   cleanup_thread() override;
 
-  HashQueue*             hash_queue()          { return m_hash_queue.get(); }
+  void                   set_client_callback(std::function<void()> fn);
 
-  auto&                  slot_do_work()        { return m_slot_do_work; }
+  HashQueue*             hash_queue()          { return m_hash_queue.get(); }
 
 protected:
   friend class ::TestMainThread;
@@ -37,14 +37,14 @@ protected:
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 
-  static void               set_thread_base(system::Thread* thread) { m_thread_base = thread; }
+  static void               set_thread_base(system::Thread* thread)       { m_thread_base = thread; }
 
 private:
   static ThreadMain*         m_thread_main;
   static system::Thread*     m_thread_base;
 
   std::unique_ptr<HashQueue> m_hash_queue;
-  std::function<void()>      m_slot_do_work;
+  std::function<void()>      m_slot_client_callback;
 };
 
 } // namespace torrent

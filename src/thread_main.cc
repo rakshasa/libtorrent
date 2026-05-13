@@ -19,6 +19,8 @@ void            callback(void* target, std::function<void ()>&& fn) { ThreadMain
 void            cancel_callback(void* target)                       { ThreadMain::thread_base()->cancel_callback(target); }
 void            cancel_callback_and_wait(void* target)              { ThreadMain::thread_base()->cancel_callback_and_wait(target); }
 
+void            set_client_callback(std::function<void()> fn)       { ThreadMain::thread_main()->set_client_callback(std::move(fn)); }
+
 // TODO: Not thread safe.
 uint32_t        hash_queue_size()                                   { return ThreadMain::thread_main()->hash_queue()->size(); }
 
@@ -82,9 +84,14 @@ ThreadMain::cleanup_thread() {
 }
 
 void
+ThreadMain::set_client_callback(std::function<void()> fn) {
+  m_slot_client_callback = std::move(fn);
+}
+
+void
 ThreadMain::call_events() {
-  if (m_slot_do_work)
-    m_slot_do_work();
+  if (m_slot_client_callback)
+    m_slot_client_callback();
 
   process_callbacks();
 }

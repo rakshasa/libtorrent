@@ -17,6 +17,7 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/runtime/network_config.h"
+#include "torrent/runtime/runtime.h"
 
 namespace torrent {
 

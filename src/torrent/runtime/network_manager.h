@@ -12,6 +12,8 @@ class Manager;
 
 namespace torrent::runtime {
 
+NetworkManager* network_manager() LIBTORRENT_EXPORT;
+
 class LIBTORRENT_EXPORT NetworkManager {
 public:
   NetworkManager();

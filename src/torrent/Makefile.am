@@ -73,9 +73,12 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/network_config.h \
 	runtime/network_manager.cc \
 	runtime/network_manager.h \
+	runtime/runtime.h \
 	runtime/socket_manager.cc \
 	runtime/socket_manager.h \
 \
+	system/system.cc \
+	system/system.h \
 	system/thread.cc \
 	system/thread.h \
 \
@@ -200,10 +203,12 @@ libtorrent_torrent_runtime_includedir = $(includedir)/torrent/runtime
 libtorrent_torrent_runtime_include_HEADERS = \
 	runtime/network_config.h \
 	runtime/network_manager.h \
+	runtime/runtime.h \
 	runtime/socket_manager.h
 
 libtorrent_torrent_system_includedir = $(includedir)/torrent/system
 libtorrent_torrent_system_include_HEADERS = \
+	system/system.h \
 	system/thread.h
 
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
