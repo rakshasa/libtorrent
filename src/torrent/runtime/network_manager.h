@@ -28,6 +28,7 @@ public:
 
   bool                listen_open(uint16_t first, uint16_t last);
   void                listen_close();
+  void                listen_restart();
 
   // Port number remains set after listen_close.
   uint16_t            listen_port() const;
@@ -69,8 +70,7 @@ private:
 
   std::unique_ptr<Listen> m_listen_inet;
   std::unique_ptr<Listen> m_listen_inet6;
-  uint16_t                m_listen_port{0};
-  bool                    m_listen_restarting{};
+  uint16_t                m_listen_port{};
 
   std::unique_ptr<tracker::DhtController> m_dht_controller;
 };

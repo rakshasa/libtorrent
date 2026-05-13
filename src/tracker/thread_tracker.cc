@@ -7,10 +7,9 @@
 #include "tracker/udp_router.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/tracker/manager.h"
 #include "utils/instrumentation.h"
-
-#include "thread_main.h"
 
 namespace torrent {
 
@@ -64,16 +63,27 @@ void
 ThreadTracker::init_thread_post_local() {
   m_thread_tracker->m_udp_inet_router->open(AF_INET);
   m_thread_tracker->m_udp_inet6_router->open(AF_INET6);
+
+  runtime::network_config()->subscribe_to_changes(this, [this]() {
+      cancel_callback(this);
+
+      callback(this, [this]() {
+          m_udp_inet_router->updated_network_config(AF_INET);
+          m_udp_inet6_router->updated_network_config(AF_INET6);
+        });
+    });
 }
 
 void
 ThreadTracker::cleanup_thread() {
   m_tracker_manager.reset();
 
-  m_udp_inet_router->close();
-  m_udp_inet_router.reset();
+  runtime::network_config()->unsubscribe_from_changes(this);
 
+  m_udp_inet_router->close();
   m_udp_inet6_router->close();
+
+  m_udp_inet_router.reset();
   m_udp_inet6_router.reset();
 }
 
