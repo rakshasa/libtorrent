@@ -2,6 +2,8 @@
 
 #include "torrent/runtime/network_config.h"
 
+#include <algorithm>
+
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
