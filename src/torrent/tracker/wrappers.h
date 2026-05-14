@@ -31,6 +31,7 @@ public:
   bool                is_promiscuous_mode() const;
 
   bool                has_active_trackers() const;
+  bool                has_active_trackers_not_dht() const;
   bool                has_active_trackers_not_scrape() const;
   bool                has_usable_trackers() const;
 

@@ -8,7 +8,6 @@
 #include "download/download_main.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
-#include "torrent/error.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
@@ -93,7 +92,7 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
   }
 
   if (!fd_set_nonblock(fd))
-    throw internal_error("HandshakeManager::add_incoming() fd_set_nonblocking failed : " + std::string(strerror(errno)));
+    throw internal_error("HandshakeManager::add_incoming() fd_set_nonblocking failed : " + std::string(std::strerror(errno)));
 
   if (!setup_socket(fd, sa->sa_family)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : setup socket failed : %s", fd, std::strerror(errno));
@@ -213,20 +212,15 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
 
   auto error_func = [&](uint32_t reason) {
       LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'%s'",
-                peer_type, hash_str.c_str(), strerror(reason));
+                peer_type, hash_str.c_str(), handshake_strerror(reason));
+      handshake->destroy_connection();
     };
 
-  if (!download->info()->is_active()) {
-    error_func(e_handshake_inactive_download);
-    handshake->destroy_connection();
-    return;
-  }
+  if (!download->info()->is_active())
+    return error_func(Handshake::e_handshake_inactive_download);
 
-  if (!download->connection_list()->want_connection(handshake->peer_info(), handshake->bitfield())) {
-    error_func(e_handshake_unwanted_connection);
-    handshake->destroy_connection();
-    return;
-  }
+  if (!download->connection_list()->want_connection(handshake->peer_info(), handshake->bitfield()))
+    return error_func(Handshake::e_handshake_unwanted_connection);
 
   auto fd        = handshake->file_descriptor();
   auto peer_info = handshake->peer_info();
@@ -277,7 +271,7 @@ HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
 
   handshake->destroy_connection();
 
-  LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
+  LT_LOG_SA(sa, "Received error: message:%x %s.", message, handshake_strerror(error));
 
   if (handshake->encryption()->should_retry()) {
     int retry_options = handshake->retry_options() | runtime::NetworkConfig::encryption_retrying;
@@ -293,8 +287,8 @@ void
 HandshakeManager::receive_timeout(Handshake* h) {
   receive_failed(h, ConnectionManager::handshake_failed,
                  h->state() == Handshake::CONNECTING ?
-                 e_handshake_network_unreachable :
-                 e_handshake_network_timeout);
+                 Handshake::e_handshake_network_unreachable :
+                 Handshake::e_handshake_network_timeout);
 }
 
 int

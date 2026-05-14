@@ -37,6 +37,11 @@ TrackerControllerWrapper::has_active_trackers() const {
 }
 
 bool
+TrackerControllerWrapper::has_active_trackers_not_dht() const {
+  return m_ptr->tracker_list()->has_active_not_dht();
+}
+
+bool
 TrackerControllerWrapper::has_active_trackers_not_scrape() const {
   return m_ptr->tracker_list()->has_active_not_scrape();
 }

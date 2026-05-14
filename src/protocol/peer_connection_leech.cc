@@ -13,6 +13,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/runtime.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/uri_parser.h"
 
