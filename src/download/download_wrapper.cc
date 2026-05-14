@@ -119,7 +119,7 @@ DownloadWrapper::close() {
 // TODO: Deprecate?
 bool
 DownloadWrapper::is_stopped() const {
-  return !m_main->tracker_controller().is_active() && !m_main->tracker_list()->has_active_not_dht();
+  return !m_main->tracker_controller().is_active() && !m_main->tracker_list()->has_active_not_dht_or_disownable();
 }
 
 void

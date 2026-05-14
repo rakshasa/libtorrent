@@ -44,7 +44,29 @@ TrackerList::has_active() const {
 bool
 TrackerList::has_active_not_dht() const {
   return std::any_of(begin(), end(), [](const tracker::Tracker& tracker) {
-      return tracker.is_busy() && tracker.type() != tracker_enum::TRACKER_DHT;
+      if (!tracker.is_busy())
+        return false;
+
+      if (tracker.type() == tracker_enum::TRACKER_DHT)
+        return false;
+
+      return true;
+    });
+}
+
+bool
+TrackerList::has_active_not_dht_or_disownable() const {
+  return std::any_of(begin(), end(), [](const tracker::Tracker& tracker) {
+      if (!tracker.is_busy())
+        return false;
+
+      if (tracker.type() == tracker_enum::TRACKER_DHT)
+        return false;
+
+      if (tracker.is_disownable())
+        return false;
+
+      return true;
     });
 }
 

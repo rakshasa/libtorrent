@@ -27,6 +27,7 @@ public:
   bool                is_in_use() const;
   bool                is_usable() const;
   bool                is_scrapable() const;
+  bool                is_disownable() const;
 
   bool                can_request_state() const;
 

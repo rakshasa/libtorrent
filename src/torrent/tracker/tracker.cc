@@ -70,6 +70,13 @@ Tracker::is_scrapable() const {
 }
 
 bool
+Tracker::is_disownable() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  return m_worker->m_state.is_disownable();
+}
+
+bool
 Tracker::can_request_state() const {
   auto lock_guard = m_worker->lock_guard();
 

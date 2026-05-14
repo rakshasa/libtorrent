@@ -382,9 +382,12 @@ void
 TrackerUdp::process_announce_packet_sent(int family, [[maybe_unused]] uint32_t id) {
   state_for_family(family).packet_sent = true;
 
-  // TODO: Rewrite this to allow closing the tracker immediately after sending the packet when
-  // state==STOPPED and we're shutting down.
+  {
+    auto guard = lock_guard();
 
+    if (state().latest_event() == tracker::TrackerState::EVENT_STOPPED)
+      state().m_flags |= tracker::TrackerState::flag_disownable;
+  }
 }
 
 void
