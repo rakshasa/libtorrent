@@ -16,26 +16,18 @@ void                initialize() LIBTORRENT_EXPORT;
 // them to finish is not required, but recommended.
 void                cleanup() LIBTORRENT_EXPORT;
 
-bool                is_inactive() LIBTORRENT_EXPORT;
-bool                is_initialized() LIBTORRENT_EXPORT;
-
-void                set_main_thread_slots(std::function<void()> do_work) LIBTORRENT_EXPORT;
-
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
 ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
 FileManager*        file_manager() LIBTORRENT_EXPORT;
 ResourceManager*    resource_manager() LIBTORRENT_EXPORT;
 
-uint32_t            total_handshakes() LIBTORRENT_EXPORT;
-
+// TODO: Move to main_thread?
 Throttle*           down_throttle_global() LIBTORRENT_EXPORT;
 Throttle*           up_throttle_global() LIBTORRENT_EXPORT;
 
 const Rate*         down_rate() LIBTORRENT_EXPORT;
 const Rate*         up_rate() LIBTORRENT_EXPORT;
-
-const char*         version() LIBTORRENT_EXPORT;
 
 using DList        = std::list<Download>;
 using EncodingList = std::list<std::string>;

@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 
 #include "manager.h"
 #include "download/download_main.h"
@@ -11,7 +12,6 @@
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/download_info.h"
-#include "torrent/error.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
 #include "torrent/net/fd.h"
@@ -48,9 +48,37 @@ private:
   int     m_error;
 };
 
+std::array<const char*, torrent::Handshake::e_last> error_strings{
+  "not BitTorrent protocol",            // eh_not_bittorrent
+  "not accepting connections",          // eh_not_accepting_connections
+  "unknown download",                   // eh_unknown_download
+  "download inactive",                  // eh_inactive_download
+  "seeder rejected",                    // eh_unwanted_connection
+  "is self",                            // eh_is_self
+  "invalid value received",             // eh_invalid_value
+  "unencrypted connection rejected",    // eh_unencrypted_rejected
+  "invalid encryption method",          // eh_invalid_encryption
+  "encryption sync failed",             // eh_encryption_sync_failed
+  "network unreachable",                // eh_network_unreachable
+  "network timeout",                    // eh_network_timeout
+  "too many failed chunks",             // eh_toomanyfailed
+  "no peer info",                       // eh_no_peer_info
+  "network socket error",               // eh_network_socket_error
+  "network read error",                 // eh_network_read_error
+  "network write error",                // eh_network_write_error
+};
+
 } // namespace
 
 namespace torrent {
+
+const char*
+handshake_strerror(int err) {
+  if (err < 0 || err >= Handshake::e_last)
+    throw internal_error("handshake_strerror() called with invalid error code.");
+
+  return error_strings[err];
+}
 
 Handshake::Handshake()
   : m_encryption(HandshakeEncryption::RETRY_NONE),
@@ -643,7 +671,7 @@ Handshake::read_port() {
   m_readBuffer.read_8();
 
   if (length == 2)
-    runtime::dht_add_peer_node(m_address.get(), m_readBuffer.peek_16());
+    runtime::network_manager()->dht_add_peer_node(m_address.get(), m_readBuffer.peek_16());
 
   m_readBuffer.consume(length);
   return true;
@@ -909,10 +937,12 @@ Handshake::fill_read_buffer(int size) {
 
 inline void
 Handshake::validate_download() {
-  if (m_download == NULL)
+  if (m_download == nullptr)
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unknown_download);
+
   if (!m_download->info()->is_active())
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_inactive_download);
+
   if (!m_download->info()->is_accepting_new_peers())
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_not_accepting_connections);
 }
@@ -926,7 +956,7 @@ Handshake::event_write() {
     switch (m_state) {
     case CONNECTING:
       if (!fd_get_socket_error(file_descriptor(), &socket_error))
-        throw internal_error("Handshake::event_write() fd_get_socket_error failed : " + std::string(strerror(errno)));
+        throw internal_error("Handshake::event_write() fd_get_socket_error failed : " + std::string(std::strerror(errno)));
 
       if (socket_error != 0)
         throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_unreachable);
@@ -1097,13 +1127,13 @@ Handshake::prepare_peer_info() {
 
   // PeerInfo handling for outgoing connections needs to be moved to
   // HandshakeManager.
-  if (m_peerInfo == NULL) {
+  if (m_peerInfo == nullptr) {
     if (!m_incoming)
       throw internal_error("Handshake::prepare_peer_info() !m_incoming.");
 
     m_peerInfo = m_download->peer_list()->connected(m_address.get(), PeerList::connect_incoming);
 
-    if (m_peerInfo == NULL)
+    if (m_peerInfo == nullptr)
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_no_peer_info);
 
     if (m_peerInfo->failed_counter() > torrent::HandshakeManager::max_failed)

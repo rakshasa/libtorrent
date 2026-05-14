@@ -17,9 +17,6 @@ NetworkConfig*   network_config()                                     { return g
 NetworkManager*  network_manager()                                    { return g_runtime->network_manager(); }
 SocketManager*   socket_manager()                                     { return g_runtime->socket_manager(); }
 
-void             dht_add_peer_node(const sockaddr* sa, uint16_t port) { g_runtime->network_manager()->dht_add_peer_node(sa, port); }
-uint16_t         listen_port()                                        { return g_runtime->network_manager()->listen_port(); }
-
 } // namespace runtime
 
 Runtime::Runtime()
