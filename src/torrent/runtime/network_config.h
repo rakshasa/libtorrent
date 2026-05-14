@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_TORRENT_NET_NETWORK_CONFIG_H
-#define LIBTORRENT_TORRENT_NET_NETWORK_CONFIG_H
+#ifndef LIBTORRENT_TORRENT_RUNTIME_NETWORK_CONFIG_H
+#define LIBTORRENT_TORRENT_RUNTIME_NETWORK_CONFIG_H
 
 #include <mutex>
 #include <vector>
@@ -9,12 +9,15 @@
 
 namespace torrent::runtime {
 
+NetworkConfig* network_config() LIBTORRENT_EXPORT;
+
 class LIBTORRENT_EXPORT NetworkConfig {
 public:
-  static constexpr int iptos_default     = 0;
-  static constexpr int iptos_lowdelay    = IPTOS_LOWDELAY;
-  static constexpr int iptos_throughput  = IPTOS_THROUGHPUT;
-  static constexpr int iptos_reliability = IPTOS_RELIABILITY;
+  // TODO: Remove.
+  static constexpr int      iptos_default               = 0;
+  static constexpr int      iptos_lowdelay              = IPTOS_LOWDELAY;
+  static constexpr int      iptos_throughput            = IPTOS_THROUGHPUT;
+  static constexpr int      iptos_reliability           = IPTOS_RELIABILITY;
 
   static constexpr uint32_t encryption_none             = 0;
   static constexpr uint32_t encryption_allow_incoming   = 0x1;

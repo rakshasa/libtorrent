@@ -126,25 +126,6 @@ class SchedulerEntry;
   #define LIBTORRENT_EXPORT
 #endif
 
-namespace torrent::runtime {
-
-NetworkConfig*            network_config() LIBTORRENT_EXPORT;
-
-NetworkManager*           network_manager() LIBTORRENT_EXPORT;
-SocketManager*            socket_manager() LIBTORRENT_EXPORT;
-
-void                      dht_add_peer_node(const sockaddr* sa, uint16_t port) LIBTORRENT_EXPORT;
-uint16_t                  listen_port() LIBTORRENT_EXPORT;
-
-} // namespace torrent::runtime
-
-namespace torrent::system {
-
-const char*               errno_enum(int status) LIBTORRENT_EXPORT;
-std::string               errno_enum_str(int status) LIBTORRENT_EXPORT;
-
-} // namespace torrent::system
-
 namespace torrent::this_thread {
 
 torrent::system::Thread*  thread() LIBTORRENT_EXPORT;
@@ -178,6 +159,8 @@ std::thread::id          thread_id() LIBTORRENT_EXPORT;
 void                     callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
 void                     cancel_callback(void* target) LIBTORRENT_EXPORT;
 void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
+
+void                     set_client_callback(std::function<void()> fn) LIBTORRENT_EXPORT;
 
 uint32_t                 hash_queue_size() LIBTORRENT_EXPORT;
 
