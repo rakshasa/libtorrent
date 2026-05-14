@@ -11,10 +11,11 @@ namespace torrent {
 class TrackerDht;
 class TrackerHttp;
 class TrackerList;
-class TrackerUdp;
 class TrackerWorker;
 
 namespace tracker {
+
+class TrackerUdp;
 
 struct TrackerParams {
   int32_t  numwant{-1};
@@ -82,10 +83,10 @@ public:
   uint32_t            scrape_downloaded() const  { return m_scrape_downloaded; }
 
 protected:
+  friend class TrackerUdp;
   friend class torrent::TrackerDht;
   friend class torrent::TrackerHttp;
   friend class torrent::TrackerList;
-  friend class torrent::TrackerUdp;
   friend class torrent::TrackerWorker;
   friend class torrent::tracker::Tracker;
   friend class ::TrackerTest;

@@ -2,18 +2,10 @@
 
 #include "tracker/tracker_udp.h"
 
-#include <cstdio>
-#include <netdb.h>
-
-#include "manager.h"
 #include "net/address_list.h"
-#include "torrent/connection_manager.h"
-#include "torrent/net/fd.h"
 #include "torrent/net/resolver.h"
-#include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
-#include "torrent/runtime/socket_manager.h"
 #include "torrent/system/system.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
@@ -27,7 +19,7 @@
   lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, \
                          "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
-namespace torrent {
+namespace torrent::tracker {
 
 // TODO: Don't bother waiting for replies from STOPPED requests when closing.
 

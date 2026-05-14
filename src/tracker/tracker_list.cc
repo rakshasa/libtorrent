@@ -284,7 +284,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     worker = std::make_shared<TrackerHttp>(tracker_info, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    worker = std::make_shared<TrackerUdp>(tracker_info, flags);
+    worker = std::make_shared<tracker::TrackerUdp>(tracker_info, flags);
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && runtime::network_manager()->is_dht_valid()) {
     // TODO: Don't check TrackerDht::is_allowed().
