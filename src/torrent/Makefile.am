@@ -129,8 +129,6 @@ libtorrent_torrent_la_SOURCES = \
 	download.cc \
 	download.h \
 	download_info.h \
-	error.cc \
-	error.h \
 	event.cc \
 	event.h \
 	exceptions.cc \
@@ -246,7 +244,6 @@ libtorrent_torrent_include_HEADERS = \
 	connection_manager.h \
 	download.h \
 	download_info.h \
-	error.h \
 	exceptions.h \
 	event.h \
 	hash_string.h \
