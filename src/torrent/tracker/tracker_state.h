@@ -37,14 +37,11 @@ public:
   static constexpr int flag_requesting    = 0x2;
   static constexpr int flag_extra_tracker = 0x4;
   static constexpr int flag_scrapable     = 0x8;
+  static constexpr int flag_disownable    = 0x10;
 
-  // TODO: Remove these:
-  // static constexpr int max_flag_size   = 0x10;
-  // static constexpr int mask_base_flags = 0x10 - 1;
-
-  static constexpr int default_min_interval = 600;
-  static constexpr int min_min_interval     = 300;
-  static constexpr int max_min_interval     = 4 * 3600;
+  static constexpr int default_min_interval    = 600;
+  static constexpr int min_min_interval        = 300;
+  static constexpr int max_min_interval        = 4 * 3600;
 
   static constexpr int default_normal_interval = 1800;
   static constexpr int min_normal_interval     = 600;
@@ -57,6 +54,7 @@ public:
   bool                is_extra_tracker() const   { return (m_flags & flag_extra_tracker); }
   bool                is_in_use() const          { return is_enabled() && m_success_counter != 0; }
   bool                is_scrapable() const       { return (m_flags & flag_scrapable); }
+  bool                is_disownable() const      { return (m_flags & flag_disownable); }
 
   uint32_t            normal_interval() const    { return m_normal_interval; }
   uint32_t            min_interval() const       { return m_min_interval; }
