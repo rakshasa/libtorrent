@@ -11,10 +11,11 @@ namespace torrent {
 class TrackerDht;
 class TrackerHttp;
 class TrackerList;
-class TrackerUdp;
 class TrackerWorker;
 
 namespace tracker {
+
+class TrackerUdp;
 
 struct TrackerParams {
   int32_t  numwant{-1};
@@ -34,17 +35,15 @@ public:
   };
 
   static constexpr int flag_enabled       = 0x1;
-  static constexpr int flag_requesting    = 0x2;
-  static constexpr int flag_extra_tracker = 0x4;
-  static constexpr int flag_scrapable     = 0x8;
+  static constexpr int flag_deleted       = 0x2;
+  static constexpr int flag_requesting    = 0x4;
+  static constexpr int flag_extra_tracker = 0x8;
+  static constexpr int flag_scrapable     = 0x10;
+  static constexpr int flag_disownable    = 0x20;
 
-  // TODO: Remove these:
-  // static constexpr int max_flag_size   = 0x10;
-  // static constexpr int mask_base_flags = 0x10 - 1;
-
-  static constexpr int default_min_interval = 600;
-  static constexpr int min_min_interval     = 300;
-  static constexpr int max_min_interval     = 4 * 3600;
+  static constexpr int default_min_interval    = 600;
+  static constexpr int min_min_interval        = 300;
+  static constexpr int max_min_interval        = 4 * 3600;
 
   static constexpr int default_normal_interval = 1800;
   static constexpr int min_normal_interval     = 600;
@@ -53,10 +52,12 @@ public:
   int                 flags() const              { return m_flags; }
 
   bool                is_enabled() const         { return (m_flags & flag_enabled); }
+  bool                is_deleted() const         { return (m_flags & flag_deleted); }
   bool                is_requesting() const      { return (m_flags & flag_requesting); }
   bool                is_extra_tracker() const   { return (m_flags & flag_extra_tracker); }
   bool                is_in_use() const          { return is_enabled() && m_success_counter != 0; }
   bool                is_scrapable() const       { return (m_flags & flag_scrapable); }
+  bool                is_disownable() const      { return (m_flags & flag_disownable); }
 
   uint32_t            normal_interval() const    { return m_normal_interval; }
   uint32_t            min_interval() const       { return m_min_interval; }
@@ -84,10 +85,10 @@ public:
   uint32_t            scrape_downloaded() const  { return m_scrape_downloaded; }
 
 protected:
+  friend class TrackerUdp;
   friend class torrent::TrackerDht;
   friend class torrent::TrackerHttp;
   friend class torrent::TrackerList;
-  friend class torrent::TrackerUdp;
   friend class torrent::TrackerWorker;
   friend class torrent::tracker::Tracker;
   friend class ::TrackerTest;

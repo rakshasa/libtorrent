@@ -28,7 +28,7 @@ Manager::add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerCont
   if (download_info->hash() == HashString::new_zero())
     throw internal_error("tracker::Manager::add(...) invalid info_hash.");
 
-  auto lock = std::scoped_lock(m_lock);
+  auto guard = std::scoped_lock(m_lock);
 
   auto wrapper = TrackerControllerWrapper(download_info->hash(), std::move(controller));
   auto result  = m_controllers.insert(wrapper);
@@ -45,7 +45,7 @@ void
 Manager::remove_controller(TrackerControllerWrapper controller) {
   assert(std::this_thread::get_id() == main_thread::thread_id());
 
-  auto lock = std::scoped_lock(m_lock);
+  auto guard = std::scoped_lock(m_lock);
 
   // We assume there are other references to the controller, so gracefully close it.
   if (m_controllers.erase(controller) != 1)
@@ -98,6 +98,40 @@ void
 Manager::remove_events(torrent::TrackerWorker* worker) {
   main_thread::thread()->cancel_callback_and_wait(worker);
   tracker_thread::thread()->cancel_callback_and_wait(worker);
+}
+
+void
+Manager::delete_tracker(Tracker tracker) {
+  auto guard = std::scoped_lock(m_lock);
+
+  if (m_trackers_to_delete.empty())
+    tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+
+  m_trackers_to_delete.push_back(tracker);
+}
+
+void
+Manager::delete_trackers(std::vector<Tracker>&& trackers) {
+  auto guard = std::scoped_lock(m_lock);
+
+  if (m_trackers_to_delete.empty())
+    tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+
+  m_trackers_to_delete.insert(m_trackers_to_delete.end(), std::make_move_iterator(trackers.begin()), std::make_move_iterator(trackers.end()));
+}
+
+void
+Manager::process_delete_trackers() {
+  std::vector<Tracker> trackers;
+
+  {
+    auto guard = std::scoped_lock(m_lock);
+
+    trackers = std::move(m_trackers_to_delete);
+  }
+
+  for (auto& tracker : trackers)
+    tracker.get_worker()->cleanup();
 }
 
 } // namespace torrent::tracker

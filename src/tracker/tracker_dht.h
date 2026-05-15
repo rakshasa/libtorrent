@@ -19,7 +19,6 @@ namespace torrent {
 class TrackerDht : public TrackerWorker {
 public:
   TrackerDht(const TrackerInfo& info, int flags = 0);
-  ~TrackerDht() override;
 
   enum state_type {
     state_idle,
@@ -50,6 +49,8 @@ public:
   void                receive_progress(int replied, int contacted);
 
 private:
+  void                cleanup() override;
+
   void                update_requesting_state();
 
   tracker::TrackerParams  m_params;

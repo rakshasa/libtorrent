@@ -57,13 +57,6 @@ TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
     m_hostname_family = AF_UNSPEC;
 }
 
-TrackerHttp::~TrackerHttp() {
-  // TODO: Disown http requests to ensure they are finished.
-
-  close_directly();
-  this_thread::scheduler()->erase(&m_delay_scrape);
-}
-
 tracker_enum
 TrackerHttp::type() const {
   return TRACKER_HTTP;
@@ -142,6 +135,15 @@ TrackerHttp::close_directly() {
   m_data.reset();
 
   update_requesting_state();
+}
+
+void
+TrackerHttp::cleanup() {
+  close_directly();
+  this_thread::scheduler()->erase(&m_delay_scrape);
+
+  auto guard = lock_guard();
+  state().m_flags |= tracker::TrackerState::flag_deleted;
 }
 
 void

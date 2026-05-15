@@ -116,12 +116,6 @@ DownloadWrapper::close() {
   this_thread::scheduler()->erase(&m_main->delay_partially_restarted());
 }
 
-// TODO: Deprecate?
-bool
-DownloadWrapper::is_stopped() const {
-  return !m_main->tracker_controller().is_active() && !m_main->tracker_list()->has_active_not_dht();
-}
-
 void
 DownloadWrapper::receive_initial_hash() {
   if (info()->is_active())

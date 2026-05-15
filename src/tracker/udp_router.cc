@@ -136,7 +136,7 @@ UdpRouter::updated_network_config(int family) {
 
 
 uint32_t
-UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn) {
+UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
   if (!is_open())
     return 0;
 
@@ -145,10 +145,10 @@ UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_fun
   if (address != nullptr && address->sa_family != router_family())
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
-  auto itr = connect_unsafe(std::move(address), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
+  auto itr = connect_unsafe(std::move(address), params);
 
-  if (update_fn)
-    update_fn(itr->first);
+  if (params.connected)
+    params.connected(itr->first);
 
   if (!try_write(itr->first, &itr->second))
     queue_write(itr->first, &itr->second);
@@ -157,11 +157,14 @@ UdpRouter::connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_fun
 }
 
 uint32_t
-UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
+UdpRouter::connect(const std::string hostname, uint16_t port, connection_params params) {
+  assert(m_thread == this_thread::thread());
+  assert(!hostname.empty());
+  assert(port != 0);
+  assert(params.connected == nullptr);
+
   if (!is_open())
     return 0;
-
-  assert(m_thread == this_thread::thread());
 
   auto [sa, sa_success] = sa_lookup_numeric(hostname, router_family());
 
@@ -169,9 +172,11 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
     return 0;
 
   if (sa)
-    return connect(std::move(sa), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
+    return connect(std::move(sa), params);
 
-  auto itr = connect_unsafe(nullptr, std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
+  auto itr = connect_unsafe(nullptr, params);
+
+  // TODO: Set params.connected for hostname lookups?
 
   auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
       resolved_hostname(id, port, sin, err, sin6, err6);
@@ -183,7 +188,7 @@ UdpRouter::connect(const std::string hostname, uint16_t port, prepare_func prepa
 }
 
 uint32_t
-UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn) {
+UdpRouter::transfer(uint32_t id, connection_params params) {
   assert(m_thread == this_thread::thread());
 
   auto itr = m_connections.find(id);
@@ -194,12 +199,12 @@ UdpRouter::transfer(uint32_t id, prepare_func prepare_fn, process_func process_f
   if (itr->second.address == nullptr)
     throw internal_error("UdpRouter::transfer_connection() called but connection does not have an address.");
 
-  auto new_itr = connect_unsafe(std::move(itr->second.address), std::move(prepare_fn), std::move(process_fn), std::move(failure_fn));
+  auto new_itr = connect_unsafe(std::move(itr->second.address), params);
 
   disconnect_unsafe(itr);
 
-  if (update_fn)
-    update_fn(new_itr->first);
+  if (params.connected)
+    params.connected(new_itr->first);
 
   if (!try_write(new_itr->first, &new_itr->second))
     queue_write(new_itr->first, &new_itr->second);
@@ -230,12 +235,12 @@ UdpRouter::disconnect(uint32_t id) {
 }
 
 UdpRouter::connection_map::iterator
-UdpRouter::connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn) {
-  assert(address == nullptr || address->sa_family == router_family());
-  assert(prepare_fn);
-  assert(process_fn);
-  assert(failure_fn);
+UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
   assert(is_open());
+  assert(address == nullptr || address->sa_family == router_family());
+  assert(params.prepare);
+  assert(params.process);
+  assert(params.failure);
 
   connection_map::iterator itr;
 
@@ -253,10 +258,11 @@ UdpRouter::connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, proc
     }
   }
 
-  itr->second.address   = std::move(address);
-  itr->second.prepare   = std::move(prepare_fn);
-  itr->second.process   = std::move(process_fn);
-  itr->second.failure   = std::move(failure_fn);
+  itr->second.address     = std::move(address);
+  itr->second.prepare     = std::move(params.prepare);
+  itr->second.process     = std::move(params.process);
+  itr->second.failure     = std::move(params.failure);
+  itr->second.packet_sent = std::move(params.packet_sent);
 
   return itr;
 }
@@ -365,6 +371,10 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
   }
 
   queue_timeout(id, info);
+
+  if (info->packet_sent)
+    info->packet_sent(id);
+
   return true;
 }
 
