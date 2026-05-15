@@ -19,10 +19,20 @@ class UdpRouter : public SocketDatagram {
 public:
   using buffer_type  = ProtocolBuffer<512>;
 
-  using prepare_func = std::function<void(uint32_t, buffer_type&)>;
-  using process_func = std::function<bool(uint32_t, buffer_type&)>;
-  using failure_func = std::function<void(uint32_t, int, int)>;
-  using update_func  = std::function<void(uint32_t)>;
+  using prepare_func     = std::function<void(uint32_t, buffer_type&)>;
+  using process_func     = std::function<bool(uint32_t, buffer_type&)>;
+  using failure_func     = std::function<void(uint32_t, int, int)>;
+  using connected_func   = std::function<void(uint32_t)>;
+  using packet_sent_func = std::function<void(uint32_t)>;
+
+  struct connection_params {
+    prepare_func        prepare;
+    process_func        process;
+    failure_func        failure;
+
+    connected_func      connected;
+    packet_sent_func    packet_sent;
+  };
 
   UdpRouter();
   ~UdpRouter();
@@ -45,10 +55,10 @@ public:
   // When process_fn is called, return false to disconnect and true to do nothing. (E.g. unknown
   // packet or transferred connection)
 
-  uint32_t            connect(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn = nullptr);
-  uint32_t            connect(const std::string hostname, uint16_t port, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
+  uint32_t            connect(c_sa_shared_ptr address, connection_params params);
+  uint32_t            connect(const std::string hostname, uint16_t port, connection_params params);
 
-  uint32_t            transfer(uint32_t id, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn, update_func update_fn = nullptr);
+  uint32_t            transfer(uint32_t id, connection_params params);
 
   void                disconnect(uint32_t id);
 
@@ -69,6 +79,7 @@ private:
     prepare_func         prepare{};
     process_func         process{};
     failure_func         failure{};
+    packet_sent_func     packet_sent{};
 
     unsigned int         retry_count{};
 
@@ -76,10 +87,10 @@ private:
     connection_info**    timeout_ptr{};
   };
 
-  int                 router_family() const;
-
-  connection_map::iterator connect_unsafe(c_sa_shared_ptr address, prepare_func prepare_fn, process_func process_fn, failure_func failure_fn);
+  connection_map::iterator connect_unsafe(c_sa_shared_ptr address, connection_params params);
   void                     disconnect_unsafe(connection_map::iterator itr);
+
+  int                 router_family() const;
 
   void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 

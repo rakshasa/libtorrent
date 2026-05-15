@@ -2,18 +2,10 @@
 
 #include "tracker/tracker_udp.h"
 
-#include <cstdio>
-#include <netdb.h>
-
-#include "manager.h"
 #include "net/address_list.h"
-#include "torrent/connection_manager.h"
-#include "torrent/net/fd.h"
 #include "torrent/net/resolver.h"
-#include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
-#include "torrent/runtime/socket_manager.h"
 #include "torrent/system/system.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
@@ -27,9 +19,7 @@
   lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, \
                          "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
-namespace torrent {
-
-// TODO: Don't bother waiting for replies from STOPPED requests when closing.
+namespace torrent::tracker {
 
 TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
   TrackerWorker(raw_info, flags) {
@@ -41,10 +31,6 @@ TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
 
   m_hostname = std::move(hostname);
   m_port     = port;
-}
-
-TrackerUdp::~TrackerUdp() {
-  close_directly();
 }
 
 tracker_enum
@@ -74,9 +60,9 @@ TrackerUdp::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
 
   LT_LOG("started announce : state:%s url:%s inet_tx:%u inet6_tx:%u",
          option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str(),
-         m_inet_transaction_id, m_inet6_transaction_id);
+         m_inet_state.transaction_id, m_inet6_state.transaction_id);
 
-  if (m_inet_transaction_id == 0 && m_inet6_transaction_id == 0)
+  if (m_inet_state.transaction_id == 0 && m_inet6_state.transaction_id == 0)
     return handle_setup_error("cannot send tracker event, no available network protocol(s)");
 
   update_requesting_state();
@@ -100,18 +86,14 @@ TrackerUdp::close_directly() {
   LT_LOG("closing directly : state:%s url:%s",
          option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
-  if (m_inet_transaction_id != 0) {
-    ThreadTracker::thread_tracker()->udp_inet_router()->disconnect(m_inet_transaction_id);
-
-    m_inet_transaction_id = 0;
-    m_inet_connection_id  = 0;
+  if (m_inet_state.transaction_id != 0) {
+    ThreadTracker::thread_tracker()->udp_inet_router()->disconnect(m_inet_state.transaction_id);
+    m_inet_state = family_state{};
   }
 
-  if (m_inet6_transaction_id != 0) {
-    ThreadTracker::thread_tracker()->udp_inet6_router()->disconnect(m_inet6_transaction_id);
-
-    m_inet6_transaction_id = 0;
-    m_inet6_connection_id  = 0;
+  if (m_inet6_state.transaction_id != 0) {
+    ThreadTracker::thread_tracker()->udp_inet6_router()->disconnect(m_inet6_state.transaction_id);
+    m_inet6_state = family_state{};
   }
 
   update_requesting_state();
@@ -120,27 +102,36 @@ TrackerUdp::close_directly() {
 }
 
 void
+TrackerUdp::cleanup() {
+  close_directly();
+
+  auto guard = lock_guard();
+  state().m_flags |= tracker::TrackerState::flag_deleted;
+}
+
+void
 TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
+  // Don't clear packet_sent to ensure disownable flag remains set.
   switch (family) {
   case AF_INET:
-    if (m_inet_transaction_id == 0)
+    if (m_inet_state.transaction_id == 0)
       return; // TODO: Should we throw?
 
-    m_inet_transaction_id = 0;
-    m_inet_connection_id  = 0;
+    m_inet_state.transaction_id = 0;
+    m_inet_state.connection_id  = 0;
     break;
   case AF_INET6:
-    if (m_inet6_transaction_id == 0)
+    if (m_inet6_state.transaction_id == 0)
       return; // TODO: Should we throw?
 
-    m_inet6_transaction_id = 0;
-    m_inet6_connection_id  = 0;
+    m_inet6_state.transaction_id = 0;
+    m_inet6_state.connection_id  = 0;
     break;
   default:
     throw internal_error("TrackerUdp::reset_family_with_error() called with invalid address family.");
   }
 
-  if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0)
+  if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0)
     return; // TODO: Save message.
 
   LT_LOG("closing with error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
@@ -155,34 +146,15 @@ void
 TrackerUdp::update_requesting_state() {
   auto guard = lock_guard();
 
-  if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0)
+  if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0)
     state().m_flags |= tracker::TrackerState::flag_requesting;
   else
     state().m_flags &= ~tracker::TrackerState::flag_requesting;
-}
 
-uint64_t&
-TrackerUdp::connection_id_for_family(int family) {
-  switch (family) {
-  case AF_INET:
-    return m_inet_connection_id;
-  case AF_INET6:
-    return m_inet6_connection_id;
-  default:
-    throw internal_error("TrackerUdp::connection_id_for_family() called with invalid address family.");
-  }
-}
-
-uint32_t&
-TrackerUdp::transaction_id_for_family(int family) {
-  switch (family) {
-  case AF_INET:
-    return m_inet_transaction_id;
-  case AF_INET6:
-    return m_inet6_transaction_id;
-  default:
-    throw internal_error("TrackerUdp::transaction_id_for_family() called with invalid address family.");
-  }
+  if (state().latest_event() == tracker::TrackerState::EVENT_STOPPED && (m_inet_state.packet_sent || m_inet6_state.packet_sent))
+    state().m_flags |= tracker::TrackerState::flag_disownable;
+  else
+    state().m_flags &= ~tracker::TrackerState::flag_disownable;
 }
 
 tracker::UdpRouter*
@@ -197,15 +169,31 @@ TrackerUdp::router_for_family(int family) {
   }
 }
 
+TrackerUdp::family_state&
+TrackerUdp::state_for_family(int family) {
+  switch (family) {
+  case AF_INET:
+    return m_inet_state;
+  case AF_INET6:
+    return m_inet6_state;
+  default:
+    throw internal_error("TrackerUdp::state_for_family() called with invalid address family.");
+  }
+}
+
 void
 TrackerUdp::connect_family(int family) {
-  auto new_id = router_for_family(family)->connect(
-    m_hostname, m_port,
-    [family, this](uint32_t id, auto& buffer)               { return prepare_connect(family, id, buffer); },
+  auto params = tracker::UdpRouter::connection_params{
+    [family, this](uint32_t id, auto& buffer)               { prepare_connect(family, id, buffer); },
     [family, this](uint32_t id, auto& buffer)               { return process_connect(family, id, buffer); },
-    [family, this](uint32_t id, int errno_err, int gai_err) { return handle_udp_error(family, id, errno_err, gai_err); });
+    [family, this](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
+    nullptr,
+    nullptr,
+  };
 
-  transaction_id_for_family(family) = new_id;
+  auto new_id = router_for_family(family)->connect(m_hostname, m_port, params);
+
+  state_for_family(family).transaction_id = new_id;
 }
 
 int
@@ -216,7 +204,7 @@ TrackerUdp::process_header(int family, uint32_t action, buffer_type& buffer) {
   uint32_t read_action    = buffer.read_32();
   uint32_t transaction_id = buffer.read_32();
 
-  if (transaction_id != transaction_id_for_family(family))
+  if (transaction_id != state_for_family(family).transaction_id)
     return 0;
 
   if (read_action == 3) {
@@ -232,7 +220,7 @@ TrackerUdp::process_header(int family, uint32_t action, buffer_type& buffer) {
 
 void
 TrackerUdp::prepare_connect(int family, uint32_t id, buffer_type& buffer) {
-  if (id != transaction_id_for_family(family))
+  if (id != state_for_family(family).transaction_id)
     throw internal_error("TrackerUdp::prepare_connect() called with wrong transaction id.");
 
   buffer.write_64(magic_connection_id);
@@ -256,28 +244,31 @@ TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
   if (buffer.size_end() < 16)
     return handle_parse_error(family, id, "invalid connect response size");
 
-  connection_id_for_family(family) = buffer.read_64();
+  state_for_family(family).connection_id = buffer.read_64();
 
-  if (connection_id_for_family(family) == 0)
+  if (state_for_family(family).connection_id == 0)
     return handle_parse_error(family, id, "connection id is 0");
 
-  router_for_family(family)->transfer(id,
-    [family, this](uint32_t id, auto& buffer)               { return prepare_announce(family, id, buffer); },
+  auto params = tracker::UdpRouter::connection_params{
+    [family, this](uint32_t id, auto& buffer)               { prepare_announce(family, id, buffer); },
     [family, this](uint32_t id, auto& buffer)               { return process_announce(family, id, buffer); },
-    [family, this](uint32_t id, int errno_err, int gai_err) { return handle_udp_error(family, id, errno_err, gai_err); },
-    [family, this](uint32_t id)                             { transaction_id_for_family(family) = id; });
+    [family, this](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
+    [family, this](uint32_t id)                             { state_for_family(family).transaction_id = id; },
+    [family, this](uint32_t id)                             { process_announce_packet_sent(family, id); },
+  };
 
+  router_for_family(family)->transfer(id, params);
   return true;
 }
 
 void
 TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
-  if (id != transaction_id_for_family(family))
+  if (id != state_for_family(family).transaction_id)
     throw internal_error("TrackerUdp::prepare_announce() called with wrong transaction id.");
 
-  buffer.write_64(connection_id_for_family(family));
+  buffer.write_64(state_for_family(family).connection_id);
   buffer.write_32(1);
-  buffer.write_32(transaction_id_for_family(family));
+  buffer.write_32(state_for_family(family).transaction_id);
 
   buffer.write_range(info().info_hash.begin(), info().info_hash.end());
   buffer.write_range(info().local_id.begin(), info().local_id.end());
@@ -308,7 +299,7 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
 
   LT_LOG_DUMP(buffer.begin(), buffer.size_end(),
               "prepare announce : state:%s family:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
-              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), transaction_id_for_family(family),
+              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), state_for_family(family).transaction_id,
               m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 }
 
@@ -348,8 +339,8 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
               reinterpret_cast<const SocketAddressCompact*>(buffer.end() - buffer.remaining() % sizeof(SocketAddressCompact)),
               std::back_inserter(l));
 
-    m_inet_transaction_id = 0;
-    m_inet_connection_id  = 0;
+    m_inet_state.transaction_id = 0;
+    m_inet_state.connection_id  = 0;
     break;
 
   case AF_INET6:
@@ -357,15 +348,15 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
               reinterpret_cast<const SocketAddressCompact6*>(buffer.end() - buffer.remaining() % sizeof(SocketAddressCompact6)),
               std::back_inserter(l));
 
-    m_inet6_transaction_id = 0;
-    m_inet6_connection_id  = 0;
+    m_inet6_state.transaction_id = 0;
+    m_inet6_state.connection_id  = 0;
     break;
 
   default:
     throw internal_error("TrackerUdp::process_announce_output() m_current_address is not inet or inet6.");
   }
 
-  if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0) {
+  if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0) {
     LT_LOG("received announce response : family:%s hostname:%s port:%u peers:%zu", family_str(family), m_hostname.c_str(), m_port, l.size());
 
     m_slot_new_peers(std::move(l));
@@ -383,6 +374,18 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
 }
 
 void
+TrackerUdp::process_announce_packet_sent(int family, [[maybe_unused]] uint32_t id) {
+  state_for_family(family).packet_sent = true;
+
+  {
+    auto guard = lock_guard();
+
+    if (state().latest_event() == tracker::TrackerState::EVENT_STOPPED)
+      state().m_flags |= tracker::TrackerState::flag_disownable;
+  }
+}
+
+void
 TrackerUdp::process_error(int family, [[maybe_unused]] uint32_t id, buffer_type& buffer) {
   std::string msg(buffer.position(), buffer.end());
 
@@ -396,7 +399,7 @@ void
 TrackerUdp::handle_setup_error(const std::string& msg) {
   LT_LOG("setup error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
 
-  if (m_inet_transaction_id != 0 || m_inet6_transaction_id != 0)
+  if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0)
     throw internal_error("TrackerUdp::handle_setup_error() called but inet/inet6 transaction id is not 0.");
 
   // update_requesting_state();
@@ -406,13 +409,13 @@ TrackerUdp::handle_setup_error(const std::string& msg) {
 }
 
 bool
-TrackerUdp::handle_parse_error(int family, uint32_t id, const std::string& msg) {
+TrackerUdp::handle_parse_error(int family, [[maybe_unused]] uint32_t id, const std::string& msg) {
   reset_family_with_error(family, "parse error: " + msg);
   return false;
 }
 
 void
-TrackerUdp::handle_udp_error(int family, uint32_t id, int errno_err, int gai_err) {
+TrackerUdp::handle_udp_error(int family, [[maybe_unused]] uint32_t id, int errno_err, int gai_err) {
   std::string msg = "network error: ";
 
   // TODO: Add flag to reset_family_with_error() to indicate the error is low-siginificance if it's

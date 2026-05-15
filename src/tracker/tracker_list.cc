@@ -38,34 +38,37 @@ TrackerList::~TrackerList() {
 
 bool
 TrackerList::has_active() const {
-  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy));
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_busy(); });
 }
 
 bool
 TrackerList::has_active_not_dht() const {
-  return std::any_of(begin(), end(), [](const tracker::Tracker& tracker) {
-      return tracker.is_busy() && tracker.type() != tracker_enum::TRACKER_DHT;
-    });
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_requesting_not_dht(); });
+}
+
+bool
+TrackerList::has_active_not_dht_scrape_disownable() const {
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_requesting_not_dht_scrape_disownable(); });
 }
 
 bool
 TrackerList::has_active_not_scrape() const {
-  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_busy_not_scrape(); });
 }
 
 bool
 TrackerList::has_active_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&tracker::Tracker::is_busy));
+  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_busy(); });
 }
 
 bool
 TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
+  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_busy_not_scrape(); });
 }
 
 bool
 TrackerList::has_usable() const {
-  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_usable));
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_usable(); });
 }
 
 void
@@ -73,7 +76,9 @@ TrackerList::clear() {
   m_lifetime_keeper.reset();
 
   // Make sure the tracker_list is cleared before the trackers are deleted.
-  auto list = std::move(*static_cast<base_type*>(this));
+  auto trackers = std::move(*static_cast<base_type*>(this));
+
+  ThreadTracker::thread_tracker()->tracker_manager()->delete_trackers(std::move(trackers));
 }
 
 void
@@ -284,7 +289,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     worker = std::make_shared<TrackerHttp>(tracker_info, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    worker = std::make_shared<TrackerUdp>(tracker_info, flags);
+    worker = std::make_shared<tracker::TrackerUdp>(tracker_info, flags);
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && runtime::network_manager()->is_dht_valid()) {
     // TODO: Don't check TrackerDht::is_allowed().

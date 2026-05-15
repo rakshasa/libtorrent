@@ -27,16 +27,6 @@ TrackerDht::TrackerDht(const TrackerInfo& info, int flags)
   };
 }
 
-TrackerDht::~TrackerDht() {
-  this_thread::scheduler()->erase(&m_delay_clear_state);
-
-  // This still queues a cancel request, however 'this' is never accessed.
-  //
-  // Even if we accidentally create a new TrackerDht with the same address, the cancel request will
-  // not do anything harmful.
-  runtime::network_manager()->dht_controller()->cancel_announce_and_wait(nullptr, this);
-}
-
 tracker_enum
 TrackerDht::type() const {
   return TRACKER_DHT;
@@ -69,7 +59,7 @@ TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
 }
 
 void
-TrackerDht::send_scrape(tracker::TrackerParams params) {
+TrackerDht::send_scrape([[maybe_unused]] tracker::TrackerParams params) {
   throw internal_error("Tracker type DHT does not support scrape.");
 }
 
@@ -77,6 +67,8 @@ void
 TrackerDht::close() {
   LT_LOG("closing event : dht_state:%s replied:%d contacted:%d",
          states[m_dht_state], m_replied.load(), m_contacted.load());
+
+  this_thread::scheduler()->erase(&m_delay_clear_state);
 
   runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
 
@@ -87,6 +79,20 @@ TrackerDht::close() {
   update_requesting_state();
 
   m_slot_close();
+}
+
+void
+TrackerDht::cleanup() {
+  this_thread::scheduler()->erase(&m_delay_clear_state);
+
+  // This still queues a cancel request, however 'this' is never accessed.
+  //
+  // Even if we accidentally create a new TrackerDht with the same address, the cancel request will
+  // not do anything harmful.
+  runtime::network_manager()->dht_controller()->cancel_announce_and_wait(nullptr, this);
+
+  auto guard = lock_guard();
+  state().m_flags |= tracker::TrackerState::flag_deleted;
 }
 
 // TODO: We don't really need to track announcing state in Tracker?
