@@ -11,7 +11,6 @@ class UdpRouter;
 class TrackerUdp : public TrackerWorker {
 public:
   TrackerUdp(const TrackerInfo& info, int flags = 0);
-  ~TrackerUdp() noexcept(false) override;
 
   tracker_enum        type() const override;
 
@@ -32,6 +31,8 @@ private:
   };
 
   void                close_directly();
+  void                cleanup() override;
+
   void                reset_family_with_error(int family, const std::string& msg);
 
   void                update_requesting_state();

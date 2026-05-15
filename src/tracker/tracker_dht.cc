@@ -27,19 +27,6 @@ TrackerDht::TrackerDht(const TrackerInfo& info, int flags)
   };
 }
 
-TrackerDht::~TrackerDht() noexcept(false) {
-  if (std::this_thread::get_id() != tracker_thread::thread_id())
-    throw internal_error("TrackerDht destructor called from wrong thread.");
-
-  this_thread::scheduler()->erase(&m_delay_clear_state);
-
-  // This still queues a cancel request, however 'this' is never accessed.
-  //
-  // Even if we accidentally create a new TrackerDht with the same address, the cancel request will
-  // not do anything harmful.
-  runtime::network_manager()->dht_controller()->cancel_announce_and_wait(nullptr, this);
-}
-
 tracker_enum
 TrackerDht::type() const {
   return TRACKER_DHT;
@@ -92,6 +79,20 @@ TrackerDht::close() {
   update_requesting_state();
 
   m_slot_close();
+}
+
+void
+TrackerDht::cleanup() {
+  this_thread::scheduler()->erase(&m_delay_clear_state);
+
+  // This still queues a cancel request, however 'this' is never accessed.
+  //
+  // Even if we accidentally create a new TrackerDht with the same address, the cancel request will
+  // not do anything harmful.
+  runtime::network_manager()->dht_controller()->cancel_announce_and_wait(nullptr, this);
+
+  auto guard = lock_guard();
+  state().m_flags |= tracker::TrackerState::flag_deleted;
 }
 
 // TODO: We don't really need to track announcing state in Tracker?

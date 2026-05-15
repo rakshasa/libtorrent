@@ -35,10 +35,11 @@ public:
   };
 
   static constexpr int flag_enabled       = 0x1;
-  static constexpr int flag_requesting    = 0x2;
-  static constexpr int flag_extra_tracker = 0x4;
-  static constexpr int flag_scrapable     = 0x8;
-  static constexpr int flag_disownable    = 0x10;
+  static constexpr int flag_deleted       = 0x2;
+  static constexpr int flag_requesting    = 0x4;
+  static constexpr int flag_extra_tracker = 0x8;
+  static constexpr int flag_scrapable     = 0x10;
+  static constexpr int flag_disownable    = 0x20;
 
   static constexpr int default_min_interval    = 600;
   static constexpr int min_min_interval        = 300;
@@ -51,6 +52,7 @@ public:
   int                 flags() const              { return m_flags; }
 
   bool                is_enabled() const         { return (m_flags & flag_enabled); }
+  bool                is_deleted() const         { return (m_flags & flag_deleted); }
   bool                is_requesting() const      { return (m_flags & flag_requesting); }
   bool                is_extra_tracker() const   { return (m_flags & flag_extra_tracker); }
   bool                is_in_use() const          { return is_enabled() && m_success_counter != 0; }

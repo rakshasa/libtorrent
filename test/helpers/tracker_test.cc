@@ -144,6 +144,14 @@ TrackerTest::close()  {
   state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
 }
 
+void
+TrackerTest::cleanup() {
+  close();
+
+  auto guard = lock_guard();
+  state().m_flags |= torrent::tracker::TrackerState::flag_deleted;
+}
+
 bool
 TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
   // C++20 allows notify_all() on atomic variables.

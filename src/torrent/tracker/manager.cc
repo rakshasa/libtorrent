@@ -129,6 +129,9 @@ Manager::process_delete_trackers() {
 
     trackers = std::move(m_trackers_to_delete);
   }
+
+  for (auto& tracker : trackers)
+    tracker.get_worker()->cleanup();
 }
 
 } // namespace torrent::tracker

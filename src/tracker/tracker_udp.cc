@@ -33,13 +33,6 @@ TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
   m_port     = port;
 }
 
-TrackerUdp::~TrackerUdp() noexcept(false) {
-  if (std::this_thread::get_id() != tracker_thread::thread_id())
-    throw internal_error("TrackerDht destructor called from wrong thread.");
-
-  close_directly();
-}
-
 tracker_enum
 TrackerUdp::type() const {
   return TRACKER_UDP;
@@ -106,6 +99,14 @@ TrackerUdp::close_directly() {
   update_requesting_state();
 
   m_slot_close();
+}
+
+void
+TrackerUdp::cleanup() {
+  close_directly();
+
+  auto guard = lock_guard();
+  state().m_flags |= tracker::TrackerState::flag_deleted;
 }
 
 void

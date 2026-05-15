@@ -9,7 +9,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerTimeout);
 
 void
 TestTrackerTimeout::test_set_timeout() {
-  auto tracker = TrackerTest::new_tracker(nullptr, 0, "");
+  auto tracker        = TrackerTest::new_tracker(nullptr, 0, "");
   auto tracker_worker = TrackerTest::test_worker(tracker);
 
   CPPUNIT_ASSERT(tracker.state().normal_interval() == 0);
@@ -23,11 +23,13 @@ TestTrackerTimeout::test_set_timeout() {
   CPPUNIT_ASSERT_EQUAL((uint32_t)300, tracker.state().min_interval());
   tracker_worker->set_new_min_interval(4 * 4000);
   CPPUNIT_ASSERT(tracker.state().min_interval() == 4 * 3600);
+
+  tracker_worker->cleanup();
 }
 
 void
 TestTrackerTimeout::test_timeout_tracker() {
-  auto tracker = TrackerTest::new_tracker(nullptr, 0, "http://tracker.com/announce");
+  auto tracker        = TrackerTest::new_tracker(nullptr, 0, "http://tracker.com/announce");
   auto tracker_worker = TrackerTest::test_worker(tracker);
 
   int flags = 0;
@@ -72,11 +74,13 @@ TestTrackerTimeout::test_timeout_tracker() {
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == ~uint32_t());
   tracker_worker->send_event(torrent::tracker::TrackerParams{}, torrent::tracker::TrackerState::EVENT_SCRAPE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 0);
+
+  tracker_worker->cleanup();
 }
 
 void
 TestTrackerTimeout::test_timeout_update() {
-  auto tracker = TrackerTest::new_tracker(nullptr, 0, "http://tracker.com/announce");
+  auto tracker        = TrackerTest::new_tracker(nullptr, 0, "http://tracker.com/announce");
   auto tracker_worker = TrackerTest::test_worker(tracker);
 
   int flags = 0;
@@ -96,11 +100,13 @@ TestTrackerTimeout::test_timeout_update() {
   tracker_worker->set_failed(0, torrent::this_thread::cached_seconds().count());
   tracker_worker->set_success(0, torrent::this_thread::cached_seconds().count());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 0);
+
+  tracker_worker->cleanup();
 }
 
 void
 TestTrackerTimeout::test_timeout_requesting() {
-  auto tracker = TrackerTest::new_tracker(nullptr, 0, "http://tracker.com/announce");
+  auto tracker        = TrackerTest::new_tracker(nullptr, 0, "http://tracker.com/announce");
   auto tracker_worker = TrackerTest::test_worker(tracker);
 
   int flags = 0;
@@ -147,4 +153,6 @@ TestTrackerTimeout::test_timeout_requesting() {
   tracker_worker->set_latest_new_peers(10);
   tracker_worker->set_success(1, torrent::this_thread::cached_seconds().count());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 600);
+
+  tracker_worker->cleanup();
 }
