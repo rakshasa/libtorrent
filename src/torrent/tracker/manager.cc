@@ -21,6 +21,22 @@ namespace torrent::tracker {
 
 Manager::Manager() = default;
 
+// This doesn't ensure newly deleted torrents finish their stopped announce in case we shut down
+// immediately after, however this is an edge-case that's not worth adding complexity to handle.
+
+Manager::~Manager() {
+  assert(std::this_thread::get_id() == tracker_thread::thread_id());
+
+  {
+    auto guard = std::scoped_lock(m_lock);
+
+    m_trackers_to_delete.insert(m_trackers_to_delete.end(), m_trackers_to_wait.begin(), m_trackers_to_wait.end());
+    m_trackers_to_wait.clear();
+  }
+
+  process_delete_trackers();
+}
+
 TrackerControllerWrapper
 Manager::add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerController> controller) {
   assert(std::this_thread::get_id() == main_thread::thread_id());
@@ -101,8 +117,36 @@ Manager::remove_events(torrent::TrackerWorker* worker) {
 }
 
 void
+Manager::update_tracker(const std::weak_ptr<TrackerWorker> weak_tracker) {
+  auto tracker = Tracker::from_weak_ptr(weak_tracker);
+
+  if (!tracker.is_valid())
+    return;
+
+  auto guard = std::scoped_lock(m_lock);
+  auto itr   = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
+
+  if (itr == m_trackers_to_wait.end())
+    return;
+
+  if (tracker.is_requesting_not_dht_scrape())
+    throw internal_error("tracker::Manager::update_tracker(...) tracker is still requesting.");
+
+  if (m_trackers_to_delete.empty())
+    tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+
+  m_trackers_to_wait.erase(itr);
+  m_trackers_to_delete.push_back(tracker);
+}
+
+void
 Manager::delete_tracker(Tracker tracker) {
   auto guard = std::scoped_lock(m_lock);
+
+  if (tracker.is_requesting_not_dht_scrape()) {
+    m_trackers_to_wait.push_back(tracker);
+    return;
+  }
 
   if (m_trackers_to_delete.empty())
     tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
@@ -114,10 +158,17 @@ void
 Manager::delete_trackers(std::vector<Tracker>&& trackers) {
   auto guard = std::scoped_lock(m_lock);
 
-  if (m_trackers_to_delete.empty())
-    tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+  for (auto& tracker : trackers) {
+    if (tracker.is_requesting_not_dht_scrape()) {
+      m_trackers_to_wait.push_back(std::move(tracker));
+      continue;
+    }
 
-  m_trackers_to_delete.insert(m_trackers_to_delete.end(), std::make_move_iterator(trackers.begin()), std::make_move_iterator(trackers.end()));
+    if (m_trackers_to_delete.empty())
+      tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+
+    m_trackers_to_delete.push_back(std::move(tracker));
+  }
 }
 
 void

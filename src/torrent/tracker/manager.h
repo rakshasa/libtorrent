@@ -11,20 +11,13 @@
 
 namespace torrent::tracker {
 
-struct TrackerListEvent {
-  TrackerList*          tracker_list;
-  std::function<void()> event;
-};
-
 class LIBTORRENT_EXPORT Manager {
 public:
 
-  // TODO: Use global varaibles even in tests.
-
-  Manager();
-  ~Manager() = default;
-
 protected:
+  Manager();
+  ~Manager();
+
   friend class torrent::DownloadMain;
   friend class torrent::DownloadWrapper;
   friend class torrent::TrackerList;
@@ -43,6 +36,8 @@ protected:
   void                add_event(TrackerWorker* worker, std::function<void ()>&& event);
   void                remove_events(TrackerWorker* worker);
 
+  void                update_tracker(const std::weak_ptr<TrackerWorker> weak_tracker);
+
   void                delete_tracker(Tracker tracker);
   void                delete_trackers(std::vector<Tracker>&& trackers);
 
@@ -55,6 +50,7 @@ private:
   std::mutex          m_lock;
 
   std::set<TrackerControllerWrapper> m_controllers;
+  std::vector<Tracker>               m_trackers_to_wait;
   std::vector<Tracker>               m_trackers_to_delete;
 };
 
