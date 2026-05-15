@@ -10,6 +10,6 @@ TrackerWorker::TrackerWorker(TrackerInfo info, int flags)
   m_state.m_flags = flags;
 }
 
-TrackerWorker::~TrackerWorker() = default;
+TrackerWorker::~TrackerWorker() noexcept(false) = default;
 
 }  // namespace torrent

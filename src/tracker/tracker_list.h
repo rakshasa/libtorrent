@@ -51,7 +51,7 @@ public:
 
   bool                has_active() const;
   bool                has_active_not_dht() const;
-  bool                has_active_not_dht_or_disownable() const;
+  bool                has_active_not_dht_scrape_disownable() const;
   bool                has_active_not_scrape() const;
   bool                has_active_in_group(uint32_t group) const;
   bool                has_active_not_scrape_in_group(uint32_t group) const;

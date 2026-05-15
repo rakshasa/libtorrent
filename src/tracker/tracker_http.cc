@@ -57,7 +57,10 @@ TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
     m_hostname_family = AF_UNSPEC;
 }
 
-TrackerHttp::~TrackerHttp() {
+TrackerHttp::~TrackerHttp() noexcept(false) {
+  if (std::this_thread::get_id() != tracker_thread::thread_id())
+    throw internal_error("TrackerHttp destructor called from wrong thread.");
+
   // TODO: Disown http requests to ensure they are finished.
 
   close_directly();

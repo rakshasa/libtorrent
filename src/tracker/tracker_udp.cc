@@ -21,8 +21,6 @@
 
 namespace torrent::tracker {
 
-// TODO: Don't bother waiting for replies from STOPPED requests when closing.
-
 TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
   TrackerWorker(raw_info, flags) {
 
@@ -35,7 +33,10 @@ TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
   m_port     = port;
 }
 
-TrackerUdp::~TrackerUdp() {
+TrackerUdp::~TrackerUdp() noexcept(false) {
+  if (std::this_thread::get_id() != tracker_thread::thread_id())
+    throw internal_error("TrackerDht destructor called from wrong thread.");
+
   close_directly();
 }
 
@@ -94,18 +95,12 @@ TrackerUdp::close_directly() {
 
   if (m_inet_state.transaction_id != 0) {
     ThreadTracker::thread_tracker()->udp_inet_router()->disconnect(m_inet_state.transaction_id);
-
-    m_inet_state.transaction_id = 0;
-    m_inet_state.connection_id  = 0;
-    m_inet_state.packet_sent    = false;
+    m_inet_state = family_state{};
   }
 
   if (m_inet6_state.transaction_id != 0) {
     ThreadTracker::thread_tracker()->udp_inet6_router()->disconnect(m_inet6_state.transaction_id);
-
-    m_inet6_state.transaction_id = 0;
-    m_inet6_state.connection_id  = 0;
-    m_inet6_state.packet_sent    = false;
+    m_inet6_state = family_state{};
   }
 
   update_requesting_state();
@@ -115,6 +110,7 @@ TrackerUdp::close_directly() {
 
 void
 TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
+  // Don't clear packet_sent to ensure disownable flag remains set.
   switch (family) {
   case AF_INET:
     if (m_inet_state.transaction_id == 0)
@@ -122,7 +118,6 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
 
     m_inet_state.transaction_id = 0;
     m_inet_state.connection_id  = 0;
-    m_inet_state.packet_sent    = false;
     break;
   case AF_INET6:
     if (m_inet6_state.transaction_id == 0)
@@ -130,7 +125,6 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
 
     m_inet6_state.transaction_id = 0;
     m_inet6_state.connection_id  = 0;
-    m_inet6_state.packet_sent    = false;
     break;
   default:
     throw internal_error("TrackerUdp::reset_family_with_error() called with invalid address family.");

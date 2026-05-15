@@ -34,8 +34,6 @@ public:
 
   void                close();
 
-  bool                is_stopped() const;
-
   DownloadMain*       main()                                  { return m_main.get(); }
   const DownloadMain* main() const                            { return m_main.get(); }
   HashTorrent*        hash_checker()                          { return m_hash_checker.get(); }

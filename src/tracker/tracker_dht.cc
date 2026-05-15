@@ -27,7 +27,10 @@ TrackerDht::TrackerDht(const TrackerInfo& info, int flags)
   };
 }
 
-TrackerDht::~TrackerDht() {
+TrackerDht::~TrackerDht() noexcept(false) {
+  if (std::this_thread::get_id() != tracker_thread::thread_id())
+    throw internal_error("TrackerDht destructor called from wrong thread.");
+
   this_thread::scheduler()->erase(&m_delay_clear_state);
 
   // This still queues a cancel request, however 'this' is never accessed.
@@ -69,7 +72,7 @@ TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
 }
 
 void
-TrackerDht::send_scrape(tracker::TrackerParams params) {
+TrackerDht::send_scrape([[maybe_unused]] tracker::TrackerParams params) {
   throw internal_error("Tracker type DHT does not support scrape.");
 }
 
@@ -77,6 +80,8 @@ void
 TrackerDht::close() {
   LT_LOG("closing event : dht_state:%s replied:%d contacted:%d",
          states[m_dht_state], m_replied.load(), m_contacted.load());
+
+  this_thread::scheduler()->erase(&m_delay_clear_state);
 
   runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
 

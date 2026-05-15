@@ -19,7 +19,7 @@ public:
   static constexpr uint32_t http_timeout = 60;
 
   TrackerHttp(const TrackerInfo& info, int flags = 0);
-  ~TrackerHttp() override;
+  ~TrackerHttp() noexcept(false) override;
 
   tracker_enum        type() const override;
 

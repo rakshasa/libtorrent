@@ -39,6 +39,45 @@ Tracker::is_enabled() const {
 }
 
 bool
+Tracker::is_requesting() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  return m_worker->m_state.is_requesting();
+}
+
+bool
+Tracker::is_requesting_not_dht() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  if (!m_worker->m_state.is_requesting())
+    return false;
+
+  if (m_worker->type() == tracker_enum::TRACKER_DHT)
+    return false;
+
+  return true;
+}
+
+bool
+Tracker::is_requesting_not_dht_scrape_disownable() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  if (!m_worker->m_state.is_requesting())
+    return false;
+
+  if (m_worker->type() == tracker_enum::TRACKER_DHT)
+    return false;
+
+  if (m_worker->m_state.is_disownable())
+    return false;
+
+  if (m_worker->m_state.latest_event() == tracker::TrackerState::EVENT_SCRAPE)
+    return false;
+
+  return true;
+}
+
+bool
 Tracker::is_extra_tracker() const {
   auto lock_guard = m_worker->lock_guard();
 

@@ -29,7 +29,7 @@ struct TrackerInfo {
 class TrackerWorker {
 public:
   TrackerWorker(TrackerInfo info, int flags = 0);
-  virtual ~TrackerWorker();
+  virtual ~TrackerWorker() noexcept(false);
 
   // Public members do not require locking:
 

@@ -11,7 +11,7 @@ class UdpRouter;
 class TrackerUdp : public TrackerWorker {
 public:
   TrackerUdp(const TrackerInfo& info, int flags = 0);
-  ~TrackerUdp() override;
+  ~TrackerUdp() noexcept(false) override;
 
   tracker_enum        type() const override;
 
@@ -26,8 +26,8 @@ private:
   using buffer_type = ProtocolBuffer<512>;
 
   struct family_state {
-    uint64_t connection_id{};
     uint32_t transaction_id{};
+    uint64_t connection_id{};
     bool     packet_sent{};
   };
 

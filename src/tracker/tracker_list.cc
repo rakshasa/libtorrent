@@ -38,56 +38,37 @@ TrackerList::~TrackerList() {
 
 bool
 TrackerList::has_active() const {
-  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy));
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_busy(); });
 }
 
 bool
 TrackerList::has_active_not_dht() const {
-  return std::any_of(begin(), end(), [](const tracker::Tracker& tracker) {
-      if (!tracker.is_busy())
-        return false;
-
-      if (tracker.type() == tracker_enum::TRACKER_DHT)
-        return false;
-
-      return true;
-    });
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_requesting_not_dht(); });
 }
 
 bool
-TrackerList::has_active_not_dht_or_disownable() const {
-  return std::any_of(begin(), end(), [](const tracker::Tracker& tracker) {
-      if (!tracker.is_busy())
-        return false;
-
-      if (tracker.type() == tracker_enum::TRACKER_DHT)
-        return false;
-
-      if (tracker.is_disownable())
-        return false;
-
-      return true;
-    });
+TrackerList::has_active_not_dht_scrape_disownable() const {
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_requesting_not_dht_scrape_disownable(); });
 }
 
 bool
 TrackerList::has_active_not_scrape() const {
-  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_busy_not_scrape(); });
 }
 
 bool
 TrackerList::has_active_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&tracker::Tracker::is_busy));
+  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_busy(); });
 }
 
 bool
 TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), std::mem_fn(&tracker::Tracker::is_busy_not_scrape));
+  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_busy_not_scrape(); });
 }
 
 bool
 TrackerList::has_usable() const {
-  return std::any_of(begin(), end(), std::mem_fn(&tracker::Tracker::is_usable));
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_usable(); });
 }
 
 void
@@ -95,7 +76,9 @@ TrackerList::clear() {
   m_lifetime_keeper.reset();
 
   // Make sure the tracker_list is cleared before the trackers are deleted.
-  auto list = std::move(*static_cast<base_type*>(this));
+  auto trackers = std::move(*static_cast<base_type*>(this));
+
+  ThreadTracker::thread_tracker()->tracker_manager()->delete_trackers(std::move(trackers));
 }
 
 void
