@@ -41,6 +41,7 @@ public:
   void                send_scrape(torrent::tracker::TrackerParams params) override;
 
   void                close() override;
+  void                cleanup() override;
 
   static torrent::tracker::Tracker       new_tracker(torrent::TrackerList* parent, uint32_t group, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
   static void                            insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker);

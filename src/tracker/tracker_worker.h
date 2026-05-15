@@ -16,6 +16,10 @@ class TrackerTest;
 
 namespace torrent {
 
+namespace tracker {
+class Manager;
+}
+
 struct TrackerInfo {
   HashString  info_hash{HashString::new_zero()};
   HashString  obfuscated_hash{HashString::new_zero()};
@@ -29,7 +33,7 @@ struct TrackerInfo {
 class TrackerWorker {
 public:
   TrackerWorker(TrackerInfo info, int flags = 0);
-  virtual ~TrackerWorker();
+  virtual ~TrackerWorker() noexcept(false);
 
   // Public members do not require locking:
 
@@ -43,9 +47,11 @@ public:
 protected:
   friend class TrackerList;
   friend class tracker::Tracker;
+  friend class tracker::Manager;
   friend class ::TrackerTest;
 
   virtual void        close() = 0;
+  virtual void        cleanup() = 0;
 
   void                lock_and_clear_intervals();
   void                lock_and_clear_stats();
