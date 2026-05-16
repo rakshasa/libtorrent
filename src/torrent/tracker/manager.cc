@@ -122,14 +122,15 @@ Manager::remove_events(torrent::TrackerWorker* worker) {
 void
 Manager::update_tracker(const Tracker& tracker) {
   auto guard = std::scoped_lock(m_lock);
-  auto itr   = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
-
-  if (itr == m_trackers_to_wait.end())
-    return;
 
   // There might have been an old callback queued before tracker list got deleted, so wait for the
   // currently processing request to finish.
   if (tracker.is_requesting_not_dht_scrape())
+    return;
+
+  auto itr   = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
+
+  if (itr == m_trackers_to_wait.end())
     return;
 
   if (m_trackers_to_delete.empty())
