@@ -75,26 +75,21 @@ TrackerUdp::send_scrape([[maybe_unused]] tracker::TrackerParams params) {
 
 void
 TrackerUdp::close() {
-  LT_LOG("closing event : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("closing event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 }
 
 void
 TrackerUdp::close_directly() {
-  LT_LOG("closing directly : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
-
-  if (m_inet_state.transaction_id != 0) {
+  if (m_inet_state.transaction_id != 0)
     ThreadTracker::thread_tracker()->udp_inet_router()->disconnect(m_inet_state.transaction_id);
-    m_inet_state = family_state{};
-  }
 
-  if (m_inet6_state.transaction_id != 0) {
+  if (m_inet6_state.transaction_id != 0)
     ThreadTracker::thread_tracker()->udp_inet6_router()->disconnect(m_inet6_state.transaction_id);
-    m_inet6_state = family_state{};
-  }
+
+  m_inet_state  = family_state{};
+  m_inet6_state = family_state{};
 
   update_requesting_state();
 
@@ -103,6 +98,8 @@ TrackerUdp::close_directly() {
 
 void
 TrackerUdp::cleanup() {
+  LT_LOG("cleaning up : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
   close_directly();
 
   auto guard = lock_guard();

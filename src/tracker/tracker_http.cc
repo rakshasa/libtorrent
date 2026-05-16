@@ -107,8 +107,7 @@ TrackerHttp::send_scrape(tracker::TrackerParams params) {
 
 void
 TrackerHttp::close() {
-  LT_LOG("closing event : state:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("closing event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   this_thread::scheduler()->erase(&m_delay_scrape);
   m_requested_scrape = false;
@@ -126,9 +125,6 @@ TrackerHttp::close_directly() {
     return;
   }
 
-  LT_LOG("closing directly : state:%s family:%s url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), family_str(m_current_family), info().url.c_str());
-
   m_slot_close();
 
   m_get.close_and_cancel_callbacks(this_thread::thread());
@@ -139,6 +135,8 @@ TrackerHttp::close_directly() {
 
 void
 TrackerHttp::cleanup() {
+  LT_LOG("cleaning up : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+
   close_directly();
   this_thread::scheduler()->erase(&m_delay_scrape);
 
@@ -384,7 +382,7 @@ TrackerHttp::receive_done() {
   if (m_data == nullptr)
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
-  LT_LOG("received reply : url:%s", info().url.c_str());
+  LT_LOG("received reply : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   if (lt_log_is_valid(LOG_TRACKER_DUMP)) {
     std::string dump = m_data->str();
@@ -446,7 +444,9 @@ TrackerHttp::receive_signal_failed(const std::string& msg) {
 void
 TrackerHttp::receive_failed(const std::string& msg) {
   if (m_data == nullptr) {
-    LT_LOG("received failure with no data : url:%s : %s", info().url.c_str(), msg.c_str());
+    LT_LOG("received failure with no data : state:%s url:%s : %s",
+           option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
+
     m_slot_failure(msg);
     return;
   }
@@ -463,6 +463,7 @@ TrackerHttp::receive_failed(const std::string& msg) {
       return;
 
     LT_LOG("received scrape failure : url:%s : %s", info().url.c_str(), msg.c_str());
+
     m_requested_scrape = false;
     m_slot_scrape_failure(msg);
     return;
@@ -540,6 +541,10 @@ TrackerHttp::process_success(const Object& object) {
 
     if (object.has_key_value("downloaded"))
       state().m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
+
+    LT_LOG("tracker reply : state:%s url:%s : interval:%u min_interval:%u complete:%u incomplete:%u downloaded:%u",
+           option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(),
+           state().normal_interval(), state().min_interval(), state().scrape_complete(), state().scrape_incomplete(), state().scrape_downloaded());
   }
 
   AddressList address_list;
