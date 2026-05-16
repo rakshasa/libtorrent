@@ -420,7 +420,14 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
 void
 CurlSocket::event_read() {
-  // TODO: Use MSG_PEEK to check if we're in idle connection poll and close this fd.
+  // Consume any pending data on the fd to prevent spin loops.
+  // This is needed for libcurl's internal eventfd wakeup mechanism,
+  // which writes to the fd but expects the application to read from it.
+  char buffer[64];
+  while (::read(m_fileDesc, buffer, sizeof(buffer)) > 0) {
+    // Keep reading until EAGAIN.
+  }
+
   handle_action(CURL_CSELECT_IN);
 }
 
