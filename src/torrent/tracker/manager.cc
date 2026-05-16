@@ -17,6 +17,9 @@
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
   lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker::manager", log_fmt, __VA_ARGS__);
 
+// TODO: Add leak check for trackers that are requesting when deleted, yet never got moved to delete
+// queue.
+
 namespace torrent::tracker {
 
 Manager::Manager() = default;
@@ -117,20 +120,17 @@ Manager::remove_events(torrent::TrackerWorker* worker) {
 }
 
 void
-Manager::update_tracker(const std::weak_ptr<TrackerWorker> weak_tracker) {
-  auto tracker = Tracker::from_weak_ptr(weak_tracker);
-
-  if (!tracker.is_valid())
-    return;
-
+Manager::update_tracker(const Tracker& tracker) {
   auto guard = std::scoped_lock(m_lock);
   auto itr   = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
 
   if (itr == m_trackers_to_wait.end())
     return;
 
+  // There might have been an old callback queued before tracker list got deleted, so wait for the
+  // currently processing request to finish.
   if (tracker.is_requesting_not_dht_scrape())
-    throw internal_error("tracker::Manager::update_tracker(...) tracker is still requesting.");
+    return;
 
   if (m_trackers_to_delete.empty())
     tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });

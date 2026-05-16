@@ -13,11 +13,10 @@ namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT Manager {
 public:
-
-protected:
   Manager();
   ~Manager();
 
+protected:
   friend class torrent::DownloadMain;
   friend class torrent::DownloadWrapper;
   friend class torrent::TrackerList;
@@ -36,7 +35,7 @@ protected:
   void                add_event(TrackerWorker* worker, std::function<void ()>&& event);
   void                remove_events(TrackerWorker* worker);
 
-  void                update_tracker(const std::weak_ptr<TrackerWorker> weak_tracker);
+  void                update_tracker(const Tracker& tracker);
 
   void                delete_tracker(Tracker tracker);
   void                delete_trackers(std::vector<Tracker>&& trackers);
