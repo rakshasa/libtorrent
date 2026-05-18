@@ -15,9 +15,9 @@
 #include "torrent/system/system.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG(log_fmt, ...)                                            \
+#define LT_LOG(log_fmt, ...) \
   lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", log_fmt, __VA_ARGS__);
-  // lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
+// lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
 // TODO: Add m_connections::iterator to info so we don't need to look them up. We should be able to
 // replace unordered_map with map then to reduce memory usage after initial startup tracker rush.
@@ -66,7 +66,9 @@ UdpRouter::open(int family) {
 
   if (!fd_bind(fd, bind_address.get())) {
     LT_LOG("opening router failed : bind failed : family:%s bind_address:%s errno:%s",
-           family_str(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(errno).c_str());
+           family_str(family),
+           sa_pretty_str(bind_address.get()).c_str(),
+           system::errno_enum_str(errno).c_str());
     fd_close(fd);
     return;
   }
@@ -76,8 +78,7 @@ UdpRouter::open(int family) {
   runtime::socket_manager()->register_event_or_throw(this, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
-      this_thread::poll()->insert_error(this);
-    });
+      this_thread::poll()->insert_error(this); }, runtime::SocketManager::category_tracker);
 
   set_socket_address(sa_copy(bind_address.get()));
 
@@ -94,11 +95,11 @@ UdpRouter::close() {
   this_thread::scheduler()->erase(&m_task_timeout);
 
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
-      this_thread::poll()->remove_and_close(this);
+    this_thread::poll()->remove_and_close(this);
 
-      fd_close(file_descriptor());
-      set_file_descriptor(-1);
-    });
+    fd_close(file_descriptor());
+    set_file_descriptor(-1);
+  });
 
   // TODO: Do we just let timeout expire connections, or do we send errors?
   // this_thread::resolver()->cancel_all_for_requester(this);
@@ -133,7 +134,6 @@ UdpRouter::updated_network_config(int family) {
   close();
   open(family);
 }
-
 
 uint32_t
 UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
@@ -179,8 +179,8 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
   // TODO: Set params.connected for hostname lookups?
 
   auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
-      resolved_hostname(id, port, sin, err, sin6, err6);
-    };
+    resolved_hostname(id, port, sin, err, sin6, err6);
+  };
 
   this_thread::resolver()->resolve_both(this, hostname, router_family(), std::move(fn));
 
@@ -273,7 +273,7 @@ UdpRouter::disconnect_unsafe(connection_map::iterator itr) {
 
   if (itr->second.queue_ptr != nullptr) {
     *itr->second.queue_ptr = nullptr;
-    itr->second.queue_ptr = nullptr;
+    itr->second.queue_ptr  = nullptr;
   }
 
   clear_timeout(&itr->second);
@@ -341,7 +341,6 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
     queue_write(id, &itr->second);
 }
 
-
 bool
 UdpRouter::try_write(uint32_t id, connection_info* info) {
   if (info->retry_count >= 3)
@@ -407,7 +406,7 @@ UdpRouter::clear_timeout(connection_info* info) {
     return;
 
   *info->timeout_ptr = nullptr;
-  info->timeout_ptr = nullptr;
+  info->timeout_ptr  = nullptr;
 }
 
 void

@@ -5,25 +5,25 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "manager.h"
 #include "dht/dht_bucket.h"
 #include "dht/dht_router.h"
 #include "dht/dht_transaction.h"
 #include "dht/transactions/dht_announce.h"
+#include "manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/object.h"
-#include "torrent/object_static_map.h"
-#include "torrent/object_stream.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/object.h"
+#include "torrent/object_static_map.h"
+#include "torrent/object_stream.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
+#define LT_LOG_THIS(log_fmt, ...) \
   lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
 
 namespace {
@@ -51,29 +51,31 @@ namespace torrent {
 // See torrent/object_static_map.h for how this works.
 template <>
 const DhtMessage::key_list_type DhtMessage::base_type::keys = {
-  { key_a_id,       "a::id*S" },
-  { key_a_infoHash, "a::info_hash*S" },
-  { key_a_port,     "a::port", },
-  { key_a_target,   "a::target*S" },
-  { key_a_token,    "a::token*S" },
+  {key_a_id, "a::id*S"},
+  {key_a_infoHash, "a::info_hash*S"},
+  {
+    key_a_port,
+    "a::port",
+  },
+  {key_a_target, "a::target*S"},
+  {key_a_token, "a::token*S"},
 
-  { key_e_0,        "e[]*" },
-  { key_e_1,        "e[]*" },
+  {key_e_0, "e[]*"},
+  {key_e_1, "e[]*"},
 
-  { key_q,          "q*S" },
+  {key_q, "q*S"},
 
-  { key_r_id,       "r::id*S" },
-  { key_r_nodes,    "r::nodes*S" },
-  { key_r_token,    "r::token*S" },
-  { key_r_values,   "r::values*L" },
+  {key_r_id, "r::id*S"},
+  {key_r_nodes, "r::nodes*S"},
+  {key_r_token, "r::token*S"},
+  {key_r_values, "r::values*L"},
 
-  { key_t,          "t*S" },
-  { key_v,          "v*" },
-  { key_y,          "y*S" },
+  {key_t, "t*S"},
+  {key_v, "v*"},
+  {key_y, "y*S"},
 };
 
-DhtServer::DhtServer(DhtRouter* router)
-  : m_router(router) {
+DhtServer::DhtServer(DhtRouter* router) : m_router(router) {
 
   m_fileDesc = -1;
   reset_statistics();
@@ -136,8 +138,7 @@ DhtServer::start(int port) {
   runtime::socket_manager()->register_event_or_throw(this, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
-      this_thread::poll()->insert_error(this);
-    });
+      this_thread::poll()->insert_error(this); }, runtime::SocketManager::category_dht);
 }
 
 void
@@ -154,11 +155,11 @@ DhtServer::stop() {
   this_thread::scheduler()->erase(&m_task_timeout);
 
   runtime::socket_manager()->close_event_or_throw(this, [this]() {
-      this_thread::poll()->remove_and_close(this);
+    this_thread::poll()->remove_and_close(this);
 
-      fd_close(file_descriptor());
-      set_file_descriptor(-1);
-    });
+    fd_close(file_descriptor());
+    set_file_descriptor(-1);
+  });
 
   m_networkUp = false;
 }
@@ -166,10 +167,10 @@ DhtServer::stop() {
 void
 DhtServer::reset_statistics() {
   m_queriesReceived = 0;
-  m_queriesSent = 0;
+  m_queriesSent     = 0;
   m_repliesReceived = 0;
-  m_errorsReceived = 0;
-  m_errorsCaught = 0;
+  m_errorsReceived  = 0;
+  m_errorsCaught    = 0;
 }
 
 // Ping a node whose ID we know.
@@ -198,7 +199,7 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
   // This shouldn't happen, it means we had no contactable nodes at all.
   if (!search->start())
     return;
-    // throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");  ///////////////// TMP
+  // throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");  ///////////////// TMP
 
   m_searches.insert(search);
 }
@@ -218,7 +219,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::
   // This can only happen if all nodes we know are bad.
   if (!announce->start())
     return;
-    // throw internal_error("DhtServer::announce search start failed, no contactable nodes.");  ///////////////// TMP
+  // throw internal_error("DhtServer::announce search start failed, no contactable nodes.");  ///////////////// TMP
 
   m_searches.insert(announce);
   announce->update_status();
@@ -343,7 +344,7 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const sockaddr* sa, 
 
   const HashString* info_hash = HashString::cast_from(info_hash_str.data());
 
-  DhtTracker* tracker = m_router->get_tracker(*info_hash, false);
+  DhtTracker*       tracker = m_router->get_tracker(*info_hash, false);
 
   // If we're not tracking or have no peers, send closest nodes.
   if (!tracker || tracker->empty()) {
@@ -380,7 +381,7 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
 void
 DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtMessage& response) {
   int  transactionId = static_cast<unsigned char>(response[key_t].as_raw_string().data()[0]);
-  auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
+  auto itr           = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
   // Response to a transaction we don't have in our table. At this point it's
   // impossible to tell whether it used to be a valid transaction but timed out
@@ -408,17 +409,17 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
       return;
 
     switch (transaction->type()) {
-      case DhtTransaction::DHT_FIND_NODE:
-        parse_find_node_reply(transaction->as_find_node(), response[key_r_nodes].as_raw_string());
-        break;
+    case DhtTransaction::DHT_FIND_NODE:
+      parse_find_node_reply(transaction->as_find_node(), response[key_r_nodes].as_raw_string());
+      break;
 
-      case DhtTransaction::DHT_GET_PEERS:
-        parse_get_peers_reply(transaction->as_get_peers(), response);
-        break;
+    case DhtTransaction::DHT_GET_PEERS:
+      parse_get_peers_reply(transaction->as_get_peers(), response);
+      break;
 
-      // Nothing to do for DHT_PING and DHT_ANNOUNCE_PEER
-      default:
-        break;
+    // Nothing to do for DHT_PING and DHT_ANNOUNCE_PEER
+    default:
+      break;
     }
 
     // Mark node responsive only if all processing was successful, without errors.
@@ -439,7 +440,7 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
 void
 DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
   int  transactionId = static_cast<unsigned char>(error[key_t].as_raw_string().data()[0]);
-  auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
+  auto itr           = m_transactions.find(DhtTransaction::key(sa, transactionId));
 
   if (itr == m_transactions.end())
     return;
@@ -533,26 +534,26 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
 void
 DhtServer::add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority) {
   switch (priority) {
-    // High priority packets are for important queries, and quite small.
-    // They're added to front of high priority queue and thus will be the
-    // next packets sent.
-    case packet_prio_high:
-      m_highQueue.push_front(std::move(packet));
-      break;
+  // High priority packets are for important queries, and quite small.
+  // They're added to front of high priority queue and thus will be the
+  // next packets sent.
+  case packet_prio_high:
+    m_highQueue.push_front(std::move(packet));
+    break;
 
-    // Low priority query packets are added to the back of the high priority
-    // queue and will be sent when all high priority packets have been transmitted.
-    case packet_prio_low:
-      m_highQueue.push_back(std::move(packet));
-      break;
+  // Low priority query packets are added to the back of the high priority
+  // queue and will be sent when all high priority packets have been transmitted.
+  case packet_prio_low:
+    m_highQueue.push_back(std::move(packet));
+    break;
 
-    // Reply packets will be processed after all of our own packets have been send.
-    case packet_prio_reply:
-      m_lowQueue.push_back(std::move(packet));
-      break;
+  // Reply packets will be processed after all of our own packets have been send.
+  case packet_prio_reply:
+    m_lowQueue.push_back(std::move(packet));
+    break;
 
-    default:
-      throw internal_error("DhtServer::add_packet called with invalid priority.");
+  default:
+    throw internal_error("DhtServer::add_packet called with invalid priority.");
   }
 }
 
@@ -575,36 +576,36 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
   DhtMessage query;
 
   // Transaction ID is a bencode string.
-  query[key_t] = raw_bencode(query.data_end, 3);
+  query[key_t]      = raw_bencode(query.data_end, 3);
   *query.data_end++ = '1';
   *query.data_end++ = ':';
   *query.data_end++ = tID;
 
   auto& transaction = itr->second;
 
-  query[key_q] = raw_string::from_c_str(queries[transaction->type()]);
-  query[key_y] = raw_bencode::from_c_str("1:q");
-  query[key_v] = raw_bencode("4:" PEER_VERSION, 6);
+  query[key_q]    = raw_string::from_c_str(queries[transaction->type()]);
+  query[key_y]    = raw_bencode::from_c_str("1:q");
+  query[key_v]    = raw_bencode("4:" PEER_VERSION, 6);
   query[key_a_id] = m_router->id_raw_string();
 
   switch (transaction->type()) {
-    case DhtTransaction::DHT_PING:
-      // nothing to do
-      break;
+  case DhtTransaction::DHT_PING:
+    // nothing to do
+    break;
 
-    case DhtTransaction::DHT_FIND_NODE:
-      query[key_a_target] = transaction->as_find_node()->search()->target_raw_string();
-      break;
+  case DhtTransaction::DHT_FIND_NODE:
+    query[key_a_target] = transaction->as_find_node()->search()->target_raw_string();
+    break;
 
-    case DhtTransaction::DHT_GET_PEERS:
-      query[key_a_infoHash] = transaction->as_get_peers()->search()->target_raw_string();
-      break;
+  case DhtTransaction::DHT_GET_PEERS:
+    query[key_a_infoHash] = transaction->as_get_peers()->search()->target_raw_string();
+    break;
 
-    case DhtTransaction::DHT_ANNOUNCE_PEER:
-      query[key_a_infoHash] = transaction->as_announce_peer()->info_hash_raw_string();
-      query[key_a_token]    = transaction->as_announce_peer()->token();
-      query[key_a_port]     = runtime::listen_port();
-      break;
+  case DhtTransaction::DHT_ANNOUNCE_PEER:
+    query[key_a_infoHash] = transaction->as_announce_peer()->info_hash_raw_string();
+    query[key_a_token]    = transaction->as_announce_peer()->token();
+    query[key_a_port]     = runtime::listen_port();
+    break;
   }
 
   auto packet = std::make_shared<DhtTransactionPacket>(transaction->address(), query, tID, transaction);
@@ -618,9 +619,9 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
 void
 DhtServer::create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply) {
   reply[key_r_id] = m_router->id_raw_string();
-  reply[key_t] = req[key_t];
-  reply[key_y] = raw_bencode::from_c_str("1:r");
-  reply[key_v] = raw_bencode("4:" PEER_VERSION, 6);
+  reply[key_t]    = req[key_t];
+  reply[key_y]    = raw_bencode::from_c_str("1:r");
+  reply[key_v]    = raw_bencode("4:" PEER_VERSION, 6);
 
   add_packet(std::make_shared<DhtTransactionPacket>(sa, reply), packet_prio_reply);
 }
@@ -632,8 +633,8 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
   if (req[key_t].is_raw_string() && req[key_t].as_raw_string().size() < 67)
     error[key_t] = req[key_t];
 
-  error[key_y] = raw_bencode::from_c_str("1:e");
-  error[key_v] = raw_bencode("4:" PEER_VERSION, 6);
+  error[key_y]   = raw_bencode::from_c_str("1:e");
+  error[key_v]   = raw_bencode("4:" PEER_VERSION, 6);
   error[key_e_0] = num;
   error[key_e_1] = raw_string::from_c_str(msg);
 
@@ -652,9 +653,9 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
   // node, a collision is extremely unlikely, and a linear search for the first
   // open one is the most efficient.
   unsigned int rnd = static_cast<uint8_t>(random());
-  unsigned int id = rnd;
+  unsigned int id  = rnd;
 
-  auto insertItr = m_transactions.lower_bound(transaction->key(rnd));
+  auto         insertItr = m_transactions.lower_bound(transaction->key(rnd));
 
   // If key matches, keep trying successive IDs.
   while (insertItr != m_transactions.end() && insertItr->first == transaction->key(id)) {
@@ -734,15 +735,15 @@ DhtServer::clear_transactions() {
 void
 DhtServer::event_read() {
   while (true) {
-    Object request;
-    int type = '?';
-    DhtMessage message;
-    raw_string nodeIdStr;
+    Object            request;
+    int               type = '?';
+    DhtMessage        message;
+    raw_string        nodeIdStr;
     const HashString* nodeId = NULL;
-    char buffer[2048];
+    char              buffer[2048];
 
-    sockaddr_in6 sa_raw{};
-    sockaddr* sa = reinterpret_cast<sockaddr*>(&sa_raw);
+    sockaddr_in6      sa_raw{};
+    sockaddr*         sa = reinterpret_cast<sockaddr*>(&sa_raw);
 
     try {
       int32_t read = read_datagram_sa(buffer, sizeof(buffer), sa, sizeof(sa_raw));
@@ -753,7 +754,7 @@ DhtServer::event_read() {
       // We can currently only process mapped-IPv4 addresses, not real IPv6.
       // Translate them to an af_inet socket_address.
       if (sa_is_v4mapped(sa)) {
-        auto sa_unmapped = sin_from_v4mapped_in6(&sa_raw);
+        auto sa_unmapped                         = sin_from_v4mapped_in6(&sa_raw);
         *reinterpret_cast<sockaddr_in*>(&sa_raw) = *sa_unmapped.get();
       }
 
@@ -772,8 +773,8 @@ DhtServer::event_read() {
         throw dht_error(dht_error_protocol, "No transaction ID");
 
       // Restrict the length of Transaction IDs. We echo them in our replies.
-      if(message[key_t].as_raw_string().size() > 20) {
-		  throw dht_error(dht_error_protocol, "Transaction ID length too long");
+      if (message[key_t].as_raw_string().size() > 20) {
+        throw dht_error(dht_error_protocol, "Transaction ID length too long");
       }
 
       if (!message[key_y].is_raw_string())
@@ -807,25 +808,25 @@ DhtServer::event_read() {
         throw dht_error(dht_error_protocol, "Send your own ID, not mine");
 
       switch (type) {
-        case 'q':
-          process_query(*nodeId, sa, message);
-          break;
+      case 'q':
+        process_query(*nodeId, sa, message);
+        break;
 
-        case 'r':
-          process_response(*nodeId, sa, message);
-          break;
+      case 'r':
+        process_response(*nodeId, sa, message);
+        break;
 
-        case 'e':
-          process_error(sa, message);
-          break;
+      case 'e':
+        process_error(sa, message);
+        break;
 
-        default:
-          throw dht_error(dht_error_bad_method, "Unknown message type.");
+      default:
+        throw dht_error(dht_error_bad_method, "Unknown message type.");
       }
 
-    // If node was querying us, reply with error packet, otherwise mark the node as "query failed",
-    // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
-    // to other nodes.
+      // If node was querying us, reply with error packet, otherwise mark the node as "query failed",
+      // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
+      // to other nodes.
     } catch (const bencode_error& e) {
       if ((type == 'r' || type == 'e') && nodeId != NULL) {
         m_router->node_inactive(*nodeId, sa);
@@ -851,10 +852,10 @@ DhtServer::event_read() {
 void
 DhtServer::process_queue(packet_queue& queue) {
   while (!queue.empty()) {
-    auto packet = queue.front();
+    auto                     packet         = queue.front();
     DhtTransaction::key_type transactionKey = 0;
 
-    if(packet->has_transaction())
+    if (packet->has_transaction())
       transactionKey = packet->transaction()->key(packet->id());
 
     // Make sure its transaction hasn't timed out yet, if it has/had one
