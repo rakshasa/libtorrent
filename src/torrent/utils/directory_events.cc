@@ -20,7 +20,7 @@ namespace torrent {
 
 namespace {
 
-std::string
+[[maybe_unused]] std::string
 normalize_directory_event_path(const std::string& path) {
   char* resolved = ::realpath(path.c_str(), nullptr);
 
@@ -36,18 +36,18 @@ normalize_directory_event_path(const std::string& path) {
   return normalized;
 }
 
-bool
-directory_event_flags_include_added_mode(int flags) {
-  return flags & directory_events::flag_on_added;
-}
-
-bool
-directory_event_flags_conflict(int lhs, int rhs) {
-  return ((lhs & directory_events::flag_on_ready) && directory_event_flags_include_added_mode(rhs)) ||
-         ((rhs & directory_events::flag_on_ready) && directory_event_flags_include_added_mode(lhs));
+[[maybe_unused]] bool
+check_flags_conflict(int lhs, int rhs) {
+  return
+    ((lhs & directory_events::flag_on_ready) && (rhs & directory_events::flag_on_added)) ||
+    ((rhs & directory_events::flag_on_ready) && (lhs & directory_events::flag_on_added));
 }
 
 } // namespace
+
+directory_events::directory_events() {
+  m_fileDesc = -1;
+}
 
 bool
 directory_events::open() {
@@ -91,7 +91,7 @@ directory_events::close() {
 }
 
 void
-directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags, [[maybe_unused]] const slot_string& slot) {
+directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags, [[maybe_unused]] const watch_descriptor::slot_string& slot) {
   if (path.empty())
     throw input_error("Cannot add notification event for empty paths.");
 
@@ -99,9 +99,8 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   std::string normalized_path = normalize_directory_event_path(path);
 
   for (const auto& wd : m_wd_list) {
-    if (directory_event_flags_conflict(wd.flags, flags) &&
-        wd.canonical_path == normalized_path)
-      throw input_error("Conflicting directory watch modes for watch directories: " + wd.canonical_path + " and " + normalized_path);
+    if (check_flags_conflict(wd.flags, flags) && wd.canonical_path == normalized_path)
+      throw input_error("Conflicting directory watch modes for watch directories: " + wd.canonical_path + " : " + normalized_path);
   }
 
   int in_flags = IN_MASK_ADD;
@@ -161,7 +160,7 @@ directory_events::event_read() {
       return;
 
     auto itr = std::find_if(m_wd_list.begin(), m_wd_list.end(), [event](const auto& w) {
-      return w.compare_desc(event->wd);
+      return event->wd == w.descriptor;
     });
 
     if (itr != m_wd_list.end()) {

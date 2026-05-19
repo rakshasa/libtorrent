@@ -12,8 +12,6 @@ namespace torrent {
 struct watch_descriptor {
   using slot_string = std::function<void(const std::string&)>;
 
-  bool        compare_desc(int desc) const { return desc == descriptor; }
-
   int         descriptor;
   int         flags;
   std::string canonical_path;
@@ -23,30 +21,26 @@ struct watch_descriptor {
 
 class LIBTORRENT_EXPORT directory_events : public Event {
 public:
-  using wd_list     = std::vector<watch_descriptor>;
-  using slot_string = watch_descriptor::slot_string;
-
   static constexpr int flag_on_added   = 0x1;
   static constexpr int flag_on_removed = 0x2;
   static constexpr int flag_on_updated = 0x3;
   static constexpr int flag_on_ready   = 0x4;
 
-  directory_events() { m_fileDesc = -1; }
-  ~directory_events() override = default;
+  directory_events();
 
-  bool        open();
-  void        close();
+  const char*         type_name() const override { return "directory_events"; }
 
-  void        notify_on(const std::string& path, int flags, const slot_string& slot);
+  bool                open();
+  void                close();
 
-  void        event_read() override;
-  void        event_write() override;
-  void        event_error() override;
+  void                notify_on(const std::string& path, int flags, const watch_descriptor::slot_string& slot);
 
-  const char* type_name() const override { return "directory_events"; }
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
 
 private:
-  wd_list m_wd_list;
+  std::vector<watch_descriptor> m_wd_list;
 };
 
 } // namespace torrent

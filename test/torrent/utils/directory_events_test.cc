@@ -16,20 +16,14 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(utils_directory_events_test, "torrent/util
 
 namespace {
 
-constexpr int added_flags = torrent::directory_events::flag_on_added |
-                            torrent::directory_events::flag_on_updated;
-
-torrent::directory_events::slot_string
-noop_slot() {
-  return [](const std::string&) {};
-}
+[[maybe_unused]] constexpr int added_flags = torrent::directory_events::flag_on_added | torrent::directory_events::flag_on_updated;
 
 void
 assert_mkdir(const std::string& path) {
   CPPUNIT_ASSERT_MESSAGE(("Could not create test directory: " + path).c_str(), ::mkdir(path.c_str(), 0700) == 0);
 }
 
-void
+[[maybe_unused]] void
 assert_write_file(const std::string& path) {
   int fd = ::open(path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0600);
   CPPUNIT_ASSERT_MESSAGE(("Could not create test file: " + path).c_str(), fd != -1);
@@ -37,10 +31,10 @@ assert_write_file(const std::string& path) {
   CPPUNIT_ASSERT(::close(fd) == 0);
 }
 
-void
+[[maybe_unused]] void
 assert_conflicting_watch(torrent::directory_events* events, const std::string& path, int flags) {
   try {
-    events->notify_on(path, flags, noop_slot());
+    events->notify_on(path, flags, [](auto) {});
     CPPUNIT_ASSERT_MESSAGE(("Expected conflicting watch for: " + path).c_str(), false);
   } catch (const torrent::input_error&) {
   }
