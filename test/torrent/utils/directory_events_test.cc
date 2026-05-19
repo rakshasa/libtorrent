@@ -79,7 +79,7 @@ utils_directory_events_test::test_ready_conflicts_with_added_same_directory() {
   torrent::directory_events events;
   CPPUNIT_ASSERT(events.open());
 
-  events.notify_on(m_root, torrent::directory_events::flag_on_ready, noop_slot());
+  events.notify_on(m_root, torrent::directory_events::flag_on_ready, [](auto){});
   assert_conflicting_watch(&events, m_root + "/.", added_flags);
 
   events.close();
@@ -117,7 +117,7 @@ utils_directory_events_test::test_added_conflicts_with_ready_same_directory_norm
   torrent::directory_events events;
   CPPUNIT_ASSERT(events.open());
 
-  events.notify_on(m_root + "/child/..", added_flags, noop_slot());
+  events.notify_on(m_root + "/child/..", added_flags, [](auto){});
   assert_conflicting_watch(&events, m_root, torrent::directory_events::flag_on_ready);
 
   events.close();
@@ -130,8 +130,8 @@ utils_directory_events_test::test_ready_allows_added_child() {
   torrent::directory_events events;
   CPPUNIT_ASSERT(events.open());
 
-  events.notify_on(m_root, torrent::directory_events::flag_on_ready, noop_slot());
-  events.notify_on(m_root + "/child", added_flags, noop_slot());
+  events.notify_on(m_root, torrent::directory_events::flag_on_ready, [](auto){});
+  events.notify_on(m_root + "/child", added_flags, [](auto){});
 
   events.close();
 #endif
@@ -143,8 +143,8 @@ utils_directory_events_test::test_added_allows_ready_parent() {
   torrent::directory_events events;
   CPPUNIT_ASSERT(events.open());
 
-  events.notify_on(m_root + "/child", added_flags, noop_slot());
-  events.notify_on(m_root, torrent::directory_events::flag_on_ready, noop_slot());
+  events.notify_on(m_root + "/child", added_flags, [](auto){});
+  events.notify_on(m_root, torrent::directory_events::flag_on_ready, [](auto){});
 
   events.close();
 #endif
@@ -156,8 +156,8 @@ utils_directory_events_test::test_ready_allows_added_sibling() {
   torrent::directory_events events;
   CPPUNIT_ASSERT(events.open());
 
-  events.notify_on(m_root + "/child", torrent::directory_events::flag_on_ready, noop_slot());
-  events.notify_on(m_root + "/other", added_flags, noop_slot());
+  events.notify_on(m_root + "/child", torrent::directory_events::flag_on_ready, [](auto){});
+  events.notify_on(m_root + "/other", added_flags, [](auto){});
 
   events.close();
 #endif
