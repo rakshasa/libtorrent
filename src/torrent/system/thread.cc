@@ -3,8 +3,8 @@
 #include "torrent/system/thread.h"
 
 #include <cassert>
-#include <cstring>
 #include <condition_variable>
+#include <cstring>
 #include <mutex>
 #include <unistd.h>
 
@@ -25,12 +25,17 @@ thread_local Thread* Thread::m_self{nullptr};
 
 Thread::~Thread() = default;
 
-Thread* Thread::self() { return m_self; }
+Thread*
+Thread::self() { return m_self; }
 
-void Thread::init_thread() {}
-void Thread::init_thread_pre_start() {}
-void Thread::init_thread_post_local() {}
-void Thread::cleanup_thread() {}
+void
+Thread::init_thread() {}
+void
+Thread::init_thread_pre_start() {}
+void
+Thread::init_thread_post_local() {}
+void
+Thread::cleanup_thread() {}
 
 Thread::Thread() :
     m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
@@ -71,7 +76,7 @@ Thread::stop_thread_wait() {
 }
 
 void
-Thread::callback(void* target, std::function<void ()>&& fn) {
+Thread::callback(void* target, std::function<void()>&& fn) {
   {
     auto lock = std::lock_guard(m_callbacks_lock);
 
@@ -82,7 +87,7 @@ Thread::callback(void* target, std::function<void ()>&& fn) {
 }
 
 void
-Thread::callback_interrupt_polling(void* target, std::function<void ()>&& fn) {
+Thread::callback_interrupt_polling(void* target, std::function<void()>&& fn) {
   {
     auto lock = std::lock_guard(m_callbacks_lock);
 
@@ -94,22 +99,22 @@ Thread::callback_interrupt_polling(void* target, std::function<void ()>&& fn) {
 }
 
 void
-Thread::callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn) {
+Thread::callback_interrupt_polling_and_wait(void* target, std::function<void()>&& fn) {
   std::mutex              callback_mutex;
   std::condition_variable callback_cv;
 
-  bool done{};
+  bool                    done{};
 
-  auto wrapped_fn = [&callback_mutex, &callback_cv, &done, fn = std::move(fn)]() {
-      fn();
+  auto                    wrapped_fn = [&callback_mutex, &callback_cv, &done, fn = std::move(fn)]() {
+    fn();
 
-      {
-        auto lock = std::lock_guard(callback_mutex);
-        done = true;
-      }
+    {
+      auto lock = std::lock_guard(callback_mutex);
+      done      = true;
+    }
 
-      callback_cv.notify_one();
-    };
+    callback_cv.notify_one();
+  };
 
   callback_interrupt_polling(target, std::move(wrapped_fn));
 
@@ -180,9 +185,8 @@ Thread::event_loop() {
     runtime::socket_manager()->register_event_or_throw(m_interrupt_receiver.get(), [this]() {
         m_poll->open(m_interrupt_receiver.get());
         m_poll->insert_read(m_interrupt_receiver.get());
-        m_poll->insert_error(m_interrupt_receiver.get());
-    });
-    runtime::socket_manager()->register_event_or_throw(m_interrupt_sender.get(), []() {});
+        m_poll->insert_error(m_interrupt_receiver.get()); }, runtime::SocketManager::category_internal);
+    runtime::socket_manager()->register_event_or_throw(m_interrupt_sender.get(), []() {}, runtime::SocketManager::category_internal);
 
     while (true) {
       process_events();
@@ -221,10 +225,10 @@ Thread::event_loop() {
   }
 
   runtime::socket_manager()->unregister_event_or_throw(m_interrupt_receiver.get(), [this]() {
-      m_poll->remove_read(m_interrupt_receiver.get());
-      m_poll->remove_error(m_interrupt_receiver.get());
-      m_poll->close(m_interrupt_receiver.get());
-    });
+    m_poll->remove_read(m_interrupt_receiver.get());
+    m_poll->remove_error(m_interrupt_receiver.get());
+    m_poll->close(m_interrupt_receiver.get());
+  });
   runtime::socket_manager()->unregister_event_or_throw(m_interrupt_sender.get(), []() {});
 
   auto previous_state = STATE_ACTIVE;
@@ -242,8 +246,8 @@ Thread::init_thread_local() {
   pthread_setname_np(pthread_self(), name());
 #endif
 
-  m_self = this;
-  m_thread = pthread_self();
+  m_self      = this;
+  m_thread    = pthread_self();
   m_thread_id = std::this_thread::get_id();
 
   m_scheduler->set_thread_id(m_thread_id);
@@ -299,7 +303,7 @@ Thread::process_callbacks(bool only_interrupt) {
   m_callbacks_should_interrupt_polling = false;
 
   while (true) {
-    std::function<void ()> callback;
+    std::function<void()> callback;
 
     {
       auto lock = std::lock_guard(m_callbacks_lock);
@@ -330,22 +334,32 @@ Thread::set_cached_time(std::chrono::microseconds t) {
   m_scheduler->set_cached_time(t);
 }
 
-} // namespace torrent::utils
+} // namespace torrent::system
 
 namespace torrent::this_thread {
 
-torrent::system::Thread*  thread()                                            { return system::ThreadInternal::thread(); }
-std::thread::id           thread_id()                                         { return system::ThreadInternal::thread_id(); }
+torrent::system::Thread*
+thread() { return system::ThreadInternal::thread(); }
+std::thread::id
+thread_id() { return system::ThreadInternal::thread_id(); }
 
-std::chrono::microseconds cached_time()                                       { return system::ThreadInternal::cached_time(); }
-std::chrono::seconds      cached_seconds()                                    { return system::ThreadInternal::cached_seconds(); }
+std::chrono::microseconds
+cached_time() { return system::ThreadInternal::cached_time(); }
+std::chrono::seconds
+cached_seconds() { return system::ThreadInternal::cached_seconds(); }
 
-void                      callback(void* target, std::function<void ()>&& fn) { system::ThreadInternal::callback(target, std::move(fn)); }
-void                      cancel_callback(void* target)                       { system::ThreadInternal::cancel_callback(target); }
-void                      cancel_callback_and_wait(void* target)              { system::ThreadInternal::cancel_callback_and_wait(target); }
+void
+callback(void* target, std::function<void()>&& fn) { system::ThreadInternal::callback(target, std::move(fn)); }
+void
+cancel_callback(void* target) { system::ThreadInternal::cancel_callback(target); }
+void
+cancel_callback_and_wait(void* target) { system::ThreadInternal::cancel_callback_and_wait(target); }
 
-net::Poll*                poll()                                              { return system::ThreadInternal::poll(); }
-net::Resolver*            resolver()                                          { return system::ThreadInternal::resolver(); }
-utils::Scheduler*         scheduler()                                         { return system::ThreadInternal::scheduler(); }
+net::Poll*
+poll() { return system::ThreadInternal::poll(); }
+net::Resolver*
+resolver() { return system::ThreadInternal::resolver(); }
+utils::Scheduler*
+scheduler() { return system::ThreadInternal::scheduler(); }
 
 } // namespace torrent::this_thread
