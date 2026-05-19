@@ -52,6 +52,14 @@ TORRENT_WITH_SYSROOT
 dnl TORRENT_WITH_XFS
 TORRENT_WITHOUT_KQUEUE
 TORRENT_WITHOUT_EPOLL
+
+AC_ARG_ENABLE(epoll-safe-close,
+  AS_HELP_STRING([--enable-epoll-safe-close],[handle EBADF/ENOENT gracefully in epoll_ctl for externally managed sockets [[default=disable]]]),
+  [
+    if test "$enableval" = "yes"; then
+      AC_DEFINE([EPOLL_SAFE_CLOSE], [1], [Handle EBADF/ENOENT in epoll_ctl MOD/DEL instead of aborting])
+    fi
+  ],[])
 TORRENT_CHECK_FALLOCATE
 TORRENT_WITH_POSIX_FALLOCATE
 TORRENT_WITH_ADDRESS_SPACE
