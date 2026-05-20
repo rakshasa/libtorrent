@@ -61,6 +61,7 @@ protected:
   friend class torrent::TrackerList;
   friend class ::TrackerTest;
 
+  Tracker();
   Tracker(std::shared_ptr<torrent::TrackerWorker>&& worker);
 
   static Tracker      from_weak_ptr(const std::weak_ptr<TrackerWorker>& worker) { return Tracker(worker.lock()); }

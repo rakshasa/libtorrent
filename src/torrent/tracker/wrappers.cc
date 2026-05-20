@@ -124,7 +124,7 @@ TrackerControllerWrapper::find_if(const std::function<bool(Tracker&)>& f) {
       return tracker;
   }
 
-  return Tracker(std::shared_ptr<torrent::TrackerWorker>());
+  return {};
 }
 
 void
@@ -140,7 +140,7 @@ TrackerControllerWrapper::c_find_if(const std::function<bool(const Tracker&)>& f
       return tracker;
   }
 
-  return Tracker(std::shared_ptr<torrent::TrackerWorker>());
+  return {};
 }
 
 void
