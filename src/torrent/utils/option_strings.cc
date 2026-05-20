@@ -194,6 +194,8 @@ constexpr const char* option_list_log_group[] = {
 
   "ui_events",
 
+  "tracker_failure_messages",
+
   NULL
 };
 
