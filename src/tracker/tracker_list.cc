@@ -73,6 +73,8 @@ TrackerList::has_usable() const {
 
 void
 TrackerList::clear() {
+  // Keeper must be deleted before we remove and possibly delete any trackers or the events will
+  // still execute.
   m_lifetime_keeper.reset();
 
   // Make sure the tracker_list is cleared before the trackers are deleted.
@@ -168,8 +170,7 @@ TrackerList::insert(const tracker::Tracker& tracker) {
   // TODO: enable/disable slots are called from main-thread, and should not use events? Or rather,
   // remove them from tracker::Tracker.
 
-  // TODO: Make add_event handle weak_ptr and lifetime_keeper, also add a request id so we don't
-  // need to use remove_events.
+  // TODO: Remove use of 'this'.
 
   worker->m_slot_enabled = [this, lifetime_keeper, weak_ptr]() {
       tracker_thread::manager()->add_event(weak_ptr, lifetime_keeper, [this](auto& tracker) {
@@ -189,19 +190,8 @@ TrackerList::insert(const tracker::Tracker& tracker) {
         });
     };
 
-  // TODO: Remove m_slot_close.
-  worker->m_slot_close = [weak_ptr]() {
-      auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
-
-      if (!tracker.is_valid())
-        return;
-
-      tracker_thread::manager()->remove_events(tracker.get_worker());
-    };
-
   worker->m_slot_success = [this, lifetime_keeper, weak_ptr](AddressList&& l) {
-      tracker_thread::manager()->add_event(weak_ptr, lifetime_keeper, [this, l = std::move(l)](auto& tracker) {
-          // TODO: Should we check slot like this?
+      tracker_thread::manager()->add_event_or_update(weak_ptr, lifetime_keeper, [this, l = std::move(l)](auto& tracker) {
           if (!m_slot_success)
             return tracker_thread::manager()->update_tracker(std::move(tracker));
 
@@ -210,9 +200,7 @@ TrackerList::insert(const tracker::Tracker& tracker) {
     };
 
   worker->m_slot_failure = [this, lifetime_keeper, weak_ptr](const std::string& msg) {
-      tracker_thread::manager()->add_event(weak_ptr, lifetime_keeper, [this, msg](auto& tracker) {
-          ////////// TODO: If lifetime_keeper is expired, we need to update tracker......
-
+      tracker_thread::manager()->add_event_or_update(weak_ptr, lifetime_keeper, [this, msg](auto& tracker) {
           if (!m_slot_failed)
             return tracker_thread::manager()->update_tracker(std::move(tracker));
 
@@ -239,12 +227,12 @@ TrackerList::insert(const tracker::Tracker& tracker) {
     };
 
   worker->m_slot_new_peers = [this, lifetime_keeper, weak_ptr](AddressList&& l) {
-      tracker_thread::manager()->add_event(weak_ptr, lifetime_keeper, [this, l = std::move(l)](auto& tracker) {
-          if (!m_slot_new_peers)
-            return;
+      auto tl_keeper = lifetime_keeper.lock();
 
-          receive_new_peers(std::move(tracker), const_cast<AddressList*>(&l));
-        });
+      if (!tl_keeper || !m_slot_new_peers)
+        return;
+
+      receive_new_peers(const_cast<AddressList*>(&l));
     };
 
   LT_LOG("added tracker : requester:%p group:%u url:%s", worker, itr->group(), itr->url().c_str());
@@ -501,23 +489,19 @@ TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& 
 }
 
 void
-TrackerList::receive_new_peers(tracker::Tracker tracker, AddressList* l) {
-  LT_LOG("received %zu new peers : requester:%p group:%u url:%s",
-         l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
-
-  auto itr = find(tracker);
-
-  if (itr == end())
-    throw internal_error("TrackerList::receive_new_peers(...) called but the iterator is invalid.");
+TrackerList::receive_new_peers(AddressList* l) {
+  LT_LOG("received new peers : size:%zu", l->size());
 
   l->sort_and_unique();
 
-  auto new_peers = m_slot_new_peers(l);
+  m_slot_new_peers(l);
 
-  {
-    auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().m_latest_new_peers_delta += new_peers;
-  }
+  // auto new_peers = m_slot_new_peers(l);
+
+  // {
+  //   auto guard = tracker.get_worker()->lock_guard();
+  //   tracker.get_worker()->state().m_latest_new_peers_delta += new_peers;
+  // }
 }
 
 } // namespace torrent

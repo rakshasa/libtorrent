@@ -67,6 +67,8 @@ protected:
   std::string         tracker_id_safe() const;
   void                set_tracker_id_safe(const std::string& id);
 
+  void                remove_events();
+
   tracker::TrackerState&       state()                      { return m_state; }
   const tracker::TrackerState& state() const                { return m_state; }
 
@@ -79,7 +81,6 @@ protected:
 
   std::function<void()>              m_slot_enabled;
   std::function<void()>              m_slot_disabled;
-  std::function<void()>              m_slot_close;
   std::function<void(AddressList&&)> m_slot_success;
   std::function<void(std::string)>   m_slot_failure;
   std::function<void()>              m_slot_scrape_success;

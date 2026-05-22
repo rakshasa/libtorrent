@@ -92,8 +92,7 @@ TrackerUdp::close_directly() {
   m_inet6_state = family_state{};
 
   update_requesting_state();
-
-  m_slot_close();
+  remove_events();
 }
 
 void
@@ -134,8 +133,8 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
   LT_LOG("closing with error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
 
   update_requesting_state();
+  remove_events();
 
-  m_slot_close();
   m_slot_failure(msg);
 }
 
@@ -363,8 +362,8 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
   LT_LOG("received announce success : family:%s hostname:%s port:%u peers:%zu", family_str(family), m_hostname.c_str(), m_port, l.size());
 
   update_requesting_state();
+  remove_events();
 
-  m_slot_close();
   m_slot_success(std::move(l));
 
   return false;
@@ -400,8 +399,8 @@ TrackerUdp::handle_setup_error(const std::string& msg) {
     throw internal_error("TrackerUdp::handle_setup_error() called but inet/inet6 transaction id is not 0.");
 
   // update_requesting_state();
+  remove_events();
 
-  m_slot_close();
   m_slot_failure(msg);
 }
 

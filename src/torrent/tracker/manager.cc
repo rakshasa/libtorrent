@@ -70,8 +70,9 @@ Manager::remove_controller(TrackerControllerWrapper controller) {
   if (m_controllers.erase(controller) != 1)
     throw internal_error("tracker::Manager::remove_controller(...) controller not found or has multiple references.");
 
-  for (auto& tracker : *controller.get()->tracker_list())
-    remove_events(tracker.get_worker());
+  // TrackerList is already cleared by DownloadWrapper.
+  // for (auto& tracker : *controller.get()->tracker_list())
+  //   remove_events(tracker.get_worker());
 
   LT_LOG_TRACKER_EVENTS("removed controller: info_hash:%s", utils::transform_to_hex_str(controller.info_hash()).c_str());
 }
@@ -110,19 +111,13 @@ Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
 
 void
 Manager::add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event) {
+  // We can't use weak_ptr here as m_callback will be deleted.
   auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
 
   if (!tracker.is_valid())
     return;
 
-  // TODO: We can't use weak_ptr here as m_callback will be deleted.
-
-  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, tl_keeper, event = std::move(event)]() {
-      // auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
-
-      // if (!tracker.is_valid())
-      //   return;
-
+  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [tracker, tl_keeper, event = std::move(event)]() mutable {
       auto tl_keeper_shared = tl_keeper.lock();
 
       if (!tl_keeper_shared)
@@ -132,11 +127,22 @@ Manager::add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl
     });
 }
 
-// TODO: Remove.
 void
-Manager::remove_events(torrent::TrackerWorker* worker) {
-  main_thread::thread()->cancel_callback_and_wait2(&worker->m_callback);
-  tracker_thread::thread()->cancel_callback_and_wait2(&worker->m_callback);
+Manager::add_event_or_update(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event) {
+  // We can't use weak_ptr here as m_callback will be deleted.
+  auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
+
+  if (!tracker.is_valid())
+    return tracker_thread::manager()->update_tracker(std::move(tracker));
+
+  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [tracker, tl_keeper, event = std::move(event)]() mutable {
+      auto tl_keeper_shared = tl_keeper.lock();
+
+      if (!tl_keeper_shared)
+        return tracker_thread::manager()->update_tracker(std::move(tracker));
+
+      event(tracker);
+    });
 }
 
 void
@@ -145,8 +151,11 @@ Manager::update_tracker(const Tracker& tracker) {
 
   // There might have been an old callback queued before tracker list got deleted, so wait for the
   // currently processing request to finish.
-  if (tracker.is_requesting_not_dht_scrape())
-    return;
+  //
+  // TrackerWorker::remove_events() would have removed the event, so don't check.
+
+  // if (tracker.is_requesting_not_dht_scrape())
+  //   return;
 
   auto itr = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
 

@@ -9,6 +9,10 @@
 #include <torrent/tracker/tracker.h>
 #include <torrent/tracker/wrappers.h>
 
+namespace torrent {
+class TrackerWorker;
+}
+
 namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT Manager {
@@ -20,6 +24,7 @@ protected:
   friend class torrent::DownloadMain;
   friend class torrent::DownloadWrapper;
   friend class torrent::TrackerList;
+  friend class torrent::TrackerWorker;
   friend class torrent::ThreadTracker;
 
   // Main thread:
@@ -33,7 +38,7 @@ protected:
   // Any thread:
 
   void                add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event);
-  void                remove_events(TrackerWorker* worker);
+  void                add_event_or_update(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event);
 
   void                update_tracker(const Tracker& tracker);
 

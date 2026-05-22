@@ -121,11 +121,11 @@ TrackerHttp::close_directly() {
     // LT_LOG("closing directly (already closed) : state:%s url:%s",
     //        option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
-    m_slot_close();
+    remove_events();
     return;
   }
 
-  m_slot_close();
+  remove_events();
 
   m_get.close_and_cancel_callbacks(this_thread::thread());
   m_data.reset();

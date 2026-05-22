@@ -77,8 +77,7 @@ TrackerDht::close() {
   //   throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
 
   update_requesting_state();
-
-  m_slot_close();
+  remove_events();
 }
 
 void
