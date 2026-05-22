@@ -2,6 +2,7 @@
 
 #include "tracker/tracker_list.h"
 
+#include <cassert>
 #include <functional>
 #include <random>
 
@@ -227,12 +228,14 @@ TrackerList::insert(const tracker::Tracker& tracker) {
     };
 
   worker->m_slot_new_peers = [this, lifetime_keeper, weak_ptr](AddressList&& l) {
-      auto tl_keeper = lifetime_keeper.lock();
+      main_thread::thread()->callback([this, lifetime_keeper, l = std::move(l)]() {
+          auto tl_keeper = lifetime_keeper.lock();
 
-      if (!tl_keeper || !m_slot_new_peers)
-        return;
+          if (!tl_keeper || !m_slot_new_peers)
+            return;
 
-      receive_new_peers(const_cast<AddressList*>(&l));
+          receive_new_peers(const_cast<AddressList*>(&l));
+        });
     };
 
   LT_LOG("added tracker : requester:%p group:%u url:%s", worker, itr->group(), itr->url().c_str());
@@ -385,6 +388,8 @@ TrackerList::randomize_group_entries() {
 
 void
 TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   LT_LOG("received %zu peers : requester:%p group:%u url:%s",
          l->size(), tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
@@ -426,6 +431,8 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
 
 void
 TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
@@ -450,6 +457,8 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
 
 void
 TrackerList::receive_scrape_success(tracker::Tracker tracker) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   LT_LOG("received scrape success : requester:%p group:%u url:%s",
          tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
@@ -473,6 +482,8 @@ TrackerList::receive_scrape_success(tracker::Tracker tracker) {
 
 void
 TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& msg) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
@@ -490,16 +501,21 @@ TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& 
 
 void
 TrackerList::receive_new_peers(AddressList* l) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
+  // TODO: Use weak_ptr argument, then do proper logging if the tracker is still valid. Move more of
+  // this logic to TrackerWorker.
   LT_LOG("received new peers : size:%zu", l->size());
 
   l->sort_and_unique();
 
   m_slot_new_peers(l);
 
-  // auto new_peers = m_slot_new_peers(l);
+  // auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
 
-  // {
+  // if (tracker.is_valid()) {
   //   auto guard = tracker.get_worker()->lock_guard();
+
   //   tracker.get_worker()->state().m_latest_new_peers_delta += new_peers;
   // }
 }
