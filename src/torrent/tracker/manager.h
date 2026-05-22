@@ -32,7 +32,7 @@ protected:
 
   // Any thread:
 
-  void                add_event(TrackerWorker* worker, std::function<void ()>&& event);
+  void                add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event);
   void                remove_events(TrackerWorker* worker);
 
   void                update_tracker(const Tracker& tracker);

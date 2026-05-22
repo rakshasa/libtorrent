@@ -27,7 +27,7 @@ AC_PROG_CXX
 # Filter out unwanted flags added by autoconf on some systems, e.g. MacOS.
 TORRENT_REMOVE_UNWANTED(CXX, $CXX, -std=c++11 -std=gnu++11)
 
-AX_CXX_COMPILE_STDCXX(17, noext, mandatory)
+AX_CXX_COMPILE_STDCXX(20, noext, mandatory)
 
 AC_SYS_LARGEFILE
 

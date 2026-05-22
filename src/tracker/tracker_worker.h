@@ -91,6 +91,7 @@ private:
   TrackerWorker& operator=(const TrackerWorker&) = delete;
 
   mutable std::mutex    m_mutex;
+  std::atomic<uint32_t> m_callback{};
 
   TrackerInfo           m_info;
 

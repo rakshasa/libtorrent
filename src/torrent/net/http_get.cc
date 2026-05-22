@@ -113,11 +113,9 @@ HttpGet::prefer_ipv6() {
 }
 
 void
-HttpGet::add_done_slot(const std::function<void()>& slot) {
+HttpGet::add_done_slot(system::Thread* thread, const std::function<void()>& slot) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
-
-  auto thread = this_thread::thread();
 
   m_curl_get->add_done_slot([thread, slot, curl_get = m_curl_get.get()]() {
       thread->callback(curl_get, [slot]() {
@@ -127,11 +125,9 @@ HttpGet::add_done_slot(const std::function<void()>& slot) {
 }
 
 void
-HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
+HttpGet::add_failed_slot(system::Thread* thread, const std::function<void(const std::string&)>& slot) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_failed_slot() called on an invalid HttpGet object.");
-
-  auto thread = this_thread::thread();
 
   m_curl_get->add_failed_slot([thread, slot, curl_get = m_curl_get.get()](const std::string& error) {
       thread->callback(curl_get, [slot, error]() {

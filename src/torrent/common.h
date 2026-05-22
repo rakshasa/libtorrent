@@ -98,6 +98,7 @@ class SocketManager;
 namespace tracker {
 
 class DhtController;
+class Manager;
 class Tracker;
 
 } // namespace tracker
@@ -189,6 +190,8 @@ std::thread::id          thread_id() LIBTORRENT_EXPORT;
 void                     callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
 void                     cancel_callback(void* target) LIBTORRENT_EXPORT;
 void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
+
+tracker::Manager*        manager() LIBTORRENT_EXPORT;
 
 } // namespace torrent::tracker_thread
 

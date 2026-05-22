@@ -82,7 +82,7 @@ Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::Tr
 
   auto weak_ptr = tracker.get_weak_ptr();
 
-  tracker_thread::thread()->callback(nullptr, [weak_ptr, params, new_event]() {
+  tracker_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, params, new_event]() {
       auto tracker = weak_ptr.lock();
 
       if (tracker == nullptr)
@@ -98,7 +98,7 @@ Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
 
   auto weak_ptr = tracker.get_weak_ptr();
 
-  tracker_thread::thread()->callback(nullptr, [weak_ptr, params]() {
+  tracker_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, params]() {
       auto tracker = weak_ptr.lock();
 
       if (tracker == nullptr)
@@ -109,14 +109,34 @@ Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
 }
 
 void
-Manager::add_event(TrackerWorker* worker, std::function<void ()>&& event) {
-  main_thread::thread()->callback(worker, std::move(event));
+Manager::add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event) {
+  auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
+
+  if (!tracker.is_valid())
+    return;
+
+  // TODO: We can't use weak_ptr here as m_callback will be deleted.
+
+  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, tl_keeper, event = std::move(event)]() {
+      // auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
+
+      // if (!tracker.is_valid())
+      //   return;
+
+      auto tl_keeper_shared = tl_keeper.lock();
+
+      if (!tl_keeper_shared)
+        return;
+
+      event(tracker);
+    });
 }
 
+// TODO: Remove.
 void
 Manager::remove_events(torrent::TrackerWorker* worker) {
-  main_thread::thread()->cancel_callback_and_wait(worker);
-  tracker_thread::thread()->cancel_callback_and_wait(worker);
+  main_thread::thread()->cancel_callback_and_wait2(&worker->m_callback);
+  tracker_thread::thread()->cancel_callback_and_wait2(&worker->m_callback);
 }
 
 void
@@ -128,13 +148,13 @@ Manager::update_tracker(const Tracker& tracker) {
   if (tracker.is_requesting_not_dht_scrape())
     return;
 
-  auto itr   = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
+  auto itr = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
 
   if (itr == m_trackers_to_wait.end())
     return;
 
   if (m_trackers_to_delete.empty())
-    tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+    tracker_thread::thread()->callback([this] { process_delete_trackers(); });
 
   m_trackers_to_wait.erase(itr);
   m_trackers_to_delete.push_back(tracker);
@@ -150,7 +170,7 @@ Manager::delete_tracker(Tracker tracker) {
   }
 
   if (m_trackers_to_delete.empty())
-    tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+    tracker_thread::thread()->callback([this] { process_delete_trackers(); });
 
   m_trackers_to_delete.push_back(tracker);
 }
@@ -166,7 +186,7 @@ Manager::delete_trackers(std::vector<Tracker>&& trackers) {
     }
 
     if (m_trackers_to_delete.empty())
-      tracker_thread::thread()->callback(nullptr, [this] { process_delete_trackers(); });
+      tracker_thread::thread()->callback([this] { process_delete_trackers(); });
 
     m_trackers_to_delete.push_back(std::move(tracker));
   }
@@ -174,6 +194,8 @@ Manager::delete_trackers(std::vector<Tracker>&& trackers) {
 
 void
 Manager::process_delete_trackers() {
+  assert(std::this_thread::get_id() == tracker_thread::thread_id());
+
   std::vector<Tracker> trackers;
 
   {

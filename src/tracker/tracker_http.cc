@@ -37,8 +37,8 @@ TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
 
   m_get.reset(raw_info.url, nullptr);
 
-  m_get.add_done_slot([this] { receive_done(); });
-  m_get.add_failed_slot([this](const auto& str) { receive_signal_failed(str); });
+  m_get.add_done_slot(tracker_thread::thread(), [this] { receive_done(); });
+  m_get.add_failed_slot(tracker_thread::thread(), [this](const auto& str) { receive_signal_failed(str); });
 
   m_delay_scrape.slot() = [this] { delayed_send_scrape(); };
 
@@ -506,9 +506,9 @@ TrackerHttp::process_failure(const Object& object) {
     state().set_min_interval(object.get_key_value("min interval"));
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
-    state().m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
+    state().m_scrape_complete   = std::max<int64_t>(object.get_key_value("complete"), 0);
     state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-    state().m_scrape_time_last = this_thread::cached_seconds().count();
+    state().m_scrape_time_last  = this_thread::cached_seconds().count();
   }
 
   if (object.has_key_value("downloaded"))
@@ -534,9 +534,9 @@ TrackerHttp::process_success(const Object& object) {
       state().set_min_interval(tracker::TrackerState::default_min_interval);
 
     if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
-      state().m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
+      state().m_scrape_complete   = std::max<int64_t>(object.get_key_value("complete"), 0);
       state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-      state().m_scrape_time_last = this_thread::cached_seconds().count();
+      state().m_scrape_time_last  = this_thread::cached_seconds().count();
     }
 
     if (object.has_key_value("downloaded"))

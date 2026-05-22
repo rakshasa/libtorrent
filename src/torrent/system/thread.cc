@@ -21,7 +21,7 @@
 
 namespace torrent::system {
 
-thread_local Thread* Thread::m_self{nullptr};
+thread_local Thread* Thread::m_self{};
 
 Thread::~Thread() = default;
 
@@ -141,6 +141,66 @@ Thread::cancel_callback_and_wait(void* target) {
 
     // Remove 'target' again in case it was added by the processed callback.
     cancel_callback(target);
+  }
+}
+
+void
+Thread::callback(std::function<void ()>&& fn) {
+  {
+    auto lock = std::lock_guard(m_callbacks_lock);
+
+    m_callbacks2.push_back({nullptr, std::move(fn), 0});
+  }
+
+  interrupt();
+}
+
+void
+Thread::callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) {
+  assert(id != nullptr);
+
+  auto previous_id = id->fetch_add(1, std::memory_order_relaxed);
+
+  if (previous_id == 0xf)
+    throw internal_error("Thread::callback() lower id overflow.");
+
+  {
+    auto guard = std::scoped_lock(m_callbacks_lock);
+
+    if (m_callbacks.empty())
+      m_callbacks2.reserve(16);
+
+    m_callbacks2.push_back({id, std::move(fn), previous_id & ~0xf});
+  }
+
+  id->fetch_sub(1, std::memory_order_release);
+
+  interrupt();
+}
+
+void
+Thread::cancel_callback2(std::atomic<uint32_t>* id) {
+  assert(id != nullptr);
+
+  id->fetch_add(0x10, std::memory_order_release);
+}
+
+
+void
+Thread::cancel_callback_and_wait2(std::atomic<uint32_t>* id) {
+  assert(id != nullptr);
+
+  while (true) {
+    auto current_id = id->load(std::memory_order_acquire);
+    auto counter    = (current_id & 0xf);
+
+    if (counter != 0 || (counter == 1 && m_callback_processing_id != id)) {
+      id->wait(current_id, std::memory_order_acquire);
+      continue;
+    }
+
+    if (id->compare_exchange_weak(current_id, current_id + 0x10, std::memory_order_acquire))
+      break;
   }
 }
 
@@ -321,6 +381,50 @@ Thread::process_callbacks(bool only_interrupt) {
 
     m_callbacks_processing = false;
     m_callbacks_processing_lock.unlock();
+  }
+
+  if (!only_interrupt)
+    process_callbacks2();
+}
+
+void
+Thread::process_callbacks2() {
+  while (true) {
+    std::vector<callback_type> callbacks;
+
+    {
+      auto guard = std::scoped_lock(m_callbacks_lock);
+
+      callbacks.swap(m_callbacks2);
+    }
+
+    if (callbacks.empty())
+      break;
+
+    for (auto& callback : callbacks) {
+      if (callback.id == nullptr) {
+        callback.fn();
+        continue;
+      }
+
+      auto previous_id = callback.id->fetch_add(1, std::memory_order_relaxed);
+
+      if (previous_id == 0xf)
+        throw internal_error("Thread::process_callbacks() lower id overflow.");
+
+      if ((previous_id & ~0xf) != callback.expected_id) {
+        callback.id->fetch_sub(1, std::memory_order_release);
+        callback.id->notify_all();
+        continue;
+      }
+
+      m_callback_processing_id = callback.id;
+      callback.fn();
+      m_callback_processing_id = nullptr;
+
+      callback.id->fetch_sub(1, std::memory_order_release);
+      callback.id->notify_all();
+    }
   }
 }
 
