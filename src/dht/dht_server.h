@@ -51,10 +51,10 @@ public:
   void                find_node(const DhtBucket& contacts, const HashString& target);
 
   // Do DHT announce, starting with the given contacts.
-  void                announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker);
+  void                announce(const DhtBucket& contacts, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker);
 
   // Cancel given announce for given tracker, or all matching announces if info/tracker NULL.
-  void                cancel_announce(const HashString* info_hash, const TrackerDht* tracker);
+  void                cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
 
   // Called every 15 minutes.
   void                update();

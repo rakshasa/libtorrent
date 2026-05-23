@@ -274,7 +274,11 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && runtime::network_manager()->is_dht_valid()) {
     // TODO: Don't check TrackerDht::is_allowed().
-    worker = std::make_shared<TrackerDht>(tracker_info, flags);
+
+    auto dht_tracker = std::make_shared<TrackerDht>(tracker_info, flags);
+    dht_tracker->set_weak_tracker(dht_tracker);
+
+    worker = std::move(dht_tracker);
 
   } else {
     LT_LOG("could find matching tracker protocol : url:%s", url.c_str());

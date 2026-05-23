@@ -67,6 +67,7 @@ protected:
   std::string         tracker_id_safe() const;
   void                set_tracker_id_safe(const std::string& id);
 
+  auto*               callback_ptr()                        { return &m_callback; }
   void                remove_events();
 
   tracker::TrackerState&       state()                      { return m_state; }

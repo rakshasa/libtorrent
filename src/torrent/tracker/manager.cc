@@ -117,7 +117,12 @@ Manager::add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl
   if (!tracker.is_valid())
     return;
 
-  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [tracker, tl_keeper, event = std::move(event)]() mutable {
+  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, tl_keeper, event = std::move(event)]() mutable {
+      auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
+
+      if (!tracker.is_valid())
+        return;
+
       auto tl_keeper_shared = tl_keeper.lock();
 
       if (!tl_keeper_shared)
@@ -135,7 +140,12 @@ Manager::add_event_or_update(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_pt
   if (!tracker.is_valid())
     return tracker_thread::manager()->update_tracker(std::move(tracker));
 
-  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [tracker, tl_keeper, event = std::move(event)]() mutable {
+  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, tl_keeper, event = std::move(event)]() mutable {
+      auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
+
+      if (!tracker.is_valid())
+        return;
+
       auto tl_keeper_shared = tl_keeper.lock();
 
       if (!tl_keeper_shared)
