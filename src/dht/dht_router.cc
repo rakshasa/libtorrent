@@ -126,14 +126,14 @@ DhtRouter::stop() {
 
 // Start a DHT get_peers and announce_peer request.
 void
-DhtRouter::announce(const HashString& info_hash, TrackerDht* tracker) {
+DhtRouter::announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker) {
   m_server.announce(*find_bucket(info_hash)->second, info_hash, tracker);
 }
 
 // Cancel any running requests from the given tracker.
 // If info or tracker is not NULL, only cancel matching requests.
 void
-DhtRouter::cancel_announce(const HashString* info_hash, const TrackerDht* tracker) {
+DhtRouter::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker) {
   m_server.cancel_announce(info_hash, tracker);
 }
 

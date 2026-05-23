@@ -17,4 +17,10 @@ TrackerWorker::~TrackerWorker() noexcept(false) {
     throw internal_error("TrackerWorker destroyed without being marked as deleted.");
 }
 
+void
+TrackerWorker::remove_events() {
+  main_thread::cancel_callback_and_wait2(&m_callback);
+  tracker_thread::cancel_callback_and_wait2(&m_callback);
+}
+
 }  // namespace torrent

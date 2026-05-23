@@ -204,7 +204,7 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
 }
 
 void
-DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker) {
+DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker) {
   auto announce = std::make_shared<dht::DhtAnnounce>(this, infoHash, tracker);
   announce->add_contacts(contacts);
 
@@ -225,7 +225,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, Track
 }
 
 void
-DhtServer::cancel_announce(const HashString* info_hash, const TrackerDht* tracker) {
+DhtServer::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker) {
   auto itr = m_transactions.begin();
 
   // TODO: Verify this removes us from m_searches.
@@ -237,7 +237,9 @@ DhtServer::cancel_announce(const HashString* info_hash, const TrackerDht* tracke
       if (announce == nullptr)
         throw internal_error("DhtServer::cancel_announce dynamic_cast to DhtAnnounce failed.");
 
-      if ((info_hash == nullptr || announce->target() == *info_hash) && (tracker == nullptr || announce->tracker() == tracker)) {
+      bool tracker_match = !tracker.owner_before(announce->tracker()) && !announce->tracker().owner_before(tracker);
+
+      if (announce->target() == info_hash && (tracker.expired() || tracker_match)) {
         drop_packet(itr->second->packet().get());
         m_transactions.erase(itr++);
         continue;

@@ -98,7 +98,7 @@ public:
   void                receive_failed(tracker::Tracker tracker, const std::string& msg);
   void                receive_scrape_success(tracker::Tracker tracker);
   void                receive_scrape_failed(tracker::Tracker tracker, const std::string& msg);
-  void                receive_new_peers(tracker::Tracker tracker, AddressList* l);
+  void                receive_new_peers(AddressList* l);
 
   auto&               slot_success()                          { return m_slot_success; }
   auto&               slot_failure()                          { return m_slot_failed; }

@@ -11,6 +11,10 @@
 
 namespace torrent {
 
+namespace dht {
+class DhtAnnounce;
+}
+
 // Until we make throttle and rate thread-safe, we keep dht router in main thread.
 //
 // Both implemenation will require that interacting with dht router is thread safe, so we still need
@@ -35,6 +39,8 @@ public:
 
   void                close() override;
 
+  void                set_weak_tracker(std::weak_ptr<TrackerDht> weak_tracker);
+
   state_type          dht_state() const;
   void                set_dht_announce_state();
 
@@ -48,10 +54,17 @@ public:
   void                receive_failed(const char* msg);
   void                receive_progress(int replied, int contacted);
 
+protected:
+  friend class torrent::dht::DhtAnnounce;
+
+  static void         add_event(std::weak_ptr<TrackerDht> weak_tracker, std::function<void (TrackerDht*)>&& event);
+
 private:
   void                cleanup() override;
 
   void                update_requesting_state();
+
+  std::weak_ptr<TrackerDht> m_weak_tracker;
 
   tracker::TrackerParams  m_params;
   AddressList             m_peers;
@@ -63,6 +76,8 @@ private:
 
   utils::SchedulerEntry   m_delay_clear_state;
 };
+
+inline void TrackerDht::set_weak_tracker(std::weak_ptr<TrackerDht> weak_tracker) { m_weak_tracker = std::move(weak_tracker); }
 
 inline TrackerDht::state_type TrackerDht::dht_state() const        { return m_dht_state; }
 inline int                    TrackerDht::replied() const          { return m_replied; }

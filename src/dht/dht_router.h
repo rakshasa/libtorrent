@@ -44,8 +44,8 @@ public:
   bool                is_active()                        { return m_server.is_active(); }
 
   // Pass NULL to cancel_announce to cancel all announces for the tracker.
-  void                announce(const HashString& info_hash, TrackerDht* tracker);
-  void                cancel_announce(const HashString* info_hash, const TrackerDht* tracker);
+  void                announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
+  void                cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
 
   // Returns NULL if not tracking the torrent unless create is true.
   DhtTracker*         get_tracker(const HashString& hash, bool create);

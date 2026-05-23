@@ -2,6 +2,8 @@
 
 #include "tracker/tracker_dht.h"
 
+#include <cassert>
+
 #include "dht/dht_router.h"
 #include "manager.h"
 #include "torrent/exceptions.h"
@@ -34,6 +36,8 @@ TrackerDht::type() const {
 
 void
 TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) {
+  assert(!m_weak_tracker.expired());
+
   LT_LOG("sending event : state:%s dht_state:%s replied:%d contacted:%d",
          option_as_string(OPTION_TRACKER_EVENT, new_state), states[m_dht_state], m_replied.load(), m_contacted.load());
 
@@ -52,7 +56,7 @@ TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
 
   update_requesting_state();
 
-  runtime::network_manager()->dht_controller()->announce(info().info_hash, this);
+  runtime::network_manager()->dht_controller()->announce(info().info_hash, m_weak_tracker);
 
   state().set_normal_interval(20 * 60);
   state().set_min_interval(0);
@@ -65,31 +69,36 @@ TrackerDht::send_scrape([[maybe_unused]] tracker::TrackerParams params) {
 
 void
 TrackerDht::close() {
+  assert(std::this_thread::get_id() == tracker_thread::thread_id());
+  assert(!m_weak_tracker.expired());
+
   LT_LOG("closing event : dht_state:%s replied:%d contacted:%d",
          states[m_dht_state], m_replied.load(), m_contacted.load());
 
   this_thread::scheduler()->erase(&m_delay_clear_state);
 
-  runtime::network_manager()->dht_controller()->cancel_announce(&info().info_hash, this);
+  runtime::network_manager()->dht_controller()->cancel_announce(info().info_hash, m_weak_tracker);
 
   // TODO: Moved check from send_event(), verify if this is correct.
   // if (m_dht_state != state_idle)
   //   throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
 
   update_requesting_state();
-
-  m_slot_close();
+  remove_events();
 }
 
 void
 TrackerDht::cleanup() {
+  assert(std::this_thread::get_id() == tracker_thread::thread_id());
+  assert(!m_weak_tracker.expired());
+
   this_thread::scheduler()->erase(&m_delay_clear_state);
 
   // This still queues a cancel request, however 'this' is never accessed.
   //
   // Even if we accidentally create a new TrackerDht with the same address, the cancel request will
   // not do anything harmful.
-  runtime::network_manager()->dht_controller()->cancel_announce_and_wait(nullptr, this);
+  runtime::network_manager()->dht_controller()->cancel_announce(info().info_hash, m_weak_tracker);
 
   auto guard = lock_guard();
   state().m_flags |= tracker::TrackerState::flag_deleted;
@@ -98,6 +107,8 @@ TrackerDht::cleanup() {
 // TODO: We don't really need to track announcing state in Tracker?
 void
 TrackerDht::set_dht_announce_state() {
+  assert(std::this_thread::get_id() == tracker_thread::thread_id());
+
   this_thread::scheduler()->wait_for_ceil_seconds(&m_delay_clear_state, 2min);
 
   m_dht_state = state_announcing;
@@ -164,7 +175,26 @@ TrackerDht::receive_progress(int replied, int contacted) {
 }
 
 void
+TrackerDht::add_event(std::weak_ptr<TrackerDht> weak_tracker, std::function<void (TrackerDht*)>&& event) {
+  auto tracker = weak_tracker.lock();
+
+  if (tracker == nullptr)
+    return;
+
+  tracker_thread::callback2(tracker->callback_ptr(), [weak_tracker, event = std::move(event)]() mutable {
+      auto tracker = weak_tracker.lock();
+
+      if (tracker == nullptr)
+        return;
+
+      event(tracker.get());
+    });
+}
+
+void
 TrackerDht::update_requesting_state() {
+  assert(std::this_thread::get_id() == tracker_thread::thread_id());
+
   auto guard = lock_guard();
 
   if (m_dht_state != state_announcing)
