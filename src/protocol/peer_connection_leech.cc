@@ -253,6 +253,9 @@ PeerConnection<type>::read_message() {
     if (type != Download::CONNECTION_LEECH)
       throw communication_error("Received a piece but the connection is strictly for seeding.");
 
+    if (length < 9)
+      throw communication_error("Received a piece message that was too short.");
+
     if (!m_down->can_read_piece_body())
       break;
 
