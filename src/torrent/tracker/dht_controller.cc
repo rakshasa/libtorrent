@@ -153,35 +153,33 @@ DhtController::reset_statistics() {
   m_router->reset_statistics();
 }
 
+// We don't care about the tracker or download being deleted as that's a rare edge-case that's
+// unnessesary to optimize for.
+//
+// Instead we depend on the callbacks from DHT to check if weak_ptr is expired.
+
 void
-DhtController::announce(const HashString& info_hash, TrackerDht* tracker) {
-  main_thread::callback(tracker, [this, info_hash, tracker] {
+DhtController::announce(const HashString& info_hash, std::weak_ptr<TrackerDht> weak_tracker) {
+  main_thread::callback([this, info_hash, weak_tracker] {
       auto lock = std::lock_guard(m_lock);
 
       if (!m_router)
         throw internal_error("DhtController::announce() called but DHT not initialized.");
 
-      m_router->announce(info_hash, tracker);
+      m_router->announce(info_hash, weak_tracker);
     });
 }
 
 void
-DhtController::cancel_announce(const HashString* info_hash, TrackerDht* tracker) {
-  main_thread::callback(tracker, [this, info_hash, tracker] {
+DhtController::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> weak_tracker) {
+  main_thread::callback([this, info_hash, weak_tracker] {
       auto lock = std::lock_guard(m_lock);
 
       if (!m_router)
         throw internal_error("DhtController::cancel_announce() called but DHT not initialized.");
 
-      m_router->cancel_announce(info_hash, tracker);
+      m_router->cancel_announce(info_hash, weak_tracker);
     });
-}
-
-void
-DhtController::cancel_announce_and_wait(const HashString* info_hash, TrackerDht* tracker) {
-  main_thread::cancel_callback_and_wait(tracker);
-
-  cancel_announce(info_hash, tracker);
 }
 
 } // namespace torrent::tracker

@@ -61,7 +61,7 @@ DownloadMain::DownloadMain()
   m_delegator.transfer_list()->slot_corrupt()   = [this](auto i) { receive_corrupt_chunk(i); };
 
   m_delay_disconnect_peers.slot() = [this] { m_connectionList->disconnect_queued(); };
-  m_task_tracker_request.slot()     = [this] { receive_tracker_request(); };
+  m_task_tracker_request.slot()   = [this] { receive_tracker_request(); };
 
   m_chunkList->set_data(file_list()->mutable_data());
 
@@ -186,6 +186,8 @@ void DownloadMain::start(int flags) {
 
 void
 DownloadMain::stop() {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   if (!info()->is_active())
     return;
 
@@ -333,6 +335,8 @@ DownloadMain::receive_connect_peers() {
 
 void
 DownloadMain::receive_tracker_success() {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   if (!info()->is_active())
     return;
 

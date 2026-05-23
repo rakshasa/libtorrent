@@ -12,17 +12,22 @@ namespace torrent {
 
 namespace main_thread {
 
-system::Thread* thread()                                            { return ThreadMain::thread_base(); }
-std::thread::id thread_id()                                         { return ThreadMain::thread_base()->thread_id(); }
+system::Thread* thread()                                                          { return ThreadMain::thread_base(); }
+std::thread::id thread_id()                                                       { return ThreadMain::thread_base()->thread_id(); }
 
-void            callback(void* target, std::function<void ()>&& fn) { ThreadMain::thread_base()->callback(target, std::move(fn)); }
-void            cancel_callback(void* target)                       { ThreadMain::thread_base()->cancel_callback(target); }
-void            cancel_callback_and_wait(void* target)              { ThreadMain::thread_base()->cancel_callback_and_wait(target); }
+void            callback(void* target, std::function<void ()>&& fn)               { ThreadMain::thread_base()->callback(target, std::move(fn)); }
+void            cancel_callback(void* target)                                     { ThreadMain::thread_base()->cancel_callback(target); }
+void            cancel_callback_and_wait(void* target)                            { ThreadMain::thread_base()->cancel_callback_and_wait(target); }
 
-void            set_client_callback(std::function<void()> fn)       { ThreadMain::thread_main()->set_client_callback(std::move(fn)); }
+void            callback(std::function<void ()>&& fn)                             { ThreadMain::thread_base()->callback(std::move(fn)); }
+void            callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) { ThreadMain::thread_base()->callback2(id, std::move(fn)); }
+void            cancel_callback2(std::atomic<uint32_t>* id)                       { ThreadMain::thread_base()->cancel_callback2(id); }
+void            cancel_callback_and_wait2(std::atomic<uint32_t>* id)              { ThreadMain::thread_base()->cancel_callback_and_wait2(id); }
+
+void            set_client_callback(std::function<void()> fn)                     { ThreadMain::thread_main()->set_client_callback(std::move(fn)); }
 
 // TODO: Not thread safe.
-uint32_t        hash_queue_size()                                   { return ThreadMain::thread_main()->hash_queue()->size(); }
+uint32_t        hash_queue_size()                                                 { return ThreadMain::thread_main()->hash_queue()->size(); }
 
 } // namespace main_thread
 

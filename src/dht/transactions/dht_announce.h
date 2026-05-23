@@ -20,12 +20,12 @@ namespace torrent::dht {
 
 class DhtAnnounce : public DhtSearch {
 public:
-  DhtAnnounce(DhtServer* server, const HashString& infoHash, TrackerDht* tracker);
+  DhtAnnounce(DhtServer* server, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker);
   ~DhtAnnounce() override;
 
   bool                 is_announce() const override      { return true; }
 
-  const TrackerDht*    tracker() const                   { return m_tracker; }
+  const auto&          tracker() const                   { return m_tracker; }
 
   // Start announce and return final set of nodes in get_contact() calls.
   // This resets DhtSearch's completed() function, which now
@@ -36,7 +36,7 @@ public:
   void                 update_status();
 
 private:
-  TrackerDht*          m_tracker;
+  std::weak_ptr<TrackerDht> m_tracker;
 };
 
 } // namespace torrent::dht

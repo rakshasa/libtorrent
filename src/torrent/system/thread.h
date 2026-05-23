@@ -6,6 +6,7 @@
 #include <map>
 #include <mutex>
 #include <pthread.h>
+#include <vector>
 #include <sys/types.h>
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
@@ -79,6 +80,12 @@ public:
   void                cancel_callback(void* target);
   void                cancel_callback_and_wait(void* target);
 
+  void                callback(std::function<void ()>&& fn);
+  void                callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn);
+
+  void                cancel_callback2(std::atomic<uint32_t>* id);
+  void                cancel_callback_and_wait2(std::atomic<uint32_t>* id);
+
   void                interrupt();
   void                send_event_signal(unsigned int index, bool interrupt = true);
 
@@ -114,8 +121,15 @@ protected:
   void                process_events();
   void                process_events_without_cached_time();
   void                process_callbacks(bool only_interrupt = false);
+  void                process_callbacks2();
 
   void                set_cached_time(std::chrono::microseconds t);
+
+  struct callback_type {
+    std::atomic<uint32_t>*  id;
+    std::function<void ()>  fn;
+    uint32_t                expected_id;
+  };
 
   static thread_local Thread*  m_self;
 
@@ -142,6 +156,9 @@ protected:
   std::multimap<const void*, std::function<void ()>> m_callbacks;
   std::multimap<const void*, std::function<void ()>> m_interrupt_callbacks;
   std::atomic<bool>                                  m_callbacks_should_interrupt_polling{false};
+
+  std::vector<callback_type>                         m_callbacks2;
+  std::atomic<std::atomic<uint32_t>*>                m_callback_processing_id{};
 
   std::mutex                                         m_callbacks_processing_lock;
   std::atomic<bool>                                  m_callbacks_processing{false};
