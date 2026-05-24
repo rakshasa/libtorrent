@@ -17,9 +17,7 @@ namespace torrent::net {
 class CurlGet;
 class CurlSocket;
 
-// Since std::hardware_destructive_interference_size only got added in gcc 12.1
-
-class alignas(LT_SMP_CACHE_BYTES) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
+class align_cacheline CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
   using base_type       = std::vector<std::shared_ptr<CurlGet>>;
   using socket_map_type = std::map<curl_socket_t, std::unique_ptr<CurlSocket>>;

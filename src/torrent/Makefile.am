@@ -78,6 +78,7 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/socket_manager.cc \
 	runtime/socket_manager.h \
 \
+	system/callbacks.h \
 	system/system.cc \
 	system/system.h \
 	system/thread.cc \
@@ -207,6 +208,7 @@ libtorrent_torrent_runtime_include_HEADERS = \
 
 libtorrent_torrent_system_includedir = $(includedir)/torrent/system
 libtorrent_torrent_system_include_HEADERS = \
+	system/callbacks.h \
 	system/system.h \
 	system/thread.h
 

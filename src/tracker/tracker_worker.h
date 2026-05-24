@@ -67,7 +67,7 @@ protected:
   std::string         tracker_id_safe() const;
   void                set_tracker_id_safe(const std::string& id);
 
-  auto*               callback_ptr()                        { return &m_callback; }
+  auto&               callback_id()                         { return m_callback_id; }
   void                remove_events();
 
   tracker::TrackerState&       state()                      { return m_state; }
@@ -92,15 +92,16 @@ private:
   TrackerWorker(const TrackerWorker&) = delete;
   TrackerWorker& operator=(const TrackerWorker&) = delete;
 
-  mutable std::mutex    m_mutex;
-  std::atomic<uint32_t> m_callback{};
+  system::callback_id   m_callback_id;
+
+  align_cacheline mutable std::mutex m_mutex;
 
   TrackerInfo           m_info;
 
   tracker::TrackerState m_state{};
   std::string           m_tracker_id;
 
-  std::mutex            __force_new_cacheline;
+  align_cacheline bool  __force_new_cacheline;
 };
 
 inline void

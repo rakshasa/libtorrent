@@ -5,7 +5,25 @@
 #include <cerrno>
 #include <cstdio>
 
+#include "torrent/exceptions.h"
+#include "torrent/system/thread.h"
+
 namespace torrent::system {
+
+void
+cancel_callback_and_wait(callback_id& id, Thread* thread1, Thread* thread2) {
+  if (this_thread::thread() == thread1) {
+    thread1->cancel_callback_and_wait(id, thread2);
+    return;
+  }
+
+  if (this_thread::thread() == thread2) {
+    thread2->cancel_callback_and_wait(id, thread1);
+    return;
+  }
+
+  throw internal_error("system::cancel_callback_and_wait() neither thread is self.");
+}
 
 const char*
 errno_enum(int status) {

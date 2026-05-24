@@ -1,6 +1,8 @@
 #ifndef LIBTORRENT_TORRENT_SYSTEM_SYSTEM_H
 #define LIBTORRENT_TORRENT_SYSTEM_SYSTEM_H
 
+#include <atomic>
+#include <memory>
 #include <string>
 #include <torrent/common.h>
 

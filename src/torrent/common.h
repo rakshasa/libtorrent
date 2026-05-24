@@ -1,12 +1,15 @@
 #ifndef LIBTORRENT_COMMON_H
 #define LIBTORRENT_COMMON_H
 
+#include <new>
+#include <atomic>
 #include <cerrno>
 #include <cinttypes>
 #include <cstddef>
 #include <cstring>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <thread>
 
 struct sockaddr;
@@ -17,6 +20,12 @@ struct sockaddr_un;
 using namespace std::chrono_literals;
 
 namespace torrent {
+
+namespace system {
+
+using callback_id = std::shared_ptr<std::atomic<uint32_t>>;
+
+} // namespace system
 
 enum priority_enum {
   PRIORITY_OFF = 0,
@@ -127,6 +136,15 @@ class SchedulerEntry;
   #define LIBTORRENT_EXPORT
 #endif
 
+#ifndef __cpp_lib_hardware_interference_size
+  // TODO: Fix LT_SMP_CACHE_BYTES configure check, and make it check arch.
+  namespace std {
+    constexpr std::size_t hardware_destructive_interference_size = LT_SMP_CACHE_BYTES;
+  }
+#endif
+
+#define align_cacheline alignas(std::hardware_destructive_interference_size)
+
 namespace torrent::this_thread {
 
 torrent::system::Thread*  thread() LIBTORRENT_EXPORT;
@@ -161,11 +179,6 @@ void                     callback(void* target, std::function<void ()>&& fn) LIB
 void                     cancel_callback(void* target) LIBTORRENT_EXPORT;
 void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
 
-void                     callback(std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     cancel_callback2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
-void                     cancel_callback_and_wait2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
-
 void                     set_client_callback(std::function<void()> fn) LIBTORRENT_EXPORT;
 
 uint32_t                 hash_queue_size() LIBTORRENT_EXPORT;
@@ -195,11 +208,6 @@ std::thread::id          thread_id() LIBTORRENT_EXPORT;
 void                     callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
 void                     cancel_callback(void* target) LIBTORRENT_EXPORT;
 void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
-
-void                     callback(std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     cancel_callback2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
-void                     cancel_callback_and_wait2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
 
 tracker::Manager*        manager() LIBTORRENT_EXPORT;
 

@@ -169,13 +169,13 @@ Thread::callback(std::function<void ()>&& fn) {
 }
 
 void
-Thread::callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) {
+Thread::callback(system::callback_id& id, std::function<void ()>&& fn) {
   assert(id != nullptr);
 
   // Ensure adding callbacks for the id are completed before cancel-wait can proceed.
   auto previous_id = id->fetch_add(1, std::memory_order_relaxed);
 
-  if ((previous_id & 0xf) == 0xf)
+  if ((previous_id & 0x7) == 0x7)
     throw internal_error("Thread::callback() lower id overflow.");
 
   {
@@ -184,7 +184,7 @@ Thread::callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) {
     if (m_callbacks.empty())
       m_callbacks2.reserve(16);
 
-    m_callbacks2.push_back({id, std::move(fn), previous_id & ~0xf});
+    m_callbacks2.push_back({id, std::move(fn), previous_id & ~0x7});
   }
 
   id->fetch_sub(1, std::memory_order_release);
@@ -194,7 +194,7 @@ Thread::callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) {
 }
 
 void
-Thread::cancel_callback2(std::atomic<uint32_t>* id) {
+Thread::cancel_callback(system::callback_id& id) {
   assert(id != nullptr);
 
   id->fetch_add(0x10, std::memory_order_release);
@@ -202,12 +202,12 @@ Thread::cancel_callback2(std::atomic<uint32_t>* id) {
 
 
 void
-Thread::cancel_callback_and_wait2(std::atomic<uint32_t>* id) {
+Thread::cancel_callback_and_wait(system::callback_id& id) {
   assert(id != nullptr);
 
   while (true) {
     auto current_id = id->load(std::memory_order_acquire);
-    auto counter    = (current_id & 0xf);
+    auto counter    = (current_id & 0x7);
 
     if (counter >= 2) {
       id->wait(current_id, std::memory_order_acquire);
@@ -215,7 +215,8 @@ Thread::cancel_callback_and_wait2(std::atomic<uint32_t>* id) {
     }
 
     if (counter == 1) {
-      // Check if we ourselves are the only ones running the callback for the id, if so then skip the wait.
+      // Check if we ourselves are the only ones running the callback for the id, if so then skip
+      // the wait.
       if (m_self == nullptr || m_self->m_callback_processing_id != id) {
         id->wait(current_id, std::memory_order_acquire);
         continue;
@@ -225,6 +226,56 @@ Thread::cancel_callback_and_wait2(std::atomic<uint32_t>* id) {
     if (id->compare_exchange_weak(current_id, current_id + 0x10, std::memory_order_acquire))
       break;
   }
+}
+
+// Only two threads can share a callback id and safely use cancel_callback_and_wait().
+//
+// This still allows multiple threads to share a callback id, but only two can safely use
+// cancel_callback_and_wait().
+//
+// Review the above since the deadlock-flag should cause synchronization of multiple callers.
+
+void
+Thread::cancel_callback_and_wait(callback_id& id, Thread* other_thread) {
+  assert(id != nullptr);
+  assert(this == m_self);
+  assert(other_thread != m_self);
+
+  if (id != m_callback_processing_id) {
+    // No need to cancel self.
+    other_thread->cancel_callback_and_wait(id);
+    return;
+  }
+
+  auto wait_for_deadlock = [&id]() {
+    auto current_id = id->load(std::memory_order_acquire);
+
+    while (current_id & 0x8) {
+      id->wait(current_id, std::memory_order_acquire);
+      current_id = id->load(std::memory_order_acquire);
+    }
+  };
+
+  while (true) {
+    auto pre_deadlock_id = id->load(std::memory_order_acquire);
+
+    // The other thread is also trying to wait for cancel, so just wait.
+    if (pre_deadlock_id & 0x8) {
+      // Cancel callbacks just in case more were added after the deadlock bit was set.
+      cancel_callback(id);
+
+      wait_for_deadlock();
+      return;
+    }
+
+    if (id->compare_exchange_strong(pre_deadlock_id, pre_deadlock_id | 0x8, std::memory_order_acquire))
+      break;
+  }
+
+  // We are the first thread canceling, so cancel and notify.
+  id->fetch_add(0x10, std::memory_order_release);
+  id->fetch_and(~0x8, std::memory_order_release);
+  id->notify_all();
 }
 
 // Fix interrupting when shutting down thread.
@@ -432,10 +483,10 @@ Thread::process_callbacks2() {
 
       auto previous_id = callback.id->fetch_add(1, std::memory_order_relaxed);
 
-      if ((previous_id & 0xf) == 0xf)
+      if ((previous_id & 0x7) == 0x7)
         throw internal_error("Thread::process_callbacks() lower id overflow.");
 
-      if ((previous_id & ~0xf) != callback.expected_id) {
+      if ((previous_id & ~0x7) != callback.expected_id) {
         callback.id->fetch_sub(1, std::memory_order_release);
         callback.id->notify_all();
         continue;
