@@ -8,9 +8,8 @@
 namespace torrent {
 
 TrackerWorker::TrackerWorker(TrackerInfo info, int flags)
-  : m_info(info) {
-
-  m_callback_id = std::make_shared<std::atomic<uint32_t>>(0);
+  : m_callback_id(system::make_callback_id()),
+    m_info(info) {
 
   m_state.m_flags = flags;
 }

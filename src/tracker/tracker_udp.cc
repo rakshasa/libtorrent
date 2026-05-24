@@ -420,7 +420,7 @@ TrackerUdp::handle_udp_error(int family, [[maybe_unused]] uint32_t id, int errno
   if (errno_err != 0)
     msg += system::errno_enum(errno_err);
   else if (gai_err != 0)
-    msg += net::gai_enum_error(gai_err);
+    msg += system::gai_enum_error(gai_err);
   else
     msg += "unknown error";
 

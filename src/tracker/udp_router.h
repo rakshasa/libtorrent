@@ -120,6 +120,8 @@ private:
 
   utils::SchedulerEntry m_task_timeout;
   buffer_type           m_buffer;
+
+  system::callback_id   m_resolver_callback_id;
 };
 
 inline int UdpRouter::router_family() const { return socket_address()->sa_family; }
