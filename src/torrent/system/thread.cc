@@ -141,6 +141,16 @@ Thread::callback(system::callback_id& id, std::function<void ()>&& fn) {
 }
 
 void
+Thread::callback_interrupt(std::function<void ()>&& fn) {
+  callback(std::move(fn));
+}
+
+void
+Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) {
+  callback(id, std::move(fn));
+}
+
+void
 Thread::cancel_callback(system::callback_id& id) {
   assert(id != nullptr);
 

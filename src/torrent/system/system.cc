@@ -7,6 +7,7 @@
 #include <netdb.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/system/thread.h"
 
 namespace torrent::system {

@@ -6,27 +6,31 @@
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/system/callbacks.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
 
 namespace main_thread {
 
-system::Thread* thread()                                                       { return ThreadMain::thread_base(); }
-std::thread::id thread_id()                                                    { return ThreadMain::thread_base()->thread_id(); }
+system::Thread* thread()                                                                 { return ThreadMain::thread_base(); }
+std::thread::id thread_id()                                                              { return ThreadMain::thread_base()->thread_id(); }
 
-void            callback(void* target, std::function<void ()>&& fn)            { ThreadMain::thread_base()->callback(target, std::move(fn)); }
-void            cancel_callback(void* target)                                  { ThreadMain::thread_base()->cancel_callback(target); }
+void            callback(void* target, std::function<void ()>&& fn)                      { ThreadMain::thread_base()->callback(target, std::move(fn)); }
+void            cancel_callback(void* target)                                            { ThreadMain::thread_base()->cancel_callback(target); }
 
-void            callback(std::function<void ()>&& fn)                          { ThreadMain::thread_base()->callback(std::move(fn)); }
-void            callback(system::callback_id& id, std::function<void ()>&& fn) { ThreadMain::thread_base()->callback(id, std::move(fn)); }
-void            cancel_callback(system::callback_id& id)                       { ThreadMain::thread_base()->cancel_callback(id); }
-void            cancel_callback_and_wait(system::callback_id& id)              { ThreadMain::thread_base()->cancel_callback_and_wait(id); }
+void            callback(std::function<void ()>&& fn)                                    { ThreadMain::thread_base()->callback(std::move(fn)); }
+void            callback(system::callback_id& id, std::function<void ()>&& fn)           { ThreadMain::thread_base()->callback(id, std::move(fn)); }
+void            callback_interrupt(std::function<void ()>&& fn)                          { ThreadMain::thread_base()->callback_interrupt(std::move(fn)); }
+void            callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { ThreadMain::thread_base()->callback_interrupt(id, std::move(fn)); }
 
-void            set_client_callback(std::function<void()> fn)                  { ThreadMain::thread_main()->set_client_callback(std::move(fn)); }
+void            cancel_callback(system::callback_id& id)                                 { ThreadMain::thread_base()->cancel_callback(id); }
+void            cancel_callback_and_wait(system::callback_id& id)                        { ThreadMain::thread_base()->cancel_callback_and_wait(id); }
+
+void            set_client_callback(std::function<void()> fn)                            { ThreadMain::thread_main()->set_client_callback(std::move(fn)); }
 
 // TODO: Not thread safe.
-uint32_t        hash_queue_size()                                              { return ThreadMain::thread_main()->hash_queue()->size(); }
+uint32_t        hash_queue_size()                                                        { return ThreadMain::thread_main()->hash_queue()->size(); }
 
 } // namespace main_thread
 

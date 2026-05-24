@@ -86,6 +86,8 @@ public:
 
   void                callback(std::function<void ()>&& fn);
   void                callback(system::callback_id& id, std::function<void ()>&& fn);
+  void                callback_interrupt(std::function<void ()>&& fn);
+  void                callback_interrupt(system::callback_id& id, std::function<void ()>&& fn);
 
   void                cancel_callback(system::callback_id& id);
   void                cancel_callback_and_wait(system::callback_id& id);
@@ -167,10 +169,9 @@ protected:
   std::mutex                 m_callbacks_processing_lock;
   std::atomic<bool>          m_callbacks_processing{false};
 
-  // Only data used by self thread below:
-  align_cacheline bool __force_new_cacheline;
+  // Only data used in self thread below:
 
-  callback_id          m_callback_processing_id{};
+  align_cacheline callback_id m_callback_processing_id{};
 };
 
 inline bool

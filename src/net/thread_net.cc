@@ -14,21 +14,26 @@ namespace torrent {
 
 class ThreadNetInternal {
 public:
-  static ThreadNet*      thread_net() { return ThreadNet::internal_thread_net(); }
   static net::HttpStack* http_stack() { return ThreadNet::internal_thread_net()->http_stack(); }
 };
 
 namespace net_thread {
 
-torrent::system::Thread* thread()                                                   { return ThreadNetInternal::thread_net(); }
-std::thread::id          thread_id()                                                { return ThreadNetInternal::thread_net()->thread_id(); }
+torrent::system::Thread* thread()                                                                 { return ThreadNet::thread_net(); }
+std::thread::id          thread_id()                                                              { return ThreadNet::thread_net()->thread_id(); }
 
-void callback(void* target, std::function<void ()>&& fn)                            { ThreadNetInternal::thread_net()->callback(target, std::move(fn)); }
-void callback_interrupt_polling(void* target, std::function<void ()>&& fn)          { ThreadNetInternal::thread_net()->callback_interrupt_polling(target, std::move(fn)); }
+void callback(void* target, std::function<void ()>&& fn)                                          { ThreadNet::thread_net()->callback(target, std::move(fn)); }
+void callback_interrupt_polling(void* target, std::function<void ()>&& fn)                        { ThreadNet::thread_net()->callback_interrupt_polling(target, std::move(fn)); }
 
-void cancel_callback(void* target)                                                  { ThreadNetInternal::thread_net()->cancel_callback(target); }
+void cancel_callback(void* target)                                                                { ThreadNet::thread_net()->cancel_callback(target); }
 
-torrent::net::HttpStack* http_stack()                                               { return ThreadNetInternal::http_stack(); }
+void                     callback(std::function<void ()>&& fn)                                    { ThreadNet::thread_net()->callback(std::move(fn)); }
+void                     callback(system::callback_id& id, std::function<void ()>&& fn)           { ThreadNet::thread_net()->callback(id, std::move(fn)); }
+void                     callback_interrupt(std::function<void ()>&& fn)                          { ThreadNet::thread_net()->callback_interrupt(std::move(fn)); }
+void                     callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { ThreadNet::thread_net()->callback_interrupt(id, std::move(fn)); }
+void                     cancel_callback(system::callback_id& id)                                 { ThreadNet::thread_net()->cancel_callback(id); }
+
+torrent::net::HttpStack* http_stack()                                                             { return ThreadNetInternal::http_stack(); }
 
 } // namespace net_thread
 
