@@ -37,7 +37,7 @@ UdpRouter::UdpRouter()
 }
 
 UdpRouter::~UdpRouter() {
-  this_thread::resolver()->cancel(m_resolver_callback_id);
+  // this_thread::resolver()->cancel(m_resolver_callback_id);
 }
 
 void
