@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_COMMON_H
 #define LIBTORRENT_COMMON_H
 
+#include <new>
 #include <atomic>
 #include <cerrno>
 #include <cinttypes>
