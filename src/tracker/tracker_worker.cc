@@ -3,11 +3,14 @@
 #include "tracker_worker.h"
 
 #include "torrent/exceptions.h"
+#include "torrent/system/callbacks.h"
 
 namespace torrent {
 
 TrackerWorker::TrackerWorker(TrackerInfo info, int flags)
   : m_info(info) {
+
+  m_callback_id = std::make_shared<std::atomic<uint32_t>>(0);
 
   m_state.m_flags = flags;
 }
@@ -19,8 +22,7 @@ TrackerWorker::~TrackerWorker() noexcept(false) {
 
 void
 TrackerWorker::remove_events() {
-  main_thread::cancel_callback_and_wait2(&m_callback);
-  tracker_thread::cancel_callback_and_wait2(&m_callback);
+  system::cancel_callback_and_wait(m_callback_id, main_thread::thread(), tracker_thread::thread());
 }
 
 }  // namespace torrent

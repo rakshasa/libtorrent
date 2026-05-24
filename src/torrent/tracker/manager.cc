@@ -8,6 +8,7 @@
 #include "torrent/tracker/manager.h"
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/system/thread.h"
 #include "torrent/utils/string_manip.h"
 #include "tracker/tracker_controller.h"
@@ -83,7 +84,7 @@ Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::Tr
 
   auto weak_ptr = tracker.get_weak_ptr();
 
-  tracker_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, params, new_event]() {
+  tracker_thread::thread()->callback(tracker.get_worker()->callback_id(), [weak_ptr, params, new_event]() {
       auto tracker = weak_ptr.lock();
 
       if (tracker == nullptr)
@@ -99,7 +100,7 @@ Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
 
   auto weak_ptr = tracker.get_weak_ptr();
 
-  tracker_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, params]() {
+  tracker_thread::thread()->callback(tracker.get_worker()->callback_id(), [weak_ptr, params]() {
       auto tracker = weak_ptr.lock();
 
       if (tracker == nullptr)
@@ -111,13 +112,12 @@ Manager::send_scrape(tracker::Tracker& tracker, TrackerParams params) {
 
 void
 Manager::add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event) {
-  // We can't use weak_ptr here as m_callback will be deleted.
   auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
 
   if (!tracker.is_valid())
     return;
 
-  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, tl_keeper, event = std::move(event)]() mutable {
+  main_thread::thread()->callback(tracker.get_worker()->callback_id(), [weak_ptr, tl_keeper, event = std::move(event)]() mutable {
       auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
 
       if (!tracker.is_valid())
@@ -134,13 +134,12 @@ Manager::add_event(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl
 
 void
 Manager::add_event_or_update(std::weak_ptr<TrackerWorker> weak_ptr, std::weak_ptr<void> tl_keeper, std::function<void (Tracker&)>&& event) {
-  // We can't use weak_ptr here as m_callback will be deleted.
   auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
 
   if (!tracker.is_valid())
     return tracker_thread::manager()->update_tracker(std::move(tracker));
 
-  main_thread::thread()->callback2(&tracker.get_worker()->m_callback, [weak_ptr, tl_keeper, event = std::move(event)]() mutable {
+  main_thread::thread()->callback(tracker.get_worker()->callback_id(), [weak_ptr, tl_keeper, event = std::move(event)]() mutable {
       auto tracker = tracker::Tracker::from_weak_ptr(weak_ptr);
 
       if (!tracker.is_valid())

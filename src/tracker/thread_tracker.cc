@@ -15,19 +15,19 @@ namespace torrent {
 
 namespace tracker_thread {
 
-system::Thread*   thread()                                                          { return ThreadTracker::thread_tracker(); }
-std::thread::id   thread_id()                                                       { return ThreadTracker::thread_tracker()->thread_id(); }
+system::Thread* thread()                                                       { return ThreadTracker::thread_base(); }
+std::thread::id thread_id()                                                    { return ThreadTracker::thread_base()->thread_id(); }
 
-void              callback(void* target, std::function<void ()>&& fn)               { ThreadTracker::thread_tracker()->callback(target, std::move(fn)); }
-void              cancel_callback(void* target)                                     { ThreadTracker::thread_tracker()->cancel_callback(target); }
-void              cancel_callback_and_wait(void* target)                            { ThreadTracker::thread_tracker()->cancel_callback_and_wait(target); }
+void            callback(void* target, std::function<void ()>&& fn)            { ThreadTracker::thread_base()->callback(target, std::move(fn)); }
+void            cancel_callback(void* target)                                  { ThreadTracker::thread_base()->cancel_callback(target); }
+void            cancel_callback_and_wait(void* target)                         { ThreadTracker::thread_base()->cancel_callback_and_wait(target); }
 
-void              callback(std::function<void ()>&& fn)                             { ThreadTracker::thread_tracker()->callback(std::move(fn)); }
-void              callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) { ThreadTracker::thread_tracker()->callback2(id, std::move(fn)); }
-void              cancel_callback2(std::atomic<uint32_t>* id)                       { ThreadTracker::thread_tracker()->cancel_callback2(id); }
-void              cancel_callback_and_wait2(std::atomic<uint32_t>* id)              { ThreadTracker::thread_tracker()->cancel_callback_and_wait2(id); }
+void            callback(std::function<void ()>&& fn)                          { ThreadTracker::thread_base()->callback(std::move(fn)); }
+void            callback(system::callback_id& id, std::function<void ()>&& fn) { ThreadTracker::thread_base()->callback(id, std::move(fn)); }
+void            cancel_callback(system::callback_id& id)                       { ThreadTracker::thread_base()->cancel_callback(id); }
+void            cancel_callback_and_wait(system::callback_id& id)              { ThreadTracker::thread_base()->cancel_callback_and_wait(id); }
 
-tracker::Manager* manager()                                                         { return ThreadTracker::thread_tracker()->tracker_manager(); }
+tracker::Manager* manager()                                                    { return ThreadTracker::thread_tracker()->tracker_manager(); }
 
 } // namespace tracker
 
