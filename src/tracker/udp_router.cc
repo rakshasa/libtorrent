@@ -12,6 +12,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/system/system.h"
 #include "torrent/utils/log.h"
 
@@ -24,7 +25,9 @@
 
 namespace torrent::tracker {
 
-UdpRouter::UdpRouter() {
+UdpRouter::UdpRouter()
+  : m_resolver_callback_id(system::make_callback_id()) {
+
   std::random_device rd;
   std::mt19937       mt(rd());
 
@@ -33,7 +36,9 @@ UdpRouter::UdpRouter() {
   m_task_timeout.slot() = [this] { receive_timeout(); };
 }
 
-UdpRouter::~UdpRouter() = default;
+UdpRouter::~UdpRouter() {
+  this_thread::resolver()->cancel(m_resolver_callback_id);
+}
 
 void
 UdpRouter::open(int family) {
@@ -182,7 +187,7 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
       resolved_hostname(id, port, sin, err, sin6, err6);
     };
 
-  this_thread::resolver()->resolve_both(this, hostname, router_family(), std::move(fn));
+  this_thread::resolver()->resolve_both(m_resolver_callback_id, hostname, router_family(), std::move(fn));
 
   return itr->first;
 }
@@ -304,7 +309,7 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
       throw internal_error("UdpRouter::resolved_hostname() sin == nullptr but err == 0");
 
     if (err != 0) {
-      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, net::gai_enum_error(err));
+      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err));
 
       ///// TODO: Need to disconnect?
 
@@ -320,7 +325,7 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
       throw internal_error("UdpRouter::resolved_hostname() sin6 == nullptr but err6 == 0");
 
     if (err6 != 0) {
-      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, net::gai_enum_error(err6));
+      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err6));
 
       itr->second.failure(id, 0, err6);
       return;
