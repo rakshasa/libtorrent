@@ -41,7 +41,7 @@ Resolver::resolve_both(system::callback_id& id, const std::string& hostname, int
           m_thread->callback(id, std::bind(std::move(callback), std::move(sin), err, std::move(sin6), err6));
         };
 
-      ThreadNet::thread_net()->dns_cache()->resolve(nullptr, hostname, family, std::move(fn));
+      ThreadNet::thread_net()->dns_cache()->resolve(id.get(), hostname, family, std::move(fn));
     };
 
   net_thread::callback(id, std::move(cb));
@@ -91,7 +91,7 @@ Resolver::resolve_preferred(system::callback_id& id, const std::string& hostname
           m_thread->callback(id, std::bind(std::move(callback), std::move(result), error));
         };
 
-      ThreadNet::thread_net()->dns_cache()->resolve(nullptr, hostname, family, std::move(fn));
+      ThreadNet::thread_net()->dns_cache()->resolve(id.get(), hostname, family, std::move(fn));
     };
 
   net_thread::callback(id, std::move(cb));
@@ -134,7 +134,7 @@ Resolver::resolve_specific(system::callback_id& id, const std::string& hostname,
           m_thread->callback(id, std::bind(std::move(callback), std::move(result), error));
         };
 
-      ThreadNet::thread_net()->dns_cache()->resolve(nullptr, hostname, family, std::move(fn));
+      ThreadNet::thread_net()->dns_cache()->resolve(id.get(), hostname, family, std::move(fn));
     };
 
   net_thread::callback(id, std::move(cb));
@@ -143,6 +143,10 @@ Resolver::resolve_specific(system::callback_id& id, const std::string& hostname,
 void
 Resolver::cancel(system::callback_id& id) {
   assert(m_thread != nullptr && std::this_thread::get_id() == m_thread->thread_id());
+
+  system::cancel_callback_and_wait(id, m_thread, net_thread::thread());
+
+  ThreadNet::thread_net()->dns_buffer()->cancel_safe(id.get());
 
   system::cancel_callback_and_wait(id, m_thread, net_thread::thread());
 }

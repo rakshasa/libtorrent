@@ -76,6 +76,7 @@ public:
   // Old callback:
 
   // remove dns_buffer()->cancel_safe() and requester
+  // use callback_interrupt in resolver
 
   void                callback(void* target, std::function<void ()>&& fn);
   void                callback_interrupt_polling(void* target, std::function<void ()>&& fn);
@@ -138,6 +139,9 @@ protected:
     uint32_t               expected_id;
   };
 
+  void                callback(std::vector<callback_type>& callbacks, std::function<void ()>&& fn);
+  void                callback(std::vector<callback_type>& callbacks, system::callback_id& id, std::function<void ()>&& fn);
+
   static thread_local Thread*  m_self;
 
   // TODO: Remove m_thread.
@@ -165,6 +169,7 @@ protected:
   std::atomic<bool>                                  m_callbacks_should_interrupt_polling{false};
 
   std::vector<callback_type> m_callbacks2;
+  std::vector<callback_type> m_interrupt_callbacks2;
 
   std::mutex                 m_callbacks_processing_lock;
   std::atomic<bool>          m_callbacks_processing{false};
@@ -191,6 +196,11 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
   if (do_interrupt)
     interrupt();
 }
+
+inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(m_callbacks2, std::move(fn)); }
+inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(m_callbacks2, id, std::move(fn)); }
+inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(m_interrupt_callbacks2, std::move(fn)); }
+inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(m_interrupt_callbacks2, id, std::move(fn)); }
 
 } // namespace torrent::utils
 

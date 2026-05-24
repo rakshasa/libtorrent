@@ -105,18 +105,18 @@ Thread::cancel_callback(void* target) {
 }
 
 void
-Thread::callback(std::function<void ()>&& fn) {
+Thread::callback(std::vector<callback_type>& callbacks, std::function<void ()>&& fn) {
   {
     auto lock = std::lock_guard(m_callbacks_lock);
 
-    m_callbacks2.push_back({nullptr, std::move(fn), 0});
+    callbacks.push_back({nullptr, std::move(fn), 0});
   }
 
   interrupt();
 }
 
 void
-Thread::callback(system::callback_id& id, std::function<void ()>&& fn) {
+Thread::callback(std::vector<callback_type>& callbacks, system::callback_id& id, std::function<void ()>&& fn) {
   assert(id != nullptr);
 
   // Ensure adding callbacks for the id are completed before cancel-wait can proceed.
@@ -128,26 +128,16 @@ Thread::callback(system::callback_id& id, std::function<void ()>&& fn) {
   {
     auto guard = std::scoped_lock(m_callbacks_lock);
 
-    if (m_callbacks.empty())
-      m_callbacks2.reserve(16);
+    if (callbacks.empty())
+      callbacks.reserve(16);
 
-    m_callbacks2.push_back({id, std::move(fn), previous_id & ~0x7});
+    callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
   }
 
   id->fetch_sub(1, std::memory_order_release);
   id->notify_all();
 
   interrupt();
-}
-
-void
-Thread::callback_interrupt(std::function<void ()>&& fn) {
-  callback(std::move(fn));
-}
-
-void
-Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) {
-  callback(id, std::move(fn));
 }
 
 void
@@ -426,7 +416,10 @@ Thread::process_callbacks2() {
     {
       auto guard = std::scoped_lock(m_callbacks_lock);
 
-      callbacks.swap(m_callbacks2);
+      callbacks.swap(m_interrupt_callbacks2);
+
+      if (callbacks.empty())
+        callbacks.swap(m_callbacks2);
     }
 
     if (callbacks.empty())
@@ -474,9 +467,6 @@ std::thread::id           thread_id()                                         { 
 
 std::chrono::microseconds cached_time()                                       { return system::ThreadInternal::cached_time(); }
 std::chrono::seconds      cached_seconds()                                    { return system::ThreadInternal::cached_seconds(); }
-
-void                      callback(void* target, std::function<void ()>&& fn) { system::ThreadInternal::callback(target, std::move(fn)); }
-void                      cancel_callback(void* target)                       { system::ThreadInternal::cancel_callback(target); }
 
 net::Poll*                poll()                                              { return system::ThreadInternal::poll(); }
 net::Resolver*            resolver()                                          { return system::ThreadInternal::resolver(); }

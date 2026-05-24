@@ -16,9 +16,6 @@ namespace main_thread {
 system::Thread* thread()                                                                 { return ThreadMain::thread_base(); }
 std::thread::id thread_id()                                                              { return ThreadMain::thread_base()->thread_id(); }
 
-void            callback(void* target, std::function<void ()>&& fn)                      { ThreadMain::thread_base()->callback(target, std::move(fn)); }
-void            cancel_callback(void* target)                                            { ThreadMain::thread_base()->cancel_callback(target); }
-
 void            callback(std::function<void ()>&& fn)                                    { ThreadMain::thread_base()->callback(std::move(fn)); }
 void            callback(system::callback_id& id, std::function<void ()>&& fn)           { ThreadMain::thread_base()->callback(id, std::move(fn)); }
 void            callback_interrupt(std::function<void ()>&& fn)                          { ThreadMain::thread_base()->callback_interrupt(std::move(fn)); }

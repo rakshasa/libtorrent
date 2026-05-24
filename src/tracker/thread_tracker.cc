@@ -18,9 +18,6 @@ namespace tracker_thread {
 system::Thread* thread()                                                       { return ThreadTracker::thread_base(); }
 std::thread::id thread_id()                                                    { return ThreadTracker::thread_base()->thread_id(); }
 
-void            callback(void* target, std::function<void ()>&& fn)            { ThreadTracker::thread_base()->callback(target, std::move(fn)); }
-void            cancel_callback(void* target)                                  { ThreadTracker::thread_base()->cancel_callback(target); }
-
 void            callback(std::function<void ()>&& fn)                          { ThreadTracker::thread_base()->callback(std::move(fn)); }
 void            callback(system::callback_id& id, std::function<void ()>&& fn) { ThreadTracker::thread_base()->callback(id, std::move(fn)); }
 void            cancel_callback(system::callback_id& id)                       { ThreadTracker::thread_base()->cancel_callback(id); }
