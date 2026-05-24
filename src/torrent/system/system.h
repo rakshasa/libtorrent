@@ -11,6 +11,9 @@ namespace torrent::system {
 const char*         errno_enum(int status) LIBTORRENT_EXPORT;
 std::string         errno_enum_str(int status) LIBTORRENT_EXPORT;
 
+const char*         gai_enum_error(int status) LIBTORRENT_EXPORT;
+std::string         gai_enum_error_str(int status) LIBTORRENT_EXPORT;
+
 } // namespace torrent::system
 
 #endif

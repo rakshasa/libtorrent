@@ -11,6 +11,7 @@
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/system/system.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -178,7 +179,7 @@ DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
   auto index = std::distance(m_active_queries.begin(), itr);
 
   auto fn = [this, index](sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6) {
-      this_thread::callback(this->requester_from_index(index), [=]() {
+      this_thread::callback(this->requester_from_index(index), [=, this]() {
           this->process(index, std::move(result_sin), error_sin, std::move(result_sin6), error_sin6);
         });
     };
@@ -257,8 +258,8 @@ DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_s
   requester->active_query_count--;
 
   LT_LOG_REQUESTER("processing callback : inet:%s inet6:%s",
-                   (error_sin == 0) ? sin_pretty_or_empty(result_sin.get()).c_str() : gai_enum_error(error_sin),
-                   (error_sin6 == 0) ? sin6_pretty_or_empty(result_sin6.get()).c_str() : gai_enum_error(error_sin6));
+                   (error_sin == 0) ? sin_pretty_or_empty(result_sin.get()).c_str() : system::gai_enum_error(error_sin),
+                   (error_sin6 == 0) ? sin6_pretty_or_empty(result_sin6.get()).c_str() : system::gai_enum_error(error_sin6));
 
   {
     // Block cancel() until this is done to ensure callbacks for the requester are all canceled.

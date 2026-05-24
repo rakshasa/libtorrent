@@ -9,7 +9,6 @@
 #include <vector>
 #include <sys/types.h>
 #include <torrent/common.h>
-#include <torrent/system/system.h>
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
@@ -76,12 +75,12 @@ public:
 
   // Old callback:
 
+  // remove dns_buffer()->cancel_safe() and requester
+
   void                callback(void* target, std::function<void ()>&& fn);
   void                callback_interrupt_polling(void* target, std::function<void ()>&& fn);
-  void                callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn);
 
   void                cancel_callback(void* target);
-  void                cancel_callback_and_wait(void* target);
 
   // New callback:
 

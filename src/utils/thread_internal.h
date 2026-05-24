@@ -16,7 +16,6 @@ public:
 
   static void                      callback(void* target, std::function<void ()>&& fn) { Thread::m_self->callback(target, std::move(fn)); }
   static void                      cancel_callback(void* target)                       { Thread::m_self->cancel_callback(target); }
-  static void                      cancel_callback_and_wait(void* target)              { Thread::m_self->cancel_callback_and_wait(target); }
 
   static net::Poll*                poll()           { return Thread::m_self->m_poll.get(); }
   static auto*                     scheduler()      { return Thread::m_self->m_scheduler.get(); }

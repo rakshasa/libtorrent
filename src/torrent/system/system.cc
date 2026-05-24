@@ -4,6 +4,7 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <netdb.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/system/thread.h"
@@ -127,6 +128,28 @@ errno_enum(int status) {
 std::string
 errno_enum_str(int status) {
   return errno_enum(status);
+}
+
+const char*
+gai_enum_error(int status) {
+  switch (status) {
+  case EAI_AGAIN:    return "EAI_AGAIN";
+  case EAI_BADFLAGS: return "EAI_BADFLAGS";
+  case EAI_FAIL:     return "EAI_FAIL";
+  case EAI_FAMILY:   return "EAI_FAMILY";
+  case EAI_MEMORY:   return "EAI_MEMORY";
+  case EAI_NONAME:   return "EAI_NONAME";
+  case EAI_OVERFLOW: return "EAI_OVERFLOW";
+  case EAI_SERVICE:  return "EAI_SERVICE";
+  case EAI_SOCKTYPE: return "EAI_SOCKTYPE";
+  case EAI_SYSTEM:   return "EAI_SYSTEM";
+  default:           return "unknown";
+  }
+}
+
+std::string
+gai_enum_error_str(int status) {
+  return std::string(gai_enum_error(status));
 }
 
 } // namespace torrent::system

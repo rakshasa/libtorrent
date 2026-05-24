@@ -94,32 +94,6 @@ Thread::callback_interrupt_polling(void* target, std::function<void ()>&& fn) {
 }
 
 void
-Thread::callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn) {
-  std::mutex              callback_mutex;
-  std::condition_variable callback_cv;
-
-  bool done{};
-
-  auto wrapped_fn = [&callback_mutex, &callback_cv, &done, fn = std::move(fn)]() {
-      fn();
-
-      {
-        auto lock = std::lock_guard(callback_mutex);
-        done = true;
-      }
-
-      callback_cv.notify_one();
-    };
-
-  callback_interrupt_polling(target, std::move(wrapped_fn));
-
-  {
-    auto lock = std::unique_lock(callback_mutex);
-    callback_cv.wait(lock, [&done]() { return done; });
-  }
-}
-
-void
 Thread::cancel_callback(void* target) {
   if (target == nullptr)
     throw internal_error("Thread::cancel_callback called() with a null pointer target.");
@@ -128,20 +102,6 @@ Thread::cancel_callback(void* target) {
 
   m_callbacks.erase(target);
   m_interrupt_callbacks.erase(target);
-}
-
-void
-Thread::cancel_callback_and_wait(void* target) {
-  cancel_callback(target);
-
-  if (std::this_thread::get_id() != m_thread_id && m_callbacks_processing) {
-    {
-      auto lock = std::lock_guard(m_callbacks_processing_lock);
-    }
-
-    // Remove 'target' again in case it was added by the processed callback.
-    cancel_callback(target);
-  }
 }
 
 void
@@ -507,7 +467,6 @@ std::chrono::seconds      cached_seconds()                                    { 
 
 void                      callback(void* target, std::function<void ()>&& fn) { system::ThreadInternal::callback(target, std::move(fn)); }
 void                      cancel_callback(void* target)                       { system::ThreadInternal::cancel_callback(target); }
-void                      cancel_callback_and_wait(void* target)              { system::ThreadInternal::cancel_callback_and_wait(target); }
 
 net::Poll*                poll()                                              { return system::ThreadInternal::poll(); }
 net::Resolver*            resolver()                                          { return system::ThreadInternal::resolver(); }

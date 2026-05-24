@@ -22,9 +22,7 @@ NetworkManager::NetworkManager()
     m_dht_controller(new tracker::DhtController) {
 }
 
-NetworkManager::~NetworkManager() {
-  main_thread::thread()->cancel_callback_and_wait(this);
-}
+NetworkManager::~NetworkManager() = default;
 
 bool
 NetworkManager::is_listening() const {

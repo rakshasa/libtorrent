@@ -25,10 +25,8 @@ std::thread::id          thread_id()                                            
 
 void callback(void* target, std::function<void ()>&& fn)                            { ThreadNetInternal::thread_net()->callback(target, std::move(fn)); }
 void callback_interrupt_polling(void* target, std::function<void ()>&& fn)          { ThreadNetInternal::thread_net()->callback_interrupt_polling(target, std::move(fn)); }
-void callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn) { ThreadNetInternal::thread_net()->callback_interrupt_polling_and_wait(target, std::move(fn)); }
 
 void cancel_callback(void* target)                                                  { ThreadNetInternal::thread_net()->cancel_callback(target); }
-void cancel_callback_and_wait(void* target)                                         { ThreadNetInternal::thread_net()->cancel_callback_and_wait(target); }
 
 torrent::net::HttpStack* http_stack()                                               { return ThreadNetInternal::http_stack(); }
 
