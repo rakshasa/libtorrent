@@ -136,6 +136,15 @@ class SchedulerEntry;
   #define LIBTORRENT_EXPORT
 #endif
 
+#ifndef __cpp_lib_hardware_interference_size
+  // TODO: Fix LT_SMP_CACHE_BYTES configure check, and make it check arch.
+  namespace std {
+    constexpr std::size_t hardware_destructive_interference_size = LT_SMP_CACHE_BYTES;
+  }
+#endif
+
+#define align_cacheline alignas(std::hardware_destructive_interference_size)
+
 namespace torrent::this_thread {
 
 torrent::system::Thread*  thread() LIBTORRENT_EXPORT;

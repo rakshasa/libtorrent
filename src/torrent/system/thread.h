@@ -168,10 +168,10 @@ protected:
   std::mutex                 m_callbacks_processing_lock;
   std::atomic<bool>          m_callbacks_processing{false};
 
-  // Only thread-local data is stored below.
-  alignas(std::hardware_destructive_interference_size) bool __force_new_cacheline;
+  // Only data used by self thread below:
+  align_cacheline bool __force_new_cacheline;
 
-  callback_id         m_callback_processing_id{};
+  callback_id          m_callback_processing_id{};
 };
 
 inline bool

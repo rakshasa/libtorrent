@@ -94,14 +94,14 @@ private:
 
   system::callback_id   m_callback_id;
 
-  alignas(std::hardware_destructive_interference_size) mutable std::mutex m_mutex;
+  align_cacheline mutable std::mutex m_mutex;
 
   TrackerInfo           m_info;
 
   tracker::TrackerState m_state{};
   std::string           m_tracker_id;
 
-  alignas(std::hardware_destructive_interference_size) bool __force_new_cacheline;
+  align_cacheline bool  __force_new_cacheline;
 };
 
 inline void
