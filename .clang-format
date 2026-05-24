@@ -1,6 +1,6 @@
 ---
 BasedOnStyle: LLVM
-Standard: c++14
+Standard: c++17
 
 AllowShortFunctionsOnASingleLine: All
 AllowShortLambdasOnASingleLine: All
@@ -10,11 +10,15 @@ BinPackParameters: false
 BreakConstructorInitializers: AfterColon
 BreakStringLiterals: false
 ColumnLimit: 0
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ContinuationIndentWidth: 2
+Cpp11BracedListStyle: false
 IndentCaseLabels: false
 IndentWidth: 2
+PackConstructorInitializers: Never
 PenaltyReturnTypeOnItsOwnLine: 130
 PointerAlignment: Left
+SpacesInContainerLiterals: true
 
 AlignEscapedNewlines: Right
 AlignConsecutiveDeclarations:

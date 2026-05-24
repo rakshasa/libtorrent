@@ -7,10 +7,10 @@
 #include "torrent/event.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/system/thread.h"
 #include "torrent/utils/log.h"
+#include "torrent/system/thread.h"
 
-#define LT_LOG(log_fmt, ...) \
+#define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_NET_SOCKET, "socket_manager: " log_fmt, __VA_ARGS__);
 
 namespace torrent::runtime {
@@ -34,12 +34,12 @@ SocketManager::max_size() {
 }
 
 uint32_t
-SocketManager::category_managed_size(uint8_t category) const {
+SocketManager::category_managed_size(category_t category) const {
   return m_category_managed_size[category];
 }
 
 uint32_t
-SocketManager::category_max_size(uint8_t category) const {
+SocketManager::category_max_size(category_t category) const {
   return m_category_max_size[category];
 }
 
@@ -50,20 +50,20 @@ SocketManager::set_max_size(uint32_t max_size) {
 }
 
 void
-SocketManager::set_category_max_size(uint8_t category, uint32_t max_size) {
+SocketManager::set_category_max_size(category_t category, uint32_t max_size) {
   auto guard                    = lock_guard();
   m_category_max_size[category] = max_size;
 }
 
 void
-SocketManager::account_new_socket(socket_map::iterator itr, uint8_t category) {
+SocketManager::account_new_socket_unsafe(socket_map::iterator itr, category_t category) {
   itr->second.category = category;
   m_managed_size++;
   m_category_managed_size[category]++;
 }
 
 void
-SocketManager::account_remove_socket(socket_map::iterator itr) {
+SocketManager::account_remove_socket_unsafe(socket_map::iterator itr) {
   m_managed_size--;
   m_category_managed_size[itr->second.category]--;
 }
@@ -83,14 +83,14 @@ SocketManager::remove_unmanaged_socket() {
 
 // TODO: Add check to open_event_*.
 bool
-SocketManager::can_open_socket(uint8_t category) {
+SocketManager::can_open_socket(category_t category) {
   auto guard = lock_guard();
   return size() < max_size() &&
          (m_category_max_size[category] == 0 || m_category_managed_size[category] < m_category_max_size[category]);
 }
 
 void
-SocketManager::open_event_or_throw(Event* event, std::function<void()> func, uint8_t category) {
+SocketManager::open_event_or_throw(Event* event, category_t category, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (event->is_open())
@@ -109,11 +109,8 @@ SocketManager::open_event_or_throw(Event* event, std::function<void()> func, uin
   if (itr != m_socket_map.end()) {
     // We don't allow conflicts for this function.
     LT_LOG("open_event_or_throw() : %s:%s:%i : tried to use an existing file descriptor : %s:%s",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd,
-           itr->second.thread->name(),
-           itr->second.event->type_name());
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
 
     throw internal_error("SocketManager::open_event_or_throw(): tried to use an existing file descriptor: " +
                          std::string(itr->second.thread->name()) + ":" +
@@ -122,16 +119,14 @@ SocketManager::open_event_or_throw(Event* event, std::function<void()> func, uin
   }
 
   LT_LOG("open_event_or_throw() : %s:%s:%i : opened socket",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 
-  m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
-  account_new_socket(m_socket_map.find(fd), category);
+  auto [itr_new, _] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  account_new_socket_unsafe(itr_new, category);
 }
 
 bool
-SocketManager::open_event_or_cleanup(Event* event, std::function<void()> func, std::function<void(bool)> cleanup, uint8_t category) {
+SocketManager::open_event_or_cleanup(Event* event, category_t category, std::function<void ()> func, std::function<void (bool)> cleanup) {
   auto guard = lock_guard();
 
   if (event->is_open())
@@ -140,8 +135,7 @@ SocketManager::open_event_or_cleanup(Event* event, std::function<void()> func, s
   if (m_managed_size + m_unmanaged_size >= m_max_size ||
       (m_category_max_size[category] > 0 && m_category_managed_size[category] >= m_category_max_size[category])) {
     LT_LOG("open_event_or_cleanup() : %s:%s : cannot open socket, max open sockets reached",
-           this_thread::thread()->name(),
-           event->type_name());
+           this_thread::thread()->name(), event->type_name());
 
     cleanup(false);
     return false;
@@ -163,40 +157,32 @@ SocketManager::open_event_or_cleanup(Event* event, std::function<void()> func, s
     if (!handle_reused_socket(itr)) {
       // TODO: Make this a macro. use (sss : ss)
       LT_LOG("open_event_or_cleanup() : %s:%s:%i : failed to reuse existing file descriptor : %s:%s",
-             this_thread::thread()->name(),
-             event->type_name(),
-             fd,
-             itr->second.thread->name(),
-             itr->second.event->type_name());
+             this_thread::thread()->name(), event->type_name(), fd,
+             itr->second.thread->name(), itr->second.event->type_name());
 
       cleanup(true);
       return false;
     }
 
     LT_LOG("open_event_or_cleanup() : %s:%s:%i : reused existing file descriptor : %s:%s",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd,
-           itr->second.thread->name(),
-           itr->second.event->type_name());
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
 
     itr->second = SocketInfo{fd, event, this_thread::thread()};
-    account_new_socket(itr, category);
+    account_new_socket_unsafe(itr, category);
     return true;
   }
 
   LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 
-  m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
-  account_new_socket(m_socket_map.find(fd), category);
+  auto [itr_new, _] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  account_new_socket_unsafe(itr_new, category);
   return true;
 }
 
 void
-SocketManager::close_event_or_throw(Event* event, std::function<void()> func) {
+SocketManager::close_event_or_throw(Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -207,20 +193,15 @@ SocketManager::close_event_or_throw(Event* event, std::function<void()> func) {
 
   if (itr == m_socket_map.end()) {
     LT_LOG("close_event_or_throw() : %s:%s:%i : trying to close unknown socket",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd);
+           this_thread::thread()->name(), event->type_name(), fd);
 
     throw internal_error("SocketManager::close_event_or_throw(): trying to close unknown socket fd");
   }
 
   if (itr->second.event != event) {
     LT_LOG("close_event_or_throw() : %s:%s:%i : event mismatch when trying to close socket : %s:%s",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd,
-           itr->second.thread->name(),
-           itr->second.event->type_name());
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
 
     throw internal_error("SocketManager::close_event_or_throw(): event mismatch when trying to close socket fd");
   }
@@ -231,16 +212,14 @@ SocketManager::close_event_or_throw(Event* event, std::function<void()> func) {
     throw internal_error("SocketManager::close_event_or_throw(): event is still open after close function");
 
   LT_LOG("close_event_or_throw() : %s:%s:%i : closed socket",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 
-  account_remove_socket(itr);
+  account_remove_socket_unsafe(itr);
   m_socket_map.erase(itr);
 }
 
 void
-SocketManager::register_event_or_throw(Event* event, std::function<void()> func, uint8_t category) {
+SocketManager::register_event_or_throw(Event* event, category_t category, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -251,11 +230,8 @@ SocketManager::register_event_or_throw(Event* event, std::function<void()> func,
 
   if (itr != m_socket_map.end()) {
     LT_LOG("register_event_or_throw() : %s:%s:%i : tried to register an existing file descriptor : %s:%s",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd,
-           itr->second.thread->name(),
-           itr->second.event->type_name());
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
 
     throw internal_error("SocketManager::register_event_or_throw(): tried to register an existing file descriptor: " +
                          std::string(this_thread::thread()->name()) + ":" + std::string(event->type_name()) + ":" + std::to_string(fd) + " -> " +
@@ -265,16 +241,14 @@ SocketManager::register_event_or_throw(Event* event, std::function<void()> func,
   func();
 
   LT_LOG("register_event_or_throw() : %s:%s:%i : registered socket",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 
-  m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
-  account_new_socket(m_socket_map.find(fd), category);
+  auto [itr_new, _] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  account_new_socket_unsafe(itr_new, category);
 }
 
 void
-SocketManager::unregister_event_or_throw(Event* event, std::function<void()> func) {
+SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -285,20 +259,15 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void()> fun
 
   if (itr == m_socket_map.end()) {
     LT_LOG("unregister_event_or_throw() : %s:%s:%i : trying to unregister unknown socket",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd);
+           this_thread::thread()->name(), event->type_name(), fd);
 
     throw internal_error("SocketManager::unregister_event_or_throw(): trying to unregister unknown socket fd");
   }
 
   if (itr->second.event != event) {
     LT_LOG("unregister_event_or_throw() : %s:%s:%i : event mismatch when trying to unregister socket : %s:%s",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd,
-           itr->second.thread->name(),
-           itr->second.event->type_name());
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
 
     throw internal_error("SocketManager::unregister_event_or_throw(): event mismatch when trying to unregister socket fd");
   }
@@ -306,17 +275,15 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void()> fun
   func();
 
   LT_LOG("unregister_event_or_throw() : %s:%s:%i : unregistered socket",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 
-  account_remove_socket(itr);
+  account_remove_socket_unsafe(itr);
   m_socket_map.erase(itr);
 }
 
 // Always returns non-null if func() succeeds.
 Event*
-SocketManager::transfer_event(Event* event_from, std::function<Event*()> func) {
+SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) {
   auto guard = lock_guard();
 
   if (!event_from->is_open())
@@ -327,9 +294,7 @@ SocketManager::transfer_event(Event* event_from, std::function<Event*()> func) {
 
   if (itr == m_socket_map.end()) {
     LT_LOG("transfer_event() : %s:%s:%i : trying to transfer unknown socket",
-           this_thread::thread()->name(),
-           event_from->type_name(),
-           fd);
+           this_thread::thread()->name(), event_from->type_name(), fd);
 
     throw internal_error("SocketManager::transfer_event(): trying to transfer unknown socket fd");
   }
@@ -342,11 +307,9 @@ SocketManager::transfer_event(Event* event_from, std::function<Event*()> func) {
   if (event_to == nullptr) {
     // Transfer failed, the func is responsible for cleaning up event_from.
     LT_LOG("transfer_event() : %s:%s:%i : socket transfer function returned nullptr",
-           this_thread::thread()->name(),
-           event_from->type_name(),
-           fd);
+           this_thread::thread()->name(), event_from->type_name(), fd);
 
-    account_remove_socket(itr);
+    account_remove_socket_unsafe(itr);
     m_socket_map.erase(itr);
     return nullptr;
   }
@@ -357,16 +320,13 @@ SocketManager::transfer_event(Event* event_from, std::function<Event*()> func) {
   itr->second.event = event_to;
 
   LT_LOG("transfer_event() : %s:%s:%i : transferred socket : %s",
-         this_thread::thread()->name(),
-         event_from->type_name(),
-         fd,
-         event_to->type_name());
+         this_thread::thread()->name(), event_from->type_name(), fd, event_to->type_name());
 
   return event_to;
 }
 
 bool
-SocketManager::execute_if_not_present(int fd, std::function<void()> func) {
+SocketManager::execute_if_not_present(int fd, std::function<void ()> func) {
   auto guard = lock_guard();
   auto itr   = m_socket_map.find(fd);
 
@@ -389,36 +349,27 @@ SocketManager::mark_event_active_or_fail(Event* event) {
 
   if (itr == m_socket_map.end()) {
     LT_LOG("mark_event_active_or_fail() : %s:%s:%i : fd was likely reused, then closed",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd);
+           this_thread::thread()->name(), event->type_name(), fd);
     return false;
   }
 
   if (itr->second.event != event) {
     LT_LOG("mark_event_active_or_fail() : %s:%s:%i : fd has been reused and is active : %s:%s",
-           this_thread::thread()->name(),
-           event->type_name(),
-           fd,
-           itr->second.thread->name(),
-           itr->second.event->type_name());
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
     return false;
   }
 
   if (event->socket_address() != nullptr) {
     if (!event->update_and_verify_socket_address()) {
       LT_LOG("mark_event_active_or_fail() : %s:%s:%i : socket address verification failed",
-             this_thread::thread()->name(),
-             event->type_name(),
-             fd);
+             this_thread::thread()->name(), event->type_name(), fd);
       return false;
     }
 
     if (!event->update_and_verify_peer_address()) {
       LT_LOG("mark_event_active_or_fail() : %s:%s:%i : peer address verification failed",
-             this_thread::thread()->name(),
-             event->type_name(),
-             fd);
+             this_thread::thread()->name(), event->type_name(), fd);
       return false;
     }
   }
@@ -426,15 +377,13 @@ SocketManager::mark_event_active_or_fail(Event* event) {
   itr->second.flags &= ~flag_inactive;
 
   LT_LOG("mark_event_active() : %s:%s:%i : marked socket active",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 
   return true;
 }
 
 void
-SocketManager::mark_event_inactive(Event* event, std::function<void()> func) {
+SocketManager::mark_event_inactive(Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -454,9 +403,7 @@ SocketManager::mark_event_inactive(Event* event, std::function<void()> func) {
   itr->second.flags |= flag_inactive;
 
   LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 }
 
 // The socket must be in read/write to avoid reuse before calling this.
@@ -466,10 +413,11 @@ SocketManager::mark_event_inactive(Event* event, std::function<void()> func) {
 // Some of this relies on no non-SocketManager managed sockets being added to this_thread's
 // poller. Or else cleanup that removes reused fd's can cause issues.
 
+
 // TODO: Rename inet?
 
 bool
-SocketManager::mark_stream_event_inactive(Event* event, std::function<void()> func, std::function<void()> on_reuse) {
+SocketManager::mark_stream_event_inactive(Event* event, std::function<void ()> func, std::function<void ()> on_reuse) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -486,9 +434,7 @@ SocketManager::mark_stream_event_inactive(Event* event, std::function<void()> fu
 
   if (!event->update_and_verify_socket_address()) {
     LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address verification failed",
-           this_thread::thread()->name(),
-           event->type_name(),
-           event->file_descriptor());
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
 
     on_reuse();
     return false;
@@ -496,9 +442,7 @@ SocketManager::mark_stream_event_inactive(Event* event, std::function<void()> fu
 
   if (!event->update_and_verify_peer_address()) {
     LT_LOG("mark_stream_event_inactive() : %s:%s:%i : peer address verification failed",
-           this_thread::thread()->name(),
-           event->type_name(),
-           event->file_descriptor());
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
 
     // TODO: Check if socket is still valid?
     on_reuse();
@@ -507,9 +451,7 @@ SocketManager::mark_stream_event_inactive(Event* event, std::function<void()> fu
 
   if (!event->socket_address()) {
     LT_LOG("mark_stream_event_inactive() : %s:%s:%i : socket address is null after update",
-           this_thread::thread()->name(),
-           event->type_name(),
-           event->file_descriptor());
+           this_thread::thread()->name(), event->type_name(), event->file_descriptor());
 
     on_reuse();
     return false;
@@ -518,20 +460,15 @@ SocketManager::mark_stream_event_inactive(Event* event, std::function<void()> fu
   // TODO: Check if we got a valid socket_address (a must).
 
   LT_LOG("mark_stream_event_inactive() : %s:%s:%i : marking stream socket inactive : socket:%s peer:%s",
-         this_thread::thread()->name(),
-         event->type_name(),
-         event->file_descriptor(),
-         sa_pretty_str(event->socket_address()).c_str(),
-         sa_pretty_str(event->peer_address()).c_str());
+         this_thread::thread()->name(), event->type_name(), event->file_descriptor(),
+         sa_pretty_str(event->socket_address()).c_str(), sa_pretty_str(event->peer_address()).c_str());
 
   func();
 
   itr->second.flags |= flag_inactive;
 
   LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive",
-         this_thread::thread()->name(),
-         event->type_name(),
-         fd);
+         this_thread::thread()->name(), event->type_name(), fd);
 
   return true;
 }

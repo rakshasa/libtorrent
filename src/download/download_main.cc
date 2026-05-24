@@ -323,7 +323,7 @@ DownloadMain::receive_connect_peers() {
     if (connection_list()->size() + m_slot_count_handshakes(this) >= connection_list()->max_size())
       break;
 
-    if (!runtime::socket_manager()->can_open_socket())
+    if (!runtime::socket_manager()->can_open_socket(runtime::SocketManager::category_generic))
       break;
 
     auto sa = peer_list()->available_list()->pop_random();

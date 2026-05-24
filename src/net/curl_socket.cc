@@ -3,8 +3,8 @@
 #include "curl_socket.h"
 
 #include <cassert>
-#include <curl/multi.h>
 #include <unistd.h>
+#include <curl/multi.h>
 
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
@@ -23,15 +23,15 @@
 
 #else
 
-#define LT_LOG_DEBUG(log_fmt, ...) \
+#define LT_LOG_DEBUG(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket: " log_fmt, __VA_ARGS__)
-#define LT_LOG_DEBUG_THIS(log_fmt, ...) \
+#define LT_LOG_DEBUG_THIS(log_fmt, ...)                                 \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__)
-#define LT_LOG_DEBUG_SOCKET(log_fmt, ...) \
+#define LT_LOG_DEBUG_SOCKET(log_fmt, ...)                               \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, __VA_ARGS__)
-#define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...) \
+#define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)                            \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__)
-#define LT_LOG_DEBUG_SOCKET_FD_HANDLE(log_fmt, ...) \
+#define LT_LOG_DEBUG_SOCKET_FD_HANDLE(log_fmt, ...)                            \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i easy_handle:%p : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, easy_handle, __VA_ARGS__)
 
 #endif
@@ -41,13 +41,15 @@
 
 namespace torrent::net {
 
-CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle) : m_stack(stack),
-                                                                      m_easy_handle(easy_handle) {
+CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle)
+  : m_stack(stack),
+    m_easy_handle(easy_handle) {
 
   set_file_descriptor(fd);
 }
 
-CurlSocket::CurlSocket(CurlStack* stack) : m_stack(stack) {
+CurlSocket::CurlSocket(CurlStack* stack)
+  : m_stack(stack) {
 }
 
 CurlSocket::~CurlSocket() {
@@ -94,8 +96,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket never properly opened, removing from poll", 0);
 
       runtime::socket_manager()->unregister_event_or_throw(socket, [&]() {
-        this_thread::poll()->remove_and_close(socket);
-      });
+          this_thread::poll()->remove_and_close(socket);
+        });
 
       socket->clear_and_erase_self_or_throw();
       return 0;
@@ -106,17 +108,17 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     // TODO: Check m_uninterested flag?
 
     auto func = [socket]() {
-      this_thread::poll()->remove_read(socket);
-      this_thread::poll()->remove_write(socket);
+        this_thread::poll()->remove_read(socket);
+        this_thread::poll()->remove_write(socket);
 
-      socket->m_easy_handle  = nullptr;
-      socket->m_uninterested = true;
-    };
+        socket->m_easy_handle  = nullptr;
+        socket->m_uninterested = true;
+      };
 
     auto on_reuse = [socket]() {
-      this_thread::poll()->remove_and_close(socket);
-      socket->clear_and_erase_self_or_throw();
-    };
+        this_thread::poll()->remove_and_close(socket);
+        socket->clear_and_erase_self_or_throw();
+      };
 
     if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
       // Socket was closed by the kernel, or reused.
@@ -134,14 +136,15 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     auto itr = stack->socket_map()->find(fd);
 
     if (itr == stack->socket_map()->end()) {
-      socket                    = new CurlSocket(fd, stack, easy_handle);
+      socket = new CurlSocket(fd, stack, easy_handle);
       socket->m_properly_opened = false;
 
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unexpected fd encountered, creating new (not properly opened) CurlSocket", 0);
 
-      runtime::socket_manager()->register_event_or_throw(socket, [&]() {
+      runtime::socket_manager()->register_event_or_throw(socket, runtime::SocketManager::category_http, [&]() {
           this_thread::poll()->open(socket);
-          this_thread::poll()->insert_error(socket); }, runtime::SocketManager::category_http);
+          this_thread::poll()->insert_error(socket);
+        });
 
       stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
 
@@ -155,7 +158,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
         throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") existing CurlSocket easy_handle not null");
       }
 
-      socket                = itr->second.get();
+      socket = itr->second.get();
       socket->m_easy_handle = easy_handle;
 
       curl_multi_assign(stack->handle(), fd, socket);
@@ -171,8 +174,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       }
 
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket found in map : socket:%s peer:%s",
-                                    sa_pretty_str(socket->socket_address()).c_str(),
-                                    sa_pretty_str(socket->peer_address()).c_str());
+                                    sa_pretty_str(socket->socket_address()).c_str(), sa_pretty_str(socket->peer_address()).c_str());
     }
   }
 
@@ -211,14 +213,14 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     socket->m_uninterested = true;
 
     auto func = [socket]() {
-      this_thread::poll()->remove_read(socket);
-      this_thread::poll()->remove_write(socket);
-    };
+        this_thread::poll()->remove_read(socket);
+        this_thread::poll()->remove_write(socket);
+      };
 
     auto on_reuse = [socket]() {
-      this_thread::poll()->remove_and_close(socket);
-      socket->clear_and_erase_self_or_throw();
-    };
+        this_thread::poll()->remove_and_close(socket);
+        socket->clear_and_erase_self_or_throw();
+      };
 
     if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
       // Not connected...
@@ -271,7 +273,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
 // This is not called when libcurl creates socketpairs, yet it expects us to handle them in receive_socket().
 curl_socket_t
-CurlSocket::open_socket(CurlStack* stack, [[maybe_unused]] curlsocktype purpose, struct curl_sockaddr* address) {
+CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose, struct curl_sockaddr *address) {
   assert(this_thread::thread() == stack->thread());
 
   if (!stack->is_running()) {
@@ -279,45 +281,45 @@ CurlSocket::open_socket(CurlStack* stack, [[maybe_unused]] curlsocktype purpose,
     return CURL_SOCKET_BAD;
   }
 
-  auto event               = std::make_unique<CurlSocket>(stack);
+  auto event = std::make_unique<CurlSocket>(stack);
   event->m_properly_opened = true;
 
   auto open_func = [&]() {
-    int fd = ::socket(address->family, address->socktype, address->protocol);
+      int fd = ::socket(address->family, address->socktype, address->protocol);
 
-    if (fd == -1) {
-      LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));
-      return -1;
-    }
+      if (fd == -1) {
+        LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));
+        return -1;
+      }
 
-    // TODO: Fail if fd is already in use, especially if it is m_properly_opened.
+      // TODO: Fail if fd is already in use, especially if it is m_properly_opened.
 
-    event->set_file_descriptor(fd);
+      event->set_file_descriptor(fd);
 
-    // TODO: We should add this to uninterested sockets until libcurl tells us to poll.
+      // TODO: We should add this to uninterested sockets until libcurl tells us to poll.
 
-    this_thread::poll()->open(event.get());
-    this_thread::poll()->insert_error(event.get());
+      this_thread::poll()->open(event.get());
+      this_thread::poll()->insert_error(event.get());
 
-    return fd;
-  };
+      return fd;
+    };
 
   auto cleanup_func = [&](bool) {
-    if (!event->is_open())
-      return;
+      if (!event->is_open())
+        return;
 
-    this_thread::poll()->remove_and_close(event.get());
+      this_thread::poll()->remove_and_close(event.get());
 
-    if (::close(event->file_descriptor()) == -1) {
-      LT_LOG_DEBUG("open_socket() : error closing socket during cleanup: %s", std::strerror(errno));
-      throw internal_error("CurlSocket::open_socket(): error closing socket during cleanup: " + std::string(std::strerror(errno)));
-    }
+      if (::close(event->file_descriptor()) == -1) {
+        LT_LOG_DEBUG("open_socket() : error closing socket during cleanup: %s", std::strerror(errno));
+        throw internal_error("CurlSocket::open_socket(): error closing socket during cleanup: " + std::string(std::strerror(errno)));
+      }
 
-    LT_LOG_DEBUG("open_socket() : socket manager requested cleanup: fd:%i", event->file_descriptor());
-    event->set_file_descriptor(-1);
-  };
+      LT_LOG_DEBUG("open_socket() : socket manager requested cleanup: fd:%i", event->file_descriptor());
+      event->set_file_descriptor(-1);
+    };
 
-  bool result = runtime::socket_manager()->open_event_or_cleanup(event.get(), open_func, cleanup_func, runtime::SocketManager::category_http);
+  bool result = runtime::socket_manager()->open_event_or_cleanup(event.get(), runtime::SocketManager::category_http, open_func, cleanup_func);
 
   if (!result) {
     LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));
@@ -400,17 +402,17 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
   // TODO: Check if this is still the same socket?
 
   runtime::socket_manager()->close_event_or_throw(socket, [&]() {
-    // TODO: Change handling of curl remove event / uninterested to closing socket polling?
+      // TODO: Change handling of curl remove event / uninterested to closing socket polling?
 
-    // TODO: This is getting called twice?
-    this_thread::poll()->remove_and_close(socket);
+      // TODO: This is getting called twice?
+      this_thread::poll()->remove_and_close(socket);
 
-    if (::close(fd) == -1) {
-      LT_LOG_DEBUG_SOCKET_FD("close_socket() : error closing socket: %s", std::strerror(errno));
-    }
+      if (::close(fd) == -1) {
+        LT_LOG_DEBUG_SOCKET_FD("close_socket() : error closing socket: %s", std::strerror(errno));
+      }
 
-    socket->set_file_descriptor(-1);
-  });
+      socket->set_file_descriptor(-1);
+    });
 
   socket->clear_and_erase_self(itr);
   return 0;
@@ -455,8 +457,8 @@ CurlSocket::event_error() {
     auto stack = m_stack;
 
     runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
-      this_thread::poll()->remove_and_close(this);
-    });
+        this_thread::poll()->remove_and_close(this);
+      });
 
     curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
     clear_and_erase_self_or_throw();
