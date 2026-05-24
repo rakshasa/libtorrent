@@ -107,6 +107,7 @@ private:
 
   void                account_new_socket_unsafe(socket_map::iterator itr, category_t category);
   void                account_remove_socket_unsafe(socket_map::iterator itr);
+  void                account_replace_socket_unsafe(socket_map::iterator itr, category_t new_category);
 
   bool                handle_reused_socket(socket_map::iterator itr);
 

@@ -69,6 +69,12 @@ SocketManager::account_remove_socket_unsafe(socket_map::iterator itr) {
 }
 
 void
+SocketManager::account_replace_socket_unsafe(socket_map::iterator itr, category_t new_category) {
+  m_category_managed_size[itr->second.category]--;
+  m_category_managed_size[new_category]++;
+}
+
+void
 SocketManager::add_unmanaged_socket() {
   m_unmanaged_size++;
 }
@@ -168,8 +174,9 @@ SocketManager::open_event_or_cleanup(Event* event, category_t category, std::fun
            this_thread::thread()->name(), event->type_name(), fd,
            itr->second.thread->name(), itr->second.event->type_name());
 
+    account_replace_socket_unsafe(itr, category);
     itr->second = SocketInfo{fd, event, this_thread::thread()};
-    account_new_socket_unsafe(itr, category);
+    itr->second.category = category;
     return true;
   }
 
