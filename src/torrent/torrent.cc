@@ -8,6 +8,7 @@
 
 #include "manager.h"
 #include "runtime.h"
+#include "torrent/runtime/socket_manager.h"
 #include "thread_main.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
@@ -94,6 +95,16 @@ calculate_reserved(uint32_t open_max) {
     return 16;
 }
 
+uint32_t
+calculate_internal(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 32;
+  else if (open_max >= 1024)
+    return 16;
+  else
+    return 8;
+}
+
 std::string
 generate_random(size_t length) {
   std::random_device rd;
@@ -136,9 +147,12 @@ initialize() {
   auto max_open             = this_thread::poll()->open_max();
   auto max_files            = calculate_max_open_files(max_open);
   auto max_http_connections = calculate_max_http_total_connections(max_open);
+  auto max_internal         = calculate_internal(max_open);
   auto reserved             = calculate_reserved(max_open);
 
-  runtime::socket_manager()->set_max_size(max_open - max_files - max_http_connections - reserved);
+  runtime::socket_manager()->set_max_size(max_open - max_files - reserved);
+  runtime::socket_manager()->set_category_max_size(runtime::SocketManager::category_http, max_http_connections);
+  runtime::socket_manager()->set_category_max_size(runtime::SocketManager::category_internal, max_internal);
 
   manager->file_manager()->set_max_open_files(max_files);
 

@@ -64,14 +64,17 @@ SocketManager::account_new_socket_unsafe(socket_map::iterator itr, category_t ca
 
 void
 SocketManager::account_remove_socket_unsafe(socket_map::iterator itr) {
-  m_managed_size--;
-  m_category_managed_size[itr->second.category]--;
-}
+  if (m_managed_size == 0) {
+    throw internal_error("SocketManager::account_remove_socket_unsafe(): m_managed_size underflow");
+  }
 
-void
-SocketManager::account_replace_socket_unsafe(socket_map::iterator itr, category_t new_category) {
-  m_category_managed_size[itr->second.category]--;
-  m_category_managed_size[new_category]++;
+  auto category = itr->second.category;
+  if (m_category_managed_size[category] == 0) {
+    throw internal_error("SocketManager::account_remove_socket_unsafe(): category managed size underflow");
+  }
+
+  m_managed_size--;
+  m_category_managed_size[category]--;
 }
 
 void
@@ -91,8 +94,18 @@ SocketManager::remove_unmanaged_socket() {
 bool
 SocketManager::can_open_socket(category_t category) {
   auto guard = lock_guard();
-  return size() < max_size() &&
-         (m_category_max_size[category] == 0 || m_category_managed_size[category] < m_category_max_size[category]);
+  return can_open_socket_unsafe(category);
+}
+
+bool
+SocketManager::can_open_socket_unsafe(category_t category) {
+  if (size() >= max_size())
+    return false;
+
+  if (m_category_max_size[category] != 0)
+    return m_category_managed_size[category] < m_category_max_size[category];
+
+  return true;
 }
 
 void
@@ -110,9 +123,9 @@ SocketManager::open_event_or_throw(Event* event, category_t category, std::funct
   }
 
   auto fd  = event->file_descriptor();
-  auto itr = m_socket_map.find(fd);
+  auto [itr, inserted] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
-  if (itr != m_socket_map.end()) {
+  if (!inserted) {
     // We don't allow conflicts for this function.
     LT_LOG("open_event_or_throw() : %s:%s:%i : tried to use an existing file descriptor : %s:%s",
            this_thread::thread()->name(), event->type_name(), fd,
@@ -127,8 +140,7 @@ SocketManager::open_event_or_throw(Event* event, category_t category, std::funct
   LT_LOG("open_event_or_throw() : %s:%s:%i : opened socket",
          this_thread::thread()->name(), event->type_name(), fd);
 
-  auto [itr_new, _] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
-  account_new_socket_unsafe(itr_new, category);
+  account_new_socket_unsafe(itr, category);
 }
 
 bool
@@ -138,8 +150,7 @@ SocketManager::open_event_or_cleanup(Event* event, category_t category, std::fun
   if (event->is_open())
     throw internal_error("SocketManager::open_event_or_cleanup(): event is already open");
 
-  if (m_managed_size + m_unmanaged_size >= m_max_size ||
-      (m_category_max_size[category] > 0 && m_category_managed_size[category] >= m_category_max_size[category])) {
+  if (!can_open_socket_unsafe(category)) {
     LT_LOG("open_event_or_cleanup() : %s:%s : cannot open socket, max open sockets reached",
            this_thread::thread()->name(), event->type_name());
 
@@ -157,34 +168,31 @@ SocketManager::open_event_or_cleanup(Event* event, category_t category, std::fun
   }
 
   auto fd  = event->file_descriptor();
-  auto itr = m_socket_map.find(fd);
+  auto [itr, inserted] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
-  if (itr != m_socket_map.end()) {
-    if (!handle_reused_socket(itr)) {
-      // TODO: Make this a macro. use (sss : ss)
-      LT_LOG("open_event_or_cleanup() : %s:%s:%i : failed to reuse existing file descriptor : %s:%s",
-             this_thread::thread()->name(), event->type_name(), fd,
-             itr->second.thread->name(), itr->second.event->type_name());
-
-      cleanup(true);
-      return false;
-    }
-
-    LT_LOG("open_event_or_cleanup() : %s:%s:%i : reused existing file descriptor : %s:%s",
-           this_thread::thread()->name(), event->type_name(), fd,
-           itr->second.thread->name(), itr->second.event->type_name());
-
-    account_replace_socket_unsafe(itr, category);
-    itr->second = SocketInfo{fd, event, this_thread::thread()};
-    itr->second.category = category;
+  if (inserted) {
+    LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket",
+           this_thread::thread()->name(), event->type_name(), fd);
+    account_new_socket_unsafe(itr, category);
     return true;
   }
 
-  LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket",
-         this_thread::thread()->name(), event->type_name(), fd);
+  if (!handle_reused_socket(itr)) {
+    LT_LOG("open_event_or_cleanup() : %s:%s:%i : failed to reuse existing file descriptor : %s:%s",
+           this_thread::thread()->name(), event->type_name(), fd,
+           itr->second.thread->name(), itr->second.event->type_name());
 
-  auto [itr_new, _] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
-  account_new_socket_unsafe(itr_new, category);
+    cleanup(true);
+    return false;
+  }
+
+  LT_LOG("open_event_or_cleanup() : %s:%s:%i : reused existing file descriptor : %s:%s",
+         this_thread::thread()->name(), event->type_name(), fd,
+         itr->second.thread->name(), itr->second.event->type_name());
+
+  account_remove_socket_unsafe(itr);
+  itr->second = SocketInfo{.fd=fd, .event=event, .thread=this_thread::thread()};
+  account_new_socket_unsafe(itr, category);
   return true;
 }
 
@@ -233,9 +241,9 @@ SocketManager::register_event_or_throw(Event* event, category_t category, std::f
     throw internal_error("SocketManager::register_event_or_throw(): event is not open");
 
   auto fd  = event->file_descriptor();
-  auto itr = m_socket_map.find(fd);
+  auto [itr, inserted] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
-  if (itr != m_socket_map.end()) {
+  if (!inserted) {
     LT_LOG("register_event_or_throw() : %s:%s:%i : tried to register an existing file descriptor : %s:%s",
            this_thread::thread()->name(), event->type_name(), fd,
            itr->second.thread->name(), itr->second.event->type_name());
@@ -250,8 +258,7 @@ SocketManager::register_event_or_throw(Event* event, category_t category, std::f
   LT_LOG("register_event_or_throw() : %s:%s:%i : registered socket",
          this_thread::thread()->name(), event->type_name(), fd);
 
-  auto [itr_new, _] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
-  account_new_socket_unsafe(itr_new, category);
+  account_new_socket_unsafe(itr, category);
 }
 
 void

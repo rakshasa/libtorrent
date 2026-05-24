@@ -103,11 +103,13 @@ protected:
   auto                lock_guard() { return std::lock_guard(m_mutex); }
 
 private:
-  using socket_map = std::unordered_map<int, SocketInfo>;
+  using socket_map    = std::unordered_map<int, SocketInfo>;
+  using category_list = std::array<std::atomic<uint32_t>, category_count>;
 
   void                account_new_socket_unsafe(socket_map::iterator itr, category_t category);
   void                account_remove_socket_unsafe(socket_map::iterator itr);
-  void                account_replace_socket_unsafe(socket_map::iterator itr, category_t new_category);
+
+  bool                can_open_socket_unsafe(category_t category);
 
   bool                handle_reused_socket(socket_map::iterator itr);
 
@@ -115,8 +117,8 @@ private:
   std::atomic<uint32_t> m_unmanaged_size{};
   std::atomic<uint32_t> m_max_size{};
 
-  std::array<std::atomic<uint32_t>, category_count> m_category_managed_size{};
-  std::array<std::atomic<uint32_t>, category_count> m_category_max_size{};
+  category_list       m_category_managed_size{};
+  category_list       m_category_max_size{};
 
   std::mutex          m_mutex;
 
