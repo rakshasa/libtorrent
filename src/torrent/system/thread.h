@@ -9,6 +9,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <torrent/common.h>
+#include <torrent/system/system.h>
 #include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
@@ -73,6 +74,8 @@ public:
   void                start_thread();
   void                stop_thread_wait();
 
+  // Old callback:
+
   void                callback(void* target, std::function<void ()>&& fn);
   void                callback_interrupt_polling(void* target, std::function<void ()>&& fn);
   void                callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn);
@@ -80,11 +83,14 @@ public:
   void                cancel_callback(void* target);
   void                cancel_callback_and_wait(void* target);
 
-  void                callback(std::function<void ()>&& fn);
-  void                callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn);
+  // New callback:
 
-  void                cancel_callback2(std::atomic<uint32_t>* id);
-  void                cancel_callback_and_wait2(std::atomic<uint32_t>* id);
+  void                callback(std::function<void ()>&& fn);
+  void                callback(system::callback_id& id, std::function<void ()>&& fn);
+
+  void                cancel_callback(system::callback_id& id);
+  void                cancel_callback_and_wait(system::callback_id& id);
+  void                cancel_callback_and_wait(callback_id& id, Thread* other_thread);
 
   void                interrupt();
   void                send_event_signal(unsigned int index, bool interrupt = true);
@@ -126,9 +132,9 @@ protected:
   void                set_cached_time(std::chrono::microseconds t);
 
   struct callback_type {
-    std::atomic<uint32_t>*  id;
-    std::function<void ()>  fn;
-    uint32_t                expected_id;
+    callback_id            id;
+    std::function<void ()> fn;
+    uint32_t               expected_id;
   };
 
   static thread_local Thread*  m_self;
@@ -157,11 +163,15 @@ protected:
   std::multimap<const void*, std::function<void ()>> m_interrupt_callbacks;
   std::atomic<bool>                                  m_callbacks_should_interrupt_polling{false};
 
-  std::vector<callback_type>                         m_callbacks2;
-  std::atomic<std::atomic<uint32_t>*>                m_callback_processing_id{};
+  std::vector<callback_type> m_callbacks2;
 
-  std::mutex                                         m_callbacks_processing_lock;
-  std::atomic<bool>                                  m_callbacks_processing{false};
+  std::mutex                 m_callbacks_processing_lock;
+  std::atomic<bool>          m_callbacks_processing{false};
+
+  // Only thread-local data is stored below.
+  alignas(std::hardware_destructive_interference_size) bool __force_new_cacheline;
+
+  callback_id         m_callback_processing_id{};
 };
 
 inline bool

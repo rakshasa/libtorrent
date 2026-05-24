@@ -9,6 +9,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/tracker/dht_controller.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 
@@ -181,7 +182,7 @@ TrackerDht::add_event(std::weak_ptr<TrackerDht> weak_tracker, std::function<void
   if (tracker == nullptr)
     return;
 
-  tracker_thread::callback2(tracker->callback_ptr(), [weak_tracker, event = std::move(event)]() mutable {
+  tracker_thread::callback(tracker->callback_id(), [weak_tracker, event = std::move(event)]() mutable {
       auto tracker = weak_tracker.lock();
 
       if (tracker == nullptr)

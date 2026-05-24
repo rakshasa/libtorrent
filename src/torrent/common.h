@@ -1,12 +1,14 @@
 #ifndef LIBTORRENT_COMMON_H
 #define LIBTORRENT_COMMON_H
 
+#include <atomic>
 #include <cerrno>
 #include <cinttypes>
 #include <cstddef>
 #include <cstring>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <thread>
 
 struct sockaddr;
@@ -17,6 +19,12 @@ struct sockaddr_un;
 using namespace std::chrono_literals;
 
 namespace torrent {
+
+namespace system {
+
+using callback_id = std::shared_ptr<std::atomic<uint32_t>>;
+
+} // namespace system
 
 enum priority_enum {
   PRIORITY_OFF = 0,
@@ -161,11 +169,6 @@ void                     callback(void* target, std::function<void ()>&& fn) LIB
 void                     cancel_callback(void* target) LIBTORRENT_EXPORT;
 void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
 
-void                     callback(std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     cancel_callback2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
-void                     cancel_callback_and_wait2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
-
 void                     set_client_callback(std::function<void()> fn) LIBTORRENT_EXPORT;
 
 uint32_t                 hash_queue_size() LIBTORRENT_EXPORT;
@@ -195,11 +198,6 @@ std::thread::id          thread_id() LIBTORRENT_EXPORT;
 void                     callback(void* target, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
 void                     cancel_callback(void* target) LIBTORRENT_EXPORT;
 void                     cancel_callback_and_wait(void* target) LIBTORRENT_EXPORT;
-
-void                     callback(std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn) LIBTORRENT_EXPORT;
-void                     cancel_callback2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
-void                     cancel_callback_and_wait2(std::atomic<uint32_t>* id) LIBTORRENT_EXPORT;
 
 tracker::Manager*        manager() LIBTORRENT_EXPORT;
 
