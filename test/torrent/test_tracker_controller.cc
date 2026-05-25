@@ -128,7 +128,7 @@ TestTrackerController::test_timeout() {
   TRACKER_INSERT(0, tracker_0_0);
 
   CPPUNIT_ASSERT(enabled_counter == 1);
-  CPPUNIT_ASSERT(!tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(!tracker_0_0.is_requesting());
   CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
   tracker_controller.enable();
@@ -212,7 +212,7 @@ TestTrackerController::test_send_start() {
 
   CPPUNIT_ASSERT(!tracker_controller.is_timeout_queued());
 
-  CPPUNIT_ASSERT(tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
   CPPUNIT_ASSERT(tracker_0_0_worker->requesting_state() == torrent::tracker::TrackerState::EVENT_STARTED);
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
@@ -224,7 +224,7 @@ TestTrackerController::test_send_start() {
   tracker_controller.disable();
 
   // This test doesn't work as the tracker remains busy.
-  // CPPUNIT_ASSERT(!tracker_0_0.is_busy());
+  // CPPUNIT_ASSERT(!tracker_0_0.is_requesting());
 
   TEST_SEND_SINGLE_END(1, 0);
 }
@@ -253,7 +253,7 @@ TestTrackerController::test_send_stop_normal() {
   std::this_thread::sleep_for(100ms);
 
   // This checks that trackers finish requests even after controller is disabled.
-  CPPUNIT_ASSERT(tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
   tracker_0_0_worker->trigger_success();
 
   TEST_SEND_SINGLE_END(3, 0);
@@ -285,7 +285,7 @@ TestTrackerController::test_send_completed_normal() {
   std::this_thread::sleep_for(100ms);
 
   // This checks that trackers finish requests even after controller is disabled.
-  CPPUNIT_ASSERT(tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
   tracker_0_0_worker->trigger_success();
 
   TEST_SEND_SINGLE_END(3, 0);
@@ -359,10 +359,10 @@ TestTrackerController::test_send_close_on_enable() {
   // m_main_thread->test_process_events_without_cached_time();
   // std::this_thread::sleep_for(100ms);
 
-  // CPPUNIT_ASSERT(!tracker_0.is_busy());
-  // CPPUNIT_ASSERT(!tracker_1.is_busy());
-  // CPPUNIT_ASSERT(!tracker_2.is_busy());
-  // CPPUNIT_ASSERT(tracker_3.is_busy());
+  // CPPUNIT_ASSERT(!tracker_0.is_requesting());
+  // CPPUNIT_ASSERT(!tracker_1.is_requesting());
+  // CPPUNIT_ASSERT(!tracker_2.is_requesting());
+  // CPPUNIT_ASSERT(tracker_3.is_requesting());
 }
 
 void
@@ -645,14 +645,14 @@ TestTrackerController::test_disable_tracker() {
   auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
 
   CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
-  CPPUNIT_ASSERT(tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
 
   tracker_0_0.disable();
 
   tracker_0_0_worker->trigger_success();
   process_main_and_tracker(this);
 
-  CPPUNIT_ASSERT(!tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(!tracker_0_0.is_requesting());
   CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
 
   TEST_SINGLE_END(1, 0);
