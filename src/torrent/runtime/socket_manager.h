@@ -3,8 +3,10 @@
 
 #include <array>
 #include <atomic>
+#include <functional>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 #include <torrent/common.h>
 
 // A socket that is closed by the kernel while neitehr ready nor write polling will be considered
@@ -56,8 +58,12 @@ public:
   uint32_t            category_managed_size(category_t category) const;
   uint32_t            category_max_size(category_t category) const;
 
-  void                set_max_size(uint32_t max_size);
+  void                set_max_size_and_adjust(uint32_t max_open);
   void                set_category_max_size(category_t category, uint32_t max_size);
+
+  // The lock is held while the callback is called, so use Thread::callback().
+  void                subscribe_to_changes(void* target, const std::function<void()>& callback);
+  void                unsubscribe_from_changes(void* target);
 
   void                add_unmanaged_socket();
   void                remove_unmanaged_socket();
@@ -103,8 +109,9 @@ protected:
   auto                lock_guard() { return std::lock_guard(m_mutex); }
 
 private:
-  using socket_map    = std::unordered_map<int, SocketInfo>;
-  using category_list = std::array<std::atomic<uint32_t>, category_count>;
+  using socket_map       = std::unordered_map<int, SocketInfo>;
+  using category_list    = std::array<std::atomic<uint32_t>, category_count>;
+  using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
 
   void                account_new_socket_unsafe(socket_map::iterator itr, category_t category);
   void                account_remove_socket_unsafe(socket_map::iterator itr);
@@ -113,6 +120,8 @@ private:
 
   bool                handle_reused_socket(socket_map::iterator itr);
 
+  void                notify_changes() const;
+
   std::atomic<uint32_t> m_managed_size{};
   std::atomic<uint32_t> m_unmanaged_size{};
   std::atomic<uint32_t> m_max_size{};
@@ -120,7 +129,9 @@ private:
   category_list       m_category_managed_size{};
   category_list       m_category_max_size{};
 
-  std::mutex          m_mutex;
+  alignas(std::hardware_destructive_interference_size) std::mutex m_mutex;
+
+  subscriber_list     m_change_subscribers;
 
   socket_map          m_socket_map;
 };

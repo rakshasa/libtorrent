@@ -53,56 +53,15 @@ calculate_max_open_files(uint32_t open_max) {
     return 4;
 }
 
+// Derives max host connections from the HTTP total connections category limit.
 uint32_t
-calculate_max_http_host_connections(uint32_t open_max) {
-  if (open_max >= 16384)
+calculate_max_http_host_connections(uint32_t http_total) {
+  if (http_total >= 128)
     return 3;
-  else if (open_max >= 8096)
+  else if (http_total >= 64)
     return 2;
   else // Assumes we don't try less than 64.
     return 1;
-}
-
-uint32_t
-calculate_max_http_total_connections(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 128;
-  else if (open_max >= 8096)
-    return 64;
-  else if (open_max >= 1024)
-    return 32;
-  else if (open_max >= 512)
-    return 16;
-  else if (open_max >= 128)
-    return 8;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
-
-uint32_t
-calculate_reserved(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 32;
-  else // Assumes we don't try less than 64.
-    return 16;
-}
-
-uint32_t
-calculate_internal(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 32;
-  else if (open_max >= 1024)
-    return 16;
-  else
-    return 8;
 }
 
 std::string
@@ -144,20 +103,15 @@ initialize() {
   ThreadNet::create_thread();
   ThreadTracker::create_thread();
 
-  auto max_open             = this_thread::poll()->open_max();
-  auto max_files            = calculate_max_open_files(max_open);
-  auto max_http_connections = calculate_max_http_total_connections(max_open);
-  auto max_internal         = calculate_internal(max_open);
-  auto reserved             = calculate_reserved(max_open);
+  auto max_open = this_thread::poll()->open_max();
 
-  runtime::socket_manager()->set_max_size(max_open - max_files - reserved);
-  runtime::socket_manager()->set_category_max_size(runtime::SocketManager::category_http, max_http_connections);
-  runtime::socket_manager()->set_category_max_size(runtime::SocketManager::category_internal, max_internal);
+  runtime::socket_manager()->set_max_size_and_adjust(max_open);
 
-  manager->file_manager()->set_max_open_files(max_files);
+  auto http_total = runtime::socket_manager()->category_max_size(runtime::SocketManager::category_http);
 
-  net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(max_open));
-  net_thread::http_stack()->set_max_total_connections(max_http_connections);
+  manager->file_manager()->set_max_open_files(calculate_max_open_files(max_open));
+  net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(http_total));
+  net_thread::http_stack()->set_max_total_connections(http_total);
 
   disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();

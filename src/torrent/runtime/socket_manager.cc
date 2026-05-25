@@ -2,6 +2,7 @@
 
 #include "torrent/runtime/socket_manager.h"
 
+#include <algorithm>
 #include <cassert>
 
 #include "torrent/event.h"
@@ -12,6 +13,68 @@
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_NET_SOCKET, "socket_manager: " log_fmt, __VA_ARGS__);
+
+namespace {
+
+uint32_t
+calculate_max_open_files(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 512;
+  else if (open_max >= 8096)
+    return 256;
+  else if (open_max >= 1024)
+    return 128;
+  else if (open_max >= 512)
+    return 64;
+  else if (open_max >= 128)
+    return 16;
+  else // Assumes we don't try less than 64.
+    return 4;
+}
+
+uint32_t
+calculate_reserved(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 512;
+  else if (open_max >= 8096)
+    return 256;
+  else if (open_max >= 1024)
+    return 128;
+  else if (open_max >= 512)
+    return 64;
+  else if (open_max >= 128)
+    return 32;
+  else // Assumes we don't try less than 64.
+    return 16;
+}
+
+uint32_t
+calculate_internal(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 32;
+  else if (open_max >= 1024)
+    return 16;
+  else
+    return 8;
+}
+
+uint32_t
+calculate_max_http_total_connections(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 128;
+  else if (open_max >= 8096)
+    return 64;
+  else if (open_max >= 1024)
+    return 32;
+  else if (open_max >= 512)
+    return 16;
+  else if (open_max >= 128)
+    return 8;
+  else // Assumes we don't try less than 64.
+    return 4;
+}
+
+} // namespace
 
 namespace torrent::runtime {
 
@@ -44,15 +107,45 @@ SocketManager::category_max_size(category_t category) const {
 }
 
 void
-SocketManager::set_max_size(uint32_t max_size) {
+SocketManager::set_max_size_and_adjust(uint32_t max_open) {
   auto guard = lock_guard();
-  m_max_size = max_size;
+
+  auto max_files = calculate_max_open_files(max_open);
+  auto reserved  = calculate_reserved(max_open);
+  m_max_size = max_open - max_files - reserved;
+
+  m_category_max_size[category_internal] = calculate_internal(max_open);
+  m_category_max_size[category_http]     = calculate_max_http_total_connections(max_open);
+
+  notify_changes();
 }
 
 void
 SocketManager::set_category_max_size(category_t category, uint32_t max_size) {
   auto guard                    = lock_guard();
   m_category_max_size[category] = max_size;
+}
+
+void
+SocketManager::subscribe_to_changes(void* target, const std::function<void()>& callback) {
+  auto guard = lock_guard();
+  m_change_subscribers.push_back(std::make_pair(target, callback));
+}
+
+void
+SocketManager::unsubscribe_from_changes(void* target) {
+  auto guard = lock_guard();
+
+  auto itr = std::remove_if(m_change_subscribers.begin(), m_change_subscribers.end(),
+                            [target](auto& p) { return p.first == target; });
+
+  m_change_subscribers.erase(itr, m_change_subscribers.end());
+}
+
+void
+SocketManager::notify_changes() const {
+  for (auto& p : m_change_subscribers)
+    p.second();
 }
 
 void
