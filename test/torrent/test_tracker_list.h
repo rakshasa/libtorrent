@@ -54,7 +54,7 @@ bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const c
 struct TestTrackerListWrapper {
   TestTrackerListWrapper(torrent::TrackerList* tracker_list) : m_tracker_list(tracker_list) {}
 
-  void                set_info(torrent::DownloadInfo* info) { m_tracker_list->set_info(info); }
+  void set_info(torrent::DownloadInfo* info) { m_tracker_list->set_info(info); }
 
   torrent::TrackerList* m_tracker_list;
 };
@@ -82,8 +82,8 @@ struct TestTrackerListWrapper {
   TrackerTest::insert_tracker(&tracker_list, group, name);
 
 #define TEST_TRACKER_IS_BUSY(tracker, state)            \
-  CPPUNIT_ASSERT(state == '0' ||  tracker.is_busy());   \
-  CPPUNIT_ASSERT(state == '1' || !tracker.is_busy());
+  CPPUNIT_ASSERT(state == '0' ||  tracker.is_requesting());   \
+  CPPUNIT_ASSERT(state == '1' || !tracker.is_requesting());
 
 #define TEST_MULTI3_IS_BUSY(original, rearranged)           \
   TEST_TRACKER_IS_BUSY(tracker_0_0, original[0]);           \

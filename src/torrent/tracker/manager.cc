@@ -90,6 +90,7 @@ Manager::send_event(tracker::Tracker& tracker, TrackerParams params, tracker::Tr
       if (tracker == nullptr)
         return;
 
+      tracker->mark_starting_request();
       tracker->send_event(params, new_event);
     });
 }
@@ -163,8 +164,8 @@ Manager::update_tracker(const Tracker& tracker) {
   //
   // TrackerWorker::remove_events() would have removed the event, so don't check.
 
-  // if (tracker.is_requesting_not_dht_scrape())
-  //   return;
+  if (tracker.is_requesting_not_dht_scrape_disownable())
+    return;
 
   auto itr = std::find(m_trackers_to_wait.begin(), m_trackers_to_wait.end(), tracker);
 
@@ -182,7 +183,7 @@ void
 Manager::delete_tracker(Tracker tracker) {
   auto guard = std::scoped_lock(m_lock);
 
-  if (tracker.is_requesting_not_dht_scrape()) {
+  if (tracker.is_requesting_not_dht_scrape_disownable()) {
     m_trackers_to_wait.push_back(tracker);
     return;
   }

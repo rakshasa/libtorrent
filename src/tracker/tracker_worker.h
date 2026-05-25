@@ -50,6 +50,8 @@ protected:
   friend class tracker::Manager;
   friend class ::TrackerTest;
 
+  // TODO: Review if close() is ever used anymore.
+
   virtual void        close() = 0;
   virtual void        cleanup() = 0;
 
@@ -66,6 +68,8 @@ protected:
 
   std::string         tracker_id_safe() const;
   void                set_tracker_id_safe(const std::string& id);
+
+  void                mark_starting_request();
 
   auto&               callback_id()                         { return m_callback_id; }
   void                remove_events();

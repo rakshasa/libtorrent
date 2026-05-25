@@ -39,7 +39,7 @@ TrackerList::~TrackerList() {
 
 bool
 TrackerList::has_active() const {
-  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_busy(); });
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_requesting(); });
 }
 
 bool
@@ -54,17 +54,17 @@ TrackerList::has_active_not_dht_scrape_disownable() const {
 
 bool
 TrackerList::has_active_not_scrape() const {
-  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_busy_not_scrape(); });
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_requesting_not_scrape(); });
 }
 
 bool
 TrackerList::has_active_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_busy(); });
+  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_requesting(); });
 }
 
 bool
 TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
-  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_busy_not_scrape(); });
+  return std::any_of(begin_group(group), end_group(group), [](auto& tracker) { return tracker.is_requesting_not_scrape(); });
 }
 
 bool
@@ -100,7 +100,7 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
   if (!tracker.is_usable() || event == tracker::TrackerState::EVENT_SCRAPE)
     return;
 
-  if (tracker.is_busy()) {
+  if (tracker.is_requesting()) {
     if (tracker.state().latest_event() == event)
       return;
 
@@ -131,7 +131,7 @@ TrackerList::send_scrape(tracker::Tracker& tracker) {
   if (find(tracker) == end())
     throw internal_error("TrackerList::send_scrape(...) tracker not found.");
 
-  if (tracker.is_busy() || !tracker.is_usable())
+  if (tracker.is_requesting() || !tracker.is_usable())
     return;
 
   if (!tracker.is_scrapable())
@@ -402,7 +402,7 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
   if (itr == end())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
-  if (tracker.is_busy())
+  if (tracker.is_requesting())
     throw internal_error("TrackerList::receive_success(...) called but the tracker is still busy.");
 
   // Promote the tracker to the front of the group since it was
@@ -445,7 +445,7 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   if (itr == end())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  if (tracker.is_busy())
+  if (tracker.is_requesting())
     throw internal_error("TrackerList::receive_failed(...) called but the tracker is still busy.");
 
   {
@@ -471,7 +471,7 @@ TrackerList::receive_scrape_success(tracker::Tracker tracker) {
   if (itr == end())
     throw internal_error("TrackerList::receive_scrape_success(...) called but the iterator is invalid.");
 
-  if (tracker.is_busy())
+  if (tracker.is_requesting())
     throw internal_error("TrackerList::receive_scrape_success(...) called but the tracker is still busy.");
 
   {
@@ -496,7 +496,7 @@ TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& 
   if (itr == end())
     throw internal_error("TrackerList::receive_scrape_failed(...) called but the iterator is invalid.");
 
-  if (tracker.is_busy())
+  if (tracker.is_requesting())
     throw internal_error("TrackerList::receive_scrape_failed(...) called but the tracker is still busy.");
 
   if (m_slot_scrape_failed)
