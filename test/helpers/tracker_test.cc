@@ -115,6 +115,7 @@ TrackerTest::send_event([[maybe_unused]] torrent::tracker::TrackerParams params,
   lock_and_set_latest_event(new_state);
 
   auto guard = lock_guard();
+  state().m_flags |= torrent::tracker::TrackerState::flag_starting_request;
   state().m_flags |= torrent::tracker::TrackerState::flag_requesting;
 }
 
@@ -142,6 +143,7 @@ TrackerTest::close()  {
 
   auto guard = lock_guard();
   state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+  state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
 }
 
 void
@@ -150,6 +152,8 @@ TrackerTest::cleanup() {
 
   auto guard = lock_guard();
   state().m_flags |= torrent::tracker::TrackerState::flag_deleted;
+  state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+  state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
 }
 
 bool
@@ -192,6 +196,7 @@ TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_pe
   {
     auto guard = lock_guard();
     state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+    state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
   }
 
   return_new_peers = new_peers;
@@ -231,6 +236,7 @@ TrackerTest::trigger_failure() {
   {
     auto guard = lock_guard();
     state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+    state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
   }
 
   return_new_peers = 0;
@@ -273,12 +279,12 @@ int
 TrackerTest::count_active(torrent::TrackerList* parent) {
   std::this_thread::sleep_for(500ms);
 
-  return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_busy));
+  return std::count_if(parent->begin(), parent->end(), [](auto& tracker) { return tracker.is_requesting(); });
 }
 
 int
 TrackerTest::count_usable(torrent::TrackerList* parent) {
   std::this_thread::sleep_for(500ms);
 
-  return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_usable));
+  return std::count_if(parent->begin(), parent->end(), [](auto& tracker) { return tracker.is_usable(); });
 }

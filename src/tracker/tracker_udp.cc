@@ -78,6 +78,7 @@ TrackerUdp::close() {
   LT_LOG("closing event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
+  update_requesting_state();
 }
 
 void
@@ -90,9 +91,6 @@ TrackerUdp::close_directly() {
 
   m_inet_state  = family_state{};
   m_inet6_state = family_state{};
-
-  update_requesting_state();
-  remove_events();
 }
 
 void
@@ -100,9 +98,12 @@ TrackerUdp::cleanup() {
   LT_LOG("cleaning up : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
+  remove_events();
 
   auto guard = lock_guard();
   state().m_flags |= tracker::TrackerState::flag_deleted;
+  state().m_flags &= ~tracker::TrackerState::flag_requesting;
+  state().m_flags &= ~tracker::TrackerState::flag_starting_request;
 }
 
 void
@@ -132,8 +133,8 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
 
   LT_LOG("closing with error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
 
-  update_requesting_state();
   remove_events();
+  update_requesting_state();
 
   m_slot_failure(msg);
 }
@@ -141,6 +142,8 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
 void
 TrackerUdp::update_requesting_state() {
   auto guard = lock_guard();
+
+  state().m_flags &= ~tracker::TrackerState::flag_starting_request;
 
   if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0)
     state().m_flags |= tracker::TrackerState::flag_requesting;
@@ -361,8 +364,8 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
 
   LT_LOG("received announce success : family:%s hostname:%s port:%u peers:%zu", family_str(family), m_hostname.c_str(), m_port, l.size());
 
-  update_requesting_state();
   remove_events();
+  update_requesting_state();
 
   m_slot_success(std::move(l));
 
@@ -398,8 +401,8 @@ TrackerUdp::handle_setup_error(const std::string& msg) {
   if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0)
     throw internal_error("TrackerUdp::handle_setup_error() called but inet/inet6 transaction id is not 0.");
 
-  // update_requesting_state();
   remove_events();
+  update_requesting_state();
 
   m_slot_failure(msg);
 }

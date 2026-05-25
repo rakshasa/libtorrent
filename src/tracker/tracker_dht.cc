@@ -84,8 +84,8 @@ TrackerDht::close() {
   // if (m_dht_state != state_idle)
   //   throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
 
-  update_requesting_state();
   remove_events();
+  update_requesting_state();
 }
 
 void
@@ -102,7 +102,9 @@ TrackerDht::cleanup() {
   runtime::network_manager()->dht_controller()->cancel_announce(info().info_hash, m_weak_tracker);
 
   auto guard = lock_guard();
-  state().m_flags |= tracker::TrackerState::flag_deleted;
+  state().m_flags |=  tracker::TrackerState::flag_deleted;
+  state().m_flags &= ~tracker::TrackerState::flag_requesting;
+  state().m_flags &= ~tracker::TrackerState::flag_starting_request;
 }
 
 // TODO: We don't really need to track announcing state in Tracker?
@@ -157,6 +159,7 @@ TrackerDht::receive_failed(const char* msg) {
   //   throw internal_error("TrackerDht::receive_failed called while not busy.");
 
   m_dht_state = state_idle;
+
   update_requesting_state();
 
   m_slot_failure(msg);
@@ -200,6 +203,8 @@ TrackerDht::update_requesting_state() {
 
   if (m_dht_state != state_announcing)
     this_thread::scheduler()->erase(&m_delay_clear_state);
+
+  state().m_flags &= ~tracker::TrackerState::flag_starting_request;
 
   if (m_dht_state != state_idle)
     state().m_flags |= tracker::TrackerState::flag_requesting;

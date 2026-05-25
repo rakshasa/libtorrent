@@ -20,12 +20,9 @@ public:
 
   bool                is_valid() const { return m_worker != nullptr; }
 
-  // TODO: Rename.
-  bool                is_busy() const;
-  bool                is_busy_not_scrape() const;
-
   bool                is_enabled() const;
   bool                is_requesting() const;
+  bool                is_requesting_not_scrape() const;
   bool                is_requesting_not_dht() const;
   bool                is_requesting_not_dht_scrape() const;
   bool                is_requesting_not_dht_scrape_disownable() const;

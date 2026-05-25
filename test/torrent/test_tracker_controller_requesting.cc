@@ -22,7 +22,7 @@ TestTrackerControllerRequesting::do_test_hammering_basic(bool success1, bool suc
   else
     tracker_0_0_worker->set_new_min_interval(600);
 
-  CPPUNIT_ASSERT(tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
   CPPUNIT_ASSERT(success1 ? tracker_0_0_worker->trigger_success() : tracker_0_0_worker->trigger_failure());
 
   CPPUNIT_ASSERT(test_tracker_value_in_range(tracker_controller.seconds_to_next_timeout(),
@@ -32,14 +32,14 @@ TestTrackerControllerRequesting::do_test_hammering_basic(bool success1, bool suc
 
   tracker_controller.start_requesting();
 
-  CPPUNIT_ASSERT(!tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(!tracker_0_0.is_requesting());
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 0));
-  CPPUNIT_ASSERT(!tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(!tracker_0_0.is_requesting());
 
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::flag_requesting));
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().min_interval()));
 
-  CPPUNIT_ASSERT(tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
 
   if (success2) {
     CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
@@ -50,12 +50,12 @@ TestTrackerControllerRequesting::do_test_hammering_basic(bool success1, bool suc
     CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
 
     CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 5));
-    CPPUNIT_ASSERT(tracker_0_0.is_busy());
+    CPPUNIT_ASSERT(tracker_0_0.is_requesting());
   }
 
   tracker_controller.stop_requesting();
 
-  CPPUNIT_ASSERT(tracker_0_0.is_busy());
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
   CPPUNIT_ASSERT(success3 ? tracker_0_0_worker->trigger_success() : tracker_0_0_worker->trigger_failure());
 
   TEST_SINGLE_END(success1 + success2 + success3, !success1 + !success2 + !success3);
