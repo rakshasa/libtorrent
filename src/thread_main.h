@@ -43,6 +43,8 @@ private:
   static ThreadMain*         m_thread_main;
   static system::Thread*     m_thread_base;
 
+  system::callback_id        m_events_callback_id;
+
   std::unique_ptr<HashQueue> m_hash_queue;
   std::function<void()>      m_slot_client_callback;
 };
