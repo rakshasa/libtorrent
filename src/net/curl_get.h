@@ -38,6 +38,7 @@ public:
   bool                is_active() const;
   bool                is_closing() const;
 
+  auto&               callback_id();
   CurlStack*          curl_stack() const;
 
   const std::string&  url() const;
@@ -75,6 +76,8 @@ public:
 protected:
   friend class CurlStack;
 
+  void                close_self(const std::shared_ptr<CurlGet>& curl_get, system::Thread* thread, bool wait);
+
   // We need to lock when changing any of the values publically accessible. This means we don't need
   // to lock when changing the underlying vector.
   void                lock() const                    { m_mutex.lock(); }
@@ -107,6 +110,8 @@ private:
   static size_t       receive_write(const char* data, size_t size, size_t nmemb, CurlGet* handle);
 
   bool                prepare_resolve_unsafe(resolve_type current_resolve);
+
+  system::callback_id m_callback_id;
 
   mutable std::mutex  m_mutex;
 
@@ -150,41 +155,13 @@ CurlGet::close_and_wait(const std::shared_ptr<CurlGet>& curl_get) {
   close(curl_get, nullptr, true);
 }
 
-inline bool
-CurlGet::is_stacked() const {
-  auto guard = lock_guard();
-  return m_handle != nullptr;
-}
-
-inline bool
-CurlGet::is_active() const {
-  auto guard = lock_guard();
-  return m_active;
-}
-
-inline bool
-CurlGet::is_closing() const {
-  auto guard = lock_guard();
-  return m_was_closed;
-}
-
-inline CurlStack*
-CurlGet::curl_stack() const {
-  auto guard = lock_guard();
-  return m_stack;
-}
-
-inline const std::string&
-CurlGet::url() const {
-  auto guard = lock_guard();
-  return m_url;
-}
-
-inline uint32_t
-CurlGet::timeout() const {
-  auto guard = lock_guard();
-  return m_timeout;
-}
+inline bool               CurlGet::is_stacked() const  { auto guard = lock_guard(); return m_handle != nullptr; }
+inline bool               CurlGet::is_active() const   { auto guard = lock_guard(); return m_active; }
+inline bool               CurlGet::is_closing() const  { auto guard = lock_guard(); return m_was_closed; }
+inline auto&              CurlGet::callback_id()       { return m_callback_id; }
+inline CurlStack*         CurlGet::curl_stack() const  { auto guard = lock_guard(); return m_stack; }
+inline const std::string& CurlGet::url() const         { auto guard = lock_guard(); return m_url; }
+inline uint32_t           CurlGet::timeout() const     { auto guard = lock_guard(); return m_timeout; }
 
 } // namespace torrent::net
 

@@ -71,52 +71,21 @@ Thread::stop_thread_wait() {
 }
 
 void
-Thread::callback(void* target, std::function<void ()>&& fn) {
+Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, std::function<void ()>&& fn) {
   {
-    auto lock = std::lock_guard(m_callbacks_lock);
+    auto guard = std::scoped_lock(m_callbacks_lock);
 
-    m_callbacks.emplace(target, std::move(fn));
+    callbacks.push_back({nullptr, std::move(fn), 0});
   }
+
+  if (should_interrupt)
+    m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
 
   interrupt();
 }
 
 void
-Thread::callback_interrupt_polling(void* target, std::function<void ()>&& fn) {
-  {
-    auto lock = std::lock_guard(m_callbacks_lock);
-
-    m_interrupt_callbacks.emplace(target, std::move(fn));
-    m_callbacks_should_interrupt_polling = true;
-  }
-
-  interrupt();
-}
-
-void
-Thread::cancel_callback(void* target) {
-  if (target == nullptr)
-    throw internal_error("Thread::cancel_callback called() with a null pointer target.");
-
-  auto lock = std::lock_guard(m_callbacks_lock);
-
-  m_callbacks.erase(target);
-  m_interrupt_callbacks.erase(target);
-}
-
-void
-Thread::callback(std::function<void ()>&& fn) {
-  {
-    auto lock = std::lock_guard(m_callbacks_lock);
-
-    m_callbacks2.push_back({nullptr, std::move(fn), 0});
-  }
-
-  interrupt();
-}
-
-void
-Thread::callback(system::callback_id& id, std::function<void ()>&& fn) {
+Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, system::callback_id& id, std::function<void ()>&& fn) {
   assert(id != nullptr);
 
   // Ensure adding callbacks for the id are completed before cancel-wait can proceed.
@@ -128,26 +97,19 @@ Thread::callback(system::callback_id& id, std::function<void ()>&& fn) {
   {
     auto guard = std::scoped_lock(m_callbacks_lock);
 
-    if (m_callbacks.empty())
-      m_callbacks2.reserve(16);
+    if (callbacks.empty())
+      callbacks.reserve(16);
 
-    m_callbacks2.push_back({id, std::move(fn), previous_id & ~0x7});
+    callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
   }
 
   id->fetch_sub(1, std::memory_order_release);
   id->notify_all();
 
+  if (should_interrupt)
+    m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
+
   interrupt();
-}
-
-void
-Thread::callback_interrupt(std::function<void ()>&& fn) {
-  callback(std::move(fn));
-}
-
-void
-Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) {
-  callback(id, std::move(fn));
 }
 
 void
@@ -384,49 +346,20 @@ Thread::process_events_without_cached_time() {
   m_scheduler->perform(m_cached_time);
 }
 
-// TODO: This should be called in process_events.
 void
 Thread::process_callbacks(bool only_interrupt) {
-  m_callbacks_should_interrupt_polling = false;
+  m_callbacks_should_interrupt_polling.store(false, std::memory_order_release);
 
-  while (true) {
-    std::function<void ()> callback;
-
-    {
-      auto lock = std::lock_guard(m_callbacks_lock);
-
-      if (!m_interrupt_callbacks.empty())
-        callback = m_interrupt_callbacks.extract(m_interrupt_callbacks.begin()).mapped();
-      else if (!only_interrupt && !m_callbacks.empty())
-        callback = m_callbacks.extract(m_callbacks.begin()).mapped();
-      else
-        break;
-
-      // The 'm_callbacks_processing_lock' is used by 'cancel_callback_and_wait' as a way to wait
-      // for the processing of the callbacks to finish.
-      m_callbacks_processing_lock.lock();
-      m_callbacks_processing = true;
-    }
-
-    callback();
-
-    m_callbacks_processing = false;
-    m_callbacks_processing_lock.unlock();
-  }
-
-  if (!only_interrupt)
-    process_callbacks2();
-}
-
-void
-Thread::process_callbacks2() {
   while (true) {
     std::vector<callback_type> callbacks;
 
     {
       auto guard = std::scoped_lock(m_callbacks_lock);
 
-      callbacks.swap(m_callbacks2);
+      callbacks.swap(m_interrupt_callbacks);
+
+      if (!only_interrupt && callbacks.empty())
+        callbacks.swap(m_callbacks);
     }
 
     if (callbacks.empty())
@@ -469,17 +402,14 @@ Thread::set_cached_time(std::chrono::microseconds t) {
 
 namespace torrent::this_thread {
 
-torrent::system::Thread*  thread()                                            { return system::ThreadInternal::thread(); }
-std::thread::id           thread_id()                                         { return system::ThreadInternal::thread_id(); }
+torrent::system::Thread*  thread()         { return system::ThreadInternal::thread(); }
+std::thread::id           thread_id()      { return system::ThreadInternal::thread_id(); }
 
-std::chrono::microseconds cached_time()                                       { return system::ThreadInternal::cached_time(); }
-std::chrono::seconds      cached_seconds()                                    { return system::ThreadInternal::cached_seconds(); }
+std::chrono::microseconds cached_time()    { return system::ThreadInternal::cached_time(); }
+std::chrono::seconds      cached_seconds() { return system::ThreadInternal::cached_seconds(); }
 
-void                      callback(void* target, std::function<void ()>&& fn) { system::ThreadInternal::callback(target, std::move(fn)); }
-void                      cancel_callback(void* target)                       { system::ThreadInternal::cancel_callback(target); }
-
-net::Poll*                poll()                                              { return system::ThreadInternal::poll(); }
-net::Resolver*            resolver()                                          { return system::ThreadInternal::resolver(); }
-utils::Scheduler*         scheduler()                                         { return system::ThreadInternal::scheduler(); }
+net::Poll*                poll()           { return system::ThreadInternal::poll(); }
+net::Resolver*            resolver()       { return system::ThreadInternal::resolver(); }
+utils::Scheduler*         scheduler()      { return system::ThreadInternal::scheduler(); }
 
 } // namespace torrent::this_thread

@@ -45,6 +45,7 @@ class DnsBuffer {
 public:
   constexpr static int max_requests = 8;
 
+  DnsBuffer() = default;
   ~DnsBuffer();
 
   // The 'fn' callback must do work in the originating thread using callbacks with 'requester'.
@@ -57,8 +58,9 @@ public:
   // list of callbacks.
 
 private:
-  using active_query_list = std::array<DnsBufferQuery, max_requests>;
-  using requester_list    = std::map<void*, std::shared_ptr<DnsBufferRequester>>;
+  using active_query_list  = std::array<DnsBufferQuery, max_requests>;
+  using pending_query_list = std::list<DnsBufferQuery>;
+  using requester_list     = std::map<void*, std::shared_ptr<DnsBufferRequester>>;
 
   void                activate_pending_query();
   void                activate_and_resolve_query(DnsBufferQuery query);
@@ -66,14 +68,12 @@ private:
   void                process(unsigned int index, sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6);
   void                process_callback(DnsBufferCallback& callback, sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6);
 
-  void*               requester_from_index(unsigned int index);
+  unsigned int        m_active_query_count{};
+  active_query_list   m_active_queries;
+  pending_query_list  m_pending_queries;
 
-  unsigned int              m_active_query_count{};
-  active_query_list         m_active_queries;
-  std::list<DnsBufferQuery> m_pending_queries;
-
-  std::mutex                m_requesters_mutex;
-  requester_list            m_requesters;
+  std::mutex          m_requesters_mutex;
+  requester_list      m_requesters;
 };
 
 } // namespace torrent::net

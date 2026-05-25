@@ -12,6 +12,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/system/thread.h"
 #include "torrent/utils/uri_parser.h"
 #include "utils/functional.h"
@@ -19,7 +20,8 @@
 namespace torrent::net {
 
 CurlGet::CurlGet(std::string url, std::shared_ptr<std::ostream> stream)
-  : m_url(std::move(url)),
+  : m_callback_id(system::make_callback_id()),
+    m_url(std::move(url)),
     m_stream(std::move(stream)) {
 }
 
@@ -138,51 +140,54 @@ CurlGet::start(const std::shared_ptr<CurlGet>& curl_get, CurlStack* stack) {
   self->m_was_started  = true;
   self->m_stack_thread = stack->thread();
 
-  stack->thread()->callback(self, [stack, curl_get]() {
+  stack->thread()->callback(self->m_callback_id, [stack, curl_get]() {
       stack->start_get(curl_get);
     });
 }
 
 void
 CurlGet::close(const std::shared_ptr<CurlGet>& curl_get, system::Thread* callback_thread, bool wait) {
-  auto self = curl_get.get();
+  curl_get->close_self(curl_get, callback_thread, wait);
+}
 
-  std::unique_lock<std::mutex> guard(self->m_mutex);
+void
+CurlGet::close_self(const std::shared_ptr<CurlGet>& curl_get, system::Thread* callback_thread, bool wait) {
+  std::unique_lock<std::mutex> guard(m_mutex);
 
-  if (!self->m_was_started)
+  if (!m_was_started)
     throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an object that was not started.");
 
-  if (self->m_was_closed)
+  if (m_was_closed)
     throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an already closing object.");
 
-  self->m_stack_thread->cancel_callback(self);
+  m_stack_thread->cancel_callback(m_callback_id);
 
   if (callback_thread != nullptr)
-    callback_thread->cancel_callback(self);
+    callback_thread->cancel_callback(m_callback_id);
 
-  if (self->m_stack == nullptr) {
-    if (self->m_was_started) {
-      self->m_stack_thread     = nullptr;
-      self->m_was_started      = false;
-      self->m_was_closed       = false;
-      self->m_prepare_canceled = false;
-      self->m_retrying_resolve = false;
+  if (m_stack == nullptr) {
+    if (m_was_started) {
+      m_stack_thread     = nullptr;
+      m_was_started      = false;
+      m_was_closed       = false;
+      m_prepare_canceled = false;
+      m_retrying_resolve = false;
     }
 
     return;
   }
 
-  assert(std::this_thread::get_id() != self->m_stack->thread()->thread_id());
-  assert(callback_thread != self->m_stack->thread());
+  assert(std::this_thread::get_id() != m_stack->thread()->thread_id());
+  assert(callback_thread != m_stack->thread());
 
-  self->m_was_closed = true;
+  m_was_closed = true;
 
-  self->m_stack->thread()->callback_interrupt_polling(self, [curl_stack = self->m_stack, curl_get]() {
+  m_stack->thread()->callback_interrupt(m_callback_id, [curl_stack = m_stack, curl_get]() {
       curl_stack->close_get(curl_get);
     });
 
-  if (wait && self->m_handle == nullptr)
-    self->m_cond_closed.wait(guard, [self] { return self->m_handle == nullptr; });
+  if (wait && m_handle == nullptr)
+    m_cond_closed.wait(guard, [this] { return m_handle == nullptr; });
 }
 
 bool
