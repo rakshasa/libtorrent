@@ -46,6 +46,8 @@ private:
 
   static ThreadTracker*               m_thread_tracker;
 
+  system::callback_id                 m_events_callback_id;
+
   std::unique_ptr<tracker::Manager>   m_tracker_manager;
   std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;
   std::unique_ptr<tracker::UdpRouter> m_udp_inet6_router;

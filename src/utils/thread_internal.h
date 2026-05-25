@@ -14,9 +14,6 @@ public:
   static std::chrono::microseconds cached_time()    { return Thread::m_self->m_cached_time; }
   static std::chrono::seconds      cached_seconds() { return utils::cast_seconds(Thread::m_self->m_cached_time); }
 
-  static void                      callback(void* target, std::function<void ()>&& fn) { Thread::m_self->callback(target, std::move(fn)); }
-  static void                      cancel_callback(void* target)                       { Thread::m_self->cancel_callback(target); }
-
   static net::Poll*                poll()           { return Thread::m_self->m_poll.get(); }
   static auto*                     scheduler()      { return Thread::m_self->m_scheduler.get(); }
   static net::Resolver*            resolver()       { return Thread::m_self->m_resolver.get(); }

@@ -55,8 +55,8 @@ public:
   // thread's callback queue even if the underlying CurlGet is closed or deleted.
   //
   // Calling add_*_slot is not allowed while the HttpGet is in the stack.
-  void                add_done_slot(system::Thread* thread, const std::function<void()>& slot);
-  void                add_failed_slot(system::Thread* thread, const std::function<void(const std::string&)>& slot);
+  void                add_done_slot(system::Thread* thread, const std::function<void()>& fn);
+  void                add_failed_slot(system::Thread* thread, const std::function<void(const std::string&)>& fn);
   // TODO: Add a closed_slot.
 
   bool                operator<(const HttpGet& other) const;

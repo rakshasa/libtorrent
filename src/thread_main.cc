@@ -16,9 +16,6 @@ namespace main_thread {
 system::Thread* thread()                                                                 { return ThreadMain::thread_base(); }
 std::thread::id thread_id()                                                              { return ThreadMain::thread_base()->thread_id(); }
 
-void            callback(void* target, std::function<void ()>&& fn)                      { ThreadMain::thread_base()->callback(target, std::move(fn)); }
-void            cancel_callback(void* target)                                            { ThreadMain::thread_base()->cancel_callback(target); }
-
 void            callback(std::function<void ()>&& fn)                                    { ThreadMain::thread_base()->callback(std::move(fn)); }
 void            callback(system::callback_id& id, std::function<void ()>&& fn)           { ThreadMain::thread_base()->callback(id, std::move(fn)); }
 void            callback_interrupt(std::function<void ()>&& fn)                          { ThreadMain::thread_base()->callback_interrupt(std::move(fn)); }
@@ -46,7 +43,8 @@ ThreadMain::create_thread() {
   m_thread_main = new ThreadMain;
   m_thread_base = m_thread_main;
 
-  m_thread_main->m_hash_queue = std::make_unique<HashQueue>();
+  m_thread_main->m_events_callback_id = system::make_callback_id();
+  m_thread_main->m_hash_queue         = std::make_unique<HashQueue>();
 }
 
 void
@@ -70,9 +68,9 @@ ThreadMain::init_thread() {
     };
 
   runtime::network_config()->subscribe_to_changes(this, [this]() {
-      cancel_callback(this);
+      cancel_callback(m_events_callback_id);
 
-      callback(this, []() {
+      callback(m_events_callback_id, []() {
           runtime::network_manager()->listen_restart();
 
           // TODO: Restart DHT.
@@ -83,6 +81,7 @@ ThreadMain::init_thread() {
 void
 ThreadMain::cleanup_thread() {
   runtime::network_config()->unsubscribe_from_changes(this);
+  cancel_callback(m_events_callback_id);
 
   m_hash_queue.reset();
 

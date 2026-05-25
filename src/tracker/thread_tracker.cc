@@ -8,6 +8,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/network_config.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/tracker/manager.h"
 #include "utils/instrumentation.h"
 
@@ -17,9 +18,6 @@ namespace tracker_thread {
 
 system::Thread* thread()                                                       { return ThreadTracker::thread_base(); }
 std::thread::id thread_id()                                                    { return ThreadTracker::thread_base()->thread_id(); }
-
-void            callback(void* target, std::function<void ()>&& fn)            { ThreadTracker::thread_base()->callback(target, std::move(fn)); }
-void            cancel_callback(void* target)                                  { ThreadTracker::thread_base()->cancel_callback(target); }
 
 void            callback(std::function<void ()>&& fn)                          { ThreadTracker::thread_base()->callback(std::move(fn)); }
 void            callback(system::callback_id& id, std::function<void ()>&& fn) { ThreadTracker::thread_base()->callback(id, std::move(fn)); }
@@ -41,10 +39,11 @@ ThreadTracker::create_thread() {
 
   m_thread_tracker = new ThreadTracker();
 
-  m_thread_tracker->m_resolver         = std::make_unique<net::Resolver>();
-  m_thread_tracker->m_tracker_manager  = std::make_unique<tracker::Manager>();
-  m_thread_tracker->m_udp_inet_router  = std::make_unique<tracker::UdpRouter>();
-  m_thread_tracker->m_udp_inet6_router = std::make_unique<tracker::UdpRouter>();
+  m_thread_tracker->m_events_callback_id = system::make_callback_id();
+  m_thread_tracker->m_resolver           = std::make_unique<net::Resolver>();
+  m_thread_tracker->m_tracker_manager    = std::make_unique<tracker::Manager>();
+  m_thread_tracker->m_udp_inet_router    = std::make_unique<tracker::UdpRouter>();
+  m_thread_tracker->m_udp_inet6_router   = std::make_unique<tracker::UdpRouter>();
 }
 
 void
@@ -71,9 +70,9 @@ ThreadTracker::init_thread_post_local() {
   m_thread_tracker->m_udp_inet6_router->open(AF_INET6);
 
   runtime::network_config()->subscribe_to_changes(this, [this]() {
-      cancel_callback(this);
+      cancel_callback(m_events_callback_id);
 
-      callback(this, [this]() {
+      callback(m_events_callback_id, [this]() {
           m_udp_inet_router->updated_network_config(AF_INET);
           m_udp_inet6_router->updated_network_config(AF_INET6);
         });
@@ -82,9 +81,10 @@ ThreadTracker::init_thread_post_local() {
 
 void
 ThreadTracker::cleanup_thread() {
-  m_tracker_manager.reset();
-
   runtime::network_config()->unsubscribe_from_changes(this);
+  cancel_callback(m_events_callback_id);
+
+  m_tracker_manager.reset();
 
   m_udp_inet_router->close();
   m_udp_inet6_router->close();

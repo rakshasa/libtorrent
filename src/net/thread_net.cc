@@ -22,11 +22,6 @@ namespace net_thread {
 torrent::system::Thread* thread()                                                                 { return ThreadNet::thread_net(); }
 std::thread::id          thread_id()                                                              { return ThreadNet::thread_net()->thread_id(); }
 
-void callback(void* target, std::function<void ()>&& fn)                                          { ThreadNet::thread_net()->callback(target, std::move(fn)); }
-void callback_interrupt_polling(void* target, std::function<void ()>&& fn)                        { ThreadNet::thread_net()->callback_interrupt_polling(target, std::move(fn)); }
-
-void cancel_callback(void* target)                                                                { ThreadNet::thread_net()->cancel_callback(target); }
-
 void                     callback(std::function<void ()>&& fn)                                    { ThreadNet::thread_net()->callback(std::move(fn)); }
 void                     callback(system::callback_id& id, std::function<void ()>&& fn)           { ThreadNet::thread_net()->callback(id, std::move(fn)); }
 void                     callback_interrupt(std::function<void ()>&& fn)                          { ThreadNet::thread_net()->callback_interrupt(std::move(fn)); }
