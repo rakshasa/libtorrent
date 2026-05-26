@@ -133,10 +133,12 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (!stack->is_running())
       return 0;
 
-    auto itr = stack->socket_map()->find(fd);
+    auto [itr, inserted] = stack->socket_map()->try_emplace(fd, nullptr);
 
-    if (itr == stack->socket_map()->end()) {
-      socket = new CurlSocket(fd, stack, easy_handle);
+    if (inserted) {
+      auto socket_ptr = std::make_unique<CurlSocket>(fd, stack, easy_handle);
+
+      socket = socket_ptr.get();
       socket->m_properly_opened = false;
 
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unexpected fd encountered, creating new (not properly opened) CurlSocket", 0);
@@ -146,7 +148,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
           this_thread::poll()->insert_error(socket);
         });
 
-      stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
+      itr->second = std::move(socket_ptr);
 
       curl_multi_assign(stack->handle(), fd, socket);
 
@@ -328,23 +330,20 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
 
   // Add to stack map if not already present.
 
-  auto fd  = event->file_descriptor();
-  auto itr = stack->socket_map()->find(fd);
+  auto [itr, inserted] = stack->socket_map()->try_emplace(event->file_descriptor(), std::move(event));
 
-  if (itr != stack->socket_map()->end()) {
-    LT_LOG_DEBUG("open_socket() : fd:%i : socket already exists in stack", fd);
+  if (!inserted) {
+    LT_LOG_DEBUG("open_socket() : fd:%i : socket already exists in stack", itr->first);
 
     // Shouldn't happen, but close the new socket and return the existing one.
     // runtime::socket_manager()->close_event(event.get());
     // return itr->second->file_descriptor();
-    throw internal_error("CurlSocket::open_socket() : fd:%i : socket already exists in stack");
+    throw internal_error("CurlSocket::open_socket() : fd:" + std::to_string(itr->first) + " : socket already exists in stack");
   }
 
-  LT_LOG_DEBUG("open_socket() : socket opened: fd:%i", fd);
+  LT_LOG_DEBUG("open_socket() : socket opened: fd:%i", itr->first);
 
-  stack->socket_map()->emplace(fd, std::move(event));
-
-  return fd;
+  return itr->first;
 }
 
 // When receive_socket() is called with CURL_POLL_REMOVE, we call CurlSocket::close() which

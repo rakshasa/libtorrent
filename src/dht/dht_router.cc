@@ -57,6 +57,7 @@ DhtRouter::DhtRouter(const Object& cache)
   LT_LOG_THIS("creating", 0);
 
   set_bucket(new DhtBucket(zero_id, ones_id));
+
   m_routingTable.emplace(bucket()->id_range_end(), bucket());
 
   if (cache.has_key("nodes")) {
@@ -149,9 +150,9 @@ DhtRouter::get_tracker(const HashString& hash, bool create) {
   if (!create)
     return NULL;
 
-  auto [tr, ins] = m_trackers.emplace(hash, new DhtTracker());
+  auto [tr, inserted] = m_trackers.emplace(hash, new DhtTracker());
 
-  if (!ins)
+  if (!inserted)
     throw internal_error("DhtRouter::get_tracker did not actually insert tracker.");
 
   return tr->second;
