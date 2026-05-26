@@ -183,9 +183,9 @@ TrackerUdp::state_for_family(int family) {
 void
 TrackerUdp::connect_family(int family) {
   auto params = tracker::UdpRouter::connection_params{
-    [family, this](uint32_t id, auto& buffer)               { prepare_connect(family, id, buffer); },
-    [family, this](uint32_t id, auto& buffer)               { return process_connect(family, id, buffer); },
-    [family, this](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
+    [this, family](uint32_t id, auto& buffer)               { prepare_connect(family, id, buffer); },
+    [this, family](uint32_t id, auto& buffer)               { return process_connect(family, id, buffer); },
+    [this, family](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
     nullptr,
     nullptr,
   };
@@ -249,11 +249,11 @@ TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
     return handle_parse_error(family, id, "connection id is 0");
 
   auto params = tracker::UdpRouter::connection_params{
-    [family, this](uint32_t id, auto& buffer)               { prepare_announce(family, id, buffer); },
-    [family, this](uint32_t id, auto& buffer)               { return process_announce(family, id, buffer); },
-    [family, this](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
-    [family, this](uint32_t id)                             { state_for_family(family).transaction_id = id; },
-    [family, this](uint32_t id)                             { process_announce_packet_sent(family, id); },
+    [this, family](uint32_t id, auto& buffer)               { prepare_announce(family, id, buffer); },
+    [this, family](uint32_t id, auto& buffer)               { return process_announce(family, id, buffer); },
+    [this, family](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
+    [this, family](uint32_t id)                             { state_for_family(family).transaction_id = id; },
+    [this, family](uint32_t id)                             { process_announce_packet_sent(family, id); },
   };
 
   router_for_family(family)->transfer(id, params);
