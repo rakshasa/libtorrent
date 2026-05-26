@@ -290,8 +290,10 @@ void
 UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
   auto itr = m_connections.find(id);
 
-  if (itr == m_connections.end())
-    throw internal_error("UdpRouter::resolved_hostname() called but connection ID is not found.");
+  if (itr == m_connections.end()) {
+    LT_LOG("received hostname for unknown connection : id:%" PRIx32, id);
+    return;
+  }
 
   if (itr->second.address != nullptr)
     throw internal_error("UdpRouter::resolved_hostname() called but connection already has an address.");
@@ -301,6 +303,15 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
     return;
   }
 
+  auto error_fn = [this, id, itr](int err) {
+      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err));
+
+      auto failure_fn = std::move(itr->second.failure);
+      disconnect_unsafe(itr);
+
+      failure_fn(id, 0, err);
+    };
+
   sa_unique_ptr sa;
 
   switch (router_family()) {
@@ -308,14 +319,8 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
     if (sin == nullptr && err == 0)
       throw internal_error("UdpRouter::resolved_hostname() sin == nullptr but err == 0");
 
-    if (err != 0) {
-      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err));
-
-      ///// TODO: Need to disconnect?
-
-      itr->second.failure(id, 0, err);
-      return;
-    }
+    if (err != 0)
+      return error_fn(err);
 
     sa = sa_copy_in(sin.get());
     break;
@@ -324,12 +329,8 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
     if (sin6 == nullptr && err6 == 0)
       throw internal_error("UdpRouter::resolved_hostname() sin6 == nullptr but err6 == 0");
 
-    if (err6 != 0) {
-      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err6));
-
-      itr->second.failure(id, 0, err6);
-      return;
-    }
+    if (err6 != 0)
+      return error_fn(err6);
 
     sa = sa_copy_in6(sin6.get());
     break;
