@@ -46,11 +46,12 @@ DnsBuffer::resolve(void* requester, const std::string& hostname, int family, res
   assert(std::this_thread::get_id() == ThreadNet::thread_net()->thread_id());
 
   auto initialize_fn = [this, requester, fn = std::move(fn)](bool is_active) mutable {
-      auto guard = std::lock_guard(m_requesters_mutex);
-      auto itr   = m_requesters.find(requester);
+      auto guard = std::scoped_lock(m_requesters_mutex);
 
-      if (itr == m_requesters.end())
-        itr = m_requesters.emplace(requester, std::make_shared<DnsBufferRequester>()).first;
+      auto [itr, inserted] = m_requesters.try_emplace(requester, nullptr);
+
+      if (inserted)
+        itr->second = std::make_shared<DnsBufferRequester>();
 
       // TODO: Add sanity check for count during development.
 
