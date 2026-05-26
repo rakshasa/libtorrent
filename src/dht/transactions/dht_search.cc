@@ -46,8 +46,7 @@ DhtSearch::~DhtSearch() {
 
 bool
 DhtSearch::add_contact(const HashString& id, const sockaddr* sa) {
-  auto n     = std::make_unique<DhtNode>(id, sa);
-  bool added = emplace(std::move(n), shared_from_this()).second;
+  auto [itr, added] = emplace(std::make_unique<DhtNode>(id, sa), shared_from_this());
 
   if (added)
     m_restart = true;

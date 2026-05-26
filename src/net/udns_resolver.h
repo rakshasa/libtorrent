@@ -65,6 +65,7 @@ protected:
   utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;
+
   query_map           m_queries_unsafe;
   query_map           m_malformed_queries_unsafe;
 };
