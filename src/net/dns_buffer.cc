@@ -11,6 +11,8 @@
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/system/system.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -178,7 +180,7 @@ DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
   auto index = std::distance(m_active_queries.begin(), itr);
 
   auto fn = [this, index](sin_shared_ptr result_sin, int error_sin, sin6_shared_ptr result_sin6, int error_sin6) {
-      this_thread::callback(this->requester_from_index(index), [=]() {
+      net_thread::callback([=, this]() {
           this->process(index, std::move(result_sin), error_sin, std::move(result_sin6), error_sin6);
         });
     };
@@ -186,7 +188,9 @@ DnsBuffer::activate_and_resolve_query(DnsBufferQuery query) {
   // LT_LOG("activating query : requesters:%zu name:%s family:%d index:%u",
   //        itr->callbacks.size(), itr->hostname.c_str(), itr->family, index);
 
-  ThreadNet::thread_net()->dns_resolver()->resolve(requester_from_index(index), itr->hostname, itr->family, std::move(fn));
+  auto* requester = &m_active_queries[index];
+
+  ThreadNet::thread_net()->dns_resolver()->resolve(requester, itr->hostname, itr->family, std::move(fn));
 }
 
 void
@@ -257,8 +261,8 @@ DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_s
   requester->active_query_count--;
 
   LT_LOG_REQUESTER("processing callback : inet:%s inet6:%s",
-                   (error_sin == 0) ? sin_pretty_or_empty(result_sin.get()).c_str() : gai_enum_error(error_sin),
-                   (error_sin6 == 0) ? sin6_pretty_or_empty(result_sin6.get()).c_str() : gai_enum_error(error_sin6));
+                   (error_sin == 0) ? sin_pretty_or_empty(result_sin.get()).c_str() : system::gai_enum_error(error_sin),
+                   (error_sin6 == 0) ? sin6_pretty_or_empty(result_sin6.get()).c_str() : system::gai_enum_error(error_sin6));
 
   {
     // Block cancel() until this is done to ensure callbacks for the requester are all canceled.
@@ -267,14 +271,6 @@ DnsBuffer::process_callback(DnsBufferCallback& callback, sin_shared_ptr result_s
     if (requester_ptr.use_count() > 1)
       callback.callback(result_sin, error_sin, result_sin6, error_sin6);
   }
-}
-
-void*
-DnsBuffer::requester_from_index(unsigned int index) {
-  if (index >= max_requests)
-    throw internal_error("DnsBuffer::requester_from_index() index out of bounds");
-
-  return m_active_queries.data() + index;
 }
 
 } // namespace torrent::net

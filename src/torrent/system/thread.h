@@ -73,18 +73,16 @@ public:
   void                start_thread();
   void                stop_thread_wait();
 
-  void                callback(void* target, std::function<void ()>&& fn);
-  void                callback_interrupt_polling(void* target, std::function<void ()>&& fn);
-  void                callback_interrupt_polling_and_wait(void* target, std::function<void ()>&& fn);
-
-  void                cancel_callback(void* target);
-  void                cancel_callback_and_wait(void* target);
+  // New callback:
 
   void                callback(std::function<void ()>&& fn);
-  void                callback2(std::atomic<uint32_t>* id, std::function<void ()>&& fn);
+  void                callback(system::callback_id& id, std::function<void ()>&& fn);
+  void                callback_interrupt(std::function<void ()>&& fn);
+  void                callback_interrupt(system::callback_id& id, std::function<void ()>&& fn);
 
-  void                cancel_callback2(std::atomic<uint32_t>* id);
-  void                cancel_callback_and_wait2(std::atomic<uint32_t>* id);
+  void                cancel_callback(system::callback_id& id);
+  void                cancel_callback_and_wait(system::callback_id& id);
+  void                cancel_callback_and_wait(callback_id& id, Thread* other_thread);
 
   void                interrupt();
   void                send_event_signal(unsigned int index, bool interrupt = true);
@@ -121,15 +119,17 @@ protected:
   void                process_events();
   void                process_events_without_cached_time();
   void                process_callbacks(bool only_interrupt = false);
-  void                process_callbacks2();
 
   void                set_cached_time(std::chrono::microseconds t);
 
   struct callback_type {
-    std::atomic<uint32_t>*  id;
-    std::function<void ()>  fn;
-    uint32_t                expected_id;
+    callback_id            id;
+    std::function<void ()> fn;
+    uint32_t               expected_id;
   };
+
+  void                callback(std::vector<callback_type>& callbacks, bool should_interrupt, std::function<void ()>&& fn);
+  void                callback(std::vector<callback_type>& callbacks, bool should_interrupt, system::callback_id& id, std::function<void ()>&& fn);
 
   static thread_local Thread*  m_self;
 
@@ -137,31 +137,31 @@ protected:
   pthread_t                    m_thread{};
   std::atomic<std::thread::id> m_thread_id;
   std::atomic<state_type>      m_state{STATE_UNKNOWN};
-  std::atomic_int              m_flags{0};
+  std::atomic<int>             m_flags{0};
+
+  std::atomic<bool>            m_callbacks_should_interrupt_polling{};
 
   // TODO: Make it so only thread_this can access m_cached_time.
   std::atomic<std::chrono::microseconds> m_cached_time;
 
-  int                          m_instrumentation_index;
+  align_cacheline int               m_instrumentation_index;
 
   std::unique_ptr<net::Poll>        m_poll;
   std::unique_ptr<net::Resolver>    m_resolver;
   std::unique_ptr<utils::Scheduler> m_scheduler;
   class signal_bitfield             m_signal_bitfield;
 
-  std::unique_ptr<SignalInterrupt> m_interrupt_sender;
-  std::unique_ptr<SignalInterrupt> m_interrupt_receiver;
+  std::unique_ptr<SignalInterrupt>  m_interrupt_sender;
+  std::unique_ptr<SignalInterrupt>  m_interrupt_receiver;
 
-  std::mutex                                         m_callbacks_lock;
-  std::multimap<const void*, std::function<void ()>> m_callbacks;
-  std::multimap<const void*, std::function<void ()>> m_interrupt_callbacks;
-  std::atomic<bool>                                  m_callbacks_should_interrupt_polling{false};
+  align_cacheline std::mutex        m_callbacks_lock;
 
-  std::vector<callback_type>                         m_callbacks2;
-  std::atomic<std::atomic<uint32_t>*>                m_callback_processing_id{};
+  std::vector<callback_type>        m_callbacks;
+  std::vector<callback_type>        m_interrupt_callbacks;
 
-  std::mutex                                         m_callbacks_processing_lock;
-  std::atomic<bool>                                  m_callbacks_processing{false};
+  // Only data used in self thread below:
+
+  align_cacheline callback_id       m_callback_processing_id{};
 };
 
 inline bool
@@ -181,6 +181,11 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
   if (do_interrupt)
     interrupt();
 }
+
+inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(m_callbacks, false, std::move(fn)); }
+inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(m_callbacks, false, id, std::move(fn)); }
+inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(m_interrupt_callbacks, true, std::move(fn)); }
+inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(m_interrupt_callbacks, true, id, std::move(fn)); }
 
 } // namespace torrent::utils
 

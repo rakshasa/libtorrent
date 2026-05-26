@@ -17,9 +17,10 @@ class LIBTORRENT_EXPORT ThreadTracker : public system::Thread {
 public:
   ~ThreadTracker() override;
 
-  static void           create_thread();
-  static void           destroy_thread();
-  static ThreadTracker* thread_tracker();
+  static void            create_thread();
+  static void            destroy_thread();
+  static ThreadTracker*  thread_tracker();
+  static system::Thread* thread_base()            { return thread_tracker(); }
 
   const char*           name() const override     { return "rtorrent-tracker"; }
 
@@ -44,6 +45,8 @@ private:
   ThreadTracker() = default;
 
   static ThreadTracker*               m_thread_tracker;
+
+  system::callback_id                 m_events_callback_id;
 
   std::unique_ptr<tracker::Manager>   m_tracker_manager;
   std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;

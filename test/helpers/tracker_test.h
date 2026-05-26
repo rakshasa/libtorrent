@@ -8,8 +8,8 @@
 
 class TrackerTest : public torrent::TrackerWorker {
 public:
-  static const int flag_close_on_done     = 0x10;
-  static const int flag_scrape_on_success = 0x20;
+  static const int flag_close_on_done     = 0x100;
+  static const int flag_scrape_on_success = 0x200;
 
   // TODO: Clean up tracker related enums.
   TrackerTest(torrent::TrackerInfo info, int flags = torrent::tracker::TrackerState::flag_enabled);

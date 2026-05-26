@@ -340,8 +340,7 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
     normal_interval    = state.normal_interval();
   });
 
-  if ((tracker.is_busy() && latest_event != tracker::TrackerState::EVENT_SCRAPE) ||
-      !tracker.is_usable())
+  if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
 
   if ((controller_flags & TrackerController::flag_promiscuous_mode))
@@ -363,10 +362,7 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
 uint32_t
 tracker_next_timeout_update(const tracker::Tracker& tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
-  auto tracker_state = tracker.state();
-
-  if ((tracker.is_busy() && tracker_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE) ||
-      !tracker.is_usable())
+  if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
 
   // Make sure we don't request _too_ often, check last activity.
@@ -380,8 +376,7 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
   auto tracker_state = tracker.state();
 
-  if ((tracker.is_busy() && tracker_state.latest_event() != tracker::TrackerState::EVENT_SCRAPE) ||
-      !tracker.is_usable())
+  if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
 
   int32_t interval;

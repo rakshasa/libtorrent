@@ -14,6 +14,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "torrent/system/thread.h"
+#include "torrent/system/system.h"
 
 #define LT_LOG(log_fmt, ...)                                \
   lt_log_print_subsystem(LOG_NET_DNS, "dns-resolver", log_fmt, __VA_ARGS__);
@@ -230,7 +231,7 @@ UdnsResolver::try_resolve_numeric(std::unique_ptr<UdnsQuery>& query) {
     return false; // No numeric address found.
 
   if (ret != 0)
-    throw internal_error("getaddrinfo failed: " + std::string(gai_enum_error(ret)));
+    throw internal_error("getaddrinfo failed: " + std::string(system::gai_enum_error(ret)));
 
   LT_LOG_QUERY("resolving : numeric found : name:%s family:%d", query->hostname.c_str(), query->family);
 
@@ -378,7 +379,7 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
     query->error_sin = udnserror_to_gaierror(::dns_status(ctx));
 
     LT_LOG_QUERY("no A records received, calling back with error : name:%s error:%s",
-                 query->hostname.c_str(), gai_enum_error(query->error_sin));
+                 query->hostname.c_str(), system::gai_enum_error(query->error_sin));
 
     UdnsResolver::process_partial_result_unsafe(itr);
     return;
@@ -417,7 +418,7 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
   if (query->error_sin6 == 0)
     query->error_sin6 = EAI_NODATA;
 
-  LT_LOG_QUERY("No A records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin));
+  LT_LOG_QUERY("No A records found : name:%s error:%s",  query->hostname.c_str(), system::gai_enum_error(query->error_sin));
   UdnsResolver::process_partial_result_unsafe(itr);
 }
 
@@ -438,7 +439,7 @@ UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, v
     query->error_sin6 = udnserror_to_gaierror(::dns_status(ctx));
 
     LT_LOG_QUERY("no AAAA records received, calling back with error : name:%s error:%s",
-                 query->hostname.c_str(), gai_enum_error(query->error_sin6));
+                 query->hostname.c_str(), system::gai_enum_error(query->error_sin6));
 
     UdnsResolver::process_partial_result_unsafe(itr);
     return;
@@ -477,7 +478,7 @@ UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, v
   if (query->error_sin6 == 0)
     query->error_sin6 = EAI_NODATA;
 
-  LT_LOG_QUERY("No AAAA records found : name:%s error:%s",  query->hostname.c_str(), gai_enum_error(query->error_sin6));
+  LT_LOG_QUERY("No AAAA records found : name:%s error:%s",  query->hostname.c_str(), system::gai_enum_error(query->error_sin6));
   UdnsResolver::process_partial_result_unsafe(itr);
 }
 

@@ -10,6 +10,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 #include "utils/sha1.h"
@@ -21,11 +22,12 @@ namespace torrent {
 
 HashString DhtRouter::zero_id;
 
-DhtRouter::DhtRouter(const Object& cache) :
-  DhtNode(zero_id, sa_make_inet_any().get()), // actual ID is set later
-  m_server(this),
-  m_curToken(random()),
-  m_prevToken(random()) {
+DhtRouter::DhtRouter(const Object& cache)
+  : DhtNode(zero_id, sa_make_inet_any().get()), // actual ID is set later
+    m_server(this),
+    m_curToken(random()),
+    m_prevToken(random()),
+    m_resolver_callback_id(system::make_callback_id()) {
 
   HashString ones_id;
 
@@ -118,7 +120,7 @@ DhtRouter::stop() {
 
   LT_LOG_THIS("stopping", 0);
 
-  this_thread::resolver()->cancel(this);
+  this_thread::resolver()->cancel(m_resolver_callback_id);
   this_thread::scheduler()->erase(&m_task_timeout);
 
   m_server.stop();
@@ -613,7 +615,7 @@ DhtRouter::bootstrap() {
         contact(sa.get(), port);
     };
 
-    this_thread::resolver()->resolve_specific(this, m_contacts->back().first, AF_INET, f);
+    this_thread::resolver()->resolve_specific(m_resolver_callback_id, m_contacts->back().first, AF_INET, f);
 
     m_contacts->pop_back();
   }

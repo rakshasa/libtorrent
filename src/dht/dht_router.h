@@ -137,6 +137,8 @@ private:
   // Secret keys used for generating announce tokens.
   int                 m_curToken;
   int                 m_prevToken;
+
+  system::callback_id m_resolver_callback_id;
 };
 
 inline raw_string

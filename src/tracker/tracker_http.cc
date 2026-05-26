@@ -113,6 +113,7 @@ TrackerHttp::close() {
   m_requested_scrape = false;
 
   close_directly();
+  update_requesting_state();
 }
 
 void
@@ -129,8 +130,6 @@ TrackerHttp::close_directly() {
 
   m_get.close_and_cancel_callbacks(this_thread::thread());
   m_data.reset();
-
-  update_requesting_state();
 }
 
 void
@@ -138,15 +137,21 @@ TrackerHttp::cleanup() {
   LT_LOG("cleaning up : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
+
   this_thread::scheduler()->erase(&m_delay_scrape);
 
   auto guard = lock_guard();
+
   state().m_flags |= tracker::TrackerState::flag_deleted;
+  state().m_flags &= ~tracker::TrackerState::flag_requesting;
+  state().m_flags &= ~tracker::TrackerState::flag_starting_request;
 }
 
 void
 TrackerHttp::update_requesting_state() {
   auto guard = lock_guard();
+
+  state().m_flags &= ~tracker::TrackerState::flag_starting_request;
 
   if (m_data != nullptr)
     state().m_flags |= tracker::TrackerState::flag_requesting;
@@ -447,6 +452,7 @@ TrackerHttp::receive_failed(const std::string& msg) {
     LT_LOG("received failure with no data : state:%s url:%s : %s",
            option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
 
+    update_requesting_state();
     m_slot_failure(msg);
     return;
   }
@@ -457,6 +463,7 @@ TrackerHttp::receive_failed(const std::string& msg) {
   }
 
   close_directly();
+  update_requesting_state();
 
   if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE) {
     if (send_next_family(true))
@@ -576,6 +583,7 @@ TrackerHttp::process_success(const Object& object) {
     return receive_failed("No peers returned");
 
   close_directly();
+  update_requesting_state();
 
   if (send_next_family()) {
     m_last_success       = true;
@@ -618,6 +626,8 @@ TrackerHttp::process_scrape(const Object& object) {
   }
 
   close_directly();
+  update_requesting_state();
+
   m_slot_scrape_success();
 }
 
