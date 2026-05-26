@@ -53,17 +53,6 @@ calculate_max_open_files(uint32_t open_max) {
     return 4;
 }
 
-// Derives max host connections from the HTTP total connections category limit.
-uint32_t
-calculate_max_http_host_connections(uint32_t http_total) {
-  if (http_total >= 128)
-    return 3;
-  else if (http_total >= 64)
-    return 2;
-  else // Assumes we don't try less than 64.
-    return 1;
-}
-
 std::string
 generate_random(size_t length) {
   std::random_device rd;
@@ -106,12 +95,9 @@ initialize() {
   auto max_open = this_thread::poll()->open_max();
 
   runtime::socket_manager()->set_max_size_and_adjust(max_open);
-
-  auto http_total = runtime::socket_manager()->category_max_size(runtime::SocketManager::category_http);
-
   manager->file_manager()->set_max_open_files(calculate_max_open_files(max_open));
-  net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(http_total));
-  net_thread::http_stack()->set_max_total_connections(http_total);
+
+  ThreadNet::thread_net()->set_max_connections();
 
   disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();

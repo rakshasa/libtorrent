@@ -17,22 +17,6 @@
 namespace {
 
 uint32_t
-calculate_max_open_files(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 16;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
-
-uint32_t
 calculate_reserved(uint32_t open_max) {
   if (open_max >= 16384)
     return 512;
@@ -59,7 +43,7 @@ calculate_internal(uint32_t open_max) {
 }
 
 uint32_t
-calculate_max_http_total_connections(uint32_t open_max) {
+calculate_http(uint32_t open_max) {
   if (open_max >= 16384)
     return 128;
   else if (open_max >= 8096)
@@ -72,6 +56,20 @@ calculate_max_http_total_connections(uint32_t open_max) {
     return 8;
   else // Assumes we don't try less than 64.
     return 4;
+}
+
+uint32_t
+calculate_scgi(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 256;
+  else if (open_max >= 8096)
+    return 128;
+  else if (open_max >= 1024)
+    return 64;
+  else if (open_max >= 512)
+    return 32;
+  else
+    return 16;
 }
 
 } // namespace
@@ -110,12 +108,17 @@ void
 SocketManager::set_max_size_and_adjust(uint32_t max_open) {
   auto guard = lock_guard();
 
-  auto max_files = calculate_max_open_files(max_open);
-  auto reserved  = calculate_reserved(max_open);
-  m_max_size = max_open - max_files - reserved;
+  m_max_size = max_open;
 
   m_category_max_size[category_internal] = calculate_internal(max_open);
-  m_category_max_size[category_http]     = calculate_max_http_total_connections(max_open);
+  m_category_max_size[category_http]     = calculate_http(max_open);
+  m_category_max_size[category_scgi]     = calculate_scgi(max_open);
+
+  m_category_max_size[category_generic]  = max_open
+    - calculate_reserved(max_open)
+    - m_category_max_size[category_internal]
+    - m_category_max_size[category_http]
+    - m_category_max_size[category_scgi];
 
   notify_changes();
 }
