@@ -12,6 +12,9 @@
 #include "torrent/object_raw_bencode.h"
 #include "torrent/utils/scheduler.h"
 
+// TODO: Remove.
+#include "net/address_list.h"
+
 namespace torrent {
 
 class DhtBucket;
