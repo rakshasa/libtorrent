@@ -6,6 +6,7 @@
 
 #include "dht/dht_bucket.h"
 #include "dht/dht_node.h"
+#include "net/address_list.h"
 #include "tracker/tracker_dht.h"
 
 namespace torrent::dht {
@@ -30,7 +31,7 @@ DhtAnnounce::~DhtAnnounce() {
       } else {
         if (!contacted)
           failure = "DHT search unsuccessful.";
-        else if (replied == 0 && !tracker->has_peers_unsafe())
+        else if (replied == 0) // && !tracker->has_peers_unsafe())
           failure = "Announce failed";
       }
 
@@ -66,8 +67,11 @@ DhtAnnounce::start_announce() {
 
 void
 DhtAnnounce::receive_peers(raw_list peers) {
-  TrackerDht::add_event(m_tracker, [peers](TrackerDht* tracker) {
-      tracker->receive_peers(peers);
+  AddressList address_list;
+  address_list.parse_address_bencode(peers);
+
+  TrackerDht::add_event(m_tracker, [address_list = std::move(address_list)](TrackerDht* tracker) mutable {
+      tracker->receive_peers(std::move(address_list));
     });
 }
 

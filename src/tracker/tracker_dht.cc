@@ -120,34 +120,22 @@ TrackerDht::set_dht_announce_state() {
 }
 
 void
-TrackerDht::receive_peers(raw_list peers) {
-  LT_LOG("received peers : dht_state:%s replied:%d contacted:%d raw_peers_size:%" PRIu32,
-         states[m_dht_state], m_replied.load(), m_contacted.load(), peers.size());
-
-  // if (m_dht_state == state_idle)
-  //   throw internal_error("TrackerDht::receive_peers called while not busy.");
-
-  // The final success event will resend all peers for now.
-  m_peers.parse_address_bencode(peers);
-
-  AddressList address_list;
-  address_list.parse_address_bencode(peers);
+TrackerDht::receive_peers(AddressList&& address_list) {
+  LT_LOG("received peers : dht_state:%s replied:%d contacted:%d size:%" PRIu32,
+         states[m_dht_state], m_replied.load(), m_contacted.load(), address_list.size());
 
   m_slot_new_peers(std::move(address_list));
 }
 
 void
 TrackerDht::receive_success() {
-  LT_LOG("received success : dht_state:%s replied:%d contacted:%d peers:%zu",
-         states[m_dht_state], m_replied.load(), m_contacted.load(), m_peers.size());
-
-  // if (m_dht_state == state_idle)
-  //   throw internal_error("TrackerDht::receive_success called while not busy.");
+  LT_LOG("received success : dht_state:%s replied:%d contacted:%d",
+         states[m_dht_state], m_replied.load(), m_contacted.load());
 
   m_dht_state = state_idle;
   update_requesting_state();
 
-  m_slot_success(std::move(m_peers));
+  m_slot_success({});
 }
 
 void
@@ -155,24 +143,17 @@ TrackerDht::receive_failed(const char* msg) {
   LT_LOG("received failure : dht_state:%s replied:%d contacted:%d msg:%s",
          states[m_dht_state], m_replied.load(), m_contacted.load(), msg);
 
-  // if (m_dht_state == state_idle)
-  //   throw internal_error("TrackerDht::receive_failed called while not busy.");
-
   m_dht_state = state_idle;
 
   update_requesting_state();
 
   m_slot_failure(msg);
-  m_peers.clear();
 }
 
 void
 TrackerDht::receive_progress(int replied, int contacted) {
   LT_LOG("received progress : dht_state:%s replied:%d contacted:%d",
          states[m_dht_state], replied, contacted);
-
-  // if (m_dht_state == state_idle)
-  //   throw internal_error("TrackerDht::receive_status called while not busy.");
 
   m_replied   = replied;
   m_contacted = contacted;

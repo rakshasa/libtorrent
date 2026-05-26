@@ -6,6 +6,7 @@
 #include <functional>
 #include <random>
 
+#include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/runtime/network_manager.h"

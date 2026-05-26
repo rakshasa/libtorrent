@@ -27,6 +27,9 @@ protected:
   friend class torrent::TrackerWorker;
   friend class torrent::ThreadTracker;
 
+  // TODO: Add flag to indicate we're shutting down, and delete all disownable trackers.
+
+
   // Main thread:
 
   TrackerControllerWrapper add_controller(DownloadInfo* download_info, std::shared_ptr<TrackerController> controller);
