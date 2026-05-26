@@ -46,6 +46,7 @@ public:
     category_http,      // HTTP/curl
     category_internal,  // DHT, UDP tracker, thread interrupt, BT listen
     category_scgi,      // SCGI/RPC
+    category_files,     // open files (mmap, etc.)
     category_count,
   };
 
@@ -129,7 +130,7 @@ private:
   category_list       m_category_managed_size{};
   category_list       m_category_max_size{};
 
-  alignas(std::hardware_destructive_interference_size) std::mutex m_mutex;
+  align_cacheline std::mutex m_mutex;
 
   subscriber_list     m_change_subscribers;
 

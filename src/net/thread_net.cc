@@ -88,9 +88,9 @@ ThreadNet::init_thread_post_local() {
   m_dns_resolver->initialize(this);
 
   runtime::socket_manager()->subscribe_to_changes(this, [this]() {
-      cancel_callback(m_http_subscriber_id);
+      cancel_callback(m_events_callback_id);
 
-      callback(m_http_subscriber_id, [this]() {
+      callback(m_events_callback_id, [this]() {
           set_max_connections();
         });
     });
@@ -106,12 +106,11 @@ ThreadNet::cleanup_thread() {
 
 void
 ThreadNet::set_max_connections() {
-  auto sm    = runtime::socket_manager();
-  auto total = sm->category_max_size(runtime::SocketManager::category_http);
-  auto host  = calculate_http_host_connections(sm->max_size());
+  auto total_size = runtime::socket_manager()->category_max_size(runtime::SocketManager::category_http);
+  auto host_size  = calculate_http_host_connections(runtime::socket_manager()->max_size());
 
-  m_http_stack->set_max_host_connections(host);
-  m_http_stack->set_max_total_connections(total);
+  m_http_stack->set_max_host_connections(host_size);
+  m_http_stack->set_max_total_connections(total_size);
 }
 
 void

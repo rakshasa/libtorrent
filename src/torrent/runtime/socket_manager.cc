@@ -17,22 +17,6 @@
 namespace {
 
 uint32_t
-calculate_reserved(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 32;
-  else // Assumes we don't try less than 64.
-    return 16;
-}
-
-uint32_t
 calculate_internal(uint32_t open_max) {
   if (open_max >= 16384)
     return 32;
@@ -72,6 +56,22 @@ calculate_scgi(uint32_t open_max) {
     return 16;
 }
 
+uint32_t
+calculate_files(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 512;
+  else if (open_max >= 8096)
+    return 256;
+  else if (open_max >= 1024)
+    return 128;
+  else if (open_max >= 512)
+    return 64;
+  else if (open_max >= 128)
+    return 16;
+  else
+    return 4;
+}
+
 } // namespace
 
 namespace torrent::runtime {
@@ -108,17 +108,27 @@ void
 SocketManager::set_max_size_and_adjust(uint32_t max_open) {
   auto guard = lock_guard();
 
+  if (max_open < 512)
+    throw input_error("set_max_size_and_adjust: max_open too low, minimum is 512");
+
+  uint32_t total_allocated{};
+
+  auto set_category = [this, max_open, &total_allocated](category_t category, uint32_t allocation) {
+    total_allocated += allocation;
+
+    if (total_allocated + 8 > max_open)
+      throw internal_error("set_max_size_and_adjust: total allocated categories exceed max_open");
+
+    m_category_max_size[category] = allocation;
+  };
+
+  set_category(category_internal, calculate_internal(max_open));
+  set_category(category_http, calculate_http(max_open));
+  set_category(category_scgi, calculate_scgi(max_open));
+  set_category(category_files, calculate_files(max_open));
+
+  m_category_max_size[category_generic] = max_open - total_allocated;
   m_max_size = max_open;
-
-  m_category_max_size[category_internal] = calculate_internal(max_open);
-  m_category_max_size[category_http]     = calculate_http(max_open);
-  m_category_max_size[category_scgi]     = calculate_scgi(max_open);
-
-  m_category_max_size[category_generic]  = max_open
-    - calculate_reserved(max_open)
-    - m_category_max_size[category_internal]
-    - m_category_max_size[category_http]
-    - m_category_max_size[category_scgi];
 
   notify_changes();
 }

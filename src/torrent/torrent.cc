@@ -37,22 +37,6 @@ namespace torrent {
 
 namespace {
 
-uint32_t
-calculate_max_open_files(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 16;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
-
 std::string
 generate_random(size_t length) {
   std::random_device rd;
@@ -95,7 +79,7 @@ initialize() {
   auto max_open = this_thread::poll()->open_max();
 
   runtime::socket_manager()->set_max_size_and_adjust(max_open);
-  manager->file_manager()->set_max_open_files(calculate_max_open_files(max_open));
+  manager->file_manager()->set_max_open_files(runtime::socket_manager()->category_max_size(runtime::SocketManager::category_files));
 
   ThreadNet::thread_net()->set_max_connections();
 

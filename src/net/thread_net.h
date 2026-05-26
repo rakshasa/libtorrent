@@ -58,7 +58,7 @@ private:
   std::unique_ptr<net::DnsCache>     m_dns_cache;
   std::unique_ptr<net::UdnsResolver> m_dns_resolver;
 
-  system::callback_id m_http_subscriber_id;
+  system::callback_id m_events_callback_id;
 };
 
 } // namespace torrent
