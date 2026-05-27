@@ -29,8 +29,6 @@ public:
   void                init_thread_post_local() override;
   void                cleanup_thread() override;
 
-  void                set_max_connections();
-
 protected:
   friend class ThreadNetInternal;
   friend class torrent::net::DnsCache;
@@ -38,27 +36,27 @@ protected:
   friend class torrent::net::HttpStack;
   friend class torrent::net::Resolver;
 
-  static auto         internal_thread_net() { return m_thread_net; }
-
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 
-  net::HttpStack*     http_stack() const   { return m_http_stack.get(); }
-  net::DnsBuffer*     dns_buffer() const   { return m_dns_buffer.get(); }
-  net::DnsCache*      dns_cache() const    { return m_dns_cache.get(); }
-  net::UdnsResolver*  dns_resolver() const { return m_dns_resolver.get(); }
+  net::HttpStack*           http_stack() const    { return m_http_stack.get(); }
+  net::DnsBuffer*           dns_buffer() const    { return m_dns_buffer.get(); }
+  net::DnsCache*            dns_cache() const     { return m_dns_cache.get(); }
+  net::UdnsResolver*        dns_resolver() const  { return m_dns_resolver.get(); }
 
 private:
   ThreadNet() = default;
 
+  static void         set_max_connections();
+
   static ThreadNet*   m_thread_net;
+
+  system::callback_id m_events_callback_id;
 
   std::unique_ptr<net::HttpStack>    m_http_stack;
   std::unique_ptr<net::DnsBuffer>    m_dns_buffer;
   std::unique_ptr<net::DnsCache>     m_dns_cache;
   std::unique_ptr<net::UdnsResolver> m_dns_resolver;
-
-  system::callback_id m_events_callback_id;
 };
 
 } // namespace torrent

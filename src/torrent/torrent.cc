@@ -8,30 +8,27 @@
 
 #include "manager.h"
 #include "runtime.h"
-#include "torrent/runtime/socket_manager.h"
 #include "thread_main.h"
-#include "data/file_manager.h"
-#include "data/hash_queue.h"
 #include "data/thread_disk.h"
-#include "download/download_constructor.h"
-#include "download/download_manager.h"
-#include "download/download_wrapper.h"
 #include "net/thread_net.h"
-#include "protocol/handshake_manager.h"
-#include "protocol/peer_factory.h"
-#include "torrent/download/resource_manager.h"
-#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
-#include "torrent/object.h"
-#include "torrent/object_stream.h"
-#include "torrent/throttle.h"
-#include "torrent/peer/connection_list.h"
-#include "torrent/net/http_stack.h"
 #include "torrent/net/poll.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "tracker/thread_tracker.h"
 #include "utils/instrumentation.h"
+
+// TODO: Refactor these uses.
+#include "download/download_constructor.h"
+#include "download/download_manager.h"
+#include "download/download_wrapper.h"
+#include "torrent/download/resource_manager.h"
+#include "protocol/peer_factory.h"
+#include "torrent/download_info.h"
+#include "torrent/object.h"
+#include "torrent/object_stream.h"
+#include "torrent/throttle.h"
+#include "torrent/peer/connection_list.h"
 
 namespace torrent {
 
@@ -76,12 +73,7 @@ initialize() {
   ThreadNet::create_thread();
   ThreadTracker::create_thread();
 
-  auto max_open = this_thread::poll()->open_max();
-
-  runtime::socket_manager()->set_max_size_and_adjust(max_open);
-  manager->file_manager()->set_max_open_files(runtime::socket_manager()->category_max_size(runtime::SocketManager::category_files));
-
-  ThreadNet::thread_net()->set_max_connections();
+  runtime::socket_manager()->set_max_size_and_adjust(this_thread::poll()->open_max());
 
   disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();

@@ -65,7 +65,7 @@ NetworkConfig::set_block_ipv4(bool v) {
   auto guard = lock_guard();
 
   m_block_ipv4 = v;
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
@@ -73,7 +73,7 @@ NetworkConfig::set_block_ipv6(bool v) {
   auto guard = lock_guard();
 
   m_block_ipv6 = v;
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
@@ -81,7 +81,7 @@ NetworkConfig::set_block_ipv4in6(bool v) {
   auto guard = lock_guard();
 
   m_block_ipv4in6 = v;
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
@@ -89,7 +89,7 @@ NetworkConfig::set_block_outgoing(bool v) {
   auto guard = lock_guard();
 
   m_block_outgoing = v;
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
@@ -267,7 +267,7 @@ NetworkConfig::set_bind_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
   set_generic_address_unsafe("bind", m_bind_inet_address, m_bind_inet6_address, sa);
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
@@ -280,7 +280,7 @@ NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
   set_generic_inet_address_unsafe("bind", m_bind_inet_address, sa);
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
@@ -293,7 +293,7 @@ NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
   set_generic_inet6_address_unsafe("bind", m_bind_inet6_address, sa);
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
@@ -388,7 +388,7 @@ NetworkConfig::set_listen_backlog(int backlog) {
   auto guard = lock_guard();
 
   m_listen_backlog = backlog;
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 uint16_t
@@ -444,7 +444,7 @@ NetworkConfig::unsubscribe_from_changes(void* target) {
 }
 
 void
-NetworkConfig::notify_changes() const {
+NetworkConfig::notify_changes_unsafe() const {
   for (auto& p : m_change_subscribers)
     p.second();
 }

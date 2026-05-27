@@ -22,33 +22,40 @@ namespace torrent::runtime {
 
 SocketManager* socket_manager() LIBTORRENT_EXPORT;
 
+enum class socket_manager_category_t : uint32_t {
+  category_generic,   // peer connections, uncategorized
+  category_http,      // HTTP/curl
+  category_internal,  // DHT, UDP tracker, thread interrupt, BT listen
+  category_scgi,      // SCGI/RPC
+  category_files      // open files (mmap, etc.)
+};
+
+using enum socket_manager_category_t;
+
 struct SocketInfo {
   // TODO: Replace with Event*, and add thread to PollEvent?
   // TODO: Event should contain the owning thread, and not be included here.
   // TODO: Fd not needed here.
 
-  int                 fd{-1};
-  Event*              event{};
-  system::Thread*     thread{};
-  int                 flags{};
-  uint8_t             category{};
+  int               fd{-1};
+  Event*            event{};
+  system::Thread*   thread{};
+  int               flags{};
+
+  socket_manager_category_t category{};
 };
 
 class LIBTORRENT_EXPORT SocketManager {
 public:
-  static constexpr int flag_inactive = (1 << 0);
-
   // Categories of allocated sockets within the global pool.
-  // When a category's max is non-zero, open operations additionally check
-  // that the category's current usage has not reached its limit.
-  enum category_t : uint8_t {
-    category_generic,   // peer connections, uncategorized
-    category_http,      // HTTP/curl
-    category_internal,  // DHT, UDP tracker, thread interrupt, BT listen
-    category_scgi,      // SCGI/RPC
-    category_files,     // open files (mmap, etc.)
-    category_count,
-  };
+  //
+  // When a category's max is non-zero, open operations additionally check that the category's
+  // current usage has not reached its limit.
+
+  static constexpr uint32_t category_count = 5;
+  static constexpr int      flag_inactive = (1 << 0);
+
+  using category_t = socket_manager_category_t;
 
   SocketManager();
   ~SocketManager();
@@ -56,15 +63,11 @@ public:
   uint32_t            size();
   uint32_t            max_size();
 
-  uint32_t            category_managed_size(category_t category) const;
-  uint32_t            category_max_size(category_t category) const;
+  uint32_t            category_managed_size(category_t category);
+  uint32_t            category_max_size(category_t category);
 
   void                set_max_size_and_adjust(uint32_t max_open);
   void                set_category_max_size(category_t category, uint32_t max_size);
-
-  // The lock is held while the callback is called, so use Thread::callback().
-  void                subscribe_to_changes(void* target, const std::function<void()>& callback);
-  void                unsubscribe_from_changes(void* target);
 
   void                add_unmanaged_socket();
   void                remove_unmanaged_socket();
@@ -102,8 +105,9 @@ public:
   void                mark_event_inactive(Event* event, std::function<void ()> func);
   [[nodiscard]] bool  mark_stream_event_inactive(Event* event, std::function<void ()> func, std::function<void ()> on_reuse);
 
-  // No, this should take Event*?
-  // bool                is_socket_reused(int fd);
+  // The lock is held while the callback is called, so use Thread::callback().
+  void                subscribe_to_changes(void* target, const std::function<void()>& callback);
+  void                unsubscribe_from_changes(void* target);
 
 protected:
 
@@ -114,6 +118,11 @@ private:
   using category_list    = std::array<std::atomic<uint32_t>, category_count>;
   using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
 
+  auto&               managed_size_unsafe(category_t category);
+  auto&               max_size_unsafe(category_t category);
+
+  void                notify_changes_unsafe() const;
+
   void                account_new_socket_unsafe(socket_map::iterator itr, category_t category);
   void                account_remove_socket_unsafe(socket_map::iterator itr);
 
@@ -121,14 +130,12 @@ private:
 
   bool                handle_reused_socket(socket_map::iterator itr);
 
-  void                notify_changes() const;
-
   std::atomic<uint32_t> m_managed_size{};
   std::atomic<uint32_t> m_unmanaged_size{};
   std::atomic<uint32_t> m_max_size{};
 
-  category_list       m_category_managed_size{};
-  category_list       m_category_max_size{};
+  category_list         m_category_managed_size{};
+  category_list         m_category_max_size{};
 
   align_cacheline std::mutex m_mutex;
 
@@ -136,6 +143,10 @@ private:
 
   socket_map          m_socket_map;
 };
+
+inline auto& SocketManager::managed_size_unsafe(category_t category) { return m_category_managed_size[static_cast<uint32_t>(category)]; }
+inline auto& SocketManager::max_size_unsafe(category_t category)     { return m_category_max_size[static_cast<uint32_t>(category)]; }
+
 
 } // namespace torrent::runtime
 

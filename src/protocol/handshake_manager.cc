@@ -112,7 +112,7 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
 
 void
 HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
-  if (!runtime::socket_manager()->can_open_socket(runtime::SocketManager::category_generic) ||
+  if (!runtime::socket_manager()->can_open_socket(runtime::category_generic) ||
       !manager->connection_manager()->filter(sa))
     return;
 
@@ -192,7 +192,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       handshake->destroy_connection(false);
     };
 
-  runtime::socket_manager()->open_event_or_cleanup(handshake.get(), runtime::SocketManager::category_generic, open_func, cleanup_func);
+  runtime::socket_manager()->open_event_or_cleanup(handshake.get(), runtime::category_generic, open_func, cleanup_func);
 
   if (!handshake->is_open())
     return;

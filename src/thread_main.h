@@ -23,7 +23,6 @@ public:
   const char*            name() const override { return "rtorrent-main"; }
 
   void                   init_thread() override;
-  void                   init_thread_post_local() override;
   void                   cleanup_thread() override;
 
   void                   set_client_callback(std::function<void()> fn);
@@ -41,10 +40,12 @@ protected:
   static void               set_thread_base(system::Thread* thread)       { m_thread_base = thread; }
 
 private:
-  static ThreadMain*         m_thread_main;
-  static system::Thread*     m_thread_base;
+  static void               set_max_connections();
 
-  system::callback_id        m_events_callback_id;
+  static ThreadMain*        m_thread_main;
+  static system::Thread*    m_thread_base;
+
+  system::callback_id       m_events_callback_id;
 
   std::unique_ptr<HashQueue> m_hash_queue;
   std::function<void()>      m_slot_client_callback;

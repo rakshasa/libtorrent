@@ -58,6 +58,7 @@ ThreadMain::init_thread() {
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
 
   init_thread_local();
+  set_max_connections();
 
   // We should only initialize things here that depend on main thread, as we want to call
   // 'init_thread()' before 'torrent::initalize()'.
@@ -71,25 +72,15 @@ ThreadMain::init_thread() {
     };
 
   runtime::network_config()->subscribe_to_changes(this, [this]() {
-      cancel_callback(m_events_callback_id);
-
       callback(m_events_callback_id, []() {
           runtime::network_manager()->listen_restart();
 
           // TODO: Restart DHT.
         });
     });
-}
 
-void
-ThreadMain::init_thread_post_local() {
   runtime::socket_manager()->subscribe_to_changes(this, [this]() {
-      cancel_callback(m_events_callback_id);
-
-      callback(m_events_callback_id, [this]() {
-          manager->file_manager()->set_max_open_files(
-            runtime::socket_manager()->category_max_size(runtime::SocketManager::category_files));
-        });
+      callback(m_events_callback_id, ThreadMain::set_max_connections);
     });
 }
 
@@ -97,6 +88,7 @@ void
 ThreadMain::cleanup_thread() {
   runtime::socket_manager()->unsubscribe_from_changes(this);
   runtime::network_config()->unsubscribe_from_changes(this);
+
   cancel_callback(m_events_callback_id);
 
   m_hash_queue.reset();
@@ -109,6 +101,13 @@ ThreadMain::cleanup_thread() {
 void
 ThreadMain::set_client_callback(std::function<void()> fn) {
   m_slot_client_callback = std::move(fn);
+}
+
+void
+ThreadMain::set_max_connections() {
+  auto max_open_files = runtime::socket_manager()->category_max_size(runtime::category_files);
+
+  manager->file_manager()->set_max_open_files(max_open_files);
 }
 
 void
