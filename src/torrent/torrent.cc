@@ -75,6 +75,8 @@ initialize() {
 
   runtime::socket_manager()->set_max_size_and_adjust(this_thread::poll()->open_max());
 
+  ThreadMain::thread_main()->init_after_setup();
+
   disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();
   tracker_thread::thread()->init_thread();

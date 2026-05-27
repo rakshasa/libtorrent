@@ -58,7 +58,6 @@ ThreadMain::init_thread() {
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
 
   init_thread_local();
-  set_max_connections();
 
   // We should only initialize things here that depend on main thread, as we want to call
   // 'init_thread()' before 'torrent::initalize()'.
@@ -70,6 +69,11 @@ ThreadMain::init_thread() {
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
     };
+}
+
+void
+ThreadMain::init_after_setup() {
+  set_max_connections();
 
   runtime::network_config()->subscribe_to_changes(this, [this]() {
       callback(m_events_callback_id, []() {
