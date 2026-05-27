@@ -8,7 +8,23 @@
 #include "net/udns_resolver.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
+#include "torrent/runtime/socket_manager.h"
 #include "utils/instrumentation.h"
+
+namespace {
+
+// Derives max host connections from the global max open sockets.
+uint32_t
+calculate_http_host_connections(uint32_t max_size) {
+  if (max_size >= 16384)
+    return 3;
+  else if (max_size >= 8096)
+    return 2;
+  else // Assumes we don't try less than 64.
+    return 1;
+}
+
+} // namespace
 
 namespace torrent {
 
@@ -70,12 +86,31 @@ ThreadNet::init_thread() {
 void
 ThreadNet::init_thread_post_local() {
   m_dns_resolver->initialize(this);
+
+  runtime::socket_manager()->subscribe_to_changes(this, [this]() {
+      cancel_callback(m_events_callback_id);
+
+      callback(m_events_callback_id, [this]() {
+          set_max_connections();
+        });
+    });
 }
 
 void
 ThreadNet::cleanup_thread() {
+  runtime::socket_manager()->unsubscribe_from_changes(this);
+
   m_http_stack->shutdown();
   m_dns_resolver->cleanup();
+}
+
+void
+ThreadNet::set_max_connections() {
+  auto total_size = runtime::socket_manager()->category_max_size(runtime::SocketManager::category_http);
+  auto host_size  = calculate_http_host_connections(runtime::socket_manager()->max_size());
+
+  m_http_stack->set_max_host_connections(host_size);
+  m_http_stack->set_max_total_connections(total_size);
 }
 
 void

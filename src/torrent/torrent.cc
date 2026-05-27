@@ -8,6 +8,7 @@
 
 #include "manager.h"
 #include "runtime.h"
+#include "torrent/runtime/socket_manager.h"
 #include "thread_main.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
@@ -35,64 +36,6 @@
 namespace torrent {
 
 namespace {
-
-uint32_t
-calculate_max_open_files(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 16;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
-
-uint32_t
-calculate_max_http_host_connections(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 3;
-  else if (open_max >= 8096)
-    return 2;
-  else // Assumes we don't try less than 64.
-    return 1;
-}
-
-uint32_t
-calculate_max_http_total_connections(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 128;
-  else if (open_max >= 8096)
-    return 64;
-  else if (open_max >= 1024)
-    return 32;
-  else if (open_max >= 512)
-    return 16;
-  else if (open_max >= 128)
-    return 8;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
-
-uint32_t
-calculate_reserved(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 32;
-  else // Assumes we don't try less than 64.
-    return 16;
-}
 
 std::string
 generate_random(size_t length) {
@@ -133,17 +76,12 @@ initialize() {
   ThreadNet::create_thread();
   ThreadTracker::create_thread();
 
-  auto max_open             = this_thread::poll()->open_max();
-  auto max_files            = calculate_max_open_files(max_open);
-  auto max_http_connections = calculate_max_http_total_connections(max_open);
-  auto reserved             = calculate_reserved(max_open);
+  auto max_open = this_thread::poll()->open_max();
 
-  runtime::socket_manager()->set_max_size(max_open - max_files - max_http_connections - reserved);
+  runtime::socket_manager()->set_max_size_and_adjust(max_open);
+  manager->file_manager()->set_max_open_files(runtime::socket_manager()->category_max_size(runtime::SocketManager::category_files));
 
-  manager->file_manager()->set_max_open_files(max_files);
-
-  net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(max_open));
-  net_thread::http_stack()->set_max_total_connections(max_http_connections);
+  ThreadNet::thread_net()->set_max_connections();
 
   disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();

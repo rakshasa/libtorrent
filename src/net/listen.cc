@@ -188,7 +188,7 @@ Listen::open_done(int fd, uint16_t port, int backlog) {
   set_file_descriptor(fd);
   m_port = port;
 
-  runtime::socket_manager()->register_event_or_throw(this, [this]() {
+  runtime::socket_manager()->register_event_or_throw(this, runtime::SocketManager::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
       this_thread::poll()->insert_error(this);
@@ -257,7 +257,7 @@ Listen::event_read() {
 
     // TODO: This needs to be handled differently as open_ isn't done, we're doing accept_event_or_cleanup? Add a close callback?
 
-    bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);
+    bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), runtime::SocketManager::category_generic, open_func, cleanup_func);
 
     // If the handshake connection or socket manager failed, don't continue accepting connections.
     //

@@ -2,10 +2,13 @@
 
 #include "thread_main.h"
 
+#include "manager.h"
 #include "data/hash_queue.h"
+#include "torrent/data/file_manager.h"
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
 #include "utils/instrumentation.h"
 
@@ -79,7 +82,20 @@ ThreadMain::init_thread() {
 }
 
 void
+ThreadMain::init_thread_post_local() {
+  runtime::socket_manager()->subscribe_to_changes(this, [this]() {
+      cancel_callback(m_events_callback_id);
+
+      callback(m_events_callback_id, [this]() {
+          manager->file_manager()->set_max_open_files(
+            runtime::socket_manager()->category_max_size(runtime::SocketManager::category_files));
+        });
+    });
+}
+
+void
 ThreadMain::cleanup_thread() {
+  runtime::socket_manager()->unsubscribe_from_changes(this);
   runtime::network_config()->unsubscribe_from_changes(this);
   cancel_callback(m_events_callback_id);
 

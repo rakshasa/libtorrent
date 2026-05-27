@@ -23,6 +23,7 @@ public:
   const char*            name() const override { return "rtorrent-main"; }
 
   void                   init_thread() override;
+  void                   init_thread_post_local() override;
   void                   cleanup_thread() override;
 
   void                   set_client_callback(std::function<void()> fn);

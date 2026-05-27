@@ -143,7 +143,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unexpected fd encountered, creating new (not properly opened) CurlSocket", 0);
 
-      runtime::socket_manager()->register_event_or_throw(socket, [&]() {
+      runtime::socket_manager()->register_event_or_throw(socket, runtime::SocketManager::category_http, [&]() {
           this_thread::poll()->open(socket);
           this_thread::poll()->insert_error(socket);
         });
@@ -321,7 +321,7 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
       event->set_file_descriptor(-1);
     };
 
-  bool result = runtime::socket_manager()->open_event_or_cleanup(event.get(), open_func, cleanup_func);
+  bool result = runtime::socket_manager()->open_event_or_cleanup(event.get(), runtime::SocketManager::category_http, open_func, cleanup_func);
 
   if (!result) {
     LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));
