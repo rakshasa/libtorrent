@@ -87,27 +87,7 @@ fi
 AX_PTHREAD
 CHECK_ATOMIC
 
-AC_ARG_ENABLE([pthread-setstacksize],
-  [AS_HELP_STRING([--enable-pthread-setstacksize], [explicitly set pthread stack size (auto-enabled for musl)])],
-  [enable_pthread_setstacksize=$enableval],
-  [enable_pthread_setstacksize=auto])
-
-AC_CANONICAL_HOST
-if test "x$enable_pthread_setstacksize" = "xauto"; then
-  case "$host" in
-    *-musl*)
-      enable_pthread_setstacksize=yes
-      ;;
-    *)
-      enable_pthread_setstacksize=no
-      ;;
-  esac
-fi
-
-if test "x$enable_pthread_setstacksize" = "xyes"; then
-  AC_DEFINE([USE_PTHREAD_SETSTACKSIZE], [1], [Use explicit pthread stack size])
-  AC_DEFINE([DEFAULT_PTHREAD_STACKSIZE], [(8 * 1024 * 1024)], [Default pthread stack size in bytes])
-fi
+TORRENT_ENABLE_CUSTOM_STACK_SIZE
 
 PKG_CHECK_MODULES([LIBCURL], [libcurl],, [LIBCURL_CHECK_CONFIG])
 PKG_CHECK_MODULES([CPPUNIT], [cppunit],, [no_cppunit="yes"])
