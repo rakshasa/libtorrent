@@ -112,7 +112,7 @@ SocketManager::max_size() {
 
 uint32_t
 SocketManager::category_managed_size(category_t category) {
-  return max_size_unsafe(category);
+  return managed_size_unsafe(category);
 }
 
 uint32_t
@@ -184,7 +184,7 @@ SocketManager::account_new_socket_unsafe(socket_map::iterator itr, category_t ca
   itr->second.category = category;
 
   m_managed_size++;
-  max_size_unsafe(category)++;
+  managed_size_unsafe(category)++;
 }
 
 void
@@ -194,11 +194,11 @@ SocketManager::account_remove_socket_unsafe(socket_map::iterator itr) {
 
   auto category = itr->second.category;
 
-  if (max_size_unsafe(category) == 0)
+  if (managed_size_unsafe(category) == 0)
     throw internal_error("SocketManager::account_remove_socket_unsafe(): category managed size underflow");
 
   m_managed_size--;
-  max_size_unsafe(category)--;
+  managed_size_unsafe(category)--;
 }
 
 void
@@ -228,7 +228,7 @@ SocketManager::can_open_socket_unsafe(category_t category) {
     return false;
 
   if (max_size_unsafe(category) != 0)
-    return max_size_unsafe(category) < max_size_unsafe(category);
+    return managed_size_unsafe(category) < max_size_unsafe(category);
 
   return true;
 }

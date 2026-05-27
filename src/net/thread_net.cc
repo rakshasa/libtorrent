@@ -107,11 +107,11 @@ void
 ThreadNet::set_max_connections() {
   // TODO: Also set max cache connections?
 
-  auto host_size  = calculate_http_host_connections(runtime::socket_manager()->max_size());
   auto total_size = runtime::socket_manager()->category_max_size(runtime::category_http);
+  auto host_size  = calculate_http_host_connections(runtime::socket_manager()->max_size());
 
-  ThreadNet::thread_net()->m_http_stack->set_max_host_connections(host_size);
   ThreadNet::thread_net()->m_http_stack->set_max_total_connections(total_size);
+  ThreadNet::thread_net()->m_http_stack->set_max_host_connections(host_size);
 }
 
 void
