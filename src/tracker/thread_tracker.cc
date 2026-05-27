@@ -70,8 +70,6 @@ ThreadTracker::init_thread_post_local() {
   m_thread_tracker->m_udp_inet6_router->open(AF_INET6);
 
   runtime::network_config()->subscribe_to_changes(this, [this]() {
-      cancel_callback(m_events_callback_id);
-
       callback(m_events_callback_id, [this]() {
           m_udp_inet_router->updated_network_config(AF_INET);
           m_udp_inet6_router->updated_network_config(AF_INET6);

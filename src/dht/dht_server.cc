@@ -133,7 +133,7 @@ DhtServer::start(int port) {
   set_file_descriptor(fd);
 
   // TODO: This throws internal_error on failure.
-  runtime::socket_manager()->register_event_or_throw(this, runtime::SocketManager::category_internal, [this]() {
+  runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
       this_thread::poll()->insert_error(this);

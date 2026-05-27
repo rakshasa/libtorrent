@@ -78,7 +78,7 @@ UdpRouter::open(int family) {
 
   set_file_descriptor(fd);
 
-  runtime::socket_manager()->register_event_or_throw(this, runtime::SocketManager::category_internal, [this]() {
+  runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
       this_thread::poll()->insert_error(this);
