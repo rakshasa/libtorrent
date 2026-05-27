@@ -243,12 +243,12 @@ Thread::event_loop() {
 
   try {
 
-    runtime::socket_manager()->register_event_or_throw(m_interrupt_receiver.get(), [this]() {
+    runtime::socket_manager()->register_event_or_throw(m_interrupt_receiver.get(), runtime::SocketManager::category_internal, [this]() {
         m_poll->open(m_interrupt_receiver.get());
         m_poll->insert_read(m_interrupt_receiver.get());
         m_poll->insert_error(m_interrupt_receiver.get());
     });
-    runtime::socket_manager()->register_event_or_throw(m_interrupt_sender.get(), []() {});
+    runtime::socket_manager()->register_event_or_throw(m_interrupt_sender.get(), runtime::SocketManager::category_internal, []() {});
 
     while (true) {
       process_events();

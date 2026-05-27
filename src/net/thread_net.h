@@ -29,6 +29,8 @@ public:
   void                init_thread_post_local() override;
   void                cleanup_thread() override;
 
+  void                set_max_connections();
+
 protected:
   friend class ThreadNetInternal;
   friend class torrent::net::DnsCache;
@@ -55,6 +57,8 @@ private:
   std::unique_ptr<net::DnsBuffer>    m_dns_buffer;
   std::unique_ptr<net::DnsCache>     m_dns_cache;
   std::unique_ptr<net::UdnsResolver> m_dns_resolver;
+
+  system::callback_id m_events_callback_id;
 };
 
 } // namespace torrent

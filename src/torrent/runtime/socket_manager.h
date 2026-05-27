@@ -1,9 +1,12 @@
 #ifndef LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H
 #define LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H
 
+#include <array>
 #include <atomic>
+#include <functional>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 #include <torrent/common.h>
 
 // A socket that is closed by the kernel while neitehr ready nor write polling will be considered
@@ -28,11 +31,24 @@ struct SocketInfo {
   Event*              event{};
   system::Thread*     thread{};
   int                 flags{};
+  uint8_t             category{};
 };
 
 class LIBTORRENT_EXPORT SocketManager {
 public:
   static constexpr int flag_inactive = (1 << 0);
+
+  // Categories of allocated sockets within the global pool.
+  // When a category's max is non-zero, open operations additionally check
+  // that the category's current usage has not reached its limit.
+  enum category_t : uint8_t {
+    category_generic,   // peer connections, uncategorized
+    category_http,      // HTTP/curl
+    category_internal,  // DHT, UDP tracker, thread interrupt, BT listen
+    category_scgi,      // SCGI/RPC
+    category_files,     // open files (mmap, etc.)
+    category_count,
+  };
 
   SocketManager();
   ~SocketManager();
@@ -40,12 +56,20 @@ public:
   uint32_t            size();
   uint32_t            max_size();
 
-  void                set_max_size(uint32_t max_size);
+  uint32_t            category_managed_size(category_t category) const;
+  uint32_t            category_max_size(category_t category) const;
+
+  void                set_max_size_and_adjust(uint32_t max_open);
+  void                set_category_max_size(category_t category, uint32_t max_size);
+
+  // The lock is held while the callback is called, so use Thread::callback().
+  void                subscribe_to_changes(void* target, const std::function<void()>& callback);
+  void                unsubscribe_from_changes(void* target);
 
   void                add_unmanaged_socket();
   void                remove_unmanaged_socket();
 
-  bool                can_open_socket();
+  bool                can_open_socket(category_t category);
 
   // TODO: Rename / change _or_throw to be more specific about what we throw, as it currently calls
   // internal errors. DHT server should probably throw resource_error instead? Or retry. (this
@@ -56,17 +80,17 @@ public:
   // To avoid reuse race conditions, these calls must also add the Event to read/write polling.
 
   // Throw internal_error on conflicts, as the caller isn't expecting conflicts.
-  void                open_event_or_throw(Event* event, std::function<void ()> func);
+  void                open_event_or_throw(Event* event, category_t category, std::function<void ()> func);
 
   // Try to reuse existing socket, if that fails call cleanup.
   //
   // This is used for listen accept and other cases where the caller doesn't mind ignoring failures.
-  bool                open_event_or_cleanup(Event* event, std::function<void ()> func, std::function<void (bool)> cleanup);
+  bool                open_event_or_cleanup(Event* event, category_t category, std::function<void ()> func, std::function<void (bool)> cleanup);
 
   void                close_event_or_throw(Event* event, std::function<void ()> func);
 
   // Event already opened the socket, just register it.
-  void                register_event_or_throw(Event* event, std::function<void ()> func);
+  void                register_event_or_throw(Event* event, category_t category, std::function<void ()> func);
   void                unregister_event_or_throw(Event* event, std::function<void ()> func);
 
   // The func must close event_from and the pointer must remain valid.
@@ -86,15 +110,29 @@ protected:
   auto                lock_guard() { return std::lock_guard(m_mutex); }
 
 private:
-  using socket_map = std::unordered_map<int, SocketInfo>;
+  using socket_map       = std::unordered_map<int, SocketInfo>;
+  using category_list    = std::array<std::atomic<uint32_t>, category_count>;
+  using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
+
+  void                account_new_socket_unsafe(socket_map::iterator itr, category_t category);
+  void                account_remove_socket_unsafe(socket_map::iterator itr);
+
+  bool                can_open_socket_unsafe(category_t category);
 
   bool                handle_reused_socket(socket_map::iterator itr);
+
+  void                notify_changes() const;
 
   std::atomic<uint32_t> m_managed_size{};
   std::atomic<uint32_t> m_unmanaged_size{};
   std::atomic<uint32_t> m_max_size{};
 
-  std::mutex          m_mutex;
+  category_list       m_category_managed_size{};
+  category_list       m_category_max_size{};
+
+  align_cacheline std::mutex m_mutex;
+
+  subscriber_list     m_change_subscribers;
 
   socket_map          m_socket_map;
 };
