@@ -22,6 +22,10 @@ namespace torrent::runtime {
 
 SocketManager* socket_manager() LIBTORRENT_EXPORT;
 
+// Categories of allocated sockets within the global pool.
+//
+// When a category's max is non-zero, open operations additionally check that the category's
+// current usage has not reached its limit.
 enum class socket_manager_category_t : uint32_t {
   category_generic,   // peer connections, uncategorized
   category_http,      // HTTP/curl
@@ -47,11 +51,6 @@ struct SocketInfo {
 
 class LIBTORRENT_EXPORT SocketManager {
 public:
-  // Categories of allocated sockets within the global pool.
-  //
-  // When a category's max is non-zero, open operations additionally check that the category's
-  // current usage has not reached its limit.
-
   static constexpr uint32_t category_count = 5;
   static constexpr int      flag_inactive = (1 << 0);
 
