@@ -33,16 +33,6 @@ calculate_reserved(uint32_t open_max) {
 }
 
 uint32_t
-calculate_internal(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 32;
-  else if (open_max >= 1024)
-    return 16;
-  else
-    return 8;
-}
-
-uint32_t
 calculate_http(uint32_t open_max) {
   if (open_max >= 16384)
     return 128;
@@ -56,6 +46,16 @@ calculate_http(uint32_t open_max) {
     return 8;
   else // Assumes we don't try less than 64.
     return 4;
+}
+
+uint32_t
+calculate_internal(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 32;
+  else if (open_max >= 1024)
+    return 16;
+  else
+    return 8;
 }
 
 uint32_t
@@ -111,54 +111,50 @@ SocketManager::max_size() {
 }
 
 uint32_t
-SocketManager::category_managed_size(category_t category) const {
-  return m_category_managed_size[category];
+SocketManager::category_managed_size(category_t category) {
+  return managed_size_unsafe(category);
 }
 
 uint32_t
-SocketManager::category_max_size(category_t category) const {
-  return m_category_max_size[category];
+SocketManager::category_max_size(category_t category) {
+  return max_size_unsafe(category);
 }
 
 void
 SocketManager::set_max_size_and_adjust(uint32_t max_open) {
-  auto guard = lock_guard();
-
   if (max_open < 512)
     throw input_error("set_max_size_and_adjust: max_open too low, minimum is 512");
 
+  auto guard = lock_guard();
+
+  m_max_size = max_open;
+
   uint32_t total_allocated{};
 
-  auto set_category = [this, max_open, &total_allocated](category_t category, uint32_t allocation) {
-    total_allocated += allocation;
-
-    if (total_allocated + 8 > max_open)
-      throw internal_error("set_max_size_and_adjust: total allocated categories exceed max_open");
-
-    m_category_max_size[category] = allocation;
+  auto set_category = [this, &total_allocated](category_t category, uint32_t allocation) {
+    total_allocated           += allocation;
+    max_size_unsafe(category)  = allocation;
   };
 
   set_category(category_internal, calculate_internal(max_open));
-  set_category(category_http, calculate_http(max_open));
-  set_category(category_scgi, calculate_scgi(max_open));
-  set_category(category_files, calculate_files(max_open));
+  set_category(category_http,     calculate_http(max_open));
+  set_category(category_scgi,     calculate_scgi(max_open));
+  set_category(category_files,    calculate_files(max_open));
 
-  auto reserved = calculate_reserved(max_open);
-  total_allocated += reserved;
+  total_allocated += calculate_reserved(max_open);
 
   if (total_allocated + 8 > max_open)
     throw internal_error("set_max_size_and_adjust: total allocated plus reserved exceeds max_open");
 
-  m_category_max_size[category_generic] = max_open - total_allocated;
-  m_max_size = max_open;
+  max_size_unsafe(category_generic) = max_open - total_allocated;
 
-  notify_changes();
+  notify_changes_unsafe();
 }
 
 void
 SocketManager::set_category_max_size(category_t category, uint32_t max_size) {
-  auto guard                    = lock_guard();
-  m_category_max_size[category] = max_size;
+  auto guard = lock_guard();
+  max_size_unsafe(category) = max_size;
 }
 
 void
@@ -178,7 +174,7 @@ SocketManager::unsubscribe_from_changes(void* target) {
 }
 
 void
-SocketManager::notify_changes() const {
+SocketManager::notify_changes_unsafe() const {
   for (auto& p : m_change_subscribers)
     p.second();
 }
@@ -186,23 +182,23 @@ SocketManager::notify_changes() const {
 void
 SocketManager::account_new_socket_unsafe(socket_map::iterator itr, category_t category) {
   itr->second.category = category;
+
   m_managed_size++;
-  m_category_managed_size[category]++;
+  managed_size_unsafe(category)++;
 }
 
 void
 SocketManager::account_remove_socket_unsafe(socket_map::iterator itr) {
-  if (m_managed_size == 0) {
+  if (m_managed_size == 0)
     throw internal_error("SocketManager::account_remove_socket_unsafe(): m_managed_size underflow");
-  }
 
   auto category = itr->second.category;
-  if (m_category_managed_size[category] == 0) {
+
+  if (managed_size_unsafe(category) == 0)
     throw internal_error("SocketManager::account_remove_socket_unsafe(): category managed size underflow");
-  }
 
   m_managed_size--;
-  m_category_managed_size[category]--;
+  managed_size_unsafe(category)--;
 }
 
 void
@@ -222,6 +218,7 @@ SocketManager::remove_unmanaged_socket() {
 bool
 SocketManager::can_open_socket(category_t category) {
   auto guard = lock_guard();
+
   return can_open_socket_unsafe(category);
 }
 
@@ -230,8 +227,8 @@ SocketManager::can_open_socket_unsafe(category_t category) {
   if (size() >= max_size())
     return false;
 
-  if (m_category_max_size[category] != 0)
-    return m_category_managed_size[category] < m_category_max_size[category];
+  if (max_size_unsafe(category) != 0)
+    return managed_size_unsafe(category) < max_size_unsafe(category);
 
   return true;
 }
@@ -250,8 +247,8 @@ SocketManager::open_event_or_throw(Event* event, category_t category, std::funct
     return;
   }
 
-  auto fd  = event->file_descriptor();
-  auto [itr, inserted] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  auto fd              = event->file_descriptor();
+  auto [itr, inserted] = m_socket_map.try_emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
   if (!inserted) {
     // We don't allow conflicts for this function.
@@ -295,8 +292,8 @@ SocketManager::open_event_or_cleanup(Event* event, category_t category, std::fun
     return false;
   }
 
-  auto fd  = event->file_descriptor();
-  auto [itr, inserted] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  auto fd              = event->file_descriptor();
+  auto [itr, inserted] = m_socket_map.try_emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
   if (inserted) {
     LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket",
@@ -318,9 +315,12 @@ SocketManager::open_event_or_cleanup(Event* event, category_t category, std::fun
          this_thread::thread()->name(), event->type_name(), fd,
          itr->second.thread->name(), itr->second.event->type_name());
 
+  throw internal_error("SocketManager::open_event_or_cleanup(): reuse of existing file descriptor not supported yet.");
+
   account_remove_socket_unsafe(itr);
-  itr->second = SocketInfo{.fd=fd, .event=event, .thread=this_thread::thread()};
+  itr->second = SocketInfo{fd, event, this_thread::thread()};
   account_new_socket_unsafe(itr, category);
+
   return true;
 }
 
@@ -335,9 +335,7 @@ SocketManager::close_event_or_throw(Event* event, std::function<void ()> func) {
   auto itr = m_socket_map.find(fd);
 
   if (itr == m_socket_map.end()) {
-    LT_LOG("close_event_or_throw() : %s:%s:%i : trying to close unknown socket",
-           this_thread::thread()->name(), event->type_name(), fd);
-
+    LT_LOG("close_event_or_throw() : %s:%s:%i : trying to close unknown socket", this_thread::thread()->name(), event->type_name(), fd);
     throw internal_error("SocketManager::close_event_or_throw(): trying to close unknown socket fd");
   }
 
@@ -368,8 +366,8 @@ SocketManager::register_event_or_throw(Event* event, category_t category, std::f
   if (!event->is_open())
     throw internal_error("SocketManager::register_event_or_throw(): event is not open");
 
-  auto fd  = event->file_descriptor();
-  auto [itr, inserted] = m_socket_map.emplace(fd, SocketInfo{fd, event, this_thread::thread()});
+  auto fd              = event->file_descriptor();
+  auto [itr, inserted] = m_socket_map.try_emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
   if (!inserted) {
     LT_LOG("register_event_or_throw() : %s:%s:%i : tried to register an existing file descriptor : %s:%s",
@@ -383,8 +381,7 @@ SocketManager::register_event_or_throw(Event* event, category_t category, std::f
 
   func();
 
-  LT_LOG("register_event_or_throw() : %s:%s:%i : registered socket",
-         this_thread::thread()->name(), event->type_name(), fd);
+  LT_LOG("register_event_or_throw() : %s:%s:%i : registered socket", this_thread::thread()->name(), event->type_name(), fd);
 
   account_new_socket_unsafe(itr, category);
 }
@@ -400,9 +397,7 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> fu
   auto itr = m_socket_map.find(fd);
 
   if (itr == m_socket_map.end()) {
-    LT_LOG("unregister_event_or_throw() : %s:%s:%i : trying to unregister unknown socket",
-           this_thread::thread()->name(), event->type_name(), fd);
-
+    LT_LOG("unregister_event_or_throw() : %s:%s:%i : trying to unregister unknown socket", this_thread::thread()->name(), event->type_name(), fd);
     throw internal_error("SocketManager::unregister_event_or_throw(): trying to unregister unknown socket fd");
   }
 
@@ -416,8 +411,7 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> fu
 
   func();
 
-  LT_LOG("unregister_event_or_throw() : %s:%s:%i : unregistered socket",
-         this_thread::thread()->name(), event->type_name(), fd);
+  LT_LOG("unregister_event_or_throw() : %s:%s:%i : unregistered socket", this_thread::thread()->name(), event->type_name(), fd);
 
   account_remove_socket_unsafe(itr);
   m_socket_map.erase(itr);
@@ -435,9 +429,7 @@ SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) 
   auto itr = m_socket_map.find(fd);
 
   if (itr == m_socket_map.end()) {
-    LT_LOG("transfer_event() : %s:%s:%i : trying to transfer unknown socket",
-           this_thread::thread()->name(), event_from->type_name(), fd);
-
+    LT_LOG("transfer_event() : %s:%s:%i : trying to transfer unknown socket", this_thread::thread()->name(), event_from->type_name(), fd);
     throw internal_error("SocketManager::transfer_event(): trying to transfer unknown socket fd");
   }
 
@@ -448,8 +440,7 @@ SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) 
 
   if (event_to == nullptr) {
     // Transfer failed, the func is responsible for cleaning up event_from.
-    LT_LOG("transfer_event() : %s:%s:%i : socket transfer function returned nullptr",
-           this_thread::thread()->name(), event_from->type_name(), fd);
+    LT_LOG("transfer_event() : %s:%s:%i : socket transfer function returned nullptr", this_thread::thread()->name(), event_from->type_name(), fd);
 
     account_remove_socket_unsafe(itr);
     m_socket_map.erase(itr);
@@ -470,9 +461,8 @@ SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) 
 bool
 SocketManager::execute_if_not_present(int fd, std::function<void ()> func) {
   auto guard = lock_guard();
-  auto itr   = m_socket_map.find(fd);
 
-  if (itr != m_socket_map.end())
+  if (m_socket_map.find(fd) != m_socket_map.end())
     return false;
 
   func();
@@ -518,8 +508,7 @@ SocketManager::mark_event_active_or_fail(Event* event) {
 
   itr->second.flags &= ~flag_inactive;
 
-  LT_LOG("mark_event_active() : %s:%s:%i : marked socket active",
-         this_thread::thread()->name(), event->type_name(), fd);
+  LT_LOG("mark_event_active() : %s:%s:%i : marked socket active", this_thread::thread()->name(), event->type_name(), fd);
 
   return true;
 }
@@ -544,8 +533,7 @@ SocketManager::mark_event_inactive(Event* event, std::function<void ()> func) {
 
   itr->second.flags |= flag_inactive;
 
-  LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive",
-         this_thread::thread()->name(), event->type_name(), fd);
+  LT_LOG("mark_event_inactive() : %s:%s:%i : marked socket inactive", this_thread::thread()->name(), event->type_name(), fd);
 }
 
 // The socket must be in read/write to avoid reuse before calling this.

@@ -132,7 +132,7 @@ protected:
   void                unlock() const                  { m_mutex.unlock(); }
   auto&               mutex() const                   { return m_mutex; }
 
-  void                notify_changes() const;
+  void                notify_changes_unsafe() const;
 
   listen_addresses    listen_addresses_unsafe() const;
   int                 listen_backlog_unsafe() const;

@@ -69,27 +69,22 @@ ThreadMain::init_thread() {
   m_hash_queue->slot_has_work() = [this, hash_work_signal](bool is_done) {
       send_event_signal(hash_work_signal, is_done);
     };
+}
+
+void
+ThreadMain::init_after_setup() {
+  set_max_connections();
 
   runtime::network_config()->subscribe_to_changes(this, [this]() {
-      cancel_callback(m_events_callback_id);
-
       callback(m_events_callback_id, []() {
           runtime::network_manager()->listen_restart();
 
           // TODO: Restart DHT.
         });
     });
-}
 
-void
-ThreadMain::init_thread_post_local() {
   runtime::socket_manager()->subscribe_to_changes(this, [this]() {
-      cancel_callback(m_events_callback_id);
-
-      callback(m_events_callback_id, [this]() {
-          manager->file_manager()->set_max_open_files(
-            runtime::socket_manager()->category_max_size(runtime::SocketManager::category_files));
-        });
+      callback(m_events_callback_id, ThreadMain::set_max_connections);
     });
 }
 
@@ -97,6 +92,7 @@ void
 ThreadMain::cleanup_thread() {
   runtime::socket_manager()->unsubscribe_from_changes(this);
   runtime::network_config()->unsubscribe_from_changes(this);
+
   cancel_callback(m_events_callback_id);
 
   m_hash_queue.reset();
@@ -109,6 +105,13 @@ ThreadMain::cleanup_thread() {
 void
 ThreadMain::set_client_callback(std::function<void()> fn) {
   m_slot_client_callback = std::move(fn);
+}
+
+void
+ThreadMain::set_max_connections() {
+  auto max_open_files = runtime::socket_manager()->category_max_size(runtime::category_files);
+
+  manager->file_manager()->set_max_open_files(max_open_files);
 }
 
 void
