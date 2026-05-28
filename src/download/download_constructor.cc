@@ -112,7 +112,8 @@ DownloadConstructor::parse_info(const Object& b) {
 
   } else if (b.has_key("files")) {
     parse_multi_files(b.get_key("files"), chunkSize);
-    fileList->set_root_dir("./" + m_download->info()->name());
+
+    fileList->set_root_dir("./" + m_download->info()->name().str());
 
   } else if (!m_download->info()->is_meta_download()) {
     throw input_error("Torrent must have either length or files entry.");

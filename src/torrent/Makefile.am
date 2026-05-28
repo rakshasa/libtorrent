@@ -94,6 +94,9 @@ libtorrent_torrent_la_SOURCES = \
 	tracker/wrappers.cc \
 	tracker/wrappers.h \
 \
+	types/string_utf8.cc \
+	types/string_utf8.h \
+\
 	utils/chrono.h \
 	utils/directory_events.cc \
 	utils/directory_events.h \
@@ -219,6 +222,10 @@ libtorrent_torrent_tracker_include_HEADERS = \
 	tracker/tracker.h \
 	tracker/tracker_state.h \
 	tracker/wrappers.h
+
+libtorrent_torrent_types_includedir = $(includedir)/torrent/types
+libtorrent_torrent_types_include_HEADERS = \
+	types/string_utf8.h
 
 libtorrent_torrent_utils_includedir = $(includedir)/torrent/utils
 libtorrent_torrent_utils_include_HEADERS = \
