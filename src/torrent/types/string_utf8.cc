@@ -10,30 +10,38 @@ namespace torrent {
 namespace {
 
 // Checks if a string is valid UTF-8 by analyzing byte patterns.
-bool is_valid_utf8(const std::string& str) {
-  auto* bytes = reinterpret_cast<const unsigned char*>(str.c_str());
+bool
+is_valid_utf8(const std::string& str) {
+  auto itr       = str.begin();
+  const auto end = str.end();
 
-  while (*bytes != 0x00) {
-    int num = 0;
+  while (itr != end) {
+    int  num{};
+    auto byte = static_cast<unsigned char>(*itr);
 
-    if ((*bytes & 0x80) == 0x00)
+    // Verify leading byte.
+    if ((byte & 0x80) == 0x00)
       num = 1;
-    else if ((*bytes & 0xE0) == 0xC0)
+    else if ((byte & 0xE0) == 0xC0)
       num = 2;
-    else if ((*bytes & 0xF0) == 0xE0)
+    else if ((byte & 0xF0) == 0xE0)
       num = 3;
-    else if ((*bytes & 0xF8) == 0xF0)
+    else if ((byte & 0xF8) == 0xF0)
       num = 4;
     else
-      return false; // Invalid leading byte
+      return false;
 
-    bytes++;
+    ++itr;
 
-    for (int i = 1; i < num; ++i) { // Check continuation bytes
-      if ((*bytes & 0xC0) != 0x80)
+    // Check continuation bytes.
+    for (int i = 1; i < num; ++i) {
+      if (itr == end)
         return false;
 
-      bytes++;
+      if ((static_cast<unsigned char>(*itr) & 0xC0) != 0x80)
+        return false;
+
+      ++itr;
     }
   }
 
