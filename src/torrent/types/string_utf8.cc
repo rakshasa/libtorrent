@@ -51,6 +51,14 @@ string_utf8::reset(const std::string& str) {
 }
 
 Object
+string_utf8::object_base64() const {
+  auto obj = Object(base64());
+  obj.set_flags(Object::flag_base64);
+
+  return obj;
+}
+
+Object
 string_utf8::object_utf8_or_base64() const {
   if (!m_is_utf8) {
     auto obj = Object(base64());

@@ -19,6 +19,7 @@ public:
   // Generates a cached base64-encoded string, not thread-safe.
   const std::string& base64() const;
 
+  Object             object_base64() const;
   Object             object_utf8_or_base64() const;
 
   void               reset(const std::string& str);
