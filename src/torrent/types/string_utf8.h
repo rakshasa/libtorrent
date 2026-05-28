@@ -6,7 +6,7 @@
 
 namespace torrent {
 
-class string_utf8 {
+class LIBTORRENT_EXPORT string_utf8 {
 public:
   string_utf8() = default;
   ~string_utf8() = default;
