@@ -28,7 +28,7 @@ File::is_created() const {
   // the client to check that the torrent files are present and ok,
   // rather than as a way to find out if it is starting on a blank
   // slate.
-  if (!fs.update(frozen_path()))
+  if (!fs.update(m_frozen_path.str()))
 //     return errno == EACCES;
     return false;
 
@@ -42,7 +42,7 @@ File::is_correct_size() const {
 
   utils::FileStat fs;
 
-  if (!fs.update(frozen_path()))
+  if (!fs.update(m_frozen_path.str()))
     return false;
 
   return fs.is_regular() && static_cast<uint64_t>(fs.size()) == m_size;

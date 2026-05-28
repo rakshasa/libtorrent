@@ -87,7 +87,7 @@ FileList::is_multi_file() const {
   // Currently only check if we got just one file. In the future this
   // should be a bool, which will be set based on what flags are
   // passed when the torrent was loaded.
-  return m_multi_file;
+  return m_is_multi_file;
 }
 
 uint64_t
@@ -445,7 +445,8 @@ FileList::open(bool hashing, int flags) {
   }
 
   m_is_open = true;
-  m_frozen_root_dir = m_root_dir;
+
+  m_frozen_root_dir.reset(m_root_dir);
 
   // For meta-downloads, if the file exists, we have to assume that
   // it is either 0 or 1 length or the correct size. If the size
@@ -457,7 +458,7 @@ FileList::open(bool hashing, int flags) {
     utils::FileStat stat;
 
     // This probably recurses into open() once, but that is harmless.
-    if (stat.update((*begin())->frozen_path()) && stat.size() > 1)
+    if (stat.update((*begin())->frozen_path().str()) && stat.size() > 1)
       return reset_filesize(stat.size());
   }
 }
@@ -544,10 +545,8 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
 
   utils::FileStat file_stat;
 
-  if (file_stat.update(file_node->frozen_path()) &&
-      !file_stat.is_regular() && !file_stat.is_link()) {
-    // Might also bork on other kinds of file types, but there's no
-    // suitable errno for all cases.
+  if (file_stat.update(file_node->frozen_path().str()) && !file_stat.is_regular() && !file_stat.is_link()) {
+    // Might also fail on other kinds of file types, but there's no suitable errno for all cases.
     errno = EISDIR;
     return false;
   }

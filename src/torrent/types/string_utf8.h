@@ -11,6 +11,8 @@ public:
   string_utf8() = default;
   ~string_utf8() = default;
 
+  static string_utf8 from_string(const std::string& str);
+
   bool               is_utf8() const;
 
   const std::string& str() const;
@@ -37,7 +39,16 @@ inline bool               string_utf8::is_utf8() const { return m_is_utf8; }
 inline const std::string& string_utf8::str() const     { return m_str; }
 inline const char*        string_utf8::c_str() const   { return m_str.c_str(); }
 
-inline const std::string& string_utf8::base64() const  {
+inline string_utf8
+string_utf8::from_string(const std::string& str) {
+  string_utf8 result;
+  result.reset(str);
+
+  return result;
+}
+
+inline const std::string&
+string_utf8::base64() const  {
   if (!m_str.empty() && m_base64.empty())
     reset_base64();
 
