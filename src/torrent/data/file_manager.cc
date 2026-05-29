@@ -45,7 +45,7 @@ FileManager::open(value_type file, [[maybe_unused]] bool hashing, int prot, int 
 
   SocketFile fd;
 
-  if (!fd.open(file->frozen_path(), prot, flags)) {
+  if (!fd.open(file->frozen_path().str(), prot, flags)) {
     m_files_failed_counter++;
     return false;
   }

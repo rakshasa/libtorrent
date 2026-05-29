@@ -87,7 +87,7 @@ FileList::is_multi_file() const {
   // Currently only check if we got just one file. In the future this
   // should be a bool, which will be set based on what flags are
   // passed when the torrent was loaded.
-  return m_multi_file;
+  return m_is_multi_file;
 }
 
 uint64_t
@@ -309,7 +309,13 @@ FileList::make_all_paths() {
     auto firstMismatch = entry->path()->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
-    while (firstMismatch != entry->path()->end() && lastPathItr != lastPath->end() && *firstMismatch == *lastPathItr) {
+    while (true) {
+      if (firstMismatch == entry->path()->end() || lastPathItr == lastPath->end())
+        break;
+
+      if (firstMismatch->str() != lastPathItr->str())
+        break;
+
       lastPathItr++;
       firstMismatch++;
     }
@@ -445,7 +451,8 @@ FileList::open(bool hashing, int flags) {
   }
 
   m_is_open = true;
-  m_frozen_root_dir = m_root_dir;
+
+  m_frozen_root_dir.reset(m_root_dir);
 
   // For meta-downloads, if the file exists, we have to assume that
   // it is either 0 or 1 length or the correct size. If the size
@@ -457,7 +464,7 @@ FileList::open(bool hashing, int flags) {
     utils::FileStat stat;
 
     // This probably recurses into open() once, but that is harmless.
-    if (stat.update((*begin())->frozen_path()) && stat.size() > 1)
+    if (stat.update((*begin())->frozen_path().str()) && stat.size() > 1)
       return reset_filesize(stat.size());
   }
 }
@@ -492,16 +499,16 @@ FileList::close_all_files() {
 }
 
 void
-FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) {
+FileList::make_directory(Path::const_iterator path_begin, Path::const_iterator path_end, Path::const_iterator start_itr) {
   std::string path = m_root_dir;
 
-  while (pathBegin != pathEnd) {
-    path += "/" + *pathBegin;
+  while (path_begin != path_end) {
+    path += "/" + path_begin->str();
 
-    if (pathBegin++ != startItr)
+    if (path_begin++ != start_itr)
       continue;
 
-    startItr++;
+    start_itr++;
 
     utils::FileStat fileStat;
 
@@ -510,7 +517,7 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
         std::find(m_indirect_links.begin(), m_indirect_links.end(), path) == m_indirect_links.end())
       m_indirect_links.push_back(path);
 
-    if (pathBegin == pathEnd)
+    if (path_begin == path_end)
       break;
 
     if (::mkdir(path.c_str(), 0777) != 0 && errno != EEXIST)
@@ -529,7 +536,7 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
     auto firstMismatch = path->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
-    while (firstMismatch != path->end() && lastItr != lastPath.end() && *firstMismatch == *lastItr) {
+    while (firstMismatch != path->end() && lastItr != lastPath.end() && firstMismatch->str() == lastItr->str()) {
       lastItr++;
       firstMismatch++;
     }
@@ -544,10 +551,8 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
 
   utils::FileStat file_stat;
 
-  if (file_stat.update(file_node->frozen_path()) &&
-      !file_stat.is_regular() && !file_stat.is_link()) {
-    // Might also bork on other kinds of file types, but there's no
-    // suitable errno for all cases.
+  if (file_stat.update(file_node->frozen_path().str()) && !file_stat.is_regular() && !file_stat.is_link()) {
+    // Might also fail on other kinds of file types, but there's no suitable errno for all cases.
     errno = EISDIR;
     return false;
   }

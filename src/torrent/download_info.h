@@ -8,6 +8,7 @@
 
 #include <torrent/rate.h>
 #include <torrent/hash_string.h>
+#include <torrent/types/string_utf8.h>
 
 namespace torrent {
 
@@ -46,8 +47,8 @@ public:
 
   static constexpr uint32_t unlimited = ~uint32_t();
 
-  const std::string&  name() const                                 { return m_name; }
-  void                set_name(const std::string& s)               { m_name = s; }
+  const string_utf8&  name() const                                 { return m_name; }
+  void                set_name(const std::string& s)               { m_name.reset(s); }
 
   const HashString&   hash() const                                 { return m_hash; }
   const HashString&   info_hash() const                            { return m_hash; }
@@ -138,7 +139,8 @@ protected:
   void                set_load_date(uint32_t d)                    { m_load_date = d; }
 
 private:
-  std::string         m_name;
+  string_utf8         m_name;
+
   HashString          m_hash{HashString::new_zero()};
   HashString          m_hash_obfuscated{HashString::new_zero()};
   HashString          m_local_id{HashString::new_zero()};

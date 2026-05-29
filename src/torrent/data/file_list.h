@@ -8,6 +8,7 @@
 #include <torrent/common.h>
 #include <torrent/path.h>
 #include <torrent/data/download_data.h>
+#include <torrent/types/string_utf8.h>
 
 namespace torrent {
 
@@ -67,7 +68,7 @@ public:
   // Check if the torrent is loaded as a multi-file torrent. This may
   // return true even for a torrent with just one file.
   bool                is_multi_file() const;
-  void                set_multi_file(bool state)                      { m_multi_file = state; }
+  void                set_multi_file(bool state)                      { m_is_multi_file = state; }
 
   size_t              size_files() const                              { return base_type::size(); }
   uint64_t            size_bytes() const                              { return m_torrent_size; }
@@ -86,8 +87,9 @@ public:
 
   // You may only call set_root_dir after all nodes have been added.
   const std::string&  root_dir() const                                { return m_root_dir; }
-  const std::string&  frozen_root_dir() const                         { return m_frozen_root_dir; }
   void                set_root_dir(const std::string& path);
+
+  const string_utf8&  frozen_root_dir() const                         { return m_frozen_root_dir; }
 
   uint64_t            max_file_size() const                           { return m_max_file_size; }
   void                set_max_file_size(uint64_t size);
@@ -149,19 +151,17 @@ private:
 
   download_data       m_data;
 
-  bool                m_is_open{false};
+  bool                m_is_open{};
+  bool                m_is_multi_file{};
 
   uint64_t            m_torrent_size{0};
   uint32_t            m_chunk_size{0};
   uint64_t            m_max_file_size{~uint64_t()};
 
   std::string         m_root_dir;
+  string_utf8         m_frozen_root_dir;
 
   path_list           m_indirect_links;
-
-  // Reorder next minor version bump:
-  bool                m_multi_file{false};
-  std::string         m_frozen_root_dir;
 };
 
 } // namespace torrent
