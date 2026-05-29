@@ -14,7 +14,7 @@ class LIBTORRENT_EXPORT Path : private std::vector<string_utf8> {
 public:
   using base_type = std::vector<string_utf8>;
 
-  using const_iterator         = base_type::const_iterator;
+  using const_iterator = base_type::const_iterator;
 
   using base_type::empty;
   using base_type::size;
@@ -23,6 +23,9 @@ public:
   using base_type::back;
   using base_type::begin;
   using base_type::end;
+
+  using base_type::at;
+  using base_type::operator[];
 
   void               insert_path(iterator pos, const std::string& path);
   void               push_back(const std::string& path);
