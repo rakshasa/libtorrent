@@ -75,7 +75,7 @@ DownloadConstructor::parse_name(const Object& b) {
   if (name.empty())
     throw internal_error("DownloadConstructor::parse_name(...) Ended up with an empty Path.");
 
-  m_download->info()->set_name(name.front());
+  m_download->info()->set_name(name.front().str());
 }
 
 void
@@ -283,7 +283,8 @@ DownloadConstructor::create_path(const Object::list_type& plist, const std::stri
   Path p;
   p.set_encoding(enc);
 
-  std::transform(plist.begin(), plist.end(), std::back_inserter(p), std::mem_fn(&Object::as_string_c));
+  for (const auto& path : plist)
+    p.push_back(path.as_string());
 
   return p;
 }

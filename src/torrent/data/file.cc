@@ -111,16 +111,22 @@ void
 File::set_match_depth(File* left, File* right) {
   uint32_t level = 0;
 
-  auto itrLeft = left->path()->begin();
+  auto itrLeft  = left->path()->begin();
   auto itrRight = right->path()->begin();
 
-  while (itrLeft != left->path()->end() && itrRight != right->path()->end() && *itrLeft == *itrRight) {
+  while (true) {
+    if (itrLeft == left->path()->end() || itrRight == right->path()->end())
+      break;
+
+    if (itrLeft->str() != itrRight->str())
+      break;
+
     itrLeft++;
     itrRight++;
     level++;
   }
 
-  left->m_match_depth_next = level;
+  left->m_match_depth_next  = level;
   right->m_match_depth_prev = level;
 }
 
