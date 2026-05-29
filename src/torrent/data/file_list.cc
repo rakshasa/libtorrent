@@ -310,7 +310,7 @@ FileList::make_all_paths() {
 
     // Couldn't find a suitable stl algo, need to write my own.
     while (true) {
-      if (firstMismatch == entry->path()->end() && lastPathItr == lastPath->end())
+      if (firstMismatch == entry->path()->end() || lastPathItr == lastPath->end())
         break;
 
       if (firstMismatch->str() != lastPathItr->str())
