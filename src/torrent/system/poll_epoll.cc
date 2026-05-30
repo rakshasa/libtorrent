@@ -27,7 +27,7 @@
 #define LT_LOG_DEBUG_DATA_FD(log_fmt, ...)
 #endif
 
-namespace torrent::net {
+namespace torrent::system {
 
 class PollEvent {
 public:
