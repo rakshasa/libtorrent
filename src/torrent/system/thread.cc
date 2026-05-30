@@ -74,6 +74,7 @@ Thread::start_thread() {
 void
 Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
+
   interrupt();
 
   pthread_join(m_thread, nullptr);
@@ -257,8 +258,6 @@ Thread::event_loop() {
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
     }
 
-    m_poll->cleanup_thread();
-
   } catch (const shutdown_exception&) {
     lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
 
@@ -267,6 +266,7 @@ Thread::event_loop() {
     if (this_thread::thread_id() != torrent::main_thread::thread_id())
       log_cleanup();
 
+    m_poll->cleanup_thread();
     throw;
   }
 
@@ -274,6 +274,8 @@ Thread::event_loop() {
 
   if (!m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
     throw internal_error("Thread::event_loop called on an object that is not in the active state.");
+
+  m_poll->cleanup_thread();
 }
 
 void
