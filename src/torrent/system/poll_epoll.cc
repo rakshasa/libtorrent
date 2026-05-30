@@ -57,7 +57,7 @@ public:
   Table                                 m_table;
   std::unique_ptr<struct epoll_event[]> m_events;
 
-  EventFd             m_wake_event;
+  net::EventFd        m_wake_event;
 };
 
 uint32_t
