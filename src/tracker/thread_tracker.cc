@@ -48,8 +48,12 @@ ThreadTracker::create_thread() {
 
 void
 ThreadTracker::destroy_thread() {
-  delete m_thread_tracker;
-  m_thread_tracker = nullptr;
+  try {
+    delete m_thread_tracker;
+    m_thread_tracker = nullptr;
+  } catch (...) {
+    m_thread_tracker = nullptr;
+  }
 }
 
 ThreadTracker*

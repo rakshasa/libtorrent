@@ -270,12 +270,12 @@ Thread::event_loop() {
     throw;
   }
 
+  m_poll->cleanup_thread();
+
   auto previous_state = STATE_ACTIVE;
 
   if (!m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
     throw internal_error("Thread::event_loop called on an object that is not in the active state.");
-
-  m_poll->cleanup_thread();
 }
 
 void
