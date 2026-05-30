@@ -200,7 +200,6 @@ int
 Poll::poll(int timeout_usec) {
   timespec timeout = { timeout_usec / 1000000, (timeout_usec % 1000000) * 1000 };
 
-  // Set polling, checking for interrupts, if interrupted then return.
   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
 
   if (previous_state & flag_interrupted) {

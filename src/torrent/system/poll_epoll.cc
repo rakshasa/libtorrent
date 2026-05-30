@@ -10,6 +10,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
+#include "torrent/net/event_fd.h"
 #include "torrent/system/thread.h"
 #include "torrent/utils/log.h"
 
@@ -47,7 +48,7 @@ public:
   void                flush();
   void                modify(torrent::Event* event, unsigned short op, uint32_t mask, uint32_t old_mask);
 
-  int                 m_fd;
+  int                 m_fd{};
 
   unsigned int        m_max_sockets{};
   unsigned int        m_max_events{};
@@ -55,6 +56,8 @@ public:
 
   Table                                 m_table;
   std::unique_ptr<struct epoll_event[]> m_events;
+
+  EventFd             m_wake_event;
 };
 
 uint32_t
@@ -138,6 +141,10 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask, uint32_t ol
   }
 }
 
+//
+// Poll:
+//
+
 std::unique_ptr<Poll>
 Poll::create() {
   auto socket_open_max = sysconf(_SC_OPEN_MAX);
@@ -158,11 +165,15 @@ Poll::create() {
   poll->m_internal->m_max_events  = 1024;
   poll->m_internal->m_events      = std::make_unique<struct epoll_event[]>(poll->m_internal->m_max_events);
 
+  poll->m_internal->m_wake_event.add_to_poll(poll);
+
   return std::unique_ptr<Poll>(poll);
 }
 
 Poll::~Poll() {
   assert(m_internal->m_table.empty() && "Poll::~Poll() called with non-empty event table.");
+
+  m_wake_event.remove_from_poll(this);
 
   ::close(m_internal->m_fd);
   m_internal->m_fd = -1;
@@ -182,12 +193,26 @@ Poll::do_poll(int64_t timeout_usec) {
   return process();
 }
 
+void
+Poll::do_interrupt() {
+  m_wake_event.send_signal();
+}
+
 int
 Poll::poll(int timeout_usec) {
+  auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
+
+  if (previous_state & flag_interrupted) {
+    m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
+    return 0;
+  }
+
   int nfds = ::epoll_wait(m_internal->m_fd,
                           m_internal->m_events.get(),
                           m_internal->m_max_events,
                           timeout_usec / 1000);
+
+  m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
 
   if (nfds == -1)
     return -1;

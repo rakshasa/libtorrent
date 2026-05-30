@@ -91,6 +91,8 @@ libtorrent_other_la_SOURCES = \
 	net/dns_cache.h \
 	net/dns_buffer.cc \
 	net/dns_buffer.h \
+	net/event_fd.cc \
+	net/event_fd.h \
 	net/listen.cc \
 	net/listen.h \
 	net/protocol_buffer.h \

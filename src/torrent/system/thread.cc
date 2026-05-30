@@ -31,8 +31,8 @@ void Thread::init_thread_pre_start() {}
 void Thread::init_thread_post_local() {}
 void Thread::cleanup_thread() {}
 
-Thread::Thread() :
-    m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+Thread::Thread()
+  : m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
     m_poll(system::Poll::create()),
     m_scheduler(new utils::Scheduler) {
 
