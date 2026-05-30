@@ -49,6 +49,12 @@ public:
 
   // Add one for HUP? Or would that be in event?
 
+protected:
+  friend class Thread;
+
+  void                init_thread();
+  void                cleanup_thread();
+
 private:
   using poll_event_list = std::vector<std::shared_ptr<PollEvent>>;
 

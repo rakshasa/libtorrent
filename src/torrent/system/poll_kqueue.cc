@@ -182,6 +182,14 @@ Poll::~Poll() {
   m_internal->m_fd = -1;
 }
 
+void
+Poll::init_thread() {
+}
+
+void
+Poll::cleanup_thread() {
+}
+
 unsigned int
 Poll::do_poll(int64_t timeout_usec) {
   int status = poll(timeout_usec);

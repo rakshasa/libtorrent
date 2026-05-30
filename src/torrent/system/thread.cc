@@ -238,6 +238,8 @@ Thread::event_loop() {
 
   try {
 
+    m_poll->init_thread();
+
     while (true) {
       process_events();
 
@@ -254,6 +256,8 @@ Thread::event_loop() {
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
     }
+
+    m_poll->cleanup_thread();
 
   } catch (const shutdown_exception&) {
     lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());

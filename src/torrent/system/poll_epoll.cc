@@ -165,18 +165,24 @@ Poll::create() {
   poll->m_internal->m_max_events  = 1024;
   poll->m_internal->m_events      = std::make_unique<struct epoll_event[]>(poll->m_internal->m_max_events);
 
-  poll->m_internal->m_wake_event.add_to_poll(poll);
-
   return std::unique_ptr<Poll>(poll);
 }
 
 Poll::~Poll() {
   assert(m_internal->m_table.empty() && "Poll::~Poll() called with non-empty event table.");
 
-  m_internal->m_wake_event.remove_from_poll(this);
-
   ::close(m_internal->m_fd);
   m_internal->m_fd = -1;
+}
+
+void
+Poll::init_thread() {
+  m_internal->m_wake_event.add_to_poll(poll);
+}
+
+void
+Poll::cleanup_thread() {
+  m_internal->m_wake_event.remove_from_poll(this);
 }
 
 unsigned int
