@@ -89,8 +89,6 @@ void
 TestTrackerController::test_basic() {
   // mock_expect(&torrent::fd__bind, 0, fd, bind_sap.get(), (socklen_t)torrent::sap_length(bind_sap));
 
-  sleep(30);
-
   torrent::TrackerController tracker_controller(nullptr);
 
   CPPUNIT_ASSERT(tracker_controller.flags() == 0);

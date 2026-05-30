@@ -267,7 +267,6 @@ Thread::event_loop() {
     if (this_thread::thread_id() != torrent::main_thread::thread_id())
       log_cleanup();
 
-    m_poll->cleanup_thread();
     throw;
   }
 
