@@ -182,7 +182,8 @@ Poll::init_thread() {
 
 void
 Poll::cleanup_thread() {
-  m_internal->m_wake_event.remove_from_poll();
+  if (m_internal->m_wake_event.is_open())
+    m_internal->m_wake_event.remove_from_poll(this);
 }
 
 unsigned int

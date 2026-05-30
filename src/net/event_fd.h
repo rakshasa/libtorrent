@@ -12,7 +12,7 @@ public:
   const char*         type_name() const override { return "eventfd"; }
 
   void                add_to_poll();
-  void                remove_from_poll();
+  void                remove_from_poll(system::Poll* poll);
 
   void                send_signal();
 

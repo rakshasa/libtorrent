@@ -109,6 +109,7 @@ TestFixtureWithMainAndDiskThread::tearDown() {
 
   torrent::ThreadDisk::destroy_thread();
   TestMainThread::destroy();
+
   m_main_thread.reset();
 
   test_fixture::tearDown();

@@ -32,12 +32,12 @@ EventFd::add_to_poll() {
 }
 
 void
-EventFd::remove_from_poll() {
+EventFd::remove_from_poll(system::Poll* poll) {
   if (!is_open())
     return;
 
-  runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
-      this_thread::poll()->remove_and_close(this);
+  runtime::socket_manager()->unregister_event_or_throw(this, [this, poll]() {
+      poll->remove_and_close(this);
     });
 }
 

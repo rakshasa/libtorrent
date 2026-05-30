@@ -9,6 +9,8 @@ TESTS = \
 
 check_PROGRAMS = $(TESTS)
 
+CPPUNIT_CFLAGS += -DLT_CPPUNIT_TESTING
+
 # This can cause duplicate symbols, so export anything that causes issues.
 
 # LibTorrent_Test_LDADD = ../src/libtorrent.la
