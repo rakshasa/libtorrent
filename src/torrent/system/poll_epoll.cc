@@ -177,12 +177,12 @@ Poll::~Poll() {
 
 void
 Poll::init_thread() {
-  m_internal->m_wake_event.add_to_poll(poll);
+  m_internal->m_wake_event.add_to_poll();
 }
 
 void
 Poll::cleanup_thread() {
-  m_internal->m_wake_event.remove_from_poll(this);
+  m_internal->m_wake_event.remove_from_poll();
 }
 
 unsigned int

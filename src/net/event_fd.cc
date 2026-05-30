@@ -15,7 +15,7 @@
 namespace torrent::net {
 
 void
-EventFd::add_to_poll(system::Poll* poll) {
+EventFd::add_to_poll() {
   errno = 0;
 
 #ifdef USE_EPOLL
@@ -25,19 +25,19 @@ EventFd::add_to_poll(system::Poll* poll) {
   if (file_descriptor() == -1)
     throw internal_error("EventFd::add_to_poll() eventfd failed: " + std::string(std::strerror(errno)));
 
-  runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this, poll]() {
-      poll->open(this);
-      poll->insert_read(this);
+  runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
+      this_thread::poll()->open(this);
+      this_thread::poll()->insert_read(this);
     });
 }
 
 void
-EventFd::remove_from_poll(system::Poll* poll) {
+EventFd::remove_from_poll() {
   if (!is_open())
     return;
 
-  runtime::socket_manager()->unregister_event_or_throw(this, [this, poll]() {
-      poll->remove_and_close(this);
+  runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
+      this_thread::poll()->remove_and_close(this);
     });
 }
 
