@@ -173,7 +173,7 @@ Poll::create() {
 Poll::~Poll() {
   assert(m_internal->m_table.empty() && "Poll::~Poll() called with non-empty event table.");
 
-  m_wake_event.remove_from_poll(this);
+  m_internal->m_wake_event.remove_from_poll(this);
 
   ::close(m_internal->m_fd);
   m_internal->m_fd = -1;
@@ -195,7 +195,7 @@ Poll::do_poll(int64_t timeout_usec) {
 
 void
 Poll::do_interrupt() {
-  m_wake_event.send_signal();
+  m_internal->m_wake_event.send_signal();
 }
 
 int
