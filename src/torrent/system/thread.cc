@@ -9,14 +9,13 @@
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
-#include "torrent/net/poll.h"
+#include "torrent/system/poll.h"
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
-#include "utils/signal_interrupt.h"
 #include "utils/thread_internal.h"
 
 namespace torrent::system {
@@ -34,10 +33,8 @@ void Thread::cleanup_thread() {}
 
 Thread::Thread() :
     m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
-    m_poll(net::Poll::create()),
+    m_poll(system::Poll::create()),
     m_scheduler(new utils::Scheduler) {
-
-  std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
 
   m_cached_time = utils::time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);
@@ -200,7 +197,7 @@ Thread::cancel_callback_and_wait(callback_id& id, Thread* other_thread) {
       return;
     }
 
-    if (id->compare_exchange_strong(pre_deadlock_id, pre_deadlock_id | 0x8, std::memory_order_acquire))
+    if (id->compare_exchange_weak(pre_deadlock_id, pre_deadlock_id | 0x8, std::memory_order_acquire))
       break;
   }
 
@@ -213,9 +210,7 @@ Thread::cancel_callback_and_wait(callback_id& id, Thread* other_thread) {
 // Fix interrupting when shutting down thread.
 void
 Thread::interrupt() {
-  // Only poke when polling, set no_timeout
-  if (is_polling())
-    m_interrupt_sender->poke();
+  m_poll->do_interrupt();
 }
 
 bool
@@ -243,20 +238,7 @@ Thread::event_loop() {
 
   try {
 
-    runtime::socket_manager()->register_event_or_throw(m_interrupt_sender.get(), runtime::category_internal, []() {});
-    runtime::socket_manager()->register_event_or_throw(m_interrupt_receiver.get(), runtime::category_internal, [this]() {
-        m_poll->open(m_interrupt_receiver.get());
-        m_poll->insert_read(m_interrupt_receiver.get());
-        m_poll->insert_error(m_interrupt_receiver.get());
-    });
-
     while (true) {
-      process_events();
-
-      m_flags |= flag_polling;
-
-      // Call again after setting flag_polling to ensure we process any events that have
-      // race-conditions with flag_polling.
       process_events();
 
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
@@ -271,8 +253,6 @@ Thread::event_loop() {
 
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
-
-      m_flags &= ~flag_polling;
     }
 
   } catch (const shutdown_exception&) {
@@ -285,13 +265,6 @@ Thread::event_loop() {
 
     throw;
   }
-
-  runtime::socket_manager()->unregister_event_or_throw(m_interrupt_sender.get(), []() {});
-  runtime::socket_manager()->unregister_event_or_throw(m_interrupt_receiver.get(), [this]() {
-      m_poll->remove_read(m_interrupt_receiver.get());
-      m_poll->remove_error(m_interrupt_receiver.get());
-      m_poll->close(m_interrupt_receiver.get());
-    });
 
   auto previous_state = STATE_ACTIVE;
 
@@ -421,7 +394,7 @@ std::thread::id           thread_id()      { return system::ThreadInternal::thre
 std::chrono::microseconds cached_time()    { return system::ThreadInternal::cached_time(); }
 std::chrono::seconds      cached_seconds() { return system::ThreadInternal::cached_seconds(); }
 
-net::Poll*                poll()           { return system::ThreadInternal::poll(); }
+system::Poll*             poll()           { return system::ThreadInternal::poll(); }
 net::Resolver*            resolver()       { return system::ThreadInternal::resolver(); }
 utils::Scheduler*         scheduler()      { return system::ThreadInternal::scheduler(); }
 

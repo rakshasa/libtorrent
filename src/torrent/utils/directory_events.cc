@@ -14,7 +14,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/poll.h"
+#include "torrent/system/poll.h"
 
 namespace torrent {
 

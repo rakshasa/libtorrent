@@ -1,11 +1,11 @@
-#ifndef LIBTORRENT_TORRENT_POLL_H
-#define LIBTORRENT_TORRENT_POLL_H
+#ifndef LIBTORRENT_TORRENT_SYSTEM_POLL_H
+#define LIBTORRENT_TORRENT_SYSTEM_POLL_H
 
 #include <memory>
 #include <vector>
 #include <torrent/common.h>
 
-namespace torrent::net {
+namespace torrent::system {
 
 class PollEvent;
 class PollInternal;
@@ -18,6 +18,7 @@ public:
 
   // TODO: Make protected.
   unsigned int        do_poll(int64_t timeout_usec);
+  void                do_interrupt();
 
   // The open max value is used when initializing libtorrent, it
   // should be less than or equal to sysconf(_SC_OPEN_MAX).
@@ -49,7 +50,11 @@ public:
   // Add one for HUP? Or would that be in event?
 
 private:
-  using poll_event_list = std::vector<std::shared_ptr<net::PollEvent>>;
+  using poll_event_list = std::vector<std::shared_ptr<PollEvent>>;
+
+  static constexpr int flag_polling     = 0x1;
+  static constexpr int flag_interrupted = 0x2;
+  static constexpr int flag_state_mask  = 0x3;
 
   Poll() = default;
   Poll(const Poll&) = delete;
@@ -62,6 +67,8 @@ private:
   poll_event_list     m_closed_events;
 
   std::unique_ptr<PollInternal> m_internal;
+
+  align_cacheline std::atomic<int> m_polling_state{};
 };
 
 } // namespace torrent

@@ -162,8 +162,6 @@ libtorrent_other_la_SOURCES = \
 	utils/partial_queue.h \
 	utils/rc4.h \
 	utils/sha1.h \
-	utils/signal_interrupt.cc \
-	utils/signal_interrupt.h \
 	utils/thread_internal.h \
 	utils/queue_buckets.h
 

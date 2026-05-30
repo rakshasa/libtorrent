@@ -11,12 +11,6 @@
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
 
-namespace torrent {
-
-class SignalInterrupt;
-
-} // namespace torrent
-
 namespace torrent::system {
 
 class ThreadInternal;
@@ -34,7 +28,6 @@ public:
 
   static constexpr int flag_do_shutdown  = 0x1;
   static constexpr int flag_did_shutdown = 0x2;
-  static constexpr int flag_polling      = 0x4;
 
   // The ctor and dtor are called outside of the thread, so thread-specific initialization and
   // destruction should be done in init_thread() and cleanup_thread() respectively.
@@ -48,9 +41,6 @@ public:
   bool                is_initialized() const { return state() == STATE_INITIALIZED; }
   bool                is_active()      const { return state() == STATE_ACTIVE; }
   bool                is_inactive()    const { return state() == STATE_INACTIVE; }
-
-  bool                is_polling() const;
-  bool                is_current() const;
 
   bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
   bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
@@ -92,7 +82,7 @@ public:
   void                event_loop();
 
 protected:
-  friend class torrent::net::Poll;
+  friend class system::Poll;
   friend class ThreadInternal;
 
   net::Resolver*      resolver()  { return m_resolver.get(); }
@@ -146,13 +136,10 @@ protected:
 
   align_cacheline int               m_instrumentation_index;
 
-  std::unique_ptr<net::Poll>        m_poll;
+  std::unique_ptr<system::Poll>     m_poll;
   std::unique_ptr<net::Resolver>    m_resolver;
   std::unique_ptr<utils::Scheduler> m_scheduler;
   class signal_bitfield             m_signal_bitfield;
-
-  std::unique_ptr<SignalInterrupt>  m_interrupt_sender;
-  std::unique_ptr<SignalInterrupt>  m_interrupt_receiver;
 
   align_cacheline std::mutex        m_callbacks_lock;
 
@@ -163,16 +150,6 @@ protected:
 
   align_cacheline callback_id       m_callback_processing_id{};
 };
-
-inline bool
-Thread::is_polling() const {
-  return (flags() & flag_polling);
-}
-
-inline bool
-Thread::is_current() const {
-  return m_thread == pthread_self();
-}
 
 inline void
 Thread::send_event_signal(unsigned int index, bool do_interrupt) {

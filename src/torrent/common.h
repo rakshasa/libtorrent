@@ -91,7 +91,6 @@ namespace net {
 
 class HttpGet;
 class HttpStack;
-class Poll;
 class Resolver;
 
 } // namespace net
@@ -114,6 +113,7 @@ class Tracker;
 
 namespace system {
 
+class Poll;
 class Thread;
 
 } // namespace system
@@ -153,7 +153,7 @@ std::thread::id           thread_id() LIBTORRENT_EXPORT;
 std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
 std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
 
-net::Poll*                poll() LIBTORRENT_EXPORT;
+system::Poll*             poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
 utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
 

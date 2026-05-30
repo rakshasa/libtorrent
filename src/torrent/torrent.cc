@@ -12,7 +12,7 @@
 #include "data/thread_disk.h"
 #include "net/thread_net.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/poll.h"
+#include "torrent/system/poll.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "tracker/thread_tracker.h"

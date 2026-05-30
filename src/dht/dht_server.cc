@@ -15,11 +15,11 @@
 #include "torrent/object_static_map.h"
 #include "torrent/object_stream.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/system/poll.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
