@@ -74,10 +74,11 @@ Thread::start_thread() {
 void
 Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
-
-  interrupt();
+  m_poll->do_interrupt();
 
   pthread_join(m_thread, nullptr);
+  m_poll->cleanup_thread();
+
   assert(is_inactive());
 }
 
@@ -92,7 +93,7 @@ Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, s
   if (should_interrupt)
     m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
 
-  interrupt();
+  m_poll->do_interrupt();
 }
 
 void
@@ -120,7 +121,7 @@ Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, s
   if (should_interrupt)
     m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
 
-  interrupt();
+  m_poll->do_interrupt();
 }
 
 void
@@ -269,8 +270,6 @@ Thread::event_loop() {
     m_poll->cleanup_thread();
     throw;
   }
-
-  m_poll->cleanup_thread();
 
   auto previous_state = STATE_ACTIVE;
 
