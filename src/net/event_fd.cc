@@ -33,6 +33,9 @@ EventFd::add_to_poll(system::Poll* poll) {
 
 void
 EventFd::remove_from_poll(system::Poll* poll) {
+  if (file_descriptor() == -1)
+    return;
+
   runtime::socket_manager()->unregister_event_or_throw(this, [this, poll]() {
       poll->remove_and_close(this);
     });
