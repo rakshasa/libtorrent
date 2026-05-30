@@ -2,7 +2,7 @@
 
 #ifdef USE_KQUEUE
 
-#include "poll.h"
+#include "torrent/system/poll.h"
 
 #include <algorithm>
 #include <cassert>
