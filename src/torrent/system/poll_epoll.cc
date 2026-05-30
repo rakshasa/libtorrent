@@ -8,9 +8,9 @@
 #include <unistd.h>
 #include <sys/epoll.h>
 
+#include "net/event_fd.h"
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
-#include "torrent/net/event_fd.h"
 #include "torrent/system/thread.h"
 #include "torrent/utils/log.h"
 
