@@ -136,7 +136,12 @@ class SchedulerEntry;
   #define LIBTORRENT_EXPORT
 #endif
 
-#define align_cacheline alignas(LT_SMP_CACHE_BYTES)
+///////////// TESTING
+
+// #define align_cacheline alignas(LT_SMP_CACHE_BYTES)
+
+#define align_cacheline alignas(256)
+
 
 namespace torrent::this_thread {
 
