@@ -55,13 +55,11 @@ AC_DEFUN([TORRENT_CHECK_EPOLL], [
       ])],
     [
       AC_DEFINE(USE_EPOLL, 1, Use epoll.)
-      use_epoll=yes
       AC_MSG_RESULT(yes)
     ], [
       AC_MSG_RESULT(no)
     ])
 ])
-
 
 AC_DEFUN([TORRENT_WITHOUT_EPOLL], [
   AC_ARG_WITH(epoll,
@@ -89,7 +87,6 @@ AC_DEFUN([TORRENT_CHECK_KQUEUE], [
       ])],
     [
       AC_DEFINE(USE_KQUEUE, 1, Use kqueue.)
-      use_kqueue=yes
       AC_MSG_RESULT(yes)
 
       TORRENT_CHECK_KQUEUE_USER_EVENT
@@ -119,19 +116,6 @@ AC_DEFUN([TORRENT_WITHOUT_KQUEUE], [
       fi
     ], [
         TORRENT_CHECK_KQUEUE
-    ])
-])
-
-
-AC_DEFUN([TORRENT_WITHOUT_VARIABLE_FDSET], [
-  AC_ARG_WITH(variable-fdset,
-    AS_HELP_STRING([--without-variable-fdset],[do not use non-portable variable sized fd_set's]),
-    [
-      if test "$withval" = "yes"; then
-        AC_DEFINE(USE_VARIABLE_FDSET, 1, defined when we allow the use of fd_set's of any size)
-      fi
-    ], [
-      AC_DEFINE(USE_VARIABLE_FDSET, 1, defined when we allow the use of fd_set's of any size)
     ])
 ])
 
@@ -284,6 +268,7 @@ AC_DEFUN([TORRENT_WITHOUT_STATFS], [
     ])
 ])
 
+
 AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
   AC_ARG_WITH(address-space,
     AS_HELP_STRING([--with-address-space=MB],[change the default address space size [[default=1024mb]]]),
@@ -387,6 +372,54 @@ AC_DEFUN([TORRENT_WITH_XMLRPC_C], [
   ])
 ])
 
+AC_DEFUN([TORRENT_WITH_TINYXML2], [
+  AC_MSG_CHECKING(for tinyxml2)
+
+  AC_ARG_WITH(xmlrpc-tinyxml2,
+    AS_HELP_STRING([--with-xmlrpc-tinyxml2],[enable XMLRPC support via tinyxml2]),
+  [
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(HAVE_XMLRPC_TINYXML2, 1, Support for XMLRPC via tinyxml2.)
+  ],[
+    AC_MSG_RESULT(ignored)
+  ])
+])
+
+AC_DEFUN([TORRENT_WITH_LUA], [
+  AC_ARG_WITH(lua,
+    AS_HELP_STRING([--with-lua],[enable LUA support]),
+  [
+    if test "$withval" = "no"; then
+      AC_MSG_RESULT(no)
+    else
+      AX_PROG_LUA
+
+      # 1. Override AX_LUA_LIBS default crash behavior 
+      AX_LUA_LIBS([have_lua_libs=yes], [have_lua_libs=no])
+
+      # 2. Override AX_LUA_HEADERS default crash behavior
+      AX_LUA_HEADERS([have_lua_headers=yes], [have_lua_headers=no])
+
+      # 3. Only inject if both checks completely pass
+      if test "x$have_lua_libs" = "xyes" && test "x$have_lua_headers" = "xyes"; then
+        AC_DEFINE(HAVE_LUA, 1, Use LUA.)
+        AC_DEFINE(LUA_DATADIR, [PACKAGE_DATADIR "/lua"], [LUA data directory])
+        LIBS="$LIBS $LUA_LIB"
+        CXXFLAGS="$CXXFLAGS $LUA_INCLUDE"
+      else
+        # Throw fatal error ONLY if user strictly ran --with-lua=yes
+        if test "$withval" = "yes"; then
+          AC_MSG_ERROR([Lua support explicitly requested, but compatible Lua 5.3 libs/headers were not found.])
+        else
+          AC_MSG_WARN([Lua 5.3 libs or headers missing. Proceeding without Lua support.])
+        fi
+      fi
+    fi
+  ],[
+    AC_MSG_RESULT(ignored)
+  ])
+])
+
 
 AC_DEFUN([TORRENT_WITH_INOTIFY], [
   AC_LANG_PUSH(C++)
@@ -454,6 +487,24 @@ AC_DEFUN([TORRENT_DISABLE_PTHREAD_SETNAME_NP], [
     ]
   )
 ])
+
+
+AC_DEFUN([TORRENT_WITH_SYSTEMD], [
+  AC_ARG_WITH(systemd,
+    AS_HELP_STRING([--with-systemd],[enable systemd socket activation support [[default=no]]]),
+    [
+      if test "$withval" = "yes"; then
+        PKG_CHECK_MODULES([SYSTEMD], [libsystemd],
+          [
+            CXXFLAGS="$CXXFLAGS $SYSTEMD_CFLAGS"
+            LIBS="$LIBS $SYSTEMD_LIBS"
+            AC_DEFINE(HAVE_SYSTEMD, 1, [Support for systemd socket activation.])
+          ],
+          [AC_MSG_ERROR([libsystemd not found. Install libsystemd-dev (or the equivalent for your distribution).])])
+      fi
+    ])
+])
+
 
 AC_DEFUN([TORRENT_CHECK_KQUEUE_USER_EVENT], [
   AC_REQUIRE([AC_CANONICAL_HOST])
