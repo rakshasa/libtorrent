@@ -140,6 +140,7 @@ jobs:
           run: |
             ulimit -n 1000
             AUTORECONF="$(command -v autoreconf || ls /usr/local/bin/autoreconf-* 2>/dev/null | sort -V | tail -n1)"
+            echo "$AUTORECONF"
             test -n "$AUTORECONF"
             "$AUTORECONF" -fiv
             ./configure --disable-mincore
