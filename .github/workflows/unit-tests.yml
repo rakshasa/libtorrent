@@ -115,6 +115,7 @@ jobs:
     needs: Ubuntu
     runs-on: ubuntu-latest
     env:
+      # TODO: Try without this:
       TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
       AUTOCONF_VERSION: 2.72
       AUTOMAKE_VERSION: 1.18
@@ -122,7 +123,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: vmactions/openbsd-vm@v1
         with:
-          release: "7.8"
+          # Upgraded to utilize native EVFILT_USER features in 7.9
+          release: "7.9"
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
             pkg_add \
