@@ -131,18 +131,15 @@ jobs:
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
             pkg_add \
-              automake \
-              autoconf \
+              automake%* \
+              autoconf%* \
               cppunit \
               curl \
               libtool \
-              openssl
+              openssl%*
           run: |
             ulimit -n 1000
-            AUTORECONF="$(command -v autoreconf || ls /usr/local/bin/autoreconf-* 2>/dev/null | sort -V | tail -n1)"
-            echo "$AUTORECONF"
-            test -n "$AUTORECONF"
-            "$AUTORECONF" -fiv
+            autoreconf -fiv
             ./configure --disable-mincore
             make
             make check
