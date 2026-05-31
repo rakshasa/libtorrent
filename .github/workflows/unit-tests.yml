@@ -109,6 +109,7 @@ jobs:
           run: |
             export CC=gcc14
             export CXX=g++14
+            export PATH="/usr/pkg/gcc14/bin:/usr/pkg/bin:/usr/pkg/sbin:$PATH"
             autoreconf -fiv
             ./configure
             make
@@ -138,6 +139,7 @@ jobs:
               libtool \
               openssl%*
           run: |
+            export PATH="/usr/local/bin:$PATH"
             ulimit -n 1000
             autoreconf -fiv
             ./configure --disable-mincore
