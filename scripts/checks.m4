@@ -54,6 +54,8 @@ AC_DEFUN([TORRENT_CHECK_EPOLL], [
       }
       ])],
     [
+      use_epoll=yes
+
       AC_DEFINE(USE_EPOLL, 1, Use epoll.)
       AC_MSG_RESULT(yes)
     ], [
@@ -86,6 +88,8 @@ AC_DEFUN([TORRENT_CHECK_KQUEUE], [
       }
       ])],
     [
+      use_kqueue=yes
+
       AC_DEFINE(USE_KQUEUE, 1, Use kqueue.)
       AC_MSG_RESULT(yes)
 
