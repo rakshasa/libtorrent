@@ -41,7 +41,7 @@ jobs:
           autoreconf -fiv
           ./configure
           make
-          make check -j1
+          make check
 
   DragonflyBSD:
     if: ${{ false }} # Disabled to reduce GitHub resource usage

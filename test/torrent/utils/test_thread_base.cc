@@ -43,7 +43,7 @@ test_thread_base::test_lifecycle() {
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_PRE_START);
 
   thread->set_pre_stop();
-  CPPUNIT_ASSERT(!wait_for_true(std::bind(&test_thread::is_test_state, thread.get(), test_thread::TEST_PRE_STOP)));
+  CPPUNIT_ASSERT(wait_for_not_true(std::bind(&test_thread::is_test_state, thread.get(), test_thread::TEST_PRE_STOP)));
 
   thread->start_thread();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_ACTIVE)));
@@ -72,7 +72,7 @@ test_thread_base::test_interrupt() {
 
   for (int i = 0; i < 100; i++) {
     thread->interrupt();
-    usleep(0);
+    usleep(1000);
 
     thread->set_test_flag(test_thread::test_flag_do_work);
     thread->interrupt();
