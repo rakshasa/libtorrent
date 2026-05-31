@@ -117,8 +117,8 @@ jobs:
     env:
       # TODO: Try without this:
       TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
-      AUTOCONF_VERSION: 2.72
-      AUTOMAKE_VERSION: 1.18
+      #AUTOCONF_VERSION: 2.72
+      #AUTOMAKE_VERSION: 1.18
     steps:
       - uses: actions/checkout@v4
       - uses: vmactions/openbsd-vm@v1
@@ -128,12 +128,12 @@ jobs:
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
             pkg_add \
-              automake-1.18 \
-              autoconf-2.72p0 \
+              automake \
+              autoconf \
               cppunit \
               curl \
               libtool \
-              openssl-3.6.0p0v0
+              openssl
           run: |
             ulimit -n 1000
             autoreconf -fiv

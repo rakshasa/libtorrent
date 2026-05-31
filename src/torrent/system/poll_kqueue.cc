@@ -131,31 +131,10 @@ PollInternal::modify(Event* event, unsigned short op, short mask) {
   EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event->m_poll_event.get());
 }
 
-// These are internal XNU kqueue flags on MacOS that allow for cross-thread interrupts.
-#if defined(HAS_KQUEUE_USER_EVENT_MACOS)
-#  ifndef EV_RECEIVER
-#    define EV_RECEIVER 0x0800
-#  endif
-#  ifndef NOTE_FFNOP
-#    define NOTE_FFNOP 0x00000004
-#  endif
-#endif
-
 inline void
 PollInternal::create_user_event() {
   struct kevent event{};
-
-#if defined(HAS_KQUEUE_USER_EVENT_MACOS)
-  // Fixes macOS cross-thread interrupt failures by routing via EV_RECEIVER.
-  u_short flags  = EV_ADD | EV_CLEAR | EV_RECEIVER;
-  u_int   fflags = NOTE_FFNOP;
-#else
-  // Standard BSD behavior.
-  u_short flags  = EV_ADD | EV_CLEAR;
-  u_int   fflags = 0;
-#endif
-
-  EV_SET(&event, 0, EVFILT_USER, flags, fflags, 0, nullptr);
+  EV_SET(&event, 0, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, nullptr);
 
   if (::kevent(m_fd, &event, 1, nullptr, 0, nullptr) == -1)
     throw internal_error("PollInternal::create_user_event() error: " + std::string(std::strerror(errno)));
