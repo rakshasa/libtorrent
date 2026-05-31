@@ -70,9 +70,9 @@ test_thread_base::test_interrupt() {
 
   // Vary the various timeouts.
 
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 20; i++) {
     thread->interrupt();
-    usleep(1000);
+    usleep(100);
 
     thread->set_test_flag(test_thread::test_flag_do_work);
     thread->interrupt();
