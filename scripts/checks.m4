@@ -91,6 +91,8 @@ AC_DEFUN([TORRENT_CHECK_KQUEUE], [
       AC_DEFINE(USE_KQUEUE, 1, Use kqueue.)
       use_kqueue=yes
       AC_MSG_RESULT(yes)
+
+      TORRENT_CHECK_KQUEUE_USER_EVENT
     ], [
       AC_MSG_RESULT(no)
     ])
@@ -314,7 +316,7 @@ AC_DEFUN([TORRENT_WITH_FASTCGI], [
 
       elif test "$withval" = "yes"; then
         CXXFLAGS="$CXXFLAGS"
-	LIBS="$LIBS -lfcgi"        
+	LIBS="$LIBS -lfcgi"
 
         AC_LINK_IFELSE([AC_LANG_PROGRAM([[ #include <fcgiapp.h>
         ]], [[ FCGX_Init(); ]])],[
@@ -359,7 +361,7 @@ AC_DEFUN([TORRENT_WITH_XMLRPC_C], [
       else
         xmlrpc_cc_prg="$withval"
       fi
-      
+
       if eval $xmlrpc_cc_prg --version 2>/dev/null >/dev/null; then
         CXXFLAGS="$CXXFLAGS `$xmlrpc_cc_prg --cflags server-util`"
         LIBS="$LIBS `$xmlrpc_cc_prg server-util --libs`"
@@ -451,4 +453,57 @@ AC_DEFUN([TORRENT_DISABLE_PTHREAD_SETNAME_NP], [
       TORRENT_CHECK_PTHREAD_SETNAME_NP
     ]
   )
+])
+
+AC_DEFUN([TORRENT_CHECK_KQUEUE_USER_EVENT], [
+  AC_REQUIRE([AC_CANONICAL_HOST])
+  AC_CHECK_HEADERS([sys/types.h sys/event.h])
+
+  AC_MSG_CHECKING([for thread-safe kqueue user events])
+
+  case "$host_os" in
+    darwin*)
+      # REGION: macOS Isolated Validation Block
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+        #include <sys/types.h>
+        #include <sys/event.h>
+
+        #ifndef EV_RECEIVER
+        # define EV_RECEIVER 0x0800
+        #endif
+        #ifndef NOTE_FFNOP
+        # define NOTE_FFNOP 0x00000004
+        #endif
+      ]], [[
+        struct kevent event;
+        u_short flags = EV_ADD | EV_CLEAR | EV_RECEIVER;
+        u_int fflags = NOTE_FFNOP;
+        EV_SET(&event, 0, EVFILT_USER, flags, fflags, 0, nullptr);
+      ]])],[
+        AC_DEFINE(HAS_KQUEUE_USER_EVENT_MACOS, 1, [kqueue supports thread-safe EVFILT_USER with EV_RECEIVER and NOTE_FFNOP.])
+        AC_MSG_RESULT([macos])
+      ],[
+        # CRITICAL HARD EXPORT FAILURE: Fails immediately if macOS cannot link the fix
+        AC_MSG_RESULT([failed])
+        AC_MSG_ERROR([This target is macOS, but the required thread-safety extensions (EV_RECEIVER/NOTE_FFNOP) failed to compile. Aborting to avoid race conditions.])
+      ])
+      ;;
+    *)
+      # REGION: Standard BSD Validation Block (Skipping macOS specific logic entirely)
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+        #include <sys/types.h>
+        #include <sys/event.h>
+      ]], [[
+        struct kevent event;
+        u_short flags = EV_ADD | EV_CLEAR;
+        EV_SET(&event, 0, EVFILT_USER, flags, 0, 0, nullptr);
+      ]])],[
+        AC_DEFINE(HAS_KQUEUE_USER_EVENT_STANDARD, 1, [kqueue supports standard EVFILT_USER.])
+        AC_MSG_RESULT([standard])
+      ],[
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([kqueue EVFILT_USER checks failed entirely. Your system does not support compatible user event primitives.])
+      ])
+      ;;
+  esac
 ])

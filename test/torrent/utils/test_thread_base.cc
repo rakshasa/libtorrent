@@ -89,19 +89,29 @@ test_thread_base::test_interrupt() {
 
 void
 test_thread_base::test_stop() {
-  for (int i = 0; i < 20; i++) {
-    auto thread = test_thread::create();
+  std::unique_ptr<test_thread> thread;
 
-    torrent::Runtime::initialize();
+  try {
+    for (int i = 0; i < 20; i++) {
+      thread = test_thread::create();
 
-    thread->set_test_flag(test_thread::test_flag_do_work);
+      torrent::Runtime::initialize();
 
-    thread->init_thread();
-    thread->start_thread();
+      thread->set_test_flag(test_thread::test_flag_do_work);
 
-    thread->stop_thread_wait();
-    CPPUNIT_ASSERT(thread->is_inactive());
+      thread->init_thread();
+      thread->start_thread();
 
-    torrent::Runtime::cleanup();
+      thread->stop_thread_wait();
+      CPPUNIT_ASSERT(thread->is_inactive());
+
+      torrent::Runtime::cleanup();
+    }
+
+  } catch (const torrent::internal_error& e) {
+    if (thread && thread->is_active())
+      thread->stop_thread_wait();
+
+    CPPUNIT_FAIL(std::string("Caught internal error: ") + e.what());
   }
 }
