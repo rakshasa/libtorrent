@@ -72,7 +72,8 @@ test_thread_base::test_interrupt() {
 
   for (int i = 0; i < 20; i++) {
     thread->interrupt();
-    usleep(100);
+    // usleep(100);
+    usleep(0);
 
     thread->set_test_flag(test_thread::test_flag_do_work);
     thread->interrupt();
