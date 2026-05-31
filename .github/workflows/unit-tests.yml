@@ -110,6 +110,11 @@ jobs:
             export CC=gcc14
             export CXX=g++14
             export PATH="/usr/pkg/gcc14/bin:/usr/pkg/bin:/usr/pkg/sbin:$PATH"
+
+            export CPPFLAGS="-I/usr/pkg/include"
+            export LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib"
+            export PKG_CONFIG_PATH="/usr/pkg/lib/pkgconfig"
+
             autoreconf -fiv
             ./configure
             make
@@ -131,7 +136,7 @@ jobs:
           release: "7.9"
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
-            pkg_add \
+            pkg_add -I \
               automake%* \
               autoconf%* \
               cppunit \
