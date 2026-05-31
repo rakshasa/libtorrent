@@ -209,10 +209,8 @@ int
 Poll::poll(int timeout_usec) {
   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
 
-  if (previous_state & flag_interrupted) {
-    m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
-    return 0;
-  }
+  if (previous_state & flag_interrupted || system::Thread::self()->has_any_callbacks())
+    timeout_usec = 0;
 
   int nfds = ::epoll_wait(m_internal->m_fd,
                           m_internal->m_events.get(),
@@ -241,7 +239,7 @@ Poll::process() {
   m_closed_events.clear();
 
   for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
-    if (system::Thread::self()->callbacks_should_interrupt_polling())
+    if (system::Thread::self()->has_interrupt_callbacks())
       system::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->data.ptr);

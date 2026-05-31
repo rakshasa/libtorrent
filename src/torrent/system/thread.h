@@ -88,7 +88,9 @@ protected:
   net::Resolver*      resolver()  { return m_resolver.get(); }
   utils::Scheduler*   scheduler() { return m_scheduler.get(); }
 
-  bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
+  bool                has_callbacks()           const { return m_has_callbacks.load(); }
+  bool                has_interrupt_callbacks() const { return m_has_interrupt_callbacks.load(); }
+  bool                has_any_callbacks()       const { return has_callbacks() || has_interrupt_callbacks(); }
 
   static void*        enter_event_loop(void* thread);
 
@@ -118,8 +120,8 @@ protected:
     uint32_t               expected_id;
   };
 
-  void                callback(std::vector<callback_type>& callbacks, bool should_interrupt, std::function<void ()>&& fn);
-  void                callback(std::vector<callback_type>& callbacks, bool should_interrupt, system::callback_id& id, std::function<void ()>&& fn);
+  void                callback(bool is_interrupt, std::function<void ()>&& fn);
+  void                callback(bool is_interrupt, system::callback_id& id, std::function<void ()>&& fn);
 
   static thread_local Thread*  m_self;
 
@@ -129,7 +131,9 @@ protected:
   std::atomic<state_type>      m_state{STATE_UNKNOWN};
   std::atomic<int>             m_flags{0};
 
-  std::atomic<bool>            m_callbacks_should_interrupt_polling{};
+  // TODO: Optimize these into an int.
+  std::atomic<bool>            m_has_callbacks{};
+  std::atomic<bool>            m_has_interrupt_callbacks{};
 
   // TODO: Make it so only thread_this can access m_cached_time.
   std::atomic<std::chrono::microseconds> m_cached_time;
@@ -159,10 +163,10 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
     interrupt();
 }
 
-inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(m_callbacks, false, std::move(fn)); }
-inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(m_callbacks, false, id, std::move(fn)); }
-inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(m_interrupt_callbacks, true, std::move(fn)); }
-inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(m_interrupt_callbacks, true, id, std::move(fn)); }
+inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(false, std::move(fn)); }
+inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(false, id, std::move(fn)); }
+inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(true, std::move(fn)); }
+inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(true, id, std::move(fn)); }
 
 } // namespace torrent::utils
 

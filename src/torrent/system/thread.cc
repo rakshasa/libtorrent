@@ -83,21 +83,40 @@ Thread::stop_thread_wait() {
 }
 
 void
-Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, std::function<void ()>&& fn) {
+Thread::callback(bool is_interrupt, std::function<void ()>&& fn) {
+  bool should_interrupt{};
+
   {
     auto guard = std::scoped_lock(m_callbacks_lock);
 
-    callbacks.push_back({nullptr, std::move(fn), 0});
+    if (is_interrupt) {
+      if (m_interrupt_callbacks.empty()) {
+        m_has_interrupt_callbacks.store(true, std::memory_order_release);
+        m_interrupt_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_interrupt_callbacks.push_back({nullptr, std::move(fn), 0});
+
+    } else {
+      if (m_callbacks.empty()) {
+        m_has_callbacks.store(true, std::memory_order_release);
+        m_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_callbacks.push_back({nullptr, std::move(fn), 0});
+    }
   }
 
   if (should_interrupt)
-    m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
-
-  m_poll->do_interrupt();
+    m_poll->do_interrupt();
 }
 
 void
-Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, system::callback_id& id, std::function<void ()>&& fn) {
+Thread::callback(bool is_interrupt, system::callback_id& id, std::function<void ()>&& fn) {
   assert(id != nullptr);
 
   // Ensure adding callbacks for the id are completed before cancel-wait can proceed.
@@ -106,22 +125,38 @@ Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, s
   if ((previous_id & 0x7) == 0x7)
     throw internal_error("Thread::callback() lower id overflow.");
 
+  bool should_interrupt{};
+
   {
     auto guard = std::scoped_lock(m_callbacks_lock);
 
-    if (callbacks.empty())
-      callbacks.reserve(16);
+    if (is_interrupt) {
+      if (m_interrupt_callbacks.empty()) {
+        m_has_interrupt_callbacks.store(true, std::memory_order_release);
+        m_interrupt_callbacks.reserve(16);
 
-    callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+        should_interrupt = true;
+      }
+
+      m_interrupt_callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+
+    } else {
+      if (m_callbacks.empty()) {
+        m_has_callbacks.store(true, std::memory_order_release);
+        m_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+    }
   }
 
   id->fetch_sub(1, std::memory_order_release);
   id->notify_all();
 
   if (should_interrupt)
-    m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
-
-  m_poll->do_interrupt();
+    m_poll->do_interrupt();
 }
 
 void
@@ -338,7 +373,7 @@ Thread::process_events_without_cached_time() {
 
 void
 Thread::process_callbacks(bool only_interrupt) {
-  m_callbacks_should_interrupt_polling.store(false, std::memory_order_release);
+  m_has_interrupt_callbacks.store(false, std::memory_order_release);
 
   while (true) {
     std::vector<callback_type> callbacks;
@@ -348,12 +383,22 @@ Thread::process_callbacks(bool only_interrupt) {
 
       callbacks.swap(m_interrupt_callbacks);
 
-      if (!only_interrupt && callbacks.empty())
-        callbacks.swap(m_callbacks);
-    }
+      if (only_interrupt) {
+        if (callbacks.empty()) {
+          m_has_interrupt_callbacks.store(false, std::memory_order_release);
+          return;
+        }
+      }
 
-    if (callbacks.empty())
-      break;
+      if (callbacks.empty())
+        callbacks.swap(m_callbacks);
+
+      if (callbacks.empty()) {
+        m_has_callbacks.store(false, std::memory_order_release);
+        m_has_interrupt_callbacks.store(false, std::memory_order_release);
+        return;
+      }
+    }
 
     for (auto& callback : callbacks) {
       if (callback.id == nullptr) {
