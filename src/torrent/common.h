@@ -127,6 +127,7 @@ class SchedulerEntry;
 
 } // namespace torrent
 
+
 // This should only need to be set when compiling libtorrent.
 #ifdef SUPPORT_ATTRIBUTE_VISIBILITY
   #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
@@ -136,11 +137,7 @@ class SchedulerEntry;
   #define LIBTORRENT_EXPORT
 #endif
 
-///////////// TESTING
-
-// #define align_cacheline alignas(LT_SMP_CACHE_BYTES)
-
-#define align_cacheline alignas(256)
+#define align_cacheline alignas(LT_SMP_CACHE_BYTES)
 
 
 namespace torrent::this_thread {
