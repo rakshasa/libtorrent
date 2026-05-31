@@ -192,5 +192,6 @@ jobs:
         run: |
           autoreconf -fiv
           ./configure
+          grep LT_SMP_CACHE_BYTES config.h
           make
           make check
