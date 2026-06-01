@@ -123,8 +123,10 @@ HashQueue::work() {
   auto pop_next_fn = [this]() -> done_chunks_type::value_type {
       auto guard = std::scoped_lock(m_done_chunks_lock);
 
-      if (m_done_chunks.empty())
+      if (m_done_chunks.empty()) {
+        m_has_done_chunks = false;
         return {nullptr, {}};
+      }
 
       auto value = std::move(*m_done_chunks.begin());
       m_done_chunks.erase(m_done_chunks.begin());
@@ -172,7 +174,7 @@ HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
   bool expected = false;
 
   if (m_has_done_chunks.compare_exchange_strong(expected, true)) {
-    main_thread::callback_interrupt([this] { work(); });
+    main_thread::callback([this] { work(); });
 
     m_has_done_chunks.notify_all();
   }

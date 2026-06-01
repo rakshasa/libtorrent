@@ -5,6 +5,8 @@
 #include <functional>
 #include <mutex>
 
+#include "torrent/common.h"
+
 // TODO: Create separate directory for thread_disk's hash checking code.
 
 namespace torrent {
@@ -12,7 +14,7 @@ namespace torrent {
 class HashString;
 class HashChunk;
 
-class HashCheckQueue : private std::deque<HashChunk*> {
+class align_cacheline HashCheckQueue : private std::deque<HashChunk*> {
 public:
   using base_type         = std::deque<HashChunk*>;
   using slot_chunk_handle = std::function<void(HashChunk*, const HashString&)>;
@@ -41,7 +43,6 @@ public:
 
 private:
   std::mutex          m_lock;
-
   slot_chunk_handle   m_slot_chunk_done;
 };
 
