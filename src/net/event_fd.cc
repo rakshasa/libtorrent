@@ -51,7 +51,14 @@ EventFd::send_signal() {
   uint64_t value = 1;
 
   while (true) {
-    if (::write(m_safe_fd.load(), &value, sizeof(value)) != sizeof(value)) {
+    switch (::write(m_safe_fd.load(), &value, sizeof(value))) {
+    case sizeof(value):
+      return;
+
+    case 0:
+      throw internal_error("EventFd::send_signal() write returned 0: " + this_thread::thread_name_str());
+
+    case -1:
       if (errno == EINTR)
         continue;
 
@@ -64,8 +71,11 @@ EventFd::send_signal() {
         return;
 
       throw internal_error("EventFd::send_signal() write failed: " + this_thread::thread_name_str() + " : " + std::string(std::strerror(errno)));
+
+    default:
+      throw internal_error("EventFd::send_signal() write returned unexpected value: " + this_thread::thread_name_str());
     }
-  };
+  }
 }
 
 void
@@ -73,7 +83,14 @@ EventFd::event_read() {
   uint64_t value;
 
   while (true) {
-    if (::read(file_descriptor(), &value, sizeof(value)) != sizeof(value)) {
+    switch (::read(file_descriptor(), &value, sizeof(value))) {
+    case sizeof(value):
+      return;
+
+    case 0:
+      throw internal_error("EventFd::event_read() read returned 0: " + this_thread::thread_name_str());
+
+    case -1:
       if (errno == EINTR)
         continue;
 
@@ -81,6 +98,9 @@ EventFd::event_read() {
         return;
 
       throw internal_error("EventFd::event_read() read failed: " + std::string(std::strerror(errno)));
+
+    default:
+      throw internal_error("EventFd::event_read() read returned unexpected value: " + this_thread::thread_name_str());
     }
   }
 }
