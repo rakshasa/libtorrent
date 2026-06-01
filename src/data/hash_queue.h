@@ -53,16 +53,13 @@ public:
 
   void                work();
 
-  slot_bool&          slot_has_work() { return m_slot_has_work; }
-
   void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
 
 private:
-  done_chunks_type    m_done_chunks;
-  slot_bool           m_slot_has_work;
+  align_cacheline std::mutex m_done_chunks_lock;
+  done_chunks_type           m_done_chunks;
 
-  std::mutex              m_done_chunks_lock;
-  std::condition_variable m_cv;
+  align_cacheline std::atomic<bool> m_has_done_chunks{};
 };
 
 } // namespace torrent

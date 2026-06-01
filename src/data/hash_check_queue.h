@@ -41,6 +41,7 @@ public:
 
 private:
   std::mutex          m_lock;
+
   slot_chunk_handle   m_slot_chunk_done;
 };
 

@@ -2,6 +2,7 @@
 
 #include "data/hash_queue.h"
 
+#include <cassert>
 #include <functional>
 #include <utility>
 
@@ -10,6 +11,7 @@
 #include "data/thread_disk.h"
 #include "torrent/data/download_data.h"
 #include "torrent/exceptions.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/string_manip.h"
 
@@ -54,7 +56,6 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
   base_type::push_back(HashQueueNode(id, hash_chunk, std::move(d)));
 
   ThreadDisk::thread_disk()->hash_check_queue()->push_back(hash_chunk);
-  ThreadDisk::thread_disk()->interrupt();
 }
 
 bool
@@ -82,10 +83,20 @@ HashQueue::remove(HashQueueNode::id_type id) {
     // The hash chunk was not found, so we need to wait until the hash
     // check finishes.
     if (!result) {
-      auto lock = std::unique_lock(m_done_chunks_lock);
+      while (true) {
+        {
+          auto lock = std::scoped_lock(m_done_chunks_lock);
 
-      m_cv.wait(lock, [this, hash_chunk] { return m_done_chunks.find(hash_chunk) != m_done_chunks.end(); });
-      m_done_chunks.erase(hash_chunk);
+          auto itr = m_done_chunks.find(hash_chunk);
+
+          if (itr != m_done_chunks.end()) {
+            m_done_chunks.erase(itr);
+            break;
+          }
+        }
+
+        m_has_done_chunks.wait(false);
+      }
     }
 
     itr.slot_done()(*hash_chunk->chunk(), NULL);
@@ -107,12 +118,25 @@ HashQueue::clear() {
 
 void
 HashQueue::work() {
-  auto lock = std::scoped_lock(m_done_chunks_lock);
+  assert(std::this_thread::get_id() == main_thread::thread_id());
 
-  while (!m_done_chunks.empty()) {
-    HashChunk* hash_chunk = m_done_chunks.begin()->first;
-    HashString hash_value = m_done_chunks.begin()->second;
-    m_done_chunks.erase(m_done_chunks.begin());
+  auto pop_next_fn = [this]() -> done_chunks_type::value_type {
+      auto guard = std::scoped_lock(m_done_chunks_lock);
+
+      if (m_done_chunks.empty())
+        return {nullptr, {}};
+
+      auto value = std::move(*m_done_chunks.begin());
+      m_done_chunks.erase(m_done_chunks.begin());
+
+      return value;
+    };
+
+  while (true) {
+    auto [hash_chunk, hash_value] = pop_next_fn();
+
+    if (hash_chunk == nullptr)
+      break;
 
     // TODO: This is not optimal as we jump around... Check for front
     // of HashQueue in done_chunks instead.
@@ -124,8 +148,7 @@ HashQueue::work() {
       throw internal_error("Could not find done chunk's node.");
 
     LT_LOG_DATA(itr->id(), DEBUG, "Passing index:%" PRIu32 " to owner: %s.",
-                hash_chunk->handle().index(),
-                utils::transform_to_hex_str(hash_value).c_str());
+                hash_chunk->handle().index(), utils::transform_to_hex_str(hash_value).c_str());
 
     HashQueueNode::slot_done_type slotDone = itr->slot_done();
     base_type::erase(itr);
@@ -137,11 +160,22 @@ HashQueue::work() {
 
 void
 HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
-  auto lock = std::scoped_lock(m_done_chunks_lock);
+  assert(std::this_thread::get_id() == disk_thread::thread_id());
 
-  m_done_chunks[hash_chunk] = hash_value;
-  m_slot_has_work(m_done_chunks.empty());
-  m_cv.notify_all();
+  {
+    auto lock = std::scoped_lock(m_done_chunks_lock);
+
+    // TODO: Should we use try_emplace and check for duplicates here?
+    m_done_chunks[hash_chunk] = hash_value;
+  }
+
+  bool expected = false;
+
+  if (m_has_done_chunks.compare_exchange_strong(expected, true)) {
+    main_thread::callback_interrupt([this] { work(); });
+
+    m_has_done_chunks.notify_all();
+  }
 }
 
 } // namespace torrent

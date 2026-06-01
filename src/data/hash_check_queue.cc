@@ -2,8 +2,11 @@
 
 #include "hash_check_queue.h"
 
+#include <cassert>
+
 #include "data/hash_chunk.h"
 #include "torrent/hash_string.h"
+#include "torrent/system/callbacks.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
@@ -14,20 +17,32 @@ HashCheckQueue::~HashCheckQueue() = default;
 // Always poke thread_disk after calling this.
 void
 HashCheckQueue::push_back(HashChunk* hash_chunk) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   if (hash_chunk == NULL || !hash_chunk->chunk()->is_loaded() || !hash_chunk->chunk()->is_blocking())
     throw internal_error("Invalid hash chunk passed to HashCheckQueue.");
 
-  auto lock = std::scoped_lock(m_lock);
+  int64_t chunk_size = hash_chunk->chunk()->chunk()->chunk_size();
 
-  // Set blocking...(? this needs to be possible to do after getting
-  // the chunk) When doing this make sure we verify that the handle is
-  // not previously blocked.
+  bool should_interrupt{};
 
-  base_type::push_back(hash_chunk);
+  {
+    auto guard = std::scoped_lock(m_lock);
 
-  int64_t size = hash_chunk->chunk()->chunk()->chunk_size();
+    // Set blocking...(? this needs to be possible to do after getting
+    // the chunk) When doing this make sure we verify that the handle is
+    // not previously blocked.
+
+    should_interrupt = empty();
+
+    base_type::push_back(hash_chunk);
+  }
+
   instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT, 1);
-  instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, size);
+  instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, chunk_size);
+
+  if (should_interrupt)
+    disk_thread::callback([this] { perform(); });
 }
 
 // erase...
@@ -46,7 +61,9 @@ HashCheckQueue::push_back(HashChunk* hash_chunk) {
 
 bool
 HashCheckQueue::remove(HashChunk* hash_chunk) {
-  auto lock = std::scoped_lock(m_lock);
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
+  auto guard = std::scoped_lock(m_lock);
 
   bool result;
   auto itr = std::find(begin(), end(), hash_chunk);
@@ -68,11 +85,25 @@ HashCheckQueue::remove(HashChunk* hash_chunk) {
 
 void
 HashCheckQueue::perform() {
-  auto lock = std::unique_lock(m_lock);
+  assert(std::this_thread::get_id() == disk_thread::thread_id());
 
-  while (!empty()) {
-    HashChunk* hash_chunk = base_type::front();
-    base_type::pop_front();
+  auto get_next_fn = [this]() -> HashChunk* {
+      auto guard = std::scoped_lock(m_lock);
+
+      if (empty())
+        return nullptr;
+
+      auto* hash_chunk = base_type::front();
+      base_type::pop_front();
+
+      return hash_chunk;
+    };
+
+  while (true) {
+    auto* hash_chunk = get_next_fn();
+
+    if (hash_chunk == nullptr)
+      break;
 
     if (!hash_chunk->chunk()->is_loaded())
       throw internal_error("HashCheckQueue::perform(): !entry.node->is_loaded().");
@@ -81,8 +112,6 @@ HashCheckQueue::perform() {
     instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT, -1);
     instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, -size);
 
-    lock.unlock();
-
     if (!hash_chunk->perform(~uint32_t(), true))
       throw internal_error("HashCheckQueue::perform(): !hash_chunk->perform(~uint32_t(), true).");
 
@@ -90,7 +119,6 @@ HashCheckQueue::perform() {
     hash_chunk->hash_c(hash.data());
 
     m_slot_chunk_done(hash_chunk, hash);
-    lock.lock();
   }
 }
 

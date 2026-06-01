@@ -15,8 +15,16 @@ namespace torrent {
 
 namespace disk_thread {
 
-torrent::system::Thread* thread()    { return ThreadDisk::thread_disk(); }
-std::thread::id          thread_id() { return ThreadDisk::thread_disk()->thread_id(); }
+system::Thread* thread()                                                                 { return ThreadDisk::thread_disk(); }
+std::thread::id thread_id()                                                              { return ThreadDisk::thread_disk()->thread_id(); }
+
+void            callback(std::function<void ()>&& fn)                                    { ThreadDisk::thread_disk()->callback(std::move(fn)); }
+void            callback(system::callback_id& id, std::function<void ()>&& fn)           { ThreadDisk::thread_disk()->callback(id, std::move(fn)); }
+void            callback_interrupt(std::function<void ()>&& fn)                          { ThreadDisk::thread_disk()->callback_interrupt(std::move(fn)); }
+void            callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { ThreadDisk::thread_disk()->callback_interrupt(id, std::move(fn)); }
+
+void            cancel_callback(system::callback_id& id)                                 { ThreadDisk::thread_disk()->cancel_callback(id); }
+void            cancel_callback_and_wait(system::callback_id& id)                        { ThreadDisk::thread_disk()->cancel_callback_and_wait(id); }
 
 } // namespace disk_thread
 
@@ -78,8 +86,6 @@ ThreadDisk::call_events() {
     m_flags |= flag_did_shutdown;
     throw shutdown_exception();
   }
-
-  m_hash_check_queue->perform();
 
   process_callbacks();
 }
