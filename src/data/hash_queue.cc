@@ -124,6 +124,7 @@ HashQueue::work() {
       auto guard = std::scoped_lock(m_done_chunks_lock);
 
       if (m_done_chunks.empty()) {
+        // Only clear the flag at the to ensure no unnessary callbacks are added.
         m_has_done_chunks = false;
         return {nullptr, {}};
       }
