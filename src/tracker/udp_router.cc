@@ -147,7 +147,6 @@ UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
 
   assert(m_thread == this_thread::thread());
   assert(address != nullptr);
-  assert(params.connected);
 
   if (address != nullptr && address->sa_family != router_family())
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
@@ -156,8 +155,6 @@ UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
     throw internal_error("UdpRouter::connect() called with address with port 0.");
 
   auto itr = connect_unsafe(std::move(address), params);
-
-  params.connected(itr->first);
 
   if (!try_write(itr->first, &itr->second))
     queue_write(itr->first, &itr->second);
@@ -171,7 +168,6 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
   assert(m_thread == this_thread::thread());
   assert(!hostname.empty());
   assert(port != 0);
-  assert(params.connected);
 
   auto [sa, sa_compatible] = sa_lookup_numeric(hostname, router_family());
 
@@ -186,8 +182,6 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
 
   auto itr = connect_unsafe(nullptr, params);
 
-  params.connected(itr->first);
-
   auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
       resolved_hostname(id, port, sin, err, sin6, err6);
     };
@@ -198,7 +192,6 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
 void
 UdpRouter::transfer(uint32_t id, connection_params params) {
   assert(m_thread == this_thread::thread());
-  assert(params.connected);
 
   auto itr = m_connections.find(id);
 
@@ -211,8 +204,6 @@ UdpRouter::transfer(uint32_t id, connection_params params) {
   auto new_itr = connect_unsafe(std::move(itr->second.address), params);
 
   disconnect_unsafe(itr);
-
-  params.connected(new_itr->first);
 
   if (!try_write(new_itr->first, &new_itr->second))
     queue_write(new_itr->first, &new_itr->second);
@@ -247,6 +238,7 @@ UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
   assert(params.prepare);
   assert(params.process);
   assert(params.failure);
+  assert(params.connected);
 
   connection_map::iterator itr;
 
@@ -270,6 +262,7 @@ UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
   itr->second.failure     = std::move(params.failure);
   itr->second.packet_sent = std::move(params.packet_sent);
 
+  params.connected(itr->first);
   return itr;
 }
 
