@@ -537,6 +537,11 @@ UdpRouter::event_read() {
       continue;
     }
 
+    // While the id is random, the tracker can still send brute-force it so check that we're did not
+    // disconnect before hostname resolved.
+    if (itr->second.address == nullptr)
+      continue;
+
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
 
