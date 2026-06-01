@@ -171,12 +171,12 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
   if (!is_open())
     return 0;
 
-  auto [sa, sa_success] = sa_lookup_numeric(hostname, router_family());
+  auto [sa, sa_compatible] = sa_lookup_numeric(hostname, router_family());
 
-  if (!sa_success)
+  if (!sa_compatible)
     return 0;
 
-  if (sa)
+  if (sa != nullptr)
     return connect(std::move(sa), params);
 
   auto itr = connect_unsafe(nullptr, params);
@@ -192,9 +192,10 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
   return itr->first;
 }
 
-uint32_t
+void
 UdpRouter::transfer(uint32_t id, connection_params params) {
   assert(m_thread == this_thread::thread());
+  assert(params.connected);
 
   auto itr = m_connections.find(id);
 
@@ -208,13 +209,10 @@ UdpRouter::transfer(uint32_t id, connection_params params) {
 
   disconnect_unsafe(itr);
 
-  if (params.connected)
-    params.connected(new_itr->first);
+  params.connected(new_itr->first);
 
   if (!try_write(new_itr->first, &new_itr->second))
     queue_write(new_itr->first, &new_itr->second);
-
-  return new_itr->first;
 }
 
 void

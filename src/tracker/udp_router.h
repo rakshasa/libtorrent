@@ -58,7 +58,7 @@ public:
   uint32_t            connect(c_sa_shared_ptr address, connection_params params);
   uint32_t            connect(const std::string hostname, uint16_t port, connection_params params);
 
-  uint32_t            transfer(uint32_t id, connection_params params);
+  void                transfer(uint32_t id, connection_params params);
 
   void                disconnect(uint32_t id);
 
