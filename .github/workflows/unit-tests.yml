@@ -97,7 +97,7 @@ jobs:
       - uses: vmactions/netbsd-vm@v1
         with:
           prepare: |
-            /usr/sbin/pkg_add \
+            /usr/sbin/pkg_add -v \
               automake \
               autoconf \
               cppunit \
@@ -136,13 +136,13 @@ jobs:
           release: "7.9"
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
-            pkg_add -I \
-              automake%* \
-              autoconf%* \
+            pkg_add -v -I \
+              automake \
+              autoconf \
               cppunit \
               curl \
               libtool \
-              openssl%*
+              openssl
           run: |
             export PATH="/usr/local/bin:$PATH"
             ulimit -n 1000
