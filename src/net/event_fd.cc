@@ -45,6 +45,7 @@ EventFd::remove_from_poll(system::Poll* poll) {
     });
 }
 
+// Poll uses a state flag to ensure we only send a signal once per interrupt.
 void
 EventFd::send_signal() {
   uint64_t value = 1;
@@ -71,8 +72,17 @@ void
 EventFd::event_read() {
   uint64_t value;
 
-  if (::read(file_descriptor(), &value, sizeof(value)) != sizeof(value))
-    throw internal_error("EventFd::event_read() read failed: " + std::string(std::strerror(errno)));
+  while (true) {
+    if (::read(file_descriptor(), &value, sizeof(value)) != sizeof(value)) {
+      if (errno == EINTR)
+        continue;
+
+      if (errno == EAGAIN || errno == EWOULDBLOCK)
+        return;
+
+      throw internal_error("EventFd::event_read() read failed: " + std::string(std::strerror(errno)));
+    }
+  }
 }
 
 void
