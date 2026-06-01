@@ -165,12 +165,10 @@ void
 HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
   assert(std::this_thread::get_id() == disk_thread::thread_id());
 
-  {
-    auto lock = std::scoped_lock(m_done_chunks_lock);
+  auto lock = std::scoped_lock(m_done_chunks_lock);
 
-    // TODO: Should we use try_emplace and check for duplicates here?
-    m_done_chunks[hash_chunk] = hash_value;
-  }
+  // TODO: Should we use try_emplace and check for duplicates here?
+  m_done_chunks[hash_chunk] = hash_value;
 
   bool expected = false;
 
