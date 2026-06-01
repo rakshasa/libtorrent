@@ -71,7 +71,7 @@ void
 EventFd::event_read() {
   uint64_t value;
 
-  if (::read(m_safe_fd.load(), &value, sizeof(value)) != sizeof(value))
+  if (::read(file_descriptor(), &value, sizeof(value)) != sizeof(value))
     throw internal_error("EventFd::event_read() read failed: " + std::string(std::strerror(errno)));
 }
 
