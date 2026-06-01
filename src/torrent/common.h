@@ -10,6 +10,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <string>
 #include <thread>
 
 struct sockaddr;
@@ -143,6 +144,8 @@ class SchedulerEntry;
 namespace torrent::this_thread {
 
 system::Thread*           thread() LIBTORRENT_EXPORT;
+const char*               thread_name() LIBTORRENT_EXPORT;
+std::string               thread_name_str() LIBTORRENT_EXPORT;
 std::thread::id           thread_id() LIBTORRENT_EXPORT;
 
 std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;

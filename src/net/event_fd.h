@@ -20,6 +20,9 @@ protected:
   void                event_read() override;
   void                event_write() override;
   void                event_error() override;
+
+private:
+  align_cacheline std::atomic<int> m_safe_fd{-1};
 };
 
 } // namespace torrent::net

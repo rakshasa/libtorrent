@@ -437,14 +437,22 @@ Thread::set_cached_time(std::chrono::microseconds t) {
 
 namespace torrent::this_thread {
 
-torrent::system::Thread*  thread()         { return system::ThreadInternal::thread(); }
-std::thread::id           thread_id()      { return system::ThreadInternal::thread_id(); }
+torrent::system::Thread*  thread()          { return system::ThreadInternal::thread(); }
+std::string               thread_name_str() { return thread_name(); }
+std::thread::id           thread_id()       { return system::ThreadInternal::thread_id(); }
 
-std::chrono::microseconds cached_time()    { return system::ThreadInternal::cached_time(); }
-std::chrono::seconds      cached_seconds() { return system::ThreadInternal::cached_seconds(); }
+std::chrono::microseconds cached_time()     { return system::ThreadInternal::cached_time(); }
+std::chrono::seconds      cached_seconds()  { return system::ThreadInternal::cached_seconds(); }
 
-system::Poll*             poll()           { return system::ThreadInternal::poll(); }
-net::Resolver*            resolver()       { return system::ThreadInternal::resolver(); }
-utils::Scheduler*         scheduler()      { return system::ThreadInternal::scheduler(); }
+system::Poll*             poll()            { return system::ThreadInternal::poll(); }
+net::Resolver*            resolver()        { return system::ThreadInternal::resolver(); }
+utils::Scheduler*         scheduler()       { return system::ThreadInternal::scheduler(); }
+
+const char*
+thread_name() {
+  auto thread = system::ThreadInternal::thread();
+
+  return thread != nullptr ? thread->name() : "unknown";
+}
 
 } // namespace torrent::this_thread
