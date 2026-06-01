@@ -219,7 +219,7 @@ TrackerUdp::process_header(int family, uint32_t action, buffer_type& buffer) {
 
 void
 TrackerUdp::prepare_connect(int family, uint32_t id, buffer_type& buffer) {
-  if (state_for_family(family).transaction_id = = 0)
+  if (state_for_family(family).transaction_id == 0)
     throw internal_error("TrackerUdp::prepare_connect() called but transaction id is 0.");
 
   if (id != state_for_family(family).transaction_id)
