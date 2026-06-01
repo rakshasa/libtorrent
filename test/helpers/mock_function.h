@@ -32,7 +32,7 @@ void mock_cleanup();
 void mock_redirect_defaults(mock_redirect_flags flags = mock_redirect_all);
 
 template<typename R, typename... Args>
-struct mock_function_map {
+struct align_cacheline mock_function_map {
   typedef std::tuple<R, Args...> call_type;
   typedef std::vector<call_type> call_list_type;
   typedef std::map<void*, call_list_type> func_map_type;
@@ -41,6 +41,7 @@ struct mock_function_map {
   typedef std::map<void*, function_type> redirect_map_type;
 
   static std::mutex        mutex;
+
   static func_map_type     functions;
   static redirect_map_type redirects;
 
@@ -149,7 +150,7 @@ auto
 mock_call_direct(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)) {
   typedef mock_function_type<R, Args...> mock_type;
 
-  std::lock_guard<std::mutex> lock(mock_type::type::mutex);
+  auto guard = std::scoped_lock(mock_type::type::mutex);
 
   auto itr = mock_type::type::functions.find(reinterpret_cast<void*>(fn));
   CPPUNIT_ASSERT_MESSAGE(("mock_call expected function calls exhausted by '" + name + "'").c_str(),

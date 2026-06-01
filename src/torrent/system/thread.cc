@@ -9,14 +9,13 @@
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
-#include "torrent/net/poll.h"
+#include "torrent/system/poll.h"
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
-#include "utils/signal_interrupt.h"
 #include "utils/thread_internal.h"
 
 namespace torrent::system {
@@ -32,12 +31,10 @@ void Thread::init_thread_pre_start() {}
 void Thread::init_thread_post_local() {}
 void Thread::cleanup_thread() {}
 
-Thread::Thread() :
-    m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
-    m_poll(net::Poll::create()),
+Thread::Thread()
+  : m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+    m_poll(system::Poll::create()),
     m_scheduler(new utils::Scheduler) {
-
-  std::tie(m_interrupt_sender, m_interrupt_receiver) = SignalInterrupt::create_pair();
 
   m_cached_time = utils::time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);
@@ -77,28 +74,49 @@ Thread::start_thread() {
 void
 Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
-  interrupt();
+  m_poll->do_interrupt();
 
   pthread_join(m_thread, nullptr);
+  m_poll->cleanup_thread();
+
   assert(is_inactive());
 }
 
 void
-Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, std::function<void ()>&& fn) {
+Thread::callback(bool is_interrupt, std::function<void ()>&& fn) {
+  bool should_interrupt{};
+
   {
     auto guard = std::scoped_lock(m_callbacks_lock);
 
-    callbacks.push_back({nullptr, std::move(fn), 0});
+    if (is_interrupt) {
+      if (m_interrupt_callbacks.empty()) {
+        m_has_interrupt_callbacks.store(true, std::memory_order_release);
+        m_interrupt_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_interrupt_callbacks.push_back({nullptr, std::move(fn), 0});
+
+    } else {
+      if (m_callbacks.empty()) {
+        m_has_callbacks.store(true, std::memory_order_release);
+        m_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_callbacks.push_back({nullptr, std::move(fn), 0});
+    }
   }
 
   if (should_interrupt)
-    m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
-
-  interrupt();
+    m_poll->do_interrupt();
 }
 
 void
-Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, system::callback_id& id, std::function<void ()>&& fn) {
+Thread::callback(bool is_interrupt, system::callback_id& id, std::function<void ()>&& fn) {
   assert(id != nullptr);
 
   // Ensure adding callbacks for the id are completed before cancel-wait can proceed.
@@ -107,22 +125,38 @@ Thread::callback(std::vector<callback_type>& callbacks, bool should_interrupt, s
   if ((previous_id & 0x7) == 0x7)
     throw internal_error("Thread::callback() lower id overflow.");
 
+  bool should_interrupt{};
+
   {
     auto guard = std::scoped_lock(m_callbacks_lock);
 
-    if (callbacks.empty())
-      callbacks.reserve(16);
+    if (is_interrupt) {
+      if (m_interrupt_callbacks.empty()) {
+        m_has_interrupt_callbacks.store(true, std::memory_order_release);
+        m_interrupt_callbacks.reserve(16);
 
-    callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+        should_interrupt = true;
+      }
+
+      m_interrupt_callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+
+    } else {
+      if (m_callbacks.empty()) {
+        m_has_callbacks.store(true, std::memory_order_release);
+        m_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+    }
   }
 
   id->fetch_sub(1, std::memory_order_release);
   id->notify_all();
 
   if (should_interrupt)
-    m_callbacks_should_interrupt_polling.store(true, std::memory_order_release);
-
-  interrupt();
+    m_poll->do_interrupt();
 }
 
 void
@@ -200,7 +234,7 @@ Thread::cancel_callback_and_wait(callback_id& id, Thread* other_thread) {
       return;
     }
 
-    if (id->compare_exchange_strong(pre_deadlock_id, pre_deadlock_id | 0x8, std::memory_order_acquire))
+    if (id->compare_exchange_weak(pre_deadlock_id, pre_deadlock_id | 0x8, std::memory_order_acquire))
       break;
   }
 
@@ -213,9 +247,7 @@ Thread::cancel_callback_and_wait(callback_id& id, Thread* other_thread) {
 // Fix interrupting when shutting down thread.
 void
 Thread::interrupt() {
-  // Only poke when polling, set no_timeout
-  if (is_polling())
-    m_interrupt_sender->poke();
+  m_poll->do_interrupt();
 }
 
 bool
@@ -243,20 +275,9 @@ Thread::event_loop() {
 
   try {
 
-    runtime::socket_manager()->register_event_or_throw(m_interrupt_sender.get(), runtime::category_internal, []() {});
-    runtime::socket_manager()->register_event_or_throw(m_interrupt_receiver.get(), runtime::category_internal, [this]() {
-        m_poll->open(m_interrupt_receiver.get());
-        m_poll->insert_read(m_interrupt_receiver.get());
-        m_poll->insert_error(m_interrupt_receiver.get());
-    });
+    m_poll->init_thread();
 
     while (true) {
-      process_events();
-
-      m_flags |= flag_polling;
-
-      // Call again after setting flag_polling to ensure we process any events that have
-      // race-conditions with flag_polling.
       process_events();
 
       instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
@@ -271,8 +292,6 @@ Thread::event_loop() {
 
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
-
-      m_flags &= ~flag_polling;
     }
 
   } catch (const shutdown_exception&) {
@@ -285,13 +304,6 @@ Thread::event_loop() {
 
     throw;
   }
-
-  runtime::socket_manager()->unregister_event_or_throw(m_interrupt_sender.get(), []() {});
-  runtime::socket_manager()->unregister_event_or_throw(m_interrupt_receiver.get(), [this]() {
-      m_poll->remove_read(m_interrupt_receiver.get());
-      m_poll->remove_error(m_interrupt_receiver.get());
-      m_poll->close(m_interrupt_receiver.get());
-    });
 
   auto previous_state = STATE_ACTIVE;
 
@@ -361,7 +373,7 @@ Thread::process_events_without_cached_time() {
 
 void
 Thread::process_callbacks(bool only_interrupt) {
-  m_callbacks_should_interrupt_polling.store(false, std::memory_order_release);
+  m_has_interrupt_callbacks.store(false, std::memory_order_release);
 
   while (true) {
     std::vector<callback_type> callbacks;
@@ -371,12 +383,22 @@ Thread::process_callbacks(bool only_interrupt) {
 
       callbacks.swap(m_interrupt_callbacks);
 
-      if (!only_interrupt && callbacks.empty())
-        callbacks.swap(m_callbacks);
-    }
+      if (only_interrupt) {
+        if (callbacks.empty()) {
+          m_has_interrupt_callbacks.store(false, std::memory_order_release);
+          return;
+        }
+      }
 
-    if (callbacks.empty())
-      break;
+      if (callbacks.empty())
+        callbacks.swap(m_callbacks);
+
+      if (callbacks.empty()) {
+        m_has_callbacks.store(false, std::memory_order_release);
+        m_has_interrupt_callbacks.store(false, std::memory_order_release);
+        return;
+      }
+    }
 
     for (auto& callback : callbacks) {
       if (callback.id == nullptr) {
@@ -415,14 +437,22 @@ Thread::set_cached_time(std::chrono::microseconds t) {
 
 namespace torrent::this_thread {
 
-torrent::system::Thread*  thread()         { return system::ThreadInternal::thread(); }
-std::thread::id           thread_id()      { return system::ThreadInternal::thread_id(); }
+torrent::system::Thread*  thread()          { return system::ThreadInternal::thread(); }
+std::string               thread_name_str() { return thread_name(); }
+std::thread::id           thread_id()       { return system::ThreadInternal::thread_id(); }
 
-std::chrono::microseconds cached_time()    { return system::ThreadInternal::cached_time(); }
-std::chrono::seconds      cached_seconds() { return system::ThreadInternal::cached_seconds(); }
+std::chrono::microseconds cached_time()     { return system::ThreadInternal::cached_time(); }
+std::chrono::seconds      cached_seconds()  { return system::ThreadInternal::cached_seconds(); }
 
-net::Poll*                poll()           { return system::ThreadInternal::poll(); }
-net::Resolver*            resolver()       { return system::ThreadInternal::resolver(); }
-utils::Scheduler*         scheduler()      { return system::ThreadInternal::scheduler(); }
+system::Poll*             poll()            { return system::ThreadInternal::poll(); }
+net::Resolver*            resolver()        { return system::ThreadInternal::resolver(); }
+utils::Scheduler*         scheduler()       { return system::ThreadInternal::scheduler(); }
+
+const char*
+thread_name() {
+  auto thread = system::ThreadInternal::thread();
+
+  return thread != nullptr ? thread->name() : "unknown";
+}
 
 } // namespace torrent::this_thread

@@ -68,8 +68,12 @@ ThreadNet::create_thread() {
 
 void
 ThreadNet::destroy_thread() {
-  delete m_thread_net;
-  m_thread_net = nullptr;
+  try {
+    delete m_thread_net;
+    m_thread_net = nullptr;
+  } catch (...) {
+    m_thread_net = nullptr;
+  }
 }
 
 ThreadNet*

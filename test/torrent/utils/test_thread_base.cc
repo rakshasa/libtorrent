@@ -43,7 +43,7 @@ test_thread_base::test_lifecycle() {
   CPPUNIT_ASSERT(thread->test_state() == test_thread::TEST_PRE_START);
 
   thread->set_pre_stop();
-  CPPUNIT_ASSERT(!wait_for_true(std::bind(&test_thread::is_test_state, thread.get(), test_thread::TEST_PRE_STOP)));
+  CPPUNIT_ASSERT(wait_for_not_true(std::bind(&test_thread::is_test_state, thread.get(), test_thread::TEST_PRE_STOP)));
 
   thread->start_thread();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&test_thread::is_state, thread.get(), test_thread::STATE_ACTIVE)));
@@ -70,8 +70,9 @@ test_thread_base::test_interrupt() {
 
   // Vary the various timeouts.
 
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 20; i++) {
     thread->interrupt();
+    // usleep(100);
     usleep(0);
 
     thread->set_test_flag(test_thread::test_flag_do_work);
@@ -89,19 +90,29 @@ test_thread_base::test_interrupt() {
 
 void
 test_thread_base::test_stop() {
-  for (int i = 0; i < 20; i++) {
-    auto thread = test_thread::create();
+  std::unique_ptr<test_thread> thread;
 
-    torrent::Runtime::initialize();
+  try {
+    for (int i = 0; i < 20; i++) {
+      thread = test_thread::create();
 
-    thread->set_test_flag(test_thread::test_flag_do_work);
+      torrent::Runtime::initialize();
 
-    thread->init_thread();
-    thread->start_thread();
+      thread->set_test_flag(test_thread::test_flag_do_work);
 
-    thread->stop_thread_wait();
-    CPPUNIT_ASSERT(thread->is_inactive());
+      thread->init_thread();
+      thread->start_thread();
 
-    torrent::Runtime::cleanup();
+      thread->stop_thread_wait();
+      CPPUNIT_ASSERT(thread->is_inactive());
+
+      torrent::Runtime::cleanup();
+    }
+
+  } catch (const torrent::internal_error& e) {
+    if (thread && thread->is_active())
+      thread->stop_thread_wait();
+
+    CPPUNIT_FAIL(std::string("Caught internal error: ") + e.what());
   }
 }

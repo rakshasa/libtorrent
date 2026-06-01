@@ -91,6 +91,8 @@ libtorrent_other_la_SOURCES = \
 	net/dns_cache.h \
 	net/dns_buffer.cc \
 	net/dns_buffer.h \
+	net/event_fd.cc \
+	net/event_fd.h \
 	net/listen.cc \
 	net/listen.h \
 	net/protocol_buffer.h \
@@ -162,8 +164,6 @@ libtorrent_other_la_SOURCES = \
 	utils/partial_queue.h \
 	utils/rc4.h \
 	utils/sha1.h \
-	utils/signal_interrupt.cc \
-	utils/signal_interrupt.h \
 	utils/thread_internal.h \
 	utils/queue_buckets.h
 

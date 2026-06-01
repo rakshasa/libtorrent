@@ -6,10 +6,10 @@
 #include "protocol/handshake.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/system/poll.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \

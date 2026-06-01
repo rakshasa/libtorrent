@@ -10,6 +10,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <string>
 #include <thread>
 
 struct sockaddr;
@@ -91,7 +92,6 @@ namespace net {
 
 class HttpGet;
 class HttpStack;
-class Poll;
 class Resolver;
 
 } // namespace net
@@ -114,6 +114,7 @@ class Tracker;
 
 namespace system {
 
+class Poll;
 class Thread;
 
 } // namespace system
@@ -127,6 +128,7 @@ class SchedulerEntry;
 
 } // namespace torrent
 
+
 // This should only need to be set when compiling libtorrent.
 #ifdef SUPPORT_ATTRIBUTE_VISIBILITY
   #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
@@ -136,24 +138,20 @@ class SchedulerEntry;
   #define LIBTORRENT_EXPORT
 #endif
 
-#ifndef __cpp_lib_hardware_interference_size
-  // TODO: Fix LT_SMP_CACHE_BYTES configure check, and make it check arch.
-  namespace std {
-    constexpr std::size_t hardware_destructive_interference_size = 128;
-  }
-#endif
+#define align_cacheline alignas(LT_SMP_CACHE_BYTES)
 
-#define align_cacheline alignas(std::hardware_destructive_interference_size)
 
 namespace torrent::this_thread {
 
-torrent::system::Thread*  thread() LIBTORRENT_EXPORT;
+system::Thread*           thread() LIBTORRENT_EXPORT;
+const char*               thread_name() LIBTORRENT_EXPORT;
+std::string               thread_name_str() LIBTORRENT_EXPORT;
 std::thread::id           thread_id() LIBTORRENT_EXPORT;
 
 std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
 std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
 
-net::Poll*                poll() LIBTORRENT_EXPORT;
+system::Poll*             poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
 utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
 
@@ -182,7 +180,7 @@ namespace torrent::net_thread {
 system::Thread*          thread() LIBTORRENT_EXPORT;
 std::thread::id          thread_id() LIBTORRENT_EXPORT;
 
-torrent::net::HttpStack* http_stack() LIBTORRENT_EXPORT;
+net::HttpStack*          http_stack() LIBTORRENT_EXPORT;
 
 } // namespace torrent::net_thread
 

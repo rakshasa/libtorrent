@@ -7,7 +7,7 @@
 
 namespace torrent {
 
-namespace net {
+namespace system {
 class PollEvent;
 class PollInternal;
 }
@@ -37,8 +37,8 @@ public:
   // TODO: Add bool event_fd_reused().
 
 protected:
-  friend class net::Poll;
-  friend class net::PollInternal;
+  friend class system::Poll;
+  friend class system::PollInternal;
   friend class runtime::SocketManager;
 
   void                set_file_descriptor(int fd);
@@ -51,7 +51,7 @@ protected:
   bool                update_and_verify_socket_address();
   bool                update_and_verify_peer_address();
 
-  std::shared_ptr<net::PollEvent> m_poll_event;
+  std::shared_ptr<system::PollEvent> m_poll_event;
 
   int                 m_fileDesc{-1};
 

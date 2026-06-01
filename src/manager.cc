@@ -17,7 +17,6 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download/resource_manager.h"
-#include "torrent/net/poll.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"

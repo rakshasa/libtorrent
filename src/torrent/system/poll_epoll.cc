@@ -2,12 +2,13 @@
 
 #ifdef USE_EPOLL
 
-#include "torrent/net/poll.h"
+#include "torrent/system/poll.h"
 
 #include <cassert>
 #include <unistd.h>
 #include <sys/epoll.h>
 
+#include "net/event_fd.h"
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
 #include "torrent/system/thread.h"
@@ -26,7 +27,7 @@
 #define LT_LOG_DEBUG_DATA_FD(log_fmt, ...)
 #endif
 
-namespace torrent::net {
+namespace torrent::system {
 
 class PollEvent {
 public:
@@ -47,7 +48,7 @@ public:
   void                flush();
   void                modify(torrent::Event* event, unsigned short op, uint32_t mask, uint32_t old_mask);
 
-  int                 m_fd;
+  int                 m_fd{};
 
   unsigned int        m_max_sockets{};
   unsigned int        m_max_events{};
@@ -55,6 +56,8 @@ public:
 
   Table                                 m_table;
   std::unique_ptr<struct epoll_event[]> m_events;
+
+  net::EventFd        m_wake_event;
 };
 
 uint32_t
@@ -138,6 +141,10 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask, uint32_t ol
   }
 }
 
+//
+// Poll:
+//
+
 std::unique_ptr<Poll>
 Poll::create() {
   auto socket_open_max = sysconf(_SC_OPEN_MAX);
@@ -168,6 +175,17 @@ Poll::~Poll() {
   m_internal->m_fd = -1;
 }
 
+void
+Poll::init_thread() {
+  m_internal->m_wake_event.add_to_poll();
+}
+
+void
+Poll::cleanup_thread() {
+  if (m_internal->m_wake_event.is_open())
+    m_internal->m_wake_event.remove_from_poll(this);
+}
+
 unsigned int
 Poll::do_poll(int64_t timeout_usec) {
   int status = poll(timeout_usec);
@@ -182,12 +200,24 @@ Poll::do_poll(int64_t timeout_usec) {
   return process();
 }
 
+void
+Poll::do_interrupt() {
+  m_internal->m_wake_event.send_signal();
+}
+
 int
 Poll::poll(int timeout_usec) {
+  auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
+
+  if (previous_state & flag_interrupted || system::Thread::self()->has_any_callbacks())
+    timeout_usec = 0;
+
   int nfds = ::epoll_wait(m_internal->m_fd,
                           m_internal->m_events.get(),
                           m_internal->m_max_events,
                           timeout_usec / 1000);
+
+  m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
 
   if (nfds == -1)
     return -1;
@@ -209,7 +239,7 @@ Poll::process() {
   m_closed_events.clear();
 
   for (epoll_event *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
-    if (system::Thread::self()->callbacks_should_interrupt_polling())
+    if (system::Thread::self()->has_interrupt_callbacks())
       system::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->data.ptr);

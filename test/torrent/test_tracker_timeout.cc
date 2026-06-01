@@ -9,6 +9,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(TestTrackerTimeout);
 
 void
 TestTrackerTimeout::test_set_timeout() {
+  try {
+
   auto tracker        = TrackerTest::new_tracker(nullptr, 0, "");
   auto tracker_worker = TrackerTest::test_worker(tracker);
 
@@ -25,6 +27,13 @@ TestTrackerTimeout::test_set_timeout() {
   CPPUNIT_ASSERT(tracker.state().min_interval() == 4 * 3600);
 
   tracker_worker->cleanup();
+
+  } catch (const std::exception& e) {
+    // CPPUNIT_FAIL(e.what());
+    // print:
+    fprintf(stderr, "Exception in %s: %s\n", __func__, e.what());
+    throw;
+  }
 }
 
 void

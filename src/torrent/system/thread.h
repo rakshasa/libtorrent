@@ -11,12 +11,6 @@
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
 
-namespace torrent {
-
-class SignalInterrupt;
-
-} // namespace torrent
-
 namespace torrent::system {
 
 class ThreadInternal;
@@ -34,7 +28,6 @@ public:
 
   static constexpr int flag_do_shutdown  = 0x1;
   static constexpr int flag_did_shutdown = 0x2;
-  static constexpr int flag_polling      = 0x4;
 
   // The ctor and dtor are called outside of the thread, so thread-specific initialization and
   // destruction should be done in init_thread() and cleanup_thread() respectively.
@@ -48,9 +41,6 @@ public:
   bool                is_initialized() const { return state() == STATE_INITIALIZED; }
   bool                is_active()      const { return state() == STATE_ACTIVE; }
   bool                is_inactive()    const { return state() == STATE_INACTIVE; }
-
-  bool                is_polling() const;
-  bool                is_current() const;
 
   bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
   bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
@@ -92,13 +82,15 @@ public:
   void                event_loop();
 
 protected:
-  friend class torrent::net::Poll;
+  friend class system::Poll;
   friend class ThreadInternal;
 
   net::Resolver*      resolver()  { return m_resolver.get(); }
   utils::Scheduler*   scheduler() { return m_scheduler.get(); }
 
-  bool                callbacks_should_interrupt_polling() const { return m_callbacks_should_interrupt_polling.load(); }
+  bool                has_callbacks()           const { return m_has_callbacks.load(); }
+  bool                has_interrupt_callbacks() const { return m_has_interrupt_callbacks.load(); }
+  bool                has_any_callbacks()       const { return has_callbacks() || has_interrupt_callbacks(); }
 
   static void*        enter_event_loop(void* thread);
 
@@ -128,8 +120,8 @@ protected:
     uint32_t               expected_id;
   };
 
-  void                callback(std::vector<callback_type>& callbacks, bool should_interrupt, std::function<void ()>&& fn);
-  void                callback(std::vector<callback_type>& callbacks, bool should_interrupt, system::callback_id& id, std::function<void ()>&& fn);
+  void                callback(bool is_interrupt, std::function<void ()>&& fn);
+  void                callback(bool is_interrupt, system::callback_id& id, std::function<void ()>&& fn);
 
   static thread_local Thread*  m_self;
 
@@ -139,20 +131,19 @@ protected:
   std::atomic<state_type>      m_state{STATE_UNKNOWN};
   std::atomic<int>             m_flags{0};
 
-  std::atomic<bool>            m_callbacks_should_interrupt_polling{};
+  // TODO: Optimize these into an int.
+  std::atomic<bool>            m_has_callbacks{};
+  std::atomic<bool>            m_has_interrupt_callbacks{};
 
   // TODO: Make it so only thread_this can access m_cached_time.
   std::atomic<std::chrono::microseconds> m_cached_time;
 
   align_cacheline int               m_instrumentation_index;
 
-  std::unique_ptr<net::Poll>        m_poll;
+  std::unique_ptr<system::Poll>     m_poll;
   std::unique_ptr<net::Resolver>    m_resolver;
   std::unique_ptr<utils::Scheduler> m_scheduler;
   class signal_bitfield             m_signal_bitfield;
-
-  std::unique_ptr<SignalInterrupt>  m_interrupt_sender;
-  std::unique_ptr<SignalInterrupt>  m_interrupt_receiver;
 
   align_cacheline std::mutex        m_callbacks_lock;
 
@@ -164,16 +155,6 @@ protected:
   align_cacheline callback_id       m_callback_processing_id{};
 };
 
-inline bool
-Thread::is_polling() const {
-  return (flags() & flag_polling);
-}
-
-inline bool
-Thread::is_current() const {
-  return m_thread == pthread_self();
-}
-
 inline void
 Thread::send_event_signal(unsigned int index, bool do_interrupt) {
   m_signal_bitfield.signal(index);
@@ -182,10 +163,10 @@ Thread::send_event_signal(unsigned int index, bool do_interrupt) {
     interrupt();
 }
 
-inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(m_callbacks, false, std::move(fn)); }
-inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(m_callbacks, false, id, std::move(fn)); }
-inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(m_interrupt_callbacks, true, std::move(fn)); }
-inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(m_interrupt_callbacks, true, id, std::move(fn)); }
+inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(false, std::move(fn)); }
+inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(false, id, std::move(fn)); }
+inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(true, std::move(fn)); }
+inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(true, id, std::move(fn)); }
 
 } // namespace torrent::utils
 

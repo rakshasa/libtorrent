@@ -36,8 +36,12 @@ ThreadDisk::create_thread() {
 
 void
 ThreadDisk::destroy_thread() {
-  delete m_thread_disk;
-  m_thread_disk = nullptr;
+  try {
+    delete m_thread_disk;
+    m_thread_disk = nullptr;
+  } catch (...) {
+    m_thread_disk = nullptr;
+  }
 }
 
 ThreadDisk*

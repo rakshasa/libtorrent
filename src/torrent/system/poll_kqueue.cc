@@ -2,7 +2,7 @@
 
 #ifdef USE_KQUEUE
 
-#include "poll.h"
+#include "torrent/system/poll.h"
 
 #include <algorithm>
 #include <cassert>
@@ -39,7 +39,7 @@
 
 #endif
 
-namespace torrent::net {
+namespace torrent::system {
 
 class PollEvent {
 public:
@@ -63,6 +63,9 @@ public:
 
   void                flush();
   void                modify(torrent::Event* event, unsigned short op, short mask);
+
+  inline void         create_user_event();
+  inline void         poke_user_event();
 
   int                 m_fd;
 
@@ -128,6 +131,24 @@ PollInternal::modify(Event* event, unsigned short op, short mask) {
   EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event->m_poll_event.get());
 }
 
+inline void
+PollInternal::create_user_event() {
+  struct kevent event{};
+  EV_SET(&event, 0, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, nullptr);
+
+  if (::kevent(m_fd, &event, 1, nullptr, 0, nullptr) == -1)
+    throw internal_error("PollInternal::create_user_event() error: " + std::string(std::strerror(errno)));
+}
+
+inline void
+PollInternal::poke_user_event() {
+  struct kevent event{};
+  EV_SET(&event, 0, EVFILT_USER, 0, NOTE_TRIGGER, 0, nullptr);
+
+  if (::kevent(m_fd, &event, 1, nullptr, 0, nullptr) == -1)
+    throw internal_error("PollInternal::poke_user_event() error: " + std::string(std::strerror(errno)));
+}
+
 std::unique_ptr<Poll>
 Poll::create() {
   auto socket_open_max = sysconf(_SC_OPEN_MAX);
@@ -149,6 +170,8 @@ Poll::create() {
   poll->m_internal->m_events      = std::make_unique<struct kevent[]>(poll->m_internal->m_max_events);
   poll->m_internal->m_changes     = std::make_unique<struct kevent[]>(poll->m_internal->m_max_events);
 
+  poll->m_internal->create_user_event();
+
   return std::unique_ptr<Poll>(poll);
 }
 
@@ -157,6 +180,14 @@ Poll::~Poll() {
 
   ::close(m_internal->m_fd);
   m_internal->m_fd = -1;
+}
+
+void
+Poll::init_thread() {
+}
+
+void
+Poll::cleanup_thread() {
 }
 
 unsigned int
@@ -177,12 +208,19 @@ int
 Poll::poll(int timeout_usec) {
   timespec timeout = { timeout_usec / 1000000, (timeout_usec % 1000000) * 1000 };
 
+  auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
+
+  if (previous_state & flag_interrupted || system::Thread::self()->has_any_callbacks())
+    timeout = timespec{0, 0};
+
   int nfds = ::kevent(m_internal->m_fd,
                       m_internal->m_changes.get(),
                       m_internal->m_changed_events,
                       m_internal->m_events.get(),
                       m_internal->m_max_events,
                       &timeout);
+
+  m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
 
   // Clear the changed events even on fail as we might have received a
   // signal or similar, and the changed events have already been
@@ -199,6 +237,17 @@ Poll::poll(int timeout_usec) {
   return nfds;
 }
 
+void
+Poll::do_interrupt() {
+  int expected_state = flag_polling;
+
+  if (!m_polling_state.compare_exchange_strong(expected_state, flag_polling | flag_interrupted,
+                                               std::memory_order_release, std::memory_order_relaxed))
+    return;
+
+  m_internal->poke_user_event();
+}
+
 unsigned int
 Poll::process() {
   unsigned int count{};
@@ -207,7 +256,7 @@ Poll::process() {
   m_closed_events.clear();
 
   for (struct kevent *itr = m_internal->m_events.get(), *last = m_internal->m_events.get() + m_internal->m_waiting_events; itr != last; ++itr) {
-    if (system::Thread::self()->callbacks_should_interrupt_polling())
+    if (system::Thread::self()->has_interrupt_callbacks())
       system::Thread::self()->process_callbacks(true);
 
     auto* poll_event = static_cast<PollEvent*>(itr->udata);

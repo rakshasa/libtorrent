@@ -44,9 +44,6 @@ libtorrent_torrent_la_SOURCES = \
 	net/http_get.h \
 	net/http_stack.cc \
 	net/http_stack.h \
-	net/poll.h \
-	net/poll_epoll.cc \
-	net/poll_kqueue.cc \
 	net/resolver.cc \
 	net/resolver.h \
 	net/socket_address.cc \
@@ -79,6 +76,9 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/socket_manager.h \
 \
 	system/callbacks.h \
+	system/poll.h \
+	system/poll_epoll.cc \
+	system/poll_kqueue.cc \
 	system/system.cc \
 	system/system.h \
 	system/thread.cc \
@@ -186,7 +186,6 @@ libtorrent_torrent_net_include_HEADERS = \
 	net/fd.h \
 	net/http_get.h \
 	net/http_stack.h \
-	net/poll.h \
 	net/resolver.h \
 	net/socket_address.h \
 	net/socket_address_key.h \
@@ -212,6 +211,7 @@ libtorrent_torrent_runtime_include_HEADERS = \
 libtorrent_torrent_system_includedir = $(includedir)/torrent/system
 libtorrent_torrent_system_include_HEADERS = \
 	system/callbacks.h \
+	system/poll.h \
 	system/system.h \
 	system/thread.h
 

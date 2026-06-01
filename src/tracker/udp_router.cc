@@ -7,12 +7,12 @@
 #include <netdb.h>
 
 #include "torrent/net/fd.h"
-#include "torrent/net/poll.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
+#include "torrent/system/poll.h"
 #include "torrent/system/system.h"
 #include "torrent/utils/log.h"
 
