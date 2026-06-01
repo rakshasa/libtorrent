@@ -35,15 +35,11 @@ check_for_chunk_done(torrent::HashQueue* hash_queue, done_chunks_type* done_chun
   return done_chunks->find(index) != done_chunks->end();
 }
 
-void
-fill_queue() {
-}
 } // namespace
 
 #define SETUP_HASH_QUEUE()                                              \
   done_chunks_type done_chunks;                                         \
-  auto hash_queue = new torrent::HashQueue();                           \
-  hash_queue->slot_has_work() = std::bind(&fill_queue);                 \
+  auto hash_queue = std::make_unique<torrent::HashQueue>();             \
                                                                         \
   torrent::ThreadDisk::thread_disk()->hash_check_queue()->slot_chunk_done() = [&](auto hc, const auto& hv) { \
       hash_queue->chunk_done(hc, hv);                                   \
@@ -63,13 +59,13 @@ test_hash_queue::test_single() {
 
   hash_queue->work();
 
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&check_for_chunk_done, hash_queue, &done_chunks, 0)));
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&check_for_chunk_done, hash_queue.get(), &done_chunks, 0)));
   CPPUNIT_ASSERT(done_chunks[0] == hash_for_index(0));
 
   // chunk_list->release(&handle_0);
 
   CPPUNIT_ASSERT(torrent::ThreadDisk::thread_disk()->hash_check_queue()->empty());
-  delete hash_queue;
+  hash_queue.reset();
 
   CLEANUP_CHUNK_LIST();
 }
@@ -89,12 +85,12 @@ test_hash_queue::test_multiple() {
   }
 
   for (unsigned int i = 0; i < 20; i++) {
-    CPPUNIT_ASSERT(wait_for_true(std::bind(&check_for_chunk_done, hash_queue, &done_chunks, i)));
+    CPPUNIT_ASSERT(wait_for_true(std::bind(&check_for_chunk_done, hash_queue.get(), &done_chunks, i)));
     CPPUNIT_ASSERT(done_chunks[i] == hash_for_index(i));
   }
 
   CPPUNIT_ASSERT(torrent::ThreadDisk::thread_disk()->hash_check_queue()->empty());
-  delete hash_queue;
+  hash_queue.reset();
 
   CLEANUP_CHUNK_LIST();
 }
@@ -115,7 +111,7 @@ test_hash_queue::test_erase() {
   CPPUNIT_ASSERT(hash_queue->empty());
 
   CPPUNIT_ASSERT(torrent::ThreadDisk::thread_disk()->hash_check_queue()->empty());
-  delete hash_queue;
+  hash_queue.reset();
 
   CLEANUP_CHUNK_LIST();
 }
@@ -138,7 +134,7 @@ test_hash_queue::test_erase_stress() {
   }
 
   CPPUNIT_ASSERT(torrent::ThreadDisk::thread_disk()->hash_check_queue()->empty());
-  delete hash_queue;
+  hash_queue.reset();
 
   CLEANUP_CHUNK_LIST();
 }

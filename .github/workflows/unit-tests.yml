@@ -107,8 +107,8 @@ jobs:
               pkgconf \
               gcc14
           run: |
-            export CC=gcc14
-            export CXX=g++14
+            export CC=gcc
+            export CXX=g++
             export PATH="/usr/pkg/gcc14/bin:/usr/pkg/bin:/usr/pkg/sbin:$PATH"
 
             export CPPFLAGS="-I/usr/pkg/include"
@@ -137,8 +137,8 @@ jobs:
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
             pkg_add -v -I \
-              automake \
-              autoconf \
+              automake-1.18.1 \
+              autoconf-2.63p1 \
               cppunit \
               curl \
               libtool \

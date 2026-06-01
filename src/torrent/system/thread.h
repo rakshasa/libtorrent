@@ -9,7 +9,6 @@
 #include <vector>
 #include <sys/types.h>
 #include <torrent/common.h>
-#include <torrent/utils/signal_bitfield.h>
 
 namespace torrent::system {
 
@@ -54,16 +53,10 @@ public:
   // TODO: This shouldn't be atomic, and should be in torrent::this_thread::cached_time().
   auto                cached_time() const  { return m_cached_time.load(); }
 
-  // Only call these from the same thread, or before start_thread.
-  //
-  auto                signal_bitfield()    { return &m_signal_bitfield; }
-
   virtual void        init_thread();
 
   void                start_thread();
   void                stop_thread_wait();
-
-  // New callback:
 
   void                callback(std::function<void ()>&& fn);
   void                callback(system::callback_id& id, std::function<void ()>&& fn);
@@ -75,10 +68,8 @@ public:
   void                cancel_callback_and_wait(callback_id& id, Thread* other_thread);
 
   void                interrupt();
-  void                send_event_signal(unsigned int index, bool interrupt = true);
 
-  static bool         should_handle_sigusr1();
-
+  // TODO: Move to protected.
   void                event_loop();
 
 protected:
@@ -143,7 +134,6 @@ protected:
   std::unique_ptr<system::Poll>     m_poll;
   std::unique_ptr<net::Resolver>    m_resolver;
   std::unique_ptr<utils::Scheduler> m_scheduler;
-  class signal_bitfield             m_signal_bitfield;
 
   align_cacheline std::mutex        m_callbacks_lock;
 
@@ -154,14 +144,6 @@ protected:
 
   align_cacheline callback_id       m_callback_processing_id{};
 };
-
-inline void
-Thread::send_event_signal(unsigned int index, bool do_interrupt) {
-  m_signal_bitfield.signal(index);
-
-  if (do_interrupt)
-    interrupt();
-}
 
 inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(false, std::move(fn)); }
 inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(false, id, std::move(fn)); }

@@ -115,8 +115,6 @@ libtorrent_torrent_la_SOURCES = \
 	utils/resume.h \
 	utils/scheduler.cc \
 	utils/scheduler.h \
-	utils/signal_bitfield.cc \
-	utils/signal_bitfield.h \
 	utils/string_manip.cc \
 	utils/string_manip.h \
 	utils/unordered_vector.h \
@@ -240,7 +238,6 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/ranges.h \
 	utils/resume.h \
 	utils/scheduler.h \
-	utils/signal_bitfield.h \
 	utils/string_manip.h \
 	utils/unordered_vector.h \
 	utils/uri_parser.h

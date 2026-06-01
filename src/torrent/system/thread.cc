@@ -250,11 +250,6 @@ Thread::interrupt() {
   m_poll->do_interrupt();
 }
 
-bool
-Thread::should_handle_sigusr1() {
-  return false;
-}
-
 void*
 Thread::enter_event_loop(void* thread) {
   auto t = static_cast<Thread*>(thread);
@@ -325,7 +320,6 @@ Thread::init_thread_local() {
   m_thread_id = std::this_thread::get_id();
 
   m_scheduler->set_thread_id(m_thread_id);
-  m_signal_bitfield.handover(m_thread_id);
 
   set_cached_time(utils::time_since_epoch());
 
@@ -354,10 +348,7 @@ Thread::process_events() {
   // many different cached times in the code, we need to let each thread manage this themselves.
 
   set_cached_time(utils::time_since_epoch());
-
   call_events();
-  m_signal_bitfield.work();
-
   set_cached_time(utils::time_since_epoch());
 
   m_scheduler->perform(m_cached_time);
@@ -367,7 +358,7 @@ Thread::process_events() {
 void
 Thread::process_events_without_cached_time() {
   call_events();
-  m_signal_bitfield.work();
+
   m_scheduler->perform(m_cached_time);
 }
 
