@@ -140,56 +140,59 @@ UdpRouter::updated_network_config(int family) {
 }
 
 
-uint32_t
+void
 UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
   if (!is_open())
-    return 0;
+    return;
 
   assert(m_thread == this_thread::thread());
+  assert(address != nullptr);
+  assert(params.connected);
 
   if (address != nullptr && address->sa_family != router_family())
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
+  if (sa_port(address.get()) == 0)
+    throw internal_error("UdpRouter::connect() called with address with port 0.");
+
   auto itr = connect_unsafe(std::move(address), params);
 
-  if (params.connected)
-    params.connected(itr->first);
+  params.connected(itr->first);
 
   if (!try_write(itr->first, &itr->second))
     queue_write(itr->first, &itr->second);
-
-  return itr->first;
 }
 
-uint32_t
+void
 UdpRouter::connect(const std::string hostname, uint16_t port, connection_params params) {
+  if (!is_open())
+    return;
+
   assert(m_thread == this_thread::thread());
   assert(!hostname.empty());
   assert(port != 0);
-  assert(params.connected == nullptr);
-
-  if (!is_open())
-    return 0;
+  assert(params.connected);
 
   auto [sa, sa_compatible] = sa_lookup_numeric(hostname, router_family());
 
   if (!sa_compatible)
-    return 0;
+    return;
 
-  if (sa != nullptr)
-    return connect(std::move(sa), params);
+  if (sa != nullptr) {
+    sap_set_port(sa, port);
+    connect(std::move(sa), params);
+    return;
+  }
 
   auto itr = connect_unsafe(nullptr, params);
 
-  // TODO: Set params.connected for hostname lookups?
+  params.connected(itr->first);
 
   auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
       resolved_hostname(id, port, sin, err, sin6, err6);
     };
 
   this_thread::resolver()->resolve_both(m_resolver_callback_id, hostname, router_family(), std::move(fn));
-
-  return itr->first;
 }
 
 void

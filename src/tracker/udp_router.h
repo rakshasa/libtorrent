@@ -55,8 +55,8 @@ public:
   // When process_fn is called, return false to disconnect and true to do nothing. (E.g. unknown
   // packet or transferred connection)
 
-  uint32_t            connect(c_sa_shared_ptr address, connection_params params);
-  uint32_t            connect(const std::string hostname, uint16_t port, connection_params params);
+  void                connect(c_sa_shared_ptr address, connection_params params);
+  void                connect(const std::string hostname, uint16_t port, connection_params params);
 
   void                transfer(uint32_t id, connection_params params);
 
