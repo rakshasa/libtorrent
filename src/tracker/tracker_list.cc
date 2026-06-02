@@ -403,9 +403,6 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
   if (itr == end())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
-  if (tracker.is_requesting())
-    throw internal_error("TrackerList::receive_success(...) called but the tracker is still busy.");
-
   // Promote the tracker to the front of the group since it was
   // successfull.
   promote(itr);
@@ -441,16 +438,12 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
-  auto itr = find(tracker);
-
-  if (itr == end())
+  if (find(tracker) == end())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
-
-  if (tracker.is_requesting())
-    throw internal_error("TrackerList::receive_failed(...) called but the tracker is still busy.");
 
   {
     auto guard = tracker.get_worker()->lock_guard();
+
     tracker.get_worker()->state().m_failed_time_last = this_thread::cached_seconds().count();
     tracker.get_worker()->state().m_failed_counter++;
     tracker.get_worker()->state().m_latest_new_peers_delta = 0;
@@ -467,16 +460,12 @@ TrackerList::receive_scrape_success(tracker::Tracker tracker) {
   LT_LOG("received scrape success : requester:%p group:%u url:%s",
          tracker.get_worker(), tracker.group(), tracker.url().c_str());
 
-  auto itr = find(tracker);
-
-  if (itr == end())
+  if (find(tracker) == end())
     throw internal_error("TrackerList::receive_scrape_success(...) called but the iterator is invalid.");
-
-  if (tracker.is_requesting())
-    throw internal_error("TrackerList::receive_scrape_success(...) called but the tracker is still busy.");
 
   {
     auto guard = tracker.get_worker()->lock_guard();
+
     tracker.get_worker()->state().m_scrape_time_last = this_thread::cached_seconds().count();
     tracker.get_worker()->state().m_scrape_counter++;
   }
@@ -492,13 +481,8 @@ TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& 
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
 
-  auto itr = find(tracker);
-
-  if (itr == end())
+  if (find(tracker) == end())
     throw internal_error("TrackerList::receive_scrape_failed(...) called but the iterator is invalid.");
-
-  if (tracker.is_requesting())
-    throw internal_error("TrackerList::receive_scrape_failed(...) called but the tracker is still busy.");
 
   if (m_slot_scrape_failed)
     m_slot_scrape_failed(tracker, msg);

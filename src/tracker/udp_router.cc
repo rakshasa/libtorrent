@@ -140,59 +140,56 @@ UdpRouter::updated_network_config(int family) {
 }
 
 
-uint32_t
+void
 UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
   if (!is_open())
-    return 0;
+    return;
 
   assert(m_thread == this_thread::thread());
+  assert(address != nullptr);
 
   if (address != nullptr && address->sa_family != router_family())
     throw internal_error("UdpRouter::connect() called with unsupported address family.");
 
-  auto itr = connect_unsafe(std::move(address), params);
+  if (sa_port(address.get()) == 0)
+    throw internal_error("UdpRouter::connect() called with address with port 0.");
 
-  if (params.connected)
-    params.connected(itr->first);
+  auto itr = connect_unsafe(std::move(address), params);
 
   if (!try_write(itr->first, &itr->second))
     queue_write(itr->first, &itr->second);
-
-  return itr->first;
 }
 
-uint32_t
+void
 UdpRouter::connect(const std::string hostname, uint16_t port, connection_params params) {
+  if (!is_open())
+    return;
+
   assert(m_thread == this_thread::thread());
   assert(!hostname.empty());
   assert(port != 0);
-  assert(params.connected == nullptr);
 
-  if (!is_open())
-    return 0;
+  auto [sa, sa_compatible] = sa_lookup_numeric(hostname, router_family());
 
-  auto [sa, sa_success] = sa_lookup_numeric(hostname, router_family());
+  if (!sa_compatible)
+    return;
 
-  if (!sa_success)
-    return 0;
-
-  if (sa)
-    return connect(std::move(sa), params);
+  if (sa != nullptr) {
+    sap_set_port(sa, port);
+    connect(std::move(sa), params);
+    return;
+  }
 
   auto itr = connect_unsafe(nullptr, params);
-
-  // TODO: Set params.connected for hostname lookups?
 
   auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
       resolved_hostname(id, port, sin, err, sin6, err6);
     };
 
   this_thread::resolver()->resolve_both(m_resolver_callback_id, hostname, router_family(), std::move(fn));
-
-  return itr->first;
 }
 
-uint32_t
+void
 UdpRouter::transfer(uint32_t id, connection_params params) {
   assert(m_thread == this_thread::thread());
 
@@ -208,13 +205,8 @@ UdpRouter::transfer(uint32_t id, connection_params params) {
 
   disconnect_unsafe(itr);
 
-  if (params.connected)
-    params.connected(new_itr->first);
-
   if (!try_write(new_itr->first, &new_itr->second))
     queue_write(new_itr->first, &new_itr->second);
-
-  return new_itr->first;
 }
 
 void
@@ -246,6 +238,7 @@ UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
   assert(params.prepare);
   assert(params.process);
   assert(params.failure);
+  assert(params.connected);
 
   connection_map::iterator itr;
 
@@ -269,6 +262,7 @@ UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
   itr->second.failure     = std::move(params.failure);
   itr->second.packet_sent = std::move(params.packet_sent);
 
+  params.connected(itr->first);
   return itr;
 }
 
@@ -536,6 +530,11 @@ UdpRouter::event_read() {
       // LT_LOG("received datagram with unknown transaction ID : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
       continue;
     }
+
+    // While the id is random, the tracker can still send brute-force it so check that we're did not
+    // disconnect before hostname resolved.
+    if (itr->second.address == nullptr)
+      continue;
 
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
