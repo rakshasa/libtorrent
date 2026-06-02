@@ -77,7 +77,6 @@ Thread::stop_thread_wait() {
   m_poll->do_interrupt();
 
   pthread_join(m_thread, nullptr);
-  m_poll->cleanup_thread();
 
   assert(is_inactive());
 }
@@ -297,8 +296,11 @@ Thread::event_loop() {
     if (this_thread::thread_id() != torrent::main_thread::thread_id())
       log_cleanup();
 
+    m_poll->cleanup_thread();
     throw;
   }
+
+  m_poll->cleanup_thread();
 
   auto previous_state = STATE_ACTIVE;
 

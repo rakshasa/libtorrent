@@ -67,7 +67,7 @@ EventFd::send_signal() {
         return;
 
       // Ignore spurious interrupt attempts right before/after threads enter their event loop.
-      if (errno == EBADF)
+      if (errno == EBADF && m_safe_fd == -1)
         return;
 
       throw internal_error("EventFd::send_signal() write failed: " + this_thread::thread_name_str() + " : " + std::string(std::strerror(errno)));
