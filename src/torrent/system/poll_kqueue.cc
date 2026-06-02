@@ -145,8 +145,12 @@ PollInternal::poke_user_event() {
   struct kevent event{};
   EV_SET(&event, 0, EVFILT_USER, 0, NOTE_TRIGGER, 0, nullptr);
 
-  if (::kevent(m_fd, &event, 1, nullptr, 0, nullptr) == -1)
+  if (::kevent(m_fd, &event, 1, nullptr, 0, nullptr) == -1) {
+    if (m_fd == -1)
+      return; // The poll was already closed, so ignore this error.
+
     throw internal_error("PollInternal::poke_user_event() error: " + std::string(std::strerror(errno)));
+  }
 }
 
 std::unique_ptr<Poll>
