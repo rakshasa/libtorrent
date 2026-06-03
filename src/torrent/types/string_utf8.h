@@ -20,20 +20,26 @@ public:
   const std::string& str() const;
   const char*        c_str() const;
 
-  // Generates a cached base64-encoded string, not thread-safe.
+  // Generates a cached encoded strings, not thread-safe.
+  const std::string& hex() const;
   const std::string& base64() const;
 
+  Object             object_hex() const;
   Object             object_base64() const;
+  Object             object_utf8_or_hex() const;
   Object             object_utf8_or_base64() const;
 
   void               reset(const std::string& str);
 
 private:
+  void               reset_hex() const;
   void               reset_base64() const;
 
   bool               m_is_utf8{true};
 
   std::string         m_str;
+
+  mutable std::string m_hex;
   mutable std::string m_base64;
 };
 
@@ -48,6 +54,14 @@ string_utf8::from_string(const std::string& str) {
   result.reset(str);
 
   return result;
+}
+
+inline const std::string&
+string_utf8::hex() const  {
+  if (!m_str.empty() && m_hex.empty())
+    reset_hex();
+
+  return m_hex;
 }
 
 inline const std::string&
