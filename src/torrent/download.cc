@@ -198,6 +198,11 @@ Download::is_hash_checking() const {
   return m_ptr->hash_checker()->is_checking();
 }
 
+int
+Download::hash_error_number() const {
+  return m_ptr->hash_checker()->error_number();
+}
+
 void
 Download::set_pex_enabled(bool enabled) {
   if (enabled)
