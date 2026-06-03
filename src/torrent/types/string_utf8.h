@@ -26,8 +26,10 @@ public:
 
   Object             object_hex() const;
   Object             object_base64() const;
+  Object             object_binary() const;
   Object             object_utf8_or_hex() const;
   Object             object_utf8_or_base64() const;
+  Object             object_utf8_or_binary() const;
 
   void               reset(const std::string& str);
 

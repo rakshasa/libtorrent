@@ -48,6 +48,7 @@ public:
   static constexpr uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object.
   static constexpr uint32_t flag_hex          = 0x200000;  // Hex-encoded string
   static constexpr uint32_t flag_base64       = 0x400000;  // Base64-encoded string
+  static constexpr uint32_t flag_binary       = 0x800000;  // Binary string
 
   static constexpr uint32_t mask_function     = 0x1C0000;  // Mask for function objects.
 
