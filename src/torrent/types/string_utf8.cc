@@ -92,9 +92,25 @@ string_utf8::object_base64() const {
 }
 
 Object
-string_utf8::object_binary() const {
+string_utf8::object_as_binary() const {
   auto obj = Object(m_str);
-  obj.set_flags(Object::flag_binary);
+  obj.set_flags(Object::flag_as_binary);
+
+  return obj;
+}
+
+Object
+string_utf8::object_hex_as_binary() const {
+  auto obj = Object(hex());
+  obj.set_flags(Object::flag_hex | Object::flag_as_binary);
+
+  return obj;
+}
+
+Object
+string_utf8::object_base64_as_binary() const {
+  auto obj = Object(base64());
+  obj.set_flags(Object::flag_base64 | Object::flag_as_binary);
 
   return obj;
 }
@@ -103,7 +119,7 @@ Object
 string_utf8::object_utf8_or_hex() const {
   if (!m_is_utf8) {
     auto obj = Object(hex());
-    obj.set_flags(Object::flag_hex);
+    obj.set_flags(Object::flag_hex | Object::flag_as_binary);
 
     return obj;
   }
@@ -115,7 +131,7 @@ Object
 string_utf8::object_utf8_or_base64() const {
   if (!m_is_utf8) {
     auto obj = Object(base64());
-    obj.set_flags(Object::flag_base64);
+    obj.set_flags(Object::flag_base64 | Object::flag_as_binary);
 
     return obj;
   }
@@ -127,7 +143,7 @@ Object
 string_utf8::object_utf8_or_binary() const {
   if (!m_is_utf8) {
     auto obj = Object(m_str);
-    obj.set_flags(Object::flag_binary);
+    obj.set_flags(Object::flag_as_binary);
 
     return obj;
   }

@@ -26,7 +26,12 @@ public:
 
   Object             object_hex() const;
   Object             object_base64() const;
-  Object             object_binary() const;
+
+  Object             object_as_binary() const;
+  Object             object_hex_as_binary() const;
+  Object             object_base64_as_binary() const;
+
+  // Mark non-utf8 strings as binary
   Object             object_utf8_or_hex() const;
   Object             object_utf8_or_base64() const;
   Object             object_utf8_or_binary() const;
