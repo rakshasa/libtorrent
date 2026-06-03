@@ -19,6 +19,9 @@
   lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, \
                          "tracker_udp", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
+#define LT_LOG_FAILURE(log_fmt, ...)                                    \
+  lt_log_print_hash(LOG_TRACKER_FAILURE_MESSAGES, info().info_hash, "tracker_udp", log_fmt, __VA_ARGS__);
+
 namespace torrent::tracker {
 
 TrackerUdp::TrackerUdp(const TrackerInfo& raw_info, int flags) :
@@ -132,6 +135,9 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
     return; // TODO: Save message.
 
   LT_LOG("closing with error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
+  LT_LOG_FAILURE("tracker failure : type:udp state:%s url:%s host:%s port:%u msg:%s",
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()),
+                 info().url.c_str(), m_hostname.c_str(), m_port, msg.c_str());
 
   remove_events();
   update_requesting_state();
@@ -404,6 +410,9 @@ TrackerUdp::process_error(int family, [[maybe_unused]] uint32_t id, buffer_type&
 void
 TrackerUdp::handle_setup_error(const std::string& msg) {
   LT_LOG("setup error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
+  LT_LOG_FAILURE("tracker failure : type:udp state:%s url:%s host:%s port:%u msg:%s",
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()),
+                 info().url.c_str(), m_hostname.c_str(), m_port, msg.c_str());
 
   if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0)
     throw internal_error("TrackerUdp::handle_setup_error() called but inet/inet6 transaction id is not 0.");

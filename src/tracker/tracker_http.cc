@@ -28,6 +28,9 @@
   lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, \
                          "tracker_http", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
+#define LT_LOG_FAILURE(log_fmt, ...)                                    \
+  lt_log_print_hash(LOG_TRACKER_FAILURE_MESSAGES, info().info_hash, "tracker_http", log_fmt, __VA_ARGS__);
+
 namespace torrent {
 
 // TODO: Make sure stopped events are finished before deleting a torrent. (disown the request)
@@ -451,6 +454,8 @@ TrackerHttp::receive_failed(const std::string& msg) {
   if (m_data == nullptr) {
     LT_LOG("received failure with no data : state:%s url:%s : %s",
            option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
+    LT_LOG_FAILURE("tracker failure : type:http state:%s url:%s msg:%s",
+                   option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
 
     update_requesting_state();
     m_slot_failure(msg);
@@ -470,6 +475,8 @@ TrackerHttp::receive_failed(const std::string& msg) {
       return;
 
     LT_LOG("received scrape failure : url:%s : %s", info().url.c_str(), msg.c_str());
+    LT_LOG_FAILURE("tracker failure : type:http state:%s url:%s msg:%s",
+                   option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
 
     m_requested_scrape = false;
     m_slot_scrape_failure(msg);
@@ -484,14 +491,20 @@ TrackerHttp::receive_failed(const std::string& msg) {
 
   if (m_last_success) {
     LT_LOG("received failure : previous family succeeded : url:%s : %s", info().url.c_str(), msg.c_str());
+    LT_LOG_FAILURE("tracker failure : type:http state:%s url:%s msg:%s",
+                   option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
     m_slot_success(AddressList());
 
   } else if (!m_last_error_message.empty()) {
     LT_LOG("received failure : previous family also failed : url:%s : %s /// %s", info().url.c_str(), msg.c_str(), m_last_error_message.c_str());
+    LT_LOG_FAILURE("tracker failure : type:http state:%s url:%s msg:%s /// %s",
+                   option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str(), m_last_error_message.c_str());
     m_slot_failure(msg + " /// " + m_last_error_message);
 
   } else {
     LT_LOG("received failure : url:%s : %s", info().url.c_str(), msg.c_str());
+    LT_LOG_FAILURE("tracker failure : type:http state:%s url:%s msg:%s",
+                   option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
     m_slot_failure(msg);
   }
 

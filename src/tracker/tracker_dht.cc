@@ -16,6 +16,9 @@
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_REQUESTS, info().info_hash, "tracker_dht", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
+#define LT_LOG_FAILURE(log_fmt, ...)                                    \
+  lt_log_print_hash(LOG_TRACKER_FAILURE_MESSAGES, info().info_hash, "tracker_dht", log_fmt, __VA_ARGS__);
+
 namespace torrent {
 
 TrackerDht::TrackerDht(const TrackerInfo& info, int flags)
@@ -142,6 +145,9 @@ void
 TrackerDht::receive_failed(const char* msg) {
   LT_LOG("received failure : dht_state:%s replied:%d contacted:%d msg:%s",
          states[m_dht_state], m_replied.load(), m_contacted.load(), msg);
+  LT_LOG_FAILURE("tracker failure : type:dht state:%s dht_state:%s replied:%d contacted:%d msg:%s",
+                 option_as_string(OPTION_TRACKER_EVENT, state().latest_event()),
+                 states[m_dht_state], m_replied.load(), m_contacted.load(), msg);
 
   m_dht_state = state_idle;
 
