@@ -127,7 +127,7 @@ jobs:
       # TODO: Try without this:
       TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
       AUTOCONF_VERSION: 2.63
-      AUTOMAKE_VERSION: 1.18.1
+      AUTOMAKE_VERSION: 1.18
     steps:
       - uses: actions/checkout@v4
       - uses: vmactions/openbsd-vm@v1

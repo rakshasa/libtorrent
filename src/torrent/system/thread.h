@@ -150,6 +150,6 @@ inline void Thread::callback(system::callback_id& id, std::function<void ()>&& f
 inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(true, std::move(fn)); }
 inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(true, id, std::move(fn)); }
 
-} // namespace torrent::utils
+} // namespace torrent::system
 
 #endif
