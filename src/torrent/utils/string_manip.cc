@@ -4,10 +4,49 @@
 
 #include <algorithm>
 #include <exception>
+#include <openssl/evp.h>
 
 #include "torrent/common.h"
 
 namespace torrent::utils {
+
+bool
+is_valid_utf8(const std::string& str) {
+  auto itr       = str.begin();
+  const auto end = str.end();
+
+  while (itr != end) {
+    int  num{};
+    auto byte = static_cast<unsigned char>(*itr);
+
+    // Verify leading byte.
+    if ((byte & 0x80) == 0x00)
+      num = 1;
+    else if ((byte & 0xE0) == 0xC0)
+      num = 2;
+    else if ((byte & 0xF0) == 0xE0)
+      num = 3;
+    else if ((byte & 0xF8) == 0xF0)
+      num = 4;
+    else
+      return false;
+
+    ++itr;
+
+    // Check continuation bytes.
+    for (int i = 1; i < num; ++i) {
+      if (itr == end)
+        return false;
+
+      if ((static_cast<unsigned char>(*itr) & 0xC0) != 0x80)
+        return false;
+
+      ++itr;
+    }
+  }
+
+  return true;
+}
 
 std::string_view
 trim_spaces(std::string_view s) {
@@ -137,6 +176,50 @@ sanitize_string_with_tags(const std::string& str) {
     return trim_spaces_str(sanitized);
 
   return result;
+}
+
+std::string
+transform_to_base64(const std::string& src) {
+  if (src.empty()) return {};
+
+  std::string result((4 * ((src.size() + 2) / 3)), '\0');
+
+  int actual_length = EVP_EncodeBlock(reinterpret_cast<unsigned char*>(result.data()),
+                                      reinterpret_cast<const unsigned char*>(src.data()),
+                                      src.size());
+
+  result.resize(actual_length);
+  return result;
+}
+
+std::optional<std::vector<uint8_t>>
+transform_from_base64_unsafe(const std::string& src) {
+  if (src.empty())
+    return std::vector<uint8_t>{};
+
+  if (src.length() % 4)
+    return std::nullopt;
+
+  std::vector<uint8_t> bytes((src.length() * 3) / 4);
+
+  int decoded_len = EVP_DecodeBlock(bytes.data(), reinterpret_cast<const uint8_t*>(src.data()), src.length());
+
+  if (decoded_len <= 0)
+    return std::nullopt;
+
+  if (src.back() == '=')
+    decoded_len--;
+
+  if (src.length() > 1 && src[src.length() - 2] == '=')
+    decoded_len--;
+
+  // If the input contains extra padding characters, this could cause negative decoded_len.
+  if (decoded_len < 0)
+    return std::nullopt;
+
+  bytes.resize(decoded_len);
+
+  return bytes;
 }
 
 } // namespace torrent::utils
