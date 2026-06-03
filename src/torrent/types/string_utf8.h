@@ -34,7 +34,7 @@ public:
   // Mark non-utf8 strings as binary
   Object             object_utf8_or_hex() const;
   Object             object_utf8_or_base64() const;
-  Object             object_utf8_or_binary() const;
+  Object             object_utf8_or_as_binary() const;
 
   void               reset(const std::string& str);
 

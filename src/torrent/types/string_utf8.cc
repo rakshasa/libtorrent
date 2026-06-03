@@ -140,7 +140,7 @@ string_utf8::object_utf8_or_base64() const {
 }
 
 Object
-string_utf8::object_utf8_or_binary() const {
+string_utf8::object_utf8_or_as_binary() const {
   if (!m_is_utf8) {
     auto obj = Object(m_str);
     obj.set_flags(Object::flag_as_binary);
