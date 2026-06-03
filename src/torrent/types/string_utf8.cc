@@ -2,6 +2,8 @@
 
 #include "string_utf8.h"
 
+#include <openssl/evp.h>
+
 #include "torrent/object.h"
 #include "torrent/utils/string_manip.h"
 
@@ -48,14 +50,37 @@ is_valid_utf8(const std::string& str) {
   return true;
 }
 
+std::string
+openssl_base64_encode(const std::string& src) {
+  if (src.empty()) return {};
+
+  std::string result((4 * ((src.size() + 2) / 3)), '\0');
+
+  int actual_length = EVP_EncodeBlock(reinterpret_cast<unsigned char*>(result.data()),
+                                      reinterpret_cast<const unsigned char*>(src.data()),
+                                      src.size());
+
+  result.resize(actual_length);
+  return result;
+}
+
 } // namespace
 
 void
 string_utf8::reset(const std::string& str) {
+  m_hex.clear();
   m_base64.clear();
 
   m_str     = str;
   m_is_utf8 = is_valid_utf8(str);
+}
+
+Object
+string_utf8::object_hex() const {
+  auto obj = Object(hex());
+  obj.set_flags(Object::flag_hex);
+
+  return obj;
 }
 
 Object
@@ -67,10 +92,58 @@ string_utf8::object_base64() const {
 }
 
 Object
+string_utf8::object_as_binary() const {
+  auto obj = Object(m_str);
+  obj.set_flags(Object::flag_as_binary);
+
+  return obj;
+}
+
+Object
+string_utf8::object_hex_as_binary() const {
+  auto obj = Object(hex());
+  obj.set_flags(Object::flag_hex | Object::flag_as_binary);
+
+  return obj;
+}
+
+Object
+string_utf8::object_base64_as_binary() const {
+  auto obj = Object(base64());
+  obj.set_flags(Object::flag_base64 | Object::flag_as_binary);
+
+  return obj;
+}
+
+Object
+string_utf8::object_utf8_or_hex() const {
+  if (!m_is_utf8) {
+    auto obj = Object(hex());
+    obj.set_flags(Object::flag_hex | Object::flag_as_binary);
+
+    return obj;
+  }
+
+  return Object(m_str);
+}
+
+Object
 string_utf8::object_utf8_or_base64() const {
   if (!m_is_utf8) {
     auto obj = Object(base64());
-    obj.set_flags(Object::flag_base64);
+    obj.set_flags(Object::flag_base64 | Object::flag_as_binary);
+
+    return obj;
+  }
+
+  return Object(m_str);
+}
+
+Object
+string_utf8::object_utf8_or_as_binary() const {
+  if (!m_is_utf8) {
+    auto obj = Object(m_str);
+    obj.set_flags(Object::flag_as_binary);
 
     return obj;
   }
@@ -79,8 +152,13 @@ string_utf8::object_utf8_or_base64() const {
 }
 
 void
+string_utf8::reset_hex() const {
+  m_hex = utils::transform_to_hex_str(m_str);
+}
+
+void
 string_utf8::reset_base64() const {
-  m_base64 = utils::transform_to_hex_str(m_str);
+  m_base64 = openssl_base64_encode(m_str);
 }
 
 } // namespace torrent

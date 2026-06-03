@@ -71,6 +71,7 @@ test_thread_base::test_interrupt() {
   // Vary the various timeouts.
 
   for (int i = 0; i < 20; i++) {
+    std::this_thread::sleep_for(100ms);
     thread->interrupt();
     std::this_thread::sleep_for(100ms);
     // usleep(0);
