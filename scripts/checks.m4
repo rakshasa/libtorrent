@@ -77,49 +77,9 @@ AC_DEFUN([TORRENT_WITHOUT_KQUEUE], [
 ])
 
 
-AC_DEFUN([TORRENT_CHECK_FALLOCATE], [
-  AC_MSG_CHECKING(for fallocate)
-
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#define _GNU_SOURCE
-               #include <fcntl.h>
-              ]], [[ fallocate(0, FALLOC_FL_KEEP_SIZE, 0, 0); return 0;
-              ]])],[
-      AC_DEFINE(USE_FALLOCATE, 1, Linux's fallocate supported.)
-      AC_MSG_RESULT(yes)
-    ],[
-      AC_MSG_RESULT(no)
-    ])
-])
-
-
-AC_DEFUN([TORRENT_CHECK_POSIX_FALLOCATE], [
-  AC_MSG_CHECKING(for posix_fallocate)
-
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <fcntl.h>
-              ]], [[ posix_fallocate(0, 0, 0);
-              ]])],[
-      AC_DEFINE(USE_POSIX_FALLOCATE, 1, posix_fallocate supported.)
-      AC_MSG_RESULT(yes)
-    ],[
-      AC_MSG_RESULT(no)
-    ])
-])
-
-
-AC_DEFUN([TORRENT_WITH_POSIX_FALLOCATE], [
-  AC_ARG_WITH(posix-fallocate,
-    AS_HELP_STRING([--with-posix-fallocate],[check for and use posix_fallocate to allocate files]),
-    [
-      if test "$withval" = "yes"; then
-        TORRENT_CHECK_POSIX_FALLOCATE
-      fi
-    ])
-])
-
-
 AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
   AC_ARG_WITH(address-space,
-    AS_HELP_STRING([--with-address-space=MB],[change the default address space size [[default=1024mb]]]),
+    AS_HELP_STRING([--with-address-space=MB],[change the default address space size [[default=1024mb-or-32768mb]]]),
     [
       if test ! -z $withval -a "$withval" != "yes" -a "$withval" != "no"; then
         AC_DEFINE_UNQUOTED(DEFAULT_ADDRESS_SPACE_SIZE, [$withval])
@@ -131,7 +91,7 @@ AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
       AC_CHECK_SIZEOF(long)
 
       if test $ac_cv_sizeof_long = 8; then
-        AC_DEFINE(DEFAULT_ADDRESS_SPACE_SIZE, 4096, Default address space size.)
+        AC_DEFINE(DEFAULT_ADDRESS_SPACE_SIZE, 32768, Default address space size.)
       else
         AC_DEFINE(DEFAULT_ADDRESS_SPACE_SIZE, 1024, Default address space size.)
       fi

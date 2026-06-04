@@ -31,10 +31,10 @@ RAK_ENABLE_DEBUG
 RAK_ENABLE_EXTRA_DEBUG
 RAK_ENABLE_WERROR
 
+dnl Since 64-bit address space is now the default, remove address space?
+
 TORRENT_WITHOUT_KQUEUE
 TORRENT_WITHOUT_EPOLL
-TORRENT_CHECK_FALLOCATE
-TORRENT_WITH_POSIX_FALLOCATE
 TORRENT_WITH_ADDRESS_SPACE
 
 TORRENT_WITH_INOTIFY
@@ -64,7 +64,7 @@ if test "x$use_kqueue" != "xyes" && test "x$use_epoll" != "xyes"; then
 fi
 
 AX_PTHREAD
-CHECK_ATOMIC
+AC_CHECK_FUNCS([fallocate posix_fallocate])
 
 TORRENT_ENABLE_CUSTOM_STACK_SIZE
 
