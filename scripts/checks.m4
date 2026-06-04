@@ -79,7 +79,7 @@ AC_DEFUN([TORRENT_WITHOUT_KQUEUE], [
 
 AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
   AC_ARG_WITH(address-space,
-    AS_HELP_STRING([--with-address-space=MB],[change the default address space size [[default=1024mb-or-32768mb]]]),
+    AS_HELP_STRING([--with-address-space=MB],[change the default address space size [default=1024mb-or-32768mb]]),
     [
       if test ! -z $withval -a "$withval" != "yes" -a "$withval" != "no"; then
         AC_DEFINE_UNQUOTED(DEFAULT_ADDRESS_SPACE_SIZE, [$withval])
