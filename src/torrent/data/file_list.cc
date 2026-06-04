@@ -8,6 +8,7 @@
 #include <limits>
 #include <memory>
 #include <set>
+#include <sys/statvfs.h>
 
 #include "manager.h"
 #include "piece.h"
@@ -20,16 +21,6 @@
 #include "torrent/data/file_manager.h"
 #include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
-
-#if HAVE_SYS_VFS_H
-#include <sys/vfs.h>
-#endif
-#if HAVE_SYS_STATVFS_H
-#include <sys/statvfs.h>
-#endif
-#if HAVE_SYS_STATFS_H
-#include <sys/statfs.h>
-#endif
 
 #define LT_LOG_FL(log_level, log_fmt, ...)                              \
   lt_log_print_data(LOG_STORAGE_##log_level, (&m_data), "file_list", log_fmt, __VA_ARGS__);
@@ -160,13 +151,14 @@ FileList::free_diskspace() const {
   uint64_t free_diskspace = std::numeric_limits<uint64_t>::max();
 
   for (const auto& link : m_indirect_links) {
-    FS_STAT_STRUCT m_stat;
+    struct statvfs stat{};
+
     auto fn = link.c_str();
 
-    if (!(FS_STAT_FN))
+    if (statvfs(fn, &stat) == -1)
       continue;
 
-    free_diskspace = std::min<uint64_t>(free_diskspace, (int64_t)(FS_STAT_BLOCK_SIZE) * m_stat.f_bavail);
+    free_diskspace = std::min<uint64_t>(free_diskspace, static_cast<int64_t>(stat.f_frsize) * stat.f_bavail);
   }
 
   return free_diskspace != std::numeric_limits<uint64_t>::max() ? free_diskspace : 0;

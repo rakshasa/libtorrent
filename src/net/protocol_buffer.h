@@ -4,8 +4,9 @@
 #include <memory>
 #include <cinttypes>
 #include <netinet/in.h>
-
 #include "torrent/exceptions.h"
+
+#include CUSTOM_ENDIAN_HEADER
 
 namespace torrent {
 
@@ -34,8 +35,8 @@ public:
   uint16_t            peek_16();
   uint32_t            read_32();
   uint32_t            peek_32();
-  uint64_t            read_64()                     { return read_int<uint64_t>(); }
-  uint64_t            peek_64()                     { return peek_int<uint64_t>(); }
+  uint64_t            read_64();
+  uint64_t            peek_64();
 
   uint8_t             peek_8_at(size_type pos)      { return *(m_position + pos); }
 
@@ -55,7 +56,7 @@ public:
   void                write_16(uint16_t v);
   void                write_32(uint32_t v);
   void                write_32_n(uint32_t v);
-  void                write_64(uint64_t v)          { write_int<uint64_t>(v); }
+  void                write_64(uint64_t v);
 
   template <typename T>
   inline void         write_int(T t);
@@ -114,97 +115,69 @@ ProtocolBuffer<tmpl_size>::consume(difference_type v) {
 template <uint16_t tmpl_size>
 inline uint16_t
 ProtocolBuffer<tmpl_size>::read_16() {
-#ifndef USE_ALIGNED
-  uint16_t t = ntohs(*reinterpret_cast<uint16_t*>(m_position));
+  uint16_t value;
+  std::memcpy(&value, m_position, sizeof(uint16_t));
   m_position += sizeof(uint16_t);
-
-  return t;
-#else
-  return read_int<uint16_t>();
-#endif
+  validate_position();
+  return ntohs(value);
 }
 
 template <uint16_t tmpl_size>
 inline uint16_t
 ProtocolBuffer<tmpl_size>::peek_16() {
-#ifndef USE_ALIGNED
-  return ntohs(*reinterpret_cast<uint16_t*>(m_position));
-#else
-  return peek_int<uint16_t>();
-#endif
+  uint16_t value;
+  std::memcpy(&value, m_position, sizeof(uint16_t));
+  return ntohs(value);
 }
 
 template <uint16_t tmpl_size>
 inline uint32_t
 ProtocolBuffer<tmpl_size>::read_32() {
-#ifndef USE_ALIGNED
-  uint32_t t = ntohl(*reinterpret_cast<uint32_t*>(m_position));
+  uint32_t value;
+  std::memcpy(&value, m_position, sizeof(uint32_t));
   m_position += sizeof(uint32_t);
-
-  return t;
-#else
-  return read_int<uint32_t>();
-#endif
+  validate_position();
+  return ntohl(value);
 }
 
 template <uint16_t tmpl_size>
 inline uint32_t
 ProtocolBuffer<tmpl_size>::peek_32() {
-#ifndef USE_ALIGNED
-  return ntohl(*reinterpret_cast<uint32_t*>(m_position));
-#else
-  return peek_int<uint32_t>();
-#endif
+  uint32_t value;
+  std::memcpy(&value, m_position, sizeof(uint32_t));
+  return ntohl(value);
 }
 
 template <uint16_t tmpl_size>
-template <typename T>
-inline T
-ProtocolBuffer<tmpl_size>::read_int() {
-  T t = T();
-
-  for (iterator last = m_position + sizeof(T); m_position != last; ++m_position)
-    t = (t << 8) + *m_position;
-
-  return t;
+inline uint64_t
+ProtocolBuffer<tmpl_size>::read_64() {
+  uint64_t value;
+  std::memcpy(&value, m_position, sizeof(uint64_t));
+  m_position += sizeof(uint64_t);
+  validate_position();
+  return custom_ntohll(value);
 }
 
 template <uint16_t tmpl_size>
-template <typename T>
-inline T
-ProtocolBuffer<tmpl_size>::peek_int() {
-  T t = T();
-
-  for (iterator itr = m_position, last = m_position + sizeof(T); itr != last; ++itr)
-    t = (t << 8) + *itr;
-
-  return t;
+inline uint64_t
+ProtocolBuffer<tmpl_size>::peek_64() {
+  uint64_t value;
+  std::memcpy(&value, m_position, sizeof(uint64_t));
+  return custom_ntohll(value);
 }
+
+// TODO: Use hton functions for these as well?
 
 template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write_16(uint16_t v) {
-#ifndef USE_ALIGNED
-  *reinterpret_cast<uint16_t*>(m_end) = htons(v);
-  m_end += sizeof(uint16_t);
-
-  validate_end();
-#else
   write_int<uint16_t>(v);
-#endif
 }
 
 template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write_32(uint32_t v) {
-#ifndef USE_ALIGNED
-  *reinterpret_cast<uint32_t*>(m_end) = htonl(v);
-  m_end += sizeof(uint32_t);
-
-  validate_end();
-#else
   write_int<uint32_t>(v);
-#endif
 }
 
 template <uint16_t tmpl_size>
@@ -214,6 +187,12 @@ ProtocolBuffer<tmpl_size>::write_32_n(uint32_t v) {
   m_end += sizeof(uint32_t);
 
   validate_end();
+}
+
+template <uint16_t tmpl_size>
+inline void
+ProtocolBuffer<tmpl_size>::write_64(uint64_t v) {
+  write_int<uint64_t>(v);
 }
 
 template <uint16_t tmpl_size>
