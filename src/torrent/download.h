@@ -60,7 +60,7 @@ public:
 
   bool                is_hash_checked() const;
   bool                is_hash_checking() const;
-  int                 hash_error_number() const;
+  const std::string&  hash_error_message() const;
 
   void                set_pex_enabled(bool enabled);
 
