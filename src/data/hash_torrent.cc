@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <cstring>
+
 #include "data/chunk_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/download_data.h"
@@ -27,6 +29,7 @@ HashTorrent::start(bool try_quick) {
   if (m_position > 0 || m_chunk_list->empty())
     throw internal_error("HashTorrent::start() call failed.");
 
+  m_error_message.clear();
   m_outstanding = 0;
 
   queue(try_quick);
@@ -164,9 +167,12 @@ HashTorrent::queue(bool quick) {
 
       // The rest of the outstanding chunks get ignored by
       // DownloadWrapper::receive_hash_done. Obsolete.
+      auto error_pos = m_position;
+
       clear();
 
       m_errno = handle.error_number();
+      m_error_message = "Hash check I/O error at chunk " + std::to_string(error_pos) + ": " + std::strerror(handle.error_number());
 
       LT_LOG_THIS(INFO, "completed with error: position:%u errno:%s", m_position, system::errno_enum(handle.error_number()));
 

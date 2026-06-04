@@ -35,6 +35,7 @@ public:
   uint32_t            outstanding() const                    { return m_outstanding; }
 
   int                 error_number() const                   { return m_errno; }
+  const std::string&  error_message() const                  { return m_error_message; }
 
   slot_chunk_handle&  slot_check_chunk() { return m_slot_check_chunk; }
 
@@ -51,6 +52,7 @@ private:
   Ranges              m_ranges;
 
   int                 m_errno{0};
+  std::string         m_error_message;
 
   ChunkList*          m_chunk_list;
 

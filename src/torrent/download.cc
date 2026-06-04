@@ -198,9 +198,9 @@ Download::is_hash_checking() const {
   return m_ptr->hash_checker()->is_checking();
 }
 
-int
-Download::hash_error_number() const {
-  return m_ptr->hash_checker()->error_number();
+const std::string&
+Download::hash_error_message() const {
+  return m_ptr->hash_checker()->error_message();
 }
 
 void
