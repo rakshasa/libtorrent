@@ -184,47 +184,6 @@ AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
 ])
 
 
-AC_DEFUN([TORRENT_WITH_FASTCGI], [
-  AC_ARG_WITH(fastcgi,
-    AS_HELP_STRING([--with-fastcgi=PATH],[enable FastCGI RPC support (DO NOT USE)]),
-    [
-      AC_MSG_CHECKING([for FastCGI (DO NOT USE)])
-
-      if test "$withval" = "no"; then
-        AC_MSG_RESULT(no)
-
-      elif test "$withval" = "yes"; then
-        CXXFLAGS="$CXXFLAGS"
-	LIBS="$LIBS -lfcgi"
-
-        AC_LINK_IFELSE([AC_LANG_PROGRAM([[ #include <fcgiapp.h>
-        ]], [[ FCGX_Init(); ]])],[
-          AC_MSG_RESULT(ok)
-        ],[
-          AC_MSG_RESULT(not found)
-          AC_MSG_ERROR(Could not compile FastCGI test.)
-        ])
-
-        AC_DEFINE(HAVE_FASTCGI, 1, Support for FastCGI.)
-
-      else
-        CXXFLAGS="$CXXFLAGS -I$withval/include"
-	LIBS="$LIBS -lfcgi -L$withval/lib"
-
-        AC_LINK_IFELSE([AC_LANG_PROGRAM([[ #include <fcgiapp.h>
-        ]], [[ FCGX_Init(); ]])],[
-          AC_MSG_RESULT(ok)
-        ],[
-          AC_MSG_RESULT(not found)
-          AC_MSG_ERROR(Could not compile FastCGI test.)
-        ])
-
-        AC_DEFINE(HAVE_FASTCGI, 1, Support for FastCGI.)
-      fi
-    ])
-])
-
-
 AC_DEFUN([TORRENT_WITH_XMLRPC_C], [
   AC_MSG_CHECKING(for XMLRPC-C)
 
@@ -397,4 +356,21 @@ AC_DEFUN([TORRENT_WITH_SYSTEMD], [
           [AC_MSG_ERROR([libsystemd not found. Install libsystemd-dev (or the equivalent for your distribution).])])
       fi
     ])
+])
+
+
+AC_DEFUN([TORRENT_WITHOUT_NCURSES], [
+  AC_ARG_WITH([ncurses],
+    [AS_HELP_STRING([--without-ncurses], [build without ncurses (daemon-only mode)])],
+    [with_ncurses=$withval],
+    [with_ncurses=yes])
+
+  if test "x$with_ncurses" = xno; then
+    AC_DEFINE([HAVE_NO_NCURSES], [1], [Define to 1 if building without ncurses])
+    CURSES_LIBS=""
+    CURSES_CFLAGS=""
+    CURSES_LIB=""
+  fi
+
+  AM_CONDITIONAL([NO_NCURSES], [test "x$with_ncurses" = xno])
 ])
