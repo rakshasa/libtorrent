@@ -1,48 +1,3 @@
-AC_DEFUN([TORRENT_CHECK_XFS], [
-  AC_MSG_CHECKING(for XFS support)
-
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([
-      #include <xfs/libxfs.h>
-      #include <sys/ioctl.h>
-      int main() {
-        struct xfs_flock64 l;
-        ioctl(0, XFS_IOC_RESVSP64, &l);
-        return 0;
-      }
-      ])],
-    [
-      AC_DEFINE(USE_XFS, 1, Use XFS filesystem stuff.)
-      AC_MSG_RESULT(yes)
-    ], [
-      AC_MSG_RESULT(no)
-    ])
-])
-
-
-AC_DEFUN([TORRENT_WITHOUT_XFS], [
-  AC_ARG_WITH(xfs,
-    AS_HELP_STRING([--without-xfs],[do not check for XFS filesystem support]),
-    [
-       if test "$withval" = "yes"; then
-        TORRENT_CHECK_XFS
-      fi
-    ], [
-        TORRENT_CHECK_XFS
-    ])
-])
-
-
-AC_DEFUN([TORRENT_WITH_XFS], [
-  AC_ARG_WITH(xfs,
-    AS_HELP_STRING([--with-xfs],[check for XFS filesystem support]),
-    [
-      if test "$withval" = "yes"; then
-        TORRENT_CHECK_XFS
-      fi
-    ])
-])
-
-
 AC_DEFUN([TORRENT_CHECK_EPOLL], [
   AC_MSG_CHECKING(for epoll support)
 
@@ -225,6 +180,7 @@ AC_DEFUN([TORRENT_WITH_XMLRPC_C], [
   ])
 ])
 
+
 AC_DEFUN([TORRENT_WITH_TINYXML2], [
   AC_MSG_CHECKING(for tinyxml2)
 
@@ -237,6 +193,7 @@ AC_DEFUN([TORRENT_WITH_TINYXML2], [
     AC_MSG_RESULT(ignored)
   ])
 ])
+
 
 AC_DEFUN([TORRENT_WITH_LUA], [
   AC_ARG_WITH(lua,
@@ -292,6 +249,7 @@ AC_DEFUN([TORRENT_WITH_INOTIFY], [
   AC_LANG_POP(C++)
 ])
 
+
 AC_DEFUN([TORRENT_CHECK_PTHREAD_SETNAME_NP], [
   AC_CHECK_HEADERS(pthread.h)
 
@@ -322,6 +280,7 @@ AC_DEFUN([TORRENT_CHECK_PTHREAD_SETNAME_NP], [
     ])
   ])
 ])
+
 
 AC_DEFUN([TORRENT_DISABLE_PTHREAD_SETNAME_NP], [
   AC_MSG_CHECKING([for pthread_setname_no])

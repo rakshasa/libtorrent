@@ -296,36 +296,22 @@ AC_DEFUN([TORRENT_CHECK_CUSTOM_ENDIAN64], [
 ])
 
 
-AC_DEFUN([TORRENT_DISABLE_INSTRUMENTATION], [
+AC_DEFUN([TORRENT_ENABLE_INSTRUMENTATION], [
   AC_MSG_CHECKING([if instrumentation should be included])
 
   AC_ARG_ENABLE(instrumentation,
-    AS_HELP_STRING([--disable-instrumentation],
-      [disable instrumentation [[default=enabled]]]),
+    AS_HELP_STRING([--enable-instrumentation],
+      [enable instrumentation [[default=disabled]]]),
     [
       if test "$enableval" = "yes"; then
         AC_DEFINE(LT_INSTRUMENTATION, 1, enable instrumentation)
-	AC_MSG_RESULT(yes)
+        AC_MSG_RESULT(yes)
       else
-	AC_MSG_RESULT(no)
+        AC_MSG_RESULT(no)
       fi
     ],[
-      AC_DEFINE(LT_INSTRUMENTATION, 1, enable instrumentation)
-      AC_MSG_RESULT(yes)
+      AC_MSG_RESULT(no)
     ])
-])
-
-
-AC_DEFUN([TORRENT_ENABLE_INTERRUPT_SOCKET], [
-  AC_ARG_ENABLE(interrupt-socket,
-    AS_HELP_STRING([--enable-interrupt-socket],
-      [enable interrupt socket [[default=no]]]),
-    [
-      if test "$enableval" = "yes"; then
-        AC_DEFINE(USE_INTERRUPT_SOCKET, 1, Use interrupt socket instead of pthread_kill)
-      fi
-    ]
-  )
 ])
 
 

@@ -3,32 +3,10 @@
 #include "bitfield.h"
 
 #include <algorithm>
+#include <bit>
 
 #include "exceptions.h"
 #include "utils/instrumentation.h"
-
-namespace {
-
-template<typename T>
-inline int
-popcount_wrapper(T t) {
-#if USE_BUILTIN_POPCOUNT
-  return __builtin_popcountll(t);
-#else
-#error __builtin_popcount not found.
-
-  unsigned int count = 0;
-
-  while (t) {
-    count += t & 0x1;
-    t >> 1;
-  }
-
-  return count;
-#endif
-}
-
-}
 
 namespace torrent {
 
@@ -75,17 +53,30 @@ Bitfield::update() {
 
   m_set = 0;
 
-  iterator itr = m_data.get();
+  iterator itr  = m_data.get();
   iterator last = end();
 
-  while (itr + sizeof(unsigned int) <= last) {
-    m_set += popcount_wrapper(*reinterpret_cast<unsigned int*>(itr));
-    itr += sizeof(unsigned int);
+  // TODO: Eliminate the extra branches below by making the bitfield m_data 8-byte aligned and padded.
+
+  while (itr + sizeof(uint64_t) <= last) {
+    // Compilers optimize this completely into a single 64-bit load instruction (MOV/LDR)
+    uint64_t chunk;
+    std::memcpy(&chunk, itr, sizeof(uint64_t));
+
+    m_set += std::popcount(chunk);
+    itr   += sizeof(uint64_t);
   }
 
-  while (itr != last) {
-    m_set += popcount_wrapper(*itr++);
+  if (itr + sizeof(uint32_t) <= last) {
+    uint32_t chunk;
+    std::memcpy(&chunk, itr, sizeof(uint32_t));
+
+    m_set += std::popcount(chunk);
+    itr   += sizeof(uint32_t);
   }
+
+  while (itr != last)
+    m_set += std::popcount(*itr++);
 }
 
 void
@@ -93,14 +84,15 @@ Bitfield::copy(const Bitfield& bf) {
   unallocate();
 
   m_size = bf.m_size;
-  m_set = bf.m_set;
+  m_set  = bf.m_set;
 
   if (bf.m_data == nullptr) {
     m_data = nullptr;
-  } else {
-    allocate();
-    std::copy_n(bf.m_data.get(), size_bytes(), m_data.get());
+    return;
   }
+
+  allocate();
+  std::copy_n(bf.m_data.get(), size_bytes(), m_data.get());
 }
 
 void
