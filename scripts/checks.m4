@@ -99,6 +99,43 @@ AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
 ])
 
 
+AC_DEFUN([TORRENT_CHECK_ATOMIC], [
+  AC_MSG_CHECKING([whether 64-bit atomic operations require -latomic])
+  AC_LANG_PUSH(C++)
+
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <cstdint>
+                                    #include <atomic>]],
+                                    [[std::atomic<uint64_t> x(0);
+                                    return x.load();]])],
+    [
+      AC_MSG_RESULT([no])
+      ATOMIC_LIBS=""
+    ],
+    [
+      save_LIBS="$LIBS"
+      LIBS="$LIBS -latomic"
+
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <cstdint>
+                                        #include <atomic>]],
+                                        [[std::atomic<uint64_t> x(0);
+                                        return x.load();]])],
+        [
+          AC_MSG_RESULT([yes])
+          ATOMIC_LIBS="-latomic"
+        ],
+        [
+          AC_MSG_RESULT([unsupported])
+          AC_MSG_ERROR([Compiler target lacks proper 64-bit atomic support.])
+        ])
+
+      LIBS="$save_LIBS"
+    ])
+
+  AC_LANG_POP(C++)
+  AC_SUBST([ATOMIC_LIBS])
+])
+
+
 AC_DEFUN([TORRENT_WITH_XMLRPC_C], [
   AC_MSG_CHECKING(for XMLRPC-C)
 
