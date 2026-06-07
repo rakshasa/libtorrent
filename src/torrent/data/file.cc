@@ -145,7 +145,7 @@ File::resize_file() const {
   if (!SocketFile(m_fd).set_size(m_size))
     return false;
 
-  if (m_flags & flag_fallocate) {
+  if ((m_flags & flag_fallocate) && m_priority != PRIORITY_OFF) {
     // Only do non-blocking fallocate.
     if (!SocketFile(m_fd).allocate(m_size, SocketFile::flag_fallocate))
       return false;
