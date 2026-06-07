@@ -37,7 +37,7 @@ BUILD DEPENDENCIES
 --------
 Ubuntu, for example
 ```
-sudo apt install make curl-libcurlpp-dev autoconf
+sudo apt install make libcurlpp-dev autoconf
 ```
 
 BUILDING
