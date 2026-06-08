@@ -60,6 +60,9 @@ ResourceManager::insert(const resource_manager_entry& entry) {
 
 void
 ResourceManager::update_group_iterators() {
+  if (base_type::empty())
+    return;
+
   auto       entry_itr = base_type::begin();
   auto group_itr = choke_base_type::begin();
 
@@ -75,6 +78,9 @@ ResourceManager::update_group_iterators() {
 
 void
 ResourceManager::validate_group_iterators() {
+  if (base_type::empty())
+    return;
+
   auto       entry_itr = base_type::begin();
   auto group_itr = choke_base_type::begin();
 
@@ -120,8 +126,11 @@ ResourceManager::push_group(const std::string& name) {
   choke_base_type::push_back(new choke_group());
 
   choke_base_type::back()->set_name(name);
-  choke_base_type::back()->set_first(&*base_type::end());
-  choke_base_type::back()->set_last(&*base_type::end());
+
+  if (!base_type::empty()) {
+    choke_base_type::back()->set_first(&*base_type::end());
+    choke_base_type::back()->set_last(&*base_type::end());
+  }
 
   choke_base_type::back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
   choke_base_type::back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
