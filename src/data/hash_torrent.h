@@ -40,6 +40,7 @@ public:
   slot_chunk_handle&  slot_check_chunk() { return m_slot_check_chunk; }
 
   auto&               delay_checked()                        { return m_delay_checked; }
+  auto&               delay_retry()                          { return m_delay_retry; }
 
   void                receive_chunkdone(uint32_t index);
   void                receive_chunk_cleared(uint32_t index);
@@ -58,6 +59,7 @@ private:
 
   slot_chunk_handle     m_slot_check_chunk;
   utils::SchedulerEntry m_delay_checked;
+  utils::SchedulerEntry m_delay_retry;
 };
 
 } // namespace torrent
