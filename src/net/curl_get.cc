@@ -225,12 +225,9 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   // curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
   // curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
 
-  // Disable connection reuse as libcurl doesn't provide proper API to handle idle connections being
-  // closed/reused.
-  //
-  // TODO: Remove this when libcurl issues are resolved.
-  // TODO: Make sure shutdown quickly cleans up idle connections.
-  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE, 1l);
+  // Enable connection reuse to avoid SSL handshake overhead on repeated tracker announces.
+  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE, 0l);
+  curl_easy_setopt(m_handle, CURLOPT_SSL_SESSIONID_CACHE, 1l);
 
   if (m_timeout != 0) {
     curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 60l);
