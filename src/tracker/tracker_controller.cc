@@ -379,13 +379,13 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
 
-  int32_t interval;
+  int32_t interval{};
+  auto    failed_counter = tracker_state.failed_counter();
 
-  if (tracker_state.failed_counter()) {
+  if (failed_counter != 0)
     interval = tracker_state.failed_time_next() - tracker_state.failed_time_last();
-  } else {
+  else
     interval = tracker_state.normal_interval();
-  }
 
   int32_t min_interval = std::max(tracker_state.min_interval(), uint32_t{300});
   int32_t use_interval = std::min(interval, min_interval);
@@ -393,7 +393,7 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   int32_t since_last = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
 
   lt_log_print(LOG_TRACKER_EVENTS, "tracker_next_timeout_promiscuous: min_interval:%d use_interval:%d since_last:%d failed_counter:%d",
-               min_interval, use_interval, since_last, tracker_state.failed_counter());
+               min_interval, use_interval, since_last, failed_counter);
 
   return std::max(use_interval - since_last, 0);
 }
