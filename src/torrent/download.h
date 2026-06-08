@@ -149,6 +149,10 @@ public:
   void                set_connection_type(ConnectionType t);
 
   enum HeuristicType {
+    HEURISTICS_UPLOAD_LEECH              = 0,
+    HEURISTICS_UPLOAD_SEED               = 1,
+    HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL = 2,
+    HEURISTICS_DOWNLOAD_LEECH            = 3,
   };
 
   HeuristicType       upload_choke_heuristic() const;
