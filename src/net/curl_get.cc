@@ -217,13 +217,13 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &CurlGet::receive_write);
   curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,     this);
 
-  // Close function and data must be set before libcurl's create_conn() is called.
-  //
-  // TODO: Consier all libcurl sockets to be !m_properly_opened for now.
-  // curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETFUNCTION,  &CurlSocket::open_socket);
-  // curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
-  // curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
-  // curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
+  // Enable socket open/close callbacks so SocketManager can track connection
+  // lifecycle across connection reuse (cached connections purged by libcurl
+  // will trigger CLOSESOCKETFUNCTION, notifying SocketManager).
+  curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETFUNCTION,  &CurlSocket::open_socket);
+  curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
+  curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
+  curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
 
   // Enable connection reuse to avoid SSL handshake overhead on repeated tracker announces.
   curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE, 0l);

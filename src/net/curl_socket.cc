@@ -359,39 +359,33 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
   // LibCurl is randomly closing / not closing sockets that receive errors, so we need to handle it
   // in a graceful way. (Which isn't really strictly correct)
   if (itr == stack->socket_map()->end()) {
+    // Socket may have already been cleaned up by SocketManager (on_reuse path)
+    // or by receive_socket(CURL_POLL_REMOVE). This is expected with connection
+    // reuse — just return.
+    LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack, already cleaned up", 0);
 
-    // TODO: This needs to be changed to keep track of properly opened sockets. (it tries to close fd:0!!!)
-
-    // bool result = runtime::socket_manager()->execute_if_not_present(fd, [&]() {
-    //     // TODO: This can cause issues if the fd was by something that doesn't register with SocketManager.
-
-    //     // TODO: Rewrite this to check fd's socket/peer address to verify it is the same socket.
-    //     //
-    //     // This requires not erasing properly opened CurlSockets on error, etc?
-
-    //     ::close(fd);
-    //   });
-
-    // replace with execute_if_matches
-
-    // if (result) {
-    //   LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack : closed directly", 0);
-    // } else {
-    //   LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack, but is in socket manager : assuming reuse", 0);
-    // }
-
-    LT_LOG_DEBUG("close_socket() : fd:%i : socket not found in stack, skipping", 0);
-    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not found in stack");
-
-    // return 0;
+    return 0;
   }
 
   auto* socket = itr->second.get();
 
   LT_LOG_DEBUG_SOCKET("close_socket()", 0);
 
-  if (!socket->is_polling())
-    throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): socket not in poll");
+  // Idle cached connections were removed from epoll by CURL_POLL_REMOVE but
+  // kept in the socket_map. Handle them gracefully.
+  if (!socket->is_polling()) {
+    if (fd == socket->file_descriptor()) {
+      curl_multi_assign(stack->handle(), fd, nullptr);
+
+      if (socket->is_open())
+        ::close(fd);
+
+      socket->set_file_descriptor(-1);
+    }
+
+    socket->clear_and_erase_self(itr);
+    return 0;
+  }
 
   if (fd != socket->file_descriptor())
     throw internal_error("CurlSocket::close_socket(): fd mismatch : curl:" + std::to_string(fd) + " self:" + std::to_string(socket->file_descriptor()));
@@ -441,43 +435,24 @@ void
 CurlSocket::event_error() {
   LT_LOG_DEBUG_THIS("event_error()", 0);
 
-  // LibCurl will close the socket, so remove it from polling prior to passing the error event.
-  // if (m_properly_opened) {
-  //   LT_LOG_DEBUG_THIS("event_error() : properly opened socket, removing from socket manager", 0);
+  auto fd    = file_descriptor();
+  auto stack = m_stack;
 
-  //   runtime::socket_manager()->close_event_or_throw(this, [this]() {
-  //       this_thread::poll()->remove_and_close(this);
-
-  //       // clear and erase self.
-  //     });
-
-  if (!m_properly_opened) {
-    auto fd    = file_descriptor();
-    auto stack = m_stack;
-
+  // Remove from poll and close the fd before notifying libcurl of the error.
+  if (m_properly_opened) {
+    runtime::socket_manager()->close_event_or_throw(this, [&]() {
+        this_thread::poll()->remove_and_close(this);
+      });
+  } else {
     runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
         this_thread::poll()->remove_and_close(this);
       });
-
-    curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
-    clear_and_erase_self_or_throw();
-
-    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
-    return;
   }
-
-  throw internal_error("CurlSocket::event_error() : properly opened socket should not implement");
 
   curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
-
-  handle_action(CURL_CSELECT_ERR);
-
-  if (!m_self_exists) {
-    LT_LOG_DEBUG_THIS("event_error() : self deleted during handle_action, aborting", 0);
-    throw internal_error("CurlSocket::event_error() self deleted during handle_action.");
-  }
-
   clear_and_erase_self_or_throw();
+
+  CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
 }
 
 void
