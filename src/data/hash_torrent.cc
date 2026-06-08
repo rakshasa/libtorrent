@@ -17,6 +17,7 @@ namespace torrent {
 
 HashTorrent::HashTorrent(ChunkList* c) :
     m_chunk_list(c) {
+  m_delay_retry.slot() = [this] { queue(false); };
 }
 
 bool
@@ -45,6 +46,7 @@ HashTorrent::clear() {
   m_errno = 0;
 
   this_thread::scheduler()->erase(&m_delay_checked);
+  this_thread::scheduler()->erase(&m_delay_retry);
 }
 
 bool
@@ -155,6 +157,15 @@ HashTorrent::queue(bool quick) {
     // If the error number is not valid, then we've just encountered a
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
+    if (handle.error_number() == ENOMEM) {
+      LT_LOG_THIS(INFO, "ENOMEM during hash, retrying: position:%u outstanding:%i", m_position, m_outstanding);
+
+      if (m_outstanding == 0)
+        this_thread::scheduler()->update_wait_for(&m_delay_retry, std::chrono::milliseconds(100));
+
+      return;
+    }
+
     if (handle.error_number() != 0 && handle.error_number() != ENOENT) {
       if (handle.is_valid())
         throw internal_error("HashTorrent::queue() valid handle with error number: " + system::errno_enum_str(handle.error_number()));
