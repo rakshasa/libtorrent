@@ -367,7 +367,8 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
     LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(errno).c_str());
 
     // TODO: Need to be handled differently.
-    throw internal_error("UdpRouter::try_write() failed to write datagram: " + system::errno_enum_str(errno));
+    throw internal_error("UdpRouter::try_write() failed to write datagram : " + family_enum_str(socket_address()->sa_family) + " : " +
+                         sa_pretty_str(info->address.get()) + " : " + system::errno_enum_str(errno));
   }
 
   queue_timeout(id, info);
