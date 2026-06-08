@@ -202,6 +202,12 @@ Poll::do_poll(int64_t timeout_usec) {
 
 void
 Poll::do_interrupt() {
+  int expected_state = flag_polling;
+
+  if (!m_polling_state.compare_exchange_strong(expected_state, flag_polling | flag_interrupted,
+                                                std::memory_order_release, std::memory_order_relaxed))
+    return;
+
   m_internal->m_wake_event.send_signal();
 }
 
@@ -209,13 +215,17 @@ int
 Poll::poll(int timeout_usec) {
   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
 
-  if (previous_state & flag_interrupted || system::Thread::self()->has_any_callbacks())
-    timeout_usec = 0;
+  int timeout_ms = timeout_usec / 1000;
+
+  if (previous_state & flag_interrupted)
+    timeout_ms = 0;
+  else if (system::Thread::self()->has_any_callbacks())
+    timeout_ms = std::min(timeout_ms, 1);
 
   int nfds = ::epoll_wait(m_internal->m_fd,
                           m_internal->m_events.get(),
                           m_internal->m_max_events,
-                          timeout_usec / 1000);
+                          timeout_ms);
 
   m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
 
