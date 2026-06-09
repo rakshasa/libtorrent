@@ -116,6 +116,7 @@ ThreadNet::set_max_connections() {
 
   ThreadNet::thread_net()->m_http_stack->set_max_total_connections(total_size);
   ThreadNet::thread_net()->m_http_stack->set_max_host_connections(host_size);
+  ThreadNet::thread_net()->m_http_stack->set_max_cache_connections(total_size);
 }
 
 void

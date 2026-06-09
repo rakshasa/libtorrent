@@ -217,12 +217,12 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &CurlGet::receive_write);
   curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,     this);
 
-  // Enable socket open/close callbacks so SocketManager can track connection
-  // lifecycle across connection reuse (cached connections purged by libcurl
-  // will trigger CLOSESOCKETFUNCTION, notifying SocketManager).
-  curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETFUNCTION,  &CurlSocket::open_socket);
+  // Keep CLOSESOCKETFUNCTION so SocketManager is notified when curl closes
+  // cached connections. OPENSOCKETFUNCTION is not used — all sockets arrive
+  // via receive_socket (SOCKETFUNCTION) and are tracked as !m_properly_opened.
+  // Connection limits are enforced via CURLMOPT_MAXCONNECTS set from
+  // category_max_size(category_http) in ThreadNet::set_max_connections().
   curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
-  curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
   curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
 
   // Enable connection reuse to avoid SSL handshake overhead on repeated tracker announces.

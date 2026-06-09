@@ -91,15 +91,29 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
       throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch");
 
     if (!socket->m_properly_opened) {
-      // This is likely a socketpair created by libcurl directly, so we assume libcurl also handles
-      // closing it.
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket never properly opened, removing from poll", 0);
+      // Keep socket in SocketManager and CurlStack map so it can be reused.
+      // close_socket (via CLOSESOCKETFUNCTION) handles final cleanup when
+      // curl purges the connection from its cache.
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : marking stream event inactive", 0);
 
-      runtime::socket_manager()->unregister_event_or_throw(socket, [&]() {
+      auto func = [socket]() {
+          this_thread::poll()->remove_read(socket);
+          this_thread::poll()->remove_write(socket);
+
+          socket->m_easy_handle  = nullptr;
+          socket->m_uninterested = true;
+        };
+
+      auto on_reuse = [socket]() {
           this_thread::poll()->remove_and_close(socket);
-        });
+          socket->clear_and_erase_self_or_throw();
+        };
 
-      socket->clear_and_erase_self_or_throw();
+      if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
+        LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : mark_stream_event_inactive failed", 0);
+        return -1;
+      }
+
       return 0;
     }
 
@@ -422,14 +436,7 @@ CurlSocket::event_write() {
   handle_action(CURL_CSELECT_OUT);
 }
 
-// TODO: We need to figure out how to tell libcurl to not close an fd when it has been reused.
-//
-// Perhaps we just pretend it is open while in idle conection poll, and pretend to add it to read
-// just to get the CLOSEFUNCTION callback?
-//
-// Also, verify if reporting errors to libcurl actually closes the fd, doesn't seem like it should?
-//
-// Think it should be calling the callback.
+// Event handlers
 
 void
 CurlSocket::event_error() {
