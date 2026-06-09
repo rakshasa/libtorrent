@@ -435,39 +435,11 @@ void
 CurlSocket::event_error() {
   LT_LOG_DEBUG_THIS("event_error()", 0);
 
-  auto fd       = file_descriptor();
-  auto stack    = m_stack;
-  auto curl_handle = m_stack->handle();
-  auto curl_socket_map = m_stack->socket_map();
+  auto fd    = file_descriptor();
+  auto stack = m_stack;
 
-  // Remove from poll and close the fd before notifying libcurl of the error.
-  if (m_properly_opened) {
-    runtime::socket_manager()->close_event_or_throw(this, [this, fd]() {
-        this_thread::poll()->remove_and_close(this);
-        ::close(fd);
-        set_file_descriptor(-1);
-      });
-
-    // Tell curl to stop tracking this fd, then notify it of the error.
-    curl_multi_assign(curl_handle, fd, nullptr);
-    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
-
-    // Now safe to clean up CurlStack's map.
-    auto itr = curl_socket_map->find(fd);
-    if (itr != curl_socket_map->end())
-      curl_socket_map->erase(itr);
-
-    return;
-  }
-
-  // !m_properly_opened path
-  runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
-      this_thread::poll()->remove_and_close(this);
-    });
-
-  curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
-  clear_and_erase_self_or_throw();
-
+  // Do NOT close the fd ourselves. Notify libcurl of the error and let
+  // it clean up via CLOSESOCKETFUNCTION (CurlSocket::close_socket).
   CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
 }
 
