@@ -175,7 +175,8 @@ libtorrent_torrent_download_include_HEADERS = \
 	download/choke_queue.h \
 	download/download_manager.h \
 	download/group_entry.h \
-	download/resource_manager.h
+	download/resource_manager.h \
+	download/types.h
 
 libtorrent_torrent_net_includedir = $(includedir)/torrent/net
 libtorrent_torrent_net_include_HEADERS = \

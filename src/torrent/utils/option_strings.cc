@@ -33,23 +33,23 @@ constexpr option_pair option_list_connection_type[] = {
 };
 
 constexpr option_pair option_list_heuristics[] = {
-  { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
-  { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
-  { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
-  { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
-  { "invalid",                   choke_queue::HEURISTICS_MAX_SIZE },
+  { "upload_leech",              HEURISTICS_UPLOAD_LEECH },
+  { "upload_leech_experimental", HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               HEURISTICS_UPLOAD_SEED },
+  { "download_leech",            HEURISTICS_DOWNLOAD_LEECH },
+  { "invalid",                   HEURISTICS_MAX_SIZE },
   { NULL, 0 }
 };
 
 constexpr option_pair option_list_heuristics_download[] = {
-  { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
+  { "download_leech",            HEURISTICS_DOWNLOAD_LEECH },
   { NULL, 0 }
 };
 
 constexpr option_pair option_list_heuristics_upload[] = {
-  { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
-  { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
-  { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
+  { "upload_leech",              HEURISTICS_UPLOAD_LEECH },
+  { "upload_leech_experimental", HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               HEURISTICS_UPLOAD_SEED },
   { NULL, 0 }
 };
 

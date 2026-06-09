@@ -524,30 +524,30 @@ Download::set_connection_type(ConnectionType t) {
   m_ptr->set_connection_type(t);
 }
 
-Download::HeuristicType
+heuristics_enum
 Download::upload_choke_heuristic() const {
-  return static_cast<Download::HeuristicType>(m_ptr->main()->choke_group()->up_queue()->heuristics());
+  return m_ptr->main()->choke_group()->up_queue()->heuristics();
 }
 
 void
-Download::set_upload_choke_heuristic(HeuristicType t) {
-  if (static_cast<choke_queue::heuristics_enum>(t) >= choke_queue::HEURISTICS_MAX_SIZE)
+Download::set_upload_choke_heuristic(heuristics_enum t) {
+  if (t >= HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
 
-  m_ptr->main()->choke_group()->up_queue()->set_heuristics(static_cast<choke_queue::heuristics_enum>(t));
+  m_ptr->main()->choke_group()->up_queue()->set_heuristics(t);
 }
 
-Download::HeuristicType
+heuristics_enum
 Download::download_choke_heuristic() const {
-  return static_cast<Download::HeuristicType>(m_ptr->main()->choke_group()->down_queue()->heuristics());
+  return m_ptr->main()->choke_group()->down_queue()->heuristics();
 }
 
 void
-Download::set_download_choke_heuristic(HeuristicType t) {
-  if (static_cast<choke_queue::heuristics_enum>(t) >= choke_queue::HEURISTICS_MAX_SIZE)
+Download::set_download_choke_heuristic(heuristics_enum t) {
+  if (t >= HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
 
-  m_ptr->main()->choke_group()->down_queue()->set_heuristics(static_cast<choke_queue::heuristics_enum>(t));
+  m_ptr->main()->choke_group()->down_queue()->set_heuristics(t);
 }
 
 void

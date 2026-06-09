@@ -6,6 +6,7 @@
 #include <string>
 
 #include <torrent/common.h>
+#include <torrent/download/types.h>
 #include <torrent/peer/peer.h>
 #include <torrent/tracker/wrappers.h>
 
@@ -148,14 +149,11 @@ public:
   ConnectionType      connection_type() const;
   void                set_connection_type(ConnectionType t);
 
-  enum HeuristicType {
-  };
+  heuristics_enum     upload_choke_heuristic() const;
+  void                set_upload_choke_heuristic(heuristics_enum t);
 
-  HeuristicType       upload_choke_heuristic() const;
-  void                set_upload_choke_heuristic(HeuristicType t);
-
-  HeuristicType       download_choke_heuristic() const;
-  void                set_download_choke_heuristic(HeuristicType t);
+  heuristics_enum     download_choke_heuristic() const;
+  void                set_download_choke_heuristic(heuristics_enum t);
 
   // Call this when you want the modifications of the download priorities
   // in the entries to take effect. It is slightly expensive as it rechecks
