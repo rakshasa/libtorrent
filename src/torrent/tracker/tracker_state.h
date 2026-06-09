@@ -95,7 +95,6 @@ protected:
   friend class torrent::tracker::Tracker;
   friend class ::TrackerTest;
 
-  void                clear_intervals();
   void                clear_stats();
 
   void                set_normal_interval(int v);
@@ -105,8 +104,8 @@ protected:
 
   int                 m_flags;
 
-  uint32_t            m_normal_interval{};
-  uint32_t            m_min_interval{};
+  uint32_t            m_normal_interval{min_normal_interval};
+  uint32_t            m_min_interval{min_min_interval};
 
   event_enum          m_latest_event{EVENT_NONE};
   uint32_t            m_latest_new_peers{};
@@ -144,12 +143,6 @@ TrackerState::failed_time_next() const {
     return m_failed_time_last + m_min_interval;
 
   return m_failed_time_last + std::min(5 << std::min<uint32_t>(m_failed_counter - 1, 6), min_min_interval - 1);
-}
-
-inline void
-TrackerState::clear_intervals() {
-  m_normal_interval = 0;
-  m_min_interval = 0;
 }
 
 inline void

@@ -390,7 +390,7 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   int32_t min_interval = std::max(tracker_state.min_interval(), uint32_t{300});
   int32_t use_interval = std::min(interval, min_interval);
 
-  int32_t since_last = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
+  int32_t since_last   = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
 
   lt_log_print(LOG_TRACKER_EVENTS, "tracker_next_timeout_promiscuous: min_interval:%d use_interval:%d since_last:%d failed_counter:%d",
                min_interval, use_interval, since_last, failed_counter);
