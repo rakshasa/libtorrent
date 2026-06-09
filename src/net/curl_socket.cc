@@ -53,7 +53,10 @@ CurlSocket::CurlSocket(CurlStack* stack)
 }
 
 CurlSocket::~CurlSocket() {
-  assert(!is_open() && "CurlSocket::~CurlSocket() !is_open()");
+  if (is_open()) {
+    LT_LOG_DEBUG_THIS("destructor(): socket still open, closing fd", 0);
+    ::close(file_descriptor());
+  }
 
   m_self_exists = false;
 }
