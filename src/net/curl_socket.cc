@@ -446,12 +446,15 @@ CurlSocket::event_error() {
         set_file_descriptor(-1);
       });
 
-    // close_event_or_throw cleans up SocketManager's map; clean up CurlStack's map
+    // Tell curl to stop tracking this fd, then notify it of the error.
+    curl_multi_assign(m_stack->handle(), fd, nullptr);
+    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
+
+    // Now safe to clean up CurlStack's map — curl won't reference this socket.
     auto itr = m_stack->socket_map()->find(fd);
     if (itr != m_stack->socket_map()->end())
       m_stack->socket_map()->erase(itr);
 
-    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
     return;
   }
 
