@@ -50,8 +50,8 @@ Manager::Manager()
   runtime::network_manager()->listen_inet6_unsafe()->slot_accepted() = [this](auto& handshake, auto fd, auto sa) { return m_handshake_manager->add_incoming(handshake, fd, sa); };
 
   m_resource_manager->push_group("default");
-  m_resource_manager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
-  m_resource_manager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
+  m_resource_manager->group_back()->up_queue()->set_heuristics(HEURISTICS_UPLOAD_LEECH);
+  m_resource_manager->group_back()->down_queue()->set_heuristics(HEURISTICS_DOWNLOAD_LEECH);
 }
 
 Manager::~Manager() = default;

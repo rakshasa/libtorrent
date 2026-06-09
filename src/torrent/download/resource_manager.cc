@@ -123,8 +123,8 @@ ResourceManager::push_group(const std::string& name) {
   choke_base_type::back()->set_first(&*base_type::end());
   choke_base_type::back()->set_last(&*base_type::end());
 
-  choke_base_type::back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
-  choke_base_type::back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
+  choke_base_type::back()->up_queue()->set_heuristics(HEURISTICS_UPLOAD_LEECH);
+  choke_base_type::back()->down_queue()->set_heuristics(HEURISTICS_DOWNLOAD_LEECH);
 
   choke_base_type::back()->up_queue()->set_slot_unchoke([this](int n) { receive_upload_unchoke(n); });
   choke_base_type::back()->down_queue()->set_slot_unchoke([this](int n) { receive_download_unchoke(n); });
