@@ -54,7 +54,7 @@ CurlSocket::CurlSocket(CurlStack* stack)
 
 CurlSocket::~CurlSocket() {
   if (is_open()) {
-    LT_LOG_DEBUG_THIS("destructor(): socket still open, closing fd", 0);
+    lt_log_print(LOG_SOCKET_ERROR, "curl_socket destructor: socket still open, closing fd %i", (int)file_descriptor());
     ::close(file_descriptor());
   }
 
