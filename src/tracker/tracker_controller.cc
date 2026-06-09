@@ -558,16 +558,20 @@ TrackerController::receive_failure(const tracker::Tracker& tracker, const std::s
   //   return;
   // }
 
-  int32_t failed_counter;
-  int32_t success_counter;
+  // TODO: This makes no sense, it should take into consideration how long it was since last success.
 
-  tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
-      failed_counter = state.failed_counter();
-      success_counter = state.success_counter();
-    });
+  // int32_t failed_counter;
+  // int32_t success_counter;
 
-  if (failed_counter == 1 && success_counter > 0)
-    m_flags |= flag_failure_mode;
+  // tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
+  //     failed_counter  = state.failed_counter();
+  //     success_counter = state.success_counter();
+  //   });
+
+  // if (failed_counter == 1 && success_counter > 0)
+  //   m_flags |= flag_failure_mode;
+
+  m_flags |= flag_failure_mode;
 
   do_timeout();
   m_slot_failure(msg);

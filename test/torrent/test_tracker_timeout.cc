@@ -167,7 +167,7 @@ TestTrackerTimeout::test_timeout_requesting() {
     CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 160);
 
     tracker_worker->set_failed(torrent::this_thread::cached_seconds().count());
-    CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 320);
+    CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 300);
 
     //std::cout << "timeout:" << torrent::tracker_next_timeout(tracker, flags) << std::endl;
 

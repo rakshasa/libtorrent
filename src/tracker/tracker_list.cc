@@ -318,18 +318,20 @@ TrackerList::find_next_to_request(iterator itr) {
     auto itr_state = (*itr).state();
 
     if (itr_state.failed_counter() != 0) {
-      if (itr_state.failed_time_next() < preferred_state.failed_time_next()) {
-        preferred = itr;
-        preferred_state = (*preferred).state();
+      if (preferred_state.failed_counter() == 0)
+        continue;
+
+      if (itr_state.failed_time_next() < preferred_state.activity_time_next()) {
+        preferred       = itr;
+        preferred_state = (*itr).state();
       }
 
-    } else {
-      if (itr_state.activity_time_next() < preferred_state.failed_time_next()) {
-        preferred = itr;
-        preferred_state = (*preferred).state();
-      }
+      continue;
+    }
 
-      break;
+    if (itr_state.activity_time_next() < preferred_state.activity_time_next()) {
+      preferred       = itr;
+      preferred_state = (*itr).state();
     }
   }
 
