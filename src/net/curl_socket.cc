@@ -440,14 +440,25 @@ CurlSocket::event_error() {
 
   // Remove from poll and close the fd before notifying libcurl of the error.
   if (m_properly_opened) {
-    runtime::socket_manager()->close_event_or_throw(this, [&]() {
+    runtime::socket_manager()->close_event_or_throw(this, [this, fd]() {
         this_thread::poll()->remove_and_close(this);
+        ::close(fd);
+        set_file_descriptor(-1);
       });
-  } else {
-    runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
-        this_thread::poll()->remove_and_close(this);
-      });
+
+    // close_event_or_throw cleans up SocketManager's map; clean up CurlStack's map
+    auto itr = m_stack->socket_map()->find(fd);
+    if (itr != m_stack->socket_map()->end())
+      m_stack->socket_map()->erase(itr);
+
+    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
+    return;
   }
+
+  // !m_properly_opened path
+  runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
+      this_thread::poll()->remove_and_close(this);
+    });
 
   curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
   clear_and_erase_self_or_throw();
