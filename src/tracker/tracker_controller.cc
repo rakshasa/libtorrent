@@ -330,15 +330,7 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_requesting))
     return tracker_next_timeout_promiscuous(tracker);
 
-  int32_t                           activity_time_last;
-  tracker::TrackerState::event_enum latest_event;
-  int32_t                           normal_interval;
-
-  tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
-    activity_time_last = state.activity_time_last();
-    latest_event       = state.latest_event();
-    normal_interval    = state.normal_interval();
-  });
+  auto state = tracker.state();
 
   if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
@@ -349,14 +341,7 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_send_update))
     return tracker_next_timeout_update(tracker);
 
-  // if (tracker.success_counter() == 0 && tracker.failed_counter() == 0)
-  //   return 0;
-
-  int32_t last_activity = this_thread::cached_seconds().count() - activity_time_last;
-
-  // TODO: Use min interval if we're requesting manual update.
-
-  return normal_interval - std::min(last_activity, normal_interval);
+  return utils::next_timeout_seconds(state.activity_time_next(), this_thread::cached_seconds());
 }
 
 uint32_t

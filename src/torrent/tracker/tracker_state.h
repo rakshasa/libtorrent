@@ -136,10 +136,12 @@ protected:
   uint32_t            m_scrape_downloaded{};
 };
 
+// TODO: Deprecated/hide success/failed_time_next().
+
 inline uint32_t
 TrackerState::success_time_next() const {
   if (m_counters.success_counter == 0)
-    return 0;
+    return m_min_interval;
 
   return m_counters.success_time_last + std::max(m_normal_interval, static_cast<uint32_t>(min_normal_interval));
 }
@@ -147,7 +149,7 @@ TrackerState::success_time_next() const {
 inline uint32_t
 TrackerState::failed_time_next() const {
   if (m_counters.failed_counter == 0)
-    return 0;
+    return m_min_interval;
 
   if (m_min_interval > min_min_interval)
     return m_counters.failed_time_last + m_min_interval;
@@ -195,6 +197,7 @@ inline void
 TrackerState::add_success_request(uint32_t time) {
   m_counters.success_time_last = time;
   m_counters.success_counter++;
+  m_counters.failed_counter = 0;
 }
 
 inline void

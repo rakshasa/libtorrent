@@ -64,8 +64,7 @@ void
 TrackerTest::set_success(uint32_t counter, uint32_t time_last) {
   auto guard = lock_guard();
 
-  state().m_success_counter   = counter;
-  state().m_success_time_last = time_last;
+  state().add_scrape_request(time_last);
   state().set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
   state().set_min_interval(torrent::tracker::TrackerState::default_min_interval);
 }
@@ -74,8 +73,7 @@ void
 TrackerTest::set_failed(uint32_t counter, uint32_t time_last) {
   auto guard = lock_guard();
 
-  state().m_failed_counter   = counter;
-  state().m_failed_time_last = time_last;
+  state().add_failed_request(time_last);
   state().m_normal_interval  = 0;
   state().m_min_interval     = 0;
 }
