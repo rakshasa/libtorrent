@@ -63,24 +63,21 @@ TrackerController::is_scrape_queued() const {
 
 int64_t
 TrackerController::next_timeout() const {
-  return m_task_timeout.time().count();
+  return m_task_timeout.time_or_zero().count();
 }
 
 int64_t
 TrackerController::next_scrape() const {
-  return m_task_scrape.time().count();
+  return m_task_scrape.time_or_zero().count();
 }
 
 // seconds_to_next_timeout/scrape() is for display purposes only, and returns 0 if the
 // timeout/scrape is unscheduled.
 uint32_t
 TrackerController::seconds_to_next_timeout() const {
-  auto timeout = m_task_timeout.time() - this_thread::cached_time();
+  auto timeout = std::max(m_task_timeout.time_or_zero() - this_thread::cached_time(), std::chrono::microseconds{});
 
   // LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, timeout.count());
-
-  if (timeout <= 0s)
-    return 0;
 
   // LT_LOG_TRACKER_EVENTS("seconds_to_next_timeout() : %" PRId64, utils::ceil_cast_seconds(timeout).count());
 
@@ -89,10 +86,7 @@ TrackerController::seconds_to_next_timeout() const {
 
 uint32_t
 TrackerController::seconds_to_next_scrape() const {
-  auto timeout = m_task_scrape.time() - this_thread::cached_time();
-
-  if (timeout <= 0s)
-    return 0;
+  auto timeout = std::max(m_task_scrape.time_or_zero() - this_thread::cached_time(), std::chrono::microseconds{});
 
   return utils::ceil_cast_seconds(timeout).count();
 }
