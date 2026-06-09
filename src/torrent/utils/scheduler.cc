@@ -10,35 +10,33 @@
 
 namespace torrent::utils {
 
+static constexpr auto compare = [](const std::unique_ptr<SchedulerHandle>& a,
+                                   const std::unique_ptr<SchedulerHandle>& b) {
+  return a->time > b->time;
+};
+
 SchedulerEntry::~SchedulerEntry() {
   assert(!is_scheduled() && "SchedulerEntry::~SchedulerEntry() called on a scheduled item.");
-  assert(m_time == time_type{} && "SchedulerEntry::~SchedulerEntry() called on an item with a time.");
 
   m_slot = nullptr;
-  m_scheduler = nullptr;
-  m_time = time_type{};
-}
-
-
-inline void
-Scheduler::make_heap() {
-  std::make_heap(begin(), end(), [](const SchedulerEntry* a, const SchedulerEntry* b) {
-      return a->time() > b->time();
-    });
-}
-
-inline void
-Scheduler::push_heap() {
-  std::push_heap(begin(), end(), [](const SchedulerEntry* a, const SchedulerEntry* b) {
-      return a->time() > b->time();
-    });
 }
 
 Scheduler::time_type
-Scheduler::next_timeout() const {
-  assert(!empty());
+Scheduler::next_timeout(Scheduler::time_type max_timeout) {
+  while (!m_heap.empty() && m_heap.front()->entry == nullptr) {
+    std::ranges::pop_heap(m_heap, compare);
+    m_heap.pop_back();
+  }
 
-  return std::max(front()->time() - m_cached_time, Scheduler::time_type());
+  if (m_heap.empty())
+    return max_timeout;
+
+  auto timeout = m_heap.front()->time - m_cached_time;
+
+  if (timeout >= max_timeout)
+    return max_timeout;
+
+  return std::max(timeout, Scheduler::time_type());
 }
 
 // We can't make erase/update part of SchedulerItem in case another thread tries to call the
@@ -55,21 +53,20 @@ Scheduler::erase(SchedulerEntry* entry) {
   if (!entry->is_valid())
     throw torrent::internal_error("Scheduler::erase(...) called on an invalid entry.");
 
-  if (entry->scheduler() != this)
+  if (entry->m_handle->scheduler != this)
     throw torrent::internal_error("Scheduler::erase(...) called on an entry that is in another scheduler.");
 
-  auto itr = std::find_if(begin(), end(), [entry](const SchedulerEntry* e) {
-      return e == entry;
-    });
+  entry->m_handle->entry = nullptr;
+  entry->set_handle(nullptr);
+}
 
-  if (itr == end())
-    throw torrent::internal_error("Scheduler::erase(...) could not find item in queue.");
+void
+Scheduler::push_entry(SchedulerEntry* entry, time_type time) {
+  auto handle = std::make_unique<SchedulerHandle>(SchedulerHandle{entry, this, time});
+  entry->set_handle(handle.get());
 
-  entry->set_scheduler(nullptr);
-  entry->set_time(Scheduler::time_type{});
-
-  base_type::erase(itr);
-  make_heap();
+  m_heap.push_back(std::move(handle));
+  std::ranges::push_heap(m_heap, compare);
 }
 
 void
@@ -88,11 +85,7 @@ Scheduler::wait_until(SchedulerEntry* entry, Scheduler::time_type time) {
   if (entry->is_scheduled())
     throw torrent::internal_error("Scheduler::wait_until(...) called on an already scheduled entry.");
 
-  entry->set_scheduler(this);
-  entry->set_time(time);
-
-  base_type::push_back(entry);
-  push_heap();
+  push_entry(entry, time);
 }
 
 void
@@ -125,19 +118,15 @@ Scheduler::update_wait_until(SchedulerEntry* entry, Scheduler::time_type time) {
     throw torrent::internal_error("Scheduler::update_wait(...) called on an invalid entry.");
 
   if (entry->is_scheduled()) {
-    if (entry->scheduler() != this)
+    if (entry->m_handle->scheduler != this)
       throw torrent::internal_error("Scheduler::update_wait(...) called on an entry that is in another scheduler.");
 
-    entry->set_time(time);
-    make_heap();
+    entry->m_handle->entry = nullptr;
+    push_entry(entry, time);
     return;
   }
 
-  entry->set_scheduler(this);
-  entry->set_time(time);
-
-  base_type::push_back(entry);
-  push_heap();
+  push_entry(entry, time);
 }
 
 void
@@ -158,17 +147,16 @@ Scheduler::update_wait_for_ceil_seconds(SchedulerEntry* entry, Scheduler::time_t
 
 void
 Scheduler::perform(Scheduler::time_type current_time) {
-  while (!empty() && base_type::front()->time() <= current_time) {
-    auto entry = base_type::front();
+  while (!m_heap.empty() && m_heap.front()->time <= current_time) {
+    std::ranges::pop_heap(m_heap, compare);
+    auto handle = std::move(m_heap.back());
+    m_heap.pop_back();
 
-    std::pop_heap(begin(), end(), [](const SchedulerEntry* a, const SchedulerEntry* b) {
-        return a->time() > b->time();
-      });
-    base_type::pop_back();
+    if (handle->entry == nullptr)
+      continue;
 
-    entry->set_scheduler(nullptr);
-    entry->set_time(Scheduler::time_type{});
-    entry->slot()();
+    handle->entry->set_handle(nullptr);
+    handle->entry->slot()();
   }
 }
 

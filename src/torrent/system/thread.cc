@@ -278,9 +278,7 @@ Thread::event_loop() {
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
 
       auto timeout = std::max(next_timeout(), std::chrono::microseconds(0));
-
-      if (!m_scheduler->empty())
-        timeout = std::min(timeout, m_scheduler->next_timeout());
+      timeout = m_scheduler->next_timeout(timeout);
 
       int event_count = m_poll->do_poll(timeout);
 
