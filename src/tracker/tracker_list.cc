@@ -324,7 +324,7 @@ TrackerList::find_next_to_request(iterator itr) {
       }
 
     } else {
-      if (itr_state.success_time_next() < preferred_state.failed_time_next()) {
+      if (itr_state.activity_time_next() < preferred_state.failed_time_next()) {
         preferred = itr;
         preferred_state = (*preferred).state();
       }

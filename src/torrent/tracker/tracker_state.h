@@ -57,13 +57,13 @@ public:
   static constexpr int flag_scrapable        = 0x20;
   static constexpr int flag_disownable       = 0x40;
 
-  static constexpr int default_min_interval    = 600;
-  static constexpr int min_min_interval        = 300;
-  static constexpr int max_min_interval        = 4 * 3600;
+  static constexpr uint32_t default_min_interval    = 600;
+  static constexpr uint32_t min_min_interval        = 300;
+  static constexpr uint32_t max_min_interval        = 4 * 3600;
 
-  static constexpr int default_normal_interval = 1800;
-  static constexpr int min_normal_interval     = 600;
-  static constexpr int max_normal_interval     = 8 * 3600;
+  static constexpr uint32_t default_normal_interval = 1800;
+  static constexpr uint32_t min_normal_interval     = 600;
+  static constexpr uint32_t max_normal_interval     = 8 * 3600;
 
   int                 flags() const               { return m_flags; }
 
@@ -83,7 +83,6 @@ public:
   uint32_t            latest_new_peers() const    { return m_latest_new_peers; }
   uint32_t            latest_sum_peers() const    { return m_latest_sum_peers; }
 
-  uint32_t            success_time_next() const;
   uint32_t            success_time_last() const   { return m_counters.success_time_last; }
   uint32_t            success_counter() const     { return m_counters.success_counter; }
 
@@ -93,6 +92,7 @@ public:
 
   uint32_t            activity_time_last() const;
   uint32_t            activity_time_next() const;
+  uint32_t            activity_time_next_minimum() const;
 
   uint32_t            scrape_time_last() const    { return m_counters.scrape_time_last; }
   uint32_t            scrape_counter() const      { return m_counters.scrape_counter; }
@@ -112,14 +112,14 @@ protected:
 
   void                clear_stats();
 
-  void                set_normal_interval(int v);
-  void                set_min_interval(int v);
+  void                set_normal_interval(uint32_t v);
+  void                set_min_interval(uint32_t v);
 
   void                add_success_request(uint32_t time);
   void                add_failed_request(uint32_t time);
   void                add_scrape_request(uint32_t time);
 
-  int                 m_flags;
+  int                 m_flags{};
 
   uint32_t            m_normal_interval{min_normal_interval};
   uint32_t            m_min_interval{min_min_interval};
@@ -139,22 +139,16 @@ protected:
 // TODO: Deprecated/hide success/failed_time_next().
 
 inline uint32_t
-TrackerState::success_time_next() const {
-  if (m_counters.success_counter == 0)
-    return m_min_interval;
-
-  return m_counters.success_time_last + std::max(m_normal_interval, static_cast<uint32_t>(min_normal_interval));
-}
-
-inline uint32_t
 TrackerState::failed_time_next() const {
   if (m_counters.failed_counter == 0)
-    return m_min_interval;
+    return std::min(m_min_interval, min_min_interval);
 
   if (m_min_interval > min_min_interval)
     return m_counters.failed_time_last + m_min_interval;
 
-  return m_counters.failed_time_last + std::min(5 << std::min<uint32_t>(m_counters.failed_counter - 1, 6), min_min_interval - 1);
+  auto shift = std::min(m_counters.failed_counter - 1, uint32_t(6));
+
+  return m_counters.failed_time_last + std::min(uint32_t(5) << shift, min_min_interval);
 }
 
 inline uint32_t
@@ -170,7 +164,21 @@ TrackerState::activity_time_next() const {
   if (m_counters.failed_counter != 0)
     return failed_time_next();
 
-  return success_time_next();
+  if (m_counters.success_counter == 0)
+    return 0;
+
+  return m_counters.success_time_last + std::max(m_normal_interval, min_normal_interval);
+}
+
+inline uint32_t
+TrackerState::activity_time_next_minimum() const {
+  if (m_counters.failed_counter != 0)
+    return failed_time_next();
+
+  if (m_counters.success_counter == 0)
+    return 0;
+
+  return m_counters.success_time_last + std::max(m_min_interval, min_min_interval);
 }
 
 inline void
@@ -184,12 +192,12 @@ TrackerState::clear_stats() {
 }
 
 inline void
-TrackerState::set_normal_interval(int v) {
+TrackerState::set_normal_interval(uint32_t v) {
   m_normal_interval = std::min(std::max(min_normal_interval, v), max_normal_interval);
 }
 
 inline void
-TrackerState::set_min_interval(int v) {
+TrackerState::set_min_interval(uint32_t v) {
   m_min_interval = std::min(std::max(min_min_interval, v), max_min_interval);
 }
 

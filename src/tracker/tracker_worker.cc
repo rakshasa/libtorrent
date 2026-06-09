@@ -19,7 +19,6 @@ TrackerWorker::~TrackerWorker() noexcept(false) {
     throw internal_error("TrackerWorker destroyed without being marked as deleted.");
 }
 
-
 void
 TrackerWorker::mark_starting_request() {
   if (type() == TRACKER_DHT)

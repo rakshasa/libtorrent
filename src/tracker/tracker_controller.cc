@@ -336,7 +336,7 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
     return ~uint32_t();
 
   if ((controller_flags & TrackerController::flag_promiscuous_mode))
-    return 0;
+    return utils::next_timeout_seconds(state.activity_time_next_minimum(), this_thread::cached_seconds());
 
   if ((controller_flags & TrackerController::flag_send_update))
     return tracker_next_timeout_update(tracker);
@@ -353,7 +353,7 @@ tracker_next_timeout_update(const tracker::Tracker& tracker) {
   // Make sure we don't request _too_ often, check last activity.
   // int32_t last_activity = this_thread::cached_seconds().count() - tracker.activity_time_last();
 
-  return 0;
+  return utils::next_timeout_seconds(tracker.state().activity_time_next_minimum(), this_thread::cached_seconds());
 }
 
 uint32_t

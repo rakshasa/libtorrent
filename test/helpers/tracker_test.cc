@@ -61,21 +61,23 @@ TrackerTest::insert_tracker(torrent::TrackerList* parent, int group, torrent::tr
 }
 
 void
-TrackerTest::set_success(uint32_t counter, uint32_t time_last) {
+TrackerTest::set_success(uint32_t time_last) {
   auto guard = lock_guard();
 
-  state().add_scrape_request(time_last);
+  state().add_success_request(time_last);
+
   state().set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
   state().set_min_interval(torrent::tracker::TrackerState::default_min_interval);
 }
 
 void
-TrackerTest::set_failed(uint32_t counter, uint32_t time_last) {
+TrackerTest::set_failed(uint32_t time_last) {
   auto guard = lock_guard();
 
   state().add_failed_request(time_last);
-  state().m_normal_interval  = 0;
-  state().m_min_interval     = 0;
+
+  // state().m_normal_interval  = 0;
+  // state().m_min_interval     = 0;
 }
 
 void
@@ -140,6 +142,7 @@ TrackerTest::close()  {
   m_requesting_state = -1;
 
   auto guard = lock_guard();
+
   state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
   state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
 }
@@ -149,7 +152,8 @@ TrackerTest::cleanup() {
   close();
 
   auto guard = lock_guard();
-  state().m_flags |= torrent::tracker::TrackerState::flag_deleted;
+
+  state().m_flags |=  torrent::tracker::TrackerState::flag_deleted;
   state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
   state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
 }
