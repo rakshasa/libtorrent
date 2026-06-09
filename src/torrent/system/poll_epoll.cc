@@ -202,6 +202,12 @@ Poll::do_poll(int64_t timeout_usec) {
 
 void
 Poll::do_interrupt() {
+  int expected_state = flag_polling;
+
+  if (!m_polling_state.compare_exchange_strong(expected_state, flag_polling | flag_interrupted,
+                                               std::memory_order_release, std::memory_order_relaxed))
+    return;
+
   m_internal->m_wake_event.send_signal();
 }
 
