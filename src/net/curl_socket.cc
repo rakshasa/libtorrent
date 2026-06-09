@@ -113,8 +113,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
         };
 
       if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
-        LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : mark_stream_event_inactive failed", 0);
-        return -1;
+        LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : mark_stream_event_inactive failed, cleaned up by on_reuse", 0);
       }
 
       return 0;
@@ -139,8 +138,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
     if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
       // Socket was closed by the kernel, or reused.
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket was not connected, returning error", 0);
-      return -1;
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket was not connected, cleaned up by on_reuse", 0);
     }
 
     return 0;
@@ -217,7 +215,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
       // TODO: This fd has been reused, no need to do anything else.
       socket->clear_and_erase_self_or_throw();
-      return -1;
+      return 0;
     }
 
     socket->m_uninterested = false;
@@ -249,8 +247,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (!runtime::socket_manager()->mark_stream_event_inactive(socket, func, on_reuse)) {
       // Not connected...
       // throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_NONE: socket was not connected");
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_NONE) : socket was not connected, returning error", 0);
-      return -1;
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_NONE) : socket was not connected, cleaned up by on_reuse", 0);
     }
 
     return 0;
@@ -258,13 +255,13 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 
   if (socket->m_properly_opened) {
     if (!socket->update_and_verify_socket_address()) {
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : socket address mismatch on properly opened socket, returning error", 0);
-      return -1;
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : socket address mismatch on properly opened socket", 0);
+      return 0;
     }
 
     if (!socket->update_and_verify_peer_address()) {
-      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : peer address mismatch on properly opened socket, returning error", 0);
-      return -1;
+      LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : peer address mismatch on properly opened socket", 0);
+      return 0;
     }
   }
 
