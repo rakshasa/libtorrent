@@ -435,8 +435,10 @@ void
 CurlSocket::event_error() {
   LT_LOG_DEBUG_THIS("event_error()", 0);
 
-  auto fd    = file_descriptor();
-  auto stack = m_stack;
+  auto fd       = file_descriptor();
+  auto stack    = m_stack;
+  auto curl_handle = m_stack->handle();
+  auto curl_socket_map = m_stack->socket_map();
 
   // Remove from poll and close the fd before notifying libcurl of the error.
   if (m_properly_opened) {
@@ -447,13 +449,13 @@ CurlSocket::event_error() {
       });
 
     // Tell curl to stop tracking this fd, then notify it of the error.
-    curl_multi_assign(m_stack->handle(), fd, nullptr);
+    curl_multi_assign(curl_handle, fd, nullptr);
     CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
 
-    // Now safe to clean up CurlStack's map — curl won't reference this socket.
-    auto itr = m_stack->socket_map()->find(fd);
-    if (itr != m_stack->socket_map()->end())
-      m_stack->socket_map()->erase(itr);
+    // Now safe to clean up CurlStack's map.
+    auto itr = curl_socket_map->find(fd);
+    if (itr != curl_socket_map->end())
+      curl_socket_map->erase(itr);
 
     return;
   }
