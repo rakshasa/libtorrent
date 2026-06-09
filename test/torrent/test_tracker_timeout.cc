@@ -27,6 +27,7 @@ TestTrackerTimeout::test_set_timeout() {
   CPPUNIT_ASSERT(tracker.state().min_interval() == 4 * 3600);
 
   tracker_worker->cleanup();
+  std::this_thread::sleep_for(100ms);
 
   } catch (const std::exception& e) {
     // CPPUNIT_FAIL(e.what());
