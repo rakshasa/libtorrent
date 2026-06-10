@@ -96,7 +96,9 @@ UdpRouter::close() {
   assert(m_thread == this_thread::thread());
 
   this_thread::scheduler()->erase(&m_task_timeout);
-  this_thread::resolver()->cancel(m_resolver_callback_id);
+
+  if (this_thread::resolver())
+    this_thread::resolver()->cancel(m_resolver_callback_id);
 
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
@@ -361,8 +363,8 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
   if (!is_open())
     throw internal_error("UdpRouter::try_write() called but router is not open.");
 
-  if (info->retry_count >= 3 && info->retry_count != ~0u)
-    throw internal_error("UdpRouter::try_write() called but retry_count is not 0 nor ~0.");
+  if (info->retry_count >= 3)
+    throw internal_error("UdpRouter::try_write() called but retry_count is not 0.");
 
   int retries{};
 
