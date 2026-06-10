@@ -17,7 +17,7 @@ public:
   ~Poll();
 
   // TODO: Make protected.
-  unsigned int        do_poll(int64_t timeout_usec);
+  unsigned int        do_poll(std::chrono::microseconds timeout);
   void                do_interrupt();
 
   // The open max value is used when initializing libtorrent, it
@@ -66,7 +66,7 @@ private:
   Poll(const Poll&) = delete;
   Poll& operator=(const Poll&) = delete;
 
-  int                 poll(int timeout_usec);
+  int                 poll(std::chrono::microseconds timeout);
   unsigned int        process();
 
   bool                m_processing{false};
