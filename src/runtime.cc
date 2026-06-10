@@ -12,10 +12,14 @@ Runtime* g_runtime{};
 
 namespace runtime {
 
-NetworkConfig*   network_config()                                     { return g_runtime->network_config(); }
+bool             is_initialized()         { return g_runtime->is_initialized(); }
+bool             is_shutting_down()       { return g_runtime->is_shutdown_called(); }
+bool             is_quick_shutting_down() { return g_runtime->is_quick_shutdown_called(); }
 
-NetworkManager*  network_manager()                                    { return g_runtime->network_manager(); }
-SocketManager*   socket_manager()                                     { return g_runtime->socket_manager(); }
+NetworkConfig*   network_config()         { return g_runtime->network_config(); }
+
+NetworkManager*  network_manager()        { return g_runtime->network_manager(); }
+SocketManager*   socket_manager()         { return g_runtime->socket_manager(); }
 
 } // namespace runtime
 
@@ -30,6 +34,11 @@ Runtime::~Runtime() = default;
 void
 Runtime::initialize() {
   g_runtime = new Runtime();
+}
+
+void
+Runtime::shutdown() {
+  g_runtime->m_shutdown_called.store(true, std::memory_order_release);
 }
 
 void

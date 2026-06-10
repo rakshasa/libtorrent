@@ -416,6 +416,9 @@ UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
+  // TODO: Add a quick timeout version for STOPPED state that is 5s when shutting down libtorrent.
+  // TODO: Use runtime flag.
+
   if (m_timeout_queue.empty())
     this_thread::scheduler()->wait_until(&m_task_timeout, this_thread::cached_seconds() + 15s);
 
