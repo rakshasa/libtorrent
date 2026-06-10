@@ -332,7 +332,7 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
 
     state().m_scrape_incomplete = buffer.read_32(); // leechers
     state().m_scrape_complete   = buffer.read_32(); // seeders
-    state().m_scrape_time_last  = this_thread::cached_seconds().count();
+    state().add_scrape_request(this_thread::cached_seconds().count());
   }
 
   AddressList l;

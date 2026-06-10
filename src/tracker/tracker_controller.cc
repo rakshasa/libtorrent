@@ -330,33 +330,18 @@ tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_requesting))
     return tracker_next_timeout_promiscuous(tracker);
 
-  int32_t                           activity_time_last;
-  tracker::TrackerState::event_enum latest_event;
-  int32_t                           normal_interval;
-
-  tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
-    activity_time_last = state.activity_time_last();
-    latest_event       = state.latest_event();
-    normal_interval    = state.normal_interval();
-  });
+  auto state = tracker.state();
 
   if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
 
   if ((controller_flags & TrackerController::flag_promiscuous_mode))
-    return 0;
+    return utils::next_timeout_seconds(state.activity_time_next_minimum(), this_thread::cached_seconds());
 
   if ((controller_flags & TrackerController::flag_send_update))
     return tracker_next_timeout_update(tracker);
 
-  // if (tracker.success_counter() == 0 && tracker.failed_counter() == 0)
-  //   return 0;
-
-  int32_t last_activity = this_thread::cached_seconds().count() - activity_time_last;
-
-  // TODO: Use min interval if we're requesting manual update.
-
-  return normal_interval - std::min(last_activity, normal_interval);
+  return utils::next_timeout_seconds(state.activity_time_next(), this_thread::cached_seconds());
 }
 
 uint32_t
@@ -368,7 +353,7 @@ tracker_next_timeout_update(const tracker::Tracker& tracker) {
   // Make sure we don't request _too_ often, check last activity.
   // int32_t last_activity = this_thread::cached_seconds().count() - tracker.activity_time_last();
 
-  return 0;
+  return utils::next_timeout_seconds(tracker.state().activity_time_next_minimum(), this_thread::cached_seconds());
 }
 
 uint32_t
@@ -376,12 +361,16 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   // TODO: Rewrite to be in tracker thread or atomic tracker state.
   auto tracker_state = tracker.state();
 
+  // TODO: Get from tracker_state.
   if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
 
-  int32_t interval;
+  int32_t interval{};
 
-  if (tracker_state.failed_counter()) {
+  if (tracker_state.failed_counter() != 0) {
+    if (tracker_state.failed_time_last() == 0)
+      throw internal_error("tracker_next_timeout_promiscuous(...) called but tracker_state.failed_counter() != 0 and tracker_state.failed_time_last() == 0.");
+
     interval = tracker_state.failed_time_next() - tracker_state.failed_time_last();
   } else {
     interval = tracker_state.normal_interval();
@@ -390,10 +379,10 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   int32_t min_interval = std::max(tracker_state.min_interval(), uint32_t{300});
   int32_t use_interval = std::min(interval, min_interval);
 
-  int32_t since_last = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
+  int32_t since_last   = this_thread::cached_seconds().count() - static_cast<int32_t>(tracker_state.activity_time_last());
 
-  lt_log_print(LOG_TRACKER_EVENTS, "tracker_next_timeout_promiscuous: min_interval:%d use_interval:%d since_last:%d",
-               min_interval, use_interval, since_last);
+  lt_log_print(LOG_TRACKER_EVENTS, "tracker_next_timeout_promiscuous: min_interval:%d use_interval:%d since_last:%d failed_counter:%d",
+               min_interval, use_interval, since_last, tracker_state.failed_counter());
 
   return std::max(use_interval - since_last, 0);
 }
@@ -569,16 +558,20 @@ TrackerController::receive_failure(const tracker::Tracker& tracker, const std::s
   //   return;
   // }
 
-  int32_t failed_counter;
-  int32_t success_counter;
+  // TODO: This makes no sense, it should take into consideration how long it was since last success.
 
-  tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
-      failed_counter = state.failed_counter();
-      success_counter = state.success_counter();
-    });
+  // int32_t failed_counter;
+  // int32_t success_counter;
 
-  if (failed_counter == 1 && success_counter > 0)
-    m_flags |= flag_failure_mode;
+  // tracker.lock_and_call_state([&](const tracker::TrackerState& state) {
+  //     failed_counter  = state.failed_counter();
+  //     success_counter = state.success_counter();
+  //   });
+
+  // if (failed_counter == 1 && success_counter > 0)
+  //   m_flags |= flag_failure_mode;
+
+  m_flags |= flag_failure_mode;
 
   do_timeout();
   m_slot_failure(msg);

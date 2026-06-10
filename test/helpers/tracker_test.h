@@ -29,8 +29,8 @@ public:
   void                set_scrape_on_success(bool state);
   void                set_scrapable();
 
-  void                set_success(uint32_t counter, uint32_t time_last);
-  void                set_failed(uint32_t counter, uint32_t time_last);
+  void                set_success(uint32_t time_last);
+  void                set_failed(uint32_t time_last);
   void                set_latest_new_peers(uint32_t peers);
   void                set_latest_sum_peers(uint32_t peers);
 
@@ -46,6 +46,7 @@ public:
   static torrent::tracker::Tracker       new_tracker(torrent::TrackerList* parent, uint32_t group, const std::string& url, int flags = torrent::tracker::TrackerState::flag_enabled);
   static void                            insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker);
 
+  torrent::tracker::TrackerState*        state_ptr() { return &state(); }
   torrent::tracker::TrackerState&        test_state() { return state(); }
 
   static TrackerTest*                    test_worker(torrent::tracker::Tracker& tracker);
@@ -56,7 +57,7 @@ public:
   static int count_usable(torrent::TrackerList* parent);
 
 private:
-  std::atomic<bool>   m_busy{false};
+  align_cacheline std::atomic<bool> m_busy{false};
   std::atomic<bool>   m_open{false};
   std::atomic<int>    m_requesting_state{-1};
 };

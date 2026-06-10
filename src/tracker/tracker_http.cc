@@ -30,8 +30,6 @@
 
 namespace torrent {
 
-// TODO: Make sure stopped events are finished before deleting a torrent. (disown the request)
-
 TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
   : TrackerWorker(raw_info, utils::uri_can_scrape(raw_info.url) ? (flags | tracker::TrackerState::flag_scrapable) : flags) {
 
@@ -397,11 +395,6 @@ TrackerHttp::receive_done() {
   Object b;
   *m_data >> b;
 
-  // Temporarily reset the interval
-  //
-  // TODO: This might be causing an issue with too frequent tracker requests.
-  lock_and_clear_intervals();
-
   if (m_data->fail()) {
     auto dump = utils::sanitize_string_with_tags(m_data->str());
 
@@ -441,8 +434,6 @@ TrackerHttp::receive_done() {
 
 void
 TrackerHttp::receive_signal_failed(const std::string& msg) {
-  lock_and_clear_intervals();
-
   return receive_failed(msg);
 }
 
@@ -463,11 +454,12 @@ TrackerHttp::receive_failed(const std::string& msg) {
   }
 
   close_directly();
-  update_requesting_state();
 
   if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE) {
-    if (send_next_family(true))
+    if (send_next_family(true)) {
+      update_requesting_state();
       return;
+    }
 
     LT_LOG("received scrape failure : url:%s : %s", info().url.c_str(), msg.c_str());
 
@@ -481,6 +473,9 @@ TrackerHttp::receive_failed(const std::string& msg) {
     m_last_error_message = msg;
     return;
   }
+
+  // Update gets called in send_next_family().
+  update_requesting_state();
 
   if (m_last_success) {
     LT_LOG("received failure : previous family succeeded : url:%s : %s", info().url.c_str(), msg.c_str());
@@ -515,7 +510,7 @@ TrackerHttp::process_failure(const Object& object) {
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     state().m_scrape_complete   = std::max<int64_t>(object.get_key_value("complete"), 0);
     state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-    state().m_scrape_time_last  = this_thread::cached_seconds().count();
+    state().add_scrape_request(this_thread::cached_seconds().count());
   }
 
   if (object.has_key_value("downloaded"))
@@ -543,7 +538,7 @@ TrackerHttp::process_success(const Object& object) {
     if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
       state().m_scrape_complete   = std::max<int64_t>(object.get_key_value("complete"), 0);
       state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-      state().m_scrape_time_last  = this_thread::cached_seconds().count();
+      state().add_scrape_request(this_thread::cached_seconds().count());
     }
 
     if (object.has_key_value("downloaded"))
@@ -583,7 +578,6 @@ TrackerHttp::process_success(const Object& object) {
     return receive_failed("No peers returned");
 
   close_directly();
-  update_requesting_state();
 
   if (send_next_family()) {
     m_last_success       = true;
@@ -592,6 +586,8 @@ TrackerHttp::process_success(const Object& object) {
     m_slot_new_peers(std::move(address_list));
     return;
   }
+
+  update_requesting_state();
 
   m_slot_success(std::move(address_list));
 }

@@ -318,18 +318,20 @@ TrackerList::find_next_to_request(iterator itr) {
     auto itr_state = (*itr).state();
 
     if (itr_state.failed_counter() != 0) {
-      if (itr_state.failed_time_next() < preferred_state.failed_time_next()) {
-        preferred = itr;
-        preferred_state = (*preferred).state();
+      if (preferred_state.failed_counter() == 0)
+        continue;
+
+      if (itr_state.failed_time_next() < preferred_state.activity_time_next()) {
+        preferred       = itr;
+        preferred_state = (*itr).state();
       }
 
-    } else {
-      if (itr_state.success_time_next() < preferred_state.failed_time_next()) {
-        preferred = itr;
-        preferred_state = (*preferred).state();
-      }
+      continue;
+    }
 
-      break;
+    if (itr_state.activity_time_next() < preferred_state.activity_time_next()) {
+      preferred       = itr;
+      preferred_state = (*itr).state();
     }
   }
 
@@ -413,9 +415,8 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
 
   {
     auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().m_success_time_last = this_thread::cached_seconds().count();
-    tracker.get_worker()->state().m_success_counter++;
-    tracker.get_worker()->state().m_failed_counter = 0;
+    tracker.get_worker()->state().add_success_request(this_thread::cached_seconds().count());
+
     tracker.get_worker()->state().m_latest_sum_peers = l->size();
   }
 
@@ -444,8 +445,7 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   {
     auto guard = tracker.get_worker()->lock_guard();
 
-    tracker.get_worker()->state().m_failed_time_last = this_thread::cached_seconds().count();
-    tracker.get_worker()->state().m_failed_counter++;
+    tracker.get_worker()->state().add_failed_request(this_thread::cached_seconds().count());
     tracker.get_worker()->state().m_latest_new_peers_delta = 0;
   }
 
@@ -466,8 +466,7 @@ TrackerList::receive_scrape_success(tracker::Tracker tracker) {
   {
     auto guard = tracker.get_worker()->lock_guard();
 
-    tracker.get_worker()->state().m_scrape_time_last = this_thread::cached_seconds().count();
-    tracker.get_worker()->state().m_scrape_counter++;
+    tracker.get_worker()->state().add_scrape_request(this_thread::cached_seconds().count());
   }
 
   if (m_slot_scrape_success)

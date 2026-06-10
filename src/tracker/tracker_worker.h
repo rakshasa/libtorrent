@@ -55,7 +55,6 @@ protected:
   virtual void        close() = 0;
   virtual void        cleanup() = 0;
 
-  void                lock_and_clear_intervals();
   void                lock_and_clear_stats();
   auto                lock_and_latest_event();
   void                lock_and_set_latest_event(tracker::TrackerState::event_enum new_state);
@@ -107,12 +106,6 @@ private:
 
   align_cacheline bool  __force_new_cacheline;
 };
-
-inline void
-TrackerWorker::lock_and_clear_intervals() {
-  auto guard = lock_guard();
-  m_state.clear_intervals();
-}
 
 inline void
 TrackerWorker::lock_and_clear_stats() {
