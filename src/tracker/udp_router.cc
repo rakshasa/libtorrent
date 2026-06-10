@@ -97,7 +97,8 @@ UdpRouter::close() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  if (this_thread::resolver())
+  // Check if we're running in unittests.
+  if (this_thread::resolver() != nullptr && net_thread::thread() != nullptr)
     this_thread::resolver()->cancel(m_resolver_callback_id);
 
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
@@ -450,13 +451,15 @@ UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
-  if (m_timeout_queue.empty())
-    this_thread::scheduler()->wait_until(&m_task_timeout, this_thread::cached_seconds() + 15s);
+  auto retry_count = ++info->retry_count;
+  auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
-  m_timeout_queue.emplace_back(id, this_thread::cached_seconds() + 15s, info);
+  if (m_timeout_queue.empty())
+    this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
+
+  m_timeout_queue.emplace_back(id, timeout_time, info);
 
   info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
-  info->retry_count++;
 }
 
 void
