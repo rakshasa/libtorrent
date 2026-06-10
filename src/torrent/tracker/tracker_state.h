@@ -83,6 +83,7 @@ public:
   uint32_t            latest_new_peers() const    { return m_latest_new_peers; }
   uint32_t            latest_sum_peers() const    { return m_latest_sum_peers; }
 
+  uint32_t            success_time_next() const;
   uint32_t            success_time_last() const   { return m_counters.success_time_last; }
   uint32_t            success_counter() const     { return m_counters.success_counter; }
 
@@ -136,7 +137,13 @@ protected:
   uint32_t            m_scrape_downloaded{};
 };
 
-// TODO: Deprecated/hide success/failed_time_next().
+inline uint32_t
+TrackerState::success_time_next() const {
+  if (m_counters.success_counter == 0)
+    return 0;
+
+  return m_counters.success_time_last + std::max(m_normal_interval, min_normal_interval);
+}
 
 inline uint32_t
 TrackerState::failed_time_next() const {
@@ -164,10 +171,7 @@ TrackerState::activity_time_next() const {
   if (m_counters.failed_counter != 0)
     return failed_time_next();
 
-  if (m_counters.success_counter == 0)
-    return 0;
-
-  return m_counters.success_time_last + std::max(m_normal_interval, min_normal_interval);
+  return success_time_next();
 }
 
 inline uint32_t

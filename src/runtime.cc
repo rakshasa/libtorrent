@@ -34,11 +34,19 @@ Runtime::~Runtime() = default;
 void
 Runtime::initialize() {
   g_runtime = new Runtime();
+  g_runtime->m_initialized = true;
 }
 
 void
 Runtime::shutdown() {
-  g_runtime->m_shutdown_called.store(true, std::memory_order_release);
+  g_runtime->m_shutdown_called = true;
+}
+
+void
+Runtime::quick_shutdown() {
+  g_runtime->m_quick_shutdown_called = true;
+
+  // TODO: This should e.g. timeout all udp, http, dns, etc requests.
 }
 
 void
