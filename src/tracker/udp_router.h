@@ -17,7 +17,7 @@ namespace torrent::tracker {
 
 class UdpRouter : public SocketDatagram {
 public:
-  using buffer_type  = ProtocolBuffer<512>;
+  using buffer_type      = ProtocolBuffer<512>;
 
   using prepare_func     = std::function<void(uint32_t, buffer_type&)>;
   using process_func     = std::function<bool(uint32_t, buffer_type&)>;
@@ -94,8 +94,9 @@ private:
 
   void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 
-  bool                try_write(uint32_t id, connection_info* info);
-  bool                do_write(uint32_t id, connection_info* info);
+  bool                try_write_with_queues(uint32_t id, connection_info* info);
+  [[nodiscard]] int   try_write(uint32_t id, connection_info* info);
+  [[nodiscard]] int   do_write(uint32_t id, connection_info* info);
 
   void                clear_timeout(connection_info* info);
   void                queue_timeout(uint32_t id, connection_info* info);
@@ -111,14 +112,15 @@ private:
 
   // TODO: Change Thread/Scheduler callbacks to use deque, and create callback handles.
 
-  system::Thread*     m_thread;
-  random_engine       m_random_engine;
+  system::Thread*       m_thread;
+  random_engine         m_random_engine;
 
-  connection_map      m_connections;
-  write_queue_type    m_write_queue;
-  timeout_queue_type  m_timeout_queue;
+  connection_map        m_connections;
+  write_queue_type      m_write_queue;
+  timeout_queue_type    m_timeout_queue;
 
   utils::SchedulerEntry m_task_timeout;
+
   buffer_type           m_buffer;
 
   system::callback_id   m_resolver_callback_id;

@@ -77,14 +77,13 @@ UdpRouter::open(int family) {
   }
 
   set_file_descriptor(fd);
+  set_socket_address(sa_copy(bind_address.get()));
 
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
       this_thread::poll()->insert_error(this);
     });
-
-  set_socket_address(sa_copy(bind_address.get()));
 
   LT_LOG("opened udp router : family:%s bind_address:%s", family_str(family), sa_pretty_str(bind_address.get()).c_str());
 }
@@ -98,19 +97,22 @@ UdpRouter::close() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
+  // Check if we're running in unittests.
+  if (this_thread::resolver() != nullptr && net_thread::thread() != nullptr)
+    this_thread::resolver()->cancel(m_resolver_callback_id);
+
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
+
       set_file_descriptor(-1);
+      set_socket_address(sa_make_unspec());
     });
 
   // TODO: Do we just let timeout expire connections, or do we send errors?
-  // this_thread::resolver()->cancel_all_for_requester(this);
 
   // TODO: Send error to all?
-
-  set_socket_address(sa_make_unspec());
 
   LT_LOG("closed udp router", 0);
 }
@@ -139,7 +141,6 @@ UdpRouter::updated_network_config(int family) {
   open(family);
 }
 
-
 void
 UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
   if (!is_open())
@@ -156,8 +157,7 @@ UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
 
   auto itr = connect_unsafe(std::move(address), params);
 
-  if (!try_write(itr->first, &itr->second))
-    queue_write(itr->first, &itr->second);
+  try_write_with_queues(itr->first, &itr->second);
 }
 
 void
@@ -205,8 +205,7 @@ UdpRouter::transfer(uint32_t id, connection_params params) {
 
   disconnect_unsafe(itr);
 
-  if (!try_write(new_itr->first, &new_itr->second))
-    queue_write(new_itr->first, &new_itr->second);
+  try_write_with_queues(new_itr->first, &new_itr->second);
 }
 
 void
@@ -337,69 +336,105 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
 
   itr->second.address = std::move(sa);
 
-  if (!try_write(id, &itr->second))
-    queue_write(id, &itr->second);
+  try_write_with_queues(id, &itr->second);
 }
 
 
 bool
-UdpRouter::try_write(uint32_t id, connection_info* info) {
-  if (info->retry_count >= 3)
-    throw internal_error("UdpRouter::try_write() called but retry_count is not 0.");
-
-  if (!is_open())
-    throw internal_error("UdpRouter::try_write() called but router is not open.");
-
+UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
   clear_timeout(info);
 
-  if (!do_write(id, info)) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-      return false;
+  int err = try_write(id, info);
 
-    if (errno == EHOSTUNREACH || errno == ENETUNREACH || errno == EPERM) {
-      auto failure_fn = std::move(info->failure);
-      disconnect_unsafe(m_connections.find(id));
-
-      failure_fn(id, errno, 0);
-      return true;
-    }
-
-    LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(errno).c_str());
-
-    // TODO: Need to be handled differently.
-    throw internal_error("UdpRouter::try_write() failed to write datagram : " + family_enum_str(socket_address()->sa_family) + " : " +
-                         sa_pretty_str(info->address.get()) + " : " + system::errno_enum_str(errno));
+  if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR) {
+    queue_write(id, info);
+    return false;
   }
 
-  queue_timeout(id, info);
+  if (err != 0)
+    return false;
 
-  if (info->packet_sent)
-    info->packet_sent(id);
+  queue_timeout(id, info);
 
   return true;
 }
 
-bool
+int
+UdpRouter::try_write(uint32_t id, connection_info* info) {
+  if (!is_open())
+    throw internal_error("UdpRouter::try_write() called but router is not open.");
+
+  if (info->retry_count >= 3)
+    throw internal_error("UdpRouter::try_write() called but retry_count is not 0.");
+
+  int retries{};
+
+  while (true) {
+    int err = do_write(id, info);
+
+    if (err == 0)
+      break;
+
+    if (err == EINTR) {
+      if (++retries > 5)
+        return err;
+
+      continue;
+    }
+
+    if (err == EAGAIN || err == EWOULDBLOCK)
+      return err;
+
+    // To properly handle this, try_write() returning true means we don't touch the connection again.
+    if (err == EHOSTUNREACH || err == ENETUNREACH || err == EADDRNOTAVAIL || err == EINVAL || err == EACCES || err == EPERM) {
+      if (err == EINVAL || err == EACCES || err == EPERM)
+        LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(err).c_str());
+
+      auto failure_fn = std::move(info->failure);
+      disconnect_unsafe(m_connections.find(id));
+
+      failure_fn(id, err, 0);
+      return 0;
+    }
+
+    LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(err).c_str());
+
+    // TODO: Need to be handled differently.
+    throw internal_error("UdpRouter::try_write() failed to write datagram : " + family_enum_str(socket_address()->sa_family) + " : " +
+                         sa_pretty_str(info->address.get()) + " : " + system::errno_enum_str(err));
+  }
+
+  if (info->packet_sent)
+    info->packet_sent(id);
+
+  return 0;
+}
+
+int
 UdpRouter::do_write(uint32_t id, connection_info* info) {
   m_buffer.reset();
 
   info->prepare(id, m_buffer);
 
   if (m_buffer.size_end() == 0)
-    throw internal_error("UdpRouter::try_write() prepare function did not write any data.");
+    throw internal_error("UdpRouter::do_write() prepare function did not write any data.");
 
   auto address       = info->address.get();
   auto bytes_written = write_datagram_sa(m_buffer.begin(), m_buffer.size_end(), address);
 
-  if (bytes_written == -1)
-    return false;
+  if (bytes_written == -1) {
+    if (errno == 0)
+      throw internal_error("UdpRouter::do_write() write_datagram_sa() failed with errno 0");
+
+    return errno;
+  }
 
   if (bytes_written != m_buffer.size_end()) {
     LT_LOG("failed to write datagram : address:%s : only %d of %d bytes written", sa_pretty_str(address).c_str(), bytes_written, m_buffer.size_end());
     throw internal_error("UdpRouter::try_write() did not write entire datagram.");
   }
 
-  return true;
+  return 0;
 }
 
 void
@@ -416,13 +451,15 @@ UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
-  if (m_timeout_queue.empty())
-    this_thread::scheduler()->wait_until(&m_task_timeout, this_thread::cached_seconds() + 15s);
+  auto retry_count = ++info->retry_count;
+  auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
-  m_timeout_queue.emplace_back(id, this_thread::cached_seconds() + 15s, info);
+  if (m_timeout_queue.empty())
+    this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
+
+  m_timeout_queue.emplace_back(id, timeout_time, info);
 
   info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
-  info->retry_count++;
 }
 
 void
@@ -475,17 +512,15 @@ UdpRouter::receive_timeout() {
 
     info->timeout_ptr = nullptr;
 
-    if (info->retry_count < 3) {
-      if (!try_write(id, info))
-        queue_write(id, info);
+    if (info->retry_count >= 3) {
+      auto failure_fn = std::move(info->failure);
 
+      disconnect_unsafe(m_connections.find(id));
+      failure_fn(id, ETIMEDOUT, 0);
       continue;
     }
 
-    auto failure_fn = std::move(info->failure);
-
-    disconnect_unsafe(m_connections.find(id));
-    failure_fn(id, ETIMEDOUT, 0);
+    try_write_with_queues(id, info);
   }
 
   if (!m_timeout_queue.empty())
@@ -550,8 +585,13 @@ UdpRouter::event_write() {
   while (!m_write_queue.empty()) {
     auto [id, info] = m_write_queue.front();
 
-    if (!try_write(id, info))
+    int err = try_write(id, info);
+
+    if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR)
       break;
+
+    if (err != 0)
+      throw internal_error("UdpRouter::event_write() try_write() unexpected error: " + system::errno_enum_str(err));
 
     info->queue_ptr = nullptr;
     m_write_queue.pop_front();
