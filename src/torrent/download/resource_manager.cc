@@ -58,14 +58,16 @@ ResourceManager::insert(const resource_manager_entry& entry) {
 
 void
 ResourceManager::update_group_iterators() {
-  auto       entry_itr = base_type::begin();
+  auto entry_itr = base_type::begin();
   auto group_itr = m_choke_groups.begin();
 
   while (group_itr != m_choke_groups.end()) {
     (*group_itr)->set_first(&*entry_itr);
+
     entry_itr = std::find_if(entry_itr, end(), [group_itr, this](value_type v) {
       return (std::distance(m_choke_groups.begin(), group_itr)) < v.group();
     });
+
     (*group_itr)->set_last(&*entry_itr);
     group_itr++;
   }
@@ -73,7 +75,7 @@ ResourceManager::update_group_iterators() {
 
 void
 ResourceManager::validate_group_iterators() {
-  auto       entry_itr = base_type::begin();
+  auto entry_itr = base_type::begin();
   auto group_itr = m_choke_groups.begin();
 
   while (group_itr != m_choke_groups.end()) {
@@ -83,6 +85,7 @@ ResourceManager::validate_group_iterators() {
     entry_itr = std::find_if(entry_itr, end(), [group_itr, this](value_type v) {
       return (std::distance(m_choke_groups.begin(), group_itr)) < v.group();
     });
+
     if ((*group_itr)->last() != &*entry_itr)
       throw internal_error("ResourceManager::receive_tick() invalid last iterator.");
 
@@ -117,8 +120,14 @@ ResourceManager::push_group(const std::string& name) {
   m_choke_groups.push_back(std::make_unique<choke_group>());
 
   m_choke_groups.back()->set_name(name);
-  m_choke_groups.back()->set_first(&*base_type::end());
-  m_choke_groups.back()->set_last(&*base_type::end());
+
+  if (base_type::empty()) {
+    m_choke_groups.back()->set_first(nullptr);
+    m_choke_groups.back()->set_last(nullptr);
+  } else {
+    m_choke_groups.back()->set_first(&*base_type::end());
+    m_choke_groups.back()->set_last(&*base_type::end());
+  }
 
   m_choke_groups.back()->up_queue()->set_heuristics(HEURISTICS_UPLOAD_LEECH);
   m_choke_groups.back()->down_queue()->set_heuristics(HEURISTICS_DOWNLOAD_LEECH);
