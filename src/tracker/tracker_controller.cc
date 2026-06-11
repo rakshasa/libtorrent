@@ -71,6 +71,8 @@ TrackerController::next_scrape() const {
   return m_task_scrape.time().count();
 }
 
+// seconds_to_next_timeout/scrape() is for display purposes only, and returns 0 if the
+// timeout/scrape is unscheduled.
 uint32_t
 TrackerController::seconds_to_next_timeout() const {
   auto timeout = m_task_timeout.time() - this_thread::cached_time();

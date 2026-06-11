@@ -195,8 +195,8 @@ Poll::cleanup_thread() {
 }
 
 unsigned int
-Poll::do_poll(int64_t timeout_usec) {
-  int status = poll(timeout_usec);
+Poll::do_poll(std::chrono::microseconds timeout) {
+  int status = poll(timeout);
 
   if (status == -1) {
     if (errno != EINTR)
@@ -209,20 +209,23 @@ Poll::do_poll(int64_t timeout_usec) {
 }
 
 int
-Poll::poll(int timeout_usec) {
-  timespec timeout = { timeout_usec / 1000000, (timeout_usec % 1000000) * 1000 };
+Poll::poll(std::chrono::microseconds timeout) {
+  timespec timeout_spec = {
+    static_cast<time_t>(timeout.count() / 1000000),
+    static_cast<long>(timeout.count() % 1000000) * 1000
+  };
 
   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
 
   if (previous_state & flag_interrupted || system::Thread::self()->has_any_callbacks())
-    timeout = timespec{0, 0};
+    timeout_spec = timespec{0, 0};
 
   int nfds = ::kevent(m_internal->m_fd,
                       m_internal->m_changes.get(),
                       m_internal->m_changed_events,
                       m_internal->m_events.get(),
                       m_internal->m_max_events,
-                      &timeout);
+                      &timeout_spec);
 
   m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
 
