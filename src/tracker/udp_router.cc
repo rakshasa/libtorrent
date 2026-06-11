@@ -359,6 +359,7 @@ UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
   return true;
 }
 
+// Returns EAGAIN for all temporary errors.
 int
 UdpRouter::try_write(uint32_t id, connection_info* info) {
   if (!is_open())
@@ -382,7 +383,6 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
       continue;
     }
 
-    // Must match try_write_with_queues()'s handling of these errors.
     if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR)
       return EAGAIN;
 
