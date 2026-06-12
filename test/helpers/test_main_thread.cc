@@ -54,6 +54,21 @@ TestMainThread::cleanup_thread() {
 }
 
 void
+TestMainThread::test_set_cached_time(std::chrono::microseconds t) {
+  set_cached_time(365 * 24h + t);
+}
+
+void
+TestMainThread::test_add_cached_time(std::chrono::microseconds t) {
+  set_cached_time(cached_time() + t);
+}
+
+void
+TestMainThread::test_process_events_without_cached_time() {
+  process_events_without_cached_time();
+}
+
+void
 TestMainThread::call_events() {
   process_callbacks();
 }
