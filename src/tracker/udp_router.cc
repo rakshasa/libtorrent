@@ -346,7 +346,7 @@ UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
 
   int err = try_write(id, info);
 
-  if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR) {
+  if (err == EAGAIN) {
     queue_write(id, info);
     return false;
   }
@@ -359,6 +359,7 @@ UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
   return true;
 }
 
+// Returns EAGAIN for all temporary errors.
 int
 UdpRouter::try_write(uint32_t id, connection_info* info) {
   if (!is_open())
@@ -377,13 +378,13 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
 
     if (err == EINTR) {
       if (++retries > 5)
-        return err;
+        return EAGAIN;
 
       continue;
     }
 
-    if (err == EAGAIN || err == EWOULDBLOCK)
-      return err;
+    if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR)
+      return EAGAIN;
 
     // To properly handle this, try_write() returning true means we don't touch the connection again.
     if (err == EHOSTUNREACH || err == ENETUNREACH || err == EADDRNOTAVAIL || err == EINVAL || err == EACCES || err == EPERM) {
@@ -451,7 +452,7 @@ UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
-  auto retry_count = ++info->retry_count;
+  auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
   if (m_timeout_queue.empty())
@@ -587,7 +588,8 @@ UdpRouter::event_write() {
 
     int err = try_write(id, info);
 
-    if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR)
+    // EWOULDBLOCK/EINTR are returned as EAGAIN.
+    if (err == EAGAIN)
       break;
 
     if (err != 0)
