@@ -215,7 +215,7 @@ int
 Poll::poll(std::chrono::microseconds timeout) {
   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
 
-  if (previous_state & flag_interrupted || system::Thread::self()->has_any_callbacks())
+  if (previous_state & flag_interrupted || system::Thread::self()->has_interrupt_callbacks())
     timeout = {};
 
   int nfds = ::epoll_wait(m_internal->m_fd,
