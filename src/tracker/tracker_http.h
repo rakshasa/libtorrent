@@ -43,7 +43,7 @@ private:
   std::string         request_announce_url(tracker::TrackerState::event_enum state, int family);
   std::tuple<int,int> request_families();
 
-  void                update_tracker_id(const std::string& id);
+  void                update_tracker_id_unsafe(const std::string& id);
 
   void                receive_done();
   void                receive_signal_failed(const std::string& msg);

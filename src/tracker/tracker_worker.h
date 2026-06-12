@@ -67,6 +67,7 @@ protected:
 
   std::string         tracker_id_safe() const;
   void                set_tracker_id_safe(const std::string& id);
+  void                set_tracker_id_unsafe(const std::string& id);
 
   void                mark_starting_request();
 
@@ -134,6 +135,11 @@ TrackerWorker::tracker_id_safe() const {
 inline void
 TrackerWorker::set_tracker_id_safe(const std::string& id) {
   auto guard = lock_guard();
+  m_tracker_id = id;
+}
+
+inline void
+TrackerWorker::set_tracker_id_unsafe(const std::string& id) {
   m_tracker_id = id;
 }
 

@@ -373,11 +373,11 @@ TrackerHttp::request_families() {
 }
 
 void
-TrackerHttp::update_tracker_id(const std::string& id) {
+TrackerHttp::update_tracker_id_unsafe(const std::string& id) {
   if (id.empty())
     return;
 
-  set_tracker_id_safe(id);
+  set_tracker_id_unsafe(id);
 }
 
 void
@@ -499,7 +499,7 @@ TrackerHttp::process_failure(const Object& object) {
   auto guard = lock_guard();
 
   if (object.has_key_string("tracker id"))
-    update_tracker_id(object.get_key_string("tracker id"));
+    update_tracker_id_unsafe(object.get_key_string("tracker id"));
 
   if (object.has_key_value("interval"))
     state().set_normal_interval(object.get_key_value("interval") * 1s);
@@ -524,7 +524,7 @@ TrackerHttp::process_success(const Object& object) {
     auto guard = lock_guard();
 
     if (object.has_key_string("tracker id"))
-      update_tracker_id(object.get_key_string("tracker id"));
+      update_tracker_id_unsafe(object.get_key_string("tracker id"));
 
     if (object.has_key_value("interval"))
       state().set_normal_interval(object.get_key_value("interval") * 1s);
