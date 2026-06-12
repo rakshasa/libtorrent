@@ -415,7 +415,7 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
 
   {
     auto guard = tracker.get_worker()->lock_guard();
-    tracker.get_worker()->state().add_success_request(this_thread::cached_seconds().count());
+    tracker.get_worker()->state().add_success_request(this_thread::cached_seconds());
 
     tracker.get_worker()->state().m_latest_sum_peers = l->size();
   }
@@ -445,7 +445,7 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   {
     auto guard = tracker.get_worker()->lock_guard();
 
-    tracker.get_worker()->state().add_failed_request(this_thread::cached_seconds().count());
+    tracker.get_worker()->state().add_failed_request(this_thread::cached_seconds());
     tracker.get_worker()->state().m_latest_new_peers_delta = 0;
   }
 
@@ -466,7 +466,7 @@ TrackerList::receive_scrape_success(tracker::Tracker tracker) {
   {
     auto guard = tracker.get_worker()->lock_guard();
 
-    tracker.get_worker()->state().add_scrape_request(this_thread::cached_seconds().count());
+    tracker.get_worker()->state().add_scrape_request(this_thread::cached_seconds());
   }
 
   if (m_slot_scrape_success)

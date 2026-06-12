@@ -40,7 +40,7 @@ test_tracker_controller_features::test_requesting_basic() {
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 30));
   TEST_MULTI3_IS_BUSY("00000", "00000");
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().min_interval() - 30));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().min_interval() - 30s));
   TEST_MULTI3_IS_BUSY("10111", "10111");
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
@@ -305,7 +305,7 @@ test_tracker_controller_features::test_groups_requesting() {
   // Next timeout should be soon...
   CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, 30));
   TEST_GROUP_IS_BUSY("000000", "000000");
-  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().min_interval() - 30));
+  CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_0_0.state().min_interval() - 30s));
   TEST_GROUP_IS_BUSY("100101", "100101");
 
   CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());

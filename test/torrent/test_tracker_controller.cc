@@ -17,11 +17,16 @@ process_main_and_tracker(TestFixtureWithMainAndTrackerThread* fixture) {
 }
 
 bool
-test_tracker_value_in_range(uint32_t value, int32_t min, uint32_t max) {
-  uint32_t range_min = min < 0 ? 0 : min;
+test_tracker_value_in_range(uint32_t value, std::chrono::seconds min, std::chrono::seconds max) {
+  return test_tracker_value_in_range(value, min.count(), max.count());
+}
+
+bool
+test_tracker_value_in_range(uint32_t value, int64_t min, int64_t max) {
+  int64_t range_min = min < 0 ? 0 : min;
 
   if (value < range_min || value > max) {
-    lt_log_print(torrent::LOG_TRACKER_EVENTS, "test_tracker_value_in_range: %u not in range [%u, %u]", value, range_min, max);
+    lt_log_print(torrent::LOG_TRACKER_EVENTS, "test_tracker_value_in_range: %u not in range [%" PRIu64 ", %" PRId64 "]", value, range_min, max);
     return false;
   }
 
@@ -35,6 +40,14 @@ test_tracker_step_time(TestFixtureWithMainAndTrackerThread* fixture, int32_t sec
 
   fixture->m_main_thread->test_process_events_without_cached_time();
   std::this_thread::sleep_for(50ms);
+}
+
+bool
+test_goto_next_timeout(TestFixtureWithMainAndTrackerThread* fixture,
+                       torrent::TrackerController* tracker_controller,
+                       std::chrono::seconds assumed_timeout,
+                       bool is_scrape) {
+  return test_goto_next_timeout(fixture, tracker_controller, (uint32_t)assumed_timeout.count(), is_scrape);
 }
 
 bool

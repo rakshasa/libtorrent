@@ -502,15 +502,16 @@ TrackerHttp::process_failure(const Object& object) {
     update_tracker_id(object.get_key_string("tracker id"));
 
   if (object.has_key_value("interval"))
-    state().set_normal_interval(object.get_key_value("interval"));
+    state().set_normal_interval(object.get_key_value("interval") * 1s);
 
   if (object.has_key_value("min interval"))
-    state().set_min_interval(object.get_key_value("min interval"));
+    state().set_min_interval(object.get_key_value("min interval") * 1s);
 
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     state().m_scrape_complete   = std::max<int64_t>(object.get_key_value("complete"), 0);
     state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-    state().add_scrape_request(this_thread::cached_seconds().count());
+
+    state().add_scrape_request(this_thread::cached_seconds());
   }
 
   if (object.has_key_value("downloaded"))
@@ -526,27 +527,29 @@ TrackerHttp::process_success(const Object& object) {
       update_tracker_id(object.get_key_string("tracker id"));
 
     if (object.has_key_value("interval"))
-      state().set_normal_interval(object.get_key_value("interval"));
+      state().set_normal_interval(object.get_key_value("interval") * 1s);
     else
       state().set_normal_interval(tracker::TrackerState::default_normal_interval);
 
     if (object.has_key_value("min interval"))
-      state().set_min_interval(object.get_key_value("min interval"));
+      state().set_min_interval(object.get_key_value("min interval") * 1s);
     else
       state().set_min_interval(tracker::TrackerState::default_min_interval);
 
     if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
       state().m_scrape_complete   = std::max<int64_t>(object.get_key_value("complete"), 0);
       state().m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-      state().add_scrape_request(this_thread::cached_seconds().count());
+
+      state().add_scrape_request(this_thread::cached_seconds());
     }
 
     if (object.has_key_value("downloaded"))
       state().m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
 
-    LT_LOG("tracker reply : state:%s url:%s : interval:%u min_interval:%u complete:%u incomplete:%u downloaded:%u",
+    LT_LOG("tracker reply : state:%s url:%s : interval:%" PRId64 " min_interval:%" PRId64 " complete:%u incomplete:%u downloaded:%u",
            option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(),
-           state().normal_interval(), state().min_interval(), state().scrape_complete(), state().scrape_incomplete(), state().scrape_downloaded());
+           (int64_t)state().normal_interval().count(), (int64_t)state().min_interval().count(),
+           state().scrape_complete(), state().scrape_incomplete(), state().scrape_downloaded());
   }
 
   AddressList address_list;

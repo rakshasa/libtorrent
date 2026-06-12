@@ -14,6 +14,7 @@ std::chrono::seconds      cast_seconds(std::chrono::microseconds t);
 std::chrono::microseconds time_since_epoch();
 
 uint32_t                  next_timeout_seconds(uint32_t next_timeout, std::chrono::seconds current);
+uint64_t                  next_timeout_seconds(std::chrono::seconds next_timeout, std::chrono::seconds current);
 
 // Implementation:
 
@@ -50,6 +51,14 @@ next_timeout_seconds(uint32_t next_timeout, std::chrono::seconds current) {
     return 0;
 
   return (next_timeout_chrono - current).count();
+}
+
+inline uint64_t
+next_timeout_seconds(std::chrono::seconds next_timeout, std::chrono::seconds current) {
+  if (next_timeout <= current)
+    return 0;
+
+  return (next_timeout - current).count();
 }
 
 template <typename T> void next_timeout_seconds(T& next_timeout, std::chrono::seconds current) = delete;

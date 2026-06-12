@@ -30,7 +30,9 @@ public:
   void                set_scrapable();
 
   void                set_success(uint32_t time_last);
+  void                set_success(std::chrono::seconds time_last);
   void                set_failed(uint32_t time_last);
+  void                set_failed(std::chrono::seconds time_last);
   void                set_latest_new_peers(uint32_t peers);
   void                set_latest_sum_peers(uint32_t peers);
 

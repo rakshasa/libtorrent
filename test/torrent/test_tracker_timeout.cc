@@ -17,16 +17,16 @@ TestTrackerTimeout::test_set_timeout() {
     CPPUNIT_ASSERT(tracker.state().min_interval()    == torrent::tracker::TrackerState::min_min_interval);
 
     tracker_worker->set_new_normal_interval(100);
-    CPPUNIT_ASSERT(tracker.state().normal_interval() == 600);
+    CPPUNIT_ASSERT(tracker.state().normal_interval() == 600s);
 
     tracker_worker->set_new_normal_interval(8 * 4000);
-    CPPUNIT_ASSERT(tracker.state().normal_interval() == 8 * 3600);
+    CPPUNIT_ASSERT(tracker.state().normal_interval() == 8 * 3600s);
 
     tracker_worker->set_new_min_interval(100);
-    CPPUNIT_ASSERT_EQUAL((uint32_t)300, tracker.state().min_interval());
+    CPPUNIT_ASSERT_EQUAL(300s, tracker.state().min_interval());
 
     tracker_worker->set_new_min_interval(4 * 4000);
-    CPPUNIT_ASSERT(tracker.state().min_interval() == 4 * 3600);
+    CPPUNIT_ASSERT(tracker.state().min_interval() == 4 * 3600s);
 
     tracker_worker->cleanup();
 

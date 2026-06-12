@@ -59,8 +59,8 @@ TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
 
   runtime::network_manager()->dht_controller()->announce(info().info_hash, m_weak_tracker);
 
-  state().set_normal_interval(20 * 60);
-  state().set_min_interval(0);
+  state().set_normal_interval(20 * 60s);
+  state().set_min_interval(0s);
 }
 
 void
