@@ -327,12 +327,13 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
   {
     auto guard = lock_guard();
 
-    state().set_normal_interval(buffer.read_32());
+    state().set_normal_interval(buffer.read_32() * 1s);
     state().set_min_interval(tracker::TrackerState::default_min_interval);
 
     state().m_scrape_incomplete = buffer.read_32(); // leechers
     state().m_scrape_complete   = buffer.read_32(); // seeders
-    state().add_scrape_request(this_thread::cached_seconds().count());
+
+    state().add_scrape_request(this_thread::cached_seconds());
   }
 
   AddressList l;

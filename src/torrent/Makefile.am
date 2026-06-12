@@ -90,6 +90,7 @@ libtorrent_torrent_la_SOURCES = \
 	tracker/manager.h \
 	tracker/tracker.cc \
 	tracker/tracker.h \
+	tracker/tracker_state.cc \
 	tracker/tracker_state.h \
 	tracker/wrappers.cc \
 	tracker/wrappers.h \

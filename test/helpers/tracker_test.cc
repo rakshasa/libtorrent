@@ -62,6 +62,11 @@ TrackerTest::insert_tracker(torrent::TrackerList* parent, int group, torrent::tr
 
 void
 TrackerTest::set_success(uint32_t time_last) {
+  set_success(std::chrono::seconds(time_last));
+}
+
+void
+TrackerTest::set_success(std::chrono::seconds time_last) {
   auto guard = lock_guard();
 
   state().add_success_request(time_last);
@@ -72,6 +77,11 @@ TrackerTest::set_success(uint32_t time_last) {
 
 void
 TrackerTest::set_failed(uint32_t time_last) {
+  set_failed(std::chrono::seconds(time_last));
+}
+
+void
+TrackerTest::set_failed(std::chrono::seconds time_last) {
   auto guard = lock_guard();
 
   state().add_failed_request(time_last);
@@ -95,13 +105,13 @@ TrackerTest::set_latest_sum_peers(uint32_t peers) {
 void
 TrackerTest::set_new_normal_interval(uint32_t timeout) {
   auto guard = lock_guard();
-  state().set_normal_interval(timeout);
+  state().set_normal_interval(timeout * 1s);
 }
 
 void
 TrackerTest::set_new_min_interval(uint32_t timeout) {
   auto guard = lock_guard();
-  state().set_min_interval(timeout);
+  state().set_min_interval(timeout * 1s);
 }
 
 void
@@ -250,8 +260,8 @@ TrackerTest::trigger_failure() {
   } else {
     {
       auto guard = lock_guard();
-      state().set_normal_interval(0);
-      state().set_min_interval(0);
+      state().set_normal_interval(0s);
+      state().set_min_interval(0s);
     }
 
     if (m_slot_failure)
