@@ -606,15 +606,16 @@ UdpRouter::event_write() {
       break;
 
     if (err != 0) {
-      assert(info->queue_ptr == nullptr);
+      assert(std::get<1>(m_write_queue.front()) == nullptr);
+
       m_write_queue.pop_front();
       continue;
     }
 
+    m_write_queue.pop_front();
+
     info->queue_ptr = nullptr;
     queue_timeout(id, info);
-
-    m_write_queue.pop_front();
   }
 
   if (m_write_queue.empty())
