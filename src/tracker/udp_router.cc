@@ -280,6 +280,16 @@ UdpRouter::disconnect_unsafe(connection_map::iterator itr) {
 }
 
 void
+UdpRouter::disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err) {
+  assert(itr != m_connections.end());
+
+  auto failure_fn = std::move(itr->second.failure);
+  disconnect_unsafe(itr);
+
+  failure_fn(itr->first, errno_err, gai_err);
+}
+
+void
 UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
   auto itr = m_connections.find(id);
 
@@ -298,11 +308,7 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
 
   auto error_fn = [this, id, itr](int err) {
       LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err));
-
-      auto failure_fn = std::move(itr->second.failure);
-      disconnect_unsafe(itr);
-
-      failure_fn(id, 0, err);
+      disconnect_failure_unsafe(itr, 0, err);
     };
 
   sa_unique_ptr sa;
@@ -391,10 +397,7 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
       if (err == EINVAL || err == EACCES || err == EPERM)
         LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(err).c_str());
 
-      auto failure_fn = std::move(info->failure);
-      disconnect_unsafe(m_connections.find(id));
-
-      failure_fn(id, err, 0);
+      disconnect_failure_unsafe(m_connections.find(id), err, 0);
       return 0;
     }
 
@@ -504,9 +507,8 @@ UdpRouter::receive_timeout() {
 
     m_timeout_queue.pop_front();
 
-    if (info == nullptr) {
+    if (info == nullptr)
       continue;
-    }
 
     if (info->failure == nullptr)
       throw internal_error("UdpRouter::receive_timeout() connection info failure callback is null.");
@@ -514,10 +516,7 @@ UdpRouter::receive_timeout() {
     info->timeout_ptr = nullptr;
 
     if (info->retry_count >= 3) {
-      auto failure_fn = std::move(info->failure);
-
-      disconnect_unsafe(m_connections.find(id));
-      failure_fn(id, ETIMEDOUT, 0);
+      disconnect_failure_unsafe(m_connections.find(id), ETIMEDOUT, 0);
       continue;
     }
 
@@ -596,6 +595,7 @@ UdpRouter::event_write() {
       throw internal_error("UdpRouter::event_write() try_write() unexpected error: " + system::errno_enum_str(err));
 
     info->queue_ptr = nullptr;
+
     m_write_queue.pop_front();
   }
 

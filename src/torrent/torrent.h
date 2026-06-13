@@ -29,14 +29,10 @@ Throttle*           up_throttle_global() LIBTORRENT_EXPORT;
 const Rate*         down_rate() LIBTORRENT_EXPORT;
 const Rate*         up_rate() LIBTORRENT_EXPORT;
 
-using DList        = std::list<Download>;
-using EncodingList = std::list<std::string>;
-
-EncodingList*       encoding_list() LIBTORRENT_EXPORT;
+using DList = std::list<Download>;
 
 // Will always return a valid Download. On errors it
-// throws. 'encodingList' contains a list of prefered encodings to use
-// for file names.
+// throws.
 //
 // The Object must be on the heap allocated with 'new'. If
 // 'download_add' throws the client must handle the deletion, else it

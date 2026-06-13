@@ -34,14 +34,8 @@ public:
   // is only inserted between path elements.
   std::string        as_string() const;
 
-  std::string        encoding() const                     { return m_encoding; }
-  void               set_encoding(const std::string& enc) { m_encoding = enc; }
-
   base_type*         base()                               { return this; }
   const base_type*   base() const                         { return this; }
-
-private:
-  std::string        m_encoding;
 };
 
 inline void Path::push_back(const std::string& path) { insert_path(end(), path); }

@@ -127,19 +127,13 @@ Throttle* up_throttle_global()   { return manager->upload_throttle(); }
 const Rate* down_rate()          { return manager->download_throttle()->rate(); }
 const Rate* up_rate()            { return manager->upload_throttle()->rate(); }
 
-EncodingList*
-encoding_list() {
-  return manager->encoding_list();
-}
-
 Download
 download_add(Object* object, uint32_t tracker_key) {
   auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
-  ctor.set_download(download.get());
-  ctor.set_encoding_list(manager->encoding_list());
 
+  ctor.set_download(download.get());
   ctor.initialize(*object);
 
   std::string infoHash;
