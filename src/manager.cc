@@ -10,7 +10,6 @@
 #include "net/listen.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/chunk_manager.h"
-#include "torrent/connection_manager.h"
 #include "torrent/throttle.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/download/choke_group.h"
@@ -29,7 +28,6 @@ Manager* manager = nullptr;
 
 Manager::Manager()
   : m_chunk_manager(new ChunkManager),
-    m_connection_manager(new ConnectionManager),
     m_download_manager(new DownloadManager),
     m_file_manager(new FileManager),
     m_handshake_manager(new HandshakeManager),

@@ -127,8 +127,6 @@ libtorrent_torrent_la_SOURCES = \
 	chunk_manager.cc \
 	chunk_manager.h \
 	common.h \
-	connection_manager.cc \
-	connection_manager.h \
 	download.cc \
 	download.h \
 	download_info.h \
@@ -249,7 +247,6 @@ libtorrent_torrent_include_HEADERS = \
 	bitfield.h \
 	chunk_manager.h \
 	common.h \
-	connection_manager.h \
 	download.h \
 	download_info.h \
 	exceptions.h \

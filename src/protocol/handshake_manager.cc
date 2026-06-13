@@ -6,7 +6,6 @@
 #include "manager.h"
 #include "peer_connection_base.h"
 #include "download/download_main.h"
-#include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
@@ -25,6 +24,26 @@
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sap_addr_str(sa).c_str(), __VA_ARGS__);
 
 namespace torrent {
+
+namespace {
+
+bool
+filter_sockaddr(const sockaddr* sa) {
+  if (runtime::network_config()->is_block_ipv4() && sa_is_inet(sa))
+    return false;
+
+  if (runtime::network_config()->is_block_ipv6() && sa_is_inet6(sa))
+    return false;
+
+  if (sa_is_v4mapped(sa)) {
+    if (runtime::network_config()->is_block_ipv4in6())
+      return false;
+  }
+
+  return true;
+}
+
+}
 
 ProtocolExtension HandshakeManager::DefaultExtensions = ProtocolExtension::make_default();
 
@@ -85,7 +104,7 @@ HandshakeManager::erase_download(DownloadMain* info) {
 
 void
 HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, const sockaddr* sa) {
-  if (!manager->connection_manager()->filter(sa)) {
+  if (!filter_sockaddr(sa)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : filtered", fd);
     fd_close(fd);
     return;
@@ -113,7 +132,7 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
 void
 HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
   if (!runtime::socket_manager()->can_open_socket(runtime::category_generic) ||
-      !manager->connection_manager()->filter(sa))
+      !filter_sockaddr(sa))
     return;
 
   auto encryption_options = runtime::network_config()->encryption_options();
@@ -164,11 +183,11 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       int message;
 
       if (encryption_options & runtime::NetworkConfig::encryption_use_proxy)
-        message = ConnectionManager::handshake_outgoing_proxy;
+        message = Handshake::handshake_outgoing_proxy;
       else if (encryption_options & (runtime::NetworkConfig::encryption_try_outgoing | runtime::NetworkConfig::encryption_require))
-        message = ConnectionManager::handshake_outgoing_encrypted;
+        message = Handshake::handshake_outgoing_encrypted;
       else
-        message = ConnectionManager::handshake_outgoing;
+        message = Handshake::handshake_outgoing;
 
       if (proxy_address->sa_family != AF_UNSPEC) {
         LT_LOG_SA(sa, "created outgoing connection via proxy: fd:%i proxy:%s encryption:%x message:%x",
@@ -285,7 +304,7 @@ HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
 
 void
 HandshakeManager::receive_timeout(Handshake* h) {
-  receive_failed(h, ConnectionManager::handshake_failed,
+  receive_failed(h, Handshake::handshake_failed,
                  h->state() == Handshake::CONNECTING ?
                  Handshake::e_handshake_network_unreachable :
                  Handshake::e_handshake_network_timeout);

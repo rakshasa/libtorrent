@@ -94,9 +94,8 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   m_peerChunks.set_peer_info(m_peerInfo);
   m_peerChunks.bitfield()->swap(*bitfield);
 
-  std::pair<ThrottleList*, ThrottleList*> throttles = m_download->throttles(m_peerInfo->socket_address());
-  m_up->set_throttle(throttles.first);
-  m_down->set_throttle(throttles.second);
+  m_up->set_throttle(m_download->upload_throttle());
+  m_down->set_throttle(m_download->download_throttle());
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
   m_peerChunks.upload_throttle()->slot_activate() = [this] { this_thread::poll()->insert_write(this); };
