@@ -218,7 +218,8 @@ UdpRouter::disconnect(uint32_t id) {
     throw internal_error("UdpRouter::disconnect() called with invalid connection ID.");
 
   if (itr->second.address == nullptr) {
-    assert(itr->second.queue_ptr == nullptr);
+    assert(itr->second.queue_ptr   == nullptr);
+    assert(itr->second.timeout_ptr == nullptr);
 
     // Indicate to resolved_hostname() that the connection has been disconnected.
     itr->second.prepare = nullptr;
@@ -366,6 +367,7 @@ UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
 }
 
 // Returns EAGAIN for all temporary errors.
+
 int
 UdpRouter::try_write(uint32_t id, connection_info* info) {
   if (!is_open())
@@ -398,7 +400,7 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
         LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(err).c_str());
 
       disconnect_failure_unsafe(m_connections.find(id), err, 0);
-      return 0;
+      return err;
     }
 
     LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(err).c_str());
@@ -416,6 +418,8 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
 
 int
 UdpRouter::do_write(uint32_t id, connection_info* info) {
+  assert(info->address != nullptr);
+
   m_buffer.reset();
 
   info->prepare(id, m_buffer);
@@ -447,7 +451,7 @@ UdpRouter::clear_timeout(connection_info* info) {
     return;
 
   *info->timeout_ptr = nullptr;
-  info->timeout_ptr = nullptr;
+  info->timeout_ptr  = nullptr;
 }
 
 void
@@ -520,6 +524,9 @@ UdpRouter::receive_timeout() {
       continue;
     }
 
+    if (info->queue_ptr != nullptr)
+      throw internal_error("UdpRouter::receive_timeout() connection is currently queued for writing.");
+
     try_write_with_queues(id, info);
   }
 
@@ -585,16 +592,23 @@ UdpRouter::event_write() {
   while (!m_write_queue.empty()) {
     auto [id, info] = m_write_queue.front();
 
+    if (info == nullptr) {
+      m_write_queue.pop_front();
+      continue;
+    }
+
+    assert(info->timeout_ptr == nullptr);
+
     int err = try_write(id, info);
 
     // EWOULDBLOCK/EINTR are returned as EAGAIN.
     if (err == EAGAIN)
       break;
 
-    if (err != 0)
-      throw internal_error("UdpRouter::event_write() try_write() unexpected error: " + system::errno_enum_str(err));
-
     info->queue_ptr = nullptr;
+
+    if (err == 0)
+      queue_timeout(id, info);
 
     m_write_queue.pop_front();
   }
