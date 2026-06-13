@@ -73,6 +73,8 @@ private:
   using write_queue_type   = std::deque<std::pair<uint32_t, connection_info*>>;
   using timeout_queue_type = std::deque<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
 
+  // TODO: Add itr to self in connection_map.
+
   struct connection_info {
     c_sa_shared_ptr      address;
 
