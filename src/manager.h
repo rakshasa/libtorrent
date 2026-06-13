@@ -14,8 +14,6 @@ class DownloadManager;
 class FileManager;
 class ResourceManager;
 
-using EncodingList = std::list<std::string>;
-
 class Manager {
 public:
   Manager();
@@ -29,8 +27,6 @@ public:
   auto*               resource_manager()   { return m_resource_manager.get(); }
 
   auto*               client_list()        { return m_client_list.get(); }
-
-  EncodingList*       encoding_list()      { return &m_encodingList; }
 
   Throttle*           upload_throttle()    { return m_uploadThrottle; }
   Throttle*           download_throttle()  { return m_downloadThrottle; }
@@ -51,8 +47,6 @@ private:
   std::unique_ptr<ResourceManager>   m_resource_manager;
 
   std::unique_ptr<ClientList>        m_client_list;
-
-  EncodingList          m_encodingList;
 
   Throttle*             m_uploadThrottle;
   Throttle*             m_downloadThrottle;

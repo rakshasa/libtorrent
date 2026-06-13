@@ -79,6 +79,8 @@ private:
     prepare_func         prepare{};
     process_func         process{};
     failure_func         failure{};
+
+    // Do not change the connection in this callback.
     packet_sent_func     packet_sent{};
 
     unsigned int         retry_count{};
@@ -89,6 +91,7 @@ private:
 
   connection_map::iterator connect_unsafe(c_sa_shared_ptr address, connection_params params);
   void                     disconnect_unsafe(connection_map::iterator itr);
+  void                     disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err);
 
   int                 router_family() const;
 
