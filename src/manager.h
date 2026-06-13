@@ -20,7 +20,6 @@ public:
   ~Manager();
 
   auto*               chunk_manager()      { return m_chunk_manager.get(); }
-  auto*               connection_manager() { return m_connection_manager.get(); }
   auto*               download_manager()   { return m_download_manager.get(); }
   auto*               file_manager()       { return m_file_manager.get(); }
   auto*               handshake_manager()  { return m_handshake_manager.get(); }
@@ -40,7 +39,6 @@ public:
 
 private:
   std::unique_ptr<ChunkManager>      m_chunk_manager;
-  std::unique_ptr<ConnectionManager> m_connection_manager;
   std::unique_ptr<DownloadManager>   m_download_manager;
   std::unique_ptr<FileManager>       m_file_manager;
   std::unique_ptr<HandshakeManager>  m_handshake_manager;

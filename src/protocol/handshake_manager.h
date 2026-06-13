@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-#include "torrent/connection_manager.h"
+#include "torrent/common.h"
 #include "torrent/utils/unordered_vector.h"
 
 namespace torrent {

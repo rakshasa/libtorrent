@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "net/address_list.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/object_stream.h"
 #include "torrent/net/http_stack.h"

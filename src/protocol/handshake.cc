@@ -140,7 +140,8 @@ Handshake::initialize_outgoing(HandshakeManager* handshake_manager, int fd, cons
   m_address    = sa_copy(sa);
   m_encryption = encryption_options;
 
-  std::make_pair(m_upload_throttle, m_download_throttle) = m_download->throttles(m_address.get());
+  m_upload_throttle   = m_download->upload_throttle();
+  m_download_throttle = m_download->download_throttle();
 
   m_state = CONNECTING;
 
@@ -279,7 +280,7 @@ Handshake::read_encryption_key() {
     if (m_readBuffer.peek_8() == 19 && std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) == 0) {
       // got unencrypted BT handshake
       if (m_encryption.options() & runtime::NetworkConfig::encryption_require)
-        throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unencrypted_rejected);
+        throw handshake_error(handshake_dropped, e_handshake_unencrypted_rejected);
 
       m_state = READ_INFO;
       return true;
@@ -304,7 +305,7 @@ Handshake::read_encryption_key() {
     prepare_key_plus_pad();
 
   if(!m_encryption.key()->compute_secret(m_readBuffer.position(), 96))
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
+    throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
   m_readBuffer.consume(96);
 
   // Determine the synchronisation string.
@@ -336,7 +337,7 @@ Handshake::read_encryption_sync() {
     int toRead = enc_pad_size + m_encryption.sync_length() - m_readBuffer.remaining();
 
     if (toRead <= 0)
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_encryption_sync_failed);
+      throw handshake_error(handshake_failed, e_handshake_encryption_sync_failed);
 
     m_readBuffer.move_end(read_unthrottled(m_readBuffer.end(), toRead));
 
@@ -376,9 +377,10 @@ Handshake::read_encryption_skey() {
 
   // We don't allow encrypted connections for meta-data downloads.
   if (m_download->info()->is_meta_download())
-    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_invalid_encryption);
+    throw handshake_error(handshake_dropped, e_handshake_invalid_encryption);
 
-  std::make_pair(m_upload_throttle, m_download_throttle) = m_download->throttles(m_address.get());
+  m_upload_throttle   = m_download->upload_throttle();
+  m_download_throttle = m_download->download_throttle();
 
   m_encryption.initialize_encrypt(m_download->info()->hash().c_str(), m_incoming);
   m_encryption.initialize_decrypt(m_download->info()->hash().c_str(), m_incoming);
@@ -410,7 +412,7 @@ Handshake::read_encryption_negotiation() {
   }
 
   if (!HandshakeEncryption::compare_vc(m_readBuffer.position()))
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+    throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
   m_readBuffer.consume(HandshakeEncryption::vc_length);
 
@@ -418,7 +420,7 @@ Handshake::read_encryption_negotiation() {
   m_readPos = m_readBuffer.read_16();       // length of padC/padD
 
   if (m_readPos > enc_pad_size)
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+    throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
   // choose one of the offered encryptions, or check the chosen one is valid
   if (m_incoming) {
@@ -426,7 +428,7 @@ Handshake::read_encryption_negotiation() {
       m_encryption.set_crypto(HandshakeEncryption::crypto_plain);
 
     } else if ((m_encryption.options() & runtime::NetworkConfig::encryption_require_RC4) && !m_encryption.has_crypto_rc4()) {
-      throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unencrypted_rejected);
+      throw handshake_error(handshake_dropped, e_handshake_unencrypted_rejected);
 
     } else if (m_encryption.has_crypto_rc4()) {
       m_encryption.set_crypto(HandshakeEncryption::crypto_rc4);
@@ -435,7 +437,7 @@ Handshake::read_encryption_negotiation() {
       m_encryption.set_crypto(HandshakeEncryption::crypto_plain);
 
     } else {
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
+      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
     }
 
     // at this point we can also write the rest of our negotiation reply
@@ -445,10 +447,10 @@ Handshake::read_encryption_negotiation() {
 
   } else {
     if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4 && m_encryption.crypto() != HandshakeEncryption::crypto_plain)
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
+      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
 
     if ((m_encryption.options() & runtime::NetworkConfig::encryption_require_RC4) && (m_encryption.crypto() != HandshakeEncryption::crypto_rc4))
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
+      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
   }
 
   if (!m_incoming) {
@@ -485,7 +487,7 @@ Handshake::read_negotiation_reply() {
   m_encryption.set_length_ia(m_readBuffer.read_16());
 
   if (m_encryption.length_ia() > handshake_size)
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+    throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
   m_state = READ_ENC_IA;
 
@@ -503,7 +505,7 @@ Handshake::read_info() {
   if ((m_readBuffer.remaining() >= 1 && m_readBuffer.peek_8() != 19) ||
       (m_readBuffer.remaining() >= 20 &&
        (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0)))
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_not_bittorrent);
+    throw handshake_error(handshake_failed, e_handshake_not_bittorrent);
 
   if (m_readBuffer.remaining() < part1_size)
     return false;
@@ -523,7 +525,7 @@ Handshake::read_info() {
       // Have the download from the encrypted handshake, make sure it
       // matches the BT handshake.
       if (m_download->info()->hash().not_equal_to(reinterpret_cast<char*>(m_readBuffer.position())))
-        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+        throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
     } else {
       m_download = m_manager->download_info(reinterpret_cast<char*>(m_readBuffer.position()));
@@ -531,13 +533,14 @@ Handshake::read_info() {
 
     validate_download();
 
-    std::make_pair(m_upload_throttle, m_download_throttle) = m_download->throttles(m_address.get());
+    m_upload_throttle   = m_download->upload_throttle();
+    m_download_throttle = m_download->download_throttle();
 
     prepare_handshake();
 
   } else {
     if (m_download->info()->hash().not_equal_to(reinterpret_cast<char*>(m_readBuffer.position())))
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+      throw handshake_error(handshake_failed, e_handshake_invalid_value);
   }
 
   m_readBuffer.consume(20);
@@ -607,7 +610,7 @@ Handshake::read_bitfield() {
 bool
 Handshake::read_extension() {
   if (m_readBuffer.peek_32() > m_readBuffer.reserved())
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+    throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
   int32_t need = m_readBuffer.peek_32() + 4 - m_readBuffer.remaining();
 
@@ -624,7 +627,7 @@ Handshake::read_extension() {
     m_readBuffer.move_unused();
 
     if (need + 5 > m_readBuffer.reserved_left())
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+      throw handshake_error(handshake_failed, e_handshake_invalid_value);
   }
 
   LT_LOG_EXTRA_DEBUG_SA(m_address, "read_extension", 0)
@@ -651,7 +654,7 @@ Handshake::read_extension() {
 bool
 Handshake::read_port() {
   if (m_readBuffer.peek_32() > m_readBuffer.reserved())
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+    throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
   int32_t need = m_readBuffer.peek_32() + 4 - m_readBuffer.remaining();
 
@@ -659,7 +662,7 @@ Handshake::read_port() {
     m_readBuffer.move_unused();
 
     if (need + 5 > m_readBuffer.reserved_left())
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+      throw handshake_error(handshake_failed, e_handshake_invalid_value);
   }
 
   LT_LOG_EXTRA_DEBUG_SA(m_address, "read_port", 0)
@@ -683,7 +686,7 @@ Handshake::read_done() {
     throw internal_error("Handshake::read_done() m_readDone != false.");
 
 //   if (m_peerInfo->supports_extensions() && m_extensions->is_initial_handshake())
-//     throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_order);
+//     throw handshake_error(handshake_failed, e_handshake_invalid_order);
 
   m_readDone = true;
   this_thread::poll()->remove_read(this);
@@ -780,7 +783,7 @@ restart:
         break;
 
       if (m_readBuffer.remaining() > m_encryption.length_ia())
-        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+        throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
       if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4)
         m_encryption.info()->set_obfuscated();
@@ -847,7 +850,7 @@ restart:
         const Bitfield* bitfield = m_download->file_list()->bitfield();
 
         if (!m_bitfield.empty() || m_readBuffer.read_32() != bitfield->size_bytes() + 1)
-          throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+          throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
         m_readBuffer.read_8();
 
@@ -913,7 +916,7 @@ restart:
   m_manager->receive_failed(this, e.type(), e.error());
 
 } catch (const network_error&) {
-  m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_read_error);
+  m_manager->receive_failed(this, handshake_failed, e_handshake_network_read_error);
 }
 }
 
@@ -938,13 +941,13 @@ Handshake::fill_read_buffer(int size) {
 inline void
 Handshake::validate_download() {
   if (m_download == nullptr)
-    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unknown_download);
+    throw handshake_error(handshake_dropped, e_handshake_unknown_download);
 
   if (!m_download->info()->is_active())
-    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_inactive_download);
+    throw handshake_error(handshake_dropped, e_handshake_inactive_download);
 
   if (!m_download->info()->is_accepting_new_peers())
-    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_not_accepting_connections);
+    throw handshake_error(handshake_dropped, e_handshake_not_accepting_connections);
 }
 
 void
@@ -959,7 +962,7 @@ Handshake::event_write() {
         throw internal_error("Handshake::event_write() fd_get_socket_error failed : " + std::string(std::strerror(errno)));
 
       if (socket_error != 0)
-        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_unreachable);
+        throw handshake_error(handshake_failed, e_handshake_network_unreachable);
 
       this_thread::poll()->insert_read(this);
 
@@ -976,7 +979,7 @@ Handshake::event_write() {
       // the other side before our proxy connect command was finished
       // written. This probably means the other side isn't a proxy.
       if (m_writeBuffer.remaining())
-        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_not_bittorrent);
+        throw handshake_error(handshake_failed, e_handshake_not_bittorrent);
 
       m_writeBuffer.reset();
 
@@ -1031,7 +1034,7 @@ Handshake::event_write() {
     m_manager->receive_failed(this, e.type(), e.error());
 
   } catch (const network_error&) {
-    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_write_error);
+    m_manager->receive_failed(this, handshake_failed, e_handshake_network_write_error);
   }
 }
 
@@ -1049,7 +1052,7 @@ Handshake::prepare_proxy_connect() {
 void
 Handshake::prepare_key_plus_pad() {
   if (!m_encryption.initialize())
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+    throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
   m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
   m_writeBuffer.move_end(96);
@@ -1123,7 +1126,7 @@ Handshake::prepare_handshake() {
 void
 Handshake::prepare_peer_info() {
   if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
-    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_is_self);
+    throw handshake_error(handshake_failed, e_handshake_is_self);
 
   // PeerInfo handling for outgoing connections needs to be moved to
   // HandshakeManager.
@@ -1134,10 +1137,10 @@ Handshake::prepare_peer_info() {
     m_peerInfo = m_download->peer_list()->connected(m_address.get(), PeerList::connect_incoming);
 
     if (m_peerInfo == nullptr)
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_no_peer_info);
+      throw handshake_error(handshake_failed, e_handshake_no_peer_info);
 
     if (m_peerInfo->failed_counter() > torrent::HandshakeManager::max_failed)
-      throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_toomanyfailed);
+      throw handshake_error(handshake_dropped, e_handshake_toomanyfailed);
 
     m_peerInfo->set_flags(PeerInfo::flag_handshake);
   }
@@ -1151,7 +1154,7 @@ Handshake::prepare_peer_info() {
 
   // For meta downloads, we require support of the extension protocol.
   if (m_download->info()->is_meta_download() && !m_peerInfo->supports_extensions())
-    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unwanted_connection);
+    throw handshake_error(handshake_dropped, e_handshake_unwanted_connection);
 }
 
 void
@@ -1284,7 +1287,7 @@ Handshake::event_error() {
   if (m_state == INACTIVE)
     throw internal_error("Handshake::event_error() called on an inactive handshake.");
 
-  m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_socket_error);
+  m_manager->receive_failed(this, handshake_failed, e_handshake_network_socket_error);
 }
 
 } // namespace torrent

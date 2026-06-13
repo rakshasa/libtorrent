@@ -54,6 +54,16 @@ public:
   static constexpr int e_handshake_network_write_error       = 16;
   static constexpr int e_last                                = 17;
 
+  // static constexpr int handshake_incoming           = 1;
+  static constexpr int handshake_outgoing           = 2;
+  static constexpr int handshake_outgoing_encrypted = 3;
+  static constexpr int handshake_outgoing_proxy     = 4;
+  // static constexpr int handshake_success            = 5;
+  static constexpr int handshake_dropped            = 6;
+  static constexpr int handshake_failed             = 7;
+  // static constexpr int handshake_retry_plaintext    = 8;
+  // static constexpr int handshake_retry_encrypted    = 9;
+
   using Buffer = ProtocolBuffer<buffer_size>;
 
   enum State {

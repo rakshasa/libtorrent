@@ -107,17 +107,6 @@ DownloadMain::post_initialize() {
   m_tracker_controller = ThreadTracker::thread_tracker()->tracker_manager()->add_controller(info(), std::move(tc));
 }
 
-std::pair<ThrottleList*, ThrottleList*>
-DownloadMain::throttles(const sockaddr* sa) {
-  ThrottlePair pair = ThrottlePair(NULL, NULL);
-
-  if (manager->connection_manager()->address_throttle())
-    pair = manager->connection_manager()->address_throttle()(sa);
-
-  return std::make_pair(pair.first == NULL ? upload_throttle() : pair.first->throttle_list(),
-                        pair.second == NULL ? download_throttle() : pair.second->throttle_list());
-}
-
 void
 DownloadMain::open(int flags) {
   if (info()->is_open())

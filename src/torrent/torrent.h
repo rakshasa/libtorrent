@@ -18,7 +18,6 @@ void                cleanup() LIBTORRENT_EXPORT;
 
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
-ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
 FileManager*        file_manager() LIBTORRENT_EXPORT;
 ResourceManager*    resource_manager() LIBTORRENT_EXPORT;
 
