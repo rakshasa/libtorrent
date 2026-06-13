@@ -605,10 +605,14 @@ UdpRouter::event_write() {
     if (err == EAGAIN)
       break;
 
-    info->queue_ptr = nullptr;
+    if (err != 0) {
+      assert(info->queue_ptr == nullptr);
+      m_write_queue.pop_front();
+      continue;
+    }
 
-    if (err == 0)
-      queue_timeout(id, info);
+    info->queue_ptr = nullptr;
+    queue_timeout(id, info);
 
     m_write_queue.pop_front();
   }
