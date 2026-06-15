@@ -66,7 +66,6 @@ public:
   uint32_t            category_max_size(category_t category);
 
   void                set_max_size_and_adjust(uint32_t max_open);
-  void                set_category_max_size(category_t category, uint32_t max_size);
 
   void                add_unmanaged_socket();
   void                remove_unmanaged_socket();

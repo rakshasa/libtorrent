@@ -152,12 +152,6 @@ SocketManager::set_max_size_and_adjust(uint32_t max_open) {
 }
 
 void
-SocketManager::set_category_max_size(category_t category, uint32_t max_size) {
-  auto guard = lock_guard();
-  max_size_unsafe(category) = max_size;
-}
-
-void
 SocketManager::subscribe_to_changes(void* target, const std::function<void()>& callback) {
   auto guard = lock_guard();
   m_change_subscribers.push_back(std::make_pair(target, callback));
