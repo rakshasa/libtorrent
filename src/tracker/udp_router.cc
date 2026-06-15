@@ -284,10 +284,11 @@ void
 UdpRouter::disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err) {
   assert(itr != m_connections.end());
 
+  auto id = itr->first;
   auto failure_fn = std::move(itr->second.failure);
   disconnect_unsafe(itr);
 
-  failure_fn(itr->first, errno_err, gai_err);
+  failure_fn(id, errno_err, gai_err);
 }
 
 void
