@@ -17,6 +17,18 @@
 namespace {
 
 uint32_t
+calculate_min_generic(uint32_t open_max) {
+  if (open_max >= 16384)
+    return 12288;
+  else if (open_max >= 8096)
+    return 6144;
+  else if (open_max >= 1024)
+    return 512;
+  else
+    return 256;
+}
+
+uint32_t
 calculate_reserved(uint32_t open_max) {
   if (open_max >= 16384)
     return 512;
@@ -24,12 +36,8 @@ calculate_reserved(uint32_t open_max) {
     return 256;
   else if (open_max >= 1024)
     return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 32;
   else
-    return 16;
+    return 64;
 }
 
 uint32_t
@@ -40,33 +48,27 @@ calculate_http(uint32_t open_max) {
     return 64;
   else if (open_max >= 1024)
     return 32;
-  else if (open_max >= 512)
+  else
     return 16;
-  else if (open_max >= 128)
-    return 8;
-  else // Assumes we don't try less than 64.
-    return 4;
 }
 
 uint32_t
 calculate_internal(uint32_t open_max) {
   if (open_max >= 16384)
-    return 32;
+    return 64;
   else if (open_max >= 1024)
-    return 16;
+    return 32;
   else
-    return 8;
+    return 16;
 }
 
 uint32_t
 calculate_scgi(uint32_t open_max) {
   if (open_max >= 16384)
-    return 256;
-  else if (open_max >= 8096)
-    return 128;
-  else if (open_max >= 1024)
     return 64;
-  else if (open_max >= 512)
+  else if (open_max >= 8096)
+    return 48;
+  else if (open_max >= 1024)
     return 32;
   else
     return 16;
@@ -74,18 +76,16 @@ calculate_scgi(uint32_t open_max) {
 
 uint32_t
 calculate_files(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
+  if (open_max >= 32768)
+    return 4096;
+  else if (open_max >= 16384)
+    return 2048;
   else if (open_max >= 8096)
-    return 256;
+    return 1024;
   else if (open_max >= 1024)
     return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 16;
   else
-    return 4;
+    return 64;
 }
 
 } // namespace
@@ -143,8 +143,11 @@ SocketManager::set_max_size_and_adjust(uint32_t max_open) {
 
   total_allocated += calculate_reserved(max_open);
 
-  if (total_allocated + 8 > max_open)
-    throw internal_error("set_max_size_and_adjust: total allocated plus reserved exceeds max_open");
+  auto min_generic = calculate_min_generic(max_open);
+
+  if (total_allocated + min_generic + 8 > max_open)
+    throw internal_error("set_max_size_and_adjust: total + min_generic + 8 reserve exceeds max_open : " +
+                         std::to_string(total_allocated) + " + " + std::to_string(min_generic) + " + 8 > " + std::to_string(max_open));
 
   max_size_unsafe(category_generic) = max_open - total_allocated;
 
