@@ -197,6 +197,16 @@ constexpr const char* option_list_log_group[] = {
   NULL
 };
 
+constexpr const char* option_list_socket_category[] = {
+  "generic",
+  "http",
+  "internal",
+  "scgi",
+  "files",
+
+  NULL
+};
+
 constexpr const char* option_list_tracker_event[] = {
   "updated",
   "completed",
@@ -225,6 +235,7 @@ static_assert(option_pair_lists.size() == OPTION_START_COMPACT);
 constexpr std::array option_single_lists{
   OPTION_SINGLE_ENTRY(option_list_handshake_connection),
   OPTION_SINGLE_ENTRY(option_list_log_group),
+  OPTION_SINGLE_ENTRY(option_list_socket_category),
   OPTION_SINGLE_ENTRY(option_list_tracker_event),
 };
 static_assert(option_single_lists.size() == OPTION_SINGLE_SIZE);
