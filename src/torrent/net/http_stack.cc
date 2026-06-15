@@ -18,7 +18,17 @@ namespace torrent::net {
 // TODO: This should be in a net/utils file.
 // TODO: Require scheme to also be returned / checked?
 
-std::tuple<std::string, uint16_t>
+bool
+verify_url_guess_scheme(const std::string& url) {
+  CURLU* curlu = curl_url();
+
+  bool result = curl_url_set(curlu, CURLUPART_URL, url.c_str(), CURLU_GUESS_SCHEME) == CURLUE_OK;
+
+  curl_url_cleanup(curlu);
+  return result;
+}
+
+std::pair<std::string, uint16_t>
 parse_uri_host_port(const std::string& uri) {
   char*  host_ptr{};
   char*  port_ptr{};
@@ -136,6 +146,9 @@ HttpStack::set_user_agent(const std::string& s) {
 
 void
 HttpStack::set_http_proxy(const std::string& s) {
+  if (!s.empty() && !verify_url_guess_scheme(s))
+    throw torrent::input_error("Invalid HTTP proxy url: " + s);
+
   m_stack->set_http_proxy(s);
 }
 
