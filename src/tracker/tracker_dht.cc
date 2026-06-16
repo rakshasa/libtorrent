@@ -40,7 +40,7 @@ TrackerDht::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
   assert(!m_weak_tracker.expired());
 
   LT_LOG("sending event : state:%s dht_state:%s replied:%d contacted:%d",
-         option_as_string(OPTION_TRACKER_EVENT, new_state), states[m_dht_state], m_replied.load(), m_contacted.load());
+         option_to_c_str_or_throw(OPTION_TRACKER_EVENT, new_state), states[m_dht_state], m_replied.load(), m_contacted.load());
 
   close();
 

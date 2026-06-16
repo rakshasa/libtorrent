@@ -263,14 +263,15 @@ option_find_string(option_enum opt_enum, const char* name) {
 }
 
 const char*
-option_to_string(option_enum opt_enum, unsigned int value, const char* not_found) {
+option_to_c_str(option_enum opt_enum, unsigned int value, const char* not_found) {
   if (opt_enum < OPTION_START_COMPACT) {
     auto itr = option_pair_lists[opt_enum];
 
     do {
       if (itr->value == value)
         return itr->name;
-    } while ((++itr)->name != NULL);
+
+    } while ((++itr)->name != nullptr);
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
     if (value < option_single_lists[opt_enum - OPTION_START_COMPACT].size)
@@ -281,21 +282,11 @@ option_to_string(option_enum opt_enum, unsigned int value, const char* not_found
 }
 
 const char*
-option_to_string_or_throw(option_enum opt_enum, unsigned int value, const char* not_found) {
-  const char* result = option_to_string(opt_enum, value, NULL);
+option_to_c_str_or_throw(option_enum opt_enum, unsigned int value, const char* not_found) {
+  const char* result = option_to_c_str(opt_enum, value, nullptr);
 
-  if (result == NULL)
-    throw input_error(not_found);
-
-  return result;
-}
-
-const char*
-option_as_string(option_enum opt_enum, unsigned int value) {
-  const char* result = option_to_string(opt_enum, value, NULL);
-
-  if (result == NULL)
-    throw input_error("invalid option value : enum:" + std::to_string(opt_enum) + " value:" + std::to_string(value));
+  if (result == nullptr)
+    throw input_error(std::string(not_found) + " : enum:" + std::to_string(opt_enum) + " value:" + std::to_string(value));
 
   return result;
 }

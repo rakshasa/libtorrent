@@ -112,7 +112,7 @@ TrackerList::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_
   }
 
   LT_LOG("sending %s : requester:%p url:%s",
-         option_as_string(OPTION_TRACKER_EVENT, event), tracker.get_worker(), tracker.url().c_str());
+         option_to_c_str_or_throw(OPTION_TRACKER_EVENT, event), tracker.get_worker(), tracker.url().c_str());
 
   tracker::TrackerParams params;
 

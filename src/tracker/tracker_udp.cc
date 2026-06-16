@@ -40,7 +40,7 @@ TrackerUdp::type() const {
 
 void
 TrackerUdp::send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) {
-  LT_LOG("sending event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
+  LT_LOG("sending event : state:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
 
   close_directly();
 
@@ -59,7 +59,7 @@ TrackerUdp::send_event(tracker::TrackerParams params, tracker::TrackerState::eve
   connect_family(AF_INET6);
 
   LT_LOG("started announce : state:%s url:%s inet_tx:%u inet6_tx:%u",
-         option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str(),
+         option_to_c_str_or_throw(OPTION_TRACKER_EVENT, new_state), info().url.c_str(),
          m_inet_state.transaction_id, m_inet6_state.transaction_id);
 
   if (m_inet_state.transaction_id == 0 && m_inet6_state.transaction_id == 0)
@@ -75,7 +75,7 @@ TrackerUdp::send_scrape([[maybe_unused]] tracker::TrackerParams params) {
 
 void
 TrackerUdp::close() {
-  LT_LOG("closing event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("closing event : state:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
   update_requesting_state();
@@ -95,7 +95,7 @@ TrackerUdp::close_directly() {
 
 void
 TrackerUdp::cleanup() {
-  LT_LOG("cleaning up : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("cleaning up : state:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
   remove_events();
@@ -305,14 +305,14 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
 
   LT_LOG_DUMP(buffer.begin(), buffer.size_end(),
               "prepare announce : state:%s family:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
-              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), state_for_family(family).transaction_id,
+              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, m_send_state), family_str(family), state_for_family(family).transaction_id,
               m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 }
 
 bool
 TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
   LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process announce : state:%s family:%s id:%" PRIx32,
-              option_as_string(OPTION_TRACKER_EVENT, m_send_state), family_str(family), id);
+              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, m_send_state), family_str(family), id);
 
   switch (process_header(family, 1, buffer)) {
   case -1:
