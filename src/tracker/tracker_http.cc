@@ -77,7 +77,7 @@ TrackerHttp::send_event(tracker::TrackerParams params, tracker::TrackerState::ev
   m_last_error_message = "";
 
   if (m_current_family == AF_UNSPEC) {
-    LT_LOG("send event : no valid address family available : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
+    LT_LOG("send event : no valid address family available : state:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, new_state), info().url.c_str());
     return receive_failed("No valid address family available.");
   }
 
@@ -104,7 +104,7 @@ TrackerHttp::send_scrape(tracker::TrackerParams params) {
 
 void
 TrackerHttp::close() {
-  LT_LOG("closing event : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("closing event : state:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   this_thread::scheduler()->erase(&m_delay_scrape);
   m_requested_scrape = false;
@@ -117,7 +117,7 @@ void
 TrackerHttp::close_directly() {
   if (m_data == nullptr) {
     // LT_LOG("closing directly (already closed) : state:%s url:%s",
-    //        option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+    //        option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
     remove_events();
     return;
@@ -131,7 +131,7 @@ TrackerHttp::close_directly() {
 
 void
 TrackerHttp::cleanup() {
-  LT_LOG("cleaning up : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("cleaning up : state:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   close_directly();
 
@@ -176,11 +176,11 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   else
     throw torrent::internal_error("TrackerHttp::send_event_unsafe() cannot send event, no valid address family to use.");
 
-  LT_LOG("sending event : state:%s family:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family), info().url.c_str());
+  LT_LOG("sending event : state:%s family:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), family_str(m_current_family), info().url.c_str());
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s family:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
-              option_as_string(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
+              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
               m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 
   torrent::net_thread::http_stack()->start_get(m_get);
@@ -384,7 +384,7 @@ TrackerHttp::receive_done() {
   if (m_data == nullptr)
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
-  LT_LOG("received reply : state:%s url:%s", option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
+  LT_LOG("received reply : state:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str());
 
   if (lt_log_is_valid(LOG_TRACKER_DUMP)) {
     std::string dump = m_data->str();
@@ -440,7 +440,7 @@ void
 TrackerHttp::receive_failed(const std::string& msg) {
   if (m_data == nullptr) {
     LT_LOG("received failure with no data : state:%s url:%s : %s",
-           option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
+           option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(), msg.c_str());
 
     update_requesting_state();
     m_slot_failure(msg);
@@ -546,7 +546,7 @@ TrackerHttp::process_success(const Object& object) {
       state().m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
 
     LT_LOG("tracker reply : state:%s url:%s : interval:%" PRId64 " min_interval:%" PRId64 " complete:%u incomplete:%u downloaded:%u",
-           option_as_string(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(),
+           option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state().latest_event()), info().url.c_str(),
            (int64_t)state().normal_interval().count(), (int64_t)state().min_interval().count(),
            state().scrape_complete(), state().scrape_incomplete(), state().scrape_downloaded());
   }
