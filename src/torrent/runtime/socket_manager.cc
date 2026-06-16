@@ -94,6 +94,9 @@ namespace torrent::runtime {
 
 SocketManager::SocketManager() {
   // TODO: Set load factor a bit higher than default to account for peak usage during startup / etc.
+
+  for (auto& alloc : m_category_max_alloc)
+    alloc = category_max_alloc;
 }
 
 SocketManager::~SocketManager() {
@@ -120,6 +123,40 @@ SocketManager::category_max_size(category_t category) {
   return max_size_unsafe(category);
 }
 
+uint32_t
+SocketManager::category_min_allocation(category_t category) {
+  if (category == category_generic || static_cast<uint32_t>(category) >= category_count)
+    throw internal_error("SocketManager::category_min_allocation(): invalid category");
+
+  return m_category_min_alloc[static_cast<uint32_t>(category)];
+}
+
+uint32_t
+SocketManager::category_max_allocation(category_t category) {
+  if (category == category_generic || static_cast<uint32_t>(category) >= category_count)
+    throw internal_error("SocketManager::category_max_allocation(): invalid category");
+
+  return m_category_max_alloc[static_cast<uint32_t>(category)];
+}
+
+void
+SocketManager::set_category_min_allocation(category_t category, uint32_t min_alloc) {
+  if (category == category_generic || static_cast<uint32_t>(category) >= category_count)
+    throw internal_error("SocketManager::set_category_min_allocation(): invalid category");
+
+  auto guard = lock_guard();
+  m_category_min_alloc[static_cast<uint32_t>(category)] = min_alloc;
+}
+
+void
+SocketManager::set_category_max_allocation(category_t category, uint32_t max_alloc) {
+  if (category == category_generic || static_cast<uint32_t>(category) >= category_count)
+    throw internal_error("SocketManager::set_category_max_allocation(): invalid category");
+
+  auto guard = lock_guard();
+  m_category_max_alloc[static_cast<uint32_t>(category)] = max_alloc;
+}
+
 void
 SocketManager::set_max_size_and_adjust(uint32_t max_open) {
   if (max_open < 512)
@@ -128,13 +165,29 @@ SocketManager::set_max_size_and_adjust(uint32_t max_open) {
   auto guard = lock_guard();
 
   m_max_size = max_open;
+  adjust_allocation_unsafe();
+}
+
+void
+SocketManager::adjust_allocation() {
+  auto guard = lock_guard();
+
+  adjust_allocation_unsafe();
+}
+
+void
+SocketManager::adjust_allocation_unsafe() {
+  auto max_open = m_max_size.load();
 
   uint32_t total_allocated{};
 
   auto set_category = [this, &total_allocated](category_t category, uint32_t allocation) {
-    total_allocated           += allocation;
-    max_size_unsafe(category)  = allocation;
-  };
+      allocation = std::max(allocation, m_category_min_alloc[static_cast<uint32_t>(category)].load());
+      allocation = std::min(allocation, m_category_max_alloc[static_cast<uint32_t>(category)].load());
+
+      total_allocated           += allocation;
+      max_size_unsafe(category)  = allocation;
+    };
 
   set_category(category_internal, calculate_internal(max_open));
   set_category(category_http,     calculate_http(max_open));

@@ -51,7 +51,8 @@ struct SocketInfo {
 
 class LIBTORRENT_EXPORT SocketManager {
 public:
-  static constexpr uint32_t category_count = 5;
+  static constexpr uint32_t category_count     = 5;
+  static constexpr uint32_t category_max_alloc = 1000000;
   static constexpr int      flag_inactive = (1 << 0);
 
   using category_t = socket_manager_category_t;
@@ -65,7 +66,15 @@ public:
   uint32_t            category_managed_size(category_t category);
   uint32_t            category_max_size(category_t category);
 
+  uint32_t            category_min_allocation(category_t category);
+  uint32_t            category_max_allocation(category_t category);
+
+  void                set_category_min_allocation(category_t category, uint32_t min_alloc);
+  void                set_category_max_allocation(category_t category, uint32_t max_alloc);
+
   void                set_max_size_and_adjust(uint32_t max_open);
+
+  void                adjust_allocation();
 
   void                add_unmanaged_socket();
   void                remove_unmanaged_socket();
@@ -119,6 +128,8 @@ private:
   auto&               managed_size_unsafe(category_t category);
   auto&               max_size_unsafe(category_t category);
 
+  void                adjust_allocation_unsafe();
+
   void                notify_changes_unsafe() const;
 
   void                account_new_socket_unsafe(socket_map::iterator itr, category_t category);
@@ -134,6 +145,9 @@ private:
 
   category_list         m_category_managed_size{};
   category_list         m_category_max_size{};
+
+  category_list         m_category_min_alloc{};
+  category_list         m_category_max_alloc{};
 
   align_cacheline std::mutex m_mutex;
 
