@@ -30,7 +30,7 @@ enum class socket_manager_category_t : uint32_t {
   category_generic,   // peer connections, uncategorized
   category_http,      // HTTP/curl
   category_internal,  // DHT, UDP tracker, thread interrupt, BT listen
-  category_scgi,      // SCGI/RPC
+  category_rpc,       // SCGI/RPC
   category_files      // open files (mmap, etc.)
 };
 
