@@ -63,7 +63,7 @@ calculate_internal(uint32_t open_max) {
 }
 
 uint32_t
-calculate_scgi(uint32_t open_max) {
+calculate_rpc(uint32_t open_max) {
   if (open_max >= 16384)
     return 64;
   else if (open_max >= 8096)
@@ -191,7 +191,7 @@ SocketManager::adjust_allocation_unsafe() {
 
   set_category(category_internal, calculate_internal(max_open));
   set_category(category_http,     calculate_http(max_open));
-  set_category(category_scgi,     calculate_scgi(max_open));
+  set_category(category_rpc,      calculate_rpc(max_open));
   set_category(category_files,    calculate_files(max_open));
 
   total_allocated += calculate_reserved(max_open);

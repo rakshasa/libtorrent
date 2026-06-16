@@ -201,7 +201,7 @@ constexpr const char* option_list_socket_category[] = {
   "generic",
   "http",
   "internal",
-  "scgi",
+  "rpc",
   "files",
 
   NULL
