@@ -419,8 +419,11 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
 void
 CurlSocket::event_read() {
-  // TODO: Use MSG_PEEK to check if we're in idle connection poll and close this fd.
+  auto alive = std::weak_ptr<int>(m_alive);
   handle_action(CURL_CSELECT_IN);
+  if (alive.expired())
+    return;
+  this_thread::poll()->remove_read(this);
 }
 
 void
@@ -470,9 +473,10 @@ CurlSocket::event_error() {
 
   curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
 
+  auto alive = std::weak_ptr<int>(m_alive);
   handle_action(CURL_CSELECT_ERR);
 
-  if (!m_self_exists) {
+  if (alive.expired()) {
     LT_LOG_DEBUG_THIS("event_error() : self deleted during handle_action, aborting", 0);
     throw internal_error("CurlSocket::event_error() self deleted during handle_action.");
   }

@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_NET_CURL_SOCKET_H
 #define LIBTORRENT_NET_CURL_SOCKET_H
 
+#include <memory>
 #include <curl/curl.h>
 
 #include "net/curl_stack.h"
@@ -44,6 +45,8 @@ private:
 
   CurlStack*          m_stack{};
   CURL*               m_easy_handle{};
+
+  std::shared_ptr<int> m_alive{std::make_shared<int>(0)};
 
   bool                m_self_exists{true};
   bool                m_properly_opened{false};
