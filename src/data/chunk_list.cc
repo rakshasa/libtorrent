@@ -250,6 +250,13 @@ uint32_t
 ChunkList::sync_chunks(sync_flags flags) {
   LT_LOG_THIS(DEBUG, "Sync chunks: flags:%#x.", flags);
 
+  // An empty queue means no chunks were written since the last sync,
+  // so there is nothing to flush. Skipping early avoids unnecessary
+  // statvfs calls in the free_diskspace check below - especially
+  // optimize for seeding torrents where no data is being written.
+  if (m_queue.empty())
+    return 0;
+
   Queue::iterator split;
 
   if ((flags & sync_all))
