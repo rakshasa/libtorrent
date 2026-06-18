@@ -247,7 +247,7 @@ ChunkList::sync_chunk(ChunkListNode* node, std::pair<int,bool> options) {
 }
 
 uint32_t
-ChunkList::sync_chunks(sync_flags flags) {
+ChunkList::sync_chunks(cache_list& cache, sync_flags flags) {
   LT_LOG_THIS(DEBUG, "Sync chunks: flags:%#x.", flags);
 
   Queue::iterator split;
@@ -270,7 +270,7 @@ ChunkList::sync_chunks(sync_flags flags) {
   // If we got enough diskspace and have not requested safe syncing,
   // then sync all chunks with MS_ASYNC.
   if (!(flags & (sync_safe | sync_sloppy))) {
-    if (m_manager->safe_sync() || m_slot_free_diskspace() <= m_manager->safe_free_diskspace())
+    if (m_manager->safe_sync() || m_slot_free_diskspace(cache) <= m_manager->safe_free_diskspace())
       flags = flags | sync_safe;
     else
       flags = flags | sync_force;
@@ -321,6 +321,12 @@ ChunkList::sync_chunks(sync_flags flags) {
     m_slot_storage_error("Could not sync chunk: " + std::string(std::strerror(errno)));
 
   return failed;
+}
+
+uint32_t
+ChunkList::sync_chunks_no_cache(sync_flags flags) {
+  cache_list cache;
+  return sync_chunks(cache, flags);
 }
 
 std::pair<int, bool>

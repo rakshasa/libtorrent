@@ -19,13 +19,15 @@ class FileList;
 
 class ChunkList : private std::vector<ChunkListNode> {
 public:
-  using size_type = uint32_t;
-  using base_type = std::vector<ChunkListNode>;
-  using Queue     = std::vector<ChunkListNode*>;
+  using size_type  = uint32_t;
+  using base_type  = std::vector<ChunkListNode>;
+  using Queue      = std::vector<ChunkListNode*>;
+  using cache_list = std::vector<std::pair<std::string, uint64_t>>;
 
   using slot_chunk_index = std::function<Chunk*(uint32_t, int)>;
   using slot_value       = std::function<uint64_t()>;
   using slot_string      = std::function<void(const std::string&)>;
+  using slot_free_space  = std::function<uint64_t(cache_list&)>;
 
   using base_type::value_type;
   using base_type::reference;
@@ -97,12 +99,13 @@ public:
   // non-continious regions.
 
   // Returns the number of failed syncs.
-  uint32_t            sync_chunks(sync_flags flags);
+  uint32_t            sync_chunks(cache_list& cache, sync_flags flags);
+  uint32_t            sync_chunks_no_cache(sync_flags flags);
 
   slot_string&        slot_storage_error()        { return m_slot_storage_error; }
   slot_chunk_index&   slot_create_chunk()         { return m_slot_create_chunk; }
   slot_chunk_index&   slot_create_hashing_chunk() { return m_slot_create_hashing_chunk; }
-  slot_value&         slot_free_diskspace()       { return m_slot_free_diskspace; }
+  slot_free_space&    slot_free_diskspace()       { return m_slot_free_diskspace; }
 
   using chunk_address_result = std::pair<iterator, Chunk::iterator>;
 
@@ -134,7 +137,7 @@ private:
   slot_string         m_slot_storage_error;
   slot_chunk_index    m_slot_create_chunk;
   slot_chunk_index    m_slot_create_hashing_chunk;
-  slot_value          m_slot_free_diskspace;
+  slot_free_space     m_slot_free_diskspace;
 };
 
 inline ChunkList::sync_flags
