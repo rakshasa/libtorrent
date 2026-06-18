@@ -174,6 +174,12 @@ FileList::free_diskspace(cache_list& cache) const {
   return free_diskspace != std::numeric_limits<uint64_t>::max() ? free_diskspace : 0;
 }
 
+uint64_t
+FileList::free_diskspace_no_cache() const {
+  cache_list cache;
+  return free_diskspace(cache);
+}
+
 FileList::iterator_range
 FileList::split(iterator position, split_type* first, split_type* last) {
   if (is_open())

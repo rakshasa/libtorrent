@@ -99,6 +99,7 @@ public:
   // If the files span multiple disks, the one with the least amount
   // of free diskspace will be returned.
   uint64_t            free_diskspace(cache_list& cache) const;
+  uint64_t            free_diskspace_no_cache() const;
 
   // List of directories in the torrent that might be on different
   // volumes as they are links, including the root directory. Used by
