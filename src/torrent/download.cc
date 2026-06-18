@@ -350,7 +350,7 @@ Download::update_range(int flags, uint32_t first, uint32_t last) {
 
 void
 Download::sync_chunks() {
-  m_ptr->main()->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force);
+  m_ptr->main()->chunk_list()->sync_chunks_no_cache(ChunkList::sync_all | ChunkList::sync_force);
 }
 
 uint32_t

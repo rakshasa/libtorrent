@@ -106,7 +106,7 @@ DownloadWrapper::close() {
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
   // hash_resume_save get ignored anyway.
-  m_main->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy | ChunkList::sync_ignore_error);
+  m_main->chunk_list()->sync_chunks_no_cache(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy | ChunkList::sync_ignore_error);
 
   m_main->close();
 

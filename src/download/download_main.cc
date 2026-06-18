@@ -71,8 +71,8 @@ DownloadMain::DownloadMain()
   m_chunkList->slot_create_hashing_chunk() = [this](uint32_t index, int prot) {
       return file_list()->create_hashing_chunk_index(index, prot);
     };
-  m_chunkList->slot_free_diskspace() = [this]() {
-      return file_list()->free_diskspace();
+  m_chunkList->slot_free_diskspace() = [this](FileList::cache_list& cache) {
+      return file_list()->free_diskspace(cache);
     };
 }
 
