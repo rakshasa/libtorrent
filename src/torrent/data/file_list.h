@@ -32,6 +32,8 @@ public:
   using path_list  = std::vector<std::string>;
   using split_type = std::tuple<uint64_t, Path, int>;
 
+  using cache_list = std::vector<std::pair<std::string, uint64_t>>;
+
   // The below are using-directives that make visible functions and
   // typedefs in the parent std::vector, only those listed below are
   // accessible. If you don't understand how this works, use google,
@@ -96,7 +98,7 @@ public:
 
   // If the files span multiple disks, the one with the least amount
   // of free diskspace will be returned.
-  uint64_t            free_diskspace() const;
+  uint64_t            free_diskspace(cache_list& cache) const;
 
   // List of directories in the torrent that might be on different
   // volumes as they are links, including the root directory. Used by

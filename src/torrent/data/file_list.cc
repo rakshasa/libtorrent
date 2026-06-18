@@ -147,18 +147,28 @@ FileList::set_max_file_size(uint64_t size) {
 // This function should really ensure that we arn't dealing files
 // spread over multiple mount-points.
 uint64_t
-FileList::free_diskspace() const {
+FileList::free_diskspace(cache_list& cache) const {
   uint64_t free_diskspace = std::numeric_limits<uint64_t>::max();
 
   for (const auto& link : m_indirect_links) {
-    struct statvfs stat{};
+    auto cache_itr = std::find_if(cache.begin(), cache.end(), [&link](const auto& cacheEntry) {
+      return cacheEntry.first == link;
+    });
 
-    auto fn = link.c_str();
+    if (cache_itr == cache.end()) {
+      struct statvfs stat{};
 
-    if (statvfs(fn, &stat) == -1)
-      continue;
+      auto fn = link.c_str();
 
-    free_diskspace = std::min<uint64_t>(free_diskspace, static_cast<int64_t>(stat.f_frsize) * stat.f_bavail);
+      if (statvfs(fn, &stat) == -1)
+        continue;
+
+      cache.push_back(std::make_pair(link, static_cast<uint64_t>(stat.f_frsize) * stat.f_bavail));
+      cache_itr = std::prev(cache.end());
+    }
+
+    if (cache_itr->second < free_diskspace)
+      free_diskspace = cache_itr->second;
   }
 
   return free_diskspace != std::numeric_limits<uint64_t>::max() ? free_diskspace : 0;
