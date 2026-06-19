@@ -60,22 +60,22 @@ sin6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr3)
 
 bool
 sa_is_unspec(const sockaddr* sa) {
-  return sa != NULL && sa->sa_family == AF_UNSPEC;
+  return sa != nullptr && sa->sa_family == AF_UNSPEC;
 }
 
 bool
 sa_is_inet(const sockaddr* sa) {
-  return sa != NULL && sa->sa_family == AF_INET;
+  return sa != nullptr && sa->sa_family == AF_INET;
 }
 
 bool
 sa_is_inet6(const sockaddr* sa) {
-  return sa != NULL && sa->sa_family == AF_INET6;
+  return sa != nullptr && sa->sa_family == AF_INET6;
 }
 
 bool
 sa_is_inet_inet6(const sockaddr* sa) {
-  return sa != NULL && (sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
+  return sa != nullptr && (sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
 }
 
 bool
@@ -119,6 +119,32 @@ sa_is_broadcast(const sockaddr* sa) {
 bool
 sin_is_broadcast(const sockaddr_in* sa) {
   return sa->sin_addr.s_addr == htonl(INADDR_BROADCAST);
+}
+
+bool
+sa_is_loopback(const sockaddr* sa) {
+  switch (sa->sa_family) {
+  case AF_INET:
+    return sin_is_loopback(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    if (sa_is_v4mapped(sa)) {
+      uint32_t v4_raw = sin6_addr32_index(reinterpret_cast<const sockaddr_in6*>(sa), 3);
+      return (ntohl(v4_raw) >> 24) == 127;
+    }
+    return sin6_is_loopback(reinterpret_cast<const sockaddr_in6*>(sa));
+  default:
+    return false;
+  }
+}
+
+bool
+sin_is_loopback(const sockaddr_in* sa) {
+  return (ntohl(sa->sin_addr.s_addr) >> 24) == 127;
+}
+
+bool
+sin6_is_loopback(const sockaddr_in6* sa) {
+  return IN6_IS_ADDR_LOOPBACK(&sa->sin6_addr);
 }
 
 bool
@@ -206,7 +232,7 @@ sa_make_unix(const std::string& pathname) {
 
 sa_unique_ptr
 sa_convert(const sockaddr* sa) {
-  if (sa == NULL)
+  if (sa == nullptr)
     return sa_make_unspec();
 
   switch(sa->sa_family) {
@@ -462,7 +488,7 @@ sa_clear_inet6(sockaddr_in6* sa) {
 
 uint16_t
 sa_port(const sockaddr* sa) {
-  if (sa == NULL)
+  if (sa == nullptr)
     return 0;
 
   switch(sa->sa_family) {
@@ -638,7 +664,7 @@ std::string
 sin_addr_str(const sockaddr_in* sa) {
   char buffer[INET_ADDRSTRLEN];
 
-  if (inet_ntop(AF_INET, &sa->sin_addr, buffer, INET_ADDRSTRLEN) == NULL)
+  if (inet_ntop(AF_INET, &sa->sin_addr, buffer, INET_ADDRSTRLEN) == nullptr)
     throw internal_error("torrent::sin_addr_str() inet_ntop failed");
 
   return buffer;
@@ -649,7 +675,7 @@ std::string
 sin6_addr_str(const sockaddr_in6* sa) {
   char buffer[INET6_ADDRSTRLEN];
 
-  if (inet_ntop(AF_INET6, &sa->sin6_addr, buffer, INET6_ADDRSTRLEN) == NULL)
+  if (inet_ntop(AF_INET6, &sa->sin6_addr, buffer, INET6_ADDRSTRLEN) == nullptr)
     throw internal_error("torrent::sin6_addr_str() inet_ntop failed");
 
   return buffer;

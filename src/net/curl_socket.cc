@@ -8,6 +8,7 @@
 
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/system/poll.h"
 #include "torrent/system/system.h"
@@ -47,7 +48,7 @@ namespace torrent::net {
 
 namespace {
 
-bool is_libcurl_internal_wakeup(int fd);
+void verify_libcurl_internal_wakeup(int fd);
 
 }
 
@@ -252,10 +253,7 @@ CurlSocket::handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stac
   auto [itr, inserted] = stack->socket_map()->try_emplace(fd, nullptr);
 
   if (inserted) {
-    if (!is_libcurl_internal_wakeup(fd)) {
-      LT_LOG_DEBUG("handle_poll_new() : unexpected fd:%i, aborting", 0);
-      throw internal_error("CurlSocket::handle_poll_new(fd:" + std::to_string(fd) + "): unexpected fd");
-    }
+    verify_libcurl_internal_wakeup(fd);
 
     auto socket_ptr = std::make_unique<CurlSocket>(fd, stack, easy_handle);
     auto socket     = socket_ptr.get();
@@ -424,67 +422,158 @@ CurlSocket::clear_and_erase_self_or_throw() {
 
 namespace {
 
-bool
-is_libcurl_internal_wakeup(int fd) {
+// void
+// verify_libcurl_internal_wakeup(int fd) {
+//   struct stat sb;
+
+//   if (fstat(fd, &sb) == -1) {
+//     LT_LOG_DEBUG("is_libcurl_internal_wakeup(fd:%i) : fstat failed: %s", fd, system::errno_enum(errno));
+//     throw internal_error("is_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fstat failed: " + system::errno_enum_str(errno));
+//   }
+
+//   if (S_ISFIFO(sb.st_mode))
+//     return;
+
+//   // EventFds are 8-byte counters, so a 1-byte read should fail with EINVAL.
+//   char dummy;
+
+//   if (read(fd, &dummy, 1) == -1 && errno == EINVAL)
+//     return;
+
+//   if (S_ISSOCK(sb.st_mode)) {
+//     struct sockaddr_storage local_addr{}, peer_addr{};
+
+//     socklen_t local_len = sizeof(local_addr);
+//     socklen_t peer_len  = sizeof(peer_addr);
+
+//     // If it's a socket but not connected, it's not a functioning wakeup/resolver socket
+//     if (getpeername(fd, (struct sockaddr*)&peer_addr, &peer_len) == -1) {
+//       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getpeername failed: %s", fd, system::errno_enum(errno));
+//       throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getpeername failed: " + system::errno_enum_str(errno));
+//     }
+
+//     if (getsockname(fd, (struct sockaddr*)&local_addr, &local_len) == -1) {
+//       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getsockname failed: %s", fd, system::errno_enum(errno));
+//       throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getsockname failed: " + system::errno_enum_str(errno));
+//     }
+
+//     // Catch classic socketpairs (wakeup_socketpair)
+//     if (local_addr.ss_family == AF_UNIX) {
+//       struct sockaddr_un *un_local = (struct sockaddr_un *)&local_addr;
+//       struct sockaddr_un *un_peer = (struct sockaddr_un *)&peer_addr;
+
+//       // Anonymous UNIX sockets have 0-length filesystem paths
+//       if (strlen(un_local->sun_path) == 0 && strlen(un_peer->sun_path) == 0)
+//         return;
+//     }
+
+//     // Catch loopback sockets (wakeup_inet) if they slip through
+//     if (local_addr.ss_family == AF_INET || local_addr.ss_family == AF_INET6) {
+//       // Check if it's strictly pointing to localhost/loopback
+//       // (You mentioned you don't want to support it, but it's good to filter)
+//       // Normal outbound curl traffic won't have a local binding to loopback *and*
+//       // a remote peer address pointing to loopback.
+//       // (Implementation left out for brevity, but this isolates local-only traffic)
+
+//       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns", fd);
+//       throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns");
+//     }
+//   }
+
+//   LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd does not appear to be a valid libcurl internal wakeup socket", fd);
+//   throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd does not appear to be a valid libcurl internal wakeup socket");
+// }
+
+
+// #include <sys/stat.h>
+// #include <sys/socket.h>
+// #include <sys/un.h>
+// #include <netinet/in.h>
+// #include <arpa/inet.h>
+// #include <fcntl.h>
+// #include <unistd.h>
+// #include <string.h>
+// #include <string>
+
+void
+verify_libcurl_internal_wakeup(int fd) {
+  bool is_nonblock{};
+
+  if (!fd_get_nonblock(fd, &is_nonblock)) {
+    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd_get_nonblock failed: %s", fd, system::errno_enum(errno));
+    throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd_get_nonblock failed: " + system::errno_enum_str(errno));
+  }
+
+  if (!is_nonblock) {
+    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd is blocking, expected non-blocking", fd);
+    throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd is blocking, expected non-blocking");
+  }
+
   struct stat sb;
 
-  // 1. Check if the descriptor is valid and get its POSIX type
   if (fstat(fd, &sb) == -1) {
-    return false;
+    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fstat failed: %s", fd, system::errno_enum(errno));
+    throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fstat failed: " + system::errno_enum_str(errno));
   }
 
-  // --- CASE A: POSIX PIPE DETECTION (wakeup_pipe) ---
-  if (S_ISFIFO(sb.st_mode)) {
-    return 1; // It's an internal pipe descriptor.
-  }
+  // POSIX Pipe
+  if (S_ISFIFO(sb.st_mode))
+    return;
 
-  // --- CASE B: EVENTFD DETECTION (wakeup_eventfd) ---
-  // Linux-specific. eventfd throws EINVAL on a short read before checking the pointer.
-  char dummy;
-
-  if (read(fd, &dummy, 1) == -1 && errno == EINVAL) {
-    return true;
-  }
-
-  // --- CASE C: SOCKET-BASED DETECTION (wakeup_socketpair & async resolution) ---
   if (S_ISSOCK(sb.st_mode)) {
-    struct sockaddr_storage local_addr, peer_addr;
-    socklen_t local_len = sizeof(local_addr);
-    socklen_t peer_len = sizeof(peer_addr);
+    auto local_addr = fd_get_socket_name(fd);
+    auto peer_addr  = fd_get_peer_name(fd);
 
-    // If it's a socket but not connected, it's not a functioning wakeup/resolver socket
-    if (getpeername(fd, (struct sockaddr*)&peer_addr, &peer_len) == -1) {
-      return false;
-    }
-    if (getsockname(fd, (struct sockaddr*)&local_addr, &local_len) == -1) {
-      return false;
+    if (local_addr == nullptr) {
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getsockname failed: %s", fd, system::errno_enum(errno));
+      throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getsockname failed: " + system::errno_enum_str(errno));
     }
 
-    // Catch classic socketpairs (wakeup_socketpair)
-    if (local_addr.ss_family == AF_UNIX) {
-      struct sockaddr_un *un_local = (struct sockaddr_un *)&local_addr;
-      struct sockaddr_un *un_peer = (struct sockaddr_un *)&peer_addr;
-
-      // Anonymous UNIX sockets have 0-length filesystem paths
-      if (strlen(un_local->sun_path) == 0 && strlen(un_peer->sun_path) == 0) {
-        return true;
-      }
+    if (peer_addr == nullptr) {
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getpeername failed: %s", fd, system::errno_enum(errno));
+      throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getpeername failed: " + system::errno_enum_str(errno));
     }
 
-    // Catch loopback sockets (wakeup_inet) if they slip through
-    if (local_addr.ss_family == AF_INET || local_addr.ss_family == AF_INET6) {
-      // Check if it's strictly pointing to localhost/loopback
-      // (You mentioned you don't want to support it, but it's good to filter)
-      // Normal outbound curl traffic won't have a local binding to loopback *and*
-      // a remote peer address pointing to loopback.
-      // (Implementation left out for brevity, but this isolates local-only traffic)
+    // Catch standard socketpairs (wakeup_socketpair)
+    if (local_addr->sa_family == AF_UNIX && peer_addr->sa_family == AF_UNIX) {
+      auto *un_local = reinterpret_cast<const sockaddr_un*>(local_addr.get());
+      auto *un_peer  = reinterpret_cast<const sockaddr_un*>(peer_addr.get());
+
+      if (strlen(un_local->sun_path) == 0 && strlen(un_peer->sun_path) == 0)
+        return;
     }
+
+    // Catch loopback sockets (wakeup_inet)
+    if (sap_is_inet_inet6(local_addr) && sap_is_inet_inet6(peer_addr)) {
+
+      // An internal loopback wakeup MUST have both ends explicitly bound to localhost
+      if (sap_is_loopback(local_addr) && sap_is_loopback(peer_addr))
+        return;
+
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns", fd);
+      throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns");
+    }
+
+    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be a socket, but does not match expected patterns for libcurl internal wakeup sockets", fd);
+    throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be a socket, but does not match expected patterns for libcurl internal wakeup sockets");
   }
 
-  // If it's none of the above, it's a real outbound connection tracked by your open/close hooks
-  return false;
+  // Linux eventfd (Only probe if it's an anonymous inode, NOT a socket)
+  if (!S_ISREG(sb.st_mode) && !S_ISDIR(sb.st_mode)) {
+    char dummy[7] = {0};
+
+    // Passing 7 bytes to an eventfd instantly returns EINVAL without altering state.
+    // A regular file or unexpected stream might accept it, but it filters out eventfd perfectly.
+    if (write(fd, dummy, 7) == -1 && errno == EINVAL)
+      return;
+  }
+
+  // Critical failure: Unhandled file descriptor type requested by curl poll
+  LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd does not appear to be a valid libcurl internal wakeup socket", fd);
+  throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd does not appear to be a valid libcurl internal wakeup socket");
 }
 
 } // namespace anonymous
 
 } // namespace torrent::net
+
