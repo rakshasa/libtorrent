@@ -12,9 +12,6 @@ class CurlGet;
 
 class CurlSocket : public torrent::Event {
 public:
-  // TODO: Deprecate.
-  CurlSocket(int fd, CurlStack* stack, CURL* easy_handle);
-
   CurlSocket(CurlStack* stack);
   ~CurlSocket() override;
 
@@ -37,7 +34,7 @@ private:
   CurlSocket(const CurlSocket&) = delete;
   CurlSocket& operator=(const CurlSocket&) = delete;
 
-  static int          handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stack);
+  static CurlSocket*  handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stack);
   static int          handle_poll_remove(CURL* easy_handle, curl_socket_t fd, CurlStack* stack, CurlSocket* socket);
 
   void                handle_action(int ev_bitmask);

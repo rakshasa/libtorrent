@@ -52,15 +52,9 @@ void verify_libcurl_internal_wakeup(int fd);
 
 }
 
-CurlSocket::CurlSocket(int fd, CurlStack* stack, CURL* easy_handle)
-  : m_stack(stack),
-    m_easy_handle(easy_handle) {
-
-  set_file_descriptor(fd);
-}
-
 CurlSocket::CurlSocket(CurlStack* stack)
-  : m_stack(stack) {
+  : m_stack(stack),
+    m_self_exists(this) {
 }
 
 CurlSocket::~CurlSocket() {
@@ -77,7 +71,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   // sockets.
 
   if (socket != nullptr && socket->m_self_exists != socket) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : called on deleted CurlSocket, aborting", 0);
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : called on deleted CurlSocket, aborting : %p : %p", socket, socket->m_self_exists);
     throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called on deleted CurlSocket");
   }
 
@@ -88,7 +82,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (!stack->is_running())
       return 0;
 
-    return handle_poll_new(easy_handle, fd, stack);
+    socket = handle_poll_new(easy_handle, fd, stack);
   }
 
   if (!stack->is_running()) {
@@ -134,7 +128,7 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
 // This is not called when libcurl creates socketpairs, yet it expects us to handle them in receive_socket().
 
 curl_socket_t
-CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose, struct curl_sockaddr *address) {
+CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sockaddr *address) {
   assert(this_thread::thread() == stack->thread());
 
   if (!stack->is_running()) {
@@ -142,9 +136,16 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
     return CURL_SOCKET_BAD;
   }
 
-  auto event = std::make_unique<CurlSocket>(stack);
+  if (purpose != CURLSOCKTYPE_IPCXN) {
+    LT_LOG_DEBUG("open_socket() : unsupported socket type: %i, aborting", purpose);
+    throw internal_error("CurlSocket::open_socket() unsupported socket type: " + std::to_string(purpose));
+  }
 
-  auto open_func = [&]() {
+  auto socket_ptr = std::make_unique<CurlSocket>(stack);
+  auto socket     = socket_ptr.get();
+
+  auto open_func = [socket, address]() {
+      // TODO: Use fd_open.
       int fd = ::socket(address->family, address->socktype, address->protocol);
 
       if (fd == -1) {
@@ -152,14 +153,7 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
         return -1;
       }
 
-      // TODO: Fail if fd is already in use, especially if it is m_properly_opened.
-
-      event->set_file_descriptor(fd);
-
-      // TODO: We should add this to uninterested sockets until libcurl tells us to poll.
-
-      this_thread::poll()->open(event.get());
-      this_thread::poll()->insert_error(event.get());
+      socket->set_file_descriptor(fd);
       return fd;
     };
 
@@ -185,16 +179,19 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
   //   return CURL_SOCKET_BAD;
   // }
 
-  runtime::socket_manager()->open_event_or_throw(event.get(), runtime::category_http, open_func);
+  runtime::socket_manager()->open_event_or_throw(socket, runtime::category_http, open_func);
 
-  auto [itr, inserted] = stack->socket_map()->try_emplace(event->file_descriptor(), std::move(event));
+  this_thread::poll()->open(socket);
+  this_thread::poll()->insert_error(socket);
+
+  auto [itr, inserted] = stack->socket_map()->try_emplace(socket->file_descriptor(), std::move(socket_ptr));
 
   if (!inserted) {
-    LT_LOG_DEBUG("open_socket() : fd:%i : socket already exists in stack", itr->first);
-    throw internal_error("CurlSocket::open_socket() : fd:" + std::to_string(itr->first) + " : socket already exists in stack");
+    LT_LOG_DEBUG_SOCKET("open_socket() : fd:%i : socket already exists in stack", socket->file_descriptor());
+    throw internal_error("CurlSocket::open_socket() : fd:" + std::to_string(socket->file_descriptor()) + " : socket already exists in stack");
   }
 
-  LT_LOG_DEBUG("open_socket() : socket opened: fd:%i", itr->first);
+  LT_LOG_DEBUG_SOCKET("open_socket() : socket opened", 0);
 
   return itr->first;
 }
@@ -245,39 +242,39 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
   return 0;
 }
 
-int
+CurlSocket*
 CurlSocket::handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stack) {
-  // if (!stack->is_running())
-  //   return 0; // TODO: Throw?
-
   auto [itr, inserted] = stack->socket_map()->try_emplace(fd, nullptr);
 
   if (inserted) {
     verify_libcurl_internal_wakeup(fd);
 
-    auto socket_ptr = std::make_unique<CurlSocket>(fd, stack, easy_handle);
+    auto socket_ptr = std::make_unique<CurlSocket>(stack);
     auto socket     = socket_ptr.get();
 
+    socket->m_easy_handle   = easy_handle;
     socket->m_curl_internal = true;
 
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : unexpected fd encountered, creating new (not properly opened) CurlSocket", 0);
+    socket->set_file_descriptor(fd);
+
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : internal libcurl socket detected", 0);
 
     runtime::socket_manager()->register_event_or_throw(socket, runtime::category_http, [&]() {
         this_thread::poll()->open(socket);
         this_thread::poll()->insert_error(socket);
       });
 
-    itr->second = std::move(socket_ptr);
-
     curl_multi_assign(stack->handle(), fd, socket);
-    return 0;
+
+    itr->second = std::move(socket_ptr);
+    return socket;
   }
 
   auto socket = itr->second.get();
 
   if (itr->second->m_easy_handle != nullptr) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing CurlSocket easy_handle not null, aborting", 0);
-    throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") existing CurlSocket easy_handle not null");
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : existing CurlSocket easy_handle not null, aborting", 0);
+    throw internal_error("CurlSocket::handle_poll_new(fd:" + std::to_string(fd) + ") existing CurlSocket easy_handle not null");
   }
 
   socket = itr->second.get();
@@ -285,9 +282,12 @@ CurlSocket::handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stac
 
   curl_multi_assign(stack->handle(), fd, socket);
 
-  LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : existing socket found in map : socket:%s peer:%s",
-                                sa_pretty_str(socket->socket_address()).c_str(), sa_pretty_str(socket->peer_address()).c_str());
-  return 0;
+  // LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : existing socket found in map : socket:%s peer:%s",
+  //                               sa_pretty_str(socket->socket_address()).c_str(), sa_pretty_str(socket->peer_address()).c_str());
+
+  LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : found correctly initialized socket", 0);
+
+  return socket;
 }
 
 int
@@ -297,40 +297,40 @@ CurlSocket::handle_poll_remove(CURL* easy_handle, curl_socket_t fd, CurlStack* s
 
   if (socket == nullptr) {
     // Assume libcurl calls this before closing the fd if it is in the idle connection pool.
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : null socket", 0);
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_remove(CURL_POLL_REMOVE) : null socket", 0);
     return 0;
   }
 
   if (!socket->is_open() || !socket->is_polling()) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket already closed, aborting", 0);
-    throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE called on closed socket");
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_remove(CURL_POLL_REMOVE) : socket already closed, aborting", 0);
+    throw internal_error("CurlSocket::handle_poll_remove(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE called on closed socket");
   }
 
   if (socket->m_fileDesc != fd)
-    throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch");
+    throw internal_error("CurlSocket::handle_poll_remove(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch");
 
   auto itr = stack->socket_map()->find(fd);
 
   if (itr == stack->socket_map()->end()) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket not found in stack, aborting", 0);
-    throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE socket not found in stack");
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_remove(CURL_POLL_REMOVE) : socket not found in stack, aborting", 0);
+    throw internal_error("CurlSocket::handle_poll_remove(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE socket not found in stack");
   }
 
   // LibCurl doesn't use open/close_socket socketpairs, so we only do poll events for them.
   if (socket->m_curl_internal) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : socket never properly opened, removing from poll", 0);
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_remove(CURL_POLL_REMOVE) : internal curl socket, removing from poll", 0);
 
     runtime::socket_manager()->unregister_event_or_throw(socket, [&]() {
         this_thread::poll()->remove_and_close(socket);
       });
 
-    socket->clear_and_erase_self_or_throw();
+    curl_multi_assign(stack->handle(), fd, nullptr);
 
-    stack->socket_map()->erase(itr);
+    socket->clear_and_erase_self(itr);
     return 0;
   }
 
-  LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket(CURL_POLL_REMOVE) : removing from read/write polling", 0);
+  LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_remove(CURL_POLL_REMOVE) : removing from read/write polling", 0);
 
   this_thread::poll()->remove_read(socket);
   this_thread::poll()->remove_write(socket);
@@ -422,93 +422,8 @@ CurlSocket::clear_and_erase_self_or_throw() {
 
 namespace {
 
-// void
-// verify_libcurl_internal_wakeup(int fd) {
-//   struct stat sb;
-
-//   if (fstat(fd, &sb) == -1) {
-//     LT_LOG_DEBUG("is_libcurl_internal_wakeup(fd:%i) : fstat failed: %s", fd, system::errno_enum(errno));
-//     throw internal_error("is_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fstat failed: " + system::errno_enum_str(errno));
-//   }
-
-//   if (S_ISFIFO(sb.st_mode))
-//     return;
-
-//   // EventFds are 8-byte counters, so a 1-byte read should fail with EINVAL.
-//   char dummy;
-
-//   if (read(fd, &dummy, 1) == -1 && errno == EINVAL)
-//     return;
-
-//   if (S_ISSOCK(sb.st_mode)) {
-//     struct sockaddr_storage local_addr{}, peer_addr{};
-
-//     socklen_t local_len = sizeof(local_addr);
-//     socklen_t peer_len  = sizeof(peer_addr);
-
-//     // If it's a socket but not connected, it's not a functioning wakeup/resolver socket
-//     if (getpeername(fd, (struct sockaddr*)&peer_addr, &peer_len) == -1) {
-//       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getpeername failed: %s", fd, system::errno_enum(errno));
-//       throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getpeername failed: " + system::errno_enum_str(errno));
-//     }
-
-//     if (getsockname(fd, (struct sockaddr*)&local_addr, &local_len) == -1) {
-//       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getsockname failed: %s", fd, system::errno_enum(errno));
-//       throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getsockname failed: " + system::errno_enum_str(errno));
-//     }
-
-//     // Catch classic socketpairs (wakeup_socketpair)
-//     if (local_addr.ss_family == AF_UNIX) {
-//       struct sockaddr_un *un_local = (struct sockaddr_un *)&local_addr;
-//       struct sockaddr_un *un_peer = (struct sockaddr_un *)&peer_addr;
-
-//       // Anonymous UNIX sockets have 0-length filesystem paths
-//       if (strlen(un_local->sun_path) == 0 && strlen(un_peer->sun_path) == 0)
-//         return;
-//     }
-
-//     // Catch loopback sockets (wakeup_inet) if they slip through
-//     if (local_addr.ss_family == AF_INET || local_addr.ss_family == AF_INET6) {
-//       // Check if it's strictly pointing to localhost/loopback
-//       // (You mentioned you don't want to support it, but it's good to filter)
-//       // Normal outbound curl traffic won't have a local binding to loopback *and*
-//       // a remote peer address pointing to loopback.
-//       // (Implementation left out for brevity, but this isolates local-only traffic)
-
-//       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns", fd);
-//       throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns");
-//     }
-//   }
-
-//   LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd does not appear to be a valid libcurl internal wakeup socket", fd);
-//   throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd does not appear to be a valid libcurl internal wakeup socket");
-// }
-
-
-// #include <sys/stat.h>
-// #include <sys/socket.h>
-// #include <sys/un.h>
-// #include <netinet/in.h>
-// #include <arpa/inet.h>
-// #include <fcntl.h>
-// #include <unistd.h>
-// #include <string.h>
-// #include <string>
-
 void
 verify_libcurl_internal_wakeup(int fd) {
-  bool is_nonblock{};
-
-  if (!fd_get_nonblock(fd, &is_nonblock)) {
-    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd_get_nonblock failed: %s", fd, system::errno_enum(errno));
-    throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd_get_nonblock failed: " + system::errno_enum_str(errno));
-  }
-
-  if (!is_nonblock) {
-    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd is blocking, expected non-blocking", fd);
-    throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd is blocking, expected non-blocking");
-  }
-
   struct stat sb;
 
   if (fstat(fd, &sb) == -1) {
@@ -560,6 +475,18 @@ verify_libcurl_internal_wakeup(int fd) {
 
   // Linux eventfd (Only probe if it's an anonymous inode, NOT a socket)
   if (!S_ISREG(sb.st_mode) && !S_ISDIR(sb.st_mode)) {
+    bool is_nonblock{};
+
+    if (!fd_get_nonblock(fd, &is_nonblock)) {
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd_get_nonblock failed: %s", fd, system::errno_enum(errno));
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd_get_nonblock failed: " + system::errno_enum_str(errno));
+    }
+
+    if (!is_nonblock) {
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd is blocking, expected non-blocking", fd);
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd is blocking, expected non-blocking");
+    }
+
     char dummy[7] = {0};
 
     // Passing 7 bytes to an eventfd instantly returns EINVAL without altering state.
