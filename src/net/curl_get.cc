@@ -201,7 +201,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   if (!m_was_started)
     throw torrent::internal_error("CurlGet::prepare_start(...) called on an object that was not started.");
 
-  if (m_was_closed) {
+  if (m_was_closed || m_was_cleaned_up) {
     m_prepare_canceled = true;
     return false;
   }
@@ -328,6 +328,9 @@ CurlGet::cleanup_unsafe() {
   m_was_closed       = false;
   m_prepare_canceled = false;
   m_retrying_resolve = false;
+
+  // TODO: Review if this causes any issues.
+  m_was_cleaned_up   = true;
 }
 
 // Slots can be added at any time, however once trigger_* is called, it will make a copy of the
