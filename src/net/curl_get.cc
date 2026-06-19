@@ -220,16 +220,17 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   // Close function and data must be set before libcurl's create_conn() is called.
   //
   // TODO: Consier all libcurl sockets to be !m_properly_opened for now.
-  // curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETFUNCTION,  &CurlSocket::open_socket);
-  // curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
-  // curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
-  // curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
+  curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETFUNCTION,  &CurlSocket::open_socket);
+  curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
+  curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
+  curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
 
   // Disable connection reuse as libcurl doesn't provide proper API to handle idle connections being
   // closed/reused.
   //
   // TODO: Remove this when libcurl issues are resolved.
   // TODO: Make sure shutdown quickly cleans up idle connections.
+
   curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE, 1l);
 
   if (m_timeout != 0) {

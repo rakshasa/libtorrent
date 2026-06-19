@@ -346,8 +346,8 @@ SocketManager::open_event_or_cleanup(Event* event, category_t category, std::fun
   auto [itr, inserted] = m_socket_map.try_emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
   if (inserted) {
-    LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket",
-           this_thread::thread()->name(), event->type_name(), fd);
+    LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket", this_thread::thread()->name(), event->type_name(), fd);
+
     account_new_socket_unsafe(itr, category);
     return true;
   }
