@@ -63,13 +63,8 @@ public:
 
   iterator            begin()                       { return m_data.get(); }
   const_iterator      begin() const                 { return m_data.get(); }
-  // std-container invariant: an empty bitfield (no allocated data) must have
-  // begin() == end(). When m_data is null, size_bytes() can still be > 0 (size set
-  // via set_size_bits() but not allocated, or unallocate()d while size is kept), so
-  // returning m_data.get() + size_bytes() would yield a [nullptr, nullptr+N) range
-  // that dereferences null when iterated (e.g. transform_to_hex_str from d.bitfield).
-  iterator            end()                         { return m_data ? m_data.get() + size_bytes() : m_data.get(); }
-  const_iterator      end() const                   { return m_data ? m_data.get() + size_bytes() : m_data.get(); }
+  iterator            end()                         { return m_data != nullptr ? m_data.get() + size_bytes() : m_data.get(); }
+  const_iterator      end() const                   { return m_data != nullptr ? m_data.get() + size_bytes() : m_data.get(); }
 
   size_type           position(const_iterator itr) const  { return (itr - m_data.get()) * 8; }
 
