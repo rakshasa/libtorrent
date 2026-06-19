@@ -329,6 +329,9 @@ CurlGet::cleanup_unsafe() {
   m_prepare_canceled = false;
   m_retrying_resolve = false;
 
+  // Use a separate cleanup flag so the state handling when retrying different resolves still works
+  // properly.
+  //
   // TODO: Review if this causes any issues.
   m_was_cleaned_up   = true;
 }
