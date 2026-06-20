@@ -142,6 +142,8 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
   // Could propably also check promoted against size of the block
   // list.
 
+  mark_and_disconnect_if_single_peer(*blockListItr);
+
   if ((*blockListItr)->attempt() == 0) {
     unsigned int promoted = update_failed(*blockListItr, chunk);
 
@@ -156,6 +158,8 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
       return;
     }
   }
+
+  // TODO: Add a sanity check, e.g. >100 attempted tries.
 
   // Should we check if there's any peers whom have sent us bad data
   // before, and just clear those first?
@@ -178,6 +182,12 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
       transfer.set_failed_list(new BlockFailed());
 
     auto failedItr = std::find_if(transfer.failed_list()->begin(), transfer.failed_list()->end(), transfer_list_compare_data(chunk, transfer.piece()));
+
+    // TODO: If we get the different data from same peer, disconnect and mark that peer as
+    // bad. (review code to make sure the peer gets disconnected)
+    //
+    // TODO: If we don't get any new data at all for any blocks (all blocks) for a long time,
+    // disconnect all peers and mark them as bad.
 
     if (failedItr == transfer.failed_list()->end()) {
       // We've never encountered this data before, make a new entry.
@@ -224,6 +234,19 @@ TransferList::mark_failed_peers(BlockList* blockList, Chunk* chunk) {
   }
 
   std::for_each(badPeers.begin(), badPeers.end(), m_slot_corrupt);
+}
+
+void
+TransferList::mark_and_disconnect_if_single_peer(BlockList* block_list) {
+  std::set<PeerInfo*> peers;
+
+  for (auto& block : *block_list) {
+    for (auto& transfer : *block.transfers())
+      peers.insert(transfer->peer_info());
+  }
+
+  if (peers.size() == 1)
+    m_slot_corrupt(*peers.begin());
 }
 
 // Copy the stored data to the chunk from the failed entries with

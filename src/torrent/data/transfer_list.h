@@ -65,7 +65,9 @@ public:
 
 private:
   static unsigned int update_failed(BlockList* blockList, Chunk* chunk);
+
   void                mark_failed_peers(BlockList* blockList, Chunk* chunk);
+  void                mark_and_disconnect_if_single_peer(BlockList* block_list);
 
   void                retry_most_popular(BlockList* blockList, Chunk* chunk);
 
