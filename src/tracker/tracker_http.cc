@@ -417,7 +417,19 @@ TrackerHttp::receive_done() {
                          + "\"");
   }
 
-  // If no failures, set intervals to defaults prior to processing
+  if (b.has_key_string("warning message")) {
+    auto& msg = b.get_key("warning message").as_string();
+
+    if (msg.find("unregistered") != std::string::npos ||
+        msg.find("not registered") != std::string::npos ||
+        msg.find("torrent cannot be found") != std::string::npos) {
+
+      LT_LOG("tracker warning treated as failure : url:%s : %s", info().url.c_str(), msg.c_str());
+      return receive_failed("Tracker warning: " + msg);
+    }
+
+    LT_LOG("tracker warning : url:%s : %s", info().url.c_str(), msg.c_str());
+  }
 
   if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE) {
     m_requested_scrape = false;
