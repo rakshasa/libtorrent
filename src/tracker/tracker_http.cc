@@ -34,9 +34,6 @@ TrackerHttp::TrackerHttp(const TrackerInfo& raw_info, int flags)
 
   m_get.reset(raw_info.url, nullptr);
 
-  m_get.add_done_slot(tracker_thread::thread(), [this] { receive_done(); });
-  m_get.add_failed_slot(tracker_thread::thread(), [this](const auto& str) { receive_signal_failed(str); });
-
   m_delay_scrape.slot() = [this] { delayed_send_scrape(); };
 
   auto [hostname, port] = net::parse_uri_host_port(raw_info.url);
@@ -167,14 +164,12 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   update_requesting_state();
 
   m_get.try_wait_for_close();
-  m_get.reset(request_url, m_data);
 
-  if (m_current_family == AF_INET)
-    m_get.use_ipv4();
-  else if (m_current_family == AF_INET6)
-    m_get.use_ipv6();
-  else
-    throw torrent::internal_error("TrackerHttp::send_event_unsafe() cannot send event, no valid address family to use.");
+  m_get.reset(request_url, m_data);
+  m_get.use_family(m_current_family);
+
+  m_get.add_done_slot(tracker_thread::thread(), [this] { receive_done(); });
+  m_get.add_failed_slot(tracker_thread::thread(), [this](const auto& str) { receive_signal_failed(str); });
 
   LT_LOG("sending event : state:%s family:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), family_str(m_current_family), info().url.c_str());
 
@@ -195,14 +190,12 @@ TrackerHttp::send_scrape_unsafe() {
   update_requesting_state();
 
   m_get.try_wait_for_close();
-  m_get.reset(request_url, m_data);
 
-  if (m_current_family == AF_INET)
-    m_get.use_ipv4();
-  else if (m_current_family == AF_INET6)
-    m_get.use_ipv6();
-  else
-    throw torrent::internal_error("TrackerHttp::send_scrape_unsafe() cannot send event, no valid address family to use.");
+  m_get.reset(request_url, m_data);
+  m_get.use_family(m_current_family);
+
+  m_get.add_done_slot(tracker_thread::thread(), [this] { receive_done(); });
+  m_get.add_failed_slot(tracker_thread::thread(), [this](const auto& str) { receive_signal_failed(str); });
 
   LT_LOG("sending scrape : family:%s url:%s", family_str(m_current_family), info().url.c_str());
   LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);

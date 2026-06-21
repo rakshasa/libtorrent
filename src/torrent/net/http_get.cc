@@ -57,9 +57,7 @@ HttpGet::try_wait_for_close() {
 
 void
 HttpGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
-  if (m_curl_get == nullptr)
-    m_curl_get = std::make_shared<CurlGet>();
-
+  m_curl_get = std::make_shared<CurlGet>();
   m_curl_get->reset(url, std::move(stream));
 }
 
@@ -98,6 +96,16 @@ void
 HttpGet::use_ipv6() {
   m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV6);
   m_curl_get->set_retry_resolve(CurlGet::RESOLVE_NONE);
+}
+
+void
+HttpGet::use_family(int family) {
+  if (family == AF_INET)
+    use_ipv4();
+  else if (family == AF_INET6)
+    use_ipv6();
+  else
+    throw torrent::internal_error("HttpGet::use_family() called with an invalid address family.");
 }
 
 void
