@@ -210,42 +210,6 @@ Poll::do_poll(std::chrono::microseconds timeout) {
   return process();
 }
 
-// int
-// Poll::poll(std::chrono::microseconds timeout) {
-//   timespec timeout_spec = {
-//     static_cast<time_t>(timeout.count() / 1000000),
-//     static_cast<long>(timeout.count() % 1000000) * 1000
-//   };
-
-//   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
-
-//   if (previous_state & flag_interrupted || system::Thread::self()->has_any_callbacks())
-//     timeout_spec = timespec{0, 0};
-
-//   int nfds = ::kevent(m_internal->m_fd,
-//                       m_internal->m_changes.get(),
-//                       m_internal->m_changed_events,
-//                       m_internal->m_events.get(),
-//                       m_internal->m_max_events,
-//                       &timeout_spec);
-
-//   m_polling_state.fetch_and(~flag_state_mask, std::memory_order_release);
-
-//   // Clear the changed events even on fail as we might have received a
-//   // signal or similar, and the changed events have already been
-//   // consumed.
-//   //
-//   // There's a chance a bad changed event could make kevent return -1,
-//   // but it won't as long as there is room enough in m_internal->m_events.
-//   m_internal->m_changed_events = 0;
-
-//   if (nfds == -1)
-//     return -1;
-
-//   m_internal->m_waiting_events = nfds;
-//   return nfds;
-// }
-
 int
 Poll::poll(std::chrono::microseconds timeout) {
   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);
