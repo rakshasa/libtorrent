@@ -123,6 +123,7 @@ private:
   bool                m_prepare_canceled{};
   bool                m_was_started{};
   bool                m_was_closed{};
+  bool                m_was_cleaned_up{};
 
   resolve_type        m_initial_resolve{RESOLVE_WHATEVER};
   resolve_type        m_retry_resolve{RESOLVE_NONE};
