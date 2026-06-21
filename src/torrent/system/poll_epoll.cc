@@ -240,7 +240,7 @@ Poll::poll(std::chrono::microseconds timeout) {
   if (nfds == -1)
     return -1;
 
-  if (nfds == 1 && callback_interrupting && m_internal->m_events[0].data.fd == m_internal->m_eventfd)
+  if (nfds == 1 && callback_interrupting && m_internal->m_events[0].data.fd == m_internal->m_wake_event.file_descriptor())
     m_internal->m_callback_interrupt_backoff++;
   else
     m_internal->m_callback_interrupt_backoff = 0;
