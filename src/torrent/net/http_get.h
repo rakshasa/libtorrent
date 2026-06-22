@@ -48,6 +48,8 @@ public:
 
   void                use_ipv4();
   void                use_ipv6();
+  void                use_family(int family);
+
   void                prefer_ipv4();
   void                prefer_ipv6();
 
