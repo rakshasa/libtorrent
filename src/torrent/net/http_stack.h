@@ -5,13 +5,17 @@
 #include <memory>
 #include <torrent/common.h>
 
+namespace torrent {
+class ThreadNet;
+}
+
 namespace torrent::net {
 
 class CurlStack;
 
 class LIBTORRENT_EXPORT HttpStack {
 public:
-  HttpStack(utils::Thread* thread);
+  HttpStack(system::Thread* thread);
   ~HttpStack();
 
   void                shutdown();
@@ -49,6 +53,7 @@ public:
 
 protected:
   friend class HttpGet;
+  friend class torrent::ThreadNet;
 
   CurlStack*          curl_stack() { return m_stack.get(); }
 

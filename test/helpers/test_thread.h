@@ -6,9 +6,9 @@
 
 #include "test/helpers/test_utils.h"
 #include "torrent/common.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
-class test_thread : public torrent::utils::Thread {
+class test_thread : public torrent::system::Thread {
 public:
   enum test_state {
     TEST_NONE,
@@ -53,6 +53,8 @@ private:
 
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
+
+  align_cacheline bool __cacheline_pad0;
 
   std::atomic_int m_test_state;
   std::atomic_int m_test_flags;

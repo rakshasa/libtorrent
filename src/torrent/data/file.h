@@ -3,6 +3,7 @@
 
 #include <torrent/common.h>
 #include <torrent/path.h>
+#include <torrent/types/string_utf8.h>
 
 namespace torrent {
 
@@ -62,7 +63,7 @@ public:
   const Path*         path() const                             { return &m_path; }
   Path*               mutable_path()                           { return &m_path; }
 
-  const std::string&  frozen_path() const                      { return m_frozen_path; }
+  const string_utf8&  frozen_path() const                      { return m_frozen_path; }
 
   uint32_t            match_depth_prev() const                 { return m_match_depth_prev; }
   uint32_t            match_depth_next() const                 { return m_match_depth_next; }
@@ -86,7 +87,7 @@ protected:
   void                set_flags_protected(int flags)           { m_flags |= flags; }
   void                unset_flags_protected(int flags)         { m_flags &= ~flags; }
 
-  void                set_frozen_path(const std::string& path) { m_frozen_path = path; }
+  void                set_frozen_path(const std::string& path) { m_frozen_path.reset(path); }
 
   void                set_offset(uint64_t off)                 { m_offset = off; }
   void                set_size_bytes(uint64_t size)            { m_size = size; }
@@ -111,7 +112,7 @@ private:
   int                 m_flags{0};
 
   Path                m_path;
-  std::string         m_frozen_path;
+  string_utf8         m_frozen_path;
 
   uint64_t            m_offset{0};
   uint64_t            m_size{0};

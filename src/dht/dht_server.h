@@ -4,12 +4,16 @@
 #include <array>
 #include <deque>
 #include <map>
+#include <set>
 
 #include "dht/dht_transaction.h"
 #include "net/socket_datagram.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
 #include "torrent/utils/scheduler.h"
+
+// TODO: Remove.
+#include "net/address_list.h"
 
 namespace torrent {
 
@@ -50,13 +54,16 @@ public:
   void                find_node(const DhtBucket& contacts, const HashString& target);
 
   // Do DHT announce, starting with the given contacts.
-  void                announce(const DhtBucket& contacts, const HashString& infoHash, TrackerDht* tracker);
+  void                announce(const DhtBucket& contacts, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker);
 
   // Cancel given announce for given tracker, or all matching announces if info/tracker NULL.
-  void                cancel_announce(const HashString* info_hash, const TrackerDht* tracker);
+  void                cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
 
   // Called every 15 minutes.
   void                update();
+
+  void                check_search_completed(std::shared_ptr<dht::DhtSearch> search);
+  void                check_search_trimming(std::shared_ptr<dht::DhtSearch> search);
 
   void                event_read() override;
   void                event_write() override;
@@ -78,6 +85,8 @@ private:
 
   using packet_queue   = std::deque<std::shared_ptr<DhtTransactionPacket>>;
   using node_info_list = std::list<compact_node_info>;
+
+  using search_set      = std::set<std::shared_ptr<dht::DhtSearch>>;
 
   // Pending transactions.
   using transaction_map = std::map<DhtTransaction::key_type, std::shared_ptr<DhtTransaction>>;
@@ -108,7 +117,7 @@ private:
   void                find_node_next(DhtTransactionSearch* t);
 
   void                add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority);
-  void                drop_packet(DhtTransactionPacket* packet);
+  void                drop_packet(const DhtTransactionPacket* packet);
 
   void                create_query(transaction_itr itr, int tID, const sockaddr* sa, int priority);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
@@ -129,6 +138,9 @@ private:
   void                receive_timeout();
 
   DhtRouter*          m_router{};
+
+  search_set          m_searches;
+
   packet_queue        m_highQueue;
   packet_queue        m_lowQueue;
   transaction_map     m_transactions;

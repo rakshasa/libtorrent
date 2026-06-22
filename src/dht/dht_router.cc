@@ -10,6 +10,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
 #include "utils/sha1.h"
@@ -21,11 +22,12 @@ namespace torrent {
 
 HashString DhtRouter::zero_id;
 
-DhtRouter::DhtRouter(const Object& cache) :
-  DhtNode(zero_id, sa_make_inet_any().get()), // actual ID is set later
-  m_server(this),
-  m_curToken(random()),
-  m_prevToken(random()) {
+DhtRouter::DhtRouter(const Object& cache)
+  : DhtNode(zero_id, sa_make_inet_any().get()), // actual ID is set later
+    m_server(this),
+    m_curToken(random()),
+    m_prevToken(random()),
+    m_resolver_callback_id(system::make_callback_id()) {
 
   HashString ones_id;
 
@@ -55,6 +57,7 @@ DhtRouter::DhtRouter(const Object& cache) :
   LT_LOG_THIS("creating", 0);
 
   set_bucket(new DhtBucket(zero_id, ones_id));
+
   m_routingTable.emplace(bucket()->id_range_end(), bucket());
 
   if (cache.has_key("nodes")) {
@@ -118,7 +121,7 @@ DhtRouter::stop() {
 
   LT_LOG_THIS("stopping", 0);
 
-  this_thread::resolver()->cancel(this);
+  this_thread::resolver()->cancel(m_resolver_callback_id);
   this_thread::scheduler()->erase(&m_task_timeout);
 
   m_server.stop();
@@ -126,14 +129,14 @@ DhtRouter::stop() {
 
 // Start a DHT get_peers and announce_peer request.
 void
-DhtRouter::announce(const HashString& info_hash, TrackerDht* tracker) {
+DhtRouter::announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker) {
   m_server.announce(*find_bucket(info_hash)->second, info_hash, tracker);
 }
 
 // Cancel any running requests from the given tracker.
 // If info or tracker is not NULL, only cancel matching requests.
 void
-DhtRouter::cancel_announce(const HashString* info_hash, const TrackerDht* tracker) {
+DhtRouter::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker) {
   m_server.cancel_announce(info_hash, tracker);
 }
 
@@ -147,9 +150,9 @@ DhtRouter::get_tracker(const HashString& hash, bool create) {
   if (!create)
     return NULL;
 
-  auto [tr, ins] = m_trackers.emplace(hash, new DhtTracker());
+  auto [tr, inserted] = m_trackers.emplace(hash, new DhtTracker());
 
-  if (!ins)
+  if (!inserted)
     throw internal_error("DhtRouter::get_tracker did not actually insert tracker.");
 
   return tr->second;
@@ -198,15 +201,20 @@ DhtRouter::find_bucket(const HashString& id) {
 }
 
 void
-DhtRouter::add_contact(const std::string& host, int port) {
+DhtRouter::add_bootstrap_contact(const std::string& host, int port) {
+  if (!m_contacts.has_value()) {
+    LT_LOG_THIS("ignoring bootstrap contact : %s:%d", host.c_str(), port);
+    return;
+  }
+
   // Externally obtained nodes are added to the contact list, but only if
   // we're still bootstrapping. We don't contact external nodes after that.
-  if (m_contacts.has_value()) {
-    if (m_contacts->size() >= num_bootstrap_contacts)
-      m_contacts->pop_front();
+  if (m_contacts->size() >= num_bootstrap_contacts)
+    m_contacts->pop_front();
 
-    m_contacts->emplace_back(host, port);
-  }
+  m_contacts->emplace_back(host, port);
+
+  LT_LOG_THIS("added bootstrap contact : %s:%d", host.c_str(), port);
 }
 
 void
@@ -227,6 +235,8 @@ DhtRouter::contact(const sockaddr* sa, int port) {
     throw input_error("DhtRouter::contact() called with any address.");
 
   sap_set_port(sa_tmp, port);
+
+  LT_LOG_THIS("contacting node : %s:%d", sa_addr_str(sa_tmp.get()).c_str(), port);
 
   m_server.ping(zero_id, sa_tmp.get());
 }
@@ -606,7 +616,7 @@ DhtRouter::bootstrap() {
         contact(sa.get(), port);
     };
 
-    this_thread::resolver()->resolve_specific(this, m_contacts->back().first, AF_INET, f);
+    this_thread::resolver()->resolve_specific(m_resolver_callback_id, m_contacts->back().first, AF_INET, f);
 
     m_contacts->pop_back();
   }
@@ -644,16 +654,15 @@ DhtRouter::bootstrap_bucket(const DhtBucket* bucket) {
   // own when bootstrapping our own bucket. We don't search for
   // our own exact ID to avoid receiving only our own node info
   // instead of closest nodes, from nodes that know us already.
-  HashString contactId;
 
   if (bucket == this->bucket()) {
-    contactId = id();
-    contactId[torrent::HashString::size() - 1] ^= 1;
+    m_contactId = id();
+    m_contactId[torrent::HashString::size() - 1] ^= 1;
   } else {
-    bucket->get_random_id(&contactId);
+    bucket->get_random_id(&m_contactId);
   }
 
-  m_server.find_node(*bucket, contactId);
+  m_server.find_node(*bucket, m_contactId);
 }
 
 } // namespace torrent

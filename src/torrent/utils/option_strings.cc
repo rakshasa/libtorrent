@@ -8,8 +8,8 @@
 #include "torrent/object.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
-#include "torrent/net/network_config.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/utils/option_strings.h"
 
 namespace torrent {
@@ -33,35 +33,35 @@ constexpr option_pair option_list_connection_type[] = {
 };
 
 constexpr option_pair option_list_heuristics[] = {
-  { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
-  { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
-  { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
-  { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
-  { "invalid",                   choke_queue::HEURISTICS_MAX_SIZE },
+  { "upload_leech",              HEURISTICS_UPLOAD_LEECH },
+  { "upload_leech_experimental", HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               HEURISTICS_UPLOAD_SEED },
+  { "download_leech",            HEURISTICS_DOWNLOAD_LEECH },
+  { "invalid",                   HEURISTICS_MAX_SIZE },
   { NULL, 0 }
 };
 
 constexpr option_pair option_list_heuristics_download[] = {
-  { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
+  { "download_leech",            HEURISTICS_DOWNLOAD_LEECH },
   { NULL, 0 }
 };
 
 constexpr option_pair option_list_heuristics_upload[] = {
-  { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
-  { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
-  { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
+  { "upload_leech",              HEURISTICS_UPLOAD_LEECH },
+  { "upload_leech_experimental", HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               HEURISTICS_UPLOAD_SEED },
   { NULL, 0 }
 };
 
 constexpr option_pair option_list_encryption[] = {
-  { "none",             torrent::net::NetworkConfig::encryption_none },
-  { "allow_incoming",   torrent::net::NetworkConfig::encryption_allow_incoming },
-  { "try_outgoing",     torrent::net::NetworkConfig::encryption_try_outgoing },
-  { "require",          torrent::net::NetworkConfig::encryption_require },
-  { "require_RC4",      torrent::net::NetworkConfig::encryption_require_RC4 },
-  { "require_rc4",      torrent::net::NetworkConfig::encryption_require_RC4 },
-  { "enable_retry",     torrent::net::NetworkConfig::encryption_enable_retry },
-  { "prefer_plaintext", torrent::net::NetworkConfig::encryption_prefer_plaintext },
+  { "none",             runtime::NetworkConfig::encryption_none },
+  { "allow_incoming",   runtime::NetworkConfig::encryption_allow_incoming },
+  { "try_outgoing",     runtime::NetworkConfig::encryption_try_outgoing },
+  { "require",          runtime::NetworkConfig::encryption_require },
+  { "require_RC4",      runtime::NetworkConfig::encryption_require_RC4 },
+  { "require_rc4",      runtime::NetworkConfig::encryption_require_RC4 },
+  { "enable_retry",     runtime::NetworkConfig::encryption_enable_retry },
+  { "prefer_plaintext", runtime::NetworkConfig::encryption_prefer_plaintext },
   { NULL, 0 }
 };
 
@@ -72,10 +72,10 @@ constexpr option_pair option_list_ip_filter[] = {
 };
 
 constexpr option_pair option_list_ip_tos[] = {
-  { "default",     torrent::net::NetworkConfig::iptos_default },
-  { "lowdelay",    torrent::net::NetworkConfig::iptos_lowdelay },
-  { "throughput",  torrent::net::NetworkConfig::iptos_throughput },
-  { "reliability", torrent::net::NetworkConfig::iptos_reliability },
+  { "default",     runtime::NetworkConfig::iptos_default },
+  { "lowdelay",    runtime::NetworkConfig::iptos_lowdelay },
+  { "throughput",  runtime::NetworkConfig::iptos_throughput },
+  { "reliability", runtime::NetworkConfig::iptos_reliability },
   { NULL, 0 }
 };
 
@@ -197,6 +197,16 @@ constexpr const char* option_list_log_group[] = {
   NULL
 };
 
+constexpr const char* option_list_socket_category[] = {
+  "generic",
+  "http",
+  "internal",
+  "rpc",
+  "files",
+
+  NULL
+};
+
 constexpr const char* option_list_tracker_event[] = {
   "updated",
   "completed",
@@ -225,6 +235,7 @@ static_assert(option_pair_lists.size() == OPTION_START_COMPACT);
 constexpr std::array option_single_lists{
   OPTION_SINGLE_ENTRY(option_list_handshake_connection),
   OPTION_SINGLE_ENTRY(option_list_log_group),
+  OPTION_SINGLE_ENTRY(option_list_socket_category),
   OPTION_SINGLE_ENTRY(option_list_tracker_event),
 };
 static_assert(option_single_lists.size() == OPTION_SINGLE_SIZE);
@@ -252,14 +263,15 @@ option_find_string(option_enum opt_enum, const char* name) {
 }
 
 const char*
-option_to_string(option_enum opt_enum, unsigned int value, const char* not_found) {
+option_to_c_str(option_enum opt_enum, unsigned int value, const char* not_found) {
   if (opt_enum < OPTION_START_COMPACT) {
     auto itr = option_pair_lists[opt_enum];
 
     do {
       if (itr->value == value)
         return itr->name;
-    } while ((++itr)->name != NULL);
+
+    } while ((++itr)->name != nullptr);
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
     if (value < option_single_lists[opt_enum - OPTION_START_COMPACT].size)
@@ -270,21 +282,11 @@ option_to_string(option_enum opt_enum, unsigned int value, const char* not_found
 }
 
 const char*
-option_to_string_or_throw(option_enum opt_enum, unsigned int value, const char* not_found) {
-  const char* result = option_to_string(opt_enum, value, NULL);
+option_to_c_str_or_throw(option_enum opt_enum, unsigned int value, const char* not_found) {
+  const char* result = option_to_c_str(opt_enum, value, nullptr);
 
-  if (result == NULL)
-    throw input_error(not_found);
-
-  return result;
-}
-
-const char*
-option_as_string(option_enum opt_enum, unsigned int value) {
-  const char* result = option_to_string(opt_enum, value, NULL);
-
-  if (result == NULL)
-    throw input_error("invalid option value : enum:" + std::to_string(opt_enum) + " value:" + std::to_string(value));
+  if (result == nullptr)
+    throw input_error(std::string(not_found) + " : enum:" + std::to_string(opt_enum) + " value:" + std::to_string(value));
 
   return result;
 }

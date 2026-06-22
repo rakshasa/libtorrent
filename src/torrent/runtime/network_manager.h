@@ -12,9 +12,11 @@ class Manager;
 
 namespace torrent::runtime {
 
+NetworkManager* network_manager() LIBTORRENT_EXPORT;
+
 class LIBTORRENT_EXPORT NetworkManager {
 public:
-  NetworkManager(utils::Thread* main_thread);
+  NetworkManager();
   ~NetworkManager();
 
   bool                is_listening() const;
@@ -28,6 +30,7 @@ public:
 
   bool                listen_open(uint16_t first, uint16_t last);
   void                listen_close();
+  void                listen_restart();
 
   // Port number remains set after listen_close.
   uint16_t            listen_port() const;
@@ -44,7 +47,7 @@ public:
 
 protected:
   friend class torrent::Manager;
-  friend class torrent::net::NetworkConfig;
+  friend class NetworkConfig;
 
   void                lock() const                    { m_mutex.lock(); }
   auto                lock_guard() const              { return std::lock_guard(m_mutex); }
@@ -56,6 +59,7 @@ protected:
   auto                listen_inet_unsafe()            { return m_listen_inet.get(); }
   auto                listen_inet6_unsafe()           { return m_listen_inet6.get(); }
 
+  // TODO: Rename updated_network_config()
   void                restart_listen();
 
 private:
@@ -64,14 +68,11 @@ private:
 
   void                perform_restart_listen();
 
-  utils::Thread*      m_main_thread;
-
   mutable std::mutex      m_mutex;
 
   std::unique_ptr<Listen> m_listen_inet;
   std::unique_ptr<Listen> m_listen_inet6;
-  uint16_t                m_listen_port{0};
-  bool                    m_listen_restarting{};
+  uint16_t                m_listen_port{};
 
   std::unique_ptr<tracker::DhtController> m_dht_controller;
 };

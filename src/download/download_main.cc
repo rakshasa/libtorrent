@@ -5,28 +5,29 @@
 #include <cassert>
 #include <cstring>
 
+#include "manager.h"
 #include "data/chunk_list.h"
 #include "download/available_list.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_wrapper.h"
-#include "manager.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/initial_seed.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
-#include "torrent/data/file_list.h"
 #include "torrent/download.h"
+#include "torrent/exceptions.h"
+#include "torrent/throttle.h"
+#include "torrent/data/file_list.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download_info.h"
-#include "torrent/exceptions.h"
-#include "torrent/net/network_config.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/throttle.h"
+#include "torrent/runtime/network_config.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/tracker/manager.h"
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
@@ -60,7 +61,7 @@ DownloadMain::DownloadMain()
   m_delegator.transfer_list()->slot_corrupt()   = [this](auto i) { receive_corrupt_chunk(i); };
 
   m_delay_disconnect_peers.slot() = [this] { m_connectionList->disconnect_queued(); };
-  m_task_tracker_request.slot()     = [this] { receive_tracker_request(); };
+  m_task_tracker_request.slot()   = [this] { receive_tracker_request(); };
 
   m_chunkList->set_data(file_list()->mutable_data());
 
@@ -70,8 +71,8 @@ DownloadMain::DownloadMain()
   m_chunkList->slot_create_hashing_chunk() = [this](uint32_t index, int prot) {
       return file_list()->create_hashing_chunk_index(index, prot);
     };
-  m_chunkList->slot_free_diskspace() = [this]() {
-      return file_list()->free_diskspace();
+  m_chunkList->slot_free_diskspace() = [this](FileList::cache_list& cache) {
+      return file_list()->free_diskspace(cache);
     };
 }
 
@@ -103,18 +104,7 @@ DownloadMain::post_initialize() {
   m_tracker_list->slot_tracker_enabled()  = [tc](const auto& t)                  { tc->receive_tracker_enabled(t); };
   m_tracker_list->slot_tracker_disabled() = [tc](const auto& t)                  { tc->receive_tracker_disabled(t); };
 
-  m_tracker_controller = thread_tracker()->tracker_manager()->add_controller(info(), std::move(tc));
-}
-
-std::pair<ThrottleList*, ThrottleList*>
-DownloadMain::throttles(const sockaddr* sa) {
-  ThrottlePair pair = ThrottlePair(NULL, NULL);
-
-  if (manager->connection_manager()->address_throttle())
-    pair = manager->connection_manager()->address_throttle()(sa);
-
-  return std::make_pair(pair.first == NULL ? upload_throttle() : pair.first->throttle_list(),
-                        pair.second == NULL ? download_throttle() : pair.second->throttle_list());
+  m_tracker_controller = ThreadTracker::thread_tracker()->tracker_manager()->add_controller(info(), std::move(tc));
 }
 
 void
@@ -185,6 +175,8 @@ void DownloadMain::start(int flags) {
 
 void
 DownloadMain::stop() {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   if (!info()->is_active())
     return;
 
@@ -285,7 +277,7 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 
 void
 DownloadMain::add_peer(const sockaddr* sa) {
-  if (config::network_config()->is_block_outgoing())
+  if (runtime::network_config()->is_block_outgoing())
     return;
 
   m_slot_start_handshake(sa, this);
@@ -305,13 +297,24 @@ DownloadMain::receive_connect_peers() {
     alist->clear();
   }
 
-  if (config::network_config()->is_block_outgoing())
+  if (runtime::network_config()->is_block_outgoing())
     return;
 
-  while (!peer_list()->available_list()->empty() &&
-         manager->connection_manager()->can_connect() &&
-         connection_list()->size() < connection_list()->min_size() &&
-         connection_list()->size() + m_slot_count_handshakes(this) < connection_list()->max_size()) {
+  // while (!peer_list()->available_list()->empty() &&
+  //        manager->connection_manager()->can_connect() &&
+  //        connection_list()->size() < connection_list()->min_size() &&
+  //        connection_list()->size() + m_slot_count_handshakes(this) < connection_list()->max_size()) {
+
+  while (!peer_list()->available_list()->empty()) {
+    if (connection_list()->size() >= connection_list()->min_size())
+      break;
+
+    if (connection_list()->size() + m_slot_count_handshakes(this) >= connection_list()->max_size())
+      break;
+
+    if (!runtime::socket_manager()->can_open_socket(runtime::category_generic))
+      break;
+
     auto sa = peer_list()->available_list()->pop_random();
 
     if (connection_list()->find(&sa.sa) == connection_list()->end())
@@ -321,6 +324,8 @@ DownloadMain::receive_connect_peers() {
 
 void
 DownloadMain::receive_tracker_success() {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   if (!info()->is_active())
     return;
 

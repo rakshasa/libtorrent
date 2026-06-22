@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_NET_CURL_STACK_H
 #define LIBTORRENT_NET_CURL_STACK_H
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -16,14 +17,12 @@ namespace torrent::net {
 class CurlGet;
 class CurlSocket;
 
-// Since std::hardware_destructive_interference_size only got added in gcc 12.1
-
-class alignas(LT_SMP_CACHE_BYTES) CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
+class align_cacheline CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
   using base_type       = std::vector<std::shared_ptr<CurlGet>>;
   using socket_map_type = std::map<curl_socket_t, std::unique_ptr<CurlSocket>>;
 
-  CurlStack(utils::Thread* thread);
+  CurlStack(system::Thread* thread);
   ~CurlStack();
 
   bool                is_running() const;
@@ -61,7 +60,9 @@ public:
   void                start_get(const std::shared_ptr<CurlGet>& curl_get);
   void                close_get(const std::shared_ptr<CurlGet>& curl_get);
 
-  utils::Thread*      thread() const                         { return m_thread; }
+  bool                process_done_handle();
+
+  system::Thread*     thread() const                         { return m_thread; }
 
 protected:
   friend class CurlGet;
@@ -84,17 +85,19 @@ private:
   static int          set_timeout(void*, long timeout_ms, CurlStack* stack);
 
   void                receive_timeout();
-  bool                process_done_handle();
 
   // Unprotected members (including base_type vector), only changed in ways that are implicitly
   // thread-safe. E.g. before any threads are started or only within the owning thread.
-  utils::Thread*        m_thread{};
+  system::Thread*       m_thread{};
   CURLM*                m_handle{};
   utils::SchedulerEntry m_task_timeout;
 
   socket_map_type     m_socket_map;
 
   mutable std::mutex  m_mutex;
+
+  // Mirrors base::size()
+  std::atomic_size_t  m_size{0};
 
   // Use lock guard when accessing these members, and when modifying the underlying vector.
   bool                m_running{true};
@@ -121,8 +124,7 @@ CurlStack::is_running() const {
 
 inline unsigned int
 CurlStack::size() const {
-  auto guard = lock_guard();
-  return base_type::size();
+  return m_size;
 }
 
 inline unsigned int

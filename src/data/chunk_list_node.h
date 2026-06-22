@@ -1,9 +1,9 @@
 #ifndef LIBTORRENT_DATA_CHUNK_LIST_NODE_H
 #define LIBTORRENT_DATA_CHUNK_LIST_NODE_H
 
-#include <cinttypes>
-
 #include "torrent/utils/chrono.h"
+
+#include <cinttypes>
 
 namespace torrent {
 

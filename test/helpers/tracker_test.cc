@@ -13,14 +13,15 @@
 uint32_t return_new_peers = 0xdeadbeef;
 
 torrent::tracker::Tracker
-TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, const std::string& url, int flags) {
+TrackerTest::new_tracker([[maybe_unused]] torrent::TrackerList* parent, uint32_t group, const std::string& url, int flags) {
   auto tracker_info = torrent::TrackerInfo{
     // .info_hash = m_info->hash(),
     // .obfuscated_hash = m_info->hash_obfuscated(),
     // .local_id = m_info->local_id(),
     // .key = m_key
   };
-  tracker_info.url = url;
+  tracker_info.url   = url;
+  tracker_info.group = group;
 
   return torrent::tracker::Tracker(std::make_shared<TrackerTest>(std::move(tracker_info), flags));
 }
@@ -29,7 +30,9 @@ void
 TrackerTest::insert_tracker(torrent::TrackerList* parent, int group, torrent::tracker::Tracker tracker) {
   // Insert into partent then override slots.
 
-  parent->insert(group, tracker);
+  tracker.get_worker()->m_info.group = group;
+
+  parent->insert(tracker);
 
   tracker.get_worker()->m_slot_enabled = [parent, tracker]() {
       if (parent->slot_tracker_enabled())
@@ -58,21 +61,33 @@ TrackerTest::insert_tracker(torrent::TrackerList* parent, int group, torrent::tr
 }
 
 void
-TrackerTest::set_success(uint32_t counter, uint32_t time_last) {
+TrackerTest::set_success(uint32_t time_last) {
+  set_success(std::chrono::seconds(time_last));
+}
+
+void
+TrackerTest::set_success(std::chrono::seconds time_last) {
   auto guard = lock_guard();
-  state().m_success_counter = counter;
-  state().m_success_time_last = time_last;
+
+  state().add_success_request(time_last);
+
   state().set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
   state().set_min_interval(torrent::tracker::TrackerState::default_min_interval);
 }
 
 void
-TrackerTest::set_failed(uint32_t counter, uint32_t time_last) {
+TrackerTest::set_failed(uint32_t time_last) {
+  set_failed(std::chrono::seconds(time_last));
+}
+
+void
+TrackerTest::set_failed(std::chrono::seconds time_last) {
   auto guard = lock_guard();
-  state().m_failed_counter = counter;
-  state().m_failed_time_last = time_last;
-  state().m_normal_interval = 0;
-  state().m_min_interval = 0;
+
+  state().add_failed_request(time_last);
+
+  // state().m_normal_interval  = 0;
+  // state().m_min_interval     = 0;
 }
 
 void
@@ -90,26 +105,32 @@ TrackerTest::set_latest_sum_peers(uint32_t peers) {
 void
 TrackerTest::set_new_normal_interval(uint32_t timeout) {
   auto guard = lock_guard();
-  state().set_normal_interval(timeout);
+  state().set_normal_interval(timeout * 1s);
 }
 
 void
 TrackerTest::set_new_min_interval(uint32_t timeout) {
   auto guard = lock_guard();
-  state().set_min_interval(timeout);
+  state().set_min_interval(timeout * 1s);
 }
 
 void
-TrackerTest::send_event(torrent::tracker::TrackerState::event_enum new_state) {
+TrackerTest::send_event([[maybe_unused]] torrent::tracker::TrackerParams params, torrent::tracker::TrackerState::event_enum new_state) {
   // Trackers close on-going requests when new state is sent.
   m_busy = true;
   m_open = true;
+
   m_requesting_state = new_state;
+
   lock_and_set_latest_event(new_state);
+
+  auto guard = lock_guard();
+  state().m_flags |= torrent::tracker::TrackerState::flag_starting_request;
+  state().m_flags |= torrent::tracker::TrackerState::flag_requesting;
 }
 
 void
-TrackerTest::send_scrape() {
+TrackerTest::send_scrape([[maybe_unused]] torrent::tracker::TrackerParams params) {
   // We ignore scrapes if we're already making a request.
   // if (m_open)
   //   return;
@@ -119,11 +140,41 @@ TrackerTest::send_scrape() {
   m_requesting_state = torrent::tracker::TrackerState::EVENT_SCRAPE;
 
   lock_and_set_latest_event(torrent::tracker::TrackerState::EVENT_SCRAPE);
+
+  auto guard = lock_guard();
+  state().m_flags |= torrent::tracker::TrackerState::flag_requesting;
+}
+
+void
+TrackerTest::close()  {
+  m_busy = false;
+  m_open = false;
+  m_requesting_state = -1;
+
+  auto guard = lock_guard();
+
+  state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+  state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
+}
+
+void
+TrackerTest::cleanup() {
+  close();
+
+  auto guard = lock_guard();
+
+  state().m_flags |=  torrent::tracker::TrackerState::flag_deleted;
+  state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+  state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
 }
 
 bool
 TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
-  CPPUNIT_ASSERT(is_busy() && "TrackerTest::trigger_success: is_busy()");
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
+  CPPUNIT_ASSERT(m_busy && "TrackerTest::trigger_success: m_busy");
   CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_success: is_open()");
 
   torrent::AddressList address_list;
@@ -143,12 +194,23 @@ TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
 
 bool
 TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_peers) {
-  CPPUNIT_ASSERT(is_busy() && "TrackerTest::trigger_success: is_busy()");
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
+  CPPUNIT_ASSERT(m_busy && "TrackerTest::trigger_success: m_busy");
   CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_success: is_open()");
   CPPUNIT_ASSERT(address_list != nullptr && "TrackerTest::trigger_success: address_list == nullptr");
 
   m_busy = false;
   m_open = !(state().flags() & flag_close_on_done);
+
+  {
+    auto guard = lock_guard();
+    state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+    state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
+  }
+
   return_new_peers = new_peers;
 
   if (state().latest_event() == torrent::tracker::TrackerState::EVENT_SCRAPE) {
@@ -167,16 +229,28 @@ TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_pe
   }
 
   m_requesting_state = -1;
+
   return true;
 }
 
 bool
 TrackerTest::trigger_failure() {
-  CPPUNIT_ASSERT(is_busy() && "TrackerTest::trigger_failure: is_busy()");
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
+  CPPUNIT_ASSERT(m_busy && "TrackerTest::trigger_failure: m_busy");
   CPPUNIT_ASSERT(is_open() && "TrackerTest::trigger_failure: is_open()");
 
   m_busy = false;
   m_open = !(state().flags() & flag_close_on_done);
+
+  {
+    auto guard = lock_guard();
+    state().m_flags &= ~torrent::tracker::TrackerState::flag_requesting;
+    state().m_flags &= ~torrent::tracker::TrackerState::flag_starting_request;
+  }
+
   return_new_peers = 0;
 
   if (state().latest_event() == torrent::tracker::TrackerState::EVENT_SCRAPE) {
@@ -186,8 +260,8 @@ TrackerTest::trigger_failure() {
   } else {
     {
       auto guard = lock_guard();
-      state().set_normal_interval(0);
-      state().set_min_interval(0);
+      state().set_normal_interval(0s);
+      state().set_min_interval(0s);
     }
 
     if (m_slot_failure)
@@ -200,7 +274,11 @@ TrackerTest::trigger_failure() {
 
 bool
 TrackerTest::trigger_scrape() {
-  if (!is_busy() || !is_open())
+  // C++20 allows notify_all() on atomic variables.
+  for (int i = 0; i != 100 && !m_busy; i++)
+    std::this_thread::sleep_for(10ms);
+
+  if (!m_busy || !is_open())
     return false;
 
   if (state().latest_event() != torrent::tracker::TrackerState::EVENT_SCRAPE)
@@ -211,10 +289,14 @@ TrackerTest::trigger_scrape() {
 
 int
 TrackerTest::count_active(torrent::TrackerList* parent) {
-  return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_busy));
+  std::this_thread::sleep_for(500ms);
+
+  return std::count_if(parent->begin(), parent->end(), [](auto& tracker) { return tracker.is_requesting(); });
 }
 
 int
 TrackerTest::count_usable(torrent::TrackerList* parent) {
-  return std::count_if(parent->begin(), parent->end(), std::mem_fn(&torrent::tracker::Tracker::is_usable));
+  std::this_thread::sleep_for(500ms);
+
+  return std::count_if(parent->begin(), parent->end(), [](auto& tracker) { return tracker.is_usable(); });
 }

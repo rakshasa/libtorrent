@@ -9,6 +9,7 @@
 
 #include <torrent/common.h>
 #include <torrent/download/group_entry.h>
+#include <torrent/download/types.h>
 
 namespace torrent {
 
@@ -61,13 +62,7 @@ public:
     uint32_t            unchoke_weight[order_max_size];
   };
 
-   enum heuristics_enum {
-    HEURISTICS_UPLOAD_LEECH,
-    HEURISTICS_UPLOAD_SEED,
-    HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL,
-    HEURISTICS_DOWNLOAD_LEECH,
-    HEURISTICS_MAX_SIZE
-  };
+  using heuristics_enum = torrent::heuristics_enum;
 
   choke_queue(int flags = 0) :
     m_flags(flags)

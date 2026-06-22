@@ -1,9 +1,6 @@
 #include "config.h"
 
-#include "log.h"
-
-#include "torrent/exceptions.h"
-#include "torrent/hash_string.h"
+#include "torrent/utils/log.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -15,6 +12,10 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+
+#include "torrent/exceptions.h"
+#include "torrent/hash_string.h"
+#include "torrent/utils/string_manip.h"
 
 namespace torrent {
 
@@ -132,12 +133,13 @@ void
 log_group::internal_print(const HashString* hash, const char* subsystem, const void* dump_data, size_t dump_size, const char* fmt, ...) {
   va_list ap;
   const unsigned int buffer_size = 4096;
+
   char buffer[buffer_size];
   char* first = buffer;
 
   if (subsystem != NULL) {
     if (hash != NULL) {
-      first = hash_string_to_hex(*hash, first);
+      first = utils::transform_to_hex(*hash, first, first + 40);
       first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
     } else {
       first += snprintf(first, 4096 - (first - buffer), "%s: ", subsystem);
@@ -327,11 +329,13 @@ log_file_write(const std::unique_ptr<std::ostream>& outfile, const char* data, s
   } else if (group >= 0) {
     *outfile << this_thread::cached_seconds().count() << ' ' << log_level_char[group % 6] << ' ' << data << '\n';
   } else if (group == -1) {
-    *outfile << "---DUMP---" << '\n';
+    *outfile << "---DUMP---" << length << "---" << '\n';
+
     if (length != 0) {
       outfile->rdbuf()->sputn(data, length);
       *outfile << '\n';
     }
+
     *outfile << "---END---" << '\n';
   }
 }
@@ -354,7 +358,9 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
     gzwrite(outfile->gz_file.get(), "\n", 1);
 
   } else if (group == -1) {
-    gzwrite(outfile->gz_file.get(), "---DUMP---\n", sizeof("---DUMP---\n") - 1);
+    int buffer_length = snprintf(buffer, 64, "---DUMP---%zu---\n", length);
+
+    gzwrite(outfile->gz_file.get(), buffer, buffer_length);
 
     if (length != 0)
       gzwrite(outfile->gz_file.get(), data, length);

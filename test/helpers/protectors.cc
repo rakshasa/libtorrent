@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <cppunit/Exception.h>
 #include <cppunit/Message.h>
 #include <cppunit/extensions/TypeInfoHelper.h>

@@ -1219,7 +1219,17 @@ int dns_timeouts(struct dns_ctx *ctx, int maxwait, time_t now) {
     return maxwait;
   if (!now)
     now = time(NULL);
-  do {
+
+  // Just in case, to avoid infinite loop when e.g. callbacks might add new queries with expired
+  // deadlines.
+  int loop = 128;
+
+  while (true) {
+    if (--loop <= 0) {
+      maxwait = 0;
+      break;
+    }
+
     if (q->dnsq_deadline > now) { /* first non-expired query */
       int w = (int)(q->dnsq_deadline - now);
       if (maxwait < 0 || maxwait > w)
@@ -1230,7 +1240,10 @@ int dns_timeouts(struct dns_ctx *ctx, int maxwait, time_t now) {
       /* process expired deadline */
       dns_send(ctx, q, now);
     }
-  } while((q = ctx->dnsc_qactive.head) != NULL);
+
+    if ((q = ctx->dnsc_qactive.head) == NULL)
+      break;
+  }
 
   dns_request_utm(ctx, now); /* update timer with new deadline */
   return maxwait;

@@ -28,8 +28,8 @@ File::is_created() const {
   // the client to check that the torrent files are present and ok,
   // rather than as a way to find out if it is starting on a blank
   // slate.
-  if (!fs.update(frozen_path()))
-//     return rak::error_number::current() == rak::error_number::e_access;
+  if (!fs.update(m_frozen_path.str()))
+//     return errno == EACCES;
     return false;
 
   return fs.is_regular();
@@ -42,7 +42,7 @@ File::is_correct_size() const {
 
   utils::FileStat fs;
 
-  if (!fs.update(frozen_path()))
+  if (!fs.update(m_frozen_path.str()))
     return false;
 
   return fs.is_regular() && static_cast<uint64_t>(fs.size()) == m_size;
@@ -111,16 +111,22 @@ void
 File::set_match_depth(File* left, File* right) {
   uint32_t level = 0;
 
-  auto itrLeft = left->path()->begin();
+  auto itrLeft  = left->path()->begin();
   auto itrRight = right->path()->begin();
 
-  while (itrLeft != left->path()->end() && itrRight != right->path()->end() && *itrLeft == *itrRight) {
+  while (true) {
+    if (itrLeft == left->path()->end() || itrRight == right->path()->end())
+      break;
+
+    if (itrLeft->str() != itrRight->str())
+      break;
+
     itrLeft++;
     itrRight++;
     level++;
   }
 
-  left->m_match_depth_next = level;
+  left->m_match_depth_next  = level;
   right->m_match_depth_prev = level;
 }
 
@@ -139,7 +145,7 @@ File::resize_file() const {
   if (!SocketFile(m_fd).set_size(m_size))
     return false;
 
-  if (m_flags & flag_fallocate) {
+  if ((m_flags & flag_fallocate) && m_priority != PRIORITY_OFF) {
     // Only do non-blocking fallocate.
     if (!SocketFile(m_fd).allocate(m_size, SocketFile::flag_fallocate))
       return false;

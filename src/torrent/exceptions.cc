@@ -1,14 +1,17 @@
 #include "config.h"
 
+#include "torrent/exceptions.h"
+
 #include <cstring>
 #include <netdb.h>
 #include <sstream>
 
+#include "torrent/hash_string.h"
+#include "torrent/utils/string_manip.h"
+
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
 #endif
-
-#include "exceptions.h"
 
 namespace torrent {
 
@@ -20,6 +23,14 @@ void communication_error::initialize(const std::string& msg) { m_msg = msg; }
 void storage_error::initialize(const std::string& msg) { m_msg = msg; }
 void resource_error::initialize(const std::string& msg) { m_msg = msg; }
 void input_error::initialize(const std::string& msg) { m_msg = msg; }
+
+internal_error::internal_error(const char* msg, const std::string& context) {
+  initialize(std::string(msg) + " [" + context + "]");
+}
+
+internal_error::internal_error(const char* msg, const HashString& hash) {
+  initialize(std::string(msg) + " [#" + utils::transform_to_hex_str(hash) + "]");
+}
 
 const char*
 internal_error::what() const noexcept {

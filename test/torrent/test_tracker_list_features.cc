@@ -69,24 +69,37 @@ TestTrackerListFeatures::test_has_active() {
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
   tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(tracker_list.has_active_not_scrape());
   tracker_0_0_worker->trigger_success();
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
-  tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_list.send_event(tracker_list.at(2), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
+  CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_1_0_worker->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
   // Test multiple active trackers.
-  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
+  CPPUNIT_ASSERT(tracker_list.has_active());
 
   tracker_list.send_event(tracker_list.at(1), torrent::tracker::TrackerState::EVENT_NONE);
+
+  process_main_and_tracker(this);
   tracker_0_0_worker->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_0_1_worker->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
   tracker_1_0_worker->set_scrapable();
+
   tracker_list.send_scrape(tracker_1_0);
+
+  process_main_and_tracker(this);
   CPPUNIT_ASSERT(tracker_list.has_active());
   CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 }
@@ -113,26 +126,27 @@ TestTrackerListFeatures::test_find_next_to_request() {
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 
   tracker_0.enable();
-  tracker_0_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 0);
+  tracker_0_worker->set_failed(torrent::this_thread::cached_seconds() - 0s);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 
-  tracker_1_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 0);
-  tracker_2_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 0);
+  tracker_1_worker->set_failed(torrent::this_thread::cached_seconds() - 0s);
+  tracker_2_worker->set_failed(torrent::this_thread::cached_seconds() - 0s);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 3);
 
-  tracker_3_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 0);
+  tracker_3_worker->set_failed(torrent::this_thread::cached_seconds() - 0s);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
 
-  tracker_0_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 3);
-  tracker_1_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 2);
-  tracker_2_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 4);
-  tracker_3_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 2);
+  tracker_0_worker->set_failed(torrent::this_thread::cached_seconds() - 3s);
+  tracker_1_worker->set_failed(torrent::this_thread::cached_seconds() - 2s);
+  tracker_2_worker->set_failed(torrent::this_thread::cached_seconds() - 4s);
+  tracker_3_worker->set_failed(torrent::this_thread::cached_seconds() - 2s);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 2);
 
-  tracker_1_worker->set_failed(0, torrent::this_thread::cached_seconds().count() - 1);
-  tracker_1_worker->set_success(1, torrent::this_thread::cached_seconds().count() - 1);
-  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
-  tracker_1_worker->set_success(1, torrent::this_thread::cached_seconds().count() - (tracker_1.state().normal_interval() - 1));
+  tracker_1_worker->set_success(torrent::this_thread::cached_seconds() - 1s);
+
+  CPPUNIT_ASSERT_EQUAL(&(*(tracker_list.begin() + 2)), &(*tracker_list.find_next_to_request(tracker_list.begin())));
+
+  tracker_1_worker->set_success(torrent::this_thread::cached_seconds() - (tracker_1.state().normal_interval() - 1s));
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 }
 
@@ -151,17 +165,17 @@ TestTrackerListFeatures::test_find_next_to_request_groups() {
 
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
 
-  tracker_0_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 0);
+  tracker_0_worker->set_failed(torrent::this_thread::cached_seconds() - 4s);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 
-  tracker_1_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 0);
+  tracker_1_worker->set_failed(torrent::this_thread::cached_seconds() - 3s);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 2);
 
-  tracker_2_worker->set_failed(1, torrent::this_thread::cached_seconds().count() - 0);
+  tracker_2_worker->set_failed(torrent::this_thread::cached_seconds() - 2s);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 3);
 
-  tracker_1_worker->set_failed(0, torrent::this_thread::cached_seconds().count() - 0);
-  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
+  tracker_1_worker->set_failed(torrent::this_thread::cached_seconds() - 1s);
+  CPPUNIT_ASSERT_EQUAL(&(*(tracker_list.begin() + 3)), &(*tracker_list.find_next_to_request(tracker_list.begin())));
 }
 
 void

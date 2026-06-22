@@ -9,11 +9,11 @@
 #include "net/curl_get.h"
 #include "net/curl_socket.h"
 #include "torrent/exceptions.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent::net {
 
-CurlStack::CurlStack(utils::Thread* thread)
+CurlStack::CurlStack(system::Thread* thread)
   : m_thread(thread),
     m_handle(curl_multi_init()) {
 
@@ -98,7 +98,10 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
   if (curl_get == nullptr)
     throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
 
-  { auto guard = std::scoped_lock(m_mutex, curl_get->mutex());
+  { auto lock_main = std::unique_lock(m_mutex, std::defer_lock);
+    auto lock_get  = std::unique_lock(curl_get->mutex(), std::defer_lock);
+
+    std::lock(lock_main, lock_get);
 
     // TODO: Check is_running, if not return error. Do not throw internal_error.
     if (!m_running)
@@ -125,6 +128,11 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
     curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
 
     base_type::push_back(curl_get);
+    m_size = base_type::size();
+
+    // Calling curl_multi_add_handle() can result in CurlSocket::receive_socket() being called,
+    // which calls CurlStack::is_running().
+    lock_main.unlock();
 
     curl_get->activate_unsafe();
   }
@@ -143,6 +151,7 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
         throw torrent::internal_error("CurlStack::close_get() called on a CurlGet that is not in the stack.");
 
       base_type::erase(itr);
+      m_size = base_type::size();
     }
 
     curl_get->cleanup_unsafe();

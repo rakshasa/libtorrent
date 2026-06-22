@@ -10,7 +10,7 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_option_strings, "torrent/utils");
 
 #define TEST_ENTRY(group, name, value)                                  \
   { lt_log_print(torrent::LOG_MOCK_CALLS, "option_string: %s", name);   \
-    std::string result(torrent::option_as_string(torrent::group, value)); \
+    std::string result(torrent::option_to_c_str_or_throw(torrent::group, value)); \
     CPPUNIT_ASSERT_MESSAGE("Not found '" + result + "'", result == name); \
     CPPUNIT_ASSERT(torrent::option_find_string(torrent::group, name) == value); \
   }

@@ -2,94 +2,51 @@
 
 #include "torrent/torrent.h"
 
+#include <algorithm>
+#include <random>
 #include <curl/curl.h>
 
-#include "data/file_manager.h"
-#include "data/hash_queue.h"
+#include "manager.h"
+#include "runtime.h"
+#include "thread_main.h"
 #include "data/thread_disk.h"
+#include "net/thread_net.h"
+#include "torrent/exceptions.h"
+#include "torrent/system/poll.h"
+#include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
+#include "tracker/thread_tracker.h"
+#include "utils/instrumentation.h"
+
+// TODO: Refactor these uses.
 #include "download/download_constructor.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-#include "manager.h"
-#include "net/thread_net.h"
-#include "protocol/handshake_manager.h"
-#include "protocol/peer_factory.h"
-#include "rak/string_manip.h"
-#include "thread_main.h"
-#include "torrent/connection_manager.h"
 #include "torrent/download/resource_manager.h"
+#include "protocol/peer_factory.h"
 #include "torrent/download_info.h"
-#include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
 #include "torrent/throttle.h"
 #include "torrent/peer/connection_list.h"
-#include "torrent/net/http_stack.h"
-#include "torrent/net/poll.h"
-#include "torrent/runtime/network_manager.h"
-#include "tracker/thread_tracker.h"
-#include "utils/instrumentation.h"
 
 namespace torrent {
 
 namespace {
 
-uint32_t
-calculate_max_open_files(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 16;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
+std::string
+generate_random(size_t length) {
+  std::random_device rd;
+  std::mt19937 mt(rd());
 
-uint32_t
-calculate_max_http_host_connections(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 3;
-  else if (open_max >= 8096)
-    return 2;
-  else // Assumes we don't try less than 64.
-    return 1;
-}
+  using bytes_randomizer = std::independent_bits_engine<std::mt19937, CHAR_BIT, uint8_t>;
+  bytes_randomizer bytes(mt);
 
-uint32_t
-calculate_max_http_total_connections(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 128;
-  else if (open_max >= 8096)
-    return 64;
-  else if (open_max >= 1024)
-    return 32;
-  else if (open_max >= 512)
-    return 16;
-  else if (open_max >= 128)
-    return 8;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
+  std::string s;
+  s.reserve(length);
 
-uint32_t
-calculate_reserved(uint32_t open_max) {
-  if (open_max >= 16384)
-    return 512;
-  else if (open_max >= 8096)
-    return 256;
-  else if (open_max >= 1024)
-    return 128;
-  else if (open_max >= 512)
-    return 64;
-  else if (open_max >= 128)
-    return 32;
-  else // Assumes we don't try less than 64.
-    return 16;
+  std::generate_n(std::back_inserter(s), length, std::ref(bytes));
+  return s;
 }
 
 }
@@ -97,6 +54,8 @@ calculate_reserved(uint32_t open_max) {
 void
 initialize_main_thread() {
   ThreadMain::create_thread();
+
+  Runtime::initialize();
   ThreadMain::thread_main()->init_thread();
 }
 
@@ -112,26 +71,19 @@ initialize() {
 
   ThreadDisk::create_thread();
   ThreadNet::create_thread();
-  ThreadTracker::create_thread(ThreadMain::thread_main());
+  ThreadTracker::create_thread();
 
-  auto max_open = this_thread::poll()->open_max();
-  auto max_files = calculate_max_open_files(max_open);
-  auto max_http_connections = calculate_max_http_total_connections(max_open);
-  auto reserved = calculate_reserved(max_open);
+  runtime::socket_manager()->set_max_size_and_adjust(this_thread::poll()->open_max());
 
-  manager->connection_manager()->set_max_size(max_open - max_files - max_http_connections - reserved);
-  manager->file_manager()->set_max_open_files(max_files);
+  ThreadMain::thread_main()->init_after_setup();
 
-  net_thread::http_stack()->set_max_host_connections(calculate_max_http_host_connections(max_open));
-  net_thread::http_stack()->set_max_total_connections(max_http_connections);
-
-  thread_disk()->init_thread();
+  disk_thread::thread()->init_thread();
   net_thread::thread()->init_thread();
-  thread_tracker()->init_thread();
+  tracker_thread::thread()->init_thread();
 
-  thread_disk()->start_thread();
+  disk_thread::thread()->start_thread();
   net_thread::thread()->start_thread();
-  thread_tracker()->start_thread();
+  tracker_thread::thread()->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -144,66 +96,43 @@ cleanup() {
   // Might need to wait for the threads to finish?
   runtime::network_manager()->cleanup();
 
-  thread_tracker()->stop_thread_wait();
-  thread_disk()->stop_thread_wait();
+  tracker_thread::thread()->stop_thread_wait();
+  disk_thread::thread()->stop_thread_wait();
   net_thread::thread()->stop_thread_wait();
 
   ThreadTracker::destroy_thread();
   ThreadDisk::destroy_thread();
   ThreadNet::destroy_thread();
 
+  Runtime::cleanup();
+  manager->cleanup();
+
+  Runtime::destroy();
+
   delete manager;
-  manager = NULL;
+  manager = nullptr;
 
   curl_global_cleanup();
 }
 
-bool
-is_initialized() {
-  return manager != NULL;
-}
-
-bool
-is_inactive() {
-  return manager == nullptr || std::all_of(manager->download_manager()->begin(), manager->download_manager()->end(), std::mem_fn(&DownloadWrapper::is_stopped));
-}
-
-void
-set_main_thread_slots(std::function<void()> do_work) {
-  ThreadMain::thread_main()->slot_do_work() = std::move(do_work);
-}
-
 ChunkManager*      chunk_manager()       { return manager->chunk_manager(); }
 ClientList*        client_list()         { return manager->client_list(); }
-ConnectionManager* connection_manager()  { return manager->connection_manager(); }
 FileManager*       file_manager()        { return manager->file_manager(); }
 ResourceManager*   resource_manager()    { return manager->resource_manager(); }
 
-uint32_t
-total_handshakes() {
-  return manager->handshake_manager()->size();
-}
-
 Throttle* down_throttle_global() { return manager->download_throttle(); }
-Throttle* up_throttle_global() { return manager->upload_throttle(); }
+Throttle* up_throttle_global()   { return manager->upload_throttle(); }
 
-const Rate* down_rate() { return manager->download_throttle()->rate(); }
-const Rate* up_rate() { return manager->upload_throttle()->rate(); }
-const char* version() { return VERSION; }
-
-EncodingList*
-encoding_list() {
-  return manager->encoding_list();
-}
+const Rate* down_rate()          { return manager->download_throttle()->rate(); }
+const Rate* up_rate()            { return manager->upload_throttle()->rate(); }
 
 Download
 download_add(Object* object, uint32_t tracker_key) {
   auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
-  ctor.set_download(download.get());
-  ctor.set_encoding_list(manager->encoding_list());
 
+  ctor.set_download(download.get());
   ctor.initialize(*object);
 
   std::string infoHash;
@@ -222,7 +151,7 @@ download_add(Object* object, uint32_t tracker_key) {
     download->main()->set_metadata_size(metadata_size);
   }
 
-  std::string local_id = PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size());
+  std::string local_id = PEER_NAME + generate_random(20 - std::string(PEER_NAME).size());
 
   download->set_hash_queue(ThreadMain::thread_main()->hash_queue());
   download->initialize(infoHash, local_id, tracker_key);

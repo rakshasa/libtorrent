@@ -1,39 +1,39 @@
 #ifndef LIBTORRENT_THREAD_TRACKER_H
 #define LIBTORRENT_THREAD_TRACKER_H
 
-#include <vector>
-
 #include "torrent/common.h"
-#include "torrent/tracker/tracker.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent {
 
 namespace tracker {
+
 class Manager;
+class UdpRouter;
+
 } // namespace tracker
 
-struct TrackerSendEvent {
-  tracker::Tracker                  tracker;
-  tracker::TrackerState::event_enum event;
-};
-
-class LIBTORRENT_EXPORT ThreadTracker : public utils::Thread {
+class LIBTORRENT_EXPORT ThreadTracker : public system::Thread {
 public:
   ~ThreadTracker() override;
 
-  static void           create_thread(utils::Thread* main_thread);
-  static void           destroy_thread();
-  static ThreadTracker* thread_tracker();
+  static void            create_thread();
+  static void            destroy_thread();
+  static ThreadTracker*  thread_tracker();
+  static system::Thread* thread_base()            { return thread_tracker(); }
 
-  const char*           name() const override { return "rtorrent tracker"; }
+  const char*           name() const override     { return "rtorrent-tracker"; }
 
   void                  init_thread() override;
+  void                  init_thread_post_local() override;
   void                  cleanup_thread() override;
 
-  tracker::Manager*     tracker_manager() { return m_tracker_manager.get(); }
+  // TODO: Make protected?
 
-  // void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
+  tracker::Manager*     tracker_manager()         { return m_tracker_manager.get(); }
+
+  auto                  udp_inet_router()         { return m_udp_inet_router.get(); }
+  auto                  udp_inet6_router()        { return m_udp_inet6_router.get(); }
 
 protected:
   friend class Manager;
@@ -44,20 +44,14 @@ protected:
 private:
   ThreadTracker() = default;
 
-  // void                process_send_events();
+  static ThreadTracker* m_thread_tracker;
 
-  static std::atomic<ThreadTracker*> m_thread_tracker;
+  system::callback_id   m_events_callback_id;
 
-  std::unique_ptr<tracker::Manager>  m_tracker_manager;
-  unsigned int                       m_signal_send_event{~0u};
-
-  // std::mutex                    m_send_events_lock;
-  // std::vector<TrackerSendEvent> m_send_events;
+  std::unique_ptr<tracker::Manager>   m_tracker_manager;
+  std::unique_ptr<tracker::UdpRouter> m_udp_inet_router;
+  std::unique_ptr<tracker::UdpRouter> m_udp_inet6_router;
 };
-
-inline ThreadTracker* thread_tracker() {
-  return ThreadTracker::thread_tracker();
-}
 
 } // namespace torrent
 

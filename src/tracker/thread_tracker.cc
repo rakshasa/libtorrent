@@ -1,31 +1,59 @@
 #include "config.h"
 
-#include "thread_tracker.h"
+#include "tracker/thread_tracker.h"
 
 #include <cassert>
 
+#include "tracker/udp_router.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/resolver.h"
+#include "torrent/runtime/network_config.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/tracker/manager.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
 
-std::atomic<ThreadTracker*> ThreadTracker::m_thread_tracker{nullptr};
+namespace tracker_thread {
+
+system::Thread* thread()                                                       { return ThreadTracker::thread_base(); }
+std::thread::id thread_id()                                                    { return ThreadTracker::thread_base()->thread_id(); }
+
+void            callback(std::function<void ()>&& fn)                          { ThreadTracker::thread_base()->callback(std::move(fn)); }
+void            callback(system::callback_id& id, std::function<void ()>&& fn) { ThreadTracker::thread_base()->callback(id, std::move(fn)); }
+void            cancel_callback(system::callback_id& id)                       { ThreadTracker::thread_base()->cancel_callback(id); }
+void            cancel_callback_and_wait(system::callback_id& id)              { ThreadTracker::thread_base()->cancel_callback_and_wait(id); }
+
+tracker::Manager* manager()                                                    { return ThreadTracker::thread_tracker()->tracker_manager(); }
+
+} // namespace tracker
+
+
+ThreadTracker* ThreadTracker::m_thread_tracker{};
 
 ThreadTracker::~ThreadTracker() = default;
 
 void
-ThreadTracker::create_thread(utils::Thread* main_thread) {
+ThreadTracker::create_thread() {
   assert(m_thread_tracker == nullptr);
 
   m_thread_tracker = new ThreadTracker();
-  m_thread_tracker.load()->m_tracker_manager = std::make_unique<tracker::Manager>(main_thread, m_thread_tracker);
+
+  m_thread_tracker->m_events_callback_id = system::make_callback_id();
+  m_thread_tracker->m_resolver           = std::make_unique<net::Resolver>();
+  m_thread_tracker->m_tracker_manager    = std::make_unique<tracker::Manager>();
+  m_thread_tracker->m_udp_inet_router    = std::make_unique<tracker::UdpRouter>();
+  m_thread_tracker->m_udp_inet6_router   = std::make_unique<tracker::UdpRouter>();
 }
 
 void
 ThreadTracker::destroy_thread() {
-  delete m_thread_tracker;
-  m_thread_tracker = nullptr;
+  try {
+    delete m_thread_tracker;
+    m_thread_tracker = nullptr;
+  } catch (...) {
+    m_thread_tracker = nullptr;
+  }
 }
 
 ThreadTracker*
@@ -38,33 +66,34 @@ ThreadTracker::init_thread() {
   m_state = STATE_INITIALIZED;
 
   m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_TRACKER - INSTRUMENTATION_POLLING_DO_POLL;
+}
 
-  // m_signal_send_event = utils::Thread::self()->signal_bitfield()->add_signal([this]() {
-  //   process_send_events();
-  // });
+void
+ThreadTracker::init_thread_post_local() {
+  m_thread_tracker->m_udp_inet_router->open(AF_INET);
+  m_thread_tracker->m_udp_inet6_router->open(AF_INET6);
+
+  runtime::network_config()->subscribe_to_changes(this, [this]() {
+      callback(m_events_callback_id, [this]() {
+          m_udp_inet_router->updated_network_config(AF_INET);
+          m_udp_inet6_router->updated_network_config(AF_INET6);
+        });
+    });
 }
 
 void
 ThreadTracker::cleanup_thread() {
+  runtime::network_config()->unsubscribe_from_changes(this);
+  cancel_callback(m_events_callback_id);
+
   m_tracker_manager.reset();
+
+  m_udp_inet_router->close();
+  m_udp_inet6_router->close();
+
+  m_udp_inet_router.reset();
+  m_udp_inet6_router.reset();
 }
-
-// void
-// ThreadTracker::send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum event) {
-//   {
-//     std::scoped_lock lock(m_send_events_lock);
-
-//     m_send_events.erase(std::remove_if(m_send_events.begin(), m_send_events.end(),
-//                                        [&tracker](const TrackerSendEvent& e) {
-//                                          return e.tracker == tracker;
-//                                        }),
-//                         m_send_events.end());
-
-//     m_send_events.push_back(TrackerSendEvent{tracker, event});
-//   }
-
-//   send_event_signal(m_signal_send_event);
-// }
 
 void
 ThreadTracker::call_events() {
@@ -88,36 +117,5 @@ std::chrono::microseconds
 ThreadTracker::next_timeout() {
   return std::chrono::microseconds(10s);
 }
-
-// void
-// ThreadTracker::process_send_events() {
-//   std::vector<TrackerSendEvent> events;
-
-//   // TODO: Do we properly handle if the tracker is deleted?
-//   //
-//   // Should be, as we use weak_ptrs to the tracker objects, and check them before calling.
-//   //
-//   // However this should be possible to implement as a straight up callback, no need for special
-//   // event handling.
-
-//   // TODO: Make sure this is called in the right thread, currently main thread.
-
-//   // TODO: Review this for proper close:
-
-//   {
-//     auto lock = std::scoped_lock(m_send_events_lock);
-
-//     events.swap(m_send_events);
-//   }
-
-//   // TODO: Currently running send_* in main thread, should be in the tracker thread.
-
-//   for (auto& event : events) {
-//     if (event.event == tracker::TrackerState::EVENT_SCRAPE)
-//       event.tracker.get_worker()->send_scrape();
-//     else
-//       event.tracker.get_worker()->send_event(event.event);
-//   }
-// }
 
 } // namespace torrent

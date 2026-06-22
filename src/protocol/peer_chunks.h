@@ -4,11 +4,11 @@
 #include <list>
 
 #include "net/throttle_node.h"
-#include "rak/partial_queue.h"
 #include "torrent/bitfield.h"
 #include "torrent/data/piece.h"
 #include "torrent/rate.h"
 #include "torrent/utils/scheduler.h"
+#include "utils/partial_queue.h"
 
 namespace torrent {
 
@@ -56,7 +56,7 @@ private:
 
   Bitfield            m_bitfield;
 
-  rak::partial_queue  m_downloadCache;
+  utils::PartialQueue m_downloadCache;
 
   piece_list_type     m_uploadQueue;
   piece_list_type     m_cancelQueue;

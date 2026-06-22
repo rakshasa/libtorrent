@@ -6,18 +6,17 @@
 #include "manager.h"
 #include "peer_connection_base.h"
 #include "download/download_main.h"
-#include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
-#include "torrent/error.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/network_config.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/string_manip.h"
 
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sa_addr_str(sa).c_str(), __VA_ARGS__);
@@ -25,6 +24,26 @@
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sap_addr_str(sa).c_str(), __VA_ARGS__);
 
 namespace torrent {
+
+namespace {
+
+bool
+filter_sockaddr(const sockaddr* sa) {
+  if (runtime::network_config()->is_block_ipv4() && sa_is_inet(sa))
+    return false;
+
+  if (runtime::network_config()->is_block_ipv6() && sa_is_inet6(sa))
+    return false;
+
+  if (sa_is_v4mapped(sa)) {
+    if (runtime::network_config()->is_block_ipv4in6())
+      return false;
+  }
+
+  return true;
+}
+
+}
 
 ProtocolExtension HandshakeManager::DefaultExtensions = ProtocolExtension::make_default();
 
@@ -85,20 +104,14 @@ HandshakeManager::erase_download(DownloadMain* info) {
 
 void
 HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, const sockaddr* sa) {
-  if (!manager->connection_manager()->can_connect()) {
-    LT_LOG_SA(sa, "rejected incoming connection: fd:%i : rejected by connection manager", fd);
-    fd_close(fd);
-    return;
-  }
-
-  if (!manager->connection_manager()->filter(sa)) {
+  if (!filter_sockaddr(sa)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : filtered", fd);
     fd_close(fd);
     return;
   }
 
   if (!fd_set_nonblock(fd))
-    throw internal_error("HandshakeManager::add_incoming() fd_set_nonblocking failed : " + std::string(strerror(errno)));
+    throw internal_error("HandshakeManager::add_incoming() fd_set_nonblocking failed : " + std::string(std::strerror(errno)));
 
   if (!setup_socket(fd, sa->sa_family)) {
     LT_LOG_SA(sa, "rejected incoming connection: fd:%i : setup socket failed : %s", fd, std::strerror(errno));
@@ -108,29 +121,27 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
 
   LT_LOG_SA(sa, "accepted incoming connection: fd:%i", fd);
 
-  manager->connection_manager()->inc_socket_count();
-
   if (sa_is_v4mapped(sa))
-    handshake->initialize_incoming(this, fd, sa_from_v4mapped(sa).get(), config::network_config()->encryption_options());
+    handshake->initialize_incoming(this, fd, sa_from_v4mapped(sa).get(), runtime::network_config()->encryption_options());
   else
-    handshake->initialize_incoming(this, fd, sa, config::network_config()->encryption_options());
+    handshake->initialize_incoming(this, fd, sa, runtime::network_config()->encryption_options());
 
   base_type::push_back(std::move(handshake));
 }
 
 void
 HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
-  if (!manager->connection_manager()->can_connect() ||
-      !manager->connection_manager()->filter(sa))
+  if (!runtime::socket_manager()->can_open_socket(runtime::category_generic) ||
+      !filter_sockaddr(sa))
     return;
 
-  auto encryption_options = config::network_config()->encryption_options();
+  auto encryption_options = runtime::network_config()->encryption_options();
 
   if (download->info()->is_meta_download()) {
-    encryption_options &= ~net::NetworkConfig::encryption_try_outgoing;
-    encryption_options &= ~net::NetworkConfig::encryption_require;
-    encryption_options &= ~net::NetworkConfig::encryption_require_RC4;
-    encryption_options &= ~net::NetworkConfig::encryption_enable_retry;
+    encryption_options &= ~runtime::NetworkConfig::encryption_try_outgoing;
+    encryption_options &= ~runtime::NetworkConfig::encryption_require;
+    encryption_options &= ~runtime::NetworkConfig::encryption_require_RC4;
+    encryption_options &= ~runtime::NetworkConfig::encryption_enable_retry;
   }
 
   if (sa_is_v4mapped(sa))
@@ -143,7 +154,7 @@ void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
   int connection_options = PeerList::connect_keep_handshakes;
 
-  if (!(encryption_options & net::NetworkConfig::encryption_retrying))
+  if (!(encryption_options & runtime::NetworkConfig::encryption_retrying))
     connection_options |= PeerList::connect_filter_recent;
 
   PeerInfo* peer_info = download->peer_list()->connected(sa, connection_options);
@@ -154,11 +165,11 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   }
 
   auto connect_address = sa_copy(sa);
-  auto proxy_address = config::network_config()->proxy_address();
+  auto proxy_address = runtime::network_config()->proxy_address();
 
   if (proxy_address->sa_family != AF_UNSPEC) {
     connect_address = sa_copy(proxy_address.get());
-    encryption_options |= net::NetworkConfig::encryption_use_proxy;
+    encryption_options |= runtime::NetworkConfig::encryption_use_proxy;
   }
 
   auto handshake = std::make_unique<Handshake>();
@@ -166,19 +177,17 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   auto open_func = [&]() {
       int fd = open_and_connect_socket(connect_address.get());
 
-      if (fd == -1) {
-        download->peer_list()->disconnected(peer_info, 0);
+      if (fd == -1)
         return;
-      }
 
       int message;
 
-      if (encryption_options & net::NetworkConfig::encryption_use_proxy)
-        message = ConnectionManager::handshake_outgoing_proxy;
-      else if (encryption_options & (net::NetworkConfig::encryption_try_outgoing | net::NetworkConfig::encryption_require))
-        message = ConnectionManager::handshake_outgoing_encrypted;
+      if (encryption_options & runtime::NetworkConfig::encryption_use_proxy)
+        message = Handshake::handshake_outgoing_proxy;
+      else if (encryption_options & (runtime::NetworkConfig::encryption_try_outgoing | runtime::NetworkConfig::encryption_require))
+        message = Handshake::handshake_outgoing_encrypted;
       else
-        message = ConnectionManager::handshake_outgoing;
+        message = Handshake::handshake_outgoing;
 
       if (proxy_address->sa_family != AF_UNSPEC) {
         LT_LOG_SA(sa, "created outgoing connection via proxy: fd:%i proxy:%s encryption:%x message:%x",
@@ -190,73 +199,68 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       handshake->initialize_outgoing(this, fd, sa, encryption_options, download, peer_info);
     };
 
-  auto cleanup_func = [&]() {
+  auto cleanup_func = [&](bool) {
+      if (!handshake->is_open()) {
+        LT_LOG_SA(sa, "failed to create outgoing connection: open failed", 0);
+        download->peer_list()->disconnected(peer_info, 0);
+        return;
+      }
+
       LT_LOG_SA(sa, "failed to create outgoing connection : socket manager triggered cleanup", 0);
 
-      download->peer_list()->disconnected(peer_info, 0);
-      handshake->destroy_connection();
+      handshake->destroy_connection(false);
     };
 
-  runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);
+  runtime::socket_manager()->open_event_or_cleanup(handshake.get(), runtime::category_generic, open_func, cleanup_func);
 
   if (!handshake->is_open())
     return;
-
-  manager->connection_manager()->inc_socket_count();
 
   base_type::push_back(std::move(handshake));
 }
 
 void
-HandshakeManager::receive_succeeded(Handshake* handshake) {
-  if (!handshake->is_active())
+HandshakeManager::receive_succeeded(Handshake* ptr) {
+  if (!ptr->is_active())
     throw internal_error("HandshakeManager::receive_succeeded(...) called on an inactive handshake.");
 
-  auto handshake_ptr = find_and_erase(handshake);
-  auto download      = handshake->download();
-  auto peer_type     = handshake->bitfield()->is_all_set() ? "seed" : "leech";
+  auto handshake = find_and_erase(ptr);
+  auto download  = handshake->download();
+  auto peer_type = handshake->bitfield()->is_all_set() ? "seed" : "leech";
+  auto hash_str  = utils::copy_escape_html_str(handshake->peer_info()->id());
 
   auto error_func = [&](uint32_t reason) {
       LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'%s'",
-                peer_type, hash_string_to_html_str(handshake->peer_info()->id()).c_str(), strerror(reason));
+                peer_type, hash_str.c_str(), handshake_strerror(reason));
+      handshake->destroy_connection();
     };
 
-  if (!download->info()->is_active()) {
-    error_func(e_handshake_inactive_download);
-    handshake->destroy_connection();
-    return;
-  }
+  if (!download->info()->is_active())
+    return error_func(Handshake::e_handshake_inactive_download);
 
-  if (!download->connection_list()->want_connection(handshake->peer_info(), handshake->bitfield())) {
-    error_func(e_handshake_unwanted_connection);
-    handshake->destroy_connection();
-    return;
-  }
+  if (!download->connection_list()->want_connection(handshake->peer_info(), handshake->bitfield()))
+    return error_func(Handshake::e_handshake_unwanted_connection);
 
+  auto fd        = handshake->file_descriptor();
   auto peer_info = handshake->peer_info();
 
-  auto new_event = runtime::socket_manager()->transfer_event(handshake, [&]() -> Event* {
-      auto fd        = handshake->file_descriptor();
-      auto peer_info = handshake->peer_info();
+  auto new_event = runtime::socket_manager()->transfer_event(handshake.get(), [&]() -> Event* {
+      LT_LOG_SA(peer_info->socket_address(), "transfering handshake: type:%s id:%s", peer_type, hash_str.c_str());
 
       handshake->release_connection();
 
-      auto pcb = download->connection_list()->insert(peer_info, fd,
-                                                     handshake->bitfield(),
-                                                     handshake->encryption()->info(),
-                                                     handshake->extensions());
-      if (pcb == nullptr) {
-        error_func(e_handshake_duplicate);
-        fd_close(fd);
-        return nullptr;
-      }
-
-      return pcb;
+      return download->connection_list()->insert(peer_info, fd,
+                                                 handshake->bitfield(),
+                                                 handshake->encryption()->info(),
+                                                 handshake->extensions());
     });
 
   if (new_event == nullptr) {
-    LT_LOG_SA(handshake->peer_info()->socket_address(), "handshake dropped: type:%s id:%s reason:'socket transfer failed'",
-              peer_type, hash_string_to_html_str(handshake->peer_info()->id()).c_str());
+    fd_close(fd);
+
+    download->peer_list()->disconnected(peer_info, 0);
+
+    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
     return;
   }
 
@@ -265,8 +269,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
   manager->client_list()->retrieve_id(&peer_info->mutable_client_info(), peer_info->id());
   pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
 
-  LT_LOG_SA(peer_info->socket_address(), "handshake success: type:%s id:%s",
-            peer_type, hash_string_to_html_str(peer_info->id()).c_str());
+  LT_LOG_SA(peer_info->socket_address(), "handshake success: type:%s id:%s", peer_type, hash_str.c_str());
 
   if (handshake->unread_size() != 0) {
     if (handshake->unread_size() > PeerConnectionBase::ProtocolRead::buffer_size)
@@ -278,22 +281,22 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 }
 
 void
-HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
-  if (!handshake->is_active())
+HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
+  if (!ptr->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  auto sa            = handshake->socket_address();
-  auto handshake_ptr = find_and_erase(handshake);
+  auto handshake = find_and_erase(ptr);
+  auto sa        = handshake->socket_address();
 
   handshake->destroy_connection();
 
-  LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
+  LT_LOG_SA(sa, "Received error: message:%x %s.", message, handshake_strerror(error));
 
   if (handshake->encryption()->should_retry()) {
-    int retry_options = handshake->retry_options() | net::NetworkConfig::encryption_retrying;
+    int retry_options = handshake->retry_options() | runtime::NetworkConfig::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SA(sa, "Retrying %s.", retry_options & net::NetworkConfig::encryption_try_outgoing ? "encrypted" : "plaintext");
+    LT_LOG_SA(sa, "Retrying %s.", retry_options & runtime::NetworkConfig::encryption_try_outgoing ? "encrypted" : "plaintext");
 
     create_outgoing(sa, download, retry_options);
   }
@@ -301,15 +304,15 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
 
 void
 HandshakeManager::receive_timeout(Handshake* h) {
-  receive_failed(h, ConnectionManager::handshake_failed,
+  receive_failed(h, Handshake::handshake_failed,
                  h->state() == Handshake::CONNECTING ?
-                 e_handshake_network_unreachable :
-                 e_handshake_network_timeout);
+                 Handshake::e_handshake_network_unreachable :
+                 Handshake::e_handshake_network_timeout);
 }
 
 int
 HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
-  auto bind_address = config::network_config()->bind_address_for_connect(connect_address->sa_family);
+  auto bind_address = runtime::network_config()->bind_address_for_connect(connect_address->sa_family);
 
   if (bind_address == nullptr) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: blocked or invalid bind address", 0);
@@ -346,13 +349,13 @@ HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
 
 bool
 HandshakeManager::setup_socket(int fd, int family) {
-  auto priority         = config::network_config()->priority();
-  auto send_buffer_size = config::network_config()->send_buffer_size();
-  auto recv_buffer_size = config::network_config()->receive_buffer_size();
+  auto priority         = runtime::network_config()->priority();
+  auto send_buffer_size = runtime::network_config()->send_buffer_size();
+  auto recv_buffer_size = runtime::network_config()->receive_buffer_size();
 
   errno = 0;
 
-  if (priority != net::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
+  if (priority != runtime::NetworkConfig::iptos_default && !fd_set_priority(fd, family, priority))
     return false;
 
   if (send_buffer_size != 0 && !fd_set_send_buffer_size(fd, send_buffer_size))

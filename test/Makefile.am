@@ -9,6 +9,8 @@ TESTS = \
 
 check_PROGRAMS = $(TESTS)
 
+CPPUNIT_CFLAGS += -DLT_CPPUNIT_TESTING
+
 # This can cause duplicate symbols, so export anything that causes issues.
 
 # LibTorrent_Test_LDADD = ../src/libtorrent.la
@@ -63,14 +65,12 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_log.h \
 	torrent/utils/test_log_buffer.cc \
 	torrent/utils/test_log_buffer.h \
+	torrent/utils/directory_events_test.cc \
+	torrent/utils/directory_events_test.h \
 	torrent/utils/test_option_strings.cc \
 	torrent/utils/test_option_strings.h \
 	torrent/utils/test_queue_buckets.cc \
 	torrent/utils/test_queue_buckets.h \
-	torrent/utils/test_signal_bitfield.cc \
-	torrent/utils/test_signal_bitfield.h \
-	torrent/utils/test_signal_interrupt.cc \
-	torrent/utils/test_signal_interrupt.h \
 	torrent/utils/test_thread_base.cc \
 	torrent/utils/test_thread_base.h \
 	torrent/utils/test_uri_parser.cc \
@@ -114,8 +114,6 @@ LibTorrent_Test_Tracker_SOURCES = $(LibTorrent_Test_Common) \
 
 LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\
-	rak/allocators_test.cc \
-	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
 	\

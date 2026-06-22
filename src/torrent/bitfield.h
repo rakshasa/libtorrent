@@ -63,8 +63,8 @@ public:
 
   iterator            begin()                       { return m_data.get(); }
   const_iterator      begin() const                 { return m_data.get(); }
-  iterator            end()                         { return m_data.get() + size_bytes(); }
-  const_iterator      end() const                   { return m_data.get() + size_bytes(); }
+  iterator            end()                         { return m_data != nullptr ? m_data.get() + size_bytes() : m_data.get(); }
+  const_iterator      end() const                   { return m_data != nullptr ? m_data.get() + size_bytes() : m_data.get(); }
 
   size_type           position(const_iterator itr) const  { return (itr - m_data.get()) * 8; }
 

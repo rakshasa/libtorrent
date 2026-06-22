@@ -73,8 +73,6 @@ public:
   FileList*           file_list()                                { return &m_fileList; }
   PeerList*           peer_list()                                { return &m_peerList; }
 
-  std::pair<ThrottleList*, ThrottleList*> throttles(const sockaddr* sa);
-
   ThrottleList*       upload_throttle()                          { return m_upload_throttle; }
   void                set_upload_throttle(ThrottleList* t)       { m_upload_throttle = t; }
 

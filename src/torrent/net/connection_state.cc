@@ -3,7 +3,7 @@
 #include "torrent/net/connection_state.h"
 
 #include "torrent/exceptions.h"
-#include "torrent/net/network_config.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/utils/log.h"
 
 // #define LT_LOG_NOTICE(log_fmt, ...)                                     \
@@ -15,7 +15,7 @@ namespace torrent::net {
 
 int
 connection_state_select_next_family(ConnectionState& state) {
-  auto nc = config::network_config();
+  auto nc = runtime::network_config();
 
   // int current = state.current_family();
 

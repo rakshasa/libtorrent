@@ -9,7 +9,7 @@
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
-#include "torrent/utils/thread.h"
+#include "torrent/system/thread.h"
 
 namespace torrent::net {
 
@@ -32,7 +32,7 @@ HttpGet::close_and_keep_callbacks() {
 }
 
 void
-HttpGet::close_and_cancel_callbacks(utils::Thread* callback_thread) {
+HttpGet::close_and_cancel_callbacks(system::Thread* callback_thread) {
   if (!is_valid())
     throw torrent::internal_error("HttpGet::close_and_cancel_callbacks() called on an invalid HttpGet object.");
 
@@ -57,9 +57,7 @@ HttpGet::try_wait_for_close() {
 
 void
 HttpGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
-  if (m_curl_get == nullptr)
-    m_curl_get = std::make_shared<CurlGet>();
-
+  m_curl_get = std::make_shared<CurlGet>();
   m_curl_get->reset(url, std::move(stream));
 }
 
@@ -101,6 +99,16 @@ HttpGet::use_ipv6() {
 }
 
 void
+HttpGet::use_family(int family) {
+  if (family == AF_INET)
+    use_ipv4();
+  else if (family == AF_INET6)
+    use_ipv6();
+  else
+    throw torrent::internal_error("HttpGet::use_family() called with an invalid address family.");
+}
+
+void
 HttpGet::prefer_ipv4() {
   m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV4);
   m_curl_get->set_retry_resolve(CurlGet::RESOLVE_IPV6);
@@ -113,29 +121,25 @@ HttpGet::prefer_ipv6() {
 }
 
 void
-HttpGet::add_done_slot(const std::function<void()>& slot) {
+HttpGet::add_done_slot(system::Thread* thread, const std::function<void()>& fn) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
 
-  auto thread = this_thread::thread();
-
-  m_curl_get->add_done_slot([thread, slot, curl_get = m_curl_get.get()]() {
-      thread->callback(curl_get, [slot]() {
-          slot();
+  m_curl_get->add_done_slot([thread, fn, curl_get = m_curl_get]() {
+      thread->callback(curl_get->callback_id(), [fn]() {
+          fn();
         });
     });
 }
 
 void
-HttpGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
+HttpGet::add_failed_slot(system::Thread* thread, const std::function<void(const std::string&)>& fn) {
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_failed_slot() called on an invalid HttpGet object.");
 
-  auto thread = this_thread::thread();
-
-  m_curl_get->add_failed_slot([thread, slot, curl_get = m_curl_get.get()](const std::string& error) {
-      thread->callback(curl_get, [slot, error]() {
-          slot(error);
+  m_curl_get->add_failed_slot([thread, fn, curl_get = m_curl_get](const std::string& error) {
+      thread->callback(curl_get->callback_id(), [fn, error]() {
+          fn(error);
         });
     });
 }

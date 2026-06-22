@@ -40,12 +40,15 @@ public:
   static constexpr uint32_t mask_internal = 0xffff;
   static constexpr uint32_t mask_public   = ~mask_internal;
 
-  static constexpr uint32_t flag_unordered    = 0x100;    // bencode dictionary was not sorted
+  static constexpr uint32_t flag_unordered    =    0x100;  // bencode dictionary was not sorted
   static constexpr uint32_t flag_static_data  = 0x010000;  // Object does not change across sessions.
-  static constexpr uint32_t flag_session_data = 0x020000;  // Object changes between sessions.
-  static constexpr uint32_t flag_function     = 0x040000;  // A function object.
-  static constexpr uint32_t flag_function_q1  = 0x080000;  // A quoted function object.
-  static constexpr uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object.
+  static constexpr uint32_t flag_session_data = 0x020000;  // Object changed between sessions
+  static constexpr uint32_t flag_function     = 0x040000;  // A function object
+  static constexpr uint32_t flag_function_q1  = 0x080000;  // A quoted function object
+  static constexpr uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object
+  static constexpr uint32_t flag_hex          = 0x200000;  // Hex-encoded string
+  static constexpr uint32_t flag_base64       = 0x400000;  // Base64-encoded string
+  static constexpr uint32_t flag_as_binary    = 0x800000;  // Treat as binary data
 
   static constexpr uint32_t mask_function     = 0x1C0000;  // Mask for function objects.
 

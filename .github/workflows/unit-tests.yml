@@ -6,7 +6,7 @@ on:
 
 jobs:
   Ubuntu:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Prepare
       run: |
@@ -97,15 +97,24 @@ jobs:
       - uses: vmactions/netbsd-vm@v1
         with:
           prepare: |
-            /usr/sbin/pkg_add \
+            /usr/sbin/pkg_add -v \
               automake \
               autoconf \
               cppunit \
               curl \
               libtool \
               openssl \
-              pkgconf
+              pkgconf \
+              gcc14
           run: |
+            export CC=gcc
+            export CXX=g++
+            export PATH="/usr/pkg/gcc14/bin:/usr/pkg/bin:/usr/pkg/sbin:$PATH"
+
+            export CPPFLAGS="-I/usr/pkg/include"
+            export LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib"
+            export PKG_CONFIG_PATH="/usr/pkg/lib/pkgconfig"
+
             autoreconf -fiv
             ./configure
             make
@@ -115,24 +124,27 @@ jobs:
     needs: Ubuntu
     runs-on: ubuntu-latest
     env:
+      # TODO: Try without this:
       TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
-      AUTOCONF_VERSION: 2.72
+      AUTOCONF_VERSION: 2.63
       AUTOMAKE_VERSION: 1.18
     steps:
       - uses: actions/checkout@v4
       - uses: vmactions/openbsd-vm@v1
         with:
-          release: "7.8"
+          # Upgraded to utilize native EVFILT_USER features in 7.9
+          release: "7.9"
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
-            pkg_add \
-              automake-1.18 \
-              autoconf-2.72p0 \
+            pkg_add -v -I \
+              automake-1.18.1 \
+              autoconf-2.63p1 \
               cppunit \
               curl \
               libtool \
-              openssl-3.6.0p0v0
+              openssl
           run: |
+            export PATH="/usr/local/bin:$PATH"
             ulimit -n 1000
             autoreconf -fiv
             ./configure --disable-mincore
@@ -185,5 +197,6 @@ jobs:
         run: |
           autoreconf -fiv
           ./configure
+          grep LT_SMP_CACHE_BYTES config.h
           make
           make check

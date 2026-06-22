@@ -44,8 +44,8 @@ public:
   bool                is_active()                        { return m_server.is_active(); }
 
   // Pass NULL to cancel_announce to cancel all announces for the tracker.
-  void                announce(const HashString& info_hash, TrackerDht* tracker);
-  void                cancel_announce(const HashString* info_hash, const TrackerDht* tracker);
+  void                announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
+  void                cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
 
   // Returns NULL if not tracking the torrent unless create is true.
   DhtTracker*         get_tracker(const HashString& hash, bool create);
@@ -59,7 +59,7 @@ public:
 
   // TODO: Remoce add_contact.... And make it check that sa is inet.
 
-  void                add_contact(const std::string& host, int port);
+  void                add_bootstrap_contact(const std::string& host, int port);
   void                contact(const sockaddr* sa, int port);
 
   // Retrieve node of given ID in constant time. Return NULL if not found, unless
@@ -126,6 +126,7 @@ private:
   DhtNodeList         m_nodes;
   DhtBucketList       m_routingTable;
   DhtTrackerList      m_trackers;
+  HashString          m_contactId;
 
   std::optional<std::deque<contact_t>> m_contacts;
 
@@ -136,6 +137,8 @@ private:
   // Secret keys used for generating announce tokens.
   int                 m_curToken;
   int                 m_prevToken;
+
+  system::callback_id m_resolver_callback_id;
 };
 
 inline raw_string

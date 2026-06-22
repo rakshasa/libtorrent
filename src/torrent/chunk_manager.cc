@@ -158,11 +158,13 @@ ChunkManager::sync_all(int flags, uint64_t target) {
 
   auto itr = base_type::begin() + m_lastFreed;
 
+  ChunkList::cache_list cache;
+
   do {
     if (itr == base_type::end())
       itr = base_type::begin();
 
-    (*itr)->sync_chunks(static_cast<ChunkList::sync_flags>(flags));
+    (*itr)->sync_chunks(cache, static_cast<ChunkList::sync_flags>(flags));
 
   } while (++itr != base_type::begin() + m_lastFreed && m_memoryUsage >= target);
 

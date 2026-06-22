@@ -58,6 +58,11 @@ libtorrent_other_la_SOURCES = \
 	dht/dht_transaction.cc \
 	dht/dht_transaction.h \
 	\
+	dht/transactions/dht_announce.cc \
+	dht/transactions/dht_announce.h \
+	dht/transactions/dht_search.cc \
+	dht/transactions/dht_search.h \
+	\
 	download/available_list.cc \
 	download/available_list.h \
 	download/chunk_selector.cc \
@@ -82,13 +87,17 @@ libtorrent_other_la_SOURCES = \
 	net/curl_socket.h \
 	net/curl_stack.cc \
 	net/curl_stack.h \
+	net/dns_cache.cc \
+	net/dns_cache.h \
+	net/dns_buffer.cc \
+	net/dns_buffer.h \
+	net/event_fd.cc \
+	net/event_fd.h \
 	net/listen.cc \
 	net/listen.h \
 	net/protocol_buffer.h \
 	net/socket_datagram.cc \
 	net/socket_datagram.h \
-	net/socket_set.cc \
-	net/socket_set.h \
 	net/socket_stream.cc \
 	net/socket_stream.h \
 	net/thread_net.cc \
@@ -144,16 +153,17 @@ libtorrent_other_la_SOURCES = \
 	tracker/tracker_udp.h \
 	tracker/tracker_worker.cc \
 	tracker/tracker_worker.h \
+	tracker/udp_router.cc \
+	tracker/udp_router.h \
 	\
 	utils/diffie_hellman.cc \
 	utils/diffie_hellman.h \
 	utils/functional.h \
 	utils/instrumentation.cc \
 	utils/instrumentation.h \
+	utils/partial_queue.h \
 	utils/rc4.h \
 	utils/sha1.h \
-	utils/signal_interrupt.cc \
-	utils/signal_interrupt.h \
 	utils/thread_internal.h \
 	utils/queue_buckets.h
 

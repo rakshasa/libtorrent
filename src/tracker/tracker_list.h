@@ -4,7 +4,9 @@
 // TODO: Reduce includes, don't inline everything.
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
+#include <memory>
 #include <vector>
 #include <torrent/tracker/tracker.h>
 
@@ -49,18 +51,16 @@ public:
 
   bool                has_active() const;
   bool                has_active_not_dht() const;
+  bool                has_active_not_dht_scrape_disownable() const;
   bool                has_active_not_scrape() const;
   bool                has_active_in_group(uint32_t group) const;
   bool                has_active_not_scrape_in_group(uint32_t group) const;
   bool                has_usable() const;
 
-  void                close_all() { close_all_excluding(0); }
-  void                close_all_excluding(int event_bitmap);
-
   void                clear();
   void                clear_stats();
 
-  iterator            insert(unsigned int group, const tracker::Tracker& tracker);
+  iterator            insert(const tracker::Tracker& tracker);
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   // TODO: Move these to controller / tracker.
@@ -68,7 +68,6 @@ public:
   // TODO: CHECK PEX CAUSES PEER CONNECTS.
 
   void                send_event(tracker::Tracker& tracker, tracker::TrackerState::event_enum new_event);
-
   void                send_scrape(tracker::Tracker& tracker);
 
   const DownloadInfo* info() const                            { return m_info; }
@@ -99,7 +98,7 @@ public:
   void                receive_failed(tracker::Tracker tracker, const std::string& msg);
   void                receive_scrape_success(tracker::Tracker tracker);
   void                receive_scrape_failed(tracker::Tracker tracker, const std::string& msg);
-  void                receive_new_peers(tracker::Tracker tracker, AddressList* l);
+  void                receive_new_peers(AddressList* l);
 
   auto&               slot_success()                          { return m_slot_success; }
   auto&               slot_failure()                          { return m_slot_failed; }
@@ -126,8 +125,8 @@ private:
   int                 m_state{};
 
   // TODO: Key should be part of download static info.
-  uint32_t            m_key{0};
-  int32_t             m_numwant{-1};
+  uint32_t             m_key{0};
+  std::atomic<int32_t> m_numwant{-1};
 
   std::function<uint32_t(tracker::Tracker, AddressList*)>   m_slot_success;
   std::function<void(tracker::Tracker, const std::string&)> m_slot_failed;
@@ -136,6 +135,8 @@ private:
   std::function<uint32_t(AddressList*)>                     m_slot_new_peers;
   std::function<void(tracker::Tracker)>                     m_slot_tracker_enabled;
   std::function<void(tracker::Tracker)>                     m_slot_tracker_disabled;
+
+  std::shared_ptr<void> m_lifetime_keeper;
 };
 
 } // namespace torrent

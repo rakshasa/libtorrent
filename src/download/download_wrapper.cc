@@ -57,7 +57,7 @@ DownloadWrapper::~DownloadWrapper() {
     // will need to manually cancel the tracker requests.
     m_main->tracker_controller().close();
 
-    thread_tracker()->tracker_manager()->remove_controller(m_main->tracker_controller());
+    tracker_thread::manager()->remove_controller(m_main->tracker_controller());
     m_main->tracker_controller().get_shared().reset();
   }
 }
@@ -106,7 +106,7 @@ DownloadWrapper::close() {
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
   // hash_resume_save get ignored anyway.
-  m_main->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy | ChunkList::sync_ignore_error);
+  m_main->chunk_list()->sync_chunks_no_cache(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy | ChunkList::sync_ignore_error);
 
   m_main->close();
 
@@ -116,18 +116,13 @@ DownloadWrapper::close() {
   this_thread::scheduler()->erase(&m_main->delay_partially_restarted());
 }
 
-bool
-DownloadWrapper::is_stopped() const {
-  return !m_main->tracker_controller().is_active() && !m_main->tracker_list()->has_active_not_dht();
-}
-
 void
 DownloadWrapper::receive_initial_hash() {
   if (info()->is_active())
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
   if (!m_hash_checker->is_checking()) {
-    receive_storage_error("Hash checker was unable to map chunk: " + std::string(rak::error_number(m_hash_checker->error_number()).c_str()));
+    receive_storage_error("Hash checker was unable to map chunk: " + std::string(std::strerror(m_hash_checker->error_number())));
 
   } else {
     m_hash_checker->confirm_checked();

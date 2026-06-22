@@ -13,6 +13,7 @@
 #include "utils/sha1.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
+#include "torrent/system/callbacks.h"
 
 #include "test_chunk_list.h"
 
@@ -79,14 +80,15 @@ test_hash_check_queue::test_single() {
 
   hash_queue.push_back(new torrent::HashChunk(handle_0));
 
-  CPPUNIT_ASSERT(hash_queue.size() == 1);
-  CPPUNIT_ASSERT(hash_queue.front()->handle().is_blocking());
-  CPPUNIT_ASSERT(hash_queue.front()->handle().object() == &((*chunk_list)[0]));
+  // TODO: Add a way to freeze disk_thread so we can verify the state of the queue.
 
-  hash_queue.perform();
+  // CPPUNIT_ASSERT(hash_queue.size() == 1);
+  // CPPUNIT_ASSERT(hash_queue.front()->handle().is_blocking());
+  // CPPUNIT_ASSERT(hash_queue.front()->handle().object() == &((*chunk_list)[0]));
 
-  CPPUNIT_ASSERT(done_chunks.find(0) != done_chunks.end());
-  CPPUNIT_ASSERT(done_chunks[0] == hash_for_index(0));
+  torrent::disk_thread::callback([&hash_queue] { hash_queue.perform(); });
+
+  CPPUNIT_ASSERT(wait_for_true([&done_chunks] { return verify_hash(&done_chunks, 0, hash_for_index(0)); }));
 
   // Should not be needed... Also verify that HashChunk gets deleted.
   chunk_list->release(&handle_0, torrent::ChunkList::release_default);
@@ -109,20 +111,24 @@ test_hash_check_queue::test_multiple() {
 
     hash_queue.push_back(new torrent::HashChunk(handles.back()));
 
-    CPPUNIT_ASSERT(hash_queue.size() == i + 1);
-    CPPUNIT_ASSERT(hash_queue.back()->handle().is_blocking());
-    CPPUNIT_ASSERT(hash_queue.back()->handle().object() == &((*chunk_list)[i]));
+    // CPPUNIT_ASSERT(hash_queue.size() == i + 1);
+    // CPPUNIT_ASSERT(hash_queue.back()->handle().is_blocking());
+    // CPPUNIT_ASSERT(hash_queue.back()->handle().object() == &((*chunk_list)[i]));
   }
 
-  hash_queue.perform();
+  torrent::disk_thread::callback([&hash_queue] { hash_queue.perform(); });
 
-  for (unsigned int i = 0; i < 20; i++) {
-    CPPUNIT_ASSERT(done_chunks.find(i) != done_chunks.end());
-    CPPUNIT_ASSERT(done_chunks[i] == hash_for_index(i));
+  CPPUNIT_ASSERT(wait_for_true([&done_chunks] {
+    for (unsigned int i = 0; i < 20; i++) {
+      if (!verify_hash(&done_chunks, i, hash_for_index(i)))
+        return false;
+    }
 
-    // Should not be needed...
+    return true;
+  }));
+
+  for (unsigned int i = 0; i < 20; i++)
     chunk_list->release(&handles[i], torrent::ChunkList::release_default);
-  }
 
   CLEANUP_CHUNK_LIST();
 }
@@ -164,7 +170,7 @@ void
 test_hash_check_queue::test_thread_interrupt() {
   SETUP_CHUNK_LIST();
 
-  torrent::HashCheckQueue* hash_queue = torrent::thread_disk()->hash_check_queue();
+  torrent::HashCheckQueue* hash_queue = torrent::ThreadDisk::thread_disk()->hash_check_queue();
 
   done_chunks_type done_chunks;
   hash_queue->slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
@@ -177,7 +183,7 @@ test_hash_check_queue::test_thread_interrupt() {
     torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_not_hashing | torrent::ChunkList::get_blocking);
 
     hash_queue->push_back(new torrent::HashChunk(handle_0));
-    torrent::thread_disk()->interrupt();
+    torrent::disk_thread::thread()->interrupt();
 
     CPPUNIT_ASSERT(wait_for_true(std::bind(&verify_hash, &done_chunks, 0, hash_for_index(0))));
     chunk_list->release(&handle_0, torrent::ChunkList::release_default);

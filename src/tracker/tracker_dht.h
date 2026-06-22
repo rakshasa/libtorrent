@@ -2,12 +2,17 @@
 #define LIBTORRENT_TRACKER_TRACKER_DHT_H
 
 #include <array>
+#include <memory>
 
-#include "net/address_list.h"
 #include "torrent/object.h"
+#include "torrent/utils/scheduler.h"
 #include "tracker/tracker_worker.h"
 
 namespace torrent {
+
+namespace dht {
+class DhtAnnounce;
+}
 
 // Until we make throttle and rate thread-safe, we keep dht router in main thread.
 //
@@ -17,7 +22,6 @@ namespace torrent {
 class TrackerDht : public TrackerWorker {
 public:
   TrackerDht(const TrackerInfo& info, int flags = 0);
-  ~TrackerDht() override;
 
   enum state_type {
     state_idle,
@@ -27,37 +31,55 @@ public:
 
   static constexpr std::array states{ "Idle", "Searching", "Announcing" };
 
-  static bool         is_allowed();
+  tracker_enum        type() const override;
 
-  bool                is_busy() const override;
-  bool                is_usable() const override;
-
-  std::string         lock_and_status() const override;
-
-  void                send_event(tracker::TrackerState::event_enum new_state) override;
-  void                send_scrape() override;
+  void                send_event(tracker::TrackerParams params, tracker::TrackerState::event_enum new_state) override;
+  void                send_scrape(tracker::TrackerParams params) override;
 
   void                close() override;
 
-  tracker_enum        type() const override;
+  void                set_weak_tracker(std::weak_ptr<TrackerDht> weak_tracker);
 
-  state_type          get_dht_state() const            { return m_dht_state; }
-  void                set_dht_state(state_type state)  { m_dht_state = state; }
+  state_type          dht_state() const;
+  void                set_dht_announce_state();
 
-  bool                has_peers() const                { return !m_peers.empty(); }
+  int                 replied() const;
+  int                 contacted() const;
 
-  void                receive_peers(raw_list peers);
+  bool                has_peers_unsafe() const;
+
+  void                receive_peers(AddressList&& address_list);
   void                receive_success();
   void                receive_failed(const char* msg);
   void                receive_progress(int replied, int contacted);
 
-private:
-  AddressList         m_peers;
-  state_type          m_dht_state{state_idle};
+protected:
+  friend class torrent::dht::DhtAnnounce;
 
-  int                 m_replied;
-  int                 m_contacted;
+  static void         add_event(std::weak_ptr<TrackerDht> weak_tracker, std::function<void (TrackerDht*)>&& event);
+
+private:
+  void                cleanup() override;
+
+  void                update_requesting_state();
+
+  std::weak_ptr<TrackerDht> m_weak_tracker;
+
+  tracker::TrackerParams  m_params;
+
+  std::atomic<state_type> m_dht_state{state_idle};
+
+  std::atomic<int>        m_replied;
+  std::atomic<int>        m_contacted;
+
+  utils::SchedulerEntry   m_delay_clear_state;
 };
+
+inline void TrackerDht::set_weak_tracker(std::weak_ptr<TrackerDht> weak_tracker) { m_weak_tracker = std::move(weak_tracker); }
+
+inline TrackerDht::state_type TrackerDht::dht_state() const        { return m_dht_state; }
+inline int                    TrackerDht::replied() const          { return m_replied; }
+inline int                    TrackerDht::contacted() const        { return m_contacted; }
 
 } // namespace torrent
 

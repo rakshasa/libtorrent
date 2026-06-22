@@ -11,7 +11,6 @@
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
 #include "torrent/chunk_manager.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
 #include "torrent/data/block.h"
@@ -95,9 +94,8 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   m_peerChunks.set_peer_info(m_peerInfo);
   m_peerChunks.bitfield()->swap(*bitfield);
 
-  std::pair<ThrottleList*, ThrottleList*> throttles = m_download->throttles(m_peerInfo->socket_address());
-  m_up->set_throttle(throttles.first);
-  m_down->set_throttle(throttles.second);
+  m_up->set_throttle(m_download->upload_throttle());
+  m_down->set_throttle(m_download->download_throttle());
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
   m_peerChunks.upload_throttle()->slot_activate() = [this] { this_thread::poll()->insert_write(this); };
@@ -171,8 +169,6 @@ PeerConnectionBase::cleanup() {
       fd_close(m_fileDesc);
       m_fileDesc = -1;
     });
-
-  manager->connection_manager()->dec_socket_count();
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
   m_down->throttle()->erase(m_peerChunks.download_throttle());
@@ -320,7 +316,7 @@ PeerConnectionBase::load_up_chunk() {
   m_upChunk = m_download->chunk_list()->get(m_upPiece.index(), ChunkList::get_not_hashing);
 
   if (!m_upChunk.is_valid())
-    throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
+    throw storage_error("File chunk read error: " + std::string(std::strerror(m_upChunk.error_number())));
 
   if (is_encrypted() && m_encryptBuffer == nullptr) {
     m_encryptBuffer = std::make_unique<EncryptBuffer>();
@@ -410,7 +406,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
     m_downChunk = m_download->chunk_list()->get(piece.index(), ChunkList::get_not_hashing | ChunkList::get_writable);
 
     if (!m_downChunk.is_valid())
-      throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
+      throw storage_error("File chunk write error: " + std::string(std::strerror(m_downChunk.error_number())));
   }
 
   LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,

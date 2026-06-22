@@ -2,7 +2,9 @@
 
 #include "torrent/tracker/tracker.h"
 
+#include "tracker/tracker_dht.h"
 #include "tracker/tracker_worker.h"
+#include "torrent/runtime/network_manager.h"
 
 namespace torrent::tracker {
 
@@ -13,24 +15,66 @@ Tracker::Tracker(std::shared_ptr<torrent::TrackerWorker>&& worker) :
 }
 
 bool
-Tracker::is_busy() const {
-  auto lock_guard = m_worker->lock_guard();
-
-  return m_worker->is_busy();
-}
-
-bool
-Tracker::is_busy_not_scrape() const {
-  auto lock_guard = m_worker->lock_guard();
-
-  return m_worker->is_busy_not_scrape();
-}
-
-bool
 Tracker::is_enabled() const {
   auto lock_guard = m_worker->lock_guard();
 
   return m_worker->m_state.is_enabled();
+}
+
+bool
+Tracker::is_requesting() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  return m_worker->m_state.is_requesting() || m_worker->m_state.is_starting_request();
+}
+
+bool
+Tracker::is_requesting_not_scrape() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  if (m_worker->m_state.latest_event() == tracker::TrackerState::EVENT_SCRAPE)
+    return false;
+
+  return m_worker->m_state.is_requesting() || m_worker->m_state.is_starting_request();
+}
+
+bool
+Tracker::is_requesting_not_dht() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  if (m_worker->type() == tracker_enum::TRACKER_DHT)
+    return false;
+
+  return m_worker->m_state.is_requesting() || m_worker->m_state.is_starting_request();
+}
+
+bool
+Tracker::is_requesting_not_dht_scrape() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  if (m_worker->type() == tracker_enum::TRACKER_DHT)
+    return false;
+
+  if (m_worker->m_state.latest_event() == tracker::TrackerState::EVENT_SCRAPE)
+    return false;
+
+  return m_worker->m_state.is_requesting() || m_worker->m_state.is_starting_request();
+}
+
+bool
+Tracker::is_requesting_not_dht_scrape_disownable() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  if (m_worker->type() == tracker_enum::TRACKER_DHT)
+    return false;
+
+  if (m_worker->m_state.latest_event() == tracker::TrackerState::EVENT_SCRAPE)
+    return false;
+
+  if (m_worker->m_state.is_disownable())
+    return false;
+
+  return m_worker->m_state.is_requesting() || m_worker->m_state.is_starting_request();
 }
 
 bool
@@ -51,7 +95,10 @@ bool
 Tracker::is_usable() const {
   auto lock_guard = m_worker->lock_guard();
 
-  return m_worker->is_usable();
+  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->is_dht_active())
+    return false;
+
+  return m_worker->m_state.is_enabled();
 }
 
 bool
@@ -62,13 +109,46 @@ Tracker::is_scrapable() const {
 }
 
 bool
+Tracker::is_disownable() const {
+  auto lock_guard = m_worker->lock_guard();
+
+  return m_worker->m_state.is_disownable();
+}
+
+bool
 Tracker::can_request_state() const {
   auto lock_guard = m_worker->lock_guard();
 
-  if (!m_worker->is_usable())
+  if (m_worker->type() == tracker_enum::TRACKER_DHT && !runtime::network_manager()->is_dht_active())
     return false;
 
-  return !m_worker->is_busy_not_scrape();
+  if (!m_worker->m_state.is_enabled())
+    return false;
+
+  if (m_worker->m_state.is_requesting())
+    return m_worker->m_state.latest_event() == tracker::TrackerState::EVENT_SCRAPE;
+
+  return true;
+}
+
+tracker_enum
+Tracker::type() const {
+  return m_worker->type();
+}
+
+const std::string&
+Tracker::url() const {
+  return m_worker->info().url;
+}
+
+uint32_t
+Tracker::group() const {
+  return m_worker->info().group;
+}
+
+std::string
+Tracker::tracker_id() const {
+  return m_worker->tracker_id_safe();
 }
 
 void
@@ -99,34 +179,10 @@ Tracker::disable() {
 
   // TODO: This should be called through manager? It works atm as the trackers are all running on main
   // thread.
-  m_worker->close();
+  // m_worker->close();
 
   if (m_worker->m_slot_disabled)
     m_worker->m_slot_disabled();
-}
-
-tracker_enum
-Tracker::type() const {
-  return m_worker->type();
-}
-
-const std::string&
-Tracker::url() const {
-  return m_worker->info().url;
-}
-
-std::string
-Tracker::tracker_id() const {
-  auto lock_guard = m_worker->lock_guard();
-
-  return m_worker->tracker_id();
-}
-
-uint32_t
-Tracker::group() const {
-  auto lock_guard = m_worker->lock_guard();
-
-  return m_worker->group();
 }
 
 tracker::TrackerState
@@ -138,14 +194,21 @@ Tracker::state() const {
 
 std::string
 Tracker::status() const {
-  return m_worker->lock_and_status();
+  auto lock_guard = m_worker->lock_guard();
+
+  if (m_worker->type() != tracker_enum::TRACKER_DHT)
+    return "";
+
+  auto tracker = dynamic_cast<TrackerDht*>(m_worker.get());
+
+  return "[" + std::string(TrackerDht::states[tracker->dht_state()]) + ": " + std::to_string(tracker->replied()) + "/" + std::to_string(tracker->contacted()) + " nodes replied]";
 }
 
 void
-Tracker::lock_and_call_state(const std::function<void(const TrackerState&)>& f) const {
+Tracker::lock_and_call_state(const std::function<void(const TrackerState&)>& fn) const {
   auto lock_guard = m_worker->lock_guard();
 
-  f(m_worker->state());
+  fn(m_worker->state());
 }
 
 void

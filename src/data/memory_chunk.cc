@@ -1,6 +1,5 @@
 #include "config.h"
 
-#include <rak/error_number.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -8,11 +7,13 @@
 #include "memory_chunk.h"
 
 #ifdef __sun__
+
 extern "C" int madvise(void *, size_t, int);
 //#include <sys/mman.h>
 //Should be the include line instead, but Solaris
 //has an annoying bug wherein it doesn't declare
 //madvise for C++.
+
 #endif
 
 namespace torrent {
@@ -50,7 +51,7 @@ MemoryChunk::unmap() {
     throw internal_error("MemoryChunk::unmap() called on an invalid object");
 
   if (munmap(m_ptr, m_end - m_ptr) != 0)
-    throw internal_error("MemoryChunk::unmap() system call failed: " + std::string(rak::error_number::current().c_str()));
+    throw internal_error("MemoryChunk::unmap() system call failed: " + std::string(std::strerror(errno)));
 }
 
 void
@@ -70,7 +71,7 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
 #else
   if (mincore(m_ptr + offset, length, buf))
 #endif
-    throw storage_error("System call mincore failed: " + std::string(rak::error_number::current().c_str()));
+    throw storage_error("System call mincore failed: " + std::string(std::strerror(errno)));
 
 #else // !USE_MINCORE
   // Pretend all pages are in memory.

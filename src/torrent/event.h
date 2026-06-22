@@ -7,7 +7,7 @@
 
 namespace torrent {
 
-namespace net {
+namespace system {
 class PollEvent;
 class PollInternal;
 }
@@ -37,11 +37,12 @@ public:
   // TODO: Add bool event_fd_reused().
 
 protected:
-  friend class net::Poll;
-  friend class net::PollInternal;
+  friend class system::Poll;
+  friend class system::PollInternal;
   friend class runtime::SocketManager;
 
   void                set_file_descriptor(int fd);
+  void                set_socket_address(c_sa_unique_ptr address);
 
   bool                update_socket_address();
   bool                update_peer_address();
@@ -50,7 +51,7 @@ protected:
   bool                update_and_verify_socket_address();
   bool                update_and_verify_peer_address();
 
-  std::shared_ptr<net::PollEvent> m_poll_event;
+  std::shared_ptr<system::PollEvent> m_poll_event;
 
   int                 m_fileDesc{-1};
 
@@ -67,7 +68,9 @@ inline int  Event::file_descriptor() const     { return m_fileDesc; }
 inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }
 
 inline auto Event::peer_address() const        { return m_peer_address.get(); }
-inline auto Event::socket_address() const      { return m_socket_address.get(); }
+
+inline auto Event::socket_address() const                      { return m_socket_address.get(); }
+inline void Event::set_socket_address(c_sa_unique_ptr address) { m_socket_address = std::move(address); }
 
 } // namespace torrent
 

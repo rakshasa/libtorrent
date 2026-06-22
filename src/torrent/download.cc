@@ -198,6 +198,11 @@ Download::is_hash_checking() const {
   return m_ptr->hash_checker()->is_checking();
 }
 
+const std::string&
+Download::hash_error_message() const {
+  return m_ptr->hash_checker()->error_message();
+}
+
 void
 Download::set_pex_enabled(bool enabled) {
   if (enabled)
@@ -345,7 +350,7 @@ Download::update_range(int flags, uint32_t first, uint32_t last) {
 
 void
 Download::sync_chunks() {
-  m_ptr->main()->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force);
+  m_ptr->main()->chunk_list()->sync_chunks_no_cache(ChunkList::sync_all | ChunkList::sync_force);
 }
 
 uint32_t
@@ -519,30 +524,30 @@ Download::set_connection_type(ConnectionType t) {
   m_ptr->set_connection_type(t);
 }
 
-Download::HeuristicType
+heuristics_enum
 Download::upload_choke_heuristic() const {
-  return static_cast<Download::HeuristicType>(m_ptr->main()->choke_group()->up_queue()->heuristics());
+  return m_ptr->main()->choke_group()->up_queue()->heuristics();
 }
 
 void
-Download::set_upload_choke_heuristic(HeuristicType t) {
-  if (static_cast<choke_queue::heuristics_enum>(t) >= choke_queue::HEURISTICS_MAX_SIZE)
+Download::set_upload_choke_heuristic(heuristics_enum t) {
+  if (t >= HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
 
-  m_ptr->main()->choke_group()->up_queue()->set_heuristics(static_cast<choke_queue::heuristics_enum>(t));
+  m_ptr->main()->choke_group()->up_queue()->set_heuristics(t);
 }
 
-Download::HeuristicType
+heuristics_enum
 Download::download_choke_heuristic() const {
-  return static_cast<Download::HeuristicType>(m_ptr->main()->choke_group()->down_queue()->heuristics());
+  return m_ptr->main()->choke_group()->down_queue()->heuristics();
 }
 
 void
-Download::set_download_choke_heuristic(HeuristicType t) {
-  if (static_cast<choke_queue::heuristics_enum>(t) >= choke_queue::HEURISTICS_MAX_SIZE)
+Download::set_download_choke_heuristic(heuristics_enum t) {
+  if (t >= HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
 
-  m_ptr->main()->choke_group()->down_queue()->set_heuristics(static_cast<choke_queue::heuristics_enum>(t));
+  m_ptr->main()->choke_group()->down_queue()->set_heuristics(t);
 }
 
 void

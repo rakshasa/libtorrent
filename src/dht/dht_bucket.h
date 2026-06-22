@@ -49,6 +49,7 @@ public:
 
   // Node counts and bucket stats.
   bool                is_full() const                         { return size() >= num_nodes; }
+
   bool                has_space() const                       { return !is_full() || num_bad() > 0; }
   unsigned int        num_good() const                        { return m_good; }
   unsigned int        num_bad() const                         { return m_bad; }

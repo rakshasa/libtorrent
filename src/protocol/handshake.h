@@ -16,6 +16,8 @@ class HandshakeManager;
 class DownloadMain;
 class ThrottleList;
 
+const char* handshake_strerror(int err);
+
 class Handshake : public SocketStream {
 public:
   static constexpr uint32_t part1_size     = 20 + 28;
@@ -32,6 +34,35 @@ public:
   static constexpr uint32_t enc_pad_read_size    = 96 + enc_pad_size + 20;
 
   static constexpr uint32_t buffer_size = enc_pad_read_size + 20 + enc_negotiation_size + enc_pad_size + 2 + handshake_size + read_message_size;
+
+  static constexpr int e_handshake_not_bittorrent            = 0;
+  static constexpr int e_handshake_not_accepting_connections = 1;
+  static constexpr int e_handshake_unknown_download          = 2;
+  static constexpr int e_handshake_inactive_download         = 3;
+  static constexpr int e_handshake_unwanted_connection       = 4;
+  static constexpr int e_handshake_is_self                   = 5;
+  static constexpr int e_handshake_invalid_value             = 6;
+  static constexpr int e_handshake_unencrypted_rejected      = 7;
+  static constexpr int e_handshake_invalid_encryption        = 8;
+  static constexpr int e_handshake_encryption_sync_failed    = 9;
+  static constexpr int e_handshake_network_unreachable       = 10;
+  static constexpr int e_handshake_network_timeout           = 11;
+  static constexpr int e_handshake_toomanyfailed             = 12;
+  static constexpr int e_handshake_no_peer_info              = 13;
+  static constexpr int e_handshake_network_socket_error      = 14;
+  static constexpr int e_handshake_network_read_error        = 15;
+  static constexpr int e_handshake_network_write_error       = 16;
+  static constexpr int e_last                                = 17;
+
+  // static constexpr int handshake_incoming           = 1;
+  static constexpr int handshake_outgoing           = 2;
+  static constexpr int handshake_outgoing_encrypted = 3;
+  static constexpr int handshake_outgoing_proxy     = 4;
+  // static constexpr int handshake_success            = 5;
+  static constexpr int handshake_dropped            = 6;
+  static constexpr int handshake_failed             = 7;
+  // static constexpr int handshake_retry_plaintext    = 8;
+  // static constexpr int handshake_retry_encrypted    = 9;
 
   using Buffer = ProtocolBuffer<buffer_size>;
 
@@ -81,7 +112,7 @@ public:
   Bitfield*           bitfield()                    { return &m_bitfield; }
 
   void                release_connection();
-  void                destroy_connection();
+  void                destroy_connection(bool use_socket_manager = true);
 
   const void*         unread_data()                 { return m_readBuffer.position(); }
   uint32_t            unread_size() const           { return m_readBuffer.remaining(); }

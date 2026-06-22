@@ -13,6 +13,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/runtime.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/uri_parser.h"
 
@@ -251,6 +252,9 @@ PeerConnection<type>::read_message() {
   case ProtocolBase::PIECE:
     if (type != Download::CONNECTION_LEECH)
       throw communication_error("Received a piece but the connection is strictly for seeding.");
+
+    if (length < 9)
+      throw communication_error("Received a piece message that was too short.");
 
     if (!m_down->can_read_piece_body())
       break;

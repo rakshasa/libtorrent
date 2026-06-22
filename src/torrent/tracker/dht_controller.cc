@@ -6,8 +6,9 @@
 #include "src/manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/net/network_config.h"
+#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -69,7 +70,7 @@ DhtController::start() {
   if (m_router == nullptr)
     throw internal_error("DhtController::start() called without initializing first.");
 
-  auto port = config::network_config()->override_dht_port();
+  auto port = runtime::network_config()->override_dht_port();
 
   if (port == 0)
     port = runtime::network_manager()->listen_port_or_throw();
@@ -112,7 +113,7 @@ DhtController::add_bootstrap_node(std::string host, int port) {
   auto lock = std::lock_guard(m_lock);
 
   if (m_router)
-    m_router->add_contact(std::move(host), port);
+    m_router->add_bootstrap_contact(std::move(host), port);
 }
 
 void
@@ -153,24 +154,33 @@ DhtController::reset_statistics() {
   m_router->reset_statistics();
 }
 
+// We don't care about the tracker or download being deleted as that's a rare edge-case that's
+// unnessesary to optimize for.
+//
+// Instead we depend on the callbacks from DHT to check if weak_ptr is expired.
+
 void
-DhtController::announce(const HashString& info_hash, TrackerDht* tracker) {
-  auto lock = std::lock_guard(m_lock);
+DhtController::announce(const HashString& info_hash, std::weak_ptr<TrackerDht> weak_tracker) {
+  main_thread::callback([this, info_hash, weak_tracker] {
+      auto lock = std::lock_guard(m_lock);
 
-  if (!m_router)
-    throw internal_error("DhtController::announce() called but DHT not initialized.");
+      if (!m_router)
+        throw internal_error("DhtController::announce() called but DHT not initialized.");
 
-  m_router->announce(info_hash, tracker);
+      m_router->announce(info_hash, weak_tracker);
+    });
 }
 
 void
-DhtController::cancel_announce(const HashString* info_hash, const torrent::TrackerDht* tracker) {
-  auto lock = std::lock_guard(m_lock);
+DhtController::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> weak_tracker) {
+  main_thread::callback([this, info_hash, weak_tracker] {
+      auto lock = std::lock_guard(m_lock);
 
-  if (!m_router)
-    throw internal_error("DhtController::cancel_announce() called but DHT not initialized.");
+      if (!m_router)
+        throw internal_error("DhtController::cancel_announce() called but DHT not initialized.");
 
-  m_router->cancel_announce(info_hash, tracker);
+      m_router->cancel_announce(info_hash, weak_tracker);
+    });
 }
 
 } // namespace torrent::tracker

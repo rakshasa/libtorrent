@@ -2,7 +2,6 @@
 
 #include "fd.h"
 
-#include <cerrno>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -392,7 +391,13 @@ fd_set_dont_route(int fd, bool state) {
 
 bool
 fd_set_nonblock(int fd) {
-  if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
+  int flags = fd__fcntl_int(fd, F_GETFL, 0);
+  if (flags == -1) {
+    LT_LOG_FD_ERROR("fd_set_nonblock() failed reading flags");
+    return false;
+  }
+
+  if (fd__fcntl_int(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
     LT_LOG_FD_ERROR("fd_set_nonblock() failed");
     return false;
   }

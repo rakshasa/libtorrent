@@ -8,8 +8,8 @@
 
 #include "net/curl_stack.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/system/poll.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 
@@ -133,20 +133,22 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     if (!stack->is_running())
       return 0;
 
-    auto itr = stack->socket_map()->find(fd);
+    auto [itr, inserted] = stack->socket_map()->try_emplace(fd, nullptr);
 
-    if (itr == stack->socket_map()->end()) {
-      socket = new CurlSocket(fd, stack, easy_handle);
+    if (inserted) {
+      auto socket_ptr = std::make_unique<CurlSocket>(fd, stack, easy_handle);
+
+      socket = socket_ptr.get();
       socket->m_properly_opened = false;
 
       LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : unexpected fd encountered, creating new (not properly opened) CurlSocket", 0);
 
-      runtime::socket_manager()->register_event_or_throw(socket, [&]() {
+      runtime::socket_manager()->register_event_or_throw(socket, runtime::category_http, [&]() {
           this_thread::poll()->open(socket);
           this_thread::poll()->insert_error(socket);
         });
 
-      stack->socket_map()->emplace(fd, std::unique_ptr<CurlSocket>(socket));
+      itr->second = std::move(socket_ptr);
 
       curl_multi_assign(stack->handle(), fd, socket);
 
@@ -304,7 +306,7 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
       return fd;
     };
 
-  auto cleanup_func = [&]() {
+  auto cleanup_func = [&](bool) {
       if (!event->is_open())
         return;
 
@@ -319,7 +321,7 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
       event->set_file_descriptor(-1);
     };
 
-  bool result = runtime::socket_manager()->open_event_or_cleanup(event.get(), open_func, cleanup_func);
+  bool result = runtime::socket_manager()->open_event_or_cleanup(event.get(), runtime::category_http, open_func, cleanup_func);
 
   if (!result) {
     LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));
@@ -328,23 +330,20 @@ CurlSocket::open_socket(CurlStack *stack, [[maybe_unused]] curlsocktype purpose,
 
   // Add to stack map if not already present.
 
-  auto fd  = event->file_descriptor();
-  auto itr = stack->socket_map()->find(fd);
+  auto [itr, inserted] = stack->socket_map()->try_emplace(event->file_descriptor(), std::move(event));
 
-  if (itr != stack->socket_map()->end()) {
-    LT_LOG_DEBUG("open_socket() : fd:%i : socket already exists in stack", fd);
+  if (!inserted) {
+    LT_LOG_DEBUG("open_socket() : fd:%i : socket already exists in stack", itr->first);
 
     // Shouldn't happen, but close the new socket and return the existing one.
     // runtime::socket_manager()->close_event(event.get());
     // return itr->second->file_descriptor();
-    throw internal_error("CurlSocket::open_socket() : fd:%i : socket already exists in stack");
+    throw internal_error("CurlSocket::open_socket() : fd:" + std::to_string(itr->first) + " : socket already exists in stack");
   }
 
-  LT_LOG_DEBUG("open_socket() : socket opened: fd:%i", fd);
+  LT_LOG_DEBUG("open_socket() : socket opened: fd:%i", itr->first);
 
-  stack->socket_map()->emplace(fd, std::move(event));
-
-  return fd;
+  return itr->first;
 }
 
 // When receive_socket() is called with CURL_POLL_REMOVE, we call CurlSocket::close() which
@@ -420,6 +419,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
 void
 CurlSocket::event_read() {
+  // TODO: Use MSG_PEEK to check if we're in idle connection poll and close this fd.
   handle_action(CURL_CSELECT_IN);
 }
 
@@ -451,7 +451,22 @@ CurlSocket::event_error() {
   //       // clear and erase self.
   //     });
 
-  this_thread::poll()->remove_and_close(this);
+  if (!m_properly_opened) {
+    auto fd    = file_descriptor();
+    auto stack = m_stack;
+
+    runtime::socket_manager()->unregister_event_or_throw(this, [&]() {
+        this_thread::poll()->remove_and_close(this);
+      });
+
+    curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
+    clear_and_erase_self_or_throw();
+
+    CurlSocket::handle_action_simple(stack, fd, CURL_CSELECT_ERR);
+    return;
+  }
+
+  throw internal_error("CurlSocket::event_error() : properly opened socket should not implement");
 
   curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
 
@@ -471,19 +486,24 @@ CurlSocket::handle_action(int ev_bitmask) {
   assert(m_stack != nullptr && "CurlSocket::handle_action() m_stack != nullptr");
 
   // Processing might deallocate this CurlSocket.
-  int  count{};
   auto stack = m_stack;
-  auto code  = curl_multi_socket_action(m_stack->handle(), m_fileDesc, ev_bitmask, &count);
 
-  if (code != CURLM_OK)
-    throw internal_error("CurlSocket::handle_action(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
+  CurlSocket::handle_action_simple(stack, file_descriptor(), ev_bitmask);
 
   //
   // TODO: Use Thread::call_events() to process this: ?
   //
-
   while (stack->process_done_handle())
     ; // Do nothing.
+}
+
+void
+CurlSocket::handle_action_simple(CurlStack* stack, int fd, int ev_bitmask) {
+  int  count{};
+  auto code = curl_multi_socket_action(stack->handle(), fd, ev_bitmask, &count);
+
+  if (code != CURLM_OK)
+    throw internal_error("CurlSocket::handle_action_simple(...) error calling curl_multi_socket_action: " + std::string(curl_multi_strerror(code)));
 }
 
 void

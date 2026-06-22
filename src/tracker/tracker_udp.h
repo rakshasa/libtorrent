@@ -1,89 +1,71 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_UDP_H
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
-#include <array>
-#include <memory>
-
 #include "net/protocol_buffer.h"
-#include "net/socket_datagram.h"
-#include "torrent/net/types.h"
-#include "torrent/utils/scheduler.h"
 #include "tracker/tracker_worker.h"
 
-namespace torrent {
+namespace torrent::tracker {
 
-class TrackerUdp : public SocketDatagram, public TrackerWorker {
+class UdpRouter;
+
+class TrackerUdp : public TrackerWorker {
 public:
-  using hostname_type = std::array<char, 1024>;
-
-  using ReadBuffer  = ProtocolBuffer<512>;
-  using WriteBuffer = ProtocolBuffer<512>;
-
-  static constexpr uint64_t magic_connection_id = 0x0000041727101980ll;
-
-  static constexpr uint32_t udp_timeout = 30;
-  static constexpr uint32_t udp_tries = 2;
-
   TrackerUdp(const TrackerInfo& info, int flags = 0);
-  ~TrackerUdp() override;
-
-  const char*         type_name() const override { return "tracker_udp"; }
-
-  bool                is_busy() const override;
-
-  void                send_event(tracker::TrackerState::event_enum new_state) override;
-  void                send_scrape() override;
-
-  void                close() override;
 
   tracker_enum        type() const override;
 
-  void                event_read() override;
-  void                event_write() override;
-  void                event_error() override;
+  void                send_event(TrackerParams params, TrackerState::event_enum new_state) override;
+  void                send_scrape(TrackerParams params) override;
+
+  void                close() override;
 
 private:
+  static constexpr uint64_t magic_connection_id = 0x0000041727101980ll;
+
+  using buffer_type = ProtocolBuffer<512>;
+
+  struct family_state {
+    uint32_t transaction_id{};
+    uint64_t connection_id{};
+    bool     packet_sent{};
+  };
+
   void                close_directly();
+  void                cleanup() override;
 
-  void                receive_failed(const std::string& msg);
-  void                receive_resolved(c_sin_shared_ptr& sin, c_sin6_shared_ptr& sin6, int err);
-  void                receive_timeout();
+  void                reset_family_with_error(int family, const std::string& msg);
 
-  void                start_announce();
+  void                update_requesting_state();
 
-  void                prepare_connect_input();
-  void                prepare_announce_input();
+  UdpRouter*          router_for_family(int family);
+  family_state&       state_for_family(int family);
 
-  bool                process_connect_output();
-  bool                process_announce_output();
-  bool                process_error_output();
+  void                connect_family(int family);
 
-  static bool         parse_udp_url(const std::string& url, hostname_type& hostname, int& port);
+  int                 process_header(int family, uint32_t action, buffer_type& buffer);
 
-  bool                m_resolver_requesting{false};
-  bool                m_sending_announce{false};
+  void                prepare_connect(int family, uint32_t id, buffer_type& buffer);
+  bool                process_connect(int family, uint32_t id, buffer_type& buffer);
 
-  sockaddr*           m_current_address{nullptr};
-  sin_unique_ptr      m_inet_address;
-  sin6_unique_ptr     m_inet6_address;
+  void                prepare_announce(int family, uint32_t id, buffer_type& buffer);
+  bool                process_announce(int family, uint32_t id, buffer_type& buffer);
+  void                process_announce_packet_sent(int family, uint32_t id);
 
-  int                 m_port{};
+  void                process_error(int family, uint32_t id, buffer_type& buffer);
+
+  void                handle_setup_error(const std::string& msg);
+  bool                handle_parse_error(int family, uint32_t id, const std::string& msg);
+  void                handle_udp_error(int family, uint32_t id, int errno_err, int gai_err);
+
+  std::string         m_hostname;
+  uint16_t            m_port{};
+
+  TrackerParams       m_params;
   int                 m_send_state{};
-
-  uint32_t            m_action{};
-  uint64_t            m_connection_id{};
-  uint32_t            m_transaction_id{};
-
-  std::unique_ptr<ReadBuffer>  m_read_buffer;
-  std::unique_ptr<WriteBuffer> m_write_buffer;
-
-  uint32_t            m_tries{};
-  uint32_t            m_failed_since_last_resolved{};
-
-  utils::SchedulerEntry     m_task_timeout;
-  std::chrono::microseconds m_time_last_resolved{};
+  family_state        m_inet_state{};
+  family_state        m_inet6_state{};
 };
 
-} // namespace torrent
+} // namespace torrent::tracker
 
 #endif

@@ -11,15 +11,13 @@
 
 struct dns_ctx;
 
-namespace torrent {
+namespace torrent::net {
 
 struct UdnsQuery;
 class  UdnsResolverInternal;
 
 class UdnsResolver : public Event {
 public:
-  using resolver_callback = std::function<void(sin_shared_ptr, sin6_shared_ptr, int)>;
-
   using query_map = std::multimap<void*, std::unique_ptr<UdnsQuery>>;
 
   UdnsResolver();
@@ -27,7 +25,7 @@ public:
 
   const char*         type_name() const override { return "udns"; }
 
-  void                initialize(utils::Thread* thread);
+  void                initialize(system::Thread* thread);
   void                cleanup();
 
   // Callback must happen in thread_net and cannot call back into the resolver.
@@ -61,16 +59,17 @@ protected:
 
   static bool         m_initialized;
 
-  utils::Thread*      m_thread{};
+  system::Thread*     m_thread{};
   ::dns_ctx*          m_ctx{};
 
   utils::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;
+
   query_map           m_queries_unsafe;
   query_map           m_malformed_queries_unsafe;
 };
 
-} // namespace torrent
+} // namespace torrent::net
 
 #endif // LIBTORRENT_NET_UDNSEVENT_H

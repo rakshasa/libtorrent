@@ -29,7 +29,7 @@ public:
   // use callbacks to thread_net. Some functions throw internal_error if they don't wait for close
   // to finish.
   void                close_and_keep_callbacks();
-  void                close_and_cancel_callbacks(utils::Thread* callback_thread);
+  void                close_and_cancel_callbacks(system::Thread* callback_thread);
 
   // Always call before reset() if the HttpGet is being reused.
   void                wait_for_close();
@@ -48,6 +48,8 @@ public:
 
   void                use_ipv4();
   void                use_ipv6();
+  void                use_family(int family);
+
   void                prefer_ipv4();
   void                prefer_ipv6();
 
@@ -55,8 +57,8 @@ public:
   // thread's callback queue even if the underlying CurlGet is closed or deleted.
   //
   // Calling add_*_slot is not allowed while the HttpGet is in the stack.
-  void                add_done_slot(const std::function<void()>& slot);
-  void                add_failed_slot(const std::function<void(const std::string&)>& slot);
+  void                add_done_slot(system::Thread* thread, const std::function<void()>& fn);
+  void                add_failed_slot(system::Thread* thread, const std::function<void(const std::string&)>& fn);
   // TODO: Add a closed_slot.
 
   bool                operator<(const HttpGet& other) const;

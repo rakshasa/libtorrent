@@ -4,13 +4,12 @@
 
 #include "manager.h"
 #include "protocol/handshake.h"
-#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/poll.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/system/poll.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \
@@ -189,9 +188,7 @@ Listen::open_done(int fd, uint16_t port, int backlog) {
   set_file_descriptor(fd);
   m_port = port;
 
-  manager->connection_manager()->inc_socket_count();
-
-  runtime::socket_manager()->register_event_or_throw(this, [this]() {
+  runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
       this_thread::poll()->insert_error(this);
@@ -211,8 +208,6 @@ void Listen::close() {
       set_file_descriptor(-1);
     });
 
-  manager->connection_manager()->dec_socket_count();
-
   m_port = 0;
 }
 
@@ -224,34 +219,45 @@ Listen::event_read() {
     // TODO: Optimize this by adding handshake immediately to poll and put the slot_accepted() call
     // outside of open_func().
 
+    int           fd;
+    sa_unique_ptr sa;
+
+    std::tie(fd, sa) = fd_sap_accept(file_descriptor());
+
+    if (fd == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+        return;
+
+      // Force a new event_read() call just to be sure we don't enter an infinite loop.
+      if (errno == ECONNABORTED)
+        return;
+
+      throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
+    }
+
     auto open_func = [&]() {
-        int fd;
-        sa_unique_ptr sa;
+        // TODO: Figure out a clean way of doing this.
+        int tmp_fd = fd;
+        fd = -1;
 
-        std::tie(fd, sa) = fd_sap_accept(file_descriptor());
-
-        if (fd == -1) {
-          if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return;
-
-          // Force a new event_read() call just to be sure we don't enter an infinite loop.
-          if (errno == ECONNABORTED)
-            return;
-
-          throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
-        }
-
-        m_slot_accepted(handshake, fd, sa.get());
+        m_slot_accepted(handshake, tmp_fd, sa.get());
       };
 
-    auto cleanup_func = [&]() {
+    auto cleanup_func = [fd, &handshake](bool opened) {
         LT_LOG("failed to accept incoming connection : socket manager triggered cleanup", 0);
 
+        if (!opened) {
+          fd_close(fd);
+          return;
+        }
+
         if (handshake && handshake->is_open())
-          handshake->destroy_connection();
+          handshake->destroy_connection(false);
       };
 
-    bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), open_func, cleanup_func);
+    // TODO: This needs to be handled differently as open_ isn't done, we're doing accept_event_or_cleanup? Add a close callback?
+
+    bool result = runtime::socket_manager()->open_event_or_cleanup(handshake.get(), runtime::category_generic, open_func, cleanup_func);
 
     // If the handshake connection or socket manager failed, don't continue accepting connections.
     //

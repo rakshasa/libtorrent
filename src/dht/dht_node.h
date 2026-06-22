@@ -6,14 +6,18 @@
 #include "torrent/object_raw_bencode.h"
 #include "torrent/net/types.h"
 
+namespace torrent::dht {
+
+class DhtSearch;
+
+}
+
 namespace torrent {
 
 class DhtBucket;
 
 class DhtNode : public HashString {
 public:
-  friend class DhtSearch;
-
   // A node is considered bad if it failed to reply to this many queries.
   static constexpr unsigned int max_failed_replies = 5;
 
@@ -55,12 +59,16 @@ public:
   // Store node cache in the given container object and return it.
   Object*             store_cache(Object* container) const;
 
-private:
+protected:
   DhtNode(const DhtNode&) = delete;
   DhtNode& operator=(const DhtNode&) = delete;
 
+  friend class dht::DhtSearch;
+
   void                set_good();
   void                set_bad();
+
+private:
 
   sa_unique_ptr       m_socket_address;
   unsigned int        m_last_seen{};

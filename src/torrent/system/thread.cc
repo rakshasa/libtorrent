@@ -1,0 +1,449 @@
+#include "config.h"
+
+#include "torrent/system/thread.h"
+
+#include <cassert>
+#include <cstring>
+#include <condition_variable>
+#include <mutex>
+#include <unistd.h>
+
+#include "torrent/exceptions.h"
+#include "torrent/system/poll.h"
+#include "torrent/net/resolver.h"
+#include "torrent/runtime/socket_manager.h"
+#include "torrent/utils/chrono.h"
+#include "torrent/utils/log.h"
+#include "torrent/utils/scheduler.h"
+#include "utils/instrumentation.h"
+#include "utils/thread_internal.h"
+
+namespace torrent::system {
+
+thread_local Thread* Thread::m_self{};
+
+Thread::~Thread() = default;
+
+Thread* Thread::self() { return m_self; }
+
+void Thread::init_thread() {}
+void Thread::init_thread_pre_start() {}
+void Thread::init_thread_post_local() {}
+void Thread::cleanup_thread() {}
+
+Thread::Thread()
+  : m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+    m_poll(system::Poll::create()),
+    m_scheduler(new utils::Scheduler) {
+
+  m_cached_time = utils::time_since_epoch();
+  m_scheduler->set_cached_time(m_cached_time);
+}
+
+void
+Thread::start_thread() {
+  if (m_poll == nullptr)
+    throw internal_error("No poll object for thread defined.");
+
+  if (!is_initialized())
+    throw internal_error("Called Thread::start_thread on an uninitialized object.");
+
+  init_thread_pre_start();
+
+#ifdef USE_PTHREAD_SETSTACKSIZE
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, DEFAULT_PTHREAD_STACKSIZE);
+
+  if (pthread_create(&m_thread, &attr, &Thread::enter_event_loop, this)) {
+    pthread_attr_destroy(&attr);
+    throw internal_error("Failed to create thread.");
+  }
+
+  pthread_attr_destroy(&attr);
+#else
+  if (pthread_create(&m_thread, nullptr, &Thread::enter_event_loop, this))
+    throw internal_error("Failed to create thread.");
+#endif
+
+  while (m_state != STATE_ACTIVE)
+    usleep(100);
+}
+
+// Each thread needs to check flag_do_shutdown in call_events() and decide how to cleanly shut down.
+void
+Thread::stop_thread_wait() {
+  m_flags |= flag_do_shutdown;
+  m_poll->do_interrupt();
+
+  pthread_join(m_thread, nullptr);
+
+  assert(is_inactive());
+}
+
+void
+Thread::callback(bool is_interrupt, std::function<void ()>&& fn) {
+  bool should_interrupt{};
+
+  {
+    auto guard = std::scoped_lock(m_callbacks_lock);
+
+    if (is_interrupt) {
+      if (m_interrupt_callbacks.empty()) {
+        m_has_interrupt_callbacks.store(true, std::memory_order_release);
+        m_interrupt_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_interrupt_callbacks.push_back({nullptr, std::move(fn), 0});
+
+    } else {
+      if (m_callbacks.empty()) {
+        m_has_callbacks.store(true, std::memory_order_release);
+        m_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_callbacks.push_back({nullptr, std::move(fn), 0});
+    }
+  }
+
+  if (should_interrupt)
+    m_poll->do_interrupt();
+}
+
+void
+Thread::callback(bool is_interrupt, system::callback_id& id, std::function<void ()>&& fn) {
+  assert(id != nullptr);
+
+  // Ensure adding callbacks for the id are completed before cancel-wait can proceed.
+  auto previous_id = id->fetch_add(1, std::memory_order_relaxed);
+
+  if ((previous_id & 0x7) == 0x7)
+    throw internal_error("Thread::callback() lower id overflow.");
+
+  bool should_interrupt{};
+
+  {
+    auto guard = std::scoped_lock(m_callbacks_lock);
+
+    if (is_interrupt) {
+      if (m_interrupt_callbacks.empty()) {
+        m_has_interrupt_callbacks.store(true, std::memory_order_release);
+        m_interrupt_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_interrupt_callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+
+    } else {
+      if (m_callbacks.empty()) {
+        m_has_callbacks.store(true, std::memory_order_release);
+        m_callbacks.reserve(16);
+
+        should_interrupt = true;
+      }
+
+      m_callbacks.push_back({id, std::move(fn), previous_id & ~0x7});
+    }
+  }
+
+  id->fetch_sub(1, std::memory_order_release);
+  id->notify_all();
+
+  if (should_interrupt)
+    m_poll->do_interrupt();
+}
+
+void
+Thread::cancel_callback(system::callback_id& id) {
+  assert(id != nullptr);
+
+  id->fetch_add(0x10, std::memory_order_release);
+}
+
+
+void
+Thread::cancel_callback_and_wait(system::callback_id& id) {
+  assert(id != nullptr);
+
+  while (true) {
+    auto current_id = id->load(std::memory_order_acquire);
+    auto counter    = (current_id & 0x7);
+
+    if (counter >= 2) {
+      id->wait(current_id, std::memory_order_acquire);
+      continue;
+    }
+
+    if (counter == 1) {
+      // Check if we ourselves are the only ones running the callback for the id, if so then skip
+      // the wait.
+      if (m_self == nullptr || m_self->m_callback_processing_id != id) {
+        id->wait(current_id, std::memory_order_acquire);
+        continue;
+      }
+    }
+
+    if (id->compare_exchange_weak(current_id, current_id + 0x10, std::memory_order_acquire))
+      break;
+  }
+}
+
+// Only two threads can share a callback id and safely use cancel_callback_and_wait().
+//
+// This still allows multiple threads to share a callback id, but only two can safely use
+// cancel_callback_and_wait().
+//
+// Review the above since the deadlock-flag should cause synchronization of multiple callers.
+
+void
+Thread::cancel_callback_and_wait(callback_id& id, Thread* other_thread) {
+  assert(id != nullptr);
+  assert(this == m_self);
+  assert(other_thread != m_self);
+
+  if (id != m_callback_processing_id) {
+    // No need to cancel self.
+    other_thread->cancel_callback_and_wait(id);
+    return;
+  }
+
+  auto wait_for_deadlock = [&id]() {
+    auto current_id = id->load(std::memory_order_acquire);
+
+    while (current_id & 0x8) {
+      id->wait(current_id, std::memory_order_acquire);
+      current_id = id->load(std::memory_order_acquire);
+    }
+  };
+
+  while (true) {
+    auto pre_deadlock_id = id->load(std::memory_order_acquire);
+
+    // The other thread is also trying to wait for cancel, so just wait.
+    if (pre_deadlock_id & 0x8) {
+      // Cancel callbacks just in case more were added after the deadlock bit was set.
+      cancel_callback(id);
+
+      wait_for_deadlock();
+      return;
+    }
+
+    if (id->compare_exchange_weak(pre_deadlock_id, pre_deadlock_id | 0x8, std::memory_order_acquire))
+      break;
+  }
+
+  // We are the first thread canceling, so cancel and notify.
+  id->fetch_add(0x10, std::memory_order_release);
+  id->fetch_and(~0x8, std::memory_order_release);
+  id->notify_all();
+}
+
+// Fix interrupting when shutting down thread.
+void
+Thread::interrupt() {
+  m_poll->do_interrupt();
+}
+
+void*
+Thread::enter_event_loop(void* thread) {
+  auto t = static_cast<Thread*>(thread);
+  if (t == nullptr)
+    throw internal_error("Thread::enter_event_loop called with a null pointer thread");
+
+  t->init_thread_local();
+  t->init_thread_post_local();
+  t->event_loop();
+  t->cleanup_thread_local();
+
+  return nullptr;
+}
+
+void
+Thread::event_loop() {
+  lt_log_print(LOG_THREAD_NOTICE, "%s : starting thread event loop", name());
+
+  try {
+
+    m_poll->init_thread();
+
+    while (true) {
+      process_events();
+
+      instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
+      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + m_instrumentation_index), 1);
+
+      auto timeout = std::max(next_timeout(), std::chrono::microseconds(0));
+      timeout = m_scheduler->next_timeout(timeout);
+
+      int event_count = m_poll->do_poll(timeout);
+
+      instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
+      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + m_instrumentation_index), event_count);
+    }
+
+  } catch (const shutdown_exception&) {
+    lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
+
+  } catch (const internal_error& e) {
+    // Uncaught internal errors in threads cause the program to exit, and we need to flush the logs.
+    if (this_thread::thread_id() != torrent::main_thread::thread_id())
+      log_cleanup();
+
+    m_poll->cleanup_thread();
+    throw;
+  }
+
+  m_poll->cleanup_thread();
+
+  auto previous_state = STATE_ACTIVE;
+
+  if (!m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
+    throw internal_error("Thread::event_loop called on an object that is not in the active state.");
+}
+
+void
+Thread::init_thread_local() {
+#if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
+  pthread_setname_np(name());
+#elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
+  // Cannot use thread->m_thread here as it may not be set before pthread_create returns.
+  pthread_setname_np(pthread_self(), name());
+#endif
+
+  m_self = this;
+  m_thread = pthread_self();
+  m_thread_id = std::this_thread::get_id();
+
+  m_scheduler->set_thread_id(m_thread_id);
+
+  set_cached_time(utils::time_since_epoch());
+
+  if (m_resolver)
+    m_resolver->init();
+
+  auto previous_state = STATE_INITIALIZED;
+
+  if (!m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
+    throw internal_error("Thread::init_thread_local() : " + std::string(name()) + " : called on an object that is not in the initialized state.");
+}
+
+void
+Thread::cleanup_thread_local() {
+  lt_log_print(LOG_THREAD_NOTICE, "%s : cleaning up thread local data", name());
+
+  cleanup_thread();
+
+  // TODO: Cleanup the resolver, scheduler, and poll objects.
+  m_self = nullptr;
+}
+
+void
+Thread::process_events() {
+  // TODO: We should call process_callbacks() here before and after call_events, however due to the
+  // many different cached times in the code, we need to let each thread manage this themselves.
+
+  set_cached_time(utils::time_since_epoch());
+  call_events();
+  set_cached_time(utils::time_since_epoch());
+
+  m_scheduler->perform(m_cached_time);
+}
+
+// Used for testing.
+void
+Thread::process_events_without_cached_time() {
+  call_events();
+
+  m_scheduler->perform(m_cached_time);
+}
+
+void
+Thread::process_callbacks(bool only_interrupt) {
+  m_has_interrupt_callbacks.store(false, std::memory_order_release);
+
+  while (true) {
+    std::vector<callback_type> callbacks;
+
+    {
+      auto guard = std::scoped_lock(m_callbacks_lock);
+
+      callbacks.swap(m_interrupt_callbacks);
+
+      if (only_interrupt) {
+        if (callbacks.empty()) {
+          m_has_interrupt_callbacks.store(false, std::memory_order_release);
+          return;
+        }
+      }
+
+      if (callbacks.empty())
+        callbacks.swap(m_callbacks);
+
+      if (callbacks.empty()) {
+        m_has_callbacks.store(false, std::memory_order_release);
+        m_has_interrupt_callbacks.store(false, std::memory_order_release);
+        return;
+      }
+    }
+
+    for (auto& callback : callbacks) {
+      if (callback.id == nullptr) {
+        callback.fn();
+        continue;
+      }
+
+      auto previous_id = callback.id->fetch_add(1, std::memory_order_relaxed);
+
+      if ((previous_id & 0x7) == 0x7)
+        throw internal_error("Thread::process_callbacks() lower id overflow.");
+
+      if ((previous_id & ~0x7) != callback.expected_id) {
+        callback.id->fetch_sub(1, std::memory_order_release);
+        callback.id->notify_all();
+        continue;
+      }
+
+      m_callback_processing_id = callback.id;
+      callback.fn();
+      m_callback_processing_id = nullptr;
+
+      callback.id->fetch_sub(1, std::memory_order_release);
+      callback.id->notify_all();
+    }
+  }
+}
+
+void
+Thread::set_cached_time(std::chrono::microseconds t) {
+  m_cached_time = t;
+  m_scheduler->set_cached_time(t);
+}
+
+} // namespace torrent::utils
+
+namespace torrent::this_thread {
+
+torrent::system::Thread*  thread()          { return system::ThreadInternal::thread(); }
+std::string               thread_name_str() { return thread_name(); }
+std::thread::id           thread_id()       { return system::ThreadInternal::thread_id(); }
+
+std::chrono::microseconds cached_time()     { return system::ThreadInternal::cached_time(); }
+std::chrono::seconds      cached_seconds()  { return system::ThreadInternal::cached_seconds(); }
+
+system::Poll*             poll()            { return system::ThreadInternal::poll(); }
+net::Resolver*            resolver()        { return system::ThreadInternal::resolver(); }
+utils::Scheduler*         scheduler()       { return system::ThreadInternal::scheduler(); }
+
+const char*
+thread_name() {
+  auto thread = system::ThreadInternal::thread();
+
+  return thread != nullptr ? thread->name() : "unknown";
+}
+
+} // namespace torrent::this_thread

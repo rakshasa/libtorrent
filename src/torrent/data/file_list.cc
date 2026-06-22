@@ -8,6 +8,7 @@
 #include <limits>
 #include <memory>
 #include <set>
+#include <sys/statvfs.h>
 
 #include "manager.h"
 #include "piece.h"
@@ -20,16 +21,6 @@
 #include "torrent/data/file_manager.h"
 #include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
-
-#if HAVE_SYS_VFS_H
-#include <sys/vfs.h>
-#endif
-#if HAVE_SYS_STATVFS_H
-#include <sys/statvfs.h>
-#endif
-#if HAVE_SYS_STATFS_H
-#include <sys/statfs.h>
-#endif
 
 #define LT_LOG_FL(log_level, log_fmt, ...)                              \
   lt_log_print_data(LOG_STORAGE_##log_level, (&m_data), "file_list", log_fmt, __VA_ARGS__);
@@ -76,7 +67,7 @@ FileList::is_root_dir_created() const {
   utils::FileStat fs;
 
   if (!fs.update(m_root_dir))
-//     return rak::error_number::current() == rak::error_number::e_access;
+    // return errno == EACCES
     return false;
 
   return fs.is_directory();
@@ -87,7 +78,7 @@ FileList::is_multi_file() const {
   // Currently only check if we got just one file. In the future this
   // should be a bool, which will be set based on what flags are
   // passed when the torrent was loaded.
-  return m_multi_file;
+  return m_is_multi_file;
 }
 
 uint64_t
@@ -156,20 +147,37 @@ FileList::set_max_file_size(uint64_t size) {
 // This function should really ensure that we arn't dealing files
 // spread over multiple mount-points.
 uint64_t
-FileList::free_diskspace() const {
+FileList::free_diskspace(cache_list& cache) const {
   uint64_t free_diskspace = std::numeric_limits<uint64_t>::max();
 
   for (const auto& link : m_indirect_links) {
-    FS_STAT_STRUCT m_stat;
-    auto fn = link.c_str();
+    auto cache_itr = std::find_if(cache.begin(), cache.end(), [&link](const auto& cacheEntry) {
+      return cacheEntry.first == link;
+    });
 
-    if (!(FS_STAT_FN))
-      continue;
+    if (cache_itr == cache.end()) {
+      struct statvfs stat{};
 
-    free_diskspace = std::min<uint64_t>(free_diskspace, (int64_t)(FS_STAT_BLOCK_SIZE) * m_stat.f_bavail);
+      auto fn = link.c_str();
+
+      if (statvfs(fn, &stat) == -1)
+        continue;
+
+      cache.push_back(std::make_pair(link, static_cast<uint64_t>(stat.f_frsize) * stat.f_bavail));
+      cache_itr = std::prev(cache.end());
+    }
+
+    if (cache_itr->second < free_diskspace)
+      free_diskspace = cache_itr->second;
   }
 
   return free_diskspace != std::numeric_limits<uint64_t>::max() ? free_diskspace : 0;
+}
+
+uint64_t
+FileList::free_diskspace_no_cache() const {
+  cache_list cache;
+  return free_diskspace(cache);
 }
 
 FileList::iterator_range
@@ -309,7 +317,13 @@ FileList::make_all_paths() {
     auto firstMismatch = entry->path()->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
-    while (firstMismatch != entry->path()->end() && lastPathItr != lastPath->end() && *firstMismatch == *lastPathItr) {
+    while (true) {
+      if (firstMismatch == entry->path()->end() || lastPathItr == lastPath->end())
+        break;
+
+      if (firstMismatch->str() != lastPathItr->str())
+        break;
+
       lastPathItr++;
       firstMismatch++;
     }
@@ -445,7 +459,8 @@ FileList::open(bool hashing, int flags) {
   }
 
   m_is_open = true;
-  m_frozen_root_dir = m_root_dir;
+
+  m_frozen_root_dir.reset(m_root_dir);
 
   // For meta-downloads, if the file exists, we have to assume that
   // it is either 0 or 1 length or the correct size. If the size
@@ -457,7 +472,7 @@ FileList::open(bool hashing, int flags) {
     utils::FileStat stat;
 
     // This probably recurses into open() once, but that is harmless.
-    if (stat.update((*begin())->frozen_path()) && stat.size() > 1)
+    if (stat.update((*begin())->frozen_path().str()) && stat.size() > 1)
       return reset_filesize(stat.size());
   }
 }
@@ -492,16 +507,16 @@ FileList::close_all_files() {
 }
 
 void
-FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) {
+FileList::make_directory(Path::const_iterator path_begin, Path::const_iterator path_end, Path::const_iterator start_itr) {
   std::string path = m_root_dir;
 
-  while (pathBegin != pathEnd) {
-    path += "/" + *pathBegin;
+  while (path_begin != path_end) {
+    path += "/" + path_begin->str();
 
-    if (pathBegin++ != startItr)
+    if (path_begin++ != start_itr)
       continue;
 
-    startItr++;
+    start_itr++;
 
     utils::FileStat fileStat;
 
@@ -510,7 +525,7 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
         std::find(m_indirect_links.begin(), m_indirect_links.end(), path) == m_indirect_links.end())
       m_indirect_links.push_back(path);
 
-    if (pathBegin == pathEnd)
+    if (path_begin == path_end)
       break;
 
     if (::mkdir(path.c_str(), 0777) != 0 && errno != EEXIST)
@@ -529,7 +544,7 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
     auto firstMismatch = path->begin();
 
     // Couldn't find a suitable stl algo, need to write my own.
-    while (firstMismatch != path->end() && lastItr != lastPath.end() && *firstMismatch == *lastItr) {
+    while (firstMismatch != path->end() && lastItr != lastPath.end() && firstMismatch->str() == lastItr->str()) {
       lastItr++;
       firstMismatch++;
     }
@@ -544,10 +559,8 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
 
   utils::FileStat file_stat;
 
-  if (file_stat.update(file_node->frozen_path()) &&
-      !file_stat.is_regular() && !file_stat.is_link()) {
-    // Might also bork on other kinds of file types, but there's no
-    // suitable errno for all cases.
+  if (file_stat.update(file_node->frozen_path().str()) && !file_stat.is_regular() && !file_stat.is_link()) {
+    // Might also fail on other kinds of file types, but there's no suitable errno for all cases.
     errno = EISDIR;
     return false;
   }

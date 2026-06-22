@@ -3,28 +3,30 @@
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <thread>
 #include <vector>
 #include <torrent/common.h>
 
 namespace torrent::utils {
 
-class LIBTORRENT_EXPORT Scheduler : public std::vector<SchedulerEntry*> {
-public:
-  using base_type = std::vector<SchedulerEntry*>;
-  using time_type = std::chrono::microseconds;
+class SchedulerEntry;
+class Scheduler;
 
-  using base_type::begin;
-  using base_type::end;
-  using base_type::front;
-  using base_type::size;
-  using base_type::empty;
-  using base_type::clear;
+struct SchedulerHandle {
+  SchedulerEntry* entry{};
+  Scheduler*      scheduler{};
+  std::chrono::microseconds time{};
+};
+
+class LIBTORRENT_EXPORT Scheduler {
+public:
+  using time_type = std::chrono::microseconds;
 
   ~Scheduler() = default;
 
-  // time_type is microseconds since unix epoch.
-  time_type           next_timeout() const;
+  bool                empty() const                       { return m_heap.empty(); }
+  time_type           next_timeout(time_type max_timeout);
 
   void                erase(SchedulerEntry* entry);
 
@@ -37,7 +39,7 @@ public:
   void                update_wait_for_ceil_seconds(SchedulerEntry* entry, time_type time);
 
 protected:
-  friend class Thread;
+  friend class system::Thread;
 
   void                perform(time_type time);
 
@@ -45,11 +47,14 @@ protected:
   void                set_cached_time(time_type t)      { m_cached_time = t; }
 
 private:
-  void                make_heap();
-  void                push_heap();
+  using heap_type = std::vector<std::unique_ptr<SchedulerHandle>>;
+
+  void                push_entry(SchedulerEntry* entry, time_type time);
 
   std::atomic<std::thread::id> m_thread_id;
-  time_type                    m_cached_time{};
+
+  align_cacheline time_type    m_cached_time{};
+  heap_type                    m_heap;
 };
 
 class LIBTORRENT_EXPORT SchedulerEntry {
@@ -59,26 +64,25 @@ public:
 
   SchedulerEntry() = default;
   ~SchedulerEntry();
+
   bool                is_valid() const     { return m_slot != nullptr; }
-  bool                is_scheduled() const { return m_scheduler != nullptr; }
+  bool                is_scheduled() const { return m_handle != nullptr; }
 
   slot_type&          slot()               { return m_slot; }
-  Scheduler*          scheduler() const    { return m_scheduler; }
-  time_type           time() const         { return m_time; }
+  time_type           time_or_zero() const { return m_handle ? m_handle->time : time_type{}; }
 
 protected:
   friend class Scheduler;
 
-  void                set_scheduler(Scheduler* s) { m_scheduler = s; }
-  void                set_time(time_type t)       { m_time = t; }
+  SchedulerHandle*    handle() const       { return m_handle; }
+  void                set_handle(SchedulerHandle* h) { m_handle = h; }
 
 private:
   SchedulerEntry(const SchedulerEntry&) = delete;
   SchedulerEntry& operator=(const SchedulerEntry&) = delete;
 
   slot_type           m_slot;
-  Scheduler*          m_scheduler{};
-  time_type           m_time{};
+  SchedulerHandle*    m_handle{};
 };
 
 class LIBTORRENT_EXPORT ExternalScheduler : public Scheduler {
