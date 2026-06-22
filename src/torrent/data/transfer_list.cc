@@ -142,6 +142,8 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
   // Could propably also check promoted against size of the block
   // list.
 
+  mark_and_disconnect_if_single_peer(*blockListItr);
+
   if ((*blockListItr)->attempt() == 0) {
     unsigned int promoted = update_failed(*blockListItr, chunk);
 
@@ -157,9 +159,6 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
     }
   }
 
-  // TODO: Check if there's only one peer, if so disconnect and mark that peer as bad. (review code
-  // to make sure the peer gets disconnected)
-  //
   // TODO: Add a sanity check, e.g. >100 attempted tries.
 
   // Should we check if there's any peers whom have sent us bad data
@@ -235,6 +234,30 @@ TransferList::mark_failed_peers(BlockList* blockList, Chunk* chunk) {
   }
 
   std::for_each(badPeers.begin(), badPeers.end(), m_slot_corrupt);
+}
+
+void
+TransferList::mark_and_disconnect_if_single_peer(BlockList* block_list) {
+  PeerInfo* peer_info{};
+
+  auto itr = block_list->begin();
+
+  while (itr != block_list->end()) {
+    for (auto& transfer : *itr->transfers()) {
+      peer_info = transfer->peer_info();
+      break;
+    }
+  }
+
+  while (itr != block_list->end()) {
+    for (auto& transfer : *itr->transfers()) {
+      if (transfer->peer_info() != peer_info)
+        return;
+    }
+  }
+
+  if (peer_info != nullptr)
+    m_slot_corrupt(peer_info);
 }
 
 // Copy the stored data to the chunk from the failed entries with
