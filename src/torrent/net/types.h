@@ -80,7 +80,9 @@ namespace net {
 
 bool                verify_url_guess_scheme(const std::string& url) LIBTORRENT_EXPORT;
 
-std::pair<std::string, uint16_t> parse_uri_host_port(const std::string& uri) LIBTORRENT_EXPORT;
+std::string                         parse_uri_scheme(const std::string& url) LIBTORRENT_EXPORT;
+std::pair<std::string, uint16_t>    parse_uri_host_port(const std::string& uri) LIBTORRENT_EXPORT;
+std::pair<std::string, std::string> parse_uri_user_password(const std::string& uri) LIBTORRENT_EXPORT;
 
 } // namespace net
 

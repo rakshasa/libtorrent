@@ -112,6 +112,12 @@ libtorrent_other_la_SOURCES = \
 	net/udns_library.cc \
 	net/udns_library.h \
 	\
+	net/proxy/proxy.h \
+	net/proxy/proxy_http.cc \
+	net/proxy/proxy_http.h \
+	net/proxy/proxy_manager.cc \
+	net/proxy/proxy_manager.h \
+	\
 	net/udns/config.h \
 	net/udns/udns.h \
 	\
