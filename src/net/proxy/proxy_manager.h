@@ -23,12 +23,14 @@ public:
   std::unique_ptr<Proxy> create_proxy();
 
 private:
+  using create_proxy_func = std::function<Proxy*()>;
+
   auto                lock_guard();
 
-  std::mutex            m_mutex;
+  std::mutex          m_mutex;
 
-  std::string             m_address;
-  std::function<Proxy*()> m_create_proxy;
+  std::string         m_address;
+  create_proxy_func   m_create_proxy;
 };
 
 auto ProxyManager::lock_guard() { return std::scoped_lock(m_mutex); }

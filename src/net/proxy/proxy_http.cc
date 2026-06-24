@@ -8,46 +8,86 @@
 
 namespace torrent::net::proxy {
 
-ProxyHttp::ProxyHttp(const std::string& address, uint16_t port) {
-  if (port != 0)
-    m_address = address + ":" + std::to_string(port);
-  else
-    m_address = address;
+ProxyHttp::ProxyHttp(const std::string& host, uint16_t port)
+  : m_host(host),
+    m_port(port),
+    m_state(state_writing){
+
+  assert(!host.empty());
+  assert(port != 0);
 }
 
 int
 ProxyHttp::next_action() {
-  if (m_done)
-    return state_finished;
-
-  return state_writing;
+  return m_state;
 }
 
 uint32_t
 ProxyHttp::write(char* data, uint32_t max_size) {
-  static const char* proxy_header_pre  = "CONNECT ";
-  static const char* proxy_header_post = " HTTP/1.0\r\n\r\n";
+  assert(m_state == state_writing);
 
-  uint32_t header_size = sizeof(proxy_header_pre) - 1 + m_address.size() + sizeof(proxy_header_post) - 1;
+  static const char* part1 = "CONNECT ";
+  static const char* part2 = " HTTP/1.1\r\nHost: ";
+  static const char* part3 = "\r\n\r\n";
+
+  auto host_port_str = m_host + ":" + std::to_string(m_port);
+
+  uint32_t header_size = sizeof(part1) - 1 + host_port_str.size() + sizeof(part2) - 1 + host_port_str.size() + sizeof(part3) - 1;
 
   if (max_size < header_size)
     throw internal_error("ProxyHttp::write() buffer too small for proxy header.");
 
   auto ptr = data;
 
-  std::memcpy(ptr, proxy_header_pre, sizeof(proxy_header_pre) - 1);
-  ptr += sizeof(proxy_header_pre) - 1;
+  std::memcpy(ptr, part1, sizeof(part1) - 1);
+  ptr += sizeof(part1) - 1;
 
-  std::memcpy(ptr, m_address.c_str(), m_address.size());
-  ptr += m_address.size();
+  std::memcpy(ptr, host_port_str.data(), host_port_str.size());
+  ptr += host_port_str.size();
 
-  std::memcpy(ptr, proxy_header_post, sizeof(proxy_header_post) - 1);
-  ptr += sizeof(proxy_header_post) - 1;
+  std::memcpy(ptr, part2, sizeof(part2) - 1);
+  ptr += sizeof(part2) - 1;
+
+  std::memcpy(ptr, host_port_str.data(), host_port_str.size());
+  ptr += host_port_str.size();
+
+  std::memcpy(ptr, part3, sizeof(part3) - 1);
+  ptr += sizeof(part3) - 1;
 
   assert(ptr - data == header_size);
 
-  m_done = true;
+  m_state = state_reading;
   return header_size;
+}
+
+uint32_t
+ProxyHttp::read(const char* data, uint32_t size) {
+  assert(m_state == state_reading);
+
+  if (!m_verified_header) {
+    if (size < 12 + 4)
+      return 0;
+
+    if (std::memcmp(data, "HTTP/1.1 200", 12) != 0 && std::memcmp(data, "HTTP/1.0 200", 12) != 0) {
+      m_state = state_error;
+      return 0;
+    }
+
+    m_verified_header = true;
+  }
+
+  if (size < 4)
+    return 0;
+
+  static const char* pattern = "\r\n\r\n";
+
+  auto itr = std::search(data, data + size, pattern, pattern + 4);
+
+  if (itr == data + size)
+    return std::distance(data, itr) - 3;
+
+  m_state = state_finished;
+  return std::distance(data, itr) + 4;
 }
 
 } // namespace torrent::net::proxy

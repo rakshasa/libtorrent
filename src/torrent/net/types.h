@@ -78,7 +78,8 @@ inline std::string  family_enum_str(int family) { return family_str(family); }
 
 namespace net {
 
-bool                verify_url_guess_scheme(const std::string& url) LIBTORRENT_EXPORT;
+bool                                verify_url_guess_scheme(const std::string& url) LIBTORRENT_EXPORT;
+bool                                verify_no_path_query_fragment(const std::string& url) LIBTORRENT_EXPORT;
 
 std::string                         parse_uri_scheme(const std::string& url) LIBTORRENT_EXPORT;
 std::pair<std::string, uint16_t>    parse_uri_host_port(const std::string& uri) LIBTORRENT_EXPORT;

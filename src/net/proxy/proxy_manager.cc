@@ -21,10 +21,7 @@ ProxyManager::address() {
 
 void
 ProxyManager::set_address(const std::string& address) {
-  auto guard = lock_guard();
-
-  auto schema = parse_uri_scheme(address);
-
+  auto schema           = parse_uri_scheme(address);
   auto [host, port]     = parse_uri_host_port(address);
   auto [user, password] = parse_uri_user_password(address);
 
@@ -39,15 +36,20 @@ ProxyManager::set_address(const std::string& address) {
   if (port == 0)
     throw input_error("Proxy address must include a port.");
 
-  auto verify_no_user_password = [user, password]() {
+  if (!verify_no_path_query_fragment(address))
+    throw input_error("Proxy address must not include a path, query, or fragment.");
+
+  auto verify_no_user_password = [schema, user, password]() {
       if (!user.empty() || !password.empty())
-        throw input_error("Proxy address must not include a user or password.");
+        throw input_error("Proxy address for '" + schema + "://' must not include a user or password.");
     };
+
+  create_proxy_func create_proxy_fn;
 
   if (schema == "http") {
     verify_no_user_password();
 
-    m_create_proxy = [host, port]() {
+    create_proxy_fn = [host, port]() {
         return new ProxyHttp(host, port);
       };
 
@@ -85,7 +87,10 @@ ProxyManager::set_address(const std::string& address) {
     throw input_error("Unsupported proxy scheme: " + schema);
   }
 
-  m_address = address;
+  auto guard = lock_guard();
+
+  m_address      = address;
+  m_create_proxy = create_proxy_fn;
 }
 
 std::unique_ptr<Proxy>

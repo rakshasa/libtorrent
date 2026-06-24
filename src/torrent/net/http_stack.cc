@@ -20,25 +20,50 @@ namespace torrent::net {
 
 bool
 verify_url_guess_scheme(const std::string& url) {
-  CURLU* curlu = curl_url();
+  auto curlu = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curl_url(), &curl_url_cleanup);
 
-  bool result = curl_url_set(curlu, CURLUPART_URL, url.c_str(), CURLU_GUESS_SCHEME) == CURLUE_OK;
+  return curl_url_set(curlu.get(), CURLUPART_URL, url.c_str(), CURLU_GUESS_SCHEME) == CURLUE_OK;
+}
 
-  curl_url_cleanup(curlu);
-  return result;
+bool
+verify_no_path_query_fragment(const std::string& url) {
+  auto curlu = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curl_url(), &curl_url_cleanup);
+
+  if (curl_url_set(curlu.get(), CURLUPART_URL, url.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK)
+    return false;
+
+  char* path_ptr{};
+  char* query_ptr{};
+  char* fragment_ptr{};
+
+  if (curl_url_get(curlu.get(), CURLUPART_PATH, &path_ptr, 0) == CURLUE_OK) {
+    curl_free(path_ptr);
+    return false;
+  }
+
+  if (curl_url_get(curlu.get(), CURLUPART_QUERY, &query_ptr, 0) == CURLUE_OK) {
+    curl_free(query_ptr);
+    return false;
+  }
+
+  if (curl_url_get(curlu.get(), CURLUPART_FRAGMENT, &fragment_ptr, 0) == CURLUE_OK) {
+    curl_free(fragment_ptr);
+    return false;
+  }
+
+  return true;
 }
 
 std::string
 parse_uri_scheme(const std::string& url) {
-  char*  scheme_ptr{};
-  CURLU* curlu = curl_url();
+  auto curlu = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curl_url(), &curl_url_cleanup);
 
-  auto cleanup_guard = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curlu, &curl_url_cleanup);
-
-  if (curl_url_set(curlu, CURLUPART_URL, url.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK)
+  if (curl_url_set(curlu.get(), CURLUPART_URL, url.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK)
     return {};
 
-  if (curl_url_get(curlu, CURLUPART_SCHEME, &scheme_ptr, 0) != CURLUE_OK)
+  char* scheme_ptr{};
+
+  if (curl_url_get(curlu.get(), CURLUPART_SCHEME, &scheme_ptr, 0) != CURLUE_OK)
     return {};
 
   std::string scheme(scheme_ptr);
@@ -49,22 +74,21 @@ parse_uri_scheme(const std::string& url) {
 
 std::pair<std::string, uint16_t>
 parse_uri_host_port(const std::string& uri) {
-  char*  host_ptr{};
-  char*  port_ptr{};
-  CURLU* curlu = curl_url();
+  auto curlu = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curl_url(), &curl_url_cleanup);
 
-  auto cleanup_guard = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curlu, &curl_url_cleanup);
-
-  if (curl_url_set(curlu, CURLUPART_URL, uri.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK)
+  if (curl_url_set(curlu.get(), CURLUPART_URL, uri.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK)
     return {"", 0};
 
-  if (curl_url_get(curlu, CURLUPART_HOST, &host_ptr, 0) != CURLUE_OK)
+  char* host_ptr{};
+  char* port_ptr{};
+
+  if (curl_url_get(curlu.get(), CURLUPART_HOST, &host_ptr, 0) != CURLUE_OK)
     return {"", 0};
 
   std::string host(host_ptr);
   curl_free(host_ptr);
 
-  if (curl_url_get(curlu, CURLUPART_PORT, &port_ptr, 0) != CURLUE_OK)
+  if (curl_url_get(curlu.get(), CURLUPART_PORT, &port_ptr, 0) != CURLUE_OK)
     return {host, 0};
 
   uint16_t port{};
@@ -80,22 +104,21 @@ parse_uri_host_port(const std::string& uri) {
 
 std::pair<std::string, std::string>
 parse_uri_user_password(const std::string& uri) {
-  char*  user_ptr{};
-  char*  password_ptr{};
-  CURLU* curlu = curl_url();
+  auto curlu = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curl_url(), &curl_url_cleanup);
 
-  auto cleanup_guard = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(curlu, &curl_url_cleanup);
-
-  if (curl_url_set(curlu, CURLUPART_URL, uri.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK)
+  if (curl_url_set(curlu.get(), CURLUPART_URL, uri.c_str(), CURLU_NON_SUPPORT_SCHEME) != CURLUE_OK)
     return {"", ""};
 
-  if (curl_url_get(curlu, CURLUPART_USER, &user_ptr, 0) != CURLUE_OK)
+  char* user_ptr{};
+  char* password_ptr{};
+
+  if (curl_url_get(curlu.get(), CURLUPART_USER, &user_ptr, 0) != CURLUE_OK)
     return {"", ""};
 
   std::string user(user_ptr);
   curl_free(user_ptr);
 
-  if (curl_url_get(curlu, CURLUPART_PASSWORD, &password_ptr, 0) != CURLUE_OK)
+  if (curl_url_get(curlu.get(), CURLUPART_PASSWORD, &password_ptr, 0) != CURLUE_OK)
     return {user, ""};
 
   std::string password(password_ptr);
@@ -104,8 +127,8 @@ parse_uri_user_password(const std::string& uri) {
   return {user, password};
 }
 
-HttpStack::HttpStack(system::Thread* thread) :
-    m_stack(new CurlStack(thread)) {
+HttpStack::HttpStack(system::Thread* thread)
+  : m_stack(new CurlStack(thread)) {
 }
 
 HttpStack::~HttpStack() = default;

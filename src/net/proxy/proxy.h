@@ -16,7 +16,8 @@ public:
 
   virtual int         next_action() = 0;
 
-  // virtual uint32_t    read(char* data, uint32_t size) = 0;
+  // Returns the number of bytes consumed, or 0 if no bytes were consumed.
+  virtual uint32_t    read(const char* data, uint32_t size) = 0;
   virtual uint32_t    write(char* data, uint32_t max_size) = 0;
 
 private:
