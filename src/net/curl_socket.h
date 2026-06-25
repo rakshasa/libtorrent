@@ -41,7 +41,6 @@ private:
   static void         handle_action_simple(CurlStack* stack, int fd, int ev_bitmask);
 
   void                clear_and_erase_self(CurlStack::socket_map_type::iterator itr);
-  void                clear_and_erase_self_or_throw();
 
   CurlStack*          m_stack{};
   CURL*               m_easy_handle{};

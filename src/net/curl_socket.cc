@@ -41,9 +41,6 @@
 
 #endif
 
-// Use getsockopt(SO_TYPE), SOCK_STREAM, and getpeername() / getsockname() to verify the socket is
-// the same as when marking inactive.
-
 namespace torrent::net {
 
 namespace {
@@ -145,7 +142,6 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
   auto socket     = socket_ptr.get();
 
   auto open_func = [socket, address]() {
-      // TODO: Use fd_open.
       int fd = ::socket(address->family, address->socktype, address->protocol);
 
       if (fd == -1) {
@@ -154,30 +150,9 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
       }
 
       socket->set_file_descriptor(fd);
+
       return fd;
     };
-
-  // auto cleanup_func = [&](bool) {
-  //     if (!event->is_open())
-  //       return;
-
-  //     this_thread::poll()->remove_and_close(event.get());
-
-  //     if (::close(event->file_descriptor()) == -1) {
-  //       LT_LOG_DEBUG("open_socket() : error closing socket during cleanup: %s", std::strerror(errno));
-  //       throw internal_error("CurlSocket::open_socket(): error closing socket during cleanup: " + std::string(std::strerror(errno)));
-  //     }
-
-  //     LT_LOG_DEBUG("open_socket() : socket manager requested cleanup: fd:%i", event->file_descriptor());
-  //     event->set_file_descriptor(-1);
-  //   };
-
-  // bool result = runtime::socket_manager()->open_event_or_cleanup(event.get(), runtime::category_http, open_func, cleanup_func);
-
-  // if (!result) {
-  //   LT_LOG_DEBUG("open_socket() : error creating socket: %s", system::errno_enum(errno));
-  //   return CURL_SOCKET_BAD;
-  // }
 
   runtime::socket_manager()->open_event_or_throw(socket, runtime::category_http, open_func);
 
@@ -277,13 +252,10 @@ CurlSocket::handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stac
     throw internal_error("CurlSocket::handle_poll_new(fd:" + std::to_string(fd) + ") existing CurlSocket easy_handle not null");
   }
 
-  socket = itr->second.get();
+  socket                = itr->second.get();
   socket->m_easy_handle = easy_handle;
 
   curl_multi_assign(stack->handle(), fd, socket);
-
-  // LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : existing socket found in map : socket:%s peer:%s",
-  //                               sa_pretty_str(socket->socket_address()).c_str(), sa_pretty_str(socket->peer_address()).c_str());
 
   LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : found correctly initialized socket", 0);
 
@@ -347,15 +319,6 @@ CurlSocket::event_write() {
   handle_action(CURL_CSELECT_OUT);
 }
 
-// TODO: We need to figure out how to tell libcurl to not close an fd when it has been reused.
-//
-// Perhaps we just pretend it is open while in idle conection poll, and pretend to add it to read
-// just to get the CLOSEFUNCTION callback?
-//
-// Also, verify if reporting errors to libcurl actually closes the fd, doesn't seem like it should?
-//
-// Think it should be calling the callback.
-
 void
 CurlSocket::event_error() {
   LT_LOG_DEBUG_THIS("event_error()", 0);
@@ -409,17 +372,6 @@ CurlSocket::clear_and_erase_self(CurlStack::socket_map_type::iterator itr) {
   socket_map->erase(itr);
 }
 
-void
-CurlSocket::clear_and_erase_self_or_throw() {
-  auto socket_map = m_stack->socket_map();
-  auto itr        = socket_map->find(m_fileDesc);
-
-  if (itr == socket_map->end())
-    throw internal_error("CurlSocket::clear_and_erase_self_or_throw(): socket not found in stack map");
-
-  clear_and_erase_self(itr);
-}
-
 namespace {
 
 void
@@ -431,7 +383,7 @@ verify_libcurl_internal_wakeup(int fd) {
     throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fstat failed: " + system::errno_enum_str(errno));
   }
 
-  // POSIX Pipe
+  // Catch pipe and fifo (wakeup_pipe)
   if (S_ISFIFO(sb.st_mode))
     return;
 
@@ -461,16 +413,16 @@ verify_libcurl_internal_wakeup(int fd) {
     // Catch loopback sockets (wakeup_inet)
     if (sap_is_inet_inet6(local_addr) && sap_is_inet_inet6(peer_addr)) {
 
-      // An internal loopback wakeup MUST have both ends explicitly bound to localhost
-      if (sap_is_loopback(local_addr) && sap_is_loopback(peer_addr))
-        return;
+      if (!sap_is_loopback(local_addr) || !sap_is_loopback(peer_addr)) {
+        LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback", fd);
+        throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback");
+      }
 
-      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns", fd);
-      throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local and peer addresses do not match expected loopback patterns");
+      return;
     }
 
-    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be a socket, but does not match expected patterns for libcurl internal wakeup sockets", fd);
-    throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be a socket, but does not match expected patterns for libcurl internal wakeup sockets");
+    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be a socket, but not a valid libcurl internal wakeup socket", fd);
+    throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be a socket, but not a valid libcurl internal wakeup socket");
   }
 
   // Linux eventfd (Only probe if it's an anonymous inode, NOT a socket)
