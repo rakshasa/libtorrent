@@ -11,6 +11,20 @@
 #include "torrent/exceptions.h"
 #include "torrent/system/thread.h"
 
+#define lt_easy_setopt(handle, option, value) \
+  { \
+    CURLcode code = curl_easy_setopt(handle, option, value); \
+    if (code != CURLE_OK) \
+      throw torrent::internal_error("Error calling curl_easy_setopt(" #option "): " + std::string(curl_easy_strerror(code))); \
+  }
+
+#define lt_multi_setopt(handle, option, value) \
+  { \
+    CURLMcode code = curl_multi_setopt(handle, option, value); \
+    if (code != CURLM_OK) \
+      throw torrent::internal_error("Error calling curl_multi_setopt(" #option "): " + std::string(curl_multi_strerror(code))); \
+  }
+
 namespace torrent::net {
 
 CurlStack::CurlStack(system::Thread* thread)
@@ -19,14 +33,14 @@ CurlStack::CurlStack(system::Thread* thread)
 
   m_task_timeout.slot() = [this]() { receive_timeout(); };
 
-  curl_multi_setopt(m_handle, CURLMOPT_TIMERDATA, this);
-  curl_multi_setopt(m_handle, CURLMOPT_TIMERFUNCTION, &CurlStack::set_timeout);
-  curl_multi_setopt(m_handle, CURLMOPT_SOCKETDATA, this);
-  curl_multi_setopt(m_handle, CURLMOPT_SOCKETFUNCTION, &CurlSocket::receive_socket);
+  lt_multi_setopt(m_handle, CURLMOPT_TIMERDATA, this);
+  lt_multi_setopt(m_handle, CURLMOPT_TIMERFUNCTION, &CurlStack::set_timeout);
+  lt_multi_setopt(m_handle, CURLMOPT_SOCKETDATA, this);
+  lt_multi_setopt(m_handle, CURLMOPT_SOCKETFUNCTION, &CurlSocket::receive_socket);
 
-  curl_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, m_max_cache_connections);
-  curl_multi_setopt(m_handle, CURLMOPT_MAX_HOST_CONNECTIONS, m_max_host_connections);
-  curl_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, m_max_total_connections);
+  lt_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, m_max_cache_connections);
+  lt_multi_setopt(m_handle, CURLMOPT_MAX_HOST_CONNECTIONS, m_max_host_connections);
+  lt_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, m_max_total_connections);
 }
 
 CurlStack::~CurlStack() {
@@ -42,8 +56,7 @@ CurlStack::set_max_cache_connections(unsigned int value) {
 
   m_max_cache_connections = value;
 
-  if (curl_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, value) != CURLM_OK)
-    throw torrent::internal_error("CurlStack::set_max_cache_connections() error calling curl_multi_setopt.");
+  lt_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, value);
 }
 
 void
@@ -55,8 +68,7 @@ CurlStack::set_max_host_connections(unsigned int value) {
 
   m_max_host_connections = value;
 
-  if (curl_multi_setopt(m_handle, CURLMOPT_MAX_HOST_CONNECTIONS, value) != CURLM_OK)
-    throw torrent::internal_error("CurlStack::set_max_host_connections() error calling curl_multi_setopt.");
+  lt_multi_setopt(m_handle, CURLMOPT_MAX_HOST_CONNECTIONS, value);
 }
 
 void
@@ -68,8 +80,7 @@ CurlStack::set_max_total_connections(unsigned int value) {
 
   m_max_total_connections = value;
 
-  if (curl_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, value) != CURLM_OK)
-    throw torrent::internal_error("CurlStack::set_max_total_connections() error calling curl_multi_setopt.");
+  lt_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, value);
 }
 
 void
@@ -112,20 +123,20 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
       return; // CurlGet was already closed.
 
     if (!m_user_agent.empty())
-      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_USERAGENT, m_user_agent.c_str());
+      lt_easy_setopt(curl_get->handle_unsafe(), CURLOPT_USERAGENT, m_user_agent.c_str());
 
     if (!m_http_proxy.empty())
-      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_PROXY, m_http_proxy.c_str());
+      lt_easy_setopt(curl_get->handle_unsafe(), CURLOPT_PROXY, m_http_proxy.c_str());
 
     if (!m_http_ca_path.empty())
-      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_CAPATH, m_http_ca_path.c_str());
+      lt_easy_setopt(curl_get->handle_unsafe(), CURLOPT_CAPATH, m_http_ca_path.c_str());
 
     if (!m_http_ca_cert.empty())
-      curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
+      lt_easy_setopt(curl_get->handle_unsafe(), CURLOPT_CAINFO, m_http_ca_cert.c_str());
 
-    curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_SSL_VERIFYHOST, m_ssl_verify_host ? 2l : 0l);
-    curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
-    curl_easy_setopt(curl_get->handle_unsafe(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
+    lt_easy_setopt(curl_get->handle_unsafe(), CURLOPT_SSL_VERIFYHOST, m_ssl_verify_host ? 2l : 0l);
+    lt_easy_setopt(curl_get->handle_unsafe(), CURLOPT_SSL_VERIFYPEER, m_ssl_verify_peer ? 1l : 0l);
+    lt_easy_setopt(curl_get->handle_unsafe(), CURLOPT_DNS_CACHE_TIMEOUT, m_dns_timeout);
 
     base_type::push_back(curl_get);
     m_size = base_type::size();
