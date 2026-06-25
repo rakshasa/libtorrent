@@ -17,6 +17,13 @@
 #include "torrent/utils/uri_parser.h"
 #include "utils/functional.h"
 
+#define lt_easy_setopt(handle, option, value) \
+  { \
+    CURLcode code = curl_easy_setopt(handle, option, value); \
+    if (code != CURLE_OK) \
+      throw torrent::internal_error("Error calling curl_easy_setopt(" #option "): " + std::string(curl_easy_strerror(code))); \
+  }
+
 namespace torrent::net {
 
 CurlGet::CurlGet(std::string url, std::shared_ptr<std::ostream> stream)
@@ -206,41 +213,42 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
     return false;
   }
 
-  m_handle = curl_easy_init();
-  m_stack = stack;
+  m_handle           = curl_easy_init();
+  m_stack            = stack;
   m_retrying_resolve = false;
 
   if (m_handle == nullptr)
     throw torrent::internal_error("Call to curl_easy_init() failed.");
 
-  curl_easy_setopt(m_handle, CURLOPT_URL,           m_url.c_str());
-  curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &CurlGet::receive_write);
-  curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,     this);
+  lt_easy_setopt(m_handle, CURLOPT_URL,           m_url.c_str());
+  lt_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &CurlGet::receive_write);
+  lt_easy_setopt(m_handle, CURLOPT_WRITEDATA,     this);
 
   // Close function and data must be set before libcurl's create_conn() is called.
   //
   // TODO: Consier all libcurl sockets to be !m_properly_opened for now.
-  // curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETFUNCTION,  &CurlSocket::open_socket);
-  // curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
-  // curl_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
-  // curl_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
+  lt_easy_setopt(m_handle, CURLOPT_OPENSOCKETFUNCTION,  &CurlSocket::open_socket);
+  lt_easy_setopt(m_handle, CURLOPT_CLOSESOCKETFUNCTION, &CurlSocket::close_socket);
+  lt_easy_setopt(m_handle, CURLOPT_OPENSOCKETDATA,      stack);
+  lt_easy_setopt(m_handle, CURLOPT_CLOSESOCKETDATA,     stack);
 
   // Disable connection reuse as libcurl doesn't provide proper API to handle idle connections being
   // closed/reused.
   //
   // TODO: Remove this when libcurl issues are resolved.
   // TODO: Make sure shutdown quickly cleans up idle connections.
-  curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE, 1l);
+
+  lt_easy_setopt(m_handle, CURLOPT_FORBID_REUSE, 1l);
 
   if (m_timeout != 0) {
-    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 60l);
-    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,        static_cast<long>(m_timeout));
+    lt_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 60l);
+    lt_easy_setopt(m_handle, CURLOPT_TIMEOUT,        static_cast<long>(m_timeout));
   }
 
-  curl_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       1l);
-  curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1l);
-  curl_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
-  curl_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
+  lt_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       1l);
+  lt_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1l);
+  lt_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
+  lt_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
 
   // Note that if the url has a numeric IP address, libcurl will not respect the CURLOPT_IPRESOLVE
   // option.
@@ -251,7 +259,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
     throw torrent::internal_error("CurlGet::prepare_start_unsafe() called with m_initial_resolve set to RESOLVE_NONE.");
 
   if (m_initial_resolve == RESOLVE_WHATEVER) {
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
+    lt_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
     return true;
   }
 
@@ -426,9 +434,9 @@ CurlGet::prepare_resolve_unsafe(resolve_type current_resolve) {
       throw torrent::input_error("Numeric IPv6 address in url, but IPv4 was requested.");
 
     if (bind_inet_address->sa_family != AF_UNSPEC)
-      curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet_address.get()).c_str());
+      lt_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet_address.get()).c_str());
 
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    lt_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
     return true;
 
   case RESOLVE_IPV6:
@@ -439,9 +447,9 @@ CurlGet::prepare_resolve_unsafe(resolve_type current_resolve) {
       throw torrent::input_error("Numeric IPv4 address in url, but IPv6 was requested.");
 
     if (bind_inet6_address->sa_family != AF_UNSPEC)
-      curl_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet6_address.get()).c_str());
+      lt_easy_setopt(m_handle, CURLOPT_INTERFACE, sa_addr_str(bind_inet6_address.get()).c_str());
 
-    curl_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+    lt_easy_setopt(m_handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
     return true;
 
   case RESOLVE_NONE:

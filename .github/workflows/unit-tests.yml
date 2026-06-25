@@ -97,15 +97,39 @@ jobs:
       - uses: vmactions/netbsd-vm@v1
         with:
           prepare: |
-            /usr/sbin/pkg_add -v \
-              automake \
-              autoconf \
-              cppunit \
-              curl \
-              libtool \
-              openssl \
-              pkgconf \
-              gcc14
+            # 1. Force export the correct package repository path matching your OS version
+            export OS_VERSION=$(uname -r | cut -d_ -f1)
+            export ARCH=$(uname -p)
+            export PKG_PATH="https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/${ARCH}/${OS_VERSION}/All/"
+
+            # 2. Clean up conflicting legacy GCC artifacts
+            sudo rm -rf /usr/pkg/gcc10/libexec/gcc/x86_64--netbsd/10.5.0/cc1plus
+
+            # 3. Update the package database and install pkgin if not present
+            sudo /usr/sbin/pkg_add -U pkgin || true
+
+            # 4. Install packages using pkgin (handles dependencies and upgrades automatically)
+            # NOTE: 'openssl' is removed because it is provided by the NetBSD base system.
+            sudo pkgin -y update
+            sudo pkgin -y install \
+            automake \
+            autoconf \
+            cppunit \
+            curl \
+            libtool \
+            pkgconf \
+            openssl3 \
+            gcc14
+
+            # /usr/sbin/pkg_add -v \
+            #   automake \
+            #   autoconf \
+            #   cppunit \
+            #   curl \
+            #   libtool \
+            #   openssl \
+            #   pkgconf \
+            #   gcc14
           run: |
             export CC=gcc
             export CXX=g++

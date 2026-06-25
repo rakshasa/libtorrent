@@ -314,6 +314,22 @@ fd_listen(int fd, int backlog) {
   return true;
 }
 
+bool
+fd_get_nonblock(int fd, bool* value) {
+  int flags = fd__fcntl_int(fd, F_GETFL, 0);
+
+  if (flags == -1) {
+    LT_LOG_FD_ERROR("fd_get_nonblock() failed");
+    return false;
+  }
+
+  *value = (flags & O_NONBLOCK) != 0;
+
+  LT_LOG_FD_VALUE("fd_get_nonblock() succeeded", *value);
+  return true;
+}
+
+
 c_sa_unique_ptr
 fd_get_peer_name(int fd) {
   sa_inet_union sau{};

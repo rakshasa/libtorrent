@@ -92,9 +92,9 @@ private:
   CURLM*                m_handle{};
   utils::SchedulerEntry m_task_timeout;
 
-  socket_map_type     m_socket_map;
+  socket_map_type       m_socket_map;
 
-  mutable std::mutex  m_mutex;
+  align_cacheline mutable std::mutex m_mutex;
 
   // Mirrors base::size()
   std::atomic_size_t  m_size{0};
