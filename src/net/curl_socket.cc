@@ -414,7 +414,8 @@ verify_libcurl_internal_wakeup(int fd) {
     if (sap_is_inet_inet6(local_addr) && sap_is_inet_inet6(peer_addr)) {
 
       if (!sap_is_loopback(local_addr) || !sap_is_loopback(peer_addr)) {
-        LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback", fd);
+        LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback : %s : %s",
+                     fd, sap_pretty_str(local_addr).c_str(), sap_pretty_str(peer_addr).c_str());
         throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback");
       }
 
