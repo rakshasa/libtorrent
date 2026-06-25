@@ -250,6 +250,9 @@ uint32_t
 ChunkList::sync_chunks(cache_list& cache, sync_flags flags) {
   LT_LOG_THIS(DEBUG, "Sync chunks: flags:%#x.", flags);
 
+  if (m_queue.empty())
+    return 0;
+
   Queue::iterator split;
 
   if ((flags & sync_all))
