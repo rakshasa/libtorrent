@@ -393,12 +393,12 @@ verify_libcurl_internal_wakeup(int fd) {
 
     if (local_addr == nullptr) {
       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getsockname failed: %s", fd, system::errno_enum(errno));
-      throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getsockname failed: " + system::errno_enum_str(errno));
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getsockname failed: " + system::errno_enum_str(errno));
     }
 
     if (peer_addr == nullptr) {
       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getpeername failed: %s", fd, system::errno_enum(errno));
-      throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getpeername failed: " + system::errno_enum_str(errno));
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getpeername failed: " + system::errno_enum_str(errno));
     }
 
     // Catch standard socketpairs (wakeup_socketpair)
@@ -408,6 +408,25 @@ verify_libcurl_internal_wakeup(int fd) {
 
       if (strlen(un_local->sun_path) == 0 && strlen(un_peer->sun_path) == 0)
         return;
+
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be a unix socket, but local/peer addresses are not anonymous", 0);
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be a unix socket, but local/peer addresses are not anonymous");
+    }
+
+    int socket_type{};
+
+    if (!fd_get_type(fd, &socket_type)) {
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getsockopt(SO_TYPE) failed: %s", fd, system::errno_enum(errno));
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getsockopt(SO_TYPE) failed: " + system::errno_enum_str(errno));
+    }
+
+    // Catch DNS and various other UDP sockets
+    if (socket_type == SOCK_DGRAM)
+      return;
+
+    if (socket_type != SOCK_STREAM) {
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : unexpected socket type: %i", fd, socket_type);
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): unexpected socket type: " + std::to_string(socket_type));
     }
 
     // Catch loopback sockets (wakeup_inet)
@@ -416,14 +435,14 @@ verify_libcurl_internal_wakeup(int fd) {
       if (!sap_is_loopback(local_addr) || !sap_is_loopback(peer_addr)) {
         LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback : %s : %s",
                      fd, sap_pretty_str(local_addr).c_str(), sap_pretty_str(peer_addr).c_str());
-        throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback");
+        throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be an inet/inet6 socket, but local/peer addresses are not loopback");
       }
 
       return;
     }
 
     LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be a socket, but not a valid libcurl internal wakeup socket", fd);
-    throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be a socket, but not a valid libcurl internal wakeup socket");
+    throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be a socket, but not a valid libcurl internal wakeup socket");
   }
 
   // Linux eventfd (Only probe if it's an anonymous inode, NOT a socket)
@@ -448,9 +467,8 @@ verify_libcurl_internal_wakeup(int fd) {
       return;
   }
 
-  // Critical failure: Unhandled file descriptor type requested by curl poll
   LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd does not appear to be a valid libcurl internal wakeup socket", fd);
-  throw internal_error("CurlSocket::verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd does not appear to be a valid libcurl internal wakeup socket");
+  throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd does not appear to be a valid libcurl internal wakeup socket");
 }
 
 } // namespace anonymous
