@@ -863,6 +863,23 @@ sa_inet_union_from_sa(const sockaddr* sa) {
   }
 }
 
+void
+sa_copy_to_inet_union(const sockaddr* sa, sa_inet_union& u) {
+  switch (sa->sa_family) {
+  case AF_UNSPEC:
+    u.sa.sa_family = AF_UNSPEC;
+    return;
+  case AF_INET:
+    u.inet = *reinterpret_cast<const sockaddr_in*>(sa);
+    return;
+  case AF_INET6:
+    u.inet6 = *reinterpret_cast<const sockaddr_in6*>(sa);
+    return;
+  default:
+    throw internal_error("torrent::sa_copy_to_inet_union() sockaddr is not unspec, inet or inet6");
+  }
+}
+
 const char*
 family_str(int family) {
   switch (family) {

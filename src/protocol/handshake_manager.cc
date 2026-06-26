@@ -175,6 +175,9 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
   auto handshake = std::make_unique<Handshake>();
 
   auto open_func = [&]() {
+
+      // TODO: This should also return a proxy object, if used.
+
       int fd = open_and_connect_socket(connect_address.get());
 
       if (fd == -1)

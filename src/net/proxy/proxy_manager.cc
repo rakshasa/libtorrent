@@ -2,28 +2,40 @@
 
 #include "net/proxy/proxy_manager.h"
 
+#include <cassert>
+
 #include "net/proxy/proxy.h"
 #include "net/proxy/proxy_http.h"
 #include "torrent/exceptions.h"
-#include "torrent/net/types.h"
+#include "torrent/net/socket_address.h"
 
 namespace torrent::net::proxy {
 
 ProxyManager::ProxyManager() {
-  m_create_proxy = []() { return nullptr; };
+  m_create_proxy = [](auto*) { return nullptr; };
 }
 
 std::string
-ProxyManager::address() {
+ProxyManager::proxy_uri() {
   auto guard = lock_guard();
-  return m_address;
+  return m_proxy_uri;
 }
 
 void
-ProxyManager::set_address(const std::string& address) {
-  auto schema           = parse_uri_scheme(address);
-  auto [host, port]     = parse_uri_host_port(address);
-  auto [user, password] = parse_uri_user_password(address);
+ProxyManager::set_proxy_uri(const std::string& uri) {
+  if (uri.empty()) {
+    auto guard = lock_guard();
+
+    m_has_proxy    = false;
+    m_blocks_udp   = false;
+    m_proxy_uri    = "";
+    m_create_proxy = nullptr;
+    return;
+  }
+
+  auto schema           = parse_uri_scheme(uri);
+  auto [host, port]     = parse_uri_host_port(uri);
+  auto [user, password] = parse_uri_user_password(uri);
 
   // TODO: Verify there's no junk after the port number?
 
@@ -36,7 +48,7 @@ ProxyManager::set_address(const std::string& address) {
   if (port == 0)
     throw input_error("Proxy address must include a port.");
 
-  if (!verify_no_path_query_fragment(address))
+  if (!verify_no_path_query_fragment(uri))
     throw input_error("Proxy address must not include a path, query, or fragment.");
 
   auto verify_no_user_password = [schema, user, password]() {
@@ -44,13 +56,20 @@ ProxyManager::set_address(const std::string& address) {
         throw input_error("Proxy address for '" + schema + "://' must not include a user or password.");
     };
 
+  auto [proxy_sa, lookup_succeeded] = sa_lookup_numeric(host, AF_UNSPEC);
+
+  if (!lookup_succeeded)
+    throw input_error("Proxy address numeric lookup failed: " + host);
+
   create_proxy_func create_proxy_fn;
+
+  auto proxy_union = sa_inet_union_from_sap(proxy_sa);
 
   if (schema == "http") {
     verify_no_user_password();
 
-    create_proxy_fn = [host, port]() {
-        return new ProxyHttp(host, port);
+    create_proxy_fn = [proxy_union](auto* connect_sa) {
+        return new ProxyHttp(&proxy_union.sa, sa_addr_str(connect_sa), sa_port(connect_sa));
       };
 
   // } else if (schema == "https") {
@@ -89,21 +108,24 @@ ProxyManager::set_address(const std::string& address) {
 
   auto guard = lock_guard();
 
-  m_address      = address;
+  m_has_proxy    = true;
+  m_blocks_udp   = true;
+  m_proxy_uri    = uri;
   m_create_proxy = create_proxy_fn;
 }
 
 std::unique_ptr<Proxy>
-ProxyManager::create_proxy() {
+ProxyManager::create_proxy_safe(const sockaddr* sa) {
+  assert(sa != nullptr);
+  assert(sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
+  assert(!sa_is_any(sa) && sa_port(sa) != 0);
+
   auto guard = lock_guard();
 
   if (m_create_proxy == nullptr)
     return nullptr;
 
-  auto proxy = m_create_proxy();
-
-  if (proxy == nullptr)
-    throw internal_error("ProxyManager::create_proxy() failed to create a proxy object.");
+  auto proxy = m_create_proxy(const sockaddr* sa);
 
   return std::unique_ptr<Proxy>(proxy);
 }

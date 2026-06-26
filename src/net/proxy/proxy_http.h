@@ -2,12 +2,13 @@
 #define LIBTORRENT_NET_PROXY_PROXY_HTTP_H
 
 #include "net/proxy/proxy.h"
+#include "torrent/net/types.h"
 
 namespace torrent::net::proxy {
 
 class ProxyHttp : public Proxy {
 public:
-  ProxyHttp(const std::string& host, uint16_t port);
+  ProxyHttp(const sockaddr* proxy_sa, const std::string& host, uint16_t port);
   ~ProxyHttp() = default;
 
   int                 next_action() override;
@@ -16,6 +17,7 @@ public:
   uint32_t            read(const char* data, uint32_t size) override;
 
 private:
+  sa_inet_union       m_proxy_sa;
   std::string         m_host;
   uint16_t            m_port{};
 

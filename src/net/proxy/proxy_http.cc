@@ -5,16 +5,20 @@
 #include <cassert>
 
 #include "torrent/exceptions.h"
+#include "torrent/net/socket_address.h"
 
 namespace torrent::net::proxy {
 
-ProxyHttp::ProxyHttp(const std::string& host, uint16_t port)
+ProxyHttp::ProxyHttp(const sockaddr* proxy_sa, const std::string& host, uint16_t port)
   : m_host(host),
     m_port(port),
     m_state(state_writing){
 
-  assert(!host.empty());
-  assert(port != 0);
+  sa_copy_to_inet_union(proxy_sa, m_proxy_sa);
+
+  assert(m_proxy_sa.sa.sa_family == AF_INET || m_proxy_sa.sa.sa_family == AF_INET6);
+  assert(!sa_is_any(&m_proxy_sa.sa) && sa_port(&m_proxy_sa.sa) != 0);
+  assert(!m_host.empty() && m_port != 0);
 }
 
 int
@@ -65,7 +69,7 @@ ProxyHttp::read(const char* data, uint32_t size) {
   assert(m_state == state_reading);
 
   if (!m_verified_header) {
-    if (size < 12 + 4)
+    if (size < 12)
       return 0;
 
     if (std::memcmp(data, "HTTP/1.1 200", 12) != 0 && std::memcmp(data, "HTTP/1.0 200", 12) != 0) {

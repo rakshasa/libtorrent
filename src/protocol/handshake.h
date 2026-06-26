@@ -16,6 +16,12 @@ class HandshakeManager;
 class DownloadMain;
 class ThrottleList;
 
+namespace net::proxy {
+
+class Proxy;
+
+} // namespace net::proxy
+
 const char* handshake_strerror(int err);
 
 class Handshake : public SocketStream {
@@ -197,6 +203,8 @@ protected:
 
   HandshakeEncryption m_encryption;
   ProtocolExtension*  m_extensions;
+
+  std::unique_ptr<net::proxy::Proxy> m_proxy;
 
   // Put these last to keep variables closer to *this.
   Buffer              m_readBuffer;
