@@ -71,13 +71,41 @@ AC_CHECK_FUNCS([fallocate posix_fallocate])
 
 TORRENT_ENABLE_CUSTOM_STACK_SIZE
 
+AC_ARG_ENABLE(webtorrent,
+  AS_HELP_STRING([--disable-webtorrent],[disable WebTorrent support [[default=enable]]]),
+  [], [enable_webtorrent=yes])
+
 PKG_CHECK_MODULES([LIBCURL], [libcurl],, [LIBCURL_CHECK_CONFIG])
 PKG_CHECK_MODULES([CPPUNIT], [cppunit],, [no_cppunit="yes"])
 PKG_CHECK_MODULES([ZLIB], [zlib])
 
-CFLAGS="$LIBCURL_CFLAGS $PTHREAD_CFLAGS $ZLIB_CFLAGS $CFLAGS"
-CXXFLAGS="$LIBCURL_CFLAGS $LIBCURL_CPPFLAGS $PTHREAD_CFLAGS $ZLIB_CFLAGS $CXXFLAGS"
-LIBS="$LIBCURL_LIBS $ATOMIC_LIBS $PTHREAD_LIBS $ZLIB_LIBS $LIBS"
+AS_IF([test "x$enable_webtorrent" != "xno"], [
+  PKG_CHECK_MODULES([LIBDATACHANNEL], [libdatachannel],,
+    [
+      AC_LANG_PUSH([C++])
+      AC_CHECK_HEADERS([rtc/rtc.hpp],,
+        [AC_MSG_ERROR([WebTorrent support requires libdatachannel headers. Install libdatachannel development files or configure with --disable-webtorrent.])])
+      AC_CHECK_LIB([datachannel], [rtcInitLogger],
+        [LIBDATACHANNEL_LIBS="-ldatachannel"],
+        [AC_MSG_ERROR([WebTorrent support requires libdatachannel. Install libdatachannel development files or configure with --disable-webtorrent.])])
+      AC_LANG_POP([C++])
+    ])
+
+  PKG_CHECK_MODULES([NLOHMANN_JSON], [nlohmann_json],,
+    [
+      AC_LANG_PUSH([C++])
+      AC_CHECK_HEADERS([nlohmann/json.hpp],,
+        [AC_MSG_ERROR([WebTorrent support requires nlohmann_json. Install nlohmann-json development files or configure with --disable-webtorrent.])])
+      AC_LANG_POP([C++])
+    ])
+
+  AC_DEFINE([USE_WEBTORRENT], [1], [Define to enable WebTorrent support.])
+  LIBTORRENT_WEBTORRENT_CFLAGS="-DLIBTORRENT_HAS_WEBTORRENT=1"
+])
+
+CFLAGS="$LIBCURL_CFLAGS $PTHREAD_CFLAGS $ZLIB_CFLAGS $LIBDATACHANNEL_CFLAGS $NLOHMANN_JSON_CFLAGS $CFLAGS"
+CXXFLAGS="$LIBCURL_CFLAGS $LIBCURL_CPPFLAGS $PTHREAD_CFLAGS $ZLIB_CFLAGS $LIBDATACHANNEL_CFLAGS $NLOHMANN_JSON_CFLAGS $CXXFLAGS"
+LIBS="$LIBCURL_LIBS $ATOMIC_LIBS $PTHREAD_LIBS $ZLIB_LIBS $LIBDATACHANNEL_LIBS $NLOHMANN_JSON_LIBS $LIBS"
 
 TORRENT_CHECK_OPENSSL
 
@@ -87,7 +115,7 @@ TORRENT_MINCORE
 TORRENT_ENABLE_INSTRUMENTATION
 
 LIBTORRENT_LIBS="-ltorrent"
-LIBTORRENT_CFLAGS=""
+LIBTORRENT_CFLAGS="$LIBTORRENT_WEBTORRENT_CFLAGS"
 
 AC_SUBST(LIBTORRENT_LIBS)
 AC_SUBST(LIBTORRENT_CFLAGS)

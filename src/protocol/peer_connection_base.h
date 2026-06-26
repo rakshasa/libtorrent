@@ -1,6 +1,8 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
+#include <memory>
+
 #include "thread_main.h"
 #include "data/chunk_handle.h"
 #include "net/socket_stream.h"
@@ -9,9 +11,15 @@
 #include "protocol/peer_chunks.h"
 #include "protocol/protocol_base.h"
 #include "protocol/request_list.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/system/poll.h"
 #include "torrent/peer/choke_status.h"
 #include "torrent/peer/peer.h"
+
+#ifdef USE_WEBTORRENT
+#include "webtorrent/data_channel_stream.h"
+#include "torrent/utils/scheduler.h"
+#endif
 
 namespace torrent {
 
@@ -51,6 +59,13 @@ public:
   const char*         type_name() const override      { return "pcb"; }
 
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
+#ifdef USE_WEBTORRENT
+  void                initialize_webtorrent(DownloadMain* download, PeerInfo* p, std::unique_ptr<webtorrent::DataChannelStream> stream,
+                                            Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
+  void                webtorrent_schedule_read();
+  void                webtorrent_schedule_write();
+  void                webtorrent_schedule_write_retry();
+#endif
   void                cleanup();
 
   bool                is_up_choked() const            { return m_upChoke.choked(); }
@@ -69,6 +84,7 @@ public:
 
   bool                is_encrypted() const            { return m_encryption.is_encrypted(); }
   bool                is_obfuscated() const           { return m_encryption.is_obfuscated(); }
+  bool                is_webtorrent() const;
 
   PeerInfo*           mutable_peer_info()             { return m_peerInfo; }
 
@@ -97,6 +113,8 @@ public:
   bool                receive_download_choke(bool choke);
 
   void                event_error() override;
+  int                 read_stream(void* buf, uint32_t length) override;
+  int                 write_stream(const void* buf, uint32_t length) override;
 
   void                push_unread(const void* data, uint32_t size);
 
@@ -113,6 +131,8 @@ public:
 
 protected:
   static constexpr uint32_t extension_must_encrypt = ~uint32_t();
+
+  void                initialize_common(DownloadMain* download, PeerInfo* p, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
 
   inline bool         read_remaining();
   inline bool         write_remaining();
@@ -198,6 +218,14 @@ protected:
   ProtocolExtension*  m_extensions{};
 
   bool                m_incoreContinous{false};
+
+#ifdef USE_WEBTORRENT
+  std::unique_ptr<webtorrent::DataChannelStream> m_webtorrent_stream;
+  std::shared_ptr<bool>                          m_webtorrent_alive;
+  utils::SchedulerEntry                          m_webtorrent_write_retry;
+  bool                                           m_webtorrent_read_pending{false};
+  bool                                           m_webtorrent_write_pending{false};
+#endif
 };
 
 inline void
@@ -220,10 +248,26 @@ PeerConnectionBase::push_unread(const void* data, uint32_t size) {
   m_down->buffer()->move_end(size);
 }
 
+inline bool
+PeerConnectionBase::is_webtorrent() const {
+#ifdef USE_WEBTORRENT
+  return m_webtorrent_stream != nullptr;
+#else
+  return false;
+#endif
+}
+
 inline void
 PeerConnectionBase::read_insert_poll_safe() {
   if (m_down->get_state() != ProtocolRead::IDLE)
     return;
+
+#ifdef USE_WEBTORRENT
+  if (m_webtorrent_stream) {
+    webtorrent_schedule_read();
+    return;
+  }
+#endif
 
   this_thread::poll()->insert_read(this);
 }
@@ -232,6 +276,13 @@ inline void
 PeerConnectionBase::write_insert_poll_safe() {
   if (m_up->get_state() != ProtocolWrite::IDLE)
     return;
+
+#ifdef USE_WEBTORRENT
+  if (m_webtorrent_stream) {
+    webtorrent_schedule_write();
+    return;
+  }
+#endif
 
   this_thread::poll()->insert_write(this);
 }

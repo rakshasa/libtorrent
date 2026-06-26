@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <list>
+#include <memory>
 #include <vector>
 
 #include <torrent/common.h>
@@ -21,11 +22,19 @@ class ProtocolExtension;
 class EncryptionInfo;
 class HandshakeManager;
 
+namespace webtorrent {
+class DataChannelStream;
+class PeerConnector;
+} // namespace webtorrent
+
 class LIBTORRENT_EXPORT ConnectionList : private std::vector<Peer*> {
 public:
   friend class DownloadMain;
   friend class DownloadWrapper;
   friend class HandshakeManager;
+#ifdef USE_WEBTORRENT
+  friend class webtorrent::PeerConnector;
+#endif
 
   using base_type        = std::vector<Peer*>;
   using queue_type       = std::vector<HashString>;
@@ -104,6 +113,10 @@ protected:
   //
   // Clean this up, don't use this many arguments.
   PeerConnectionBase* insert(PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) LIBTORRENT_NO_EXPORT;
+#ifdef USE_WEBTORRENT
+  PeerConnectionBase* insert_webtorrent(PeerInfo* p, std::unique_ptr<webtorrent::DataChannelStream> stream,
+                                        Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) LIBTORRENT_NO_EXPORT;
+#endif
 
   void                disconnect_queued() LIBTORRENT_NO_EXPORT;
 

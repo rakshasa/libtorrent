@@ -8,6 +8,10 @@
 #include "torrent/utils/chrono.h"
 #include "tracker/tracker_list.h"
 
+#ifdef USE_WEBTORRENT
+#include "webtorrent/rtc_signaling.h"
+#endif
+
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                              \
   lt_log_print_info(LOG_TRACKER_EVENTS, m_tracker_list->info(), "tracker_controller", log_fmt, __VA_ARGS__);
 
@@ -604,6 +608,14 @@ uint32_t
 TrackerController::receive_new_peers(address_list* l) {
   return m_slot_success(l);
 }
+
+#ifdef USE_WEBTORRENT
+void
+TrackerController::receive_webtorrent_stream(webtorrent::RtcStream stream) {
+  if (m_slot_webtorrent_stream)
+    m_slot_webtorrent_stream(std::move(stream));
+}
+#endif
 
 void
 TrackerController::receive_tracker_enabled(const tracker::Tracker& tb) {

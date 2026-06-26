@@ -34,6 +34,10 @@
 #include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
 
+#ifdef USE_WEBTORRENT
+#include "webtorrent/peer_connector.h"
+#endif
+
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
@@ -101,6 +105,9 @@ DownloadMain::post_initialize() {
   m_tracker_list->slot_failure()          = [tc](const auto& t, const auto& str) { tc->receive_failure(t, str); };
   m_tracker_list->slot_scrape_success()   = [tc](const auto& t)                  { tc->receive_scrape(t); };
   m_tracker_list->slot_new_peers()        = [tc](auto al)                        { return tc->receive_new_peers(al); };
+#ifdef USE_WEBTORRENT
+  m_tracker_list->slot_webtorrent_stream() = [tc](auto stream)                   { tc->receive_webtorrent_stream(std::move(stream)); };
+#endif
   m_tracker_list->slot_tracker_enabled()  = [tc](const auto& t)                  { tc->receive_tracker_enabled(t); };
   m_tracker_list->slot_tracker_disabled() = [tc](const auto& t)                  { tc->receive_tracker_disabled(t); };
 
@@ -321,6 +328,16 @@ DownloadMain::receive_connect_peers() {
       m_slot_start_handshake(&sa.sa, this);
   }
 }
+
+#ifdef USE_WEBTORRENT
+void
+DownloadMain::receive_webtorrent_stream(webtorrent::RtcStream stream) {
+  if (!info()->is_active())
+    return;
+
+  webtorrent::PeerConnector::connect(this, std::move(stream));
+}
+#endif
 
 void
 DownloadMain::receive_tracker_success() {

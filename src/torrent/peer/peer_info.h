@@ -8,6 +8,10 @@
 
 namespace torrent {
 
+namespace webtorrent {
+class PeerConnector;
+} // namespace webtorrent
+
 class LIBTORRENT_EXPORT PeerInfo {
 public:
   friend class ConnectionList;
@@ -16,6 +20,9 @@ public:
   friend class InitialSeeding;
   friend class PeerList;
   friend class ProtocolExtension;
+#ifdef USE_WEBTORRENT
+  friend class webtorrent::PeerConnector;
+#endif
 
   static constexpr int flag_connected = (1 << 0);
   static constexpr int flag_incoming  = (1 << 1);

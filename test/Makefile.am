@@ -110,7 +110,9 @@ LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common)
 
 LibTorrent_Test_Tracker_SOURCES = $(LibTorrent_Test_Common) \
 	tracker/test_tracker_http.cc \
-	tracker/test_tracker_http.h
+	tracker/test_tracker_http.h \
+	tracker/test_tracker_websocket.cc \
+	tracker/test_tracker_websocket.h
 
 LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\

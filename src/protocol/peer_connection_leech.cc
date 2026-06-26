@@ -176,7 +176,6 @@ PeerConnection<type>::read_message() {
   // command, will not be able to do any more damage than a malicious
   // peer. Those cases should be caught elsewhere in the code.
 
-  // Temporary.
   m_down->set_last_command(static_cast<ProtocolBase::Protocol>(buf->peek_8()));
 
   switch (buf->read_8()) {
@@ -215,6 +214,7 @@ PeerConnection<type>::read_message() {
 
     request_list()->unchoked();
     m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
+    write_insert_poll_safe();
     return true;
 
   case ProtocolBase::INTERESTED:
@@ -233,6 +233,56 @@ PeerConnection<type>::read_message() {
       break;
 
     read_have_chunk(buf->read_32());
+    return true;
+
+  case ProtocolBase::BITFIELD:
+    if (length != m_peerChunks.bitfield()->size_bytes() + 1)
+      throw communication_error("Received a bitfield message with an invalid length.");
+
+    if (buf->remaining() < m_peerChunks.bitfield()->size_bytes())
+      break;
+
+    {
+      Bitfield bitfield;
+      bitfield.set_size_bits(m_peerChunks.bitfield()->size_bits());
+      bitfield.allocate();
+      buf->read_range(bitfield.begin(), bitfield.end());
+      bitfield.update();
+
+      if (!bitfield.is_tail_cleared())
+        throw communication_error("Received a bitfield message with invalid tail bits.");
+
+      if (type == Download::CONNECTION_LEECH) {
+        bool should_write = false;
+
+        for (Bitfield::size_type index = 0; index < bitfield.size_bits(); ++index) {
+          if (!bitfield.get(index) || m_peerChunks.bitfield()->get(index))
+            continue;
+
+          m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->file_list()->chunk_size());
+
+          if (is_down_interested()) {
+            if (!m_tryRequest && m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
+              m_tryRequest = true;
+              should_write = true;
+            }
+          } else if (m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
+            m_sendInterested = !m_downInterested;
+            m_downInterested = true;
+
+            if (m_downUnchoked)
+              m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
+
+            m_tryRequest = true;
+            should_write = true;
+          }
+        }
+
+        if (should_write)
+          write_insert_poll_safe();
+      }
+    }
+
     return true;
 
   case ProtocolBase::REQUEST:
@@ -355,12 +405,18 @@ PeerConnection<type>::event_read() {
     //
     // Only loop when end hits 64.
 
+    const uint32_t read_limit =
+#ifdef USE_WEBTORRENT
+      m_webtorrent_stream ? m_down->buffer()->reserved() :
+#endif
+      read_size;
+
     do {
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
-        if (m_down->buffer()->size_end() < read_size) {
-          unsigned int length = read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end());
+        if (m_down->buffer()->size_end() < read_limit) {
+          unsigned int length = read_stream_throws(m_down->buffer()->end(), read_limit - m_down->buffer()->size_end());
           m_down->throttle()->node_used_unthrottled(length);
 
           if (is_encrypted())
@@ -372,7 +428,7 @@ PeerConnection<type>::event_read() {
         while (read_message())
           ; // Do nothing.
 
-        if (m_down->buffer()->size_end() == read_size) {
+        if (m_down->buffer()->size_end() == read_limit) {
           m_down->buffer()->move_unused();
           break;
         } else {
@@ -541,7 +597,12 @@ PeerConnection<type>::fill_write_buffer() {
              send_ext_message()) {
     // Same.
 
-  } else if (!m_upChoke.choked() &&
+  } else if (
+#ifdef USE_WEBTORRENT
+             (m_webtorrent_stream || !m_upChoke.choked()) &&
+#else
+             !m_upChoke.choked() &&
+#endif
              !m_peerChunks.upload_queue()->empty() &&
              m_up->can_write_piece() &&
              (type != Download::CONNECTION_INITIAL_SEED || should_upload())) {
@@ -565,6 +626,9 @@ PeerConnection<type>::event_write() {
         fill_write_buffer();
 
         if (m_up->buffer()->remaining() == 0) {
+#ifdef USE_WEBTORRENT
+          if (!m_webtorrent_stream)
+#endif
           this_thread::poll()->remove_write(this);
           return;
         }
@@ -602,6 +666,12 @@ PeerConnection<type>::event_write() {
           return;
 
         m_up->set_state(ProtocolWrite::IDLE);
+#ifdef USE_WEBTORRENT
+        if (m_webtorrent_stream) {
+          webtorrent_schedule_write_retry();
+          return;
+        }
+#endif
         break;
 
       case ProtocolWrite::WRITE_EXTENSION:

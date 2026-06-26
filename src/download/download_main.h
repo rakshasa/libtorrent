@@ -16,6 +16,12 @@
 
 namespace torrent {
 
+#ifdef USE_WEBTORRENT
+namespace webtorrent {
+struct RtcStream;
+} // namespace webtorrent
+#endif
+
 class ChunkList;
 class ChunkSelector;
 class ChunkStatistics;
@@ -106,6 +112,9 @@ public:
   void                add_peer(const sockaddr* sa);
 
   void                receive_connect_peers();
+#ifdef USE_WEBTORRENT
+  void                receive_webtorrent_stream(webtorrent::RtcStream stream);
+#endif
   void                receive_chunk_done(unsigned int index);
   void                receive_corrupt_chunk(PeerInfo* peerInfo);
 

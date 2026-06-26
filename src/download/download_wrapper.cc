@@ -90,7 +90,11 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
 
   m_main->post_initialize();
   m_main->tracker_controller().set_slots([this](auto l)   { return receive_tracker_success(l); },
-                                         [this](auto& m)  { return receive_tracker_failed(m); });
+                                         [this](auto& m)  { return receive_tracker_failed(m); }
+#ifdef USE_WEBTORRENT
+                                         , [this](auto stream) { receive_webtorrent_stream(std::move(stream)); }
+#endif
+                                         );
 }
 
 void
@@ -246,6 +250,13 @@ void
 DownloadWrapper::receive_tracker_failed(const std::string& msg) {
   ::utils::slot_list_call(info()->signal_tracker_failed(), msg);
 }
+
+#ifdef USE_WEBTORRENT
+void
+DownloadWrapper::receive_webtorrent_stream(webtorrent::RtcStream stream) {
+  m_main->receive_webtorrent_stream(std::move(stream));
+}
+#endif
 
 void
 DownloadWrapper::receive_tick(uint32_t ticks) {

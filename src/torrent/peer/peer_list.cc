@@ -3,6 +3,8 @@
 #include "peer_list.h"
 
 #include <algorithm>
+#include <atomic>
+#include <cstring>
 
 #include "manager.h"
 #include "download/available_list.h"
@@ -12,6 +14,7 @@
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/string_manip.h"
 
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
   lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list", log_fmt, __VA_ARGS__);
@@ -21,6 +24,22 @@
 namespace torrent {
 
 ipv4_table PeerList::m_ipv4_table;
+
+#ifdef USE_WEBTORRENT
+namespace {
+std::atomic<uint16_t> webtorrent_peer_port{49152};
+
+sa_inet_union
+make_webtorrent_peer_address() {
+  sa_inet_union address{};
+  std::memset(&address, 0, sizeof(address));
+  address.inet.sin_family = AF_INET;
+  address.inet.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  address.inet.sin_port = htons(webtorrent_peer_port.fetch_add(1, std::memory_order_relaxed));
+  return address;
+}
+} // namespace
+#endif
 
 PeerList::PeerList()
   : m_available_list(new AvailableList) {
@@ -292,6 +311,36 @@ PeerList::connected(const sockaddr* sa, int flags) {
 
   return peer_info;
 }
+
+#ifdef USE_WEBTORRENT
+PeerInfo*
+PeerList::connected_webtorrent(const HashString& peer_id) {
+  for (auto& entry : *this) {
+    if (entry.second->is_connected() && entry.second->id() == peer_id) {
+      LT_LOG_EVENTS("connecting webtorrent peer rejected: already connected : %40s", entry.second->id_hex());
+      return nullptr;
+    }
+  }
+
+  auto address = make_webtorrent_peer_address();
+  socket_address_key sock_key = socket_address_key::from_sockaddr(&address.sa);
+  range_type range = base_type::equal_range(sock_key);
+
+  auto peer_info = std::make_unique<PeerInfo>(&address.sa);
+  peer_info->mutable_id() = peer_id;
+  utils::transform_to_hex(peer_info->id(), peer_info->mutable_id_hex(), peer_info->mutable_id_hex() + 40);
+  peer_info->set_flags(PeerInfo::flag_connected);
+  peer_info->set_last_handshake(this_thread::cached_seconds().count());
+
+  manager->client_list()->retrieve_id(&peer_info->mutable_client_info(), peer_info->id());
+
+  PeerInfo* result = peer_info.get();
+  base_type::insert(range.second, value_type(sock_key, peer_info.release()));
+
+  LT_LOG_EVENTS("connecting webtorrent peer accepted : %40s", result->id_hex());
+  return result;
+}
+#endif
 
 // Make sure we properly clear port when disconnecting.
 

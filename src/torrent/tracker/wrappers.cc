@@ -202,9 +202,16 @@ TrackerControllerWrapper::stop_requesting() {
 }
 
 void
-TrackerControllerWrapper::set_slots(slot_address_list success, slot_string failure) {
+TrackerControllerWrapper::set_slots(slot_address_list success, slot_string failure
+#ifdef USE_WEBTORRENT
+                                    , TrackerControllerWrapper::slot_webtorrent_stream webtorrent_stream
+#endif
+                                    ) {
   m_ptr->slot_success() = std::move(success);
   m_ptr->slot_failure() = std::move(failure);
+#ifdef USE_WEBTORRENT
+  m_ptr->slot_webtorrent_stream() = std::move(webtorrent_stream);
+#endif
 }
 
 } // namespace torrent::tracker

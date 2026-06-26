@@ -306,6 +306,9 @@ PeerConnectionMetadata::event_write() {
         fill_write_buffer();
 
         if (m_up->buffer()->remaining() == 0) {
+#ifdef USE_WEBTORRENT
+          if (!m_webtorrent_stream)
+#endif
           this_thread::poll()->remove_write(this);
           return;
         }

@@ -151,10 +151,19 @@ libtorrent_other_la_SOURCES = \
 	tracker/tracker_list.h \
 	tracker/tracker_udp.cc \
 	tracker/tracker_udp.h \
+	tracker/tracker_websocket.cc \
+	tracker/tracker_websocket.h \
 	tracker/tracker_worker.cc \
 	tracker/tracker_worker.h \
 	tracker/udp_router.cc \
 	tracker/udp_router.h \
+	\
+	webtorrent/data_channel_stream.cc \
+	webtorrent/data_channel_stream.h \
+	webtorrent/peer_connector.cc \
+	webtorrent/peer_connector.h \
+	webtorrent/rtc_signaling.cc \
+	webtorrent/rtc_signaling.h \
 	\
 	utils/diffie_hellman.cc \
 	utils/diffie_hellman.h \

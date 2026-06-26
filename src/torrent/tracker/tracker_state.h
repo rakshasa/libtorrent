@@ -12,6 +12,7 @@ class TrackerDht;
 class TrackerHttp;
 class TrackerList;
 class TrackerWorker;
+class TrackerWebsocket;
 
 namespace tracker {
 
@@ -108,6 +109,7 @@ protected:
   friend class torrent::TrackerHttp;
   friend class torrent::TrackerList;
   friend class torrent::TrackerWorker;
+  friend class torrent::TrackerWebsocket;
   friend class torrent::tracker::Tracker;
   friend class ::TrackerTest;
 

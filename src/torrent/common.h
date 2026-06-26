@@ -39,6 +39,7 @@ enum tracker_enum {
   TRACKER_HTTP,
   TRACKER_UDP,
   TRACKER_DHT,
+  TRACKER_WEBSOCKET,
 };
 
 // Just forward declare everything here so we can keep the actual
