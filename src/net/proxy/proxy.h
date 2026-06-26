@@ -6,13 +6,15 @@
 
 namespace torrent::net::proxy {
 
+enum {
+  state_writing,
+  state_reading,
+  state_done,
+  state_error
+};
+
 class Proxy {
 public:
-  static constexpr int state_reading   = 1;
-  static constexpr int state_writing   = 2;
-  static constexpr int state_error     = 3;
-  static constexpr int state_finished  = 4;
-
   virtual ~Proxy() = default;
 
   const auto*         proxy_address() const;
@@ -20,8 +22,8 @@ public:
   virtual int         next_action() = 0;
 
   // Returns the number of bytes consumed, or 0 if no bytes were consumed.
-  virtual uint32_t    read(const char* data, uint32_t size) = 0;
-  virtual uint32_t    write(char* data, uint32_t max_size) = 0;
+  virtual uint32_t    read(const void* data, uint32_t size) = 0;
+  virtual uint32_t    write(void* data, uint32_t max_size) = 0;
 
 protected:
   sa_inet_union       m_proxy_address{};

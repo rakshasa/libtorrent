@@ -70,6 +70,8 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/network_config.h \
 	runtime/network_manager.cc \
 	runtime/network_manager.h \
+	runtime/proxy_manager.cc \
+	runtime/proxy_manager.h \
 	runtime/runtime.cc \
 	runtime/runtime.h \
 	runtime/socket_manager.cc \
@@ -203,6 +205,7 @@ libtorrent_torrent_runtime_includedir = $(includedir)/torrent/runtime
 libtorrent_torrent_runtime_include_HEADERS = \
 	runtime/network_config.h \
 	runtime/network_manager.h \
+	runtime/proxy_manager.h \
 	runtime/runtime.h \
 	runtime/socket_manager.h
 

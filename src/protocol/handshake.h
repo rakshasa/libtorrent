@@ -78,7 +78,8 @@ public:
     CONNECTING,
     POST_HANDSHAKE,
 
-    PROXY_CONNECT,
+    PROXY_WRITE,
+    PROXY_READ,
     PROXY_DONE,
 
     READ_ENC_KEY,
@@ -144,12 +145,11 @@ protected:
   void                set_manager(HandshakeManager* handshake_manager);
 
   void                read_done();
-  void                write_done();
 
   bool                fill_read_buffer(int size);
 
   // Check what is unnessesary.
-  bool                read_proxy_connect();
+  bool                read_proxy();
   bool                read_encryption_key();
   bool                read_encryption_sync();
   bool                read_encryption_skey();
@@ -161,7 +161,6 @@ protected:
   bool                read_extension();
   bool                read_port();
 
-  void                prepare_proxy_connect();
   void                prepare_key_plus_pad();
   void                prepare_enc_negotiation();
   void                prepare_handshake();
@@ -169,6 +168,8 @@ protected:
   void                prepare_bitfield();
   void                prepare_post_handshake(bool must_write);
 
+  void                write_done();
+  void                write_proxy();
   void                write_extension_handshake();
   void                write_bitfield();
 

@@ -83,9 +83,6 @@ public:
   c_sa_shared_ptr     local_inet6_address_or_null() const;
   std::string         local_inet6_address_str() const;
 
-  c_sa_shared_ptr     proxy_address() const;
-  std::string         proxy_address_str() const;
-
   void                set_bind_address(const sockaddr* sa);
   void                set_bind_address_str(const std::string& addr);
   void                set_bind_inet_address(const sockaddr* sa);
@@ -98,7 +95,6 @@ public:
   void                set_local_inet_address_str(const std::string& addr);
   void                set_local_inet6_address(const sockaddr* sa);
   void                set_local_inet6_address_str(const std::string& addr);
-  void                set_proxy_address(const sockaddr* sa);
 
   uint32_t            encryption_options() const;
   void                set_encryption_options(uint32_t opts);
@@ -164,7 +160,6 @@ private:
   c_sa_shared_ptr     m_bind_inet6_address;
   c_sa_shared_ptr     m_local_inet_address;
   c_sa_shared_ptr     m_local_inet6_address;
-  c_sa_shared_ptr     m_proxy_address;
 
   int                 m_encryption_options{encryption_none};
   int                 m_listen_backlog{SOMAXCONN};

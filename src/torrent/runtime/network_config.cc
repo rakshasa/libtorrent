@@ -27,7 +27,6 @@ NetworkConfig::NetworkConfig() {
   m_bind_inet6_address  = sa_make_unspec();
   m_local_inet_address  = sa_make_unspec();
   m_local_inet6_address = sa_make_unspec();
-  m_proxy_address       = sa_make_unspec();
 }
 
 bool
@@ -250,18 +249,6 @@ NetworkConfig::local_inet6_address_str() const {
   return sa_addr_str(m_local_inet6_address.get());
 }
 
-c_sa_shared_ptr
-NetworkConfig::proxy_address() const {
-  auto guard = lock_guard();
-  return m_proxy_address;
-}
-
-std::string
-NetworkConfig::proxy_address_str() const {
-  auto guard = lock_guard();
-  return sa_pretty_str(m_proxy_address.get());
-}
-
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
   auto guard = lock_guard();
@@ -342,22 +329,6 @@ void
 NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
   set_local_inet6_address(sa_lookup_address(addr, AF_INET6).get());
 }
-
-void
-NetworkConfig::set_proxy_address(const sockaddr* sa) {
-  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
-    throw input_error("Tried to set a proxy address that is not an unspec/inet address.");
-
-  if (sa_port(sa) == 0)
-    throw input_error("Tried to set a proxy address with a zero port.");
-
-  auto guard = lock_guard();
-
-  LT_LOG_NOTICE("proxy address : %s", sa_pretty_str(sa).c_str());
-
-  m_proxy_address = sa_copy(sa);
-}
-
 
 uint32_t
 NetworkConfig::encryption_options() const {

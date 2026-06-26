@@ -15,33 +15,21 @@ ProxyManager::ProxyManager() {
   m_create_proxy = [](auto*) { return nullptr; };
 }
 
-std::string
-ProxyManager::proxy_uri() {
-  auto guard = lock_guard();
-  return m_proxy_uri;
-}
-
-std::string
-ProxyManager::http_proxy_uri() {
-  auto guard = lock_guard();
-  return m_proxy_uri;
-}
-
 void
-ProxyManager::set_proxy_uri(const std::string& uri) {
-  if (uri.empty()) {
+ProxyManager::set_proxy_url(const std::string& url) {
+  if (url.empty()) {
     auto guard = lock_guard();
 
     m_has_proxy    = false;
     m_blocks_udp   = false;
-    m_proxy_uri    = "";
+    m_proxy_url    = "";
     m_create_proxy = nullptr;
     return;
   }
 
-  auto schema           = net::parse_uri_scheme(uri);
-  auto [host, port]     = net::parse_uri_host_port(uri);
-  auto [user, password] = net::parse_uri_user_password(uri);
+  auto schema           = net::parse_uri_scheme(url);
+  auto [host, port]     = net::parse_uri_host_port(url);
+  auto [user, password] = net::parse_uri_user_password(url);
 
   // TODO: Verify there's no junk after the port number?
 
@@ -54,7 +42,7 @@ ProxyManager::set_proxy_uri(const std::string& uri) {
   if (port == 0)
     throw input_error("Proxy address must include a port.");
 
-  if (!net::verify_no_path_query_fragment(uri))
+  if (!net::verify_no_path_query_fragment(url))
     throw input_error("Proxy address must not include a path, query, or fragment.");
 
   auto verify_no_user_password = [schema, user, password]() {
@@ -116,9 +104,27 @@ ProxyManager::set_proxy_uri(const std::string& uri) {
 
   m_has_proxy    = true;
   m_blocks_udp   = true;
-  m_proxy_uri    = uri;
+  m_proxy_url    = url;
   m_create_proxy = create_proxy_fn;
 }
+
+void
+ProxyManager::set_http_proxy_url(const std::string& url) {
+  auto schema = net::parse_uri_scheme(url);
+
+  if (schema != "http" &&
+      schema != "https" &&
+      schema != "socks4" &&
+      schema != "socks4a" &&
+      schema != "socks5" &&
+      schema != "socks5h")
+    throw input_error("Unsupported proxy scheme: " + schema);
+
+  auto guard = lock_guard();
+
+  m_http_proxy_url = url;
+}
+
 
 net::proxy_ptr
 ProxyManager::create_proxy(const sockaddr* sa) {

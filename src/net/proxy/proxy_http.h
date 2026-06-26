@@ -12,8 +12,8 @@ public:
 
   int                 next_action() override;
 
-  uint32_t            write(char* data, uint32_t max_size) override;
-  uint32_t            read(const char* data, uint32_t size) override;
+  uint32_t            write(void* data, uint32_t max_size) override;
+  uint32_t            read(const void* data, uint32_t size) override;
 
 private:
   std::string         m_host;
