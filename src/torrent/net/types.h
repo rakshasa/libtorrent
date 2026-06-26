@@ -12,13 +12,11 @@ struct sockaddr_in;
 struct sockaddr_in6;
 struct sockaddr_un;
 
-namespace torrent::net {
+namespace torrent {
+
+namespace net {
 
 void sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
-
-} // namespace torrent::net
-
-namespace torrent {
 
 struct sockaddr_deleter {
   constexpr sockaddr_deleter() noexcept = default;
@@ -26,12 +24,14 @@ struct sockaddr_deleter {
   void operator()(const sockaddr* sa) const { net::sa_free(sa); }
 };
 
-using sa_unique_ptr   = std::unique_ptr<sockaddr, sockaddr_deleter>;
+} // namespace torrent::net
+
+using sa_unique_ptr   = std::unique_ptr<sockaddr, net::sockaddr_deleter>;
 using sin_unique_ptr  = std::unique_ptr<sockaddr_in>;
 using sin6_unique_ptr = std::unique_ptr<sockaddr_in6>;
 using sun_unique_ptr  = std::unique_ptr<sockaddr_un>;
 
-using c_sa_unique_ptr   = std::unique_ptr<const sockaddr, sockaddr_deleter>;
+using c_sa_unique_ptr   = std::unique_ptr<const sockaddr, net::sockaddr_deleter>;
 using c_sin_unique_ptr  = std::unique_ptr<const sockaddr_in>;
 using c_sin6_unique_ptr = std::unique_ptr<const sockaddr_in6>;
 using c_sun_unique_ptr  = std::unique_ptr<const sockaddr_un>;
@@ -63,6 +63,22 @@ union sa_inet_union {
   sockaddr_in  inet;
   sockaddr     sa;
 };
+
+namespace net {
+
+namespace proxy {
+
+class Proxy;
+
+} // namespace torrent::net::proxy
+
+using proxy_ptr = std::unique_ptr<proxy::Proxy>;
+
+} // namespace torrent::net
+
+//
+// Helper functions:
+//
 
 // TODO: Move to a separate header file.
 // TODO: Rename sa_lookup_address.

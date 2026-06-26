@@ -27,7 +27,6 @@ public:
   static constexpr uint32_t encryption_enable_retry     = 0x8;
   static constexpr uint32_t encryption_prefer_plaintext = 0x10;
   // Internal to libtorrent.
-  static constexpr uint32_t encryption_use_proxy        = 0x20;
   static constexpr uint32_t encryption_retrying         = 0x40;
 
   NetworkConfig();

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "net/proxy/proxy_manager.h"
+#include "torrent/runtime/proxy_manager.h"
 
 #include <cassert>
 
@@ -9,7 +9,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 
-namespace torrent::net::proxy {
+namespace torrent::runtime {
 
 ProxyManager::ProxyManager() {
   m_create_proxy = [](auto*) { return nullptr; };
@@ -17,6 +17,12 @@ ProxyManager::ProxyManager() {
 
 std::string
 ProxyManager::proxy_uri() {
+  auto guard = lock_guard();
+  return m_proxy_uri;
+}
+
+std::string
+ProxyManager::http_proxy_uri() {
   auto guard = lock_guard();
   return m_proxy_uri;
 }
@@ -33,9 +39,9 @@ ProxyManager::set_proxy_uri(const std::string& uri) {
     return;
   }
 
-  auto schema           = parse_uri_scheme(uri);
-  auto [host, port]     = parse_uri_host_port(uri);
-  auto [user, password] = parse_uri_user_password(uri);
+  auto schema           = net::parse_uri_scheme(uri);
+  auto [host, port]     = net::parse_uri_host_port(uri);
+  auto [user, password] = net::parse_uri_user_password(uri);
 
   // TODO: Verify there's no junk after the port number?
 
@@ -48,7 +54,7 @@ ProxyManager::set_proxy_uri(const std::string& uri) {
   if (port == 0)
     throw input_error("Proxy address must include a port.");
 
-  if (!verify_no_path_query_fragment(uri))
+  if (!net::verify_no_path_query_fragment(uri))
     throw input_error("Proxy address must not include a path, query, or fragment.");
 
   auto verify_no_user_password = [schema, user, password]() {
@@ -69,7 +75,7 @@ ProxyManager::set_proxy_uri(const std::string& uri) {
     verify_no_user_password();
 
     create_proxy_fn = [proxy_union](auto* connect_sa) {
-        return new ProxyHttp(&proxy_union.sa, sa_addr_str(connect_sa), sa_port(connect_sa));
+        return new net::proxy::ProxyHttp(&proxy_union.sa, sa_addr_str(connect_sa), sa_port(connect_sa));
       };
 
   // } else if (schema == "https") {
@@ -114,8 +120,11 @@ ProxyManager::set_proxy_uri(const std::string& uri) {
   m_create_proxy = create_proxy_fn;
 }
 
-std::unique_ptr<Proxy>
-ProxyManager::create_proxy_safe(const sockaddr* sa) {
+net::proxy_ptr
+ProxyManager::create_proxy(const sockaddr* sa) {
+  if (!m_has_proxy)
+    return nullptr;
+
   assert(sa != nullptr);
   assert(sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
   assert(!sa_is_any(sa) && sa_port(sa) != 0);
@@ -125,9 +134,7 @@ ProxyManager::create_proxy_safe(const sockaddr* sa) {
   if (m_create_proxy == nullptr)
     return nullptr;
 
-  auto proxy = m_create_proxy(const sockaddr* sa);
-
-  return std::unique_ptr<Proxy>(proxy);
+  return net::proxy_ptr(m_create_proxy(sa));
 }
 
 } // namespace torrent::net::proxy

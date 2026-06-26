@@ -1,10 +1,9 @@
-#ifndef LIBTORRENT_NET_PROXY_PROXY_MANAGER_H
-#define LIBTORRENT_NET_PROXY_PROXY_MANAGER_H
+#ifndef LIBTORRENT_TORRENT_RUNTIME_PROXY_MANAGER_H
+#define LIBTORRENT_TORRENT_RUNTIME_PROXY_MANAGER_H
 
-#include <net/proxy/proxy.h>
-#include <torrent/common.h>
+#include <torrent/net/types.h>
 
-namespace torrent::net::proxy {
+namespace torrent::runtime {
 
 class ProxyManager {
 public:
@@ -18,18 +17,17 @@ public:
   bool                is_udp_blocked() const;
 
   std::string         proxy_uri();
+  std::string         http_proxy_uri();
+
   void                set_proxy_uri(const std::string& uri);
 
-  auto                create_proxy(const sockaddr* connect_sa);
+  net::proxy_ptr      create_proxy(const sockaddr* connect_sa);
 
 private:
-  using create_proxy_func = std::function<Proxy*(const sockaddr*)>;
+  using create_proxy_func = std::function<net::proxy::Proxy*(const sockaddr*)>;
 
   auto                lock_guard();
 
-  std::unique_ptr<Proxy> create_proxy_safe(const sockaddr* connect_sa);
-
-  // TODO: Add atomic flags for has proxy and blocks udp.
   std::atomic<bool>   m_has_proxy{};
   std::atomic<bool>   m_blocks_udp{};
 
@@ -39,16 +37,10 @@ private:
   create_proxy_func   m_create_proxy;
 };
 
+ProxyManager* proxy_manager() LIBTORRENT_EXPORT;
+
 bool ProxyManager::is_udp_blocked() const { return m_blocks_udp; }
 auto ProxyManager::lock_guard()           { return std::scoped_lock(m_mutex); }
-
-auto
-ProxyManager::create_proxy(const sockaddr* connect_sa) {
-  if (!m_has_proxy)
-    return std::unique_ptr<Proxy>{};
-
-  return create_proxy_safe(connect_sa);
-}
 
 } // namespace torrent::net::proxy
 

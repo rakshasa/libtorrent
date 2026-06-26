@@ -2,7 +2,6 @@
 #define LIBTORRENT_NET_PROXY_PROXY_HTTP_H
 
 #include "net/proxy/proxy.h"
-#include "torrent/net/types.h"
 
 namespace torrent::net::proxy {
 
@@ -17,7 +16,6 @@ public:
   uint32_t            read(const char* data, uint32_t size) override;
 
 private:
-  sa_inet_union       m_proxy_sa;
   std::string         m_host;
   uint16_t            m_port{};
 

@@ -1,7 +1,8 @@
 #ifndef LIBTORRENT_NET_PROXY_PROXY_H
 #define LIBTORRENT_NET_PROXY_PROXY_H
 
-#include <torrent/common.h>
+#include "torrent/common.h"
+#include "torrent/net/types.h"
 
 namespace torrent::net::proxy {
 
@@ -14,14 +15,19 @@ public:
 
   virtual ~Proxy() = default;
 
+  const auto*         proxy_address() const;
+
   virtual int         next_action() = 0;
 
   // Returns the number of bytes consumed, or 0 if no bytes were consumed.
   virtual uint32_t    read(const char* data, uint32_t size) = 0;
   virtual uint32_t    write(char* data, uint32_t max_size) = 0;
 
-private:
+protected:
+  sa_inet_union       m_proxy_address{};
 };
+
+inline const auto* Proxy::proxy_address() const { return &m_proxy_address.sa; }
 
 } // namespace torrent::net::proxy
 

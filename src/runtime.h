@@ -1,9 +1,7 @@
 #ifndef LIBTORRENT_RUNTIME_H
 #define LIBTORRENT_RUNTIME_H
 
-#include <memory>
-
-#include "torrent/common.h"
+#include "torrent/runtime/runtime.h"
 
 namespace torrent {
 
@@ -25,6 +23,7 @@ public:
 
   auto*               network_manager();
   auto*               socket_manager();
+  auto*               proxy_manager();
 
 private:
   Runtime();
@@ -34,6 +33,7 @@ private:
 
   std::unique_ptr<runtime::NetworkManager> m_network_manager;
   std::unique_ptr<runtime::SocketManager>  m_socket_manager;
+  std::unique_ptr<runtime::ProxyManager>   m_proxy_manager;
 
   // TODO: Check if we got this elsewhere?
   align_cacheline std::atomic<bool>        m_initialized{};
@@ -49,6 +49,7 @@ inline auto* Runtime::network_config()          { return m_network_config.get();
 
 inline auto* Runtime::network_manager()         { return m_network_manager.get(); }
 inline auto* Runtime::socket_manager()          { return m_socket_manager.get(); }
+inline auto* Runtime::proxy_manager()           { return m_proxy_manager.get(); }
 
 } // namespace torrent
 

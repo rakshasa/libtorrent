@@ -6,12 +6,14 @@
 #include "manager.h"
 #include "peer_connection_base.h"
 #include "download/download_main.h"
+#include "net/proxy/proxy.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/runtime/proxy_manager.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
@@ -27,23 +29,11 @@ namespace torrent {
 
 namespace {
 
-bool
-filter_sockaddr(const sockaddr* sa) {
-  if (runtime::network_config()->is_block_ipv4() && sa_is_inet(sa))
-    return false;
+int  open_and_connect_socket(const sockaddr* connect_address);
+bool setup_socket(int fd, int family);
+bool filter_sockaddr(const sockaddr* sa);
 
-  if (runtime::network_config()->is_block_ipv6() && sa_is_inet6(sa))
-    return false;
-
-  if (sa_is_v4mapped(sa)) {
-    if (runtime::network_config()->is_block_ipv4in6())
-      return false;
-  }
-
-  return true;
-}
-
-}
+} // namespace anonymous
 
 ProtocolExtension HandshakeManager::DefaultExtensions = ProtocolExtension::make_default();
 
@@ -164,39 +154,38 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
     return;
   }
 
-  auto connect_address = sa_copy(sa);
-  auto proxy_address = runtime::network_config()->proxy_address();
-
-  if (proxy_address->sa_family != AF_UNSPEC) {
-    connect_address = sa_copy(proxy_address.get());
-    encryption_options |= runtime::NetworkConfig::encryption_use_proxy;
-  }
-
   auto handshake = std::make_unique<Handshake>();
 
+  auto connect_address = [sa, &handshake]() {
+    auto proxy = runtime::proxy_manager()->create_proxy(sa);
+
+    if (proxy) {
+      handshake->set_proxy(std::move(proxy));
+      return sa_copy(proxy->proxy_address());
+    }
+
+    return sa_copy(sa);
+  }();
+
   auto open_func = [&]() {
-
-      // TODO: This should also return a proxy object, if used.
-
       int fd = open_and_connect_socket(connect_address.get());
 
       if (fd == -1)
         return;
 
-      int message;
+      auto type_fn = [&]() {
+          if (encryption_options & runtime::NetworkConfig::encryption_try_outgoing)
+            return "try encrypted";
+          else if (encryption_options & runtime::NetworkConfig::encryption_require)
+            return "require encrypted";
+          else
+            return "plain";
+        };
 
-      if (encryption_options & runtime::NetworkConfig::encryption_use_proxy)
-        message = Handshake::handshake_outgoing_proxy;
-      else if (encryption_options & (runtime::NetworkConfig::encryption_try_outgoing | runtime::NetworkConfig::encryption_require))
-        message = Handshake::handshake_outgoing_encrypted;
-      else
-        message = Handshake::handshake_outgoing;
-
-      if (proxy_address->sa_family != AF_UNSPEC) {
-        LT_LOG_SA(sa, "created outgoing connection via proxy: fd:%i proxy:%s encryption:%x message:%x",
-                  fd, sa_addr_str(proxy_address.get()).c_str(), encryption_options, message);
+      if (handshake->proxy()) {
+        LT_LOG_SA(handshake->proxy()->proxy_address(), "created outgoing connection : proxy : %s : fd:%i encryption:%x", type_fn(), fd, encryption_options);
       } else {
-        LT_LOG_SA(sa, "created outgoing connection: fd:%i encryption:%x message:%x", fd, encryption_options, message);
+        LT_LOG_SA(sa, "created outgoing connection : %s : fd:%i encryption:%x", type_fn(), fd, encryption_options);
       }
 
       handshake->initialize_outgoing(this, fd, sa, encryption_options, download, peer_info);
@@ -313,8 +302,10 @@ HandshakeManager::receive_timeout(Handshake* h) {
                  Handshake::e_handshake_network_timeout);
 }
 
+namespace {
+
 int
-HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
+open_and_connect_socket(const sockaddr* connect_address) {
   auto bind_address = runtime::network_config()->bind_address_for_connect(connect_address->sa_family);
 
   if (bind_address == nullptr) {
@@ -329,29 +320,28 @@ HandshakeManager::open_and_connect_socket(const sockaddr* connect_address) {
     return -1;
   }
 
+  auto close_fn = [fd]() { fd_close(fd); return -1; };
+
   if (!setup_socket(fd, connect_address->sa_family)) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: setup socket failed : fd:%i : %s", fd, std::strerror(errno));
-    fd_close(fd);
-    return -1;
+    return close_fn();
   }
 
   if (!sa_is_any(bind_address.get()) && !fd_bind(fd, bind_address.get())) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: bind failed : fd:%i : %s", fd, std::strerror(errno));
-    fd_close(fd);
-    return -1;
+    return close_fn();
   }
 
   if (!fd_connect_with_family(fd, connect_address, bind_address->sa_family)) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: connect failed : fd:%i : %s", fd, std::strerror(errno));
-    fd_close(fd);
-    return -1;
+    return close_fn();
   }
 
   return fd;
 }
 
 bool
-HandshakeManager::setup_socket(int fd, int family) {
+setup_socket(int fd, int family) {
   auto priority         = runtime::network_config()->priority();
   auto send_buffer_size = runtime::network_config()->send_buffer_size();
   auto recv_buffer_size = runtime::network_config()->receive_buffer_size();
@@ -369,5 +359,23 @@ HandshakeManager::setup_socket(int fd, int family) {
 
   return true;
 }
+
+bool
+filter_sockaddr(const sockaddr* sa) {
+  if (runtime::network_config()->is_block_ipv4() && sa_is_inet(sa))
+    return false;
+
+  if (runtime::network_config()->is_block_ipv6() && sa_is_inet6(sa))
+    return false;
+
+  if (sa_is_v4mapped(sa)) {
+    if (runtime::network_config()->is_block_ipv4in6())
+      return false;
+  }
+
+  return true;
+}
+
+} // namespace anonymous
 
 } // namespace torrent
