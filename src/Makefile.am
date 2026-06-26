@@ -135,6 +135,8 @@ libtorrent_other_la_SOURCES = \
 	protocol/peer_connection_metadata.h \
 	protocol/peer_factory.cc \
 	protocol/peer_factory.h \
+	protocol/peer_transport.cc \
+	protocol/peer_transport.h \
 	protocol/protocol_base.h \
 	protocol/request_list.cc \
 	protocol/request_list.h \

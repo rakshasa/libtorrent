@@ -5,6 +5,7 @@
 
 #ifdef USE_WEBTORRENT
 
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>
@@ -62,6 +63,33 @@ private:
 
 } // namespace torrent::webtorrent
 
-#endif // USE_WEBTORRENT
+#else
+
+#include <cstdint>
+#include <functional>
+
+namespace torrent::webtorrent {
+
+class DataChannelStream {
+public:
+  using slot_type = std::function<void()>;
+
+  bool is_open() const { return false; }
+  size_t available() const { return 0; }
+  size_t pending_write() const { return 0; }
+
+  int read_stream(void*, uint32_t) { return 0; }
+  int write_stream(const void*, uint32_t) { return 0; }
+
+  void close() {}
+
+  void slot_readable(slot_type) {}
+  void slot_writable(slot_type) {}
+  void slot_closed(slot_type) {}
+};
+
+} // namespace torrent::webtorrent
+
+#endif
 
 #endif // LIBTORRENT_WEBTORRENT_DATA_CHANNEL_STREAM_H

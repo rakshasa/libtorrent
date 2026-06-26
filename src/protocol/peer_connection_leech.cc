@@ -405,11 +405,7 @@ PeerConnection<type>::event_read() {
     //
     // Only loop when end hits 64.
 
-    const uint32_t read_limit =
-#ifdef USE_WEBTORRENT
-      m_webtorrent_stream ? m_down->buffer()->reserved() :
-#endif
-      read_size;
+    const uint32_t read_limit = transport()->read_buffer_size(read_size, m_down->buffer()->reserved());
 
     do {
 
@@ -597,12 +593,7 @@ PeerConnection<type>::fill_write_buffer() {
              send_ext_message()) {
     // Same.
 
-  } else if (
-#ifdef USE_WEBTORRENT
-             (m_webtorrent_stream || !m_upChoke.choked()) &&
-#else
-             !m_upChoke.choked() &&
-#endif
+  } else if ((transport()->allows_upload_while_choked() || !m_upChoke.choked()) &&
              !m_peerChunks.upload_queue()->empty() &&
              m_up->can_write_piece() &&
              (type != Download::CONNECTION_INITIAL_SEED || should_upload())) {
@@ -626,10 +617,7 @@ PeerConnection<type>::event_write() {
         fill_write_buffer();
 
         if (m_up->buffer()->remaining() == 0) {
-#ifdef USE_WEBTORRENT
-          if (!m_webtorrent_stream)
-#endif
-          this_thread::poll()->remove_write(this);
+          transport()->remove_write(this);
           return;
         }
 
@@ -666,12 +654,8 @@ PeerConnection<type>::event_write() {
           return;
 
         m_up->set_state(ProtocolWrite::IDLE);
-#ifdef USE_WEBTORRENT
-        if (m_webtorrent_stream) {
-          webtorrent_schedule_write_retry();
+        if (transport()->retry_after_piece_write())
           return;
-        }
-#endif
         break;
 
       case ProtocolWrite::WRITE_EXTENSION:

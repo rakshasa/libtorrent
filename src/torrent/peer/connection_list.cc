@@ -7,6 +7,7 @@
 #include "download/download_main.h"
 #include "net/address_list.h"
 #include "protocol/peer_connection_base.h"
+#include "protocol/peer_transport.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"
@@ -15,10 +16,6 @@
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
 #include "utils/functional.h"
-
-#ifdef USE_WEBTORRENT
-#include "webtorrent/data_channel_stream.h"
-#endif
 
 // When a peer is connected it should be removed from the list of
 // available peers.
@@ -55,18 +52,24 @@ ConnectionList::want_connection([[maybe_unused]] PeerInfo* p, Bitfield* bitfield
 
 PeerConnectionBase*
 ConnectionList::insert(PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+  return insert_transport(peerInfo, PeerTransport::create_tcp(fd), bitfield, encryptionInfo, extensions);
+}
+
+PeerConnectionBase*
+ConnectionList::insert_transport(PeerInfo* peerInfo, std::unique_ptr<PeerTransport> transport,
+                                 Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)
     return NULL;
 
   PeerConnectionBase* peerConnection = m_slotNewConnection(encryptionInfo->is_encrypted());
 
-  if (peerConnection == NULL || bitfield == NULL)
+  if (peerConnection == NULL || transport == nullptr || bitfield == NULL)
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
   peerInfo->set_connection(peerConnection);
   peerInfo->set_last_connection(this_thread::cached_seconds().count());
 
-  peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
+  peerConnection->initialize_transport(m_download, peerInfo, std::move(transport), bitfield, encryptionInfo, extensions);
 
   if (peerConnection->file_descriptor() == -1) {
     delete peerConnection;
@@ -81,38 +84,6 @@ ConnectionList::insert(PeerInfo* peerInfo, int fd, Bitfield* bitfield, Encryptio
 
   return peerConnection;
 }
-
-#ifdef USE_WEBTORRENT
-PeerConnectionBase*
-ConnectionList::insert_webtorrent(PeerInfo* peerInfo, std::unique_ptr<webtorrent::DataChannelStream> stream,
-                                  Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
-  if (size() >= m_maxSize)
-    return NULL;
-
-  PeerConnectionBase* peerConnection = m_slotNewConnection(false);
-
-  if (peerConnection == NULL || bitfield == NULL)
-    throw internal_error("ConnectionList::insert_webtorrent(...) received a NULL pointer.");
-
-  peerInfo->set_connection(peerConnection);
-  peerInfo->set_last_connection(this_thread::cached_seconds().count());
-
-  peerConnection->initialize_webtorrent(m_download, peerInfo, std::move(stream), bitfield, encryptionInfo, extensions);
-
-  if (peerConnection->file_descriptor() == -1) {
-    delete peerConnection;
-    return NULL;
-  }
-
-  base_type::push_back(peerConnection);
-
-  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-
-  ::utils::slot_list_call(m_signalConnected, peerConnection);
-
-  return peerConnection;
-}
-#endif
 
 ConnectionList::iterator
 ConnectionList::erase(iterator pos, int flags) {

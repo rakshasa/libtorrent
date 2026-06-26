@@ -20,6 +20,9 @@
 #include "tracker/tracker_list.h"
 #include "utils/functional.h"
 #include "utils/sha1.h"
+#ifdef USE_WEBTORRENT
+#include "webtorrent/rtc_signaling.h"
+#endif
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_info(LOG_TORRENT_INFO, this->info(), "download", log_fmt, __VA_ARGS__);

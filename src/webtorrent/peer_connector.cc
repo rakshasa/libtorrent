@@ -12,6 +12,7 @@
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
+#include "protocol/peer_transport.h"
 #include "torrent/bitfield.h"
 #include "torrent/data/file_list.h"
 #include "torrent/download_info.h"
@@ -227,7 +228,8 @@ PeerConnector::promote() {
   if (!extensions->is_default())
     extensions->set_info(peer_info, m_download);
 
-  auto connection = m_download->connection_list()->insert_webtorrent(peer_info, std::move(m_stream), &bitfield, &encryption_info, extensions);
+  auto connection = m_download->connection_list()->insert_transport(peer_info, PeerTransport::create_webtorrent(std::move(m_stream)),
+                                                                    &bitfield, &encryption_info, extensions);
 
   if (connection == nullptr) {
     if (!extensions->is_default())

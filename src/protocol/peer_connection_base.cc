@@ -18,10 +18,8 @@
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
-#include "torrent/net/fd.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
@@ -59,14 +57,6 @@ PeerConnectionBase::PeerConnectionBase() :
 }
 
 PeerConnectionBase::~PeerConnectionBase() {
-#ifdef USE_WEBTORRENT
-  if (m_webtorrent_alive)
-    *m_webtorrent_alive = false;
-
-  if (m_webtorrent_write_retry.is_scheduled())
-    this_thread::scheduler()->erase(&m_webtorrent_write_retry);
-#endif
-
   delete m_up;
   delete m_down;
 
@@ -78,71 +68,33 @@ PeerConnectionBase::~PeerConnectionBase() {
 
 void
 PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
+  initialize_transport(download, peerInfo, PeerTransport::create_tcp(fd), bitfield, encryptionInfo, extensions);
+}
+
+void
+PeerConnectionBase::initialize_transport(DownloadMain* download, PeerInfo* peerInfo, std::unique_ptr<PeerTransport> transport,
+                                         Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (is_open())
     throw internal_error("Tried to re-set PeerConnection.");
 
-  if (fd < 0)
-    throw internal_error("PeerConnectionBase::initialize() received invalid fd.");
+  if (!transport || !transport->is_open())
+    throw internal_error("PeerConnectionBase::initialize_transport() received an invalid transport.");
 
-  if (encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())
+  if (transport->type() == PeerTransport::tcp && encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())
     throw internal_error("Encryption and decryption inconsistent.");
 
-  m_fileDesc = fd;
+  if (transport->type() == PeerTransport::webtorrent && encryptionInfo->is_encrypted())
+    throw internal_error("PeerConnectionBase::initialize_transport() received encrypted WebTorrent peer info.");
 
+  m_transport = std::move(transport);
+  m_fileDesc = m_transport->file_descriptor();
   initialize_common(download, peerInfo, bitfield, encryptionInfo, extensions);
 
-  this_thread::poll()->open(this);
-  this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_write(this);
-  this_thread::poll()->insert_error(this);
+  if (m_fileDesc == -1)
+    return;
+
+  m_transport->bind(this);
 }
-
-#ifdef USE_WEBTORRENT
-void
-PeerConnectionBase::initialize_webtorrent(DownloadMain* download, PeerInfo* peerInfo, std::unique_ptr<webtorrent::DataChannelStream> stream,
-                                          Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
-  if (is_open())
-    throw internal_error("Tried to re-set PeerConnection.");
-
-  if (!stream || !stream->is_open())
-    throw internal_error("PeerConnectionBase::initialize_webtorrent() received an invalid stream.");
-
-  if (encryptionInfo->is_encrypted())
-    throw internal_error("PeerConnectionBase::initialize_webtorrent() received encrypted peer info.");
-
-  m_fileDesc = -2;
-  m_webtorrent_stream = std::move(stream);
-  m_webtorrent_alive = std::make_shared<bool>(true);
-  m_webtorrent_write_retry.slot() = [this, alive = m_webtorrent_alive] {
-      if (*alive && is_open())
-        webtorrent_schedule_write();
-    };
-
-  initialize_common(download, peerInfo, bitfield, encryptionInfo, extensions);
-
-  m_webtorrent_stream->slot_readable([this, alive = m_webtorrent_alive] {
-      main_thread::callback([this, alive] {
-          if (*alive && is_open())
-            webtorrent_schedule_read();
-        });
-    });
-
-  m_webtorrent_stream->slot_writable([this, alive = m_webtorrent_alive] {
-      main_thread::callback([this, alive] {
-          if (*alive && is_open())
-            webtorrent_schedule_write();
-        });
-    });
-
-  m_webtorrent_stream->slot_closed([this, alive = m_webtorrent_alive] {
-      main_thread::callback([this, alive] {
-          if (*alive && is_open())
-            event_error();
-        });
-    });
-
-}
-#endif
 
 void
 PeerConnectionBase::initialize_common(DownloadMain* download, PeerInfo* peerInfo, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
@@ -165,26 +117,12 @@ PeerConnectionBase::initialize_common(DownloadMain* download, PeerInfo* peerInfo
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
   m_peerChunks.upload_throttle()->slot_activate() = [this] {
-#ifdef USE_WEBTORRENT
-    if (m_webtorrent_stream) {
-      webtorrent_schedule_write();
-      return;
-    }
-#endif
-
-    this_thread::poll()->insert_write(this);
+    m_transport->insert_write(this);
   };
 
   m_peerChunks.download_throttle()->set_list_iterator(m_down->throttle()->end());
   m_peerChunks.download_throttle()->slot_activate() = [this] {
-#ifdef USE_WEBTORRENT
-    if (m_webtorrent_stream) {
-      webtorrent_schedule_read();
-      return;
-    }
-#endif
-
-    this_thread::poll()->insert_read(this);
+    m_transport->insert_read(this);
   };
 
   request_list()->set_delegator(m_download->delegator());
@@ -242,30 +180,9 @@ PeerConnectionBase::cleanup() {
   if (!m_extensions->is_default())
     m_extensions->cleanup();
 
-#ifdef USE_WEBTORRENT
-  if (m_webtorrent_stream) {
-    if (m_webtorrent_alive)
-      *m_webtorrent_alive = false;
-
-    if (m_webtorrent_write_retry.is_scheduled())
-      this_thread::scheduler()->erase(&m_webtorrent_write_retry);
-
-    m_webtorrent_stream->close();
-    m_webtorrent_stream.reset();
-    m_webtorrent_alive.reset();
-    m_webtorrent_read_pending = false;
-    m_webtorrent_write_pending = false;
-    m_fileDesc = -1;
-  } else
-#endif
-  {
-    runtime::socket_manager()->close_event_or_throw(this, [this]() {
-        this_thread::poll()->remove_and_close(this);
-
-        fd_close(m_fileDesc);
-        m_fileDesc = -1;
-      });
-  }
+  m_transport->close(this);
+  m_transport.reset();
+  m_fileDesc = -1;
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
   m_down->throttle()->erase(m_peerChunks.download_throttle());
@@ -276,82 +193,14 @@ PeerConnectionBase::cleanup() {
   m_download = NULL;
 }
 
-#ifdef USE_WEBTORRENT
-void
-PeerConnectionBase::webtorrent_schedule_write_retry() {
-  if (!m_webtorrent_stream || !m_webtorrent_write_retry.is_valid())
-    return;
-
-  this_thread::scheduler()->update_wait_for(&m_webtorrent_write_retry, std::chrono::milliseconds(5));
-}
-
-void
-PeerConnectionBase::webtorrent_schedule_read() {
-  if (m_webtorrent_read_pending)
-    return;
-
-  m_webtorrent_read_pending = true;
-
-  main_thread::callback([this, alive = m_webtorrent_alive] {
-      if (!*alive || !is_open())
-        return;
-
-      m_webtorrent_read_pending = false;
-      event_read();
-    });
-}
-
-void
-PeerConnectionBase::webtorrent_schedule_write() {
-  if (m_webtorrent_write_pending)
-    return;
-
-  m_webtorrent_write_pending = true;
-
-  main_thread::callback([this, alive = m_webtorrent_alive] {
-      if (!*alive || !is_open())
-        return;
-
-      m_webtorrent_write_pending = false;
-      event_write();
-    });
-}
-#endif
-
 int
 PeerConnectionBase::read_stream(void* buf, uint32_t length) {
-#ifdef USE_WEBTORRENT
-  if (m_webtorrent_stream) {
-    int result = m_webtorrent_stream->read_stream(buf, length);
-
-    if (result > 0 && m_webtorrent_stream->available() != 0)
-      webtorrent_schedule_read();
-
-    return result;
-  }
-#endif
-
-  return SocketStream::read_stream(buf, length);
+  return m_transport->read_stream(buf, length);
 }
 
 int
 PeerConnectionBase::write_stream(const void* buf, uint32_t length) {
-#ifdef USE_WEBTORRENT
-  if (m_webtorrent_stream) {
-    int result = m_webtorrent_stream->write_stream(buf, length);
-
-    if (result > 0 && static_cast<uint32_t>(result) < length)
-      webtorrent_schedule_write_retry();
-    else if (result < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
-      webtorrent_schedule_write_retry();
-    else if (result > 0 && m_webtorrent_stream->pending_write() != 0)
-      webtorrent_schedule_write_retry();
-
-    return result;
-  }
-#endif
-
-  return SocketStream::write_stream(buf, length);
+  return m_transport->write_stream(buf, length);
 }
 
 void
@@ -645,10 +494,7 @@ PeerConnectionBase::down_chunk() {
   uint32_t quota = m_down->throttle()->node_quota(m_peerChunks.download_throttle());
 
   if (quota == 0) {
-#ifdef USE_WEBTORRENT
-    if (!m_webtorrent_stream)
-#endif
-    this_thread::poll()->remove_read(this);
+    m_transport->remove_read(this);
     m_down->throttle()->node_deactivate(m_peerChunks.download_throttle());
     return false;
   }
@@ -703,10 +549,7 @@ PeerConnectionBase::down_chunk_skip() {
   uint32_t quota = throttle->node_quota(m_peerChunks.download_throttle());
 
   if (quota == 0) {
-#ifdef USE_WEBTORRENT
-    if (!m_webtorrent_stream)
-#endif
-    this_thread::poll()->remove_read(this);
+    m_transport->remove_read(this);
     throttle->node_deactivate(m_peerChunks.download_throttle());
     return false;
   }
@@ -837,10 +680,7 @@ PeerConnectionBase::down_extension() {
   // If extension can't be processed yet (due to a pending write),
   // disable reads until the pending message is completely sent.
   if (m_extensions->is_complete() && !m_extensions->is_invalid() && !m_extensions->read_done()) {
-#ifdef USE_WEBTORRENT
-    if (!m_webtorrent_stream)
-#endif
-    this_thread::poll()->remove_read(this);
+    m_transport->remove_read(this);
     return false;
   }
 
@@ -887,12 +727,8 @@ PeerConnectionBase::up_chunk() {
   uint32_t quota = m_up->throttle()->node_quota(m_peerChunks.upload_throttle());
 
   if (quota == 0) {
-#ifdef USE_WEBTORRENT
-    if (m_webtorrent_stream)
-      webtorrent_schedule_write_retry();
-    else
-#endif
-    this_thread::poll()->remove_write(this);
+    m_transport->schedule_write_retry();
+    m_transport->remove_write(this);
     m_up->throttle()->node_deactivate(m_peerChunks.upload_throttle());
     return false;
   }
@@ -929,10 +765,8 @@ PeerConnectionBase::up_chunk() {
   m_upPiece.set_offset(m_upPiece.offset() + bytesTransfered);
   m_upPiece.set_length(m_upPiece.length() - bytesTransfered);
 
-#ifdef USE_WEBTORRENT
-  if (m_webtorrent_stream && m_upPiece.length() != 0)
-    webtorrent_schedule_write_retry();
-#endif
+  if (m_upPiece.length() != 0)
+    m_transport->schedule_write_retry();
 
   return m_upPiece.length() == 0;
 }
@@ -971,12 +805,7 @@ PeerConnectionBase::up_extension() {
     if (!m_extensions->read_done())
       throw internal_error("PeerConnectionBase::up_extension could not process complete extension message.");
 
-#ifdef USE_WEBTORRENT
-    if (m_webtorrent_stream)
-      read_insert_poll_safe();
-    else
-#endif
-      this_thread::poll()->insert_read(this);
+    read_insert_poll_safe();
   }
 
   return true;
@@ -1001,13 +830,8 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
                        p);
 
   if (
-#ifdef USE_WEBTORRENT
-      (!m_webtorrent_stream && m_upChoke.choked()) ||
-      p.length() > (m_webtorrent_stream ? (1 << 20) : (1 << 17)) ||
-#else
-      m_upChoke.choked() ||
-      p.length() > (1 << 17) ||
-#endif
+      (!m_transport->allows_upload_while_choked() && m_upChoke.choked()) ||
+      p.length() > m_transport->max_request_size() ||
       itr != m_peerChunks.upload_queue()->end()) {
     LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
