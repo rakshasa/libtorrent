@@ -9,6 +9,10 @@ namespace torrent {
 class ThreadNet;
 }
 
+namespace torrent::runtime {
+class ProxyManager;
+}
+
 namespace torrent::net {
 
 class CurlStack;
@@ -33,12 +37,10 @@ public:
   void                set_max_total_connections(unsigned int value);
 
   std::string         user_agent() const;
-  std::string         http_proxy() const;
   std::string         http_capath() const;
   std::string         http_cacert() const;
 
   void                set_user_agent(const std::string& s);
-  void                set_http_proxy(const std::string& s);
   void                set_http_capath(const std::string& s);
   void                set_http_cacert(const std::string& s);
 
@@ -54,8 +56,11 @@ public:
 protected:
   friend class HttpGet;
   friend class torrent::ThreadNet;
+  friend class torrent::runtime::ProxyManager;
 
   CurlStack*          curl_stack() { return m_stack.get(); }
+
+  void                set_http_proxy(const std::string& s);
 
 private:
   HttpStack() = delete;

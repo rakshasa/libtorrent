@@ -71,14 +71,18 @@ void
 NetworkManager::listen_close() {
   auto guard = lock_guard();
   listen_close_unsafe();
-
-  // m_dht_controller->stop();
 }
 
 void
 NetworkManager::listen_restart() {
   auto guard = lock_guard();
 
+  if (network_config()->is_block_incoming()) {
+    listen_close_unsafe();
+    return;
+  }
+
+  // TODO: We don't properly re-open the listen socket if there's a change here.
   if (!is_listening_unsafe())
     return;
 
@@ -86,6 +90,7 @@ NetworkManager::listen_restart() {
 
   try {
     listen_open_unsafe(m_listen_port, m_listen_port);
+
   } catch (const base_error& e) {
     LT_LOG_NOTICE("could not restart listen socket: %s", e.what());
   }

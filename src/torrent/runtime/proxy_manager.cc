@@ -7,7 +7,9 @@
 #include "net/proxy/proxy.h"
 #include "net/proxy/proxy_http.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/runtime/network_config.h"
 
 namespace torrent::runtime {
 
@@ -17,15 +19,8 @@ ProxyManager::ProxyManager() {
 
 void
 ProxyManager::set_proxy_url(const std::string& url) {
-  if (url.empty()) {
-    auto guard = lock_guard();
-
-    m_has_proxy    = false;
-    m_blocks_udp   = false;
-    m_proxy_url    = "";
-    m_create_proxy = nullptr;
-    return;
-  }
+  if (url.empty())
+    return clear_proxy();
 
   auto schema           = net::parse_uri_scheme(url);
   auto [host, port]     = net::parse_uri_host_port(url);
@@ -100,17 +95,13 @@ ProxyManager::set_proxy_url(const std::string& url) {
     throw input_error("Unsupported proxy scheme: " + schema);
   }
 
-  auto guard = lock_guard();
-
-  m_has_proxy    = true;
-  m_blocks_udp   = true;
-  m_proxy_url    = url;
-  m_create_proxy = create_proxy_fn;
+  update_proxy(url, create_proxy_fn);
 }
 
 void
 ProxyManager::set_http_proxy_url(const std::string& url) {
-  auto schema = net::parse_uri_scheme(url);
+  auto schema       = net::parse_uri_scheme(url);
+  auto [host, port] = net::parse_uri_host_port(url);
 
   if (schema != "http" &&
       schema != "https" &&
@@ -120,11 +111,14 @@ ProxyManager::set_http_proxy_url(const std::string& url) {
       schema != "socks5h")
     throw input_error("Unsupported proxy scheme: " + schema);
 
+  if (host.empty())
+    throw input_error("Proxy address must include a host.");
+
   auto guard = lock_guard();
 
   m_http_proxy_url = url;
+  net_thread::http_stack()->set_http_proxy(url);
 }
-
 
 net::proxy_ptr
 ProxyManager::create_proxy(const sockaddr* sa) {
@@ -143,4 +137,56 @@ ProxyManager::create_proxy(const sockaddr* sa) {
   return net::proxy_ptr(m_create_proxy(sa));
 }
 
-} // namespace torrent::net::proxy
+void
+ProxyManager::clear_proxy() {
+  bool changed_blocks{};
+
+  {
+    auto guard = lock_guard();
+
+    changed_blocks = (m_create_proxy != nullptr);
+
+    m_has_proxy    = false;
+    m_proxy_url    = "";
+    m_create_proxy = nullptr;
+
+    if (m_http_proxy_url.empty())
+      net_thread::http_stack()->set_http_proxy("");
+  }
+
+  if (changed_blocks) {
+    auto nw_config = network_config();
+    auto guard     = nw_config->lock_guard();
+
+    nw_config->m_block_udp      = false;
+    nw_config->m_block_incoming = false;
+
+    nw_config->notify_changes_unsafe();
+  }
+}
+
+void
+ProxyManager::update_proxy(const std::string& url, create_proxy_func create_proxy_fn) {
+  {
+    auto guard = lock_guard();
+
+    m_has_proxy    = true;
+    m_proxy_url    = url;
+    m_create_proxy = create_proxy_fn;
+
+    if (m_http_proxy_url.empty())
+      net_thread::http_stack()->set_http_proxy(url);
+  }
+
+  {
+    auto nw_config = network_config();
+    auto guard     = nw_config->lock_guard();
+
+    nw_config->m_block_udp      = true;
+    nw_config->m_block_incoming = true;
+
+    nw_config->notify_changes_unsafe();
+  }
+}
+
+} // namespace torrent::runtime

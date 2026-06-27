@@ -180,6 +180,7 @@ namespace torrent::net_thread {
 system::Thread*          thread() LIBTORRENT_EXPORT;
 std::thread::id          thread_id() LIBTORRENT_EXPORT;
 
+// TODO: Move to runtime.
 net::HttpStack*          http_stack() LIBTORRENT_EXPORT;
 
 } // namespace torrent::net_thread

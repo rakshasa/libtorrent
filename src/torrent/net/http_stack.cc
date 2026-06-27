@@ -187,11 +187,6 @@ HttpStack::user_agent() const {
 }
 
 std::string
-HttpStack::http_proxy() const {
-  return m_stack->http_proxy();
-}
-
-std::string
 HttpStack::http_capath() const {
   return m_stack->http_capath();
 }
@@ -204,14 +199,6 @@ HttpStack::http_cacert() const {
 void
 HttpStack::set_user_agent(const std::string& s) {
   m_stack->set_user_agent(s);
-}
-
-void
-HttpStack::set_http_proxy(const std::string& s) {
-  if (!s.empty() && !verify_url_guess_scheme(s))
-    throw torrent::input_error("Invalid HTTP proxy url: " + s);
-
-  m_stack->set_http_proxy(s);
 }
 
 void
@@ -252,6 +239,15 @@ HttpStack::dns_timeout() const {
 void
 HttpStack::set_dns_timeout(long timeout) {
   m_stack->set_dns_timeout(timeout);
+}
+
+//
+// Restricted methods:
+//
+
+void
+HttpStack::set_http_proxy(const std::string& s) {
+  m_stack->set_http_proxy(s);
 }
 
 } // namespace torrent::net

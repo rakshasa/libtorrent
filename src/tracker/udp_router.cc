@@ -50,9 +50,7 @@ UdpRouter::open(int family) {
 
   m_thread = this_thread::thread();
 
-  // TODO: Do a reopen_if_necessary() that checks if the bind address has changed.
-
-  auto bind_address = runtime::network_config()->bind_address_for_connect(family);
+  auto bind_address = runtime::network_config()->bind_address_for_udp_connect(family);
 
   if (bind_address == nullptr) {
     LT_LOG("could not open udp router : blocked or invalid bind address : family:%s", family_str(family));
@@ -121,7 +119,7 @@ void
 UdpRouter::updated_network_config(int family) {
   assert(m_thread == this_thread::thread());
 
-  auto bind_address = runtime::network_config()->bind_address_for_connect(family);
+  auto bind_address = runtime::network_config()->bind_address_for_udp_connect(family);
 
   if (bind_address == nullptr) {
     LT_LOG("closing udp router due to invalid or blocked bind address : family:%s", family_str(family));

@@ -17,8 +17,6 @@ public:
   //
   // Need to be thread-safe.
 
-  bool                is_udp_blocked() const;
-
   std::string         proxy_url();
   void                set_proxy_url(const std::string& url);
 
@@ -32,8 +30,10 @@ private:
 
   auto                lock_guard();
 
+  void                clear_proxy();
+  void                update_proxy(const std::string& url, create_proxy_func create_proxy_fn);
+
   std::atomic<bool>   m_has_proxy{};
-  std::atomic<bool>   m_blocks_udp{};
 
   align_cacheline std::mutex m_mutex;
 
@@ -45,7 +45,6 @@ private:
 
 ProxyManager* proxy_manager() LIBTORRENT_EXPORT;
 
-inline bool        ProxyManager::is_udp_blocked() const { return m_blocks_udp; }
 inline std::string ProxyManager::proxy_url()            { return m_proxy_url; }
 inline std::string ProxyManager::http_proxy_url()       { return m_http_proxy_url; }
 inline auto        ProxyManager::lock_guard()           { return std::scoped_lock(m_mutex); }
