@@ -20,7 +20,7 @@
 #include "tracker/tracker_udp.h"
 #ifdef USE_WEBTORRENT
 #include "tracker/tracker_websocket.h"
-#include "webtorrent/rtc_signaling.h"
+#include "protocol/webtorrent/rtc_signaling.h"
 #endif
 
 #define LT_LOG(log_fmt, ...)                                            \

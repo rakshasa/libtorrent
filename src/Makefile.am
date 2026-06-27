@@ -135,11 +135,15 @@ libtorrent_other_la_SOURCES = \
 	protocol/peer_connection_metadata.h \
 	protocol/peer_factory.cc \
 	protocol/peer_factory.h \
-	protocol/peer_transport.cc \
-	protocol/peer_transport.h \
 	protocol/protocol_base.h \
 	protocol/request_list.cc \
 	protocol/request_list.h \
+	protocol/webtorrent/data_channel_stream.cc \
+	protocol/webtorrent/data_channel_stream.h \
+	protocol/webtorrent/manager.cc \
+	protocol/webtorrent/manager.h \
+	protocol/webtorrent/rtc_signaling.cc \
+	protocol/webtorrent/rtc_signaling.h \
 	\
 	tracker/thread_tracker.cc \
 	tracker/thread_tracker.h \
@@ -159,13 +163,6 @@ libtorrent_other_la_SOURCES = \
 	tracker/tracker_worker.h \
 	tracker/udp_router.cc \
 	tracker/udp_router.h \
-	\
-	webtorrent/data_channel_stream.cc \
-	webtorrent/data_channel_stream.h \
-	webtorrent/peer_connector.cc \
-	webtorrent/peer_connector.h \
-	webtorrent/rtc_signaling.cc \
-	webtorrent/rtc_signaling.h \
 	\
 	utils/diffie_hellman.cc \
 	utils/diffie_hellman.h \

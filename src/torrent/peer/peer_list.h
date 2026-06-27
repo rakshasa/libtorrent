@@ -4,15 +4,10 @@
 #include <map>
 #include <memory>
 #include <torrent/common.h>
-#include <torrent/hash_string.h>
 #include <torrent/net/socket_address_key.h>
 #include <torrent/utils/extents.h>
 
 namespace torrent {
-
-namespace webtorrent {
-class PeerConnector;
-} // namespace webtorrent
 
 class DownloadInfo;
 class ProtocolExtension;
@@ -26,9 +21,6 @@ public:
   friend class Handshake;
   friend class HandshakeManager;
   friend class ConnectionList;
-#ifdef USE_WEBTORRENT
-  friend class webtorrent::PeerConnector;
-#endif
 
   using base_type  = std::multimap<socket_address_key, std::unique_ptr<PeerInfo>>;
   using range_type = std::pair<base_type::iterator, base_type::iterator>;
@@ -88,9 +80,6 @@ protected:
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
   // if no more connections are allowed from that host.
   PeerInfo*           connected(const sockaddr* sa, int flags) LIBTORRENT_NO_EXPORT;
-#ifdef USE_WEBTORRENT
-  PeerInfo*           connected_webtorrent(const HashString& peer_id) LIBTORRENT_NO_EXPORT;
-#endif
 
   void                disconnected(PeerInfo* p, int flags) LIBTORRENT_NO_EXPORT;
   iterator            disconnected(iterator itr, int flags) LIBTORRENT_NO_EXPORT;

@@ -15,7 +15,7 @@
 #include "tracker/thread_tracker.h"
 #include "thread_main.h"
 #include "torrent/utils/option_strings.h"
-#include "webtorrent/rtc_signaling.h"
+#include "protocol/webtorrent/rtc_signaling.h"
 
 namespace torrent {
 

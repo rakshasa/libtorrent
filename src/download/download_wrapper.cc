@@ -8,6 +8,7 @@
 #include "download/chunk_selector.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
+#include "protocol/webtorrent/manager.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
@@ -21,7 +22,7 @@
 #include "utils/functional.h"
 #include "utils/sha1.h"
 #ifdef USE_WEBTORRENT
-#include "webtorrent/rtc_signaling.h"
+#include "protocol/webtorrent/rtc_signaling.h"
 #endif
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
@@ -272,6 +273,8 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
   if (!info()->is_open())
     return;
+
+  m_main->webtorrent_manager()->tick();
 
   // Every 2 minutes.
   if (ticks % 4 == 0) {

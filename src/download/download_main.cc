@@ -16,6 +16,7 @@
 #include "protocol/initial_seed.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
+#include "protocol/webtorrent/manager.h"
 #include "torrent/download.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
@@ -34,10 +35,6 @@
 #include "tracker/tracker_controller.h"
 #include "tracker/tracker_list.h"
 
-#ifdef USE_WEBTORRENT
-#include "webtorrent/peer_connector.h"
-#endif
-
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
@@ -50,7 +47,8 @@ DownloadMain::DownloadMain()
     m_chunkList(new ChunkList),
     m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
     m_chunkStatistics(new ChunkStatistics),
-    m_connectionList(new ConnectionList(this)) {
+    m_connectionList(new ConnectionList(this)),
+    m_webtorrent_manager(std::make_unique<webtorrent::WebtorrentManager>(this)) {
 
   m_info->set_load_date(utils::cast_seconds(utils::time_since_epoch()).count());
 
@@ -137,6 +135,7 @@ DownloadMain::close() {
     return;
 
   info()->unset_flags(DownloadInfo::flag_open);
+  m_webtorrent_manager->close();
 
   // Don't close the tracker manager here else it will cause STOPPED
   // requests to be lost. TODO: Check that this is valid.
@@ -176,6 +175,7 @@ void DownloadMain::start(int flags) {
 
   m_delegator.set_aggressive(false);
   update_endgame();
+  m_webtorrent_manager->start();
 
   receive_connect_peers();
 }
@@ -193,6 +193,7 @@ DownloadMain::stop() {
   chunk_list()->unset_flags(ChunkList::flag_active);
 
   m_slot_stop_handshakes(this);
+  m_webtorrent_manager->stop();
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
   m_initial_seeding.reset();
@@ -335,7 +336,7 @@ DownloadMain::receive_webtorrent_stream(webtorrent::RtcStream stream) {
   if (!info()->is_active())
     return;
 
-  webtorrent::PeerConnector::connect(this, std::move(stream));
+  m_webtorrent_manager->receive_stream(std::move(stream));
 }
 #endif
 

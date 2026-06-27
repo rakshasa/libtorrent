@@ -15,7 +15,7 @@
 
 #include <rtc/rtc.hpp>
 
-#include "webtorrent/rtc_signaling.h"
+#include "protocol/webtorrent/rtc_signaling.h"
 
 namespace torrent::webtorrent {
 

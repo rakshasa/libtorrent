@@ -2,7 +2,7 @@
 
 #ifdef USE_WEBTORRENT
 
-#include "webtorrent/data_channel_stream.h"
+#include "protocol/webtorrent/data_channel_stream.h"
 
 #include <algorithm>
 #include <cerrno>

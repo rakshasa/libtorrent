@@ -26,7 +26,6 @@ public:
   bool                 is_incoming() const;
   bool                 is_encrypted() const;
   bool                 is_obfuscated() const;
-  bool                 is_webtorrent() const;
 
   bool                 is_up_choked() const;
   bool                 is_up_interested() const;

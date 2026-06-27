@@ -17,6 +17,10 @@ class DownloadInfo;
 class Object;
 class Peer;
 
+namespace webtorrent {
+struct RtcStream;
+} // namespace webtorrent
+
 class DownloadWrapper {
 public:
   DownloadWrapper();

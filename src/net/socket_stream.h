@@ -13,8 +13,8 @@ class SocketStream : public Event {
 public:
   ~SocketStream() override;
 
-  virtual int         read_stream(void* buf, uint32_t length);
-  virtual int         write_stream(const void* buf, uint32_t length);
+  int                 read_stream(void* buf, uint32_t length);
+  int                 write_stream(const void* buf, uint32_t length);
 
   // Returns the number of bytes read, or zero if the socket is
   // blocking. On errors or closed sockets it will throw an

@@ -2,7 +2,7 @@
 
 #ifdef USE_WEBTORRENT
 
-#include "webtorrent/rtc_signaling.h"
+#include "protocol/webtorrent/rtc_signaling.h"
 
 #include <random>
 #include <utility>

@@ -46,6 +46,7 @@ public:
   void                update_priorities();
 
   uint32_t            find(PeerChunks* pc, bool highPriority);
+  uint32_t            find(const Bitfield* bitfield, utils::PartialQueue* queue, bool highPriority);
 
   bool                is_wanted(uint32_t index) const;
 

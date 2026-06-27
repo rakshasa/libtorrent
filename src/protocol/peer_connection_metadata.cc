@@ -306,7 +306,7 @@ PeerConnectionMetadata::event_write() {
         fill_write_buffer();
 
         if (m_up->buffer()->remaining() == 0) {
-          transport()->remove_write(this);
+          this_thread::poll()->remove_write(this);
           return;
         }
 

@@ -7,7 +7,6 @@
 #include "download/download_main.h"
 #include "net/address_list.h"
 #include "protocol/peer_connection_base.h"
-#include "protocol/peer_transport.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"
@@ -52,24 +51,18 @@ ConnectionList::want_connection([[maybe_unused]] PeerInfo* p, Bitfield* bitfield
 
 PeerConnectionBase*
 ConnectionList::insert(PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
-  return insert_transport(peerInfo, PeerTransport::create_tcp(fd), bitfield, encryptionInfo, extensions);
-}
-
-PeerConnectionBase*
-ConnectionList::insert_transport(PeerInfo* peerInfo, std::unique_ptr<PeerTransport> transport,
-                                 Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)
     return NULL;
 
   PeerConnectionBase* peerConnection = m_slotNewConnection(encryptionInfo->is_encrypted());
 
-  if (peerConnection == NULL || transport == nullptr || bitfield == NULL)
+  if (peerConnection == NULL || bitfield == NULL)
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
   peerInfo->set_connection(peerConnection);
   peerInfo->set_last_connection(this_thread::cached_seconds().count());
 
-  peerConnection->initialize_transport(m_download, peerInfo, std::move(transport), bitfield, encryptionInfo, extensions);
+  peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
   if (peerConnection->file_descriptor() == -1) {
     delete peerConnection;

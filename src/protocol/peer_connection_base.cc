@@ -2,7 +2,6 @@
 
 #include "peer_connection_base.h"
 
-#include <cerrno>
 #include <cstdio>
 
 #include "manager.h"
@@ -18,8 +17,10 @@
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
+#include "torrent/net/fd.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
@@ -68,36 +69,17 @@ PeerConnectionBase::~PeerConnectionBase() {
 
 void
 PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
-  initialize_transport(download, peerInfo, PeerTransport::create_tcp(fd), bitfield, encryptionInfo, extensions);
-}
-
-void
-PeerConnectionBase::initialize_transport(DownloadMain* download, PeerInfo* peerInfo, std::unique_ptr<PeerTransport> transport,
-                                         Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (is_open())
     throw internal_error("Tried to re-set PeerConnection.");
 
-  if (!transport || !transport->is_open())
-    throw internal_error("PeerConnectionBase::initialize_transport() received an invalid transport.");
+  if (fd < 0)
+    throw internal_error("PeerConnectionBase::initialize() received invalid fd.");
 
-  if (transport->type() == PeerTransport::tcp && encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())
+  if (encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())
     throw internal_error("Encryption and decryption inconsistent.");
 
-  if (transport->type() == PeerTransport::webtorrent && encryptionInfo->is_encrypted())
-    throw internal_error("PeerConnectionBase::initialize_transport() received encrypted WebTorrent peer info.");
+  m_fileDesc = fd;
 
-  m_transport = std::move(transport);
-  m_fileDesc = m_transport->file_descriptor();
-  initialize_common(download, peerInfo, bitfield, encryptionInfo, extensions);
-
-  if (m_fileDesc == -1)
-    return;
-
-  m_transport->bind(this);
-}
-
-void
-PeerConnectionBase::initialize_common(DownloadMain* download, PeerInfo* peerInfo, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   m_peerInfo = peerInfo;
   m_download = download;
 
@@ -116,14 +98,10 @@ PeerConnectionBase::initialize_common(DownloadMain* download, PeerInfo* peerInfo
   m_down->set_throttle(m_download->download_throttle());
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
-  m_peerChunks.upload_throttle()->slot_activate() = [this] {
-    m_transport->insert_write(this);
-  };
+  m_peerChunks.upload_throttle()->slot_activate() = [this] { this_thread::poll()->insert_write(this); };
 
   m_peerChunks.download_throttle()->set_list_iterator(m_down->throttle()->end());
-  m_peerChunks.download_throttle()->slot_activate() = [this] {
-    m_transport->insert_read(this);
-  };
+  m_peerChunks.download_throttle()->slot_activate() = [this] { this_thread::poll()->insert_read(this); };
 
   request_list()->set_delegator(m_download->delegator());
   request_list()->set_peer_chunks(&m_peerChunks);
@@ -140,6 +118,11 @@ PeerConnectionBase::initialize_common(DownloadMain* download, PeerInfo* peerInfo
     m_fileDesc = -1;
     return;
   }
+
+  this_thread::poll()->open(this);
+  this_thread::poll()->insert_read(this);
+  this_thread::poll()->insert_write(this);
+  this_thread::poll()->insert_error(this);
 
   m_time_last_read = this_thread::cached_time();
 
@@ -180,9 +163,12 @@ PeerConnectionBase::cleanup() {
   if (!m_extensions->is_default())
     m_extensions->cleanup();
 
-  m_transport->close(this);
-  m_transport.reset();
-  m_fileDesc = -1;
+  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+      this_thread::poll()->remove_and_close(this);
+
+      fd_close(m_fileDesc);
+      m_fileDesc = -1;
+    });
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());
   m_down->throttle()->erase(m_peerChunks.download_throttle());
@@ -191,16 +177,6 @@ PeerConnectionBase::cleanup() {
   m_down->set_state(ProtocolRead::INTERNAL_ERROR);
 
   m_download = NULL;
-}
-
-int
-PeerConnectionBase::read_stream(void* buf, uint32_t length) {
-  return m_transport->read_stream(buf, length);
-}
-
-int
-PeerConnectionBase::write_stream(const void* buf, uint32_t length) {
-  return m_transport->write_stream(buf, length);
 }
 
 void
@@ -494,7 +470,7 @@ PeerConnectionBase::down_chunk() {
   uint32_t quota = m_down->throttle()->node_quota(m_peerChunks.download_throttle());
 
   if (quota == 0) {
-    m_transport->remove_read(this);
+    this_thread::poll()->remove_read(this);
     m_down->throttle()->node_deactivate(m_peerChunks.download_throttle());
     return false;
   }
@@ -549,7 +525,7 @@ PeerConnectionBase::down_chunk_skip() {
   uint32_t quota = throttle->node_quota(m_peerChunks.download_throttle());
 
   if (quota == 0) {
-    m_transport->remove_read(this);
+    this_thread::poll()->remove_read(this);
     throttle->node_deactivate(m_peerChunks.download_throttle());
     return false;
   }
@@ -680,7 +656,7 @@ PeerConnectionBase::down_extension() {
   // If extension can't be processed yet (due to a pending write),
   // disable reads until the pending message is completely sent.
   if (m_extensions->is_complete() && !m_extensions->is_invalid() && !m_extensions->read_done()) {
-    m_transport->remove_read(this);
+    this_thread::poll()->remove_read(this);
     return false;
   }
 
@@ -727,8 +703,7 @@ PeerConnectionBase::up_chunk() {
   uint32_t quota = m_up->throttle()->node_quota(m_peerChunks.upload_throttle());
 
   if (quota == 0) {
-    m_transport->schedule_write_retry();
-    m_transport->remove_write(this);
+    this_thread::poll()->remove_write(this);
     m_up->throttle()->node_deactivate(m_peerChunks.upload_throttle());
     return false;
   }
@@ -764,9 +739,6 @@ PeerConnectionBase::up_chunk() {
   // being much cleaner and we avoid an unnessesary position variable.
   m_upPiece.set_offset(m_upPiece.offset() + bytesTransfered);
   m_upPiece.set_length(m_upPiece.length() - bytesTransfered);
-
-  if (m_upPiece.length() != 0)
-    m_transport->schedule_write_retry();
 
   return m_upPiece.length() == 0;
 }
@@ -805,7 +777,7 @@ PeerConnectionBase::up_extension() {
     if (!m_extensions->read_done())
       throw internal_error("PeerConnectionBase::up_extension could not process complete extension message.");
 
-    read_insert_poll_safe();
+    this_thread::poll()->insert_read(this);
   }
 
   return true;
@@ -829,10 +801,7 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
                        m_peerChunks.upload_queue()->end(),
                        p);
 
-  if (
-      (!m_transport->allows_upload_while_choked() && m_upChoke.choked()) ||
-      p.length() > m_transport->max_request_size() ||
-      itr != m_peerChunks.upload_queue()->end()) {
+  if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17)) {
     LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
     return;

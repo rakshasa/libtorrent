@@ -16,8 +16,8 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_tracker_websocket, "tracker");
 
 #include "test/torrent/test_tracker_list.h"
 #include "tracker/tracker_websocket.h"
-#include "webtorrent/data_channel_stream.h"
-#include "webtorrent/rtc_signaling.h"
+#include "protocol/webtorrent/data_channel_stream.h"
+#include "protocol/webtorrent/rtc_signaling.h"
 
 namespace {
 

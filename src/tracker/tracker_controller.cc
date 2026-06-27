@@ -9,7 +9,7 @@
 #include "tracker/tracker_list.h"
 
 #ifdef USE_WEBTORRENT
-#include "webtorrent/rtc_signaling.h"
+#include "protocol/webtorrent/rtc_signaling.h"
 #endif
 
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                              \
