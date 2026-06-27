@@ -248,7 +248,13 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   lt_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       1l);
   lt_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1l);
   lt_easy_setopt(m_handle, CURLOPT_MAXREDIRS,      5l);
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+  lt_easy_setopt(m_handle, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#else
+  lt_easy_setopt(m_handle, CURLOPT_REDIR_PROTOCOLS,     CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#endif
   lt_easy_setopt(m_handle, CURLOPT_ENCODING,       "");
+  lt_easy_setopt(m_handle, CURLOPT_MAXFILESIZE,    1l << 20); // 1 MiB
 
   // Note that if the url has a numeric IP address, libcurl will not respect the CURLOPT_IPRESOLVE
   // option.
