@@ -8,6 +8,7 @@
 #include "download/chunk_selector.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
+#include "protocol/webtorrent/manager.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
@@ -20,6 +21,9 @@
 #include "tracker/tracker_list.h"
 #include "utils/functional.h"
 #include "utils/sha1.h"
+#ifdef USE_WEBTORRENT
+#include "protocol/webtorrent/rtc_signaling.h"
+#endif
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print_info(LOG_TORRENT_INFO, this->info(), "download", log_fmt, __VA_ARGS__);
@@ -90,7 +94,11 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, uint
 
   m_main->post_initialize();
   m_main->tracker_controller().set_slots([this](auto l)   { return receive_tracker_success(l); },
-                                         [this](auto& m)  { return receive_tracker_failed(m); });
+                                         [this](auto& m)  { return receive_tracker_failed(m); }
+#ifdef USE_WEBTORRENT
+                                         , [this](auto stream) { receive_webtorrent_stream(std::move(stream)); }
+#endif
+                                         );
 }
 
 void
@@ -247,6 +255,13 @@ DownloadWrapper::receive_tracker_failed(const std::string& msg) {
   ::utils::slot_list_call(info()->signal_tracker_failed(), msg);
 }
 
+#ifdef USE_WEBTORRENT
+void
+DownloadWrapper::receive_webtorrent_stream(webtorrent::RtcStream stream) {
+  m_main->receive_webtorrent_stream(std::move(stream));
+}
+#endif
+
 void
 DownloadWrapper::receive_tick(uint32_t ticks) {
   // Trigger culling of PeerInfo's every hour. This should be called
@@ -258,6 +273,8 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
   if (!info()->is_open())
     return;
+
+  m_main->webtorrent_manager()->tick();
 
   // Every 2 minutes.
   if (ticks % 4 == 0) {

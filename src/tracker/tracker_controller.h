@@ -12,6 +12,12 @@
 
 namespace torrent {
 
+#ifdef USE_WEBTORRENT
+namespace webtorrent {
+struct RtcStream;
+} // namespace webtorrent
+#endif
+
 class TrackerController {
 public:
   using address_list = AddressList;
@@ -20,6 +26,9 @@ public:
   using slot_string       = std::function<void(const std::string&)>;
   using slot_address_list = std::function<uint32_t(AddressList*)>;
   using slot_tracker      = std::function<void(const tracker::Tracker&)>;
+#ifdef USE_WEBTORRENT
+  using slot_webtorrent_stream_type = std::function<void(webtorrent::RtcStream)>;
+#endif
 
   static constexpr int flag_send_update      = 0x1;
   static constexpr int flag_send_completed   = 0x2;
@@ -75,6 +84,9 @@ public:
   void                receive_failure(const tracker::Tracker& tracker, const std::string& msg);
   void                receive_scrape(const tracker::Tracker& tracker) const;
   uint32_t            receive_new_peers(address_list* l);
+#ifdef USE_WEBTORRENT
+  void                receive_webtorrent_stream(webtorrent::RtcStream stream);
+#endif
 
   void                receive_tracker_enabled(const tracker::Tracker& tb);
   void                receive_tracker_disabled(const tracker::Tracker& tb);
@@ -82,6 +94,9 @@ public:
   slot_void&          slot_timeout()          { return m_slot_timeout; }
   slot_address_list&  slot_success()          { return m_slot_success; }
   slot_string&        slot_failure()          { return m_slot_failure; }
+#ifdef USE_WEBTORRENT
+  slot_webtorrent_stream_type& slot_webtorrent_stream() { return m_slot_webtorrent_stream; }
+#endif
 
   slot_tracker&       slot_tracker_enabled()  { return m_slot_tracker_enabled; }
   slot_tracker&       slot_tracker_disabled() { return m_slot_tracker_disabled; }
@@ -104,6 +119,9 @@ private:
   slot_void           m_slot_timeout;
   slot_address_list   m_slot_success;
   slot_string         m_slot_failure;
+#ifdef USE_WEBTORRENT
+  slot_webtorrent_stream_type m_slot_webtorrent_stream;
+#endif
 
   slot_tracker        m_slot_tracker_enabled;
   slot_tracker        m_slot_tracker_disabled;

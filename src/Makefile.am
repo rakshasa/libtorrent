@@ -138,6 +138,12 @@ libtorrent_other_la_SOURCES = \
 	protocol/protocol_base.h \
 	protocol/request_list.cc \
 	protocol/request_list.h \
+	protocol/webtorrent/data_channel_stream.cc \
+	protocol/webtorrent/data_channel_stream.h \
+	protocol/webtorrent/manager.cc \
+	protocol/webtorrent/manager.h \
+	protocol/webtorrent/rtc_signaling.cc \
+	protocol/webtorrent/rtc_signaling.h \
 	\
 	tracker/thread_tracker.cc \
 	tracker/thread_tracker.h \
@@ -151,6 +157,8 @@ libtorrent_other_la_SOURCES = \
 	tracker/tracker_list.h \
 	tracker/tracker_udp.cc \
 	tracker/tracker_udp.h \
+	tracker/tracker_websocket.cc \
+	tracker/tracker_websocket.h \
 	tracker/tracker_worker.cc \
 	tracker/tracker_worker.h \
 	tracker/udp_router.cc \

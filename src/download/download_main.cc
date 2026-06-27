@@ -16,6 +16,7 @@
 #include "protocol/initial_seed.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
+#include "protocol/webtorrent/manager.h"
 #include "torrent/download.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
@@ -46,7 +47,8 @@ DownloadMain::DownloadMain()
     m_chunkList(new ChunkList),
     m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
     m_chunkStatistics(new ChunkStatistics),
-    m_connectionList(new ConnectionList(this)) {
+    m_connectionList(new ConnectionList(this)),
+    m_webtorrent_manager(std::make_unique<webtorrent::WebtorrentManager>(this)) {
 
   m_info->set_load_date(utils::cast_seconds(utils::time_since_epoch()).count());
 
@@ -101,6 +103,9 @@ DownloadMain::post_initialize() {
   m_tracker_list->slot_failure()          = [tc](const auto& t, const auto& str) { tc->receive_failure(t, str); };
   m_tracker_list->slot_scrape_success()   = [tc](const auto& t)                  { tc->receive_scrape(t); };
   m_tracker_list->slot_new_peers()        = [tc](auto al)                        { return tc->receive_new_peers(al); };
+#ifdef USE_WEBTORRENT
+  m_tracker_list->slot_webtorrent_stream() = [tc](auto stream)                   { tc->receive_webtorrent_stream(std::move(stream)); };
+#endif
   m_tracker_list->slot_tracker_enabled()  = [tc](const auto& t)                  { tc->receive_tracker_enabled(t); };
   m_tracker_list->slot_tracker_disabled() = [tc](const auto& t)                  { tc->receive_tracker_disabled(t); };
 
@@ -130,6 +135,7 @@ DownloadMain::close() {
     return;
 
   info()->unset_flags(DownloadInfo::flag_open);
+  m_webtorrent_manager->close();
 
   // Don't close the tracker manager here else it will cause STOPPED
   // requests to be lost. TODO: Check that this is valid.
@@ -169,6 +175,7 @@ void DownloadMain::start(int flags) {
 
   m_delegator.set_aggressive(false);
   update_endgame();
+  m_webtorrent_manager->start();
 
   receive_connect_peers();
 }
@@ -186,6 +193,7 @@ DownloadMain::stop() {
   chunk_list()->unset_flags(ChunkList::flag_active);
 
   m_slot_stop_handshakes(this);
+  m_webtorrent_manager->stop();
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
   m_initial_seeding.reset();
@@ -321,6 +329,16 @@ DownloadMain::receive_connect_peers() {
       m_slot_start_handshake(&sa.sa, this);
   }
 }
+
+#ifdef USE_WEBTORRENT
+void
+DownloadMain::receive_webtorrent_stream(webtorrent::RtcStream stream) {
+  if (!info()->is_active())
+    return;
+
+  m_webtorrent_manager->receive_stream(std::move(stream));
+}
+#endif
 
 void
 DownloadMain::receive_tracker_success() {

@@ -18,6 +18,10 @@
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_udp.h"
+#ifdef USE_WEBTORRENT
+#include "tracker/tracker_websocket.h"
+#include "protocol/webtorrent/rtc_signaling.h"
+#endif
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
@@ -34,6 +38,9 @@ TrackerList::~TrackerList() {
   m_slot_failed = nullptr;
   m_slot_scrape_success = nullptr;
   m_slot_scrape_failed = nullptr;
+#ifdef USE_WEBTORRENT
+  m_slot_webtorrent_stream = nullptr;
+#endif
   m_slot_tracker_enabled = nullptr;
   m_slot_tracker_disabled = nullptr;
 }
@@ -239,6 +246,19 @@ TrackerList::insert(const tracker::Tracker& tracker) {
         });
     };
 
+#ifdef USE_WEBTORRENT
+  worker->m_slot_webtorrent_stream = [this, lifetime_keeper](webtorrent::RtcStream stream) {
+      main_thread::thread()->callback([this, lifetime_keeper, stream = std::move(stream)]() mutable {
+          auto tl_keeper = lifetime_keeper.lock();
+
+          if (!tl_keeper || !m_slot_webtorrent_stream)
+            return;
+
+          receive_webtorrent_stream(std::move(stream));
+        });
+    };
+#endif
+
   LT_LOG("added tracker : requester:%p group:%u url:%s", worker, itr->group(), itr->url().c_str());
 
   if (m_slot_tracker_enabled)
@@ -273,6 +293,12 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
     worker = std::make_shared<tracker::TrackerUdp>(tracker_info, flags);
 
+#ifdef USE_WEBTORRENT
+  } else if (std::strncmp("ws://", url.c_str(), 5) == 0 ||
+             std::strncmp("wss://", url.c_str(), 6) == 0) {
+    worker = std::make_shared<TrackerWebsocket>(tracker_info, flags);
+
+#endif
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && runtime::network_manager()->is_dht_valid()) {
     // TODO: Don't check TrackerDht::is_allowed().
 
@@ -507,5 +533,17 @@ TrackerList::receive_new_peers(AddressList* l) {
   //   tracker.get_worker()->state().m_latest_new_peers_delta += new_peers;
   // }
 }
+
+#ifdef USE_WEBTORRENT
+void
+TrackerList::receive_webtorrent_stream(webtorrent::RtcStream stream) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
+  LT_LOG("received webtorrent stream", 0);
+
+  if (m_slot_webtorrent_stream)
+    m_slot_webtorrent_stream(std::move(stream));
+}
+#endif
 
 } // namespace torrent

@@ -16,6 +16,12 @@ class TrackerTest;
 
 namespace torrent {
 
+#ifdef USE_WEBTORRENT
+namespace webtorrent {
+struct RtcStream;
+} // namespace webtorrent
+#endif
+
 namespace tracker {
 class Manager;
 }
@@ -91,6 +97,9 @@ protected:
   std::function<void()>              m_slot_scrape_success;
   std::function<void(std::string)>   m_slot_scrape_failure;
   std::function<void(AddressList&&)> m_slot_new_peers;
+#ifdef USE_WEBTORRENT
+  std::function<void(webtorrent::RtcStream)> m_slot_webtorrent_stream;
+#endif
 
 private:
   TrackerWorker(const TrackerWorker&) = delete;

@@ -52,16 +52,15 @@ ChunkSelector::update_priorities() {
 
 uint32_t
 ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
+  auto* queue = pc->is_seeder() ? &m_sharedQueue : pc->download_cache();
+  return find(pc->bitfield(), queue, highPriority);
+}
+
+uint32_t
+ChunkSelector::find(const Bitfield* bitfield, utils::PartialQueue* queue, [[maybe_unused]] bool highPriority) {
   // This needs to be re-enabled.
   if (m_position == invalid_chunk)
     return invalid_chunk;
-
-  // When we're a seeder, 'm_sharedQueue' is used. Since the peer's
-  // bitfield is guaranteed to be filled we can use the same code as
-  // for non-seeders. This generalization does incur a slight
-  // performance hit as it compares against a bitfield we know has all
-  // set.
-  auto* queue = pc->is_seeder() ? &m_sharedQueue : pc->download_cache();
 
   // Randomize position on average every 16 chunks to prevent
   // inefficient distribution with a slow seed and fast peers
@@ -91,8 +90,8 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
 
   queue->clear();
 
-  (search_linear(pc->bitfield(), queue, m_data->high_priority(), m_position, size()) &&
-   search_linear(pc->bitfield(), queue, m_data->high_priority(), 0, m_position));
+  (search_linear(bitfield, queue, m_data->high_priority(), m_position, size()) &&
+   search_linear(bitfield, queue, m_data->high_priority(), 0, m_position));
 
   if (queue->prepare_pop()) {
     // Set that the peer has high priority pieces cached.
@@ -103,8 +102,8 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
     // Urgh...
     queue->clear();
 
-    (search_linear(pc->bitfield(), queue, m_data->normal_priority(), m_position, size()) &&
-     search_linear(pc->bitfield(), queue, m_data->normal_priority(), 0, m_position));
+    (search_linear(bitfield, queue, m_data->normal_priority(), m_position, size()) &&
+     search_linear(bitfield, queue, m_data->normal_priority(), 0, m_position));
 
     if (!queue->prepare_pop())
       return invalid_chunk;

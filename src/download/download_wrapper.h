@@ -17,6 +17,10 @@ class DownloadInfo;
 class Object;
 class Peer;
 
+namespace webtorrent {
+struct RtcStream;
+} // namespace webtorrent
+
 class DownloadWrapper {
 public:
   DownloadWrapper();
@@ -63,6 +67,9 @@ public:
   void                receive_storage_error(const std::string& str);
   uint32_t            receive_tracker_success(AddressList* l);
   void                receive_tracker_failed(const std::string& msg);
+#ifdef USE_WEBTORRENT
+  void                receive_webtorrent_stream(webtorrent::RtcStream stream);
+#endif
 
   void                receive_tick(uint32_t ticks);
 

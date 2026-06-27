@@ -9,4 +9,4 @@ Version: @VERSION@
 Requires.private: zlib, libcrypto, libcurl
 Libs: -L${libdir} -ltorrent
 Libs.private: @PTHREAD_LIBS@ @ATOMIC_LIBS@ @LIBCURL_LIBS@
-Cflags: -I${includedir}
+Cflags: -I${includedir} @LIBTORRENT_CFLAGS@

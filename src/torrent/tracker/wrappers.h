@@ -12,6 +12,12 @@
 
 // TODO: Rename to TrackerController when torrent::TrackerController is moved.
 
+#ifdef USE_WEBTORRENT
+namespace torrent::webtorrent {
+struct RtcStream;
+} // namespace torrent::webtorrent
+#endif
+
 namespace torrent::tracker {
 
 class LIBTORRENT_EXPORT TrackerControllerWrapper {
@@ -19,6 +25,9 @@ public:
   using ptr_type          = std::shared_ptr<TrackerController>;
   using slot_string       = std::function<void(const std::string&)>;
   using slot_address_list = std::function<uint32_t(AddressList*)>;
+#ifdef USE_WEBTORRENT
+  using slot_webtorrent_stream = std::function<void(torrent::webtorrent::RtcStream)>;
+#endif
 
   TrackerControllerWrapper() = default;
   TrackerControllerWrapper(const HashString& info_hash, std::shared_ptr<TrackerController>&& controller);
@@ -88,7 +97,11 @@ protected:
   void                start_requesting();
   void                stop_requesting();
 
-  void                set_slots(slot_address_list success, slot_string failure);
+  void                set_slots(slot_address_list success, slot_string failure
+#ifdef USE_WEBTORRENT
+                                , slot_webtorrent_stream webtorrent_stream = {}
+#endif
+                                );
 
 private:
   ptr_type            m_ptr;

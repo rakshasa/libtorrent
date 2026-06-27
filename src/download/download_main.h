@@ -2,6 +2,7 @@
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
 #include <deque>
+#include <memory>
 #include <utility>
 
 #include "data/chunk_handle.h"
@@ -15,6 +16,11 @@
 #include "torrent/utils/scheduler.h"
 
 namespace torrent {
+
+namespace webtorrent {
+class WebtorrentManager;
+struct RtcStream;
+} // namespace webtorrent
 
 class ChunkList;
 class ChunkSelector;
@@ -72,6 +78,7 @@ public:
   ConnectionList*     connection_list()                          { return m_connectionList; }
   FileList*           file_list()                                { return &m_fileList; }
   PeerList*           peer_list()                                { return &m_peerList; }
+  webtorrent::WebtorrentManager* webtorrent_manager()            { return m_webtorrent_manager.get(); }
 
   ThrottleList*       upload_throttle()                          { return m_upload_throttle; }
   void                set_upload_throttle(ThrottleList* t)       { m_upload_throttle = t; }
@@ -106,6 +113,9 @@ public:
   void                add_peer(const sockaddr* sa);
 
   void                receive_connect_peers();
+#ifdef USE_WEBTORRENT
+  void                receive_webtorrent_stream(webtorrent::RtcStream stream);
+#endif
   void                receive_chunk_done(unsigned int index);
   void                receive_corrupt_chunk(PeerInfo* peerInfo);
 
@@ -149,6 +159,7 @@ private:
   ConnectionList*     m_connectionList;
   FileList            m_fileList;
   PeerList            m_peerList;
+  std::unique_ptr<webtorrent::WebtorrentManager> m_webtorrent_manager;
 
   DataBuffer          m_ut_pex_delta;
   DataBuffer          m_ut_pex_initial;

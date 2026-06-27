@@ -21,6 +21,25 @@ NetworkConfig*   network_config()         { return g_runtime->network_config(); 
 NetworkManager*  network_manager()        { return g_runtime->network_manager(); }
 SocketManager*   socket_manager()         { return g_runtime->socket_manager(); }
 
+LIBTORRENT_EXPORT bool
+webtorrent_supported() {
+#ifdef USE_WEBTORRENT
+  return true;
+#else
+  return false;
+#endif
+}
+
+LIBTORRENT_EXPORT bool
+webtorrent_enabled() {
+  return g_runtime->webtorrent_enabled();
+}
+
+LIBTORRENT_EXPORT void
+set_webtorrent_enabled(bool enabled) {
+  g_runtime->set_webtorrent_enabled(enabled);
+}
+
 } // namespace runtime
 
 Runtime::Runtime()

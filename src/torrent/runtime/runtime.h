@@ -17,6 +17,9 @@ const char*         version() LIBTORRENT_EXPORT;
 
 uint16_t            listen_port() LIBTORRENT_EXPORT;
 
+bool                webtorrent_supported() LIBTORRENT_EXPORT;
+bool                webtorrent_enabled() LIBTORRENT_EXPORT;
+void                set_webtorrent_enabled(bool enabled) LIBTORRENT_EXPORT;
 
 // Must be called from main thread:
 

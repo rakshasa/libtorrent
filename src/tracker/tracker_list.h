@@ -14,6 +14,12 @@ struct TestTrackerListWrapper;
 
 namespace torrent {
 
+#ifdef USE_WEBTORRENT
+namespace webtorrent {
+struct RtcStream;
+} // namespace webtorrent
+#endif
+
 // The tracker list will contain a list of tracker, divided into subgroups.
 //
 // Each group must be randomized before we start.
@@ -99,12 +105,18 @@ public:
   void                receive_scrape_success(tracker::Tracker tracker);
   void                receive_scrape_failed(tracker::Tracker tracker, const std::string& msg);
   void                receive_new_peers(AddressList* l);
+#ifdef USE_WEBTORRENT
+  void                receive_webtorrent_stream(webtorrent::RtcStream stream);
+#endif
 
   auto&               slot_success()                          { return m_slot_success; }
   auto&               slot_failure()                          { return m_slot_failed; }
   auto&               slot_scrape_success()                   { return m_slot_scrape_success; }
   auto&               slot_scrape_failure()                   { return m_slot_scrape_failed; }
   auto&               slot_new_peers()                        { return m_slot_new_peers; }
+#ifdef USE_WEBTORRENT
+  auto&               slot_webtorrent_stream()                { return m_slot_webtorrent_stream; }
+#endif
 
   auto&               slot_tracker_enabled()                  { return m_slot_tracker_enabled; }
   auto&               slot_tracker_disabled()                 { return m_slot_tracker_disabled; }
@@ -133,6 +145,9 @@ private:
   std::function<void(tracker::Tracker)>                     m_slot_scrape_success;
   std::function<void(tracker::Tracker, const std::string&)> m_slot_scrape_failed;
   std::function<uint32_t(AddressList*)>                     m_slot_new_peers;
+#ifdef USE_WEBTORRENT
+  std::function<void(webtorrent::RtcStream)>                 m_slot_webtorrent_stream;
+#endif
   std::function<void(tracker::Tracker)>                     m_slot_tracker_enabled;
   std::function<void(tracker::Tracker)>                     m_slot_tracker_disabled;
 
