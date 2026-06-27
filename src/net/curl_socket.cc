@@ -450,9 +450,9 @@ verify_libcurl_internal_wakeup(int fd) {
     // A 0-byte read on an eventfd guarantees an immediate return of 0.
     //
     // Sockets/pipes which are blocking might hang or behave differently.
-    char zero_buf;
+    char buf[7] = {0};
 
-    if (::read(fd, &zero_buf, 0) != 0) {
+    if (::read(fd, &buf, 0) != 0) {
       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : Failed 0-byte safety test", fd);
       throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): 0-byte read test failed");
     }
@@ -460,9 +460,7 @@ verify_libcurl_internal_wakeup(int fd) {
     // Eventfd forces a strict 8-byte payload size constraint for writes.
     //
     // Passing 7 bytes forces a fault. Sockets, pipes, and files will accept 7 bytes easily.
-    char strict_buf[7] = {0};
-
-    if (::write(fd, strict_buf, 7) == -1) {
+    if (::write(fd, buf, 7) == -1) {
       // This is explicitly an eventfd. It rejected the 7-byte payload purely on structural sizing rules.
       if (errno == EINVAL)
         return;
@@ -474,7 +472,7 @@ verify_libcurl_internal_wakeup(int fd) {
       // Fallback: A 0-byte write to an eventfd returns 0 instantly, ignoring counter capacities.
       // To isolate it from a socket, we check that it handles 0-byte execution without blocking.
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        if (::write(fd, strict_buf, 0) != 0) {
+        if (::write(fd, buf, 0) != 0) {
           LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : Saturated stream returned EAGAIN but failed 0-byte tiebreaker", fd);
           throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): Saturated stream false-positive protection triggered.");
         }
