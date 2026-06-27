@@ -445,26 +445,46 @@ verify_libcurl_internal_wakeup(int fd) {
     throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd appears to be a socket, but not a valid libcurl internal wakeup socket");
   }
 
-  // Linux eventfd (Only probe if it's an anonymous inode, NOT a socket)
+  // Linux & BSD native eventfd verification block
   if (!S_ISREG(sb.st_mode) && !S_ISDIR(sb.st_mode)) {
-    bool is_nonblock{};
+    // A 0-byte read on an eventfd guarantees an immediate return of 0.
+    //
+    // Sockets/pipes which are blocking might hang or behave differently.
+    char zero_buf;
 
-    if (!fd_get_nonblock(fd, &is_nonblock)) {
-      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd_get_nonblock failed: %s", fd, system::errno_enum(errno));
-      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd_get_nonblock failed: " + system::errno_enum_str(errno));
+    if (::read(fd, &zero_buf, 0) != 0) {
+      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : Failed 0-byte safety test", fd);
+      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): 0-byte read test failed");
     }
 
-    if (!is_nonblock) {
-      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd is blocking, expected non-blocking", fd);
-      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd is blocking, expected non-blocking");
+    // Eventfd forces a strict 8-byte payload size constraint for writes.
+    //
+    // Passing 7 bytes forces a fault. Sockets, pipes, and files will accept 7 bytes easily.
+    char strict_buf[7] = {0};
+
+    if (::write(fd, strict_buf, 7) == -1) {
+      // This is explicitly an eventfd. It rejected the 7-byte payload purely on structural sizing rules.
+      if (errno == EINVAL)
+        return;
+
+      // A non-blocking eventfd whose internal 64-bit integer counter is maxed out at
+      // 0xFFFFFFFFFFFFFFFE will yield EAGAIN. However, a saturated socket/pipe yields this exact
+      // same error.
+      //
+      // Fallback: A 0-byte write to an eventfd returns 0 instantly, ignoring counter capacities.
+      // To isolate it from a socket, we check that it handles 0-byte execution without blocking.
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (::write(fd, strict_buf, 0) != 0) {
+          LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : Saturated stream returned EAGAIN but failed 0-byte tiebreaker", fd);
+          throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): Saturated stream false-positive protection triggered.");
+        }
+
+        return;
+      }
     }
 
-    char dummy[7] = {0};
-
-    // Passing 7 bytes to an eventfd instantly returns EINVAL without altering state.
-    // A regular file or unexpected stream might accept it, but it filters out eventfd perfectly.
-    if (write(fd, dummy, 7) == -1 && errno == EINVAL)
-      return;
+    LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : FD falsely accepted an invalid 7-byte eventfd payload size", fd);
+    throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): stream/socket detected masking as eventfd");
   }
 
   LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd does not appear to be a valid libcurl internal wakeup socket", fd);
