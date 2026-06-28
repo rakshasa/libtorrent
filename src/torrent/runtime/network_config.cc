@@ -30,6 +30,12 @@ NetworkConfig::NetworkConfig() {
 }
 
 bool
+NetworkConfig::is_block_udp() const {
+  auto guard = lock_guard();
+  return m_block_udp;
+}
+
+bool
 NetworkConfig::is_block_ipv4() const {
   auto guard = lock_guard();
   return m_block_ipv4;
@@ -45,6 +51,12 @@ bool
 NetworkConfig::is_block_ipv4in6() const {
   auto guard = lock_guard();
   return m_block_ipv4in6;
+}
+
+bool
+NetworkConfig::is_block_incoming() const {
+  auto guard = lock_guard();
+  return m_block_incoming;
 }
 
 bool

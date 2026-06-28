@@ -37,8 +37,12 @@ verify_no_path_query_fragment(const std::string& url) {
   char* fragment_ptr{};
 
   if (curl_url_get(curlu.get(), CURLUPART_PATH, &path_ptr, 0) == CURLUE_OK) {
+    if (std::strcmp(path_ptr, "/") != 0) {
+      curl_free(path_ptr);
+      return false;
+    }
+
     curl_free(path_ptr);
-    return false;
   }
 
   if (curl_url_get(curlu.get(), CURLUPART_QUERY, &query_ptr, 0) == CURLUE_OK) {
