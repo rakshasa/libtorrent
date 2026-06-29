@@ -4,6 +4,7 @@
 
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/runtime.h"
 #include "torrent/runtime/socket_manager.h"
 
 namespace torrent {
