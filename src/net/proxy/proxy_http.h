@@ -8,7 +8,7 @@ namespace torrent::net::proxy {
 class ProxyHttp : public Proxy {
 public:
   ProxyHttp(const sockaddr* proxy_sa, const std::string& host, uint16_t port);
-  ~ProxyHttp() = default;
+  ~ProxyHttp() override;
 
   int                 next_action() override;
 

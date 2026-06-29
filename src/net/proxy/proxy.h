@@ -15,7 +15,8 @@ enum {
 
 class Proxy {
 public:
-  virtual ~Proxy() = default;
+  // virtual ~Proxy() = 0;
+  virtual ~Proxy();
 
   const auto*         proxy_address() const;
 

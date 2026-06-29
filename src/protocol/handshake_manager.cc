@@ -156,12 +156,12 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
 
   auto handshake = std::make_unique<Handshake>();
 
-  auto connect_address = [sa, &handshake]() {
+  auto connect_address = [sa, handshake = handshake.get()]() {
     auto proxy = runtime::proxy_manager()->create_proxy(sa);
 
-    if (proxy) {
+    if (proxy != nullptr) {
       handshake->set_proxy(std::move(proxy));
-      return sa_copy(proxy->proxy_address());
+      return sa_copy(handshake->proxy()->proxy_address());
     }
 
     return sa_copy(sa);

@@ -9,6 +9,9 @@
 
 namespace torrent::net::proxy {
 
+// TODO: For some reason we're crashing.
+Proxy::~Proxy() = default;
+
 ProxyHttp::ProxyHttp(const sockaddr* proxy_sa, const std::string& host, uint16_t port)
   : m_host(host),
     m_port(port),
@@ -17,9 +20,12 @@ ProxyHttp::ProxyHttp(const sockaddr* proxy_sa, const std::string& host, uint16_t
   sa_copy_to_inet_union(proxy_sa, m_proxy_address);
 
   assert(m_proxy_address.sa.sa_family == AF_INET || m_proxy_address.sa.sa_family == AF_INET6);
-  assert(!sa_is_any(&m_proxy_address.sa) && sa_port(&m_proxy_address.sa) != 0);
+  assert(!sa_is_any(&m_proxy_address.sa));
+  assert(sa_port(&m_proxy_address.sa) != 0);
   assert(!m_host.empty() && m_port != 0);
 }
+
+ProxyHttp::~ProxyHttp() = default;
 
 int
 ProxyHttp::next_action() {
@@ -30,9 +36,9 @@ uint32_t
 ProxyHttp::write(void* data, uint32_t max_size) {
   assert(m_state == state_writing);
 
-  static const char* part1 = "CONNECT ";
-  static const char* part2 = " HTTP/1.1\r\nHost: ";
-  static const char* part3 = "\r\n\r\n";
+  static const char part1[] = "CONNECT ";
+  static const char part2[] = " HTTP/1.1\r\nHost: ";
+  static const char part3[] = "\r\n\r\n";
 
   auto host_port_str = m_host + ":" + std::to_string(m_port);
 

@@ -135,7 +135,7 @@ private:
 
   std::string                   m_url;
   std::shared_ptr<std::ostream> m_stream;
-  uint32_t                      m_timeout{5 * 60};
+  uint32_t                      m_timeout{60};
   std::condition_variable       m_cond_closed;
 
   std::list<std::function<void()>>                   m_signal_done;

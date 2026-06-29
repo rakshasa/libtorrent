@@ -53,6 +53,7 @@ ProxyManager::set_proxy_url(const std::string& url) {
   create_proxy_func create_proxy_fn;
 
   auto proxy_union = sa_inet_union_from_sap(proxy_sa);
+  sa_set_port(&proxy_union.sa, port);
 
   if (schema == "http") {
     verify_no_user_password();
