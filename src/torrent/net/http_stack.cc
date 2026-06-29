@@ -143,6 +143,13 @@ HttpStack::shutdown() {
 }
 
 void
+HttpStack::clear_requests() {
+  m_stack->thread()->callback([this]() {
+      m_stack->clear_requests();
+    });
+}
+
+void
 HttpStack::start_get(HttpGet& http_get) {
   if (!http_get.is_valid())
     throw torrent::internal_error("HttpStack::start_get() called with an invalid HttpGet object.");

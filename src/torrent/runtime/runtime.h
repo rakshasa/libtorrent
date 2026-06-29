@@ -10,6 +10,9 @@ class ProxyManager;
 bool                is_shutting_down() LIBTORRENT_EXPORT;
 bool                is_quick_shutting_down() LIBTORRENT_EXPORT;
 
+void                shutdown() LIBTORRENT_EXPORT;
+void                quick_shutdown() LIBTORRENT_EXPORT;
+
 NetworkConfig*      network_config() LIBTORRENT_EXPORT;
 
 NetworkManager*     network_manager() LIBTORRENT_EXPORT;

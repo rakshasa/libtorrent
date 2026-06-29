@@ -102,6 +102,7 @@ protected:
 
   void                trigger_done();
   void                trigger_failed(const std::string& message);
+  void                trigger_cleared_request();
 
 private:
   CurlGet(const CurlGet&) = delete;

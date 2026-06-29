@@ -103,6 +103,14 @@ CurlStack::shutdown() {
 }
 
 void
+CurlStack::clear_requests() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
+  for (auto& curl_get : *this)
+    curl_get->trigger_cleared_request();
+}
+
+void
 CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
