@@ -103,6 +103,34 @@ CurlStack::shutdown() {
 }
 
 void
+CurlStack::clear_requests() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
+
+  // while (!base_type::empty()) {
+  //   auto curl_get = base_type::back();
+  //   base_type::pop_back();
+
+  //   { auto guard_get = curl_get->lock_guard();
+
+  //     curl_get->cleanup_unsafe();
+  //     curl_get->trigger_cleared_request_unsafe();
+  //   }
+
+  //   curl_get->notify_closed();
+  // }
+
+  // while (!base_type::empty()) {
+  //   auto curl_get = base_type::back();
+
+  //   close_get(curl_get);
+  //   curl_get->trigger_cleared_request_unsafe();
+  // }
+
+  for (auto& curl_get : *this)
+    curl_get->trigger_cleared_request();
+}
+
+void
 CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 

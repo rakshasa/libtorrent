@@ -35,10 +35,11 @@ private:
   std::unique_ptr<runtime::NetworkManager> m_network_manager;
   std::unique_ptr<runtime::SocketManager>  m_socket_manager;
 
-  // TODO: Check if we got this elsewhere?
-  align_cacheline std::atomic<bool>        m_initialized{};
-  std::atomic<bool>                        m_shutdown_called{};
-  std::atomic<bool>                        m_quick_shutdown_called{};
+  align_cacheline
+
+  std::atomic<bool>   m_initialized{};
+  std::atomic<bool>   m_shutdown_called{};
+  std::atomic<bool>   m_quick_shutdown_called{};
 };
 
 inline bool Runtime::is_initialized()           { return m_initialized.load(std::memory_order_acquire); }

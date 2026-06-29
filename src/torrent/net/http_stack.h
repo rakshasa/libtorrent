@@ -19,6 +19,7 @@ public:
   ~HttpStack();
 
   void                shutdown();
+  void                clear_requests();
 
   void                start_get(HttpGet& http_get);
 

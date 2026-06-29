@@ -162,10 +162,10 @@ CurlGet::close_self(const std::shared_ptr<CurlGet>& curl_get, system::Thread* ca
   std::unique_lock<std::mutex> guard(m_mutex);
 
   if (!m_was_started)
-    throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an object that was not started.");
+    throw torrent::internal_error("CurlGet::close_self() called on an object that was not started.");
 
   if (m_was_closed)
-    throw torrent::internal_error("CurlGet::close_and_cancel_callbacks() called on an already closing object.");
+    throw torrent::internal_error("CurlGet::close_self() called on an already closing object.");
 
   m_stack_thread->cancel_callback(m_callback_id);
 
@@ -349,12 +349,20 @@ CurlGet::cleanup_unsafe() {
 void
 CurlGet::add_done_slot(const std::function<void()>& slot) {
   auto guard = lock_guard();
+
+  if (m_was_started)
+    throw torrent::internal_error("CurlGet::add_done_slot() called on a started object.");
+
   m_signal_done.push_back(slot);
 }
 
 void
 CurlGet::add_failed_slot(const std::function<void(const std::string&)>& slot) {
   auto guard = lock_guard();
+
+  if (m_was_started)
+    throw torrent::internal_error("CurlGet::add_failed_slot() called on a started object.");
+
   m_signal_failed.push_back(slot);
 }
 
@@ -409,6 +417,21 @@ CurlGet::trigger_failed(const std::string& message) {
 
   // If this is changed, verify RESOLVE_NONE handling is correct.
   ::utils::slot_list_call(m_signal_failed, message);
+}
+
+void
+CurlGet::trigger_cleared_request() {
+  auto guard = lock_guard();
+
+  m_retrying_resolve = true;
+
+  if (m_was_closed)
+    return;
+
+  if (m_active)
+    deactivate_unsafe();
+
+  ::utils::slot_list_call(m_signal_failed, "Request force cleared.");
 }
 
 size_t
