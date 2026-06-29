@@ -13,16 +13,14 @@ namespace torrent::net::proxy {
 Proxy::~Proxy() = default;
 
 ProxyHttp::ProxyHttp(const sockaddr* proxy_sa, const std::string& host, uint16_t port)
-  : m_host(host),
+  : m_host(std::move(host)),
     m_port(port),
     m_state(state_writing){
 
   sa_copy_to_inet_union(proxy_sa, m_proxy_address);
 
-  assert(m_proxy_address.sa.sa_family == AF_INET || m_proxy_address.sa.sa_family == AF_INET6);
-  assert(!sa_is_any(&m_proxy_address.sa));
-  assert(sa_port(&m_proxy_address.sa) != 0);
-  assert(!m_host.empty() && m_port != 0);
+  assert(!sa_is_any(&m_proxy_address.sa) && sa_port(&m_proxy_address.sa) != 0);
+  assert(!m_host.empty() && host.size() < 256 && m_port != 0);
 }
 
 ProxyHttp::~ProxyHttp() = default;

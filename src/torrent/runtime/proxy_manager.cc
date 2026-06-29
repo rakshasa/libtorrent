@@ -6,6 +6,7 @@
 
 #include "net/proxy/proxy.h"
 #include "net/proxy/proxy_http.h"
+#include "net/proxy/proxy_socks5.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/http_stack.h"
 #include "torrent/net/socket_address.h"
@@ -80,17 +81,25 @@ ProxyManager::set_proxy_url(const std::string& url) {
   //     return nullptr;
   //   };
 
-  // } else if (schema == "socks5") {
-  //   m_create_proxy = [host, port, user, password]() {
-  //     // return std::make_unique<Proxy>(host, port, user, password);
-  //     return nullptr;
-  //   };
+  } else if (schema == "socks5" || schema == "socks5h") {
+    // We currently don't support socks5h resolves, however since we only do sockaddr connects this
+    // will be the same as socks5.
 
-  // } else if (schema == "socks5h") {
-  //   m_create_proxy = [host, port, user, password]() {
-  //     // return std::make_unique<Proxy>(host, port, user, password);
-  //     return nullptr;
-  //   };
+    if (!user.empty() && password.empty())
+      throw input_error("Proxy address for '" + schema + "://' must not include a user without a password.");
+
+    if (password.empty() && !user.empty())
+      throw input_error("Proxy address for '" + schema + "://' must not include a password without a user.");
+
+    if (user.size() > 255)
+      throw input_error("Proxy address for '" + schema + "://' username exceeds max protocol limits.");
+
+    if (password.size() > 255)
+      throw input_error("Proxy address for '" + schema + "://' password exceeds max protocol limits.");
+
+    m_create_proxy = [proxy_union](auto* connect_sa) {
+        return new net::proxy::ProxySocks5(&proxy_union.sa, connect_sa);
+      };
 
   } else {
     throw input_error("Unsupported proxy scheme: " + schema);
