@@ -56,6 +56,7 @@ public:
   void                set_dns_timeout(long timeout);
 
   void                shutdown();
+  void                clear_requests();
 
   void                start_get(const std::shared_ptr<CurlGet>& curl_get);
   void                close_get(const std::shared_ptr<CurlGet>& curl_get);

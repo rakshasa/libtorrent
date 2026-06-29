@@ -83,7 +83,7 @@ TrackerHttp::send_event(tracker::TrackerParams params, tracker::TrackerState::ev
 
 void
 TrackerHttp::send_scrape(tracker::TrackerParams params) {
-  if (m_requested_scrape)
+  if (m_requested_scrape || runtime::is_shutting_down())
     return;
 
   m_params           = params;
@@ -178,7 +178,7 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
               option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
               m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 
-  torrent::net_thread::http_stack()->start_get(m_get);
+  net_thread::http_stack()->start_get(m_get);
 }
 
 void
@@ -200,7 +200,7 @@ TrackerHttp::send_scrape_unsafe() {
   LT_LOG("sending scrape : family:%s url:%s", family_str(m_current_family), info().url.c_str());
   LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
 
-  torrent::net_thread::http_stack()->start_get(m_get);
+  net_thread::http_stack()->start_get(m_get);
 }
 
 bool
@@ -235,6 +235,9 @@ TrackerHttp::delayed_send_scrape() {
     throw internal_error("TrackerHttp::delayed_send_scrape() called while busy");
 
   // close_directly();
+
+  if (runtime::is_shutting_down())
+    return;
 
   lock_and_set_latest_event(tracker::TrackerState::EVENT_SCRAPE);
 

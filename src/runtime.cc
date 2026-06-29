@@ -4,6 +4,7 @@
 
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/runtime.h"
 #include "torrent/runtime/socket_manager.h"
 
 namespace torrent {
@@ -15,6 +16,9 @@ namespace runtime {
 bool             is_initialized()         { return g_runtime->is_initialized(); }
 bool             is_shutting_down()       { return g_runtime->is_shutdown_called(); }
 bool             is_quick_shutting_down() { return g_runtime->is_quick_shutdown_called(); }
+
+void             shutdown()               { g_runtime->shutdown(); }
+void             quick_shutdown()         { g_runtime->quick_shutdown(); }
 
 NetworkConfig*   network_config()         { return g_runtime->network_config(); }
 
@@ -44,6 +48,7 @@ Runtime::shutdown() {
 
 void
 Runtime::quick_shutdown() {
+  g_runtime->m_shutdown_called       = true;
   g_runtime->m_quick_shutdown_called = true;
 
   // TODO: This should e.g. timeout all udp, http, dns, etc requests.
