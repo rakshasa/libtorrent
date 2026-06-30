@@ -15,7 +15,7 @@ class UdnsResolver;
 
 } // namespace net
 
-class LIBTORRENT_EXPORT ThreadNet : public system::Thread {
+class ThreadNet : public system::Thread {
 public:
   ~ThreadNet() override;
 

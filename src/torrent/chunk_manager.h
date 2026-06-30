@@ -108,7 +108,7 @@ private:
   ChunkManager(const ChunkManager&) = delete;
   ChunkManager& operator=(const ChunkManager&) = delete;
 
-  void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
+  void                sync_all(int flags, uint64_t target);
 
   uint64_t            m_memoryUsage{0};
   // 1/5 of the available memory should be enough for the client. If

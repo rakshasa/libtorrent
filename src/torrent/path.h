@@ -1,16 +1,16 @@
-#ifndef LIBTORRENT_PATH_H
-#define LIBTORRENT_PATH_H
+#ifndef LIBTORRENT_TORRENT_PATH_H
+#define LIBTORRENT_TORRENT_PATH_H
 
 #include <string>
 #include <vector>
 #include <torrent/common.h>
 #include <torrent/types/string_utf8.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 // Use a blank first path to get root and "." to get current dir.
 
-class LIBTORRENT_EXPORT Path : private std::vector<string_utf8> {
+class Path : private std::vector<string_utf8> {
 public:
   using base_type = std::vector<string_utf8>;
 

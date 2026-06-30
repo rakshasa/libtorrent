@@ -6,9 +6,9 @@
 #include <torrent/net/types.h>
 #include <torrent/peer/client_info.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT PeerInfo {
+class PeerInfo {
 public:
   friend class ConnectionList;
   friend class Handshake;
@@ -81,7 +81,7 @@ protected:
   char*               mutable_id_hex()                      { return m_id_hex; }
   ClientInfo&         mutable_client_info()                 { return m_clientInfo; }
 
-  void                set_port(uint16_t port) LIBTORRENT_NO_EXPORT;
+  void                set_port(uint16_t port);
   void                set_listen_port(uint16_t port)        { m_listenPort = port; }
 
   char*               set_options()                         { return m_options; }

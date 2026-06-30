@@ -5,15 +5,13 @@
 #include <mutex>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class TrackerDht;
 
-} // namespace torrent
+namespace tracker {
 
-namespace torrent::tracker {
-
-class LIBTORRENT_EXPORT DhtController {
+class DhtController {
 public:
   struct statistics_type {
     // Cycle; 0=inactive, 1=initial bootstrapping, 2 and up=normal operation
@@ -85,4 +83,6 @@ private:
 
 } // namespace torrent::tracker
 
-#endif // LIBTORRENT_TRACKER_DHT_CONTROLLER_H
+} // namespace torrent
+
+#endif

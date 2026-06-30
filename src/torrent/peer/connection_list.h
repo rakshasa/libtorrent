@@ -8,7 +8,7 @@
 #include <torrent/common.h>
 #include <torrent/hash_string.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class AddressList;
 class Bitfield;
@@ -21,7 +21,7 @@ class ProtocolExtension;
 class EncryptionInfo;
 class HandshakeManager;
 
-class LIBTORRENT_EXPORT ConnectionList : private std::vector<Peer*> {
+class ConnectionList : private std::vector<Peer*> {
 public:
   friend class DownloadMain;
   friend class DownloadWrapper;
@@ -95,7 +95,7 @@ public:
 
 protected:
   // Does not do the usual cleanup done by 'erase'.
-  void                clear() LIBTORRENT_NO_EXPORT;
+  void                clear();
 
   bool                want_connection(PeerInfo* p, Bitfield* bitfield);
 
@@ -103,9 +103,9 @@ protected:
   // responsible for cleaning up 'fd'.
   //
   // Clean this up, don't use this many arguments.
-  PeerConnectionBase* insert(PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) LIBTORRENT_NO_EXPORT;
+  PeerConnectionBase* insert(PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
 
-  void                disconnect_queued() LIBTORRENT_NO_EXPORT;
+  void                disconnect_queued();
 
 private:
   DownloadMain*       m_download;

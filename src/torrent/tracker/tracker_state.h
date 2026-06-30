@@ -6,7 +6,7 @@
 
 class TrackerTest;
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class TrackerDht;
 class TrackerHttp;
@@ -39,7 +39,7 @@ private:
   uint32_t             scrape_counter{};
 };
 
-class LIBTORRENT_EXPORT TrackerState {
+class TrackerState {
 public:
   enum event_enum {
     EVENT_NONE,

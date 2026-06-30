@@ -3,35 +3,39 @@
 
 #include <torrent/common.h>
 
-namespace torrent::runtime {
+namespace RTORRENT_EXPORT torrent {
+
+namespace runtime {
 
 class ProxyManager;
 
-bool                is_shutting_down() LIBTORRENT_EXPORT;
-bool                is_quick_shutting_down() LIBTORRENT_EXPORT;
+bool                is_shutting_down();
+bool                is_quick_shutting_down();
 
-void                shutdown() LIBTORRENT_EXPORT;
-void                quick_shutdown() LIBTORRENT_EXPORT;
+void                shutdown();
+void                quick_shutdown();
 
-NetworkConfig*      network_config() LIBTORRENT_EXPORT;
+NetworkConfig*      network_config();
 
-NetworkManager*     network_manager() LIBTORRENT_EXPORT;
-SocketManager*      socket_manager() LIBTORRENT_EXPORT;
-ProxyManager*       proxy_manager() LIBTORRENT_EXPORT;
+NetworkManager*     network_manager();
+SocketManager*      socket_manager();
+ProxyManager*       proxy_manager();
 
-const char*         version() LIBTORRENT_EXPORT;
+const char*         version();
 
-uint16_t            listen_port() LIBTORRENT_EXPORT;
+uint16_t            listen_port();
 
 
 // Must be called from main thread:
 
 // TODO: Move
-void                dht_add_peer_node(const sockaddr* sa, uint16_t port) LIBTORRENT_EXPORT;
+void                dht_add_peer_node(const sockaddr* sa, uint16_t port);
 
 // TODO: Move to network/socket_manager?
-uint32_t            total_handshakes() LIBTORRENT_EXPORT;
+uint32_t            total_handshakes();
 
 } // namespace torrent::runtime
+
+} // namespace torrent
 
 #endif

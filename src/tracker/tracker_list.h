@@ -12,7 +12,7 @@
 
 struct TestTrackerListWrapper;
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 // The tracker list will contain a list of tracker, divided into subgroups.
 //
@@ -24,7 +24,7 @@ namespace torrent {
 // Upon request success move the tracker to the beginning of the subgroup and start from the
 // beginning of the whole list.
 
-class LIBTORRENT_EXPORT TrackerList : private std::vector<tracker::Tracker> {
+class TrackerList : private std::vector<tracker::Tracker> {
 public:
   using base_type = std::vector<tracker::Tracker>;
 

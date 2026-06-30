@@ -18,9 +18,11 @@
 // File and other socket types that do not unexpectedly get closed by the kernel do not need to be
 // managed.
 
-namespace torrent::runtime {
+namespace RTORRENT_EXPORT torrent {
 
-SocketManager* socket_manager() LIBTORRENT_EXPORT;
+namespace runtime {
+
+SocketManager* socket_manager();
 
 // Categories of allocated sockets within the global pool.
 //
@@ -49,7 +51,7 @@ struct SocketInfo {
   socket_manager_category_t category{};
 };
 
-class LIBTORRENT_EXPORT SocketManager {
+class SocketManager {
 public:
   static constexpr uint32_t category_count     = 5;
   static constexpr uint32_t category_max_alloc = 1000000;
@@ -159,7 +161,8 @@ private:
 inline auto& SocketManager::managed_size_unsafe(category_t category) { return m_category_managed_size[static_cast<uint32_t>(category)]; }
 inline auto& SocketManager::max_size_unsafe(category_t category)     { return m_category_max_size[static_cast<uint32_t>(category)]; }
 
-
 } // namespace torrent::runtime
+
+} // namespace torrent
 
 #endif // LIBTORRENT_TORRENT_RUNTIME_SOCKET_MANAGER_H

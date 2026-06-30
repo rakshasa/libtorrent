@@ -10,11 +10,13 @@
 #include <sys/types.h>
 #include <torrent/common.h>
 
-namespace torrent::system {
+namespace RTORRENT_EXPORT torrent {
+
+namespace system {
 
 class ThreadInternal;
 
-class LIBTORRENT_EXPORT Thread {
+class Thread {
 public:
   using pthread_func = void* (*)(void*);
 
@@ -151,5 +153,7 @@ inline void Thread::callback_interrupt(std::function<void ()>&& fn)             
 inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(true, id, std::move(fn)); }
 
 } // namespace torrent::system
+
+} // namespace torrent
 
 #endif

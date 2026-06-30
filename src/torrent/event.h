@@ -5,14 +5,14 @@
 #include <torrent/common.h>
 #include <torrent/net/types.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 namespace system {
 class PollEvent;
 class PollInternal;
 }
 
-class LIBTORRENT_EXPORT Event {
+class Event {
 public:
   virtual             ~Event();
 

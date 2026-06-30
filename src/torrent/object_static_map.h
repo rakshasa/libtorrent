@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <torrent/object.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 struct static_map_mapping_type {
   static constexpr size_t max_key_size = 16;
@@ -72,7 +72,7 @@ using static_map_key_search_result = std::pair<const static_map_mapping_type*, u
 // 'key_last'.
 static_map_key_search_result
 find_key_match(const static_map_mapping_type* first, const static_map_mapping_type* last,
-               const char* key_first, const char* key_last) LIBTORRENT_EXPORT;
+               const char* key_first, const char* key_last);
 
 inline static_map_key_search_result
 find_key_match(const static_map_mapping_type* first, const static_map_mapping_type* last,

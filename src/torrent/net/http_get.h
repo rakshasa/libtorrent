@@ -8,13 +8,15 @@
 #include <thread>
 #include <torrent/common.h>
 
-namespace torrent::net {
+namespace RTORRENT_EXPORT torrent {
+
+namespace net {
 
 class CurlGet;
 class CurlStack;
 class HttpStack;
 
-class LIBTORRENT_EXPORT HttpGet {
+class HttpGet {
 public:
   HttpGet();
   HttpGet(std::string url, std::shared_ptr<std::ostream> stream);
@@ -85,4 +87,6 @@ HttpGet::operator==(const HttpGet& other) const {
 
 } // namespace torrent::net
 
-#endif // TORRENT_NET_HTTP_GET_H
+} // namespace torrent
+
+#endif

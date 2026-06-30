@@ -10,12 +10,12 @@
 // TODO: Separate out resource_manager_entry.
 #include <torrent/download/resource_manager.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class choke_queue;
 class resource_manager_entry;
 
-class LIBTORRENT_EXPORT choke_group {
+class choke_group {
 public:
   enum tracker_mode_enum {
     TRACKER_MODE_NORMAL,

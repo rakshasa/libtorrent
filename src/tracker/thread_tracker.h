@@ -4,7 +4,7 @@
 #include "torrent/common.h"
 #include "torrent/system/thread.h"
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 namespace tracker {
 
@@ -13,7 +13,7 @@ class UdpRouter;
 
 } // namespace tracker
 
-class LIBTORRENT_EXPORT ThreadTracker : public system::Thread {
+class ThreadTracker : public system::Thread {
 public:
   ~ThreadTracker() override;
 

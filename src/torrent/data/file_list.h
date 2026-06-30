@@ -124,33 +124,33 @@ protected:
   static constexpr int open_no_create        = (1 << 0);
   static constexpr int open_require_all_open = (1 << 1);
 
-  void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
+  void                initialize(uint64_t torrentSize, uint32_t chunkSize);
 
-  void                open(bool hashing, int flags) LIBTORRENT_NO_EXPORT;
-  void                close() LIBTORRENT_NO_EXPORT;
-  void                close_all_files() LIBTORRENT_NO_EXPORT;
+  void                open(bool hashing, int flags);
+  void                close();
+  void                close_all_files();
 
   download_data*      mutable_data()                                   { return &m_data; }
 
   // Before calling this function, make sure you clear errno. If
   // creating the chunk failed, NULL is returned and errno is set.
-  Chunk*              create_chunk_index(uint32_t index, int prot) LIBTORRENT_NO_EXPORT;
-  Chunk*              create_hashing_chunk_index(uint32_t index, int prot) LIBTORRENT_NO_EXPORT;
+  Chunk*              create_chunk_index(uint32_t index, int prot);
+  Chunk*              create_hashing_chunk_index(uint32_t index, int prot);
 
-  void                mark_completed(uint32_t index) LIBTORRENT_NO_EXPORT;
-  iterator            inc_completed(iterator firstItr, uint32_t index) LIBTORRENT_NO_EXPORT;
-  void                update_completed() LIBTORRENT_NO_EXPORT;
+  void                mark_completed(uint32_t index);
+  iterator            inc_completed(iterator firstItr, uint32_t index);
+  void                update_completed();
 
   // Used for meta downloads; we only know the
   // size after the first extension handshake.
-  void                reset_filesize(int64_t) LIBTORRENT_NO_EXPORT;
+  void                reset_filesize(int64_t);
 
 private:
-  bool                open_file(File* node, const Path& lastPath, bool hashing, int flags) LIBTORRENT_NO_EXPORT;
-  void                make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) LIBTORRENT_NO_EXPORT;
+  bool                open_file(File* node, const Path& lastPath, bool hashing, int flags);
+  void                make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr);
 
-  Chunk*              create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot) LIBTORRENT_NO_EXPORT;
-  MemoryChunk         create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) const LIBTORRENT_NO_EXPORT;
+  Chunk*              create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot);
+  MemoryChunk         create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) const;
 
   download_data       m_data;
 

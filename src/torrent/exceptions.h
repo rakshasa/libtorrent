@@ -11,16 +11,16 @@
 #include <string>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 // All exceptions inherit from std::exception to make catching
 // everything libtorrent related at the root easier.
-class LIBTORRENT_EXPORT base_error : public std::exception {
+class base_error : public std::exception {
 };
 
 // The library or application did some borking it shouldn't have, bug
 // tracking time!
-class LIBTORRENT_EXPORT internal_error : public base_error {
+class internal_error : public base_error {
 public:
   internal_error(const char* msg)        { initialize(msg); }
   internal_error(const char* msg, const std::string& context);
@@ -42,10 +42,10 @@ private:
 
 // For some reason we couldn't talk with a protocol/tracker, migth be a
 // library bug, connection problem or bad input.
-class LIBTORRENT_EXPORT network_error : public base_error {
+class network_error : public base_error {
 };
 
-class LIBTORRENT_EXPORT communication_error : public network_error {
+class communication_error : public network_error {
 public:
   communication_error(const char* msg)        { initialize(msg); }
   communication_error(const std::string& msg) { initialize(msg); }
@@ -59,7 +59,7 @@ private:
   std::string m_msg;
 };
 
-class LIBTORRENT_EXPORT connection_error : public network_error {
+class connection_error : public network_error {
 public:
   connection_error(int err) : m_errno(err) {}
 
@@ -71,7 +71,7 @@ private:
   int m_errno;
 };
 
-class LIBTORRENT_EXPORT address_info_error : public network_error {
+class address_info_error : public network_error {
 public:
   address_info_error(int err) : m_errno(err) {}
 
@@ -83,17 +83,17 @@ private:
   int m_errno;
 };
 
-class LIBTORRENT_EXPORT close_connection : public network_error {
+class close_connection : public network_error {
 };
 
-class LIBTORRENT_EXPORT blocked_connection : public network_error {
+class blocked_connection : public network_error {
 };
 
 // Stuff like bad torrent file, disk space and permissions.
-class LIBTORRENT_EXPORT local_error : public base_error {
+class local_error : public base_error {
 };
 
-class LIBTORRENT_EXPORT storage_error : public local_error {
+class storage_error : public local_error {
 public:
   storage_error(const char* msg)       { initialize(msg); }
   storage_error(const std::string& msg) { initialize(msg); }
@@ -107,7 +107,7 @@ private:
   std::string m_msg;
 };
 
-class LIBTORRENT_EXPORT resource_error : public local_error {
+class resource_error : public local_error {
 public:
   resource_error(const char* msg) { initialize(msg); }
   resource_error(const std::string& msg) { initialize(msg); }
@@ -121,7 +121,7 @@ private:
   std::string m_msg;
 };
 
-class LIBTORRENT_EXPORT input_error : public local_error {
+class input_error : public local_error {
 public:
   input_error(const char* msg) { initialize(msg); }
   input_error(const std::string& msg) { initialize(msg); }
@@ -135,12 +135,12 @@ private:
   std::string m_msg;
 };
 
-class LIBTORRENT_EXPORT bencode_error : public input_error {
+class bencode_error : public input_error {
 public:
   using input_error::input_error;
 };
 
-class LIBTORRENT_EXPORT shutdown_exception : public base_error {
+class shutdown_exception : public base_error {
 };
 
 } // namespace torrent

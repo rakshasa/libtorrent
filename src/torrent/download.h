@@ -10,7 +10,7 @@
 #include <torrent/peer/peer.h>
 #include <torrent/tracker/wrappers.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class ConnectionList;
 class DownloadInfo;
@@ -20,7 +20,7 @@ class download_data;
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
 
-class LIBTORRENT_EXPORT Download {
+class Download {
 public:
   static constexpr uint32_t numwanted_diabled = ~uint32_t();
 

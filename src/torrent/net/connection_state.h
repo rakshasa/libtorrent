@@ -3,9 +3,11 @@
 
 #include <torrent/net/types.h>
 
-namespace torrent::net {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT ConnectionState {
+namespace net {
+
+class ConnectionState {
 public:
 
   int                 current_family() const                  { return m_current_family; }
@@ -29,25 +31,12 @@ private:
 
   int                 m_failures_inet{0};
   int                 m_failures_inet6{0};
-
-
-
-  // c_sa_shared_ptr     m_bind_address;
-
-  // has connected to inet/inet6
-
-  // int                 m_attempts{0};
-  // int                 m_successes{0};
-  // int                 m_failures{0};
-
-  // int                 m_last_family{AF_UNSPEC};
-
-  // bool                m_failed{false};
-
 };
 
 int select_next_address_family(ConnectionState& state);
 
 } // namespace torrent::net
+
+} // namespace torrent
 
 #endif

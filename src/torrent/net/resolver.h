@@ -7,9 +7,11 @@
 #include <torrent/common.h>
 #include <torrent/net/types.h>
 
-namespace torrent::net {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT Resolver {
+namespace net {
+
+class Resolver {
 public:
   using both_callback   = std::function<void(c_sin_shared_ptr, int, c_sin6_shared_ptr, int)>;
   using single_callback = std::function<void(c_sa_shared_ptr, int)>;
@@ -37,5 +39,7 @@ private:
 };
 
 } // namespace torrent::net
+
+} // namespace torrent
 
 #endif

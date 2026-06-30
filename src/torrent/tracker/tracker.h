@@ -9,15 +9,14 @@
 
 class TrackerTest;
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
+
 class ThreadTracker;
-} // namespace torrent
 
-namespace torrent::tracker {
+namespace tracker {
 
-class LIBTORRENT_EXPORT Tracker {
+class Tracker {
 public:
-
   bool                is_valid() const { return m_worker != nullptr; }
 
   bool                is_enabled() const;
@@ -74,5 +73,7 @@ private:
 };
 
 } // namespace torrent::tracker
+
+} // namespace torrent
 
 #endif

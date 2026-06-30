@@ -12,11 +12,12 @@ struct sockaddr_in;
 struct sockaddr_in6;
 struct sockaddr_un;
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
+
 
 namespace net {
 
-void sa_free(const sockaddr* sa) LIBTORRENT_EXPORT;
+void sa_free(const sockaddr* sa);
 
 struct sockaddr_deleter {
   constexpr sockaddr_deleter() noexcept = default;
@@ -24,7 +25,16 @@ struct sockaddr_deleter {
   void operator()(const sockaddr* sa) const { net::sa_free(sa); }
 };
 
+namespace proxy {
+
+class Proxy;
+
+} // namespace torrent::net::proxy
+
+using proxy_ptr = std::unique_ptr<proxy::Proxy>;
+
 } // namespace torrent::net
+
 
 using sa_unique_ptr   = std::unique_ptr<sockaddr, net::sockaddr_deleter>;
 using sin_unique_ptr  = std::unique_ptr<sockaddr_in>;
@@ -64,18 +74,6 @@ union sa_inet_union {
   sockaddr     sa;
 };
 
-namespace net {
-
-namespace proxy {
-
-class Proxy;
-
-} // namespace torrent::net::proxy
-
-using proxy_ptr = std::unique_ptr<proxy::Proxy>;
-
-} // namespace torrent::net
-
 //
 // Helper functions:
 //
@@ -83,25 +81,25 @@ using proxy_ptr = std::unique_ptr<proxy::Proxy>;
 // TODO: Move to a separate header file.
 // TODO: Rename sa_lookup_address.
 
-c_sa_shared_ptr                sa_lookup_address(const std::string& address_str, int family) LIBTORRENT_EXPORT;
-std::tuple<sa_unique_ptr,bool> sa_lookup_numeric(const std::string& address_str, int family) LIBTORRENT_EXPORT;
+c_sa_shared_ptr                sa_lookup_address(const std::string& address_str, int family);
+std::tuple<sa_unique_ptr,bool> sa_lookup_numeric(const std::string& address_str, int family);
 
-sin46_shared_pair   try_lookup_numeric(const std::string& hostname, int family) LIBTORRENT_EXPORT;
+sin46_shared_pair   try_lookup_numeric(const std::string& hostname, int family);
 
 // TODO: Rename to family_enum and add family_enum_str.
-const char*         family_str(int family) LIBTORRENT_EXPORT;
+const char*         family_str(int family);
 inline std::string  family_enum_str(int family) { return family_str(family); }
 
 namespace net {
 
-bool                                verify_url_guess_scheme(const std::string& url) LIBTORRENT_EXPORT;
-bool                                verify_no_path_query_fragment(const std::string& url) LIBTORRENT_EXPORT;
+bool                                verify_url_guess_scheme(const std::string& url);
+bool                                verify_no_path_query_fragment(const std::string& url);
 
-std::string                         parse_uri_scheme(const std::string& url) LIBTORRENT_EXPORT;
-std::pair<std::string, uint16_t>    parse_uri_host_port(const std::string& uri) LIBTORRENT_EXPORT;
-std::pair<std::string, std::string> parse_uri_user_password(const std::string& uri) LIBTORRENT_EXPORT;
+std::string                         parse_uri_scheme(const std::string& url);
+std::pair<std::string, uint16_t>    parse_uri_host_port(const std::string& uri);
+std::pair<std::string, std::string> parse_uri_user_password(const std::string& uri);
 
-} // namespace net
+} // namespace torrent::net
 
 } // namespace torrent
 

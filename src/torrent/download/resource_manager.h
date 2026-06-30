@@ -6,7 +6,7 @@
 #include <cinttypes>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 // This class will handle the division of various resources like
 // uploads. For now the weight is equal to the value of the priority.
@@ -22,7 +22,7 @@ class DownloadMain;
 class Rate;
 class ResourceManager;
 
-class LIBTORRENT_EXPORT resource_manager_entry {
+class resource_manager_entry {
 public:
   friend class ResourceManager;
 
@@ -50,7 +50,7 @@ private:
 };
 
 
-class LIBTORRENT_EXPORT ResourceManager : private std::vector<resource_manager_entry> {
+class ResourceManager : private std::vector<resource_manager_entry> {
 public:
   using base_type        = std::vector<resource_manager_entry>;
   using value_type       = base_type::value_type;

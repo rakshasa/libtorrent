@@ -4,9 +4,11 @@
 #include <mutex>
 #include <torrent/net/types.h>
 
-namespace torrent::runtime {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT ProxyManager {
+namespace runtime {
+
+class ProxyManager {
 public:
   // Currently not needed, use if we allow hostnames in the future.
   // static constexpr uint32_t max_proxy/connect_url_length = 256;
@@ -44,12 +46,14 @@ private:
   create_proxy_func   m_create_proxy;
 };
 
-ProxyManager* proxy_manager() LIBTORRENT_EXPORT;
+ProxyManager* proxy_manager();
 
 inline std::string ProxyManager::proxy_url()            { return m_proxy_url; }
 inline std::string ProxyManager::http_proxy_url()       { return m_http_proxy_url; }
 inline auto        ProxyManager::lock_guard()           { return std::scoped_lock(m_mutex); }
 
-} // namespace torrent::net::proxy
+} // namespace torrent::runtime
+
+} // namespace torrent
 
 #endif

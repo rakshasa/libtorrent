@@ -10,7 +10,7 @@
 #include <torrent/hash_string.h>
 #include <torrent/types/string_utf8.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class FileList;
 class DownloadMain;
@@ -20,7 +20,7 @@ class DownloadMain;
 // TODO: Split into DownloadInfo and DownloadState.
 // TODO: Rename 'hash' to 'info_hash'.
 
-class LIBTORRENT_EXPORT DownloadInfo {
+class DownloadInfo {
 public:
   using slot_stat_type = std::function<uint64_t()>;
 

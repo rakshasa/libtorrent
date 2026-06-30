@@ -97,10 +97,10 @@ public:
   static void               release(BlockTransfer* transfer);
 private:
 
-  void                      invalidate_transfer(BlockTransfer* transfer) LIBTORRENT_NO_EXPORT;
+  void                      invalidate_transfer(BlockTransfer* transfer);
 
-  void                      remove_erased_transfers() LIBTORRENT_NO_EXPORT;
-  void                      remove_non_leader_transfers() LIBTORRENT_NO_EXPORT;
+  void                      remove_erased_transfers();
+  void                      remove_non_leader_transfers();
 
   BlockList*                m_parent{};
   Piece                     m_piece;

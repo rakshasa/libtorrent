@@ -5,43 +5,43 @@
 #include <string>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class raw_string;
 
-std::string object_sha1(const Object* object) LIBTORRENT_EXPORT;
+std::string object_sha1(const Object* object);
 
-raw_string  object_read_bencode_c_string(const char* first, const char* last) LIBTORRENT_EXPORT;
+raw_string  object_read_bencode_c_string(const char* first, const char* last);
 
 // Assumes the stream's locale has been set to POSIX or C.  Max depth
 // is 1024, this ensures files consisting of only 'l' don't segfault
 // the client.
-void        object_read_bencode(std::istream* input, Object* object, uint32_t depth = 0) LIBTORRENT_EXPORT;
-const char* object_read_bencode_c(const char* first, const char* last, Object* object, uint32_t depth = 0) LIBTORRENT_EXPORT;
-const char* object_read_bencode_skip_c(const char* first, const char* last) LIBTORRENT_EXPORT;
+void        object_read_bencode(std::istream* input, Object* object, uint32_t depth = 0);
+const char* object_read_bencode_c(const char* first, const char* last, Object* object, uint32_t depth = 0);
+const char* object_read_bencode_skip_c(const char* first, const char* last);
 
-std::istream& operator >> (std::istream& input, Object& object) LIBTORRENT_EXPORT;
-std::ostream& operator << (std::ostream& output, const Object& object) LIBTORRENT_EXPORT;
+std::istream& operator >> (std::istream& input, Object& object);
+std::ostream& operator << (std::ostream& output, const Object& object);
 
 // object_buffer_t contains the start and end of the buffer.
 using object_buffer_t = std::pair<char*, char*>;
 using object_write_t  = object_buffer_t (*)(void* data, object_buffer_t buffer);
 
 // Assumes the stream's locale has been set to POSIX or C.
-void            object_write_bencode(std::ostream* output, const Object* object, uint32_t skip_mask = 0) LIBTORRENT_EXPORT;
-object_buffer_t object_write_bencode(char* first, char* last, const Object* object, uint32_t skip_mask = 0) LIBTORRENT_EXPORT;
+void            object_write_bencode(std::ostream* output, const Object* object, uint32_t skip_mask = 0);
+object_buffer_t object_write_bencode(char* first, char* last, const Object* object, uint32_t skip_mask = 0);
 object_buffer_t object_write_bencode_c(object_write_t writeFunc,
                                        void* data,
                                        object_buffer_t buffer,
                                        const Object* object,
-                                       uint32_t skip_mask = 0) LIBTORRENT_EXPORT;
+                                       uint32_t skip_mask = 0);
 
 // To char buffer. 'data' is NULL.
-object_buffer_t object_write_to_buffer(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
-object_buffer_t object_write_to_sha1(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
-object_buffer_t object_write_to_stream(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
+object_buffer_t object_write_to_buffer(void* data, object_buffer_t buffer);
+object_buffer_t object_write_to_sha1(void* data, object_buffer_t buffer);
+object_buffer_t object_write_to_stream(void* data, object_buffer_t buffer);
 // Measures bencode size, 'data' is uint64_t*.
-object_buffer_t object_write_to_size(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
+object_buffer_t object_write_to_size(void* data, object_buffer_t buffer);
 
 //
 // static_map operations:
@@ -73,7 +73,7 @@ static_map_read_bencode_c(const char* first,
                          const char* last,
                          static_map_entry_type* entry_values,
                          const static_map_mapping_type* first_key,
-                         const static_map_mapping_type* last_key) LIBTORRENT_EXPORT;
+                         const static_map_mapping_type* last_key);
 
 object_buffer_t
 static_map_write_bencode_c_wrap(object_write_t writeFunc,
@@ -81,7 +81,7 @@ static_map_write_bencode_c_wrap(object_write_t writeFunc,
                                object_buffer_t buffer,
                                const static_map_entry_type* entry_values,
                                const static_map_mapping_type* first_key,
-                               const static_map_mapping_type* last_key) LIBTORRENT_EXPORT;
+                               const static_map_mapping_type* last_key);
 
 } // namespace torrent
 

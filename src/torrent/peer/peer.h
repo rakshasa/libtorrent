@@ -4,7 +4,7 @@
 #include <string>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class PeerConnectionBase;
 
@@ -16,7 +16,7 @@ class PeerConnectionBase;
 // listen to the appropriate signals from the download to keep up to
 // date.
 
-class LIBTORRENT_EXPORT Peer {
+class Peer {
 public:
   virtual ~Peer();
   Peer(const Peer&) = delete;

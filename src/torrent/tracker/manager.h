@@ -1,5 +1,3 @@
-// Thread-safe manager for all trackers loaded by the client.
-
 #ifndef LIBTORRENT_TRACKER_MANAGER_H
 #define LIBTORRENT_TRACKER_MANAGER_H
 
@@ -9,13 +7,15 @@
 #include <torrent/tracker/tracker.h>
 #include <torrent/tracker/wrappers.h>
 
-namespace torrent {
+// Thread-safe manager for all trackers loaded by the client.
+
+namespace RTORRENT_EXPORT torrent {
+
 class TrackerWorker;
-}
 
-namespace torrent::tracker {
+namespace tracker {
 
-class LIBTORRENT_EXPORT Manager {
+class Manager {
 public:
   Manager();
   ~Manager();
@@ -26,9 +26,6 @@ protected:
   friend class torrent::TrackerList;
   friend class torrent::TrackerWorker;
   friend class torrent::ThreadTracker;
-
-  // TODO: Add flag to indicate we're shutting down, and delete all disownable trackers.
-
 
   // Main thread:
 
@@ -63,4 +60,6 @@ private:
 
 } // namespace torrent::tracker
 
-#endif // LIBTORRENT_TRACKER_MANAGER_H
+} // namespace torrent
+
+#endif

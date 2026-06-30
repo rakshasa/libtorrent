@@ -12,7 +12,7 @@ namespace torrent {
 
 Runtime* g_runtime{};
 
-namespace runtime {
+namespace RTORRENT_EXPORT runtime {
 
 bool             is_initialized()         { return g_runtime->is_initialized(); }
 bool             is_shutting_down()       { return g_runtime->is_shutdown_called(); }
@@ -28,6 +28,7 @@ SocketManager*   socket_manager()         { return g_runtime->socket_manager(); 
 ProxyManager*    proxy_manager()          { return g_runtime->proxy_manager(); }
 
 } // namespace runtime
+
 
 Runtime::Runtime()
   : m_network_config(new runtime::NetworkConfig),

@@ -7,7 +7,7 @@
 
 #include <torrent/event.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 struct watch_descriptor {
   using slot_string = std::function<void(const std::string&)>;
@@ -19,7 +19,7 @@ struct watch_descriptor {
   slot_string slot;
 };
 
-class LIBTORRENT_EXPORT directory_events : public Event {
+class directory_events : public Event {
 public:
   static constexpr int flag_on_added   = 0x1;
   static constexpr int flag_on_removed = 0x2;

@@ -12,9 +12,11 @@
 
 // TODO: Rename to TrackerController when torrent::TrackerController is moved.
 
-namespace torrent::tracker {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT TrackerControllerWrapper {
+namespace tracker {
+
+class TrackerControllerWrapper {
 public:
   using ptr_type          = std::shared_ptr<TrackerController>;
   using slot_string       = std::function<void(const std::string&)>;
@@ -108,4 +110,6 @@ TrackerControllerWrapper::operator<(const TrackerControllerWrapper& rhs) const {
 
 } // namespace torrent::tracker
 
-#endif // LIBTORRENT_TRACKER_TRACKER_WRAPPER_H
+} // namespace torrent
+
+#endif

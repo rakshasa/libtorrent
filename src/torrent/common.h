@@ -21,14 +21,14 @@
   #define RTORRENT_NO_EXPORT
 #endif
 
-// This should only need to be set when compiling libtorrent.
-#ifdef SUPPORT_ATTRIBUTE_VISIBILITY
-  #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
-  #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
-#else
-  #define LIBTORRENT_NO_EXPORT
-  #define LIBTORRENT_EXPORT
-#endif
+// // This should only need to be set when compiling libtorrent.
+// #ifdef SUPPORT_ATTRIBUTE_VISIBILITY
+//   #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
+//   #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
+// #else
+//   #define LIBTORRENT_NO_EXPORT
+//   #define LIBTORRENT_EXPORT
+// #endif
 
 #define align_cacheline alignas(LT_SMP_CACHE_BYTES)
 
@@ -39,13 +39,20 @@ struct sockaddr_un;
 
 using namespace std::chrono_literals;
 
-namespace torrent {
+
+//
+// Common types and forward declarations.
+//
+
+namespace RTORRENT_EXPORT torrent {
+
 
 namespace system {
 
 using callback_id = std::shared_ptr<std::atomic<uint32_t>>;
 
 } // namespace system
+
 
 enum priority_enum {
   PRIORITY_OFF = 0,
@@ -146,7 +153,11 @@ class SchedulerEntry;
 } // namespace utils
 
 
-namespace RTORRENT_EXPORT this_thread {
+//
+// Thread helpers:
+//
+
+namespace this_thread {
 
 system::Thread*           thread();
 const char*               thread_name();

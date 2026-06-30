@@ -5,19 +5,19 @@
 #include <memory>
 #include <torrent/common.h>
 
-namespace torrent {
-class ThreadNet;
-}
+namespace RTORRENT_EXPORT torrent {
 
-namespace torrent::runtime {
+class ThreadNet;
+
+namespace runtime {
 class ProxyManager;
 }
 
-namespace torrent::net {
+namespace net {
 
 class CurlStack;
 
-class LIBTORRENT_EXPORT HttpStack {
+class HttpStack {
 public:
   HttpStack(system::Thread* thread);
   ~HttpStack();
@@ -73,4 +73,6 @@ private:
 
 } // namespace torrent::net
 
-#endif // TORRENT_NET_HTTP_GET_H
+} // namespace torrent
+
+#endif

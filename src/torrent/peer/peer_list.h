@@ -7,7 +7,7 @@
 #include <torrent/net/socket_address_key.h>
 #include <torrent/utils/extents.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class DownloadInfo;
 class ProtocolExtension;
@@ -15,7 +15,7 @@ class raw_string;
 
 using ipv4_table = extents<uint32_t, int>;
 
-class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, std::unique_ptr<PeerInfo>> {
+class PeerList : private std::multimap<socket_address_key, std::unique_ptr<PeerInfo>> {
 public:
   friend class DownloadWrapper;
   friend class Handshake;
@@ -58,7 +58,7 @@ public:
   PeerInfo*           insert_address(const sockaddr* address, int flags);
 
   // This will be used internally only for the moment.
-  uint32_t            insert_available(const void* al) LIBTORRENT_NO_EXPORT;
+  uint32_t            insert_available(const void* al);
 
   static ipv4_table*  ipv4_filter()     { return &m_ipv4_table; }
 
@@ -75,16 +75,16 @@ public:
 protected:
   friend class torrent::ProtocolExtension;
 
-  void                set_info(DownloadInfo* info) LIBTORRENT_NO_EXPORT;
+  void                set_info(DownloadInfo* info);
 
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
   // if no more connections are allowed from that host.
-  PeerInfo*           connected(const sockaddr* sa, int flags) LIBTORRENT_NO_EXPORT;
+  PeerInfo*           connected(const sockaddr* sa, int flags);
 
-  void                disconnected(PeerInfo* p, int flags) LIBTORRENT_NO_EXPORT;
-  iterator            disconnected(iterator itr, int flags) LIBTORRENT_NO_EXPORT;
+  void                disconnected(PeerInfo* p, int flags);
+  iterator            disconnected(iterator itr, int flags);
 
-  uint32_t            insert_pex_list(const raw_string& pex_list) LIBTORRENT_NO_EXPORT;
+  uint32_t            insert_pex_list(const raw_string& pex_list);
 
 private:
   PeerList(const PeerList&) = delete;

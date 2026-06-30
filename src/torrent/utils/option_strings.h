@@ -4,7 +4,7 @@
 #include <string>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class Object;
 
@@ -28,18 +28,18 @@ enum option_enum {
   OPTION_SINGLE_SIZE = OPTION_MAX_SIZE - OPTION_START_COMPACT
 };
 
-int             option_find_string(option_enum opt_enum, const char* name) LIBTORRENT_EXPORT;
+int             option_find_string(option_enum opt_enum, const char* name);
 inline int      option_find_string_str(option_enum opt_enum, const std::string& name) { return option_find_string(opt_enum, name.c_str()); }
 
-const char*     option_to_c_str(option_enum opt_enum, unsigned int value, const char* not_found = "invalid") LIBTORRENT_EXPORT;
-const char*     option_to_c_str_or_throw(option_enum opt_enum, unsigned int value, const char* not_found = "Invalid option value") LIBTORRENT_EXPORT;
+const char*     option_to_c_str(option_enum opt_enum, unsigned int value, const char* not_found = "invalid");
+const char*     option_to_c_str_or_throw(option_enum opt_enum, unsigned int value, const char* not_found = "Invalid option value");
 
 std::string     option_to_str(option_enum opt_enum, unsigned int value);
 std::string     option_to_str(option_enum opt_enum, unsigned int value, const char* not_found);
 std::string     option_to_str_or_throw(option_enum opt_enum, unsigned int value);
 std::string     option_to_str_or_throw(option_enum opt_enum, unsigned int value, const char* not_found);
 
-torrent::Object option_list_strings(option_enum opt_enum) LIBTORRENT_EXPORT;
+torrent::Object option_list_strings(option_enum opt_enum);
 
 //
 // Implementation:

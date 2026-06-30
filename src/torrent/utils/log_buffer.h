@@ -10,7 +10,7 @@
 
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 struct log_entry {
   log_entry(int32_t t, int32_t grp, std::string msg) :
@@ -25,7 +25,7 @@ struct log_entry {
   std::string message;
 };
 
-class LIBTORRENT_EXPORT log_buffer : private std::deque<log_entry> {
+class log_buffer : private std::deque<log_entry> {
 public:
   using base_type = std::deque<log_entry>;
   using slot_void = std::function<void()>;
@@ -65,7 +65,7 @@ private:
 
 typedef std::unique_ptr<log_buffer, std::function<void (log_buffer*)>> log_buffer_ptr;
 
-log_buffer_ptr log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
+log_buffer_ptr log_open_log_buffer(const char* name);
 
 } // namespace torrent
 

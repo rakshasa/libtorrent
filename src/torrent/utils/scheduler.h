@@ -8,7 +8,9 @@
 #include <vector>
 #include <torrent/common.h>
 
-namespace torrent::utils {
+namespace RTORRENT_EXPORT torrent {
+
+namespace utils {
 
 class SchedulerEntry;
 class Scheduler;
@@ -19,7 +21,7 @@ struct SchedulerHandle {
   std::chrono::microseconds time{};
 };
 
-class LIBTORRENT_EXPORT Scheduler {
+class Scheduler {
 public:
   using time_type = std::chrono::microseconds;
 
@@ -57,7 +59,7 @@ private:
   heap_type                    m_heap;
 };
 
-class LIBTORRENT_EXPORT SchedulerEntry {
+class SchedulerEntry {
 public:
   using slot_type = std::function<void()>;
   using time_type = std::chrono::microseconds;
@@ -85,7 +87,7 @@ private:
   SchedulerHandle*    m_handle{};
 };
 
-class LIBTORRENT_EXPORT ExternalScheduler : public Scheduler {
+class ExternalScheduler : public Scheduler {
 public:
   void                external_perform(time_type time)           { perform(time); }
 
@@ -95,4 +97,6 @@ public:
 
 } // namespace torrent::utils
 
-#endif // TORRENT_UTILS_SCHEDULER_H
+} // namespace torrent
+
+#endif

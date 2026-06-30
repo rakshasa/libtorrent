@@ -5,9 +5,9 @@
 #include <vector>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT TransferList : public std::vector<BlockList*> {
+class TransferList : public std::vector<BlockList*> {
 public:
   using base_type           = std::vector<BlockList*>;
   using completed_list_type = std::vector<std::pair<int64_t, uint32_t>>;

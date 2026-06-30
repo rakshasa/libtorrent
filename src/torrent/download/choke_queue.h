@@ -11,7 +11,7 @@
 #include <torrent/download/group_entry.h>
 #include <torrent/download/types.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class choke_status;
 class group_entry;
@@ -30,7 +30,7 @@ struct group_stats {
   unsigned int now_unchoked;
 };
 
-class LIBTORRENT_EXPORT choke_queue {
+class choke_queue {
 public:
   using slot_unchoke     = std::function<void(int)>;
   using slot_can_unchoke = std::function<int()>;

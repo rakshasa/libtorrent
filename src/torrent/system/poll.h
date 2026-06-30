@@ -5,12 +5,14 @@
 #include <vector>
 #include <torrent/common.h>
 
-namespace torrent::system {
+namespace RTORRENT_EXPORT torrent {
+
+namespace system {
 
 class PollEvent;
 class PollInternal;
 
-class LIBTORRENT_EXPORT Poll {
+class Poll {
 public:
   static std::unique_ptr<Poll> create();
 
@@ -76,6 +78,8 @@ private:
 
   align_cacheline std::atomic<int> m_polling_state{};
 };
+
+} // namespace torrent::system
 
 } // namespace torrent
 

@@ -9,9 +9,9 @@
 #include <iterator>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT HashString {
+class HashString {
 public:
   using value_type             = char;
   using reference              = value_type&;

@@ -75,7 +75,7 @@ operator !=(const FileListIterator& left, const FileListIterator& right) {
 // Take a range as input and return the next entry at the same
 // directory depth as first. If the returned iterator equals 'last' or
 // is_leaving() == true then the search failed.
-class LIBTORRENT_EXPORT file_list_collapsed_iterator : private FileListIterator {
+class file_list_collapsed_iterator : private FileListIterator {
 public:
   using base_type = FileListIterator;
   using this_type = file_list_collapsed_iterator;

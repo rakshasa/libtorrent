@@ -12,7 +12,7 @@
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print_subsystem(torrent::LOG_DHT_CONTROLLER, "dht_controller", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(::torrent::LOG_DHT_CONTROLLER, "dht_controller", log_fmt, __VA_ARGS__);
 
 namespace torrent::tracker {
 
@@ -58,7 +58,7 @@ DhtController::initialize(const Object& dht_cache) {
   try {
     m_router = std::make_unique<DhtRouter>(dht_cache);
 
-  } catch (const torrent::local_error& e) {
+  } catch (const local_error& e) {
     LT_LOG("initialization failed : %s", e.what());
   }
 }
@@ -81,7 +81,7 @@ DhtController::start() {
     m_router->start(port);
     m_port = port;
 
-  } catch (const torrent::local_error& e) {
+  } catch (const local_error& e) {
     LT_LOG("start failed : %s", e.what());
     return false;
   }

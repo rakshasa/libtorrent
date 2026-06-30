@@ -4,7 +4,7 @@
 #include <mutex>
 #include <torrent/net/types.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class Manager;
 
@@ -16,9 +16,9 @@ class Proxy;
 
 namespace torrent::runtime {
 
-NetworkManager* network_manager() LIBTORRENT_EXPORT;
+NetworkManager* network_manager();
 
-class LIBTORRENT_EXPORT NetworkManager {
+class NetworkManager {
 public:
   NetworkManager();
   ~NetworkManager();

@@ -4,15 +4,15 @@
 #include <torrent/common.h>
 #include <torrent/data/file_list.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 // Split 'position' into 'maxSize' sized files and return the iterator
 // after the last new entry.
 FileList::iterator
-file_split(FileList* fileList, FileList::iterator position, uint64_t maxSize, const std::string& suffix) LIBTORRENT_EXPORT;
+file_split(FileList* fileList, FileList::iterator position, uint64_t maxSize, const std::string& suffix);
 
 void
-file_split_all(FileList* fileList, uint64_t maxSize, const std::string& suffix) LIBTORRENT_EXPORT;
+file_split_all(FileList* fileList, uint64_t maxSize, const std::string& suffix);
 
 } // namespace torrent
 

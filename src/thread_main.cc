@@ -14,7 +14,7 @@
 
 namespace torrent {
 
-namespace main_thread {
+namespace RTORRENT_EXPORT main_thread {
 
 system::Thread* thread()                                                                 { return ThreadMain::thread_base(); }
 std::thread::id thread_id()                                                              { return ThreadMain::thread_base()->thread_id(); }
@@ -33,6 +33,7 @@ void            set_client_callback(std::function<void()> fn)                   
 uint32_t        hash_queue_size()                                                        { return ThreadMain::thread_main()->hash_queue()->size(); }
 
 } // namespace main_thread
+
 
 ThreadMain*     ThreadMain::m_thread_main{};
 system::Thread* ThreadMain::m_thread_base{};

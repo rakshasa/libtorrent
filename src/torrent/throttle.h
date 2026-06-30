@@ -3,12 +3,12 @@
 
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class ThrottleList;
 class ThrottleInternal;
 
-class LIBTORRENT_EXPORT Throttle {
+class Throttle {
 public:
   static Throttle*    create_throttle();
   static void         destroy_throttle(Throttle* throttle);
@@ -32,9 +32,9 @@ protected:
   ThrottleInternal*       m_ptr()       { return reinterpret_cast<ThrottleInternal*>(this); }
   const ThrottleInternal* c_ptr() const { return reinterpret_cast<const ThrottleInternal*>(this); }
 
-  uint32_t            calculate_min_chunk_size() const LIBTORRENT_NO_EXPORT;
-  uint32_t            calculate_max_chunk_size() const LIBTORRENT_NO_EXPORT;
-  uint32_t            calculate_interval() const LIBTORRENT_NO_EXPORT;
+  uint32_t            calculate_min_chunk_size() const;
+  uint32_t            calculate_max_chunk_size() const;
+  uint32_t            calculate_interval() const;
 
   uint64_t            m_maxRate;
 

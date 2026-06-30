@@ -7,13 +7,15 @@
 #include <netinet/ip.h>
 #include <torrent/net/types.h>
 
-namespace torrent::runtime {
+namespace RTORRENT_EXPORT torrent {
+
+namespace runtime {
 
 class ProxyManager;
 
-NetworkConfig* network_config() LIBTORRENT_EXPORT;
+NetworkConfig* network_config();
 
-class LIBTORRENT_EXPORT NetworkConfig {
+class NetworkConfig {
 public:
   // TODO: Remove.
   static constexpr int      iptos_default               = 0;
@@ -184,5 +186,7 @@ private:
 };
 
 } // namespace torrent::config
+
+} // namespace torrent
 
 #endif

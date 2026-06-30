@@ -13,11 +13,13 @@
 #include "torrent/system/callbacks.h"
 #include "torrent/system/thread.h"
 
-namespace torrent::net {
+namespace torrent {
+
+namespace net {
 
 void
 Resolver::init() {
-  m_thread = torrent::system::Thread::self();
+  m_thread = system::Thread::self();
 
   assert(m_thread != nullptr && "Resolver::m_thread is nullptr.");
 }
@@ -44,7 +46,7 @@ Resolver::resolve_both(system::callback_id& id, const std::string& hostname, int
       ThreadNet::thread_net()->dns_cache()->resolve(id.get(), hostname, family, std::move(fn));
     };
 
-  net_thread::callback(id, std::move(cb));
+  torrent::net_thread::callback(id, std::move(cb));
 }
 
 void
@@ -94,7 +96,7 @@ Resolver::resolve_preferred(system::callback_id& id, const std::string& hostname
       ThreadNet::thread_net()->dns_cache()->resolve(id.get(), hostname, family, std::move(fn));
     };
 
-  net_thread::callback(id, std::move(cb));
+  torrent::net_thread::callback(id, std::move(cb));
 }
 
 void
@@ -137,7 +139,7 @@ Resolver::resolve_specific(system::callback_id& id, const std::string& hostname,
       ThreadNet::thread_net()->dns_cache()->resolve(id.get(), hostname, family, std::move(fn));
     };
 
-  net_thread::callback(id, std::move(cb));
+  torrent::net_thread::callback(id, std::move(cb));
 }
 
 void
@@ -152,3 +154,5 @@ Resolver::cancel(system::callback_id& id) {
 }
 
 } // namespace torrent::net
+
+} // namespace torrent

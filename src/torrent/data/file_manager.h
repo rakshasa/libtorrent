@@ -4,11 +4,11 @@
 #include <vector>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class File;
 
-class LIBTORRENT_EXPORT FileManager : private std::vector<File*> {
+class FileManager : private std::vector<File*> {
 public:
   using base_type = std::vector<File*>;
   using size_type = uint32_t;

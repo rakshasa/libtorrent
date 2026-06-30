@@ -8,24 +8,26 @@
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
 
-namespace torrent::utils {
+namespace RTORRENT_EXPORT torrent {
+
+namespace utils {
 
 // TODO: Add a copy_escape_html() version that copies to a perfect sized std::string.
 // TODO: Consider forward declaring these functions, and instantiating the required specializations in the .cc file.
 
-bool             is_valid_utf8(const std::string& str) LIBTORRENT_EXPORT;
+bool             is_valid_utf8(const std::string& str);
 
-std::string_view trim_spaces(std::string_view s) LIBTORRENT_EXPORT;
-std::string      trim_spaces_str(std::string_view s) LIBTORRENT_EXPORT;
+std::string_view trim_spaces(std::string_view s);
+std::string      trim_spaces_str(std::string_view s);
 
-std::string      string_with_escape_codes(const std::string& str) LIBTORRENT_EXPORT;
+std::string      string_with_escape_codes(const std::string& str);
 
-std::string      sanitize_string(const std::string& str) LIBTORRENT_EXPORT;
-std::string      sanitize_string_with_escape_codes(const std::string& str) LIBTORRENT_EXPORT;
-std::string      sanitize_string_with_tags(const std::string& str) LIBTORRENT_EXPORT;
+std::string      sanitize_string(const std::string& str);
+std::string      sanitize_string_with_escape_codes(const std::string& str);
+std::string      sanitize_string_with_tags(const std::string& str);
 
-std::string                         transform_to_base64(const std::string& src) LIBTORRENT_EXPORT;
-std::optional<std::vector<uint8_t>> transform_from_base64_unsafe(const std::string& src) LIBTORRENT_EXPORT;
+std::string                         transform_to_base64(const std::string& src);
+std::optional<std::vector<uint8_t>> transform_from_base64_unsafe(const std::string& src);
 
 char             hex_to_value_or_zero(char c);
 char             hex_to_value_or_error(char c);
@@ -329,4 +331,6 @@ transform_to_hex_str(SrcItr src_first, SrcItr src_last) {
 
 } // namespace torrent::utils
 
-#endif // LIBTORRENT_TORRENT_UTILS_STRING_MANIP_H
+} // namespace torrent
+
+#endif
