@@ -10,7 +10,7 @@
 #include <torrent/data/download_data.h>
 #include <torrent/types/string_utf8.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class Content;
 class Download;
@@ -19,7 +19,7 @@ class DownloadMain;
 class DownloadWrapper;
 class Handshake;
 
-class LIBTORRENT_EXPORT FileList : private std::vector<std::unique_ptr<File>> {
+class FileList : private std::vector<std::unique_ptr<File>> {
 public:
   friend class Content;
   friend class Download;

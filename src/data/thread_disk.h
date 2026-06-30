@@ -6,11 +6,11 @@
 #include "torrent/common.h"
 #include "torrent/system/thread.h"
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class HashCheckQueue;
 
-class LIBTORRENT_EXPORT ThreadDisk : public system::Thread {
+class ThreadDisk : public system::Thread {
 public:
   ~ThreadDisk() override;
 

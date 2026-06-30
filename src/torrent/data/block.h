@@ -6,12 +6,12 @@
 #include <torrent/data/piece.h>
 #include <vector>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 // If you start adding slots, make sure the rest of the code creates
 // copies and clears the original variables before calls to erase etc.
 
-class LIBTORRENT_EXPORT Block {
+class Block {
 public:
   // Using vectors as they will remain small, thus the cost of erase
   // should be small. Later we can do faster erase by ignoring the

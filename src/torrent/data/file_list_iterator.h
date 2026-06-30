@@ -5,13 +5,13 @@
 #include <torrent/common.h>
 #include <torrent/data/file_list.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class File;
 
 // A special purpose iterator class for iterating through FileList as
 // a dired structure.
-class LIBTORRENT_EXPORT FileListIterator {
+class FileListIterator {
 public:
   using iterator  = FileList::iterator;
   using reference = File*;

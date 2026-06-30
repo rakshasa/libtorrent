@@ -8,11 +8,11 @@
 
 class TestMainThread;
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 class HashQueue;
 
-class LIBTORRENT_EXPORT ThreadMain : public system::Thread {
+class ThreadMain : public system::Thread {
 public:
   ~ThreadMain() override;
 

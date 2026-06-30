@@ -3,9 +3,9 @@
 
 #include "torrent/runtime/runtime.h"
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT Runtime {
+class Runtime {
 public:
   static void         initialize();
 

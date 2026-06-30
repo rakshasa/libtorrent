@@ -4,12 +4,12 @@
 #include <vector>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
 // TODO: Currently all chunk lists are inserted, despite the download
 // not being open/active.
 
-class LIBTORRENT_EXPORT ChunkManager : private std::vector<ChunkList*> {
+class ChunkManager : private std::vector<ChunkList*> {
 public:
   using base_type = std::vector<ChunkList*>;
   using size_type = uint32_t;

@@ -6,9 +6,9 @@
 #include <torrent/data/block.h>
 #include <torrent/data/piece.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT BlockList : private std::vector<Block> {
+class BlockList : private std::vector<Block> {
 public:
   using size_type = uint32_t;
   using base_type = std::vector<Block>;

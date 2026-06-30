@@ -5,9 +5,9 @@
 #include <torrent/path.h>
 #include <torrent/types/string_utf8.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT File {
+class File {
 public:
   friend class FileList;
 

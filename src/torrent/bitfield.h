@@ -4,9 +4,9 @@
 #include <cstring>
 #include <torrent/common.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT Bitfield {
+class Bitfield {
 public:
   using size_type        = uint32_t;
   using value_type       = uint8_t;

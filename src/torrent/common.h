@@ -13,6 +13,25 @@
 #include <string>
 #include <thread>
 
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(gnu::visibility)
+  #define RTORRENT_EXPORT    [[gnu::visibility("default")]]
+  #define RTORRENT_NO_EXPORT [[gnu::visibility("hidden")]]
+#else
+  #define RTORRENT_EXPORT
+  #define RTORRENT_NO_EXPORT
+#endif
+
+// This should only need to be set when compiling libtorrent.
+#ifdef SUPPORT_ATTRIBUTE_VISIBILITY
+  #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
+  #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
+#else
+  #define LIBTORRENT_NO_EXPORT
+  #define LIBTORRENT_EXPORT
+#endif
+
+#define align_cacheline alignas(LT_SMP_CACHE_BYTES)
+
 struct sockaddr;
 struct sockaddr_in;
 struct sockaddr_in6;
@@ -126,72 +145,60 @@ class SchedulerEntry;
 
 } // namespace utils
 
-} // namespace torrent
 
+namespace RTORRENT_EXPORT this_thread {
 
-// This should only need to be set when compiling libtorrent.
-#ifdef SUPPORT_ATTRIBUTE_VISIBILITY
-  #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
-  #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
-#else
-  #define LIBTORRENT_NO_EXPORT
-  #define LIBTORRENT_EXPORT
-#endif
+system::Thread*           thread();
+const char*               thread_name();
+std::string               thread_name_str();
+std::thread::id           thread_id();
 
-#define align_cacheline alignas(LT_SMP_CACHE_BYTES)
+std::chrono::microseconds cached_time();
+std::chrono::seconds      cached_seconds();
 
-
-namespace torrent::this_thread {
-
-system::Thread*           thread() LIBTORRENT_EXPORT;
-const char*               thread_name() LIBTORRENT_EXPORT;
-std::string               thread_name_str() LIBTORRENT_EXPORT;
-std::thread::id           thread_id() LIBTORRENT_EXPORT;
-
-std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
-std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
-
-system::Poll*             poll() LIBTORRENT_EXPORT;
-net::Resolver*            resolver() LIBTORRENT_EXPORT;
-utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
+system::Poll*             poll();
+net::Resolver*            resolver();
+utils::Scheduler*         scheduler();
 
 } // namespace torrent::this_thread
 
-namespace torrent::disk_thread {
+namespace disk_thread {
 
-system::Thread*          thread() LIBTORRENT_EXPORT;
-std::thread::id          thread_id() LIBTORRENT_EXPORT;
+system::Thread*          thread();
+std::thread::id          thread_id();
 
 } // namespace torrent::disk_thread
 
-namespace torrent::main_thread {
+namespace main_thread {
 
-system::Thread*          thread() LIBTORRENT_EXPORT;
-std::thread::id          thread_id() LIBTORRENT_EXPORT;
+system::Thread*          thread();
+std::thread::id          thread_id();
 
-void                     set_client_callback(std::function<void()> fn) LIBTORRENT_EXPORT;
+void                     set_client_callback(std::function<void()> fn);
 
-uint32_t                 hash_queue_size() LIBTORRENT_EXPORT;
+uint32_t                 hash_queue_size();
 
 } // namespace torrent::main_thread
 
-namespace torrent::net_thread {
+namespace net_thread {
 
-system::Thread*          thread() LIBTORRENT_EXPORT;
-std::thread::id          thread_id() LIBTORRENT_EXPORT;
+system::Thread*          thread();
+std::thread::id          thread_id();
 
 // TODO: Move to runtime.
-net::HttpStack*          http_stack() LIBTORRENT_EXPORT;
+net::HttpStack*          http_stack();
 
 } // namespace torrent::net_thread
 
-namespace torrent::tracker_thread {
+namespace tracker_thread {
 
-system::Thread*          thread() LIBTORRENT_EXPORT;
-std::thread::id          thread_id() LIBTORRENT_EXPORT;
+system::Thread*          thread();
+std::thread::id          thread_id();
 
-tracker::Manager*        manager() LIBTORRENT_EXPORT;
+tracker::Manager*        manager();
 
 } // namespace torrent::tracker_thread
+
+} // namespace torrent
 
 #endif

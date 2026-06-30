@@ -7,9 +7,9 @@
 #include <torrent/data/piece.h>
 #include <torrent/peer/peer_info.h>
 
-namespace torrent {
+namespace RTORRENT_EXPORT torrent {
 
-class LIBTORRENT_EXPORT BlockTransfer {
+class BlockTransfer {
 public:
   static constexpr uint32_t invalid_index = ~uint32_t();
 
