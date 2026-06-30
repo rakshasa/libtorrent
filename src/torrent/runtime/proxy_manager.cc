@@ -41,6 +41,17 @@ ProxyManager::set_proxy_url(const std::string& url) {
   if (!net::verify_no_path_query_fragment(url))
     throw input_error("Proxy address must not include a path, query, or fragment.");
 
+  auto verify_user_password_or_empty = [schema, user, password]() {
+      if (user.empty() || password.empty())
+        return;
+
+      if (password.empty())
+        throw input_error("Proxy address for '" + schema + "://' must not include a user without a password.");
+
+      if (!user.empty())
+        throw input_error("Proxy address for '" + schema + "://' must not include a password without a user.");
+    };
+
   auto verify_no_user_password = [schema, user, password]() {
       if (!user.empty() || !password.empty())
         throw input_error("Proxy address for '" + schema + "://' must not include a user or password.");
@@ -64,19 +75,19 @@ ProxyManager::set_proxy_url(const std::string& url) {
       };
 
   // } else if (schema == "https") {
-  //   m_create_proxy = [host, port, user, password]() {
+  //   create_proxy = [host, port, user, password]() {
   //     // return std::make_unique<Proxy>(host, port, user, password);
   //     return nullptr;
   //   };
 
   // } else if (schema == "socks4") {
-  //   m_create_proxy = [host, port, user, password]() {
+  //   create_proxy = [host, port, user, password]() {
   //     // return std::make_unique<Proxy>(host, port, user, password);
   //     return nullptr;
   //   };
 
   // } else if (schema == "socks4a") {
-  //   m_create_proxy = [host, port, user, password]() {
+  //   create_proxy = [host, port, user, password]() {
   //     // return std::make_unique<Proxy>(host, port, user, password);
   //     return nullptr;
   //   };
@@ -84,12 +95,7 @@ ProxyManager::set_proxy_url(const std::string& url) {
   } else if (schema == "socks5" || schema == "socks5h") {
     // We currently don't support socks5h resolves, however since we only do sockaddr connects this
     // will be the same as socks5.
-
-    if (!user.empty() && password.empty())
-      throw input_error("Proxy address for '" + schema + "://' must not include a user without a password.");
-
-    if (password.empty() && !user.empty())
-      throw input_error("Proxy address for '" + schema + "://' must not include a password without a user.");
+    verify_user_password_or_empty();
 
     if (user.size() > 255)
       throw input_error("Proxy address for '" + schema + "://' username exceeds max protocol limits.");
@@ -97,7 +103,7 @@ ProxyManager::set_proxy_url(const std::string& url) {
     if (password.size() > 255)
       throw input_error("Proxy address for '" + schema + "://' password exceeds max protocol limits.");
 
-    m_create_proxy = [proxy_union](auto* connect_sa) {
+    create_proxy_fn = [proxy_union](auto* connect_sa) {
         return new net::proxy::ProxySocks5(&proxy_union.sa, connect_sa);
       };
 

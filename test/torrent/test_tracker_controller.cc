@@ -482,8 +482,6 @@ TestTrackerController::test_multiple_failure() {
   CPPUNIT_ASSERT(tracker_1_0_worker->trigger_success());
   CPPUNIT_ASSERT(!tracker_controller.is_failure_mode());
 
-  std::cout << "XXXXXXXXXX" << std::endl;
-
   // CPPUNIT_ASSERT(test_goto_next_timeout(this, &tracker_controller, tracker_list[0].state().normal_interval()));
   // TEST_MULTI3_IS_BUSY("01000", "10000");
   // CPPUNIT_ASSERT(tracker_0_1_worker->trigger_success());

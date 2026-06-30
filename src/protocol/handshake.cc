@@ -252,7 +252,11 @@ Handshake::read_proxy() {
 
   switch (m_proxy->next_action()) {
   case net::proxy::state_writing:
-    throw internal_error("Handshake::read_proxy() next_action == state_writing");
+    this_thread::poll()->remove_read(this);
+    this_thread::poll()->insert_write(this);
+
+    m_state = PROXY_WRITE;
+    return false;
 
   case net::proxy::state_reading:
     return false;
@@ -972,6 +976,8 @@ Handshake::event_write() {
       if (socket_error != 0)
         throw handshake_error(handshake_failed, e_handshake_network_unreachable);
 
+      [[fallthrough]];
+    case PROXY_WRITE:
       if (m_proxy) {
         write_proxy();
         break;
@@ -1220,7 +1226,9 @@ Handshake::write_proxy() {
     throw internal_error("Handshake::write_proxy() next_action == state_writing after write.");
 
   case net::proxy::state_reading:
+    this_thread::poll()->remove_write(this);
     this_thread::poll()->insert_read(this);
+
     m_state = PROXY_READ;
     break;
 
