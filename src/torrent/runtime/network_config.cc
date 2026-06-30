@@ -27,7 +27,12 @@ NetworkConfig::NetworkConfig() {
   m_bind_inet6_address  = sa_make_unspec();
   m_local_inet_address  = sa_make_unspec();
   m_local_inet6_address = sa_make_unspec();
-  m_proxy_address       = sa_make_unspec();
+}
+
+bool
+NetworkConfig::is_block_udp() const {
+  auto guard = lock_guard();
+  return m_block_udp;
 }
 
 bool
@@ -46,6 +51,12 @@ bool
 NetworkConfig::is_block_ipv4in6() const {
   auto guard = lock_guard();
   return m_block_ipv4in6;
+}
+
+bool
+NetworkConfig::is_block_incoming() const {
+  auto guard = lock_guard();
+  return m_block_incoming;
 }
 
 bool
@@ -132,7 +143,12 @@ NetworkConfig::bind_address_or_any_and_null() const {
 
 c_sa_shared_ptr
 NetworkConfig::bind_address_for_connect(int family) const {
-  return generic_address_for_connect(family, m_bind_inet_address, m_bind_inet6_address);
+  return generic_address_for_connect(family, false, m_bind_inet_address, m_bind_inet6_address);
+}
+
+c_sa_shared_ptr
+NetworkConfig::bind_address_for_udp_connect(int family) const {
+  return generic_address_for_connect(family, true, m_bind_inet_address, m_bind_inet6_address);
 }
 
 c_sa_shared_ptr
@@ -163,27 +179,23 @@ std::tuple<c_sa_shared_ptr, c_sa_shared_ptr>
 NetworkConfig::bind_addresses_or_null() const {
   auto guard = lock_guard();
 
-  auto inet_addr  = m_bind_inet_address;
-  auto inet6_addr = m_bind_inet6_address;
+  return bind_addresses_or_null_unsafe();
+}
 
-  if (inet_addr->sa_family != AF_UNSPEC && inet6_addr->sa_family == AF_UNSPEC)
-    inet6_addr = nullptr;
-  else if (inet6_addr->sa_family != AF_UNSPEC && inet_addr->sa_family == AF_UNSPEC)
-    inet_addr = nullptr;
+std::tuple<c_sa_shared_ptr, c_sa_shared_ptr>
+NetworkConfig::bind_udp_addresses_or_null() const {
+  auto guard = lock_guard();
 
-  if (m_block_ipv4)
-    inet_addr = nullptr;
+  if (m_block_udp)
+    return {nullptr, nullptr};
 
-  if (m_block_ipv6)
-    inet6_addr = nullptr;
-
-  return std::make_tuple(inet_addr, inet6_addr);
+  return bind_addresses_or_null_unsafe();
 }
 
 std::tuple<std::string, std::string>
 NetworkConfig::bind_addresses_str() const {
   auto guard = lock_guard();
-  return std::make_tuple(sa_addr_str(m_bind_inet_address.get()), sa_addr_str(m_bind_inet6_address.get()));
+  return {sa_addr_str(m_bind_inet_address.get()), sa_addr_str(m_bind_inet6_address.get())};
 }
 
 c_sa_shared_ptr
@@ -248,18 +260,6 @@ std::string
 NetworkConfig::local_inet6_address_str() const {
   auto guard = lock_guard();
   return sa_addr_str(m_local_inet6_address.get());
-}
-
-c_sa_shared_ptr
-NetworkConfig::proxy_address() const {
-  auto guard = lock_guard();
-  return m_proxy_address;
-}
-
-std::string
-NetworkConfig::proxy_address_str() const {
-  auto guard = lock_guard();
-  return sa_pretty_str(m_proxy_address.get());
 }
 
 void
@@ -342,22 +342,6 @@ void
 NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
   set_local_inet6_address(sa_lookup_address(addr, AF_INET6).get());
 }
-
-void
-NetworkConfig::set_proxy_address(const sockaddr* sa) {
-  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
-    throw input_error("Tried to set a proxy address that is not an unspec/inet address.");
-
-  if (sa_port(sa) == 0)
-    throw input_error("Tried to set a proxy address with a zero port.");
-
-  auto guard = lock_guard();
-
-  LT_LOG_NOTICE("proxy address : %s", sa_pretty_str(sa).c_str());
-
-  m_proxy_address = sa_copy(sa);
-}
-
 
 uint32_t
 NetworkConfig::encryption_options() const {
@@ -584,11 +568,14 @@ NetworkConfig::generic_address_or_any_and_null(const c_sa_shared_ptr& inet_addre
 }
 
 c_sa_shared_ptr
-NetworkConfig::generic_address_for_connect(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const {
+NetworkConfig::generic_address_for_connect(int family, bool is_udp, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const {
   auto guard = lock_guard();
 
   // if (m_block_outgoing)
   //   return nullptr;
+
+  if (is_udp && m_block_udp)
+    return nullptr;
 
   switch (family) {
   case AF_INET:
@@ -681,5 +668,27 @@ NetworkConfig::set_generic_inet6_address_unsafe(const char* category, c_sa_share
 
   inet6_address = sa_copy(sa);
 }
+
+std::tuple<c_sa_shared_ptr, c_sa_shared_ptr>
+NetworkConfig::bind_addresses_or_null_unsafe() const {
+  auto inet_addr  = m_bind_inet_address;
+  auto inet6_addr = m_bind_inet6_address;
+
+  if (inet_addr->sa_family != AF_UNSPEC && inet6_addr->sa_family == AF_UNSPEC) {
+    inet6_addr = nullptr;
+
+  } else if (inet6_addr->sa_family != AF_UNSPEC && inet_addr->sa_family == AF_UNSPEC) {
+    inet_addr = nullptr;
+  }
+
+  if (m_block_ipv4)
+    inet_addr = nullptr;
+
+  if (m_block_ipv6)
+    inet6_addr = nullptr;
+
+  return {inet_addr, inet6_addr};
+}
+
 
 } // namespace torrent::net

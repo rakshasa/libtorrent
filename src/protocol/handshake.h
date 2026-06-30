@@ -2,6 +2,7 @@
 #define LIBTORRENT_HANDSHAKE_H
 
 #include "net/protocol_buffer.h"
+#include "net/proxy/proxy.h"
 #include "net/socket_stream.h"
 #include "torrent/bitfield.h"
 #include "torrent/net/socket_address.h"
@@ -15,6 +16,12 @@ namespace torrent {
 class HandshakeManager;
 class DownloadMain;
 class ThrottleList;
+
+namespace net::proxy {
+
+class Proxy;
+
+} // namespace net::proxy
 
 const char* handshake_strerror(int err);
 
@@ -71,7 +78,8 @@ public:
     CONNECTING,
     POST_HANDSHAKE,
 
-    PROXY_CONNECT,
+    PROXY_WRITE,
+    PROXY_READ,
     PROXY_DONE,
 
     READ_ENC_KEY,
@@ -98,13 +106,15 @@ public:
 
   State               state() const                 { return m_state; }
 
-  void                initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options);
-  void                initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options, DownloadMain* d, PeerInfo* peerInfo);
-
   PeerInfo*           peer_info()                   { return m_peerInfo; }
   const PeerInfo*     peer_info() const             { return m_peerInfo; }
+  void                set_peer_info(PeerInfo* p);
 
-  void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
+  auto*               proxy();
+  void                set_proxy(net::proxy_ptr proxy);
+
+  void                initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options);
+  void                initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options, DownloadMain* d, PeerInfo* peerInfo);
 
   const sockaddr*     socket_address() const        { return m_address.get(); }
 
@@ -135,12 +145,11 @@ protected:
   void                set_manager(HandshakeManager* handshake_manager);
 
   void                read_done();
-  void                write_done();
 
   bool                fill_read_buffer(int size);
 
   // Check what is unnessesary.
-  bool                read_proxy_connect();
+  bool                read_proxy();
   bool                read_encryption_key();
   bool                read_encryption_sync();
   bool                read_encryption_skey();
@@ -152,7 +161,6 @@ protected:
   bool                read_extension();
   bool                read_port();
 
-  void                prepare_proxy_connect();
   void                prepare_key_plus_pad();
   void                prepare_enc_negotiation();
   void                prepare_handshake();
@@ -160,6 +168,8 @@ protected:
   void                prepare_bitfield();
   void                prepare_post_handshake(bool must_write);
 
+  void                write_done();
+  void                write_proxy();
   void                write_extension_handshake();
   void                write_bitfield();
 
@@ -176,6 +186,8 @@ protected:
 
   PeerInfo*           m_peerInfo{};
   DownloadMain*       m_download{};
+  net::proxy_ptr      m_proxy;
+
   Bitfield            m_bitfield;
 
   ThrottleList*       m_upload_throttle;
@@ -202,6 +214,10 @@ protected:
   Buffer              m_readBuffer;
   Buffer              m_writeBuffer;
 };
+
+inline void  Handshake::set_peer_info(PeerInfo* p)      { m_peerInfo = p; }
+inline auto* Handshake::proxy()                         { return m_proxy.get(); }
+inline void  Handshake::set_proxy(net::proxy_ptr proxy) { m_proxy = std::move(proxy); }
 
 } // namespace torrent
 

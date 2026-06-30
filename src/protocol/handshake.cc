@@ -241,27 +241,35 @@ Handshake::write_unthrottled(const void* buf, uint32_t length) {
   return m_upload_throttle->node_used_unthrottled(write_stream_throws(buf, length));
 }
 
-// Handshake::read_proxy_connect()
-// Entry: 0, 0
-// * 0, [0, 508>
 bool
-Handshake::read_proxy_connect() {
-  // Being greedy for now.
-  m_readBuffer.move_end(read_unthrottled(m_readBuffer.end(), 512));
+Handshake::read_proxy() {
+  if (m_readBuffer.reserved_left() == 0)
+    throw handshake_error(handshake_dropped, e_handshake_invalid_value);
 
-  const char* pattern = "\r\n\r\n";
-  const unsigned int patternLength = 4;
+  m_readBuffer.move_end(read_unthrottled(m_readBuffer.end(), m_readBuffer.reserved_left()));
 
-  if (m_readBuffer.remaining() < patternLength)
+  m_readBuffer.consume(m_proxy->read(m_readBuffer.position(), m_readBuffer.remaining()));
+
+  switch (m_proxy->next_action()) {
+  case net::proxy::state_writing:
+    this_thread::poll()->remove_read(this);
+    this_thread::poll()->insert_write(this);
+
+    m_state = PROXY_WRITE;
     return false;
 
-  auto itr = std::search(m_readBuffer.begin(), m_readBuffer.end(),
-                                     reinterpret_cast<const uint8_t*>(pattern), reinterpret_cast<const uint8_t*>(pattern) + patternLength);
+  case net::proxy::state_reading:
+    return false;
 
-  m_readBuffer.set_position_itr(itr != m_readBuffer.end() ? (itr + patternLength) : (itr - patternLength));
-  m_readBuffer.move_unused();
+  case net::proxy::state_done:
+    m_readBuffer.move_unused();
 
-  return itr != m_readBuffer.end();
+    m_state = PROXY_DONE;
+    return true;
+
+  default:
+    throw handshake_error(handshake_dropped, e_handshake_invalid_value);
+  }
 }
 
 // Handshake::read_encryption_key()
@@ -716,13 +724,17 @@ Handshake::event_read() {
 
 restart:
     switch (m_state) {
-    case PROXY_CONNECT:
-      if (!read_proxy_connect())
+    case PROXY_READ:
+      // if (!read_proxy_connect())
+      //   break;
+
+      // m_state = PROXY_DONE;
+
+      // this_thread::poll()->insert_write(this);
+
+      if (!read_proxy())
         break;
 
-      m_state = PROXY_DONE;
-
-      this_thread::poll()->insert_write(this);
       return event_write();
 
     case READ_ENC_KEY:
@@ -964,14 +976,15 @@ Handshake::event_write() {
       if (socket_error != 0)
         throw handshake_error(handshake_failed, e_handshake_network_unreachable);
 
-      this_thread::poll()->insert_read(this);
-
-      if (m_encryption.options() & runtime::NetworkConfig::encryption_use_proxy) {
-        prepare_proxy_connect();
-
-        m_state = PROXY_CONNECT;
+      [[fallthrough]];
+    case PROXY_WRITE:
+      if (m_proxy) {
+        write_proxy();
         break;
       }
+
+      // TODO: Verify placement.
+      this_thread::poll()->insert_read(this);
 
       [[fallthrough]];
     case PROXY_DONE:
@@ -1021,10 +1034,12 @@ Handshake::event_write() {
       throw internal_error("event_write called with empty write buffer.");
 
     if (m_writeBuffer.consume(write_unthrottled(m_writeBuffer.position(), m_writeBuffer.remaining()))) {
-      if (m_state == POST_HANDSHAKE)
+      if (m_state == POST_HANDSHAKE) {
         write_done();
-      else
-        this_thread::poll()->remove_write(this);
+        return;
+      }
+
+      this_thread::poll()->remove_write(this);
     }
 
   } catch (const handshake_succeeded&) {
@@ -1036,17 +1051,6 @@ Handshake::event_write() {
   } catch (const network_error&) {
     m_manager->receive_failed(this, handshake_failed, e_handshake_network_write_error);
   }
-}
-
-void
-Handshake::prepare_proxy_connect() {
-  int advance = snprintf(reinterpret_cast<char*>(m_writeBuffer.position()), m_writeBuffer.reserved_left(),
-                         "CONNECT %s:%hu HTTP/1.0\r\n\r\n", sap_addr_str(m_address).c_str(), sap_port(m_address));
-
-  if (advance == -1 || advance > m_writeBuffer.reserved_left())
-    throw internal_error("Handshake::prepare_proxy_connect() snprintf failed.");
-
-  m_writeBuffer.move_end(advance);
 }
 
 void
@@ -1204,6 +1208,38 @@ Handshake::write_done() {
   // set it before the call.
   if (m_readDone)
     throw handshake_succeeded();
+}
+
+// TODO: When adding other proxy types, make sure they're require less than the buffer size.
+void
+Handshake::write_proxy() {
+  if (m_proxy->next_action() != net::proxy::state_writing)
+    throw internal_error("Handshake::write_proxy() next_action != state_writing.");
+
+  auto new_bytes = m_writeBuffer.move_end(m_proxy->write(m_writeBuffer.end(), m_writeBuffer.reserved_left()));
+
+  if (new_bytes == 0)
+    throw internal_error("Handshake::write_proxy() m_proxy->write() returned 0.");
+
+  switch (m_proxy->next_action()) {
+  case net::proxy::state_writing:
+    throw internal_error("Handshake::write_proxy() next_action == state_writing after write.");
+
+  case net::proxy::state_reading:
+    this_thread::poll()->remove_write(this);
+    this_thread::poll()->insert_read(this);
+
+    m_state = PROXY_READ;
+    break;
+
+  case net::proxy::state_done:
+    // TODO: When adding other proxy types, we might need to change this.
+    throw internal_error("Handshake::write_proxy() next_action == state_finished after write.");
+    break;
+
+  default:
+    throw internal_error("Handshake::write_proxy() next_action == state_error after write.");
+  }
 }
 
 void

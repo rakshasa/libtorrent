@@ -106,6 +106,7 @@ std::string sin6_pretty_or_empty(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 //
 
 sa_inet_union sa_inet_union_from_sa(const sockaddr* sa) LIBTORRENT_EXPORT;
+void          sa_copy_to_inet_union(const sockaddr* sa, sa_inet_union& u) LIBTORRENT_EXPORT;
 
 bool          fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) LIBTORRENT_EXPORT;
 
@@ -214,6 +215,8 @@ inline std::string sinp_pretty_str(const sin_unique_ptr& sinp)      { return sin
 inline std::string sinp_pretty_str(const c_sin_unique_ptr& sinp)    { return sin_pretty_str(sinp.get()); }
 inline std::string sin6p_pretty_str(const sin6_unique_ptr& sin6p)   { return sin6_pretty_str(sin6p.get()); }
 inline std::string sin6p_pretty_str(const c_sin6_unique_ptr& sin6p) { return sin6_pretty_str(sin6p.get()); }
+
+inline sa_inet_union sa_inet_union_from_sap(const sa_unique_ptr& sap) { return sa_inet_union_from_sa(sap.get()); }
 
 //
 // Implementations:

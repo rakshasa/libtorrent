@@ -9,6 +9,8 @@
 
 namespace torrent::runtime {
 
+class ProxyManager;
+
 NetworkConfig* network_config() LIBTORRENT_EXPORT;
 
 class LIBTORRENT_EXPORT NetworkConfig {
@@ -27,7 +29,6 @@ public:
   static constexpr uint32_t encryption_enable_retry     = 0x8;
   static constexpr uint32_t encryption_prefer_plaintext = 0x10;
   // Internal to libtorrent.
-  static constexpr uint32_t encryption_use_proxy        = 0x20;
   static constexpr uint32_t encryption_retrying         = 0x40;
 
   NetworkConfig();
@@ -36,9 +37,11 @@ public:
 
   // TODO: Verify we attempt to connect to cached peers on startup, even before tracker requests.
 
+  bool                is_block_udp() const;
   bool                is_block_ipv4() const;
   bool                is_block_ipv6() const;
   bool                is_block_ipv4in6() const;
+  bool                is_block_incoming() const;
   bool                is_block_outgoing() const;
   bool                is_prefer_ipv6() const;
 
@@ -63,6 +66,7 @@ public:
   c_sa_shared_ptr     bind_address_or_unspec_and_null() const;
   c_sa_shared_ptr     bind_address_or_any_and_null() const;
   c_sa_shared_ptr     bind_address_for_connect(int family) const;
+  c_sa_shared_ptr     bind_address_for_udp_connect(int family) const;
 
   c_sa_shared_ptr     bind_inet_address() const;
   std::string         bind_inet_address_str() const;
@@ -70,6 +74,7 @@ public:
   std::string         bind_inet6_address_str() const;
 
   std::tuple<c_sa_shared_ptr, c_sa_shared_ptr> bind_addresses_or_null() const;
+  std::tuple<c_sa_shared_ptr, c_sa_shared_ptr> bind_udp_addresses_or_null() const;
   std::tuple<std::string, std::string>         bind_addresses_str() const;
 
   c_sa_shared_ptr     local_address_best_match() const;
@@ -84,9 +89,6 @@ public:
   c_sa_shared_ptr     local_inet6_address_or_null() const;
   std::string         local_inet6_address_str() const;
 
-  c_sa_shared_ptr     proxy_address() const;
-  std::string         proxy_address_str() const;
-
   void                set_bind_address(const sockaddr* sa);
   void                set_bind_address_str(const std::string& addr);
   void                set_bind_inet_address(const sockaddr* sa);
@@ -99,7 +101,6 @@ public:
   void                set_local_inet_address_str(const std::string& addr);
   void                set_local_inet6_address(const sockaddr* sa);
   void                set_local_inet6_address_str(const std::string& addr);
-  void                set_proxy_address(const sockaddr* sa);
 
   uint32_t            encryption_options() const;
   void                set_encryption_options(uint32_t opts);
@@ -123,6 +124,7 @@ public:
 protected:
   friend class torrent::ConnectionManager;
   friend class torrent::runtime::NetworkManager;
+  friend class torrent::runtime::ProxyManager;
 
   using listen_addresses = std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool>;
   using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
@@ -143,12 +145,14 @@ private:
   std::string         generic_address_best_match_str(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
   c_sa_shared_ptr     generic_address_or_unspec_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
   c_sa_shared_ptr     generic_address_or_any_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
-  c_sa_shared_ptr     generic_address_for_connect(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_for_connect(int family, bool is_udp, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
   c_sa_shared_ptr     generic_address_for_family(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
 
   void                set_generic_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
   void                set_generic_inet_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa);
   void                set_generic_inet6_address_unsafe(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
+
+  std::tuple<c_sa_shared_ptr, c_sa_shared_ptr> bind_addresses_or_null_unsafe() const;
 
   mutable std::mutex  m_mutex;
 
@@ -158,6 +162,10 @@ private:
   bool                m_block_outgoing{};
   bool                m_prefer_ipv6{};
 
+  // Directly modified by ProxyManager.
+  bool                m_block_udp{};
+  bool                m_block_incoming{};
+
   // TODO: Rename m_tos_priority.
   int                 m_priority{iptos_throughput};
 
@@ -165,7 +173,6 @@ private:
   c_sa_shared_ptr     m_bind_inet6_address;
   c_sa_shared_ptr     m_local_inet_address;
   c_sa_shared_ptr     m_local_inet6_address;
-  c_sa_shared_ptr     m_proxy_address;
 
   int                 m_encryption_options{encryption_none};
   int                 m_listen_backlog{SOMAXCONN};

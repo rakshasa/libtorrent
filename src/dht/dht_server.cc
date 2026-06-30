@@ -87,7 +87,7 @@ DhtServer::~DhtServer() {
 
 void
 DhtServer::start(int port) {
-  auto [bind_inet_address, bind_inet6_address] = runtime::network_config()->bind_addresses_or_null();
+  auto [bind_inet_address, bind_inet6_address] = runtime::network_config()->bind_udp_addresses_or_null();
 
   if (bind_inet_address == nullptr)
     throw resource_error("no valid bind address for DHT server");

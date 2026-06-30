@@ -6,6 +6,7 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/runtime.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/runtime/proxy_manager.h"
 
 namespace torrent {
 
@@ -24,13 +25,15 @@ NetworkConfig*   network_config()         { return g_runtime->network_config(); 
 
 NetworkManager*  network_manager()        { return g_runtime->network_manager(); }
 SocketManager*   socket_manager()         { return g_runtime->socket_manager(); }
+ProxyManager*    proxy_manager()          { return g_runtime->proxy_manager(); }
 
 } // namespace runtime
 
 Runtime::Runtime()
   : m_network_config(new runtime::NetworkConfig),
-    m_network_manager(new runtime::NetworkManager()),
-    m_socket_manager(new runtime::SocketManager) {
+    m_network_manager(new runtime::NetworkManager),
+    m_socket_manager(new runtime::SocketManager),
+    m_proxy_manager(new runtime::ProxyManager) {
 }
 
 Runtime::~Runtime() = default;
@@ -62,6 +65,7 @@ Runtime::cleanup() {
 void
 Runtime::destroy() {
   // Order matters for destruction.
+  g_runtime->m_proxy_manager.reset();
   g_runtime->m_network_manager.reset();
   g_runtime->m_socket_manager.reset();
 

@@ -5,6 +5,8 @@
 
 namespace torrent::runtime {
 
+class ProxyManager;
+
 bool                is_shutting_down() LIBTORRENT_EXPORT;
 bool                is_quick_shutting_down() LIBTORRENT_EXPORT;
 
@@ -15,6 +17,7 @@ NetworkConfig*      network_config() LIBTORRENT_EXPORT;
 
 NetworkManager*     network_manager() LIBTORRENT_EXPORT;
 SocketManager*      socket_manager() LIBTORRENT_EXPORT;
+ProxyManager*       proxy_manager() LIBTORRENT_EXPORT;
 
 const char*         version() LIBTORRENT_EXPORT;
 

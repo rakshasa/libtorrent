@@ -8,6 +8,10 @@ namespace torrent {
 
 class Manager;
 
+namespace net::proxy {
+class Proxy;
+};
+
 } // namespace torrent
 
 namespace torrent::runtime {
