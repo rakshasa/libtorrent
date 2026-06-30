@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_TORRENT_RUNTIME_PROXY_MANAGER_H
 #define LIBTORRENT_TORRENT_RUNTIME_PROXY_MANAGER_H
 
+#include <mutex>
 #include <torrent/net/types.h>
 
 namespace torrent::runtime {
