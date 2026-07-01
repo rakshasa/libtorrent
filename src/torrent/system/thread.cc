@@ -315,8 +315,8 @@ Thread::init_thread_local() {
   pthread_setname_np(pthread_self(), name());
 #endif
 
-  m_self = this;
-  m_thread = pthread_self();
+  m_self      = this;
+  m_thread    = pthread_self();
   m_thread_id = std::this_thread::get_id();
 
   m_scheduler->set_thread_id(m_thread_id);
@@ -324,7 +324,7 @@ Thread::init_thread_local() {
   set_cached_time(utils::time_since_epoch());
 
   if (m_resolver)
-    m_resolver->init();
+    m_resolver->initialize();
 
   auto previous_state = STATE_INITIALIZED;
 

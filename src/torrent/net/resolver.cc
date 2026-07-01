@@ -18,10 +18,10 @@ namespace torrent {
 namespace net {
 
 void
-Resolver::init() {
+Resolver::initialize() {
   m_thread = system::Thread::self();
 
-  assert(m_thread != nullptr && "Resolver::m_thread is nullptr.");
+  assert(m_thread != nullptr);
 }
 
 void

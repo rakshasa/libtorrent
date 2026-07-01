@@ -116,7 +116,7 @@ protected:
   void                callback(bool is_interrupt, std::function<void ()>&& fn);
   void                callback(bool is_interrupt, system::callback_id& id, std::function<void ()>&& fn);
 
-  static thread_local Thread*  m_self;
+  RTORRENT_EXPORT static thread_local Thread* m_self;
 
   // TODO: Remove m_thread.
   pthread_t                    m_thread{};

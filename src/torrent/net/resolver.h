@@ -29,7 +29,7 @@ public:
 protected:
   friend class system::Thread;
 
-  void                init();
+  void                initialize();
 
 private:
   Resolver(const Resolver&) = delete;
