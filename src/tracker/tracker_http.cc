@@ -166,7 +166,11 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   m_get.try_wait_for_close();
 
   m_get.reset(request_url, m_data);
+
   m_get.use_family(m_current_family);
+
+  m_get.set_max_file_size(1 << 20);
+  m_get.set_redirect_only_http_https();
 
   m_get.add_done_slot(tracker_thread::thread(), [this] { receive_done(); });
   m_get.add_failed_slot(tracker_thread::thread(), [this](const auto& str) { receive_signal_failed(str); });

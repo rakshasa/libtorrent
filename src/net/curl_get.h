@@ -42,7 +42,6 @@ public:
   CurlStack*          curl_stack() const;
 
   const std::string&  url() const;
-  uint32_t            timeout() const;
 
   int64_t             size_done();
   int64_t             size_total();
@@ -52,10 +51,16 @@ public:
   void                wait_for_close();
   bool                try_wait_for_close();
 
+  uint32_t            timeout() const;
   void                set_timeout(uint32_t seconds);
+
+  uint32_t            max_file_size() const;
+  void                set_max_file_size(uint32_t bytes);
 
   void                set_initial_resolve(resolve_type type);
   void                set_retry_resolve(resolve_type type);
+
+  void                set_redirect_only_http_https();
 
   // The owner of the Http object must close it as soon as possible after receiving the signal, as
   // the implementation may allocate limited resources during its lifetime.
@@ -135,7 +140,11 @@ private:
 
   std::string                   m_url;
   std::shared_ptr<std::ostream> m_stream;
+
   uint32_t                      m_timeout{60};
+  uint32_t                      m_max_file_size{};
+  bool                          m_redirect_only_http_https{};
+
   std::condition_variable       m_cond_closed;
 
   std::list<std::function<void()>>                   m_signal_done;
@@ -164,6 +173,7 @@ inline auto&              CurlGet::callback_id()       { return m_callback_id; }
 inline CurlStack*         CurlGet::curl_stack() const  { auto guard = lock_guard(); return m_stack; }
 inline const std::string& CurlGet::url() const         { auto guard = lock_guard(); return m_url; }
 inline uint32_t           CurlGet::timeout() const     { auto guard = lock_guard(); return m_timeout; }
+inline uint32_t           CurlGet::max_file_size() const { auto guard = lock_guard(); return m_max_file_size; }
 
 } // namespace torrent::net
 

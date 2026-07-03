@@ -113,6 +113,16 @@ CurlGet::set_timeout(uint32_t seconds) {
 }
 
 void
+CurlGet::set_max_file_size(uint32_t bytes) {
+  auto guard = lock_guard();
+
+  if (m_was_started)
+    throw torrent::internal_error("CurlGet::set_max_file_size(...) called on a started object.");
+
+  m_max_file_size = bytes;
+}
+
+void
 CurlGet::set_initial_resolve(resolve_type type) {
   auto guard = lock_guard();
 
@@ -133,6 +143,16 @@ CurlGet::set_retry_resolve(resolve_type type) {
     throw torrent::internal_error("CurlGet::set_retry_resolve(...) called on a stacked or started object.");
 
   m_retry_resolve = type;
+}
+
+void
+CurlGet::set_redirect_only_http_https() {
+  auto guard = lock_guard();
+
+  if (m_was_started)
+    throw torrent::internal_error("CurlGet::set_redirect_only_http_https() called on a stacked or started object.");
+
+  m_redirect_only_http_https = true;
 }
 
 void
@@ -243,6 +263,17 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   if (m_timeout != 0) {
     lt_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 60l);
     lt_easy_setopt(m_handle, CURLOPT_TIMEOUT,        static_cast<long>(m_timeout));
+  }
+
+  if (m_max_file_size != 0)
+    lt_easy_setopt(m_handle, CURLOPT_MAXFILESIZE, static_cast<long>(m_max_file_size));
+
+  if (m_redirect_only_http_https) {
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+    lt_easy_setopt(m_handle, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#else
+    lt_easy_setopt(m_handle, CURLOPT_REDIR_PROTOCOLS,     CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#endif
   }
 
   lt_easy_setopt(m_handle, CURLOPT_NOSIGNAL,       1l);

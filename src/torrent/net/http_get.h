@@ -39,12 +39,17 @@ public:
   void                reset(const std::string& url, std::shared_ptr<std::ostream> str);
 
   std::string         url() const;
-  uint32_t            timeout() const;
 
   int64_t             size_done() const;
   int64_t             size_total() const;
 
+  uint32_t            timeout() const;
   void                set_timeout(uint32_t seconds);
+
+  uint32_t            max_file_size() const;
+  void                set_max_file_size(uint32_t bytes);
+
+  void                set_redirect_only_http_https();
 
   void                use_ipv4();
   void                use_ipv6();
