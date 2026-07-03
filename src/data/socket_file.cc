@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
 
@@ -30,7 +31,7 @@ SocketFile::open(const std::string& path, int prot, int flags, mode_t mode) {
   else
     throw internal_error("torrent::SocketFile::open(...) Tried to open file with no protection flags");
 
-  fd_type fd = ::open(path.c_str(), flags, mode);
+  fd_type fd = fd_open_file(path, flags, mode);
 
   if (fd == invalid_fd)
     return false;

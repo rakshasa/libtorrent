@@ -13,6 +13,7 @@
 #include "utils/log.h"
 #include "torrent/event.h"
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/system/thread.h"
 
 // TODO: Change to LOG_CONNECTION_POLL
@@ -162,7 +163,7 @@ Poll::create() {
   if (socket_open_max == -1)
     throw internal_error("Poll::create() : sysconf(_SC_OPEN_MAX) failed : " + std::string(std::strerror(errno)));
 
-  int fd = ::kqueue();
+  int fd = fd_open_kqueue();
 
   if (fd == -1)
     throw internal_error("Poll::create() : kqueue() failed : " + std::string(std::strerror(errno)));
