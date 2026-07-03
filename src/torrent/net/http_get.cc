@@ -66,11 +66,6 @@ HttpGet::url() const {
   return m_curl_get->url();
 }
 
-uint32_t
-HttpGet::timeout() const {
-  return m_curl_get->timeout();
-}
-
 int64_t
 HttpGet::size_done() const {
   return m_curl_get->size_done();
@@ -81,9 +76,29 @@ HttpGet::size_total() const {
   return m_curl_get->size_total();
 }
 
+uint32_t
+HttpGet::timeout() const {
+  return m_curl_get->timeout();
+}
+
 void
 HttpGet::set_timeout(uint32_t seconds) {
   m_curl_get->set_timeout(seconds);
+}
+
+uint32_t
+HttpGet::max_file_size() const {
+  return m_curl_get->max_file_size();
+}
+
+void
+HttpGet::set_max_file_size(uint32_t bytes) {
+  m_curl_get->set_max_file_size(bytes);
+}
+
+void
+HttpGet::set_redirect_only_http_https() {
+  m_curl_get->set_redirect_only_http_https();
 }
 
 void
