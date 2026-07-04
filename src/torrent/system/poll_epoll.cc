@@ -11,6 +11,7 @@
 #include "net/event_fd.h"
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
+#include "torrent/net/fd.h"
 #include "torrent/system/thread.h"
 #include "torrent/utils/log.h"
 
@@ -154,10 +155,10 @@ Poll::create() {
   if (socket_open_max == -1)
     throw internal_error("Poll::create() : sysconf(_SC_OPEN_MAX) failed : " + std::string(std::strerror(errno)));
 
-  int fd = epoll_create(socket_open_max);
+  int fd = fd_open_epoll(socket_open_max);
 
   if (fd == -1)
-    throw internal_error("Poll::create() : kqueue() failed : " + std::string(std::strerror(errno)));
+    throw internal_error("Poll::create() : epoll_create() failed : " + std::string(std::strerror(errno)));
 
   auto poll = new Poll();
 

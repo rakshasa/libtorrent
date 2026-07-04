@@ -9,7 +9,21 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/system/system.h"
 #include "torrent/utils/log.h"
+
+#if defined(USE_EPOLL)
+#include <sys/epoll.h>
+#elif defined(USE_KQUEUE)
+#include <sys/time.h>
+#include <sys/event.h>
+#else
+#error "Must enable at least one of either kqueue or epoll"
+#endif
+
+#ifdef USE_INOTIFY
+#include <sys/inotify.h>
+#endif
 
 #define LT_LOG(log_fmt, ...)                                    \
   lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__);
@@ -45,14 +59,25 @@
 
 namespace torrent {
 
-int fd__accept(int socket, sockaddr *address, socklen_t *address_len) { return ::accept(socket, address, address_len); }
+int fd__accept(int socket, sockaddr *address, socklen_t *address_len) {
+#ifdef HAVE_ACCEPT4
+  return ::accept4(socket, address, address_len, SOCK_CLOEXEC);
+#else
+  return ::accept(socket, address, address_len);
+#endif
+}
 int fd__bind(int socket, const sockaddr *address, socklen_t address_len) { return ::bind(socket, address, address_len); }
 int fd__close(int fildes) { return ::close(fildes); }
 int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return ::connect(socket, address, address_len); }
 int fd__fcntl_int(int fildes, int cmd, int arg) { return ::fcntl(fildes, cmd, arg); }
 int fd__listen(int socket, int backlog) { return ::listen(socket, backlog); }
 int fd__setsockopt_int(int socket, int level, int option_name, int option_value) { return ::setsockopt(socket, level, option_name, &option_value, sizeof(int)); }
-int fd__socket(int domain, int type, int protocol) { return ::socket(domain, type, protocol); }
+int fd__socket(int domain, int type, int protocol) {
+#ifdef SOCK_CLOEXEC
+  type |= SOCK_CLOEXEC;
+#endif
+  return ::socket(domain, type, protocol);
+}
 
 int
 fd_open(fd_flags flags) {
@@ -158,12 +183,31 @@ fd_open_local(fd_flags flags) {
   return fd;
 }
 
+int
+fd_open_file(const std::string& path, int flags, mode_t mode) {
+  int fd = ::open(path.c_str(), flags | O_CLOEXEC, mode);
+
+  if (fd == -1) {
+    LT_LOG_FLAG_ERROR("fd_open_file failed to open file");
+    return -1;
+  }
+
+  LT_LOG_FD_FLAG("fd_open_file succeeded");
+  return fd;
+}
+
 void
 fd_open_pipe(int& fd1, int& fd2) {
   int result[2];
 
-  if (pipe(result) == -1)
-    throw internal_error("torrent::fd_open_pipe failed: " + std::string(strerror(errno)));
+#ifdef HAVE_PIPE2
+  int status = pipe2(result, O_CLOEXEC);
+#else
+  int status = pipe(result);
+#endif
+
+  if (status == -1)
+    throw internal_error("torrent::fd_open_pipe failed: " + system::errno_enum_str(errno));
 
   fd1 = result[0];
   fd2 = result[1];
@@ -174,14 +218,76 @@ fd_open_pipe(int& fd1, int& fd2) {
 void
 fd_open_socket_pair(int& fd1, int& fd2) {
   int result[2];
+  int type = SOCK_STREAM;
 
-  if (socketpair(AF_LOCAL, SOCK_STREAM, 0, result) == -1)
-    throw internal_error("torrent::fd_open_socket_pair failed: " + std::string(strerror(errno)));
+#ifdef SOCK_CLOEXEC
+  type |= SOCK_CLOEXEC;
+#endif
+
+  if (socketpair(AF_LOCAL, type, 0, result) == -1)
+    throw internal_error("torrent::fd_open_socket_pair failed: " + system::errno_enum_str(errno));
 
   fd1 = result[0];
   fd2 = result[1];
 
   LT_LOG("fd_open_socket_pair succeeded : fd1:%i fd2:%i", fd1, fd2);
+}
+
+int
+fd_open_epoll([[maybe_unused]] int size) {
+#ifdef USE_EPOLL
+#ifdef HAVE_EPOLL_CREATE1
+  int fd = epoll_create1(EPOLL_CLOEXEC);
+#else
+  int fd = epoll_create(size);
+#endif
+
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_epoll failed: " + system::errno_enum_str(errno));
+
+  return fd;
+
+#else
+  throw internal_error("torrent::fd_open_epoll called but epoll support is not compiled in");
+#endif
+}
+
+int
+fd_open_kqueue() {
+#ifdef USE_KQUEUE
+#ifdef HAVE_KQUEUE1
+  int fd = kqueue1(O_CLOEXEC);
+#else
+  int fd = kqueue();
+#endif
+
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_kqueue failed: " + system::errno_enum_str(errno));
+
+  return fd;
+
+#else
+  throw internal_error("torrent::fd_open_kqueue called but kqueue support is not compiled in");
+#endif
+}
+
+int
+fd_open_inotify() {
+#ifdef USE_INOTIFY
+#ifdef HAVE_INOTIFY_INIT1
+  int fd = inotify_init1(IN_CLOEXEC);
+#else
+  int fd = inotify_init();
+#endif
+
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_inotify failed: " + system::errno_enum_str(errno));
+
+  return fd;
+
+#else
+  throw internal_error("torrent::fd_open_inotify called but inotify support is not compiled in");
+#endif
 }
 
 void
@@ -190,7 +296,7 @@ fd_close(int fd) {
     throw internal_error("torrent::fd_close: tried to close stdin/out/err");
 
   if (fd__close(fd) == -1)
-    throw internal_error("torrent::fd_close: " + std::string(strerror(errno)));
+    throw internal_error("torrent::fd_close: " + system::errno_enum_str(errno));
 
   LT_LOG_FD("fd_close succeeded");
 }

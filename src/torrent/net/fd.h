@@ -2,6 +2,7 @@
 #define LIBTORRENT_NET_FD_H
 
 #include <string>
+#include <sys/types.h>
 #include <torrent/common.h>
 #include <torrent/net/types.h>
 
@@ -23,8 +24,12 @@ constexpr bool  fd_valid_flags(fd_flags flags);
 int             fd_open(fd_flags flags) LIBTORRENT_EXPORT;
 int             fd_open_family(fd_flags flags, int family) LIBTORRENT_EXPORT;
 int             fd_open_local(fd_flags flags) LIBTORRENT_EXPORT;
+int             fd_open_file(const std::string& path, int flags, mode_t mode) LIBTORRENT_EXPORT;
 void            fd_open_pipe(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 void            fd_open_socket_pair(int& fd1, int& fd2) LIBTORRENT_EXPORT;
+int             fd_open_epoll(int size) LIBTORRENT_EXPORT;
+int             fd_open_kqueue() LIBTORRENT_EXPORT;
+int             fd_open_inotify() LIBTORRENT_EXPORT;
 void            fd_close(int fd) LIBTORRENT_EXPORT;
 
 int             fd_accept(int fd) LIBTORRENT_EXPORT;

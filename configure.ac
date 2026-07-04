@@ -67,7 +67,7 @@ if test "x$use_kqueue" != "xyes" && test "x$use_epoll" != "xyes"; then
 fi
 
 AX_PTHREAD
-AC_CHECK_FUNCS([fallocate posix_fallocate])
+AC_CHECK_FUNCS([fallocate posix_fallocate accept4 pipe2 epoll_create1 kqueue1 inotify_init1])
 
 TORRENT_ENABLE_CUSTOM_STACK_SIZE
 

@@ -142,7 +142,13 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
   auto socket     = socket_ptr.get();
 
   auto open_func = [socket, address]() {
-      int fd = ::socket(address->family, address->socktype, address->protocol);
+      int socktype = address->socktype;
+
+#ifdef SOCK_CLOEXEC
+      socktype |= SOCK_CLOEXEC;
+#endif
+
+      int fd = ::socket(address->family, socktype, address->protocol);
 
       if (fd == -1) {
         LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));

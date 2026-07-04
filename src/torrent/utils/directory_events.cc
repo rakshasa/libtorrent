@@ -57,9 +57,9 @@ directory_events::open() {
   errno = 0;
 
 #ifdef USE_INOTIFY
-  m_fileDesc = inotify_init();
+  m_fileDesc = fd_open_inotify();
 
-  if (!fd_set_nonblock(m_fileDesc)) {
+  if (is_open() && !fd_set_nonblock(m_fileDesc)) {
     fd_close(m_fileDesc);
     m_fileDesc = -1;
   }
