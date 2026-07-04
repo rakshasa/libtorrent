@@ -7,6 +7,11 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 
+#include "torrent/exceptions.h"
+#include "torrent/net/socket_address.h"
+#include "torrent/system/system.h"
+#include "torrent/utils/log.h"
+
 #if defined(USE_EPOLL)
 #include <sys/epoll.h>
 #elif defined(USE_KQUEUE)
@@ -19,10 +24,6 @@
 #ifdef USE_INOTIFY
 #include <sys/inotify.h>
 #endif
-
-#include "torrent/exceptions.h"
-#include "torrent/net/socket_address.h"
-#include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \
   lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__);
@@ -198,16 +199,15 @@ fd_open_file(const std::string& path, int flags, mode_t mode) {
 void
 fd_open_pipe(int& fd1, int& fd2) {
   int result[2];
-  int status;
 
 #ifdef HAVE_PIPE2
-  status = pipe2(result, O_CLOEXEC);
+  int status = pipe2(result, O_CLOEXEC);
 #else
-  status = pipe(result);
+  int status = pipe(result);
 #endif
 
   if (status == -1)
-    throw internal_error("torrent::fd_open_pipe failed: " + std::string(strerror(errno)));
+    throw internal_error("torrent::fd_open_pipe failed: " + system::errno_enum_str(errno));
 
   fd1 = result[0];
   fd2 = result[1];
@@ -225,7 +225,7 @@ fd_open_socket_pair(int& fd1, int& fd2) {
 #endif
 
   if (socketpair(AF_LOCAL, type, 0, result) == -1)
-    throw internal_error("torrent::fd_open_socket_pair failed: " + std::string(strerror(errno)));
+    throw internal_error("torrent::fd_open_socket_pair failed: " + system::errno_enum_str(errno));
 
   fd1 = result[0];
   fd2 = result[1];
@@ -242,13 +242,11 @@ fd_open_epoll([[maybe_unused]] int size) {
   int fd = epoll_create(size);
 #endif
 
-  if (fd == -1) {
-    LT_LOG("fd_open_epoll failed : errno:%i message:'%s'", errno, std::strerror(errno));
-    return -1;
-  }
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_epoll failed: " + system::errno_enum_str(errno));
 
-  LT_LOG_FD("fd_open_epoll succeeded");
   return fd;
+
 #else
   throw internal_error("torrent::fd_open_epoll called but epoll support is not compiled in");
 #endif
@@ -263,13 +261,11 @@ fd_open_kqueue() {
   int fd = kqueue();
 #endif
 
-  if (fd == -1) {
-    LT_LOG("fd_open_kqueue failed : errno:%i message:'%s'", errno, std::strerror(errno));
-    return -1;
-  }
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_kqueue failed: " + system::errno_enum_str(errno));
 
-  LT_LOG_FD("fd_open_kqueue succeeded");
   return fd;
+
 #else
   throw internal_error("torrent::fd_open_kqueue called but kqueue support is not compiled in");
 #endif
@@ -284,13 +280,11 @@ fd_open_inotify() {
   int fd = inotify_init();
 #endif
 
-  if (fd == -1) {
-    LT_LOG("fd_open_inotify failed : errno:%i message:'%s'", errno, std::strerror(errno));
-    return -1;
-  }
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_inotify failed: " + system::errno_enum_str(errno));
 
-  LT_LOG_FD("fd_open_inotify succeeded");
   return fd;
+
 #else
   throw internal_error("torrent::fd_open_inotify called but inotify support is not compiled in");
 #endif
@@ -302,7 +296,7 @@ fd_close(int fd) {
     throw internal_error("torrent::fd_close: tried to close stdin/out/err");
 
   if (fd__close(fd) == -1)
-    throw internal_error("torrent::fd_close: " + std::string(strerror(errno)));
+    throw internal_error("torrent::fd_close: " + system::errno_enum_str(errno));
 
   LT_LOG_FD("fd_close succeeded");
 }
