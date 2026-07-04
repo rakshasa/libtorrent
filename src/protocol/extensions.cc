@@ -104,7 +104,7 @@ ProtocolExtension::generate_handshake_message() {
   // Add "e" key if encryption is enabled, set it to 1 if we require
   // encryption for incoming connections, or 0 otherwise.
   if ((runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_allow_incoming) != 0)
-    message[key_e] = (runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_require) != 0;
+    message[key_e] = (runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_require) == runtime::NetworkConfig::encryption_require;
 
   message[key_p] = runtime::listen_port();
   message[key_v] = raw_string::from_c_str("libTorrent " VERSION);

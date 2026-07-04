@@ -176,7 +176,7 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
       auto type_fn = [&]() {
           if (encryption_options & runtime::NetworkConfig::encryption_try_outgoing)
             return "try encrypted";
-          else if (encryption_options & runtime::NetworkConfig::encryption_require)
+          else if ((encryption_options & runtime::NetworkConfig::encryption_require) == runtime::NetworkConfig::encryption_require)
             return "require encrypted";
           else
             return "plain";

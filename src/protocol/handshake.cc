@@ -112,7 +112,7 @@ Handshake::initialize_incoming(HandshakeManager* handshake_manager, int fd, cons
   m_address    = sa_copy(sa);
   m_encryption = encryption_options;
 
-  if (m_encryption.options() & (runtime::NetworkConfig::encryption_allow_incoming | runtime::NetworkConfig::encryption_require))
+  if (m_encryption.options() & runtime::NetworkConfig::encryption_allow_incoming)
     m_state = READ_ENC_KEY;
   else
     m_state = READ_INFO;
@@ -287,7 +287,7 @@ Handshake::read_encryption_key() {
 
     if (m_readBuffer.peek_8() == 19 && std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) == 0) {
       // got unencrypted BT handshake
-      if (m_encryption.options() & runtime::NetworkConfig::encryption_require)
+      if ((m_encryption.options() & runtime::NetworkConfig::encryption_require) == runtime::NetworkConfig::encryption_require)
         throw handshake_error(handshake_dropped, e_handshake_unencrypted_rejected);
 
       m_state = READ_INFO;
@@ -996,11 +996,11 @@ Handshake::event_write() {
 
       m_writeBuffer.reset();
 
-      if (m_encryption.options() & (runtime::NetworkConfig::encryption_try_outgoing | runtime::NetworkConfig::encryption_require)) {
+      if (m_encryption.options() & runtime::NetworkConfig::encryption_try_outgoing) {
         prepare_key_plus_pad();
 
         // if connection fails, peer probably closed it because it was encrypted, so retry encrypted if enabled
-        if (!(m_encryption.options() & runtime::NetworkConfig::encryption_require))
+        if ((m_encryption.options() & runtime::NetworkConfig::encryption_require) != runtime::NetworkConfig::encryption_require)
           m_encryption.set_retry(HandshakeEncryption::RETRY_PLAIN);
 
         m_state = READ_ENC_KEY;
