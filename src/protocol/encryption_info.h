@@ -37,12 +37,28 @@
 #ifndef LIBTORRENT_PROTOCOL_ENCRYPTION_H
 #define LIBTORRENT_PROTOCOL_ENCRYPTION_H
 
+#include <cstdint>
+
 #include "utils/rc4.h"
 
 namespace torrent {
 
 class EncryptionInfo {
 public:
+  static constexpr uint32_t option_none             = 0;
+  static constexpr uint32_t option_allow_incoming   = 0x1;
+  static constexpr uint32_t option_try_outgoing     = 0x2;
+  static constexpr uint32_t option_require          = 0x3;
+  static constexpr uint32_t option_require_RC4      = 0x4;
+  static constexpr uint32_t option_enable_retry     = 0x8;
+  static constexpr uint32_t option_prefer_plaintext = 0x10;
+  // Internal to libtorrent.
+  static constexpr uint32_t option_retrying         = 0x40;
+
+  static bool         try_outgoing(uint32_t opts);
+  static bool         is_required(uint32_t opts);
+  static bool         allow_incoming(uint32_t opts);
+
   void                encrypt(const void *indata, void *outdata, unsigned int length) { m_encrypt.crypt(indata, outdata, length); }
   void                encrypt(void *data, unsigned int length)                        { m_encrypt.crypt(data, length); }
   void                decrypt(const void *indata, void *outdata, unsigned int length) { m_decrypt.crypt(indata, outdata, length); }
@@ -64,6 +80,24 @@ private:
   RC4                 m_encrypt;
   RC4                 m_decrypt;
 };
+
+// Encryption options are OR-combined flags, and option_require is a preset
+// (allow_incoming | try_outgoing). Bitwise checks against option_require
+// also match allow_incoming alone; use these helpers for require-specific logic.
+inline bool
+EncryptionInfo::try_outgoing(uint32_t opts) {
+  return (opts & option_try_outgoing) != 0;
+}
+
+inline bool
+EncryptionInfo::is_required(uint32_t opts) {
+  return (opts & option_require) == option_require;
+}
+
+inline bool
+EncryptionInfo::allow_incoming(uint32_t opts) {
+  return (opts & option_allow_incoming) != 0;
+}
 
 } // namespace torrent
 

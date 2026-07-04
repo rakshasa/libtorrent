@@ -21,16 +21,6 @@ public:
   static constexpr int      iptos_throughput            = IPTOS_THROUGHPUT;
   static constexpr int      iptos_reliability           = IPTOS_RELIABILITY;
 
-  static constexpr uint32_t encryption_none             = 0;
-  static constexpr uint32_t encryption_allow_incoming   = 0x1;
-  static constexpr uint32_t encryption_try_outgoing     = 0x2;
-  static constexpr uint32_t encryption_require          = 0x3;
-  static constexpr uint32_t encryption_require_RC4      = 0x4;
-  static constexpr uint32_t encryption_enable_retry     = 0x8;
-  static constexpr uint32_t encryption_prefer_plaintext = 0x10;
-  // Internal to libtorrent.
-  static constexpr uint32_t encryption_retrying         = 0x40;
-
   NetworkConfig();
 
   // TODO: Move helper functions in rtorrent manager here.
@@ -174,7 +164,7 @@ private:
   c_sa_shared_ptr     m_local_inet_address;
   c_sa_shared_ptr     m_local_inet6_address;
 
-  int                 m_encryption_options{encryption_none};
+  int                 m_encryption_options{0};
   int                 m_listen_backlog{SOMAXCONN};
   uint16_t            m_override_dht_port{0};
   uint32_t            m_send_buffer_size{0};

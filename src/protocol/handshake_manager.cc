@@ -128,10 +128,10 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
   auto encryption_options = runtime::network_config()->encryption_options();
 
   if (download->info()->is_meta_download()) {
-    encryption_options &= ~runtime::NetworkConfig::encryption_try_outgoing;
-    encryption_options &= ~runtime::NetworkConfig::encryption_require;
-    encryption_options &= ~runtime::NetworkConfig::encryption_require_RC4;
-    encryption_options &= ~runtime::NetworkConfig::encryption_enable_retry;
+    encryption_options &= ~EncryptionInfo::option_try_outgoing;
+    encryption_options &= ~EncryptionInfo::option_require;
+    encryption_options &= ~EncryptionInfo::option_require_RC4;
+    encryption_options &= ~EncryptionInfo::option_enable_retry;
   }
 
   if (sa_is_v4mapped(sa))
@@ -144,7 +144,7 @@ void
 HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, int encryption_options) {
   int connection_options = PeerList::connect_keep_handshakes;
 
-  if (!(encryption_options & runtime::NetworkConfig::encryption_retrying))
+  if (!(encryption_options & EncryptionInfo::option_retrying))
     connection_options |= PeerList::connect_filter_recent;
 
   PeerInfo* peer_info = download->peer_list()->connected(sa, connection_options);
@@ -174,10 +174,10 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, in
         return;
 
       auto type_fn = [&]() {
-          if (encryption_options & runtime::NetworkConfig::encryption_try_outgoing)
-            return "try encrypted";
-          else if (encryption_options & runtime::NetworkConfig::encryption_require)
+          if (EncryptionInfo::is_required(encryption_options))
             return "require encrypted";
+          else if (EncryptionInfo::try_outgoing(encryption_options))
+            return "try encrypted";
           else
             return "plain";
         };
@@ -285,10 +285,10 @@ HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
   LT_LOG_SA(sa, "Received error: message:%x %s.", message, handshake_strerror(error));
 
   if (handshake->encryption()->should_retry()) {
-    int retry_options = handshake->retry_options() | runtime::NetworkConfig::encryption_retrying;
+    int retry_options = handshake->retry_options() | EncryptionInfo::option_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SA(sa, "Retrying %s.", retry_options & runtime::NetworkConfig::encryption_try_outgoing ? "encrypted" : "plaintext");
+    LT_LOG_SA(sa, "Retrying %s.", retry_options & EncryptionInfo::option_try_outgoing ? "encrypted" : "plaintext");
 
     create_outgoing(sa, download, retry_options);
   }

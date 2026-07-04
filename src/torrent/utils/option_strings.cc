@@ -9,6 +9,7 @@
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/peer_info.h"
+#include "protocol/encryption_info.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/utils/option_strings.h"
 
@@ -54,14 +55,14 @@ constexpr option_pair option_list_heuristics_upload[] = {
 };
 
 constexpr option_pair option_list_encryption[] = {
-  { "none",             runtime::NetworkConfig::encryption_none },
-  { "allow_incoming",   runtime::NetworkConfig::encryption_allow_incoming },
-  { "try_outgoing",     runtime::NetworkConfig::encryption_try_outgoing },
-  { "require",          runtime::NetworkConfig::encryption_require },
-  { "require_RC4",      runtime::NetworkConfig::encryption_require_RC4 },
-  { "require_rc4",      runtime::NetworkConfig::encryption_require_RC4 },
-  { "enable_retry",     runtime::NetworkConfig::encryption_enable_retry },
-  { "prefer_plaintext", runtime::NetworkConfig::encryption_prefer_plaintext },
+  { "none",             EncryptionInfo::option_none },
+  { "allow_incoming",   EncryptionInfo::option_allow_incoming },
+  { "try_outgoing",     EncryptionInfo::option_try_outgoing },
+  { "require",          EncryptionInfo::option_require },
+  { "require_RC4",      EncryptionInfo::option_require_RC4 },
+  { "require_rc4",      EncryptionInfo::option_require_RC4 },
+  { "enable_retry",     EncryptionInfo::option_enable_retry },
+  { "prefer_plaintext", EncryptionInfo::option_prefer_plaintext },
   { NULL, 0 }
 };
 
