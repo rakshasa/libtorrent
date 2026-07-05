@@ -26,18 +26,16 @@
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
-#if 1
-
-#define LT_LOG_DEBUG(log_fmt, ...)
-#define LT_LOG_DEBUG_IDENT(log_fmt, ...)
-
-#else
+#ifdef DEBUG
 
 #define LT_LOG_DEBUG(log_fmt, ...)                                  \
   lt_log_print(LOG_CONNECTION_FD, "kqueue: " log_fmt, __VA_ARGS__);
 #define LT_LOG_DEBUG_IDENT(log_fmt, ...)                                \
   lt_log_print(LOG_CONNECTION_FD, "kqueue->%u : " log_fmt, static_cast<unsigned int>(itr->ident), __VA_ARGS__);
 
+#else
+#define LT_LOG_DEBUG(log_fmt, ...)
+#define LT_LOG_DEBUG_IDENT(log_fmt, ...)
 #endif
 
 namespace torrent::system {

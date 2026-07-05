@@ -44,9 +44,9 @@ private:
 
   CurlStack*          m_stack{};
   CURL*               m_easy_handle{};
-
-  CurlSocket*         m_self_exists{};
   bool                m_curl_internal{};
+
+  std::weak_ptr<CurlSocket> m_self_ptr{};
 };
 
 } // namespace torrent::net

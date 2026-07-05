@@ -31,13 +31,13 @@
 #define LT_LOG_DEBUG(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "curl_socket: " log_fmt, __VA_ARGS__)
 #define LT_LOG_DEBUG_THIS(log_fmt, ...)                                 \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->m_fileDesc, __VA_ARGS__)
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, this, this->file_descriptor(), __VA_ARGS__)
 #define LT_LOG_DEBUG_SOCKET(log_fmt, ...)                               \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, __VA_ARGS__)
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): " log_fmt, socket, socket != nullptr ? socket->file_descriptor() : 0, __VA_ARGS__)
 #define LT_LOG_DEBUG_SOCKET_FD(log_fmt, ...)                            \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, __VA_ARGS__)
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i : " log_fmt, socket, socket != nullptr ? socket->file_descriptor() : 0, fd, __VA_ARGS__)
 #define LT_LOG_DEBUG_SOCKET_FD_HANDLE(log_fmt, ...)                            \
-  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i easy_handle:%p : " log_fmt, socket, socket != nullptr ? socket->m_fileDesc : 0, fd, easy_handle, __VA_ARGS__)
+  lt_log_print(LOG_CONNECTION_FD, "curl_socket->%p(%i): fd:%i easy_handle:%p : " log_fmt, socket, socket != nullptr ? socket->file_descriptor() : 0, fd, easy_handle, __VA_ARGS__)
 
 #endif
 
@@ -50,25 +50,19 @@ void verify_libcurl_internal_wakeup(int fd);
 }
 
 CurlSocket::CurlSocket(CurlStack* stack)
-  : m_stack(stack),
-    m_self_exists(this) {
+  : m_stack(stack) {
 }
 
 CurlSocket::~CurlSocket() {
   assert(!is_open() && "CurlSocket::~CurlSocket() !is_open()");
-
-  m_self_exists = nullptr;
 }
 
 int
 CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlStack* stack, CurlSocket* socket) {
   assert(this_thread::thread() == stack->thread());
 
-  // We always return 0, even when stack is not running, as we depend on these calls to delete
-  // sockets.
-
-  if (socket != nullptr && socket->m_self_exists != socket) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : called on deleted CurlSocket, aborting : %p : %p", socket, socket->m_self_exists);
+  if (socket != nullptr && socket->m_self_ptr.expired()) {
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : called on deleted CurlSocket, aborting : %p", socket);
     throw internal_error("CurlSocket::receive_socket(fd:" + std::to_string(fd) + ") called on deleted CurlSocket");
   }
 
@@ -138,8 +132,10 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
     throw internal_error("CurlSocket::open_socket() unsupported socket type: " + std::to_string(purpose));
   }
 
-  auto socket_ptr = std::make_unique<CurlSocket>(stack);
+  auto socket_ptr = std::make_shared<CurlSocket>(stack);
   auto socket     = socket_ptr.get();
+
+  socket->m_self_ptr = socket_ptr;
 
   auto open_func = [socket, address]() {
       int socktype = address->socktype;
@@ -195,7 +191,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
 
   LT_LOG_DEBUG_SOCKET("close_socket()", 0);
 
-  if (socket->m_self_exists != socket) {
+  if (socket->m_self_ptr.expired()) {
     LT_LOG_DEBUG_SOCKET_FD("close_socket() : called on deleted CurlSocket, aborting", 0);
     throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + ") called on deleted CurlSocket");
   }
@@ -230,11 +226,12 @@ CurlSocket::handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stac
   if (inserted) {
     verify_libcurl_internal_wakeup(fd);
 
-    auto socket_ptr = std::make_unique<CurlSocket>(stack);
+    auto socket_ptr = std::make_shared<CurlSocket>(stack);
     auto socket     = socket_ptr.get();
 
     socket->m_easy_handle   = easy_handle;
     socket->m_curl_internal = true;
+    socket->m_self_ptr      = socket_ptr;
 
     socket->set_file_descriptor(fd);
 
@@ -253,12 +250,11 @@ CurlSocket::handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stac
 
   auto socket = itr->second.get();
 
-  if (itr->second->m_easy_handle != nullptr) {
+  if (socket->m_easy_handle != nullptr) {
     LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_new() : existing CurlSocket easy_handle not null, aborting", 0);
     throw internal_error("CurlSocket::handle_poll_new(fd:" + std::to_string(fd) + ") existing CurlSocket easy_handle not null");
   }
 
-  socket                = itr->second.get();
   socket->m_easy_handle = easy_handle;
 
   curl_multi_assign(stack->handle(), fd, socket);
@@ -274,8 +270,7 @@ CurlSocket::handle_poll_remove(CURL* easy_handle, curl_socket_t fd, CurlStack* s
   // null socket.
 
   if (socket == nullptr) {
-    // Assume libcurl calls this before closing the fd if it is in the idle connection pool.
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("handle_poll_remove(CURL_POLL_REMOVE) : null socket", 0);
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("CurlSocket::handle_poll_remove(CURL_POLL_REMOVE) : called with null socket, ignoring", 0);
     return 0;
   }
 
@@ -284,7 +279,7 @@ CurlSocket::handle_poll_remove(CURL* easy_handle, curl_socket_t fd, CurlStack* s
     throw internal_error("CurlSocket::handle_poll_remove(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE called on closed socket");
   }
 
-  if (socket->m_fileDesc != fd)
+  if (socket->file_descriptor() != fd)
     throw internal_error("CurlSocket::handle_poll_remove(fd:" + std::to_string(fd) + ") CURL_POLL_REMOVE fd mismatch");
 
   auto itr = stack->socket_map()->find(fd);
@@ -329,16 +324,16 @@ void
 CurlSocket::event_error() {
   LT_LOG_DEBUG_THIS("event_error()", 0);
 
-  // curl_multi_assign(m_stack->handle(), file_descriptor(), nullptr);
+  auto weak_self = m_self_ptr;
 
   handle_action(CURL_CSELECT_ERR);
 
-  // if (m_self_exists == this) {
-  //   // LT_LOG_DEBUG_THIS("event_error() : self deleted during handle_action, aborting", 0);
-  //   // throw internal_error("CurlSocket::event_error() self deleted during handle_action.");
-  // }
-
-  // clear_and_erase_self_or_throw();
+  // This shouldn't happen, or might be a bug / unexpected behavior in libcurl.
+  if (!weak_self.expired()) {
+    LT_LOG_DEBUG_THIS("event_error() : self still exists : is_internal:%i", m_curl_internal);
+    throw internal_error("CurlSocket::event_error() self still exists : " +
+                         std::to_string(file_descriptor()) + " : is_internal:" + std::to_string(m_curl_internal));
+  }
 }
 
 void
@@ -371,9 +366,10 @@ void
 CurlSocket::clear_and_erase_self(CurlStack::socket_map_type::iterator itr) {
   auto socket_map = m_stack->socket_map();
 
-  m_fileDesc    = -1;
   m_stack       = nullptr;
   m_easy_handle = nullptr;
+
+  set_file_descriptor(-1);
 
   socket_map->erase(itr);
 }

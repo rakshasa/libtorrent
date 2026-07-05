@@ -20,7 +20,7 @@ class CurlSocket;
 class align_cacheline CurlStack : private std::vector<std::shared_ptr<CurlGet>> {
 public:
   using base_type       = std::vector<std::shared_ptr<CurlGet>>;
-  using socket_map_type = std::map<curl_socket_t, std::unique_ptr<CurlSocket>>;
+  using socket_map_type = std::map<curl_socket_t, std::shared_ptr<CurlSocket>>;
 
   CurlStack(system::Thread* thread);
   ~CurlStack();
@@ -95,7 +95,9 @@ private:
 
   socket_map_type       m_socket_map;
 
-  align_cacheline mutable std::mutex m_mutex;
+  align_cacheline
+
+  mutable std::mutex m_mutex;
 
   // Mirrors base::size()
   std::atomic_size_t  m_size{0};
