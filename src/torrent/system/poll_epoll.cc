@@ -21,9 +21,11 @@
 #define LT_LOG_EVENT(log_fmt, ...)                                      \
   lt_log_print(LOG_CONNECTION_FD, "epoll->%i : %s : " log_fmt, event->file_descriptor(), event->type_name(), __VA_ARGS__);
 
-#if 0
+#ifdef DEBUG
+
 #define LT_LOG_DEBUG_DATA_FD(log_fmt, ...)                                \
   lt_log_print(LOG_CONNECTION_FD, "epoll->%i: " log_fmt, itr->data.fd, __VA_ARGS__);
+
 #else
 #define LT_LOG_DEBUG_DATA_FD(log_fmt, ...)
 #endif
