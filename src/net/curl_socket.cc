@@ -330,8 +330,8 @@ CurlSocket::event_error() {
 
   // This shouldn't happen, or might be a bug / unexpected behavior in libcurl.
   if (!weak_self.expired()) {
-    LT_LOG_DEBUG_THIS("event_error() : self still exists after handle_action : is_internal:%i", m_curl_internal);
-    throw internal_error("CurlSocket::event_error() self still exists after handle_action : " +
+    LT_LOG_DEBUG_THIS("event_error() : self still exists : is_internal:%i", m_curl_internal);
+    throw internal_error("CurlSocket::event_error() self still exists : " +
                          std::to_string(file_descriptor()) + " : is_internal:" + std::to_string(m_curl_internal));
   }
 }
