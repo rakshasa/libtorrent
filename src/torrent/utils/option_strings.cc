@@ -108,33 +108,12 @@ constexpr const char* option_list_log_group[] = {
   "info",
   "debug",
 
-  "peer_critical",
-  "peer_error",
-  "peer_warn",
-  "peer_notice",
-  "peer_info",
-  "peer_debug",
-
-  "socket_critical",
-  "socket_error",
-  "socket_warn",
-  "socket_notice",
-  "socket_info",
-  "socket_debug",
-
   "storage_critical",
   "storage_error",
   "storage_warn",
   "storage_notice",
   "storage_info",
   "storage_debug",
-
-  "thread_critical",
-  "thread_error",
-  "thread_warn",
-  "thread_notice",
-  "thread_info",
-  "thread_debug",
 
   "torrent_critical",
   "torrent_error",
@@ -171,6 +150,7 @@ constexpr const char* option_list_log_group[] = {
   "net_dns",
   "net_socket",
 
+  "peer_choke_queue",
   "peer_list_events",
   "peer_list_address",
 
@@ -186,7 +166,10 @@ constexpr const char* option_list_log_group[] = {
 
   "session_events",
   "storage",
+
   "system",
+  "system_poll",
+  "system_thread",
 
   "tracker_dump",
   "tracker_events",

@@ -189,11 +189,11 @@ uint32_t ProxySocks5::read(const void* data, uint32_t size) {
       return 6 + 16;
 
     case 0x03:
-      if (size < 1 + bytes[4])
+      if (size < 1 + static_cast<unsigned int>(bytes[4]))
         return 0;
 
       m_state = state_done;
-      return 6 + 1 + bytes[4];
+      return 6 + 1 + static_cast<unsigned int>(bytes[4]);
 
     default:
       m_state = state_error;

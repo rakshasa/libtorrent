@@ -265,7 +265,7 @@ Thread::enter_event_loop(void* thread) {
 
 void
 Thread::event_loop() {
-  lt_log_print(LOG_THREAD_NOTICE, "%s : starting thread event loop", name());
+  lt_log_print(LOG_SYSTEM_THREAD, "%s : starting thread event loop", name());
 
   try {
 
@@ -287,7 +287,7 @@ Thread::event_loop() {
     }
 
   } catch (const shutdown_exception&) {
-    lt_log_print(LOG_THREAD_NOTICE, "%s: Shutting down thread.", name());
+    lt_log_print(LOG_SYSTEM_THREAD, "%s: Shutting down thread.", name());
 
   } catch (const internal_error& e) {
     // Uncaught internal errors in threads cause the program to exit, and we need to flush the logs.
@@ -334,7 +334,7 @@ Thread::init_thread_local() {
 
 void
 Thread::cleanup_thread_local() {
-  lt_log_print(LOG_THREAD_NOTICE, "%s : cleaning up thread local data", name());
+  lt_log_print(LOG_SYSTEM_THREAD, "%s : cleaning up thread local data", name());
 
   cleanup_thread();
 
