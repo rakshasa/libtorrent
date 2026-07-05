@@ -93,7 +93,7 @@ choke_queue::retrieve_connections(group_stats gs, container_type* queued, contai
   for (auto entry : m_group_container) {
     unsigned int min_slots = std::min(entry->min_slots(), entry->max_slots());
 
-    lt_log_print(LOG_PEER_DEBUG, "Choke queue retrieve_connections; queued:%u unchoked:%u min_slots:%u max_slots:%u.",
+    lt_log_print(LOG_PEER_CHOKE_QUEUE, "Choke queue retrieve_connections; queued:%u unchoked:%u min_slots:%u max_slots:%u.",
                  (unsigned)entry->queued()->size(), (unsigned)entry->unchoked()->size(), min_slots, entry->max_slots());
 
     // Disable this after finding the flaw... ?
@@ -264,7 +264,7 @@ choke_queue::cycle(uint32_t quota) {
 
   log_choke_changes_func_new(this, "cycle", quota, adjust);
 
-  lt_log_print(LOG_PEER_DEBUG, "Called cycle; quota:%u adjust:%i alternate:%i queued:%u unchoked:%u.",
+  lt_log_print(LOG_PEER_CHOKE_QUEUE, "Called cycle; quota:%u adjust:%i alternate:%i queued:%u unchoked:%u.",
                quota, adjust, alternate, (unsigned)queued.size(), (unsigned)unchoked.size());
 
   uint32_t unchoked_count = adjust_choke_range(queued.begin(), queued.end(), &queued, &unchoked, adjust, false);
@@ -277,7 +277,7 @@ choke_queue::cycle(uint32_t quota) {
 
   rebuild_containers(&queued, &unchoked); // Remove...
 
-  lt_log_print(LOG_PEER_DEBUG, "After cycle; queued:%u unchoked:%u unchoked_count:%i old_size:%i.",
+  lt_log_print(LOG_PEER_CHOKE_QUEUE, "After cycle; queued:%u unchoked:%u unchoked_count:%i old_size:%i.",
                (unsigned)queued.size(), (unsigned)unchoked.size(), unchoked_count, oldSize);
 
   return (static_cast<int>(unchoked.size()) - oldSize); // + gs.changed_unchoke

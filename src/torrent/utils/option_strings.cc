@@ -108,13 +108,6 @@ constexpr const char* option_list_log_group[] = {
   "info",
   "debug",
 
-  "peer_critical",
-  "peer_error",
-  "peer_warn",
-  "peer_notice",
-  "peer_info",
-  "peer_debug",
-
   "storage_critical",
   "storage_error",
   "storage_warn",
@@ -157,6 +150,7 @@ constexpr const char* option_list_log_group[] = {
   "net_dns",
   "net_socket",
 
+  "peer_choke_queue",
   "peer_list_events",
   "peer_list_address",
 
