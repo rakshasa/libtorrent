@@ -129,20 +129,24 @@ protected:
   // TODO: Make it so only thread_this can access m_cached_time.
   std::atomic<std::chrono::microseconds> m_cached_time;
 
-  align_cacheline int               m_instrumentation_index;
+  align_cacheline
+
+  int                               m_instrumentation_index;
 
   std::unique_ptr<system::Poll>     m_poll;
   std::unique_ptr<net::Resolver>    m_resolver;
   std::unique_ptr<utils::Scheduler> m_scheduler;
 
-  align_cacheline std::mutex        m_callbacks_lock;
+  align_cacheline
 
-  std::vector<callback_type>        m_callbacks;
-  std::vector<callback_type>        m_interrupt_callbacks;
+  std::mutex                 m_callbacks_lock;
+  std::vector<callback_type> m_callbacks;
+  std::vector<callback_type> m_interrupt_callbacks;
 
   // Only data used in self thread below:
+  align_cacheline
 
-  align_cacheline callback_id       m_callback_processing_id{};
+  callback_id                m_callback_processing_id{};
 };
 
 inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(false, std::move(fn)); }
