@@ -75,7 +75,7 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
-  m_fileDesc = -1;
+  set_file_descriptor(-1);
   reset_statistics();
 
   m_task_timeout.slot() = [this] { receive_timeout(); };

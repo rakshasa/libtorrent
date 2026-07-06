@@ -53,9 +53,9 @@ protected:
 
   std::shared_ptr<system::PollEvent> m_poll_event;
 
+private:
   int                 m_fileDesc{-1};
 
-private:
   // TODO: Add socket type to validation.
   c_sa_unique_ptr     m_peer_address;
   c_sa_unique_ptr     m_socket_address;

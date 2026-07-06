@@ -16,7 +16,7 @@ SocketDatagram::read_datagram(void* buffer, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to receive buffer length 0");
 
-  return ::recv(m_fileDesc, buffer, length, 0);
+  return ::recv(file_descriptor(), buffer, length, 0);
 }
 
 int
@@ -24,7 +24,7 @@ SocketDatagram::write_datagram(const void* buffer, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to send buffer length 0");
 
-  return ::send(m_fileDesc, buffer, length, 0);
+  return ::send(file_descriptor(), buffer, length, 0);
 }
 
 int
@@ -35,7 +35,7 @@ SocketDatagram::read_datagram_sa(void* buffer, unsigned int length, sockaddr* fr
   if (from_sa == nullptr)
     throw internal_error("Tried to receive datagram with NULL sockaddr pointer");
 
-  return ::recvfrom(m_fileDesc, buffer, length, 0, from_sa, &from_length);
+  return ::recvfrom(file_descriptor(), buffer, length, 0, from_sa, &from_length);
 }
 
 int
@@ -46,9 +46,9 @@ SocketDatagram::write_datagram_sa(const void* buffer, unsigned int length, const
   int r;
 
   if (sa != nullptr)
-    r = ::sendto(m_fileDesc, buffer, length, 0, sa, sa_length(sa));
+    r = ::sendto(file_descriptor(), buffer, length, 0, sa, sa_length(sa));
   else
-    r = ::send(m_fileDesc, buffer, length, 0);
+    r = ::send(file_descriptor(), buffer, length, 0);
 
   return r;
 }

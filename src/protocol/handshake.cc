@@ -179,7 +179,7 @@ Handshake::destroy_connection(bool use_socket_manager) {
   auto fn = [this]() {
       this_thread::poll()->remove_and_close(this);
 
-      fd_close(m_fileDesc);
+      fd_close(file_descriptor());
       set_file_descriptor(-1);
     };
 
@@ -194,7 +194,7 @@ Handshake::destroy_connection(bool use_socket_manager) {
       this_thread::poll()->remove_and_close(this);
 
     if (is_open()) {
-      fd_close(m_fileDesc);
+      fd_close(file_descriptor());
       set_file_descriptor(-1);
     }
 

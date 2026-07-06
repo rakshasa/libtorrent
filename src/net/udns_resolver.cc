@@ -106,7 +106,8 @@ UdnsResolver::initialize(system::Thread* thread) {
 
   m_thread   = thread;
   m_ctx      = ::dns_new(nullptr);
-  m_fileDesc = ::dns_open(m_ctx);
+
+  set_file_descriptor(::dns_open(m_ctx));
 
   if (!is_open())
     throw internal_error("UdnsResolver::initialize() dns_open failed");
@@ -132,7 +133,7 @@ UdnsResolver::cleanup() {
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
 
-  m_fileDesc = -1;
+  set_file_descriptor(-1);
 }
 
 void
