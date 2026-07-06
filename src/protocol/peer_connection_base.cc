@@ -122,7 +122,6 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   this_thread::poll()->open(this);
   this_thread::poll()->insert_read(this);
   this_thread::poll()->insert_write(this);
-  this_thread::poll()->insert_error(this);
 
   m_time_last_read = this_thread::cached_time();
 

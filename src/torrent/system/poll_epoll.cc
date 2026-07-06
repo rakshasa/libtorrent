@@ -107,7 +107,7 @@ PollInternal::modify(Event* event, unsigned short op, uint32_t mask, uint32_t ol
 
   set_event_mask(event, mask);
 
-  if (epoll_ctl(m_fd, op, event->file_descriptor(), &e)) {
+  if (epoll_ctl(m_fd, op, event->file_descriptor(), &e) == -1) {
     switch (op) {
     case EPOLL_CTL_ADD:
       LT_LOG_EVENT("modify event EPOLL_CTL_ADD failed: %s", std::strerror(errno));
@@ -276,10 +276,6 @@ Poll::process() {
       if (poll_event->event == nullptr)
         continue;
 
-      // TODO: EPOLLERR is always reported, so we don't need error event registration.
-      if (!(poll_event->mask & EPOLLERR))
-        throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
-
       auto event_info = poll_event->event->print_name_fd_str();
 
       poll_event->event->event_error();
@@ -371,11 +367,6 @@ Poll::in_write(Event* event) {
   return m_internal->event_mask(event) & EPOLLOUT;
 }
 
-bool
-Poll::in_error(Event* event) {
-  return m_internal->event_mask(event) & EPOLLERR;
-}
-
 void
 Poll::insert_read(Event* event) {
   auto mask = m_internal->event_mask(event);
@@ -403,21 +394,6 @@ Poll::insert_write(Event* event) {
   m_internal->modify(event,
                      mask ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
                      mask | EPOLLOUT,
-                     mask);
-}
-
-void
-Poll::insert_error(Event* event) {
-  auto mask = m_internal->event_mask(event);
-
-  if (mask & EPOLLERR)
-    return;
-
-  LT_LOG_EVENT("insert error", 0);
-
-  m_internal->modify(event,
-                     mask ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-                     mask | EPOLLERR,
                      mask);
 }
 
@@ -454,26 +430,9 @@ Poll::remove_write(Event* event) {
 }
 
 void
-Poll::remove_error(Event* event) {
-  auto mask     = m_internal->event_mask(event);
-  auto new_mask = mask & ~EPOLLERR;
-
-  if (!(mask & EPOLLERR))
-    return;
-
-  LT_LOG_EVENT("remove error", 0);
-
-  m_internal->modify(event,
-                     new_mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
-                     new_mask,
-                     mask);
-}
-
-void
 Poll::remove_and_close(Event* event) {
   remove_read(event);
   remove_write(event);
-  remove_error(event);
 
   close(event);
 }

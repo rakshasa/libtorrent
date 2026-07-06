@@ -53,7 +53,6 @@ public:
 
   static constexpr uint32_t flag_read  = 0x1;
   static constexpr uint32_t flag_write = 0x2;
-  static constexpr uint32_t flag_error = 0x4;
 
   uint32_t            event_mask(Event* event);
   void                set_event_mask(Event* event, uint32_t mask);
@@ -288,9 +287,6 @@ Poll::process() {
       if (poll_event->event == nullptr)
         continue;
 
-      if (!(poll_event->mask & PollInternal::flag_error))
-        throw internal_error("Poll::process() received error event for event not in error: " + poll_event->event->print_name_fd_str());
-
       auto event_info = poll_event->event->print_name_fd_str();
 
       poll_event->event->event_error();
@@ -388,11 +384,6 @@ Poll::in_write(Event* event) {
   return m_internal->event_mask(event) & PollInternal::flag_write;
 }
 
-bool
-Poll::in_error(Event* event) {
-  return m_internal->event_mask(event) & PollInternal::flag_error;
-}
-
 void
 Poll::insert_read(Event* event) {
   auto event_mask = m_internal->event_mask(event);
@@ -417,19 +408,6 @@ Poll::insert_write(Event* event) {
 
   m_internal->set_event_mask(event, event_mask | PollInternal::flag_write);
   m_internal->modify(event, EV_ADD, EVFILT_WRITE);
-}
-
-void
-Poll::insert_error(Event* event) {
-  auto event_mask = m_internal->event_mask(event);
-
-  if (event_mask & PollInternal::flag_error)
-    return;
-
-  LT_LOG_EVENT("insert error", 0);
-
-  m_internal->set_event_mask(event, event_mask | PollInternal::flag_error);
-  // Kqueue always monitors errors, no need to insert.
 }
 
 void
@@ -459,25 +437,11 @@ Poll::remove_write(Event* event) {
 }
 
 void
-Poll::remove_error(Event* event) {
-  auto event_mask = m_internal->event_mask(event);
-
-  if (!(event_mask & PollInternal::flag_error))
-    return;
-
-  LT_LOG_EVENT("remove error", 0);
-
-  m_internal->set_event_mask(event, event_mask & ~PollInternal::flag_error);
-  // Kqueue always monitors errors, no need to remove.
-}
-
-void
 Poll::remove_and_close(Event* event) {
   LT_LOG_EVENT("remove and close", 0);
 
   remove_read(event);
   remove_write(event);
-  remove_error(event);
 
   close(event);
 }

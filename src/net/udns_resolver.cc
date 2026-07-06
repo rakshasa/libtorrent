@@ -346,7 +346,6 @@ UdnsResolver::process_timeouts() {
 
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
-    this_thread::poll()->remove_error(this);
 
     this_thread::scheduler()->erase(&m_task_timeout);
 
@@ -360,7 +359,6 @@ UdnsResolver::process_timeouts() {
   LT_LOG("processing timeouts, next in %d seconds", timeout);
 
   this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_error(this);
 
   this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, timeout * 1s);
 }

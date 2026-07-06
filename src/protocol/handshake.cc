@@ -121,7 +121,6 @@ Handshake::initialize_incoming(HandshakeManager* handshake_manager, int fd, cons
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_error(this);
 
   // Use lower timeout here.
   this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
@@ -149,7 +148,6 @@ Handshake::initialize_outgoing(HandshakeManager* handshake_manager, int fd, cons
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_write(this);
-  this_thread::poll()->insert_error(this);
 
   this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
 }
