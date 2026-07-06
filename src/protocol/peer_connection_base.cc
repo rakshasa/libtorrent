@@ -115,7 +115,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
     m_download   = nullptr;
     m_extensions = nullptr;
 
-    set_file_descriptor(-1);
+    reset_file_descriptor();
     return;
   }
 
@@ -166,7 +166,7 @@ PeerConnectionBase::cleanup() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
-      set_file_descriptor(-1);
+      reset_file_descriptor();
     });
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());

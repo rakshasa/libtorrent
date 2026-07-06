@@ -41,6 +41,8 @@ protected:
   friend class system::PollInternal;
   friend class runtime::SocketManager;
 
+  void                reset_file_descriptor();
+
   void                set_file_descriptor(int fd);
   void                set_socket_address(c_sa_unique_ptr address);
 
@@ -65,6 +67,8 @@ inline bool Event::is_open() const             { return file_descriptor() != -1;
 inline bool Event::is_polling() const          { return m_poll_event != nullptr; }
 
 inline int  Event::file_descriptor() const     { return m_fileDesc; }
+
+inline void Event::reset_file_descriptor()     { m_fileDesc = -1; }
 inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }
 
 inline auto Event::peer_address() const        { return m_peer_address.get(); }

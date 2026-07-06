@@ -211,7 +211,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
         throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): error closing socket: " + system::errno_enum_str(errno));
       }
 
-      socket->set_file_descriptor(-1);
+      socket->reset_file_descriptor();
     });
 
   socket->clear_and_erase_self(itr);
@@ -367,7 +367,7 @@ CurlSocket::clear_and_erase_self(CurlStack::socket_map_type::iterator itr) {
   m_stack       = nullptr;
   m_easy_handle = nullptr;
 
-  set_file_descriptor(-1);
+  reset_file_descriptor();
 
   socket_map->erase(itr);
 }

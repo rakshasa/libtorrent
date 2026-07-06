@@ -204,7 +204,7 @@ void Listen::close() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
-      set_file_descriptor(-1);
+      reset_file_descriptor();
     });
 
   m_port = 0;

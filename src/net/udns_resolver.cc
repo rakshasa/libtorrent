@@ -133,7 +133,7 @@ UdnsResolver::cleanup() {
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
 
-  set_file_descriptor(-1);
+  reset_file_descriptor();
 }
 
 void

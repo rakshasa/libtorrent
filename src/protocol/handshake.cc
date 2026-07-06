@@ -164,7 +164,7 @@ Handshake::release_connection() {
   m_peerInfo = nullptr;
   m_state    = INACTIVE;
 
-  set_file_descriptor(-1);
+  reset_file_descriptor();
 }
 
 void
@@ -180,7 +180,7 @@ Handshake::destroy_connection(bool use_socket_manager) {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
-      set_file_descriptor(-1);
+      reset_file_descriptor();
     };
 
   try {
@@ -195,7 +195,7 @@ Handshake::destroy_connection(bool use_socket_manager) {
 
     if (is_open()) {
       fd_close(file_descriptor());
-      set_file_descriptor(-1);
+      reset_file_descriptor();
     }
 
     throw;

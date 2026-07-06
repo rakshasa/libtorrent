@@ -46,7 +46,7 @@ check_flags_conflict(int lhs, int rhs) {
 } // namespace
 
 directory_events::directory_events() {
-  set_file_descriptor(-1);
+  reset_file_descriptor();
 }
 
 bool
@@ -61,7 +61,7 @@ directory_events::open() {
 
   if (is_open() && !fd_set_nonblock(file_descriptor())) {
     fd_close(file_descriptor());
-    set_file_descriptor(-1);
+    reset_file_descriptor();
   }
 
 #else
@@ -86,7 +86,7 @@ directory_events::close() {
   this_thread::poll()->close(this);
 
   ::close(file_descriptor());
-  set_file_descriptor(-1);
+  reset_file_descriptor();
   m_wd_list.clear();
 }
 

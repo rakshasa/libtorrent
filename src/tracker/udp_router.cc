@@ -103,7 +103,7 @@ UdpRouter::close() {
 
       fd_close(file_descriptor());
 
-      set_file_descriptor(-1);
+      reset_file_descriptor();
       set_socket_address(sa_make_unspec());
     });
 
