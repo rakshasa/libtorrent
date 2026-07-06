@@ -167,7 +167,7 @@ void
 CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
-  LT_LOG_GET("closing : %s", curl_get->url().c_str());
+  bool was_active{};
 
   { auto guard_get = curl_get->lock_guard();
 
@@ -179,10 +179,14 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
 
       base_type::erase(itr);
       m_size = base_type::size();
+
+      was_active = true;
     }
 
     curl_get->cleanup_unsafe();
   }
+
+  LT_LOG_GET("closed : %s", was_active ? "active" : "inactive");
 
   curl_get->notify_closed();
 }
