@@ -21,7 +21,7 @@ Event::socket_type_or_zero() const {
 
   int socktype{};
 
-  if (!fd_get_type(m_fileDesc, &socktype)) {
+  if (!fd_get_type(file_descriptor(), &socktype)) {
     if (errno != EBADF)
       throw internal_error("Event::socket_type_or_zero() error getting socket type");
 
@@ -53,7 +53,7 @@ Event::update_socket_address() {
   if (socktype == 0 || (socktype != SOCK_STREAM && socktype != SOCK_DGRAM))
     return false;
 
-  auto address = fd_get_socket_name(m_fileDesc);
+  auto address = fd_get_socket_name(file_descriptor());
 
   if (address == nullptr) {
     if (errno != EBADF && errno != ENOTCONN && errno != EINVAL)
@@ -76,7 +76,7 @@ Event::update_peer_address() {
   if (socktype == 0 || (socktype != SOCK_STREAM && socktype != SOCK_DGRAM))
     return false;
 
-  auto address = fd_get_peer_name(m_fileDesc);
+  auto address = fd_get_peer_name(file_descriptor());
 
   if (address == nullptr) {
     if (errno != EBADF && errno != ENOTCONN && errno != EINVAL)

@@ -46,7 +46,7 @@ check_flags_conflict(int lhs, int rhs) {
 } // namespace
 
 directory_events::directory_events() {
-  m_fileDesc = -1;
+  reset_file_descriptor();
 }
 
 bool
@@ -57,11 +57,11 @@ directory_events::open() {
   errno = 0;
 
 #ifdef USE_INOTIFY
-  m_fileDesc = fd_open_inotify();
+  set_file_descriptor(fd_open_inotify());
 
-  if (is_open() && !fd_set_nonblock(m_fileDesc)) {
-    fd_close(m_fileDesc);
-    m_fileDesc = -1;
+  if (is_open() && !fd_set_nonblock(file_descriptor())) {
+    fd_close(file_descriptor());
+    reset_file_descriptor();
   }
 
 #else
@@ -85,8 +85,8 @@ directory_events::close() {
   this_thread::poll()->remove_read(this);
   this_thread::poll()->close(this);
 
-  ::close(m_fileDesc);
-  m_fileDesc = -1;
+  ::close(file_descriptor());
+  reset_file_descriptor();
   m_wd_list.clear();
 }
 
@@ -125,7 +125,7 @@ directory_events::notify_on(const std::string& path, [[maybe_unused]] int flags,
   if ((flags & flag_on_removed))
     in_flags |= (IN_DELETE | IN_MOVED_FROM);
 
-  int result = inotify_add_watch(m_fileDesc, normalized_path.c_str(), in_flags);
+  int result = inotify_add_watch(file_descriptor(), normalized_path.c_str(), in_flags);
 
   if (result == -1)
     throw input_error("Call to inotify_add_watch(...) failed: " + std::string(std::strerror(errno)));
@@ -146,7 +146,7 @@ void
 directory_events::event_read() {
 #ifdef USE_INOTIFY
   char    buffer[2048];
-  ssize_t result = ::read(m_fileDesc, buffer, 2048);
+  ssize_t result = ::read(file_descriptor(), buffer, 2048);
 
   if (result < static_cast<ssize_t>(sizeof(struct inotify_event)))
     return;

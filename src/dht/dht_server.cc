@@ -75,7 +75,7 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
-  m_fileDesc = -1;
+  reset_file_descriptor();
   reset_statistics();
 
   m_task_timeout.slot() = [this] { receive_timeout(); };
@@ -136,7 +136,6 @@ DhtServer::start(int port) {
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
-      this_thread::poll()->insert_error(this);
     });
 }
 
@@ -157,7 +156,7 @@ DhtServer::stop() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
-      set_file_descriptor(-1);
+      reset_file_descriptor();
     });
 
   m_networkUp = false;

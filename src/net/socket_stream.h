@@ -54,7 +54,7 @@ SocketStream::read_stream(void* buf, uint32_t length) {
   if (length == 0)
     throw internal_error("Tried to read to buffer length 0.");
 
-  return ::recv(m_fileDesc, buf, length, 0);
+  return ::recv(file_descriptor(), buf, length, 0);
 }
 
 inline int
@@ -62,7 +62,7 @@ SocketStream::write_stream(const void* buf, uint32_t length) {
   if (length == 0)
     throw internal_error("Tried to write to buffer length 0.");
 
-  return ::send(m_fileDesc, buf, length, 0);
+  return ::send(file_descriptor(), buf, length, 0);
 }
 
 } // namespace torrent

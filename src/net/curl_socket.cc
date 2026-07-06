@@ -159,7 +159,6 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
   runtime::socket_manager()->open_event_or_throw(socket, runtime::category_http, open_func);
 
   this_thread::poll()->open(socket);
-  this_thread::poll()->insert_error(socket);
 
   auto [itr, inserted] = stack->socket_map()->try_emplace(socket->file_descriptor(), std::move(socket_ptr));
 
@@ -212,7 +211,7 @@ CurlSocket::close_socket(CurlStack* stack, curl_socket_t fd) {
         throw internal_error("CurlSocket::close_socket(fd:" + std::to_string(fd) + "): error closing socket: " + system::errno_enum_str(errno));
       }
 
-      socket->set_file_descriptor(-1);
+      socket->reset_file_descriptor();
     });
 
   socket->clear_and_erase_self(itr);
@@ -239,7 +238,6 @@ CurlSocket::handle_poll_new(CURL* easy_handle, curl_socket_t fd, CurlStack* stac
 
     runtime::socket_manager()->register_event_or_throw(socket, runtime::category_http, [&]() {
         this_thread::poll()->open(socket);
-        this_thread::poll()->insert_error(socket);
       });
 
     curl_multi_assign(stack->handle(), fd, socket);
@@ -369,7 +367,7 @@ CurlSocket::clear_and_erase_self(CurlStack::socket_map_type::iterator itr) {
   m_stack       = nullptr;
   m_easy_handle = nullptr;
 
-  set_file_descriptor(-1);
+  reset_file_descriptor();
 
   socket_map->erase(itr);
 }

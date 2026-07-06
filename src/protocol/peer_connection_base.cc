@@ -78,7 +78,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   if (encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())
     throw internal_error("Encryption and decryption inconsistent.");
 
-  m_fileDesc = fd;
+  set_file_descriptor(fd);
 
   m_peerInfo = peerInfo;
   m_download = download;
@@ -115,14 +115,13 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
     m_download   = nullptr;
     m_extensions = nullptr;
 
-    m_fileDesc = -1;
+    reset_file_descriptor();
     return;
   }
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_read(this);
   this_thread::poll()->insert_write(this);
-  this_thread::poll()->insert_error(this);
 
   m_time_last_read = this_thread::cached_time();
 
@@ -166,8 +165,8 @@ PeerConnectionBase::cleanup() {
   runtime::socket_manager()->close_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
 
-      fd_close(m_fileDesc);
-      m_fileDesc = -1;
+      fd_close(file_descriptor());
+      reset_file_descriptor();
     });
 
   m_up->throttle()->erase(m_peerChunks.upload_throttle());

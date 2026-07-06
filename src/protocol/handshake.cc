@@ -121,7 +121,6 @@ Handshake::initialize_incoming(HandshakeManager* handshake_manager, int fd, cons
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_error(this);
 
   // Use lower timeout here.
   this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
@@ -149,7 +148,6 @@ Handshake::initialize_outgoing(HandshakeManager* handshake_manager, int fd, cons
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_write(this);
-  this_thread::poll()->insert_error(this);
 
   this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 60s);
 }
@@ -166,7 +164,7 @@ Handshake::release_connection() {
   m_peerInfo = nullptr;
   m_state    = INACTIVE;
 
-  set_file_descriptor(-1);
+  reset_file_descriptor();
 }
 
 void
@@ -181,8 +179,8 @@ Handshake::destroy_connection(bool use_socket_manager) {
   auto fn = [this]() {
       this_thread::poll()->remove_and_close(this);
 
-      fd_close(m_fileDesc);
-      set_file_descriptor(-1);
+      fd_close(file_descriptor());
+      reset_file_descriptor();
     };
 
   try {
@@ -196,8 +194,8 @@ Handshake::destroy_connection(bool use_socket_manager) {
       this_thread::poll()->remove_and_close(this);
 
     if (is_open()) {
-      fd_close(m_fileDesc);
-      set_file_descriptor(-1);
+      fd_close(file_descriptor());
+      reset_file_descriptor();
     }
 
     throw;

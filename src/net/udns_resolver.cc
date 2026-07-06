@@ -106,7 +106,8 @@ UdnsResolver::initialize(system::Thread* thread) {
 
   m_thread   = thread;
   m_ctx      = ::dns_new(nullptr);
-  m_fileDesc = ::dns_open(m_ctx);
+
+  set_file_descriptor(::dns_open(m_ctx));
 
   if (!is_open())
     throw internal_error("UdnsResolver::initialize() dns_open failed");
@@ -132,7 +133,7 @@ UdnsResolver::cleanup() {
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
 
-  m_fileDesc = -1;
+  reset_file_descriptor();
 }
 
 void
@@ -346,7 +347,6 @@ UdnsResolver::process_timeouts() {
 
   if (timeout == -1) {
     this_thread::poll()->remove_read(this);
-    this_thread::poll()->remove_error(this);
 
     this_thread::scheduler()->erase(&m_task_timeout);
 
@@ -360,7 +360,6 @@ UdnsResolver::process_timeouts() {
   LT_LOG("processing timeouts, next in %d seconds", timeout);
 
   this_thread::poll()->insert_read(this);
-  this_thread::poll()->insert_error(this);
 
   this_thread::scheduler()->update_wait_for_ceil_seconds(&m_task_timeout, timeout * 1s);
 }

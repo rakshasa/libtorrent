@@ -70,6 +70,7 @@ public:
 
   // This should only be changed by libtorrent.
   int                 file_descriptor() const                  { return m_fd; }
+  void                reset_file_descriptor()                  { m_fd = -1; }
   void                set_file_descriptor(int fd)              { m_fd = fd; }
 
   // This might actually be wanted, as it would be nice to allow the

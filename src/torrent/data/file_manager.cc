@@ -82,7 +82,7 @@ FileManager::close(value_type file) {
   SocketFile(file->file_descriptor()).close();
 
   file->set_protection(0);
-  file->set_file_descriptor(-1);
+  file->reset_file_descriptor();
 
   auto itr = std::find(begin(), end(), file);
 

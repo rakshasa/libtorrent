@@ -33,17 +33,14 @@ public:
   // Functions for checking whetever the Event is listening to r/w/e?
   bool                in_read(Event* event);
   bool                in_write(Event* event);
-  bool                in_error(Event* event);
 
   // These functions may be called on 'event's that might, or might
   // not, already be in the set.
   void                insert_read(Event* event);
   void                insert_write(Event* event);
-  void                insert_error(Event* event);
 
   void                remove_read(Event* event);
   void                remove_write(Event* event);
-  void                remove_error(Event* event);
 
   void                remove_and_close(Event* event);
 

@@ -191,7 +191,6 @@ Listen::open_done(int fd, uint16_t port, int backlog) {
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
-      this_thread::poll()->insert_error(this);
     });
 
   LT_LOG("listen opened: fd:%i port:%" PRIu16 " backlog:%i", file_descriptor(), m_port, backlog);
@@ -205,7 +204,7 @@ void Listen::close() {
       this_thread::poll()->remove_and_close(this);
 
       fd_close(file_descriptor());
-      set_file_descriptor(-1);
+      reset_file_descriptor();
     });
 
   m_port = 0;
