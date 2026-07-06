@@ -54,7 +54,7 @@ private:
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 
-  align_cacheline bool __cacheline_pad0;
+  align_cacheline
 
   std::atomic_int m_test_state;
   std::atomic_int m_test_flags;

@@ -14,8 +14,12 @@
 #include "torrent/runtime/network_config.h"
 #include "torrent/system/callbacks.h"
 #include "torrent/system/thread.h"
+#include "torrent/utils/log.h"
 #include "torrent/utils/uri_parser.h"
 #include "utils/functional.h"
+
+#define LT_LOG(log_fmt, ...) \
+  lt_log_print(LOG_NET_HTTP, "%p->http_get : " log_fmt, this, __VA_ARGS__)
 
 #define lt_easy_setopt(handle, option, value) \
   { \
@@ -434,6 +438,8 @@ CurlGet::trigger_done() {
   if (m_was_closed)
     return;
 
+  LT_LOG("signal done", 0);
+
   ::utils::slot_list_call(m_signal_done);
 }
 
@@ -445,6 +451,8 @@ CurlGet::trigger_failed(const std::string& message) {
 
   if (m_was_closed)
     return;
+
+  LT_LOG("signal failed : %s", message.c_str());
 
   // If this is changed, verify RESOLVE_NONE handling is correct.
   ::utils::slot_list_call(m_signal_failed, message);
@@ -461,6 +469,8 @@ CurlGet::trigger_cleared_request() {
 
   if (m_active)
     deactivate_unsafe();
+
+  LT_LOG("signal force cleared", 0);
 
   ::utils::slot_list_call(m_signal_failed, "Request force cleared.");
 }

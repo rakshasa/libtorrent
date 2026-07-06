@@ -10,6 +10,10 @@
 #include "net/curl_socket.h"
 #include "torrent/exceptions.h"
 #include "torrent/system/thread.h"
+#include "torrent/utils/log.h"
+
+#define LT_LOG_GET(log_fmt, ...) \
+  lt_log_print(LOG_NET_HTTP, "%p->http_get : " log_fmt, curl_get.get(), __VA_ARGS__)
 
 #define lt_easy_setopt(handle, option, value) \
   { \
@@ -117,6 +121,8 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
   if (curl_get == nullptr)
     throw torrent::internal_error("CurlStack::start_get() called with a null curl_get.");
 
+  LT_LOG_GET("starting : %s", curl_get->url().c_str());
+
   { auto lock_main = std::unique_lock(m_mutex, std::defer_lock);
     auto lock_get  = std::unique_lock(curl_get->mutex(), std::defer_lock);
 
@@ -161,6 +167,8 @@ void
 CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
   assert(std::this_thread::get_id() == m_thread->thread_id());
 
+  bool was_active{};
+
   { auto guard_get = curl_get->lock_guard();
 
     if (!curl_get->is_prepare_canceled_unsafe()) {
@@ -171,10 +179,14 @@ CurlStack::close_get(const std::shared_ptr<CurlGet>& curl_get) {
 
       base_type::erase(itr);
       m_size = base_type::size();
+
+      was_active = true;
     }
 
     curl_get->cleanup_unsafe();
   }
+
+  LT_LOG_GET("closed : %s", was_active ? "active" : "inactive");
 
   curl_get->notify_closed();
 }
