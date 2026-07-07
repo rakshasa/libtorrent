@@ -2,6 +2,10 @@
 
 #include "socket_stream.h"
 
+#ifdef HAVE_SENDFILE
+#include "net/sendfile_stream.h"
+#endif
+
 namespace torrent {
 
 char* SocketStream::m_nullBuffer = new char[SocketStream::null_buffer_size];
@@ -48,6 +52,15 @@ SocketStream::write_stream_throws(const void* buf, uint32_t length) {
   }
 
   return r;
+}
+
+uint32_t
+SocketStream::write_sendfile_throws(int in_fd, uint64_t offset, uint32_t length) {
+#ifdef HAVE_SENDFILE
+  return sendfile_stream(file_descriptor(), in_fd, offset, length);
+#else
+  throw internal_error("sendfile is not supported on this platform.");
+#endif
 }
 
 } // namespace torrent

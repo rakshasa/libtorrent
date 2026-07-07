@@ -71,6 +71,9 @@ public:
   uint32_t            preload_required_rate() const             { return m_preloadRequiredRate; }
   void                set_preload_required_rate(uint32_t bytes) { m_preloadRequiredRate = bytes; }
 
+  // Use sendfile(2) for uploads when data is backed by a regular file.
+  bool                use_sendfile() const                      { return m_useSendfile; }
+  void                set_use_sendfile(uint32_t v)              { m_useSendfile = v; }
 
   void                insert(ChunkList* chunkList);
   void                erase(ChunkList* chunkList);
@@ -104,6 +107,12 @@ public:
   uint32_t            stats_not_preloaded() const               { return m_statsNotPreloaded; }
   void                inc_stats_not_preloaded()                 { m_statsNotPreloaded++; }
 
+  uint32_t            stats_sendfile() const                    { return m_statsSendfile; }
+  void                inc_stats_sendfile()                      { m_statsSendfile++; }
+
+  uint32_t            stats_sendfile_fallback() const           { return m_statsSendfileFallback; }
+  void                inc_stats_sendfile_fallback()             { m_statsSendfileFallback++; }
+
 private:
   ChunkManager(const ChunkManager&) = delete;
   ChunkManager& operator=(const ChunkManager&) = delete;
@@ -128,6 +137,10 @@ private:
 
   uint32_t            m_statsPreloaded{0};
   uint32_t            m_statsNotPreloaded{0};
+  uint32_t            m_statsSendfile{0};
+  uint32_t            m_statsSendfileFallback{0};
+
+  bool                m_useSendfile{false};
 
   int32_t             m_timerStarved{0};
   size_type           m_lastFreed{0};

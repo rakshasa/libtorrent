@@ -84,6 +84,18 @@ public:
   uint32_t            chunk_index_size(uint32_t index) const;
   uint64_t            chunk_index_position(uint32_t index) const      { return index * chunk_size(); }
 
+  // Open file slice for zero-copy I/O (e.g. sendfile).
+  struct file_region {
+    int       fd{-1};
+    uint64_t  offset{0};
+    uint32_t  length{0};
+
+    bool      is_valid() const { return fd >= 0 && length > 0; }
+  };
+
+  // Resolve a torrent-global offset to an open file fd without mmap.
+  file_region         at_file(uint64_t offset, uint32_t max_length) const LIBTORRENT_NO_EXPORT;
+
   const download_data* data() const                                   { return &m_data; }
   const Bitfield*      bitfield() const                               { return m_data.completed_bitfield(); }
 

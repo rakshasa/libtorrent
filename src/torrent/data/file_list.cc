@@ -568,6 +568,42 @@ FileList::open_file(File* file_node, const Path& lastPath, bool hashing, int fla
   return file_node->prepare(hashing, MemoryChunk::prot_read, 0);
 }
 
+FileList::file_region
+FileList::at_file(uint64_t offset, uint32_t max_length) const {
+  file_region result;
+
+  if (max_length == 0 || offset >= m_torrent_size)
+    return result;
+
+  auto itr = std::find_if(begin(), end(), [offset](const value_type& file) {
+      return file->is_valid_position(offset);
+    });
+
+  if (itr == end())
+    return result;
+
+  if ((*itr)->size_bytes() == 0 || (*itr)->is_padding())
+    return result;
+
+  uint64_t file_offset = offset - (*itr)->offset();
+  uint32_t length = std::min<uint64_t>(max_length, (*itr)->size_bytes() - file_offset);
+
+  if (length == 0)
+    return result;
+
+  if (!(*itr)->prepare(false, MemoryChunk::prot_read, 0))
+    return result;
+
+  if (!(*itr)->is_open())
+    return result;
+
+  result.fd = (*itr)->file_descriptor();
+  result.offset = file_offset;
+  result.length = length;
+
+  return result;
+}
+
 MemoryChunk
 FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, bool hashing, int prot) const {
   offset -= (*itr)->offset();

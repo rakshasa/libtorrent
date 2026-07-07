@@ -3,6 +3,7 @@
 #include "peer_connection_base.h"
 
 #include <cstdio>
+#include <limits>
 
 #include "manager.h"
 #include "data/chunk_iterator.h"
@@ -299,16 +300,9 @@ PeerConnectionBase::receive_download_choke(bool choke) {
 }
 
 void
-PeerConnectionBase::load_up_chunk() {
-  if (m_upChunk.is_valid() && m_upChunk.index() == m_upPiece.index()) {
-    // Better checking needed.
-    //     m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->size());
-
-    if (lt_log_is_valid(LOG_INSTRUMENTATION_MINCORE))
-      log_mincore_stats_func(m_upChunk.chunk()->is_incore(m_upPiece.offset(), m_upPiece.length()), false, m_incoreContinous);
-
+PeerConnectionBase::ensure_up_chunk_mapped() {
+  if (m_upChunk.is_loaded() && m_upChunk.index() == m_upPiece.index())
     return;
-  }
 
   up_chunk_release();
 
@@ -316,11 +310,6 @@ PeerConnectionBase::load_up_chunk() {
 
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(std::strerror(m_upChunk.error_number())));
-
-  if (is_encrypted() && m_encryptBuffer == nullptr) {
-    m_encryptBuffer = std::make_unique<EncryptBuffer>();
-    m_encryptBuffer->reset();
-  }
 
   m_incoreContinous = false;
 
@@ -332,6 +321,12 @@ PeerConnectionBase::load_up_chunk() {
   // Also check if we've already preloaded in the recent past, even
   // past unmaps.
   ChunkManager* cm = manager->chunk_manager();
+
+  // Skip preload only for plaintext sendfile peers; encrypted uploads
+  // always mmap and still benefit from preload.
+  if (cm->use_sendfile() && !is_encrypted())
+    return;
+
   uint32_t preloadSize = m_upChunk.chunk()->chunk_size() - m_upPiece.offset();
 
   if (cm->preload_type() == 0 ||
@@ -347,6 +342,38 @@ PeerConnectionBase::load_up_chunk() {
 
   m_upChunk.object()->set_time_preloaded(this_thread::cached_time());
   m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), cm->preload_type() == 1);
+}
+
+void
+PeerConnectionBase::load_up_chunk() {
+  ChunkManager* cm = manager->chunk_manager();
+
+  if (m_upChunk.is_loaded() && m_upChunk.index() == m_upPiece.index()) {
+    if (lt_log_is_valid(LOG_INSTRUMENTATION_MINCORE))
+      log_mincore_stats_func(m_upChunk.chunk()->is_incore(m_upPiece.offset(), m_upPiece.length()), false, m_incoreContinous);
+
+    return;
+  }
+
+  if (!m_upChunk.is_loaded() && cm->use_sendfile() && !is_encrypted()) {
+    auto region = m_download->file_list()->at_file(
+      m_download->file_list()->chunk_index_position(m_upPiece.index()) + m_upPiece.offset(),
+      m_upPiece.length());
+
+    if (region.is_valid())
+      return;
+
+    // Non-file-backed data at this offset (e.g. padding); map on demand.
+    ensure_up_chunk_mapped();
+    return;
+  }
+
+  ensure_up_chunk_mapped();
+
+  if (is_encrypted() && m_encryptBuffer == nullptr) {
+    m_encryptBuffer = std::make_unique<EncryptBuffer>();
+    m_encryptBuffer->reset();
+  }
 }
 
 void
@@ -696,9 +723,6 @@ PeerConnectionBase::up_chunk() {
   if (!m_up->throttle()->is_throttled(m_peerChunks.upload_throttle()))
     throw internal_error("PeerConnectionBase::up_chunk() tried to write a piece but is not in throttle list");
 
-  if (!m_upChunk.chunk()->is_readable())
-    throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
-
   uint32_t quota = m_up->throttle()->node_quota(m_peerChunks.upload_throttle());
 
   if (quota == 0) {
@@ -710,6 +734,11 @@ PeerConnectionBase::up_chunk() {
   uint32_t bytesTransfered = 0;
 
   if (is_encrypted()) {
+    ensure_up_chunk_mapped();
+
+    if (!m_upChunk.chunk()->is_readable())
+      throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
+
     // Prepare as many bytes as quota specifies, up to end of piece or
     // buffer. Only bytes beyond remaining() are new and will be
     // encrypted.
@@ -719,16 +748,46 @@ PeerConnectionBase::up_chunk() {
     m_encryptBuffer->consume(bytesTransfered);
 
   } else {
-    Chunk::data_type data;
-    ChunkIterator itr(m_upChunk.chunk(), m_upPiece.offset(), m_upPiece.offset() + std::min(quota, m_upPiece.length()));
+    ChunkManager* cm = manager->chunk_manager();
+    bool tried_sendfile = false;
 
-    do {
-      data = itr.data();
-      data.second = write_stream_throws(data.first, data.second);
+#ifdef HAVE_SENDFILE
+    if (cm->use_sendfile()) {
+      auto region = m_download->file_list()->at_file(
+        m_download->file_list()->chunk_index_position(m_upPiece.index()) + m_upPiece.offset(),
+        std::min(quota, m_upPiece.length()));
 
-      bytesTransfered += data.second;
+      if (region.is_valid() &&
+          region.offset <= static_cast<uint64_t>(std::numeric_limits<off_t>::max())) {
+        tried_sendfile = true;
+        bytesTransfered = write_sendfile_throws(region.fd, region.offset, region.length);
 
-    } while (data.second != 0 && itr.forward(data.second));
+        if (bytesTransfered > 0)
+          cm->inc_stats_sendfile();
+
+      } else {
+        cm->inc_stats_sendfile_fallback();
+      }
+    }
+#endif
+
+    if (bytesTransfered == 0 && !tried_sendfile) {
+      ensure_up_chunk_mapped();
+
+      if (!m_upChunk.chunk()->is_readable())
+        throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
+
+      Chunk::data_type data;
+      ChunkIterator itr(m_upChunk.chunk(), m_upPiece.offset(), m_upPiece.offset() + std::min(quota, m_upPiece.length()));
+
+      do {
+        data = itr.data();
+        data.second = write_stream_throws(data.first, data.second);
+
+        bytesTransfered += data.second;
+
+      } while (data.second != 0 && itr.forward(data.second));
+    }
   }
 
   m_up->throttle()->node_used(m_peerChunks.upload_throttle(), bytesTransfered);

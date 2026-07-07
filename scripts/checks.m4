@@ -315,6 +315,63 @@ AC_DEFUN([TORRENT_WITH_SYSTEMD], [
 ])
 
 
+AC_DEFUN([TORRENT_CHECK_SENDFILE], [
+  AC_MSG_CHECKING(for sendfile support)
+
+  torrent_cv_sendfile=no
+
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+      #include <sys/sendfile.h>
+      #include <sys/socket.h>
+      int main() {
+        off_t offset = 0;
+        return sendfile(0, 0, &offset, 0);
+      }
+      ])],
+    [
+      AC_DEFINE(HAVE_SENDFILE_LINUX, 1, [Linux sendfile support.])
+      torrent_cv_sendfile=yes
+    ], [])
+
+  if test "x$torrent_cv_sendfile" = xno; then
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+        #include <sys/socket.h>
+        #include <sys/uio.h>
+        int main() {
+          off_t sbytes = 0;
+          return sendfile(0, 0, 0, 0, (struct sf_hdtr*)0, &sbytes, 0);
+        }
+        ])],
+      [
+        AC_DEFINE(HAVE_SENDFILE_FREEBSD, 1, [FreeBSD sendfile support.])
+        torrent_cv_sendfile=yes
+      ], [])
+  fi
+
+  if test "x$torrent_cv_sendfile" = xno; then
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+        #include <sys/socket.h>
+        #include <sys/uio.h>
+        int main() {
+          off_t len = 0;
+          return sendfile(0, 0, 0, &len, (struct sf_hdtr*)0, 0);
+        }
+        ])],
+      [
+        AC_DEFINE(HAVE_SENDFILE_DARWIN, 1, [macOS/Darwin sendfile support.])
+        torrent_cv_sendfile=yes
+      ], [])
+  fi
+
+  if test "x$torrent_cv_sendfile" = xyes; then
+    AC_DEFINE(HAVE_SENDFILE, 1, [Use sendfile for zero-copy uploads.])
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(no)
+  fi
+])
+
+
 AC_DEFUN([TORRENT_WITHOUT_NCURSES], [
   AC_ARG_WITH([ncurses],
     [AS_HELP_STRING([--without-ncurses], [build without ncurses (daemon-only mode)])],

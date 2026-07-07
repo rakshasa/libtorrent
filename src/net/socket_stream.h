@@ -21,6 +21,7 @@ public:
   // appropriate exception.
   uint32_t            read_stream_throws(void* buf, uint32_t length);
   uint32_t            write_stream_throws(const void* buf, uint32_t length);
+  uint32_t            write_sendfile_throws(int in_fd, uint64_t offset, uint32_t length);
 
   // Handles all the error catching etc. Returns true if the buffer is
   // finished reading/writing.

@@ -118,6 +118,7 @@ protected:
   inline bool         write_remaining();
 
   void                load_up_chunk();
+  void                ensure_up_chunk_mapped();
 
   void                read_request_piece(const Piece& p);
   void                read_cancel_piece(const Piece& p);
