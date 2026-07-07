@@ -26,20 +26,8 @@ public:
   ChunkManager();
   ~ChunkManager();
 
-  uint64_t            memory_usage() const                      { return m_memoryUsage; }
   uint64_t            sync_queue_memory_usage() const;
-
-  uint32_t            memory_block_count() const                { return m_memoryBlockCount; }
   uint32_t            sync_queue_size() const;
-
-  // Should we allow the client to reserve some memory?
-
-  // The client should set this automatically if ulimit is set.
-  uint64_t            max_memory_usage() const                  { return m_maxMemoryUsage; }
-  void                set_max_memory_usage(uint64_t bytes)      { m_maxMemoryUsage = bytes; }
-
-  // Estimate the max memory usage possible, capped at 1GB.
-  static uint64_t     estimate_max_memory_usage();
 
   uint64_t            safe_free_diskspace() const;
 
@@ -110,7 +98,6 @@ private:
 
   void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
 
-  uint64_t            m_memoryUsage{0};
   // 1/5 of the available memory should be enough for the client. If
   // the client really requires alot more memory it should call this
   // itself.

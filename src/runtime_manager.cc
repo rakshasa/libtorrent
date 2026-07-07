@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "runtime.h"
+#include "runtime_manager.h"
 
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
@@ -10,7 +10,7 @@
 
 namespace torrent {
 
-Runtime* g_runtime{};
+RuntimeManager* g_runtime{};
 
 namespace runtime {
 
@@ -29,28 +29,28 @@ ProxyManager*    proxy_manager()          { return g_runtime->proxy_manager(); }
 
 } // namespace runtime
 
-Runtime::Runtime()
+RuntimeManager::RuntimeManager()
   : m_network_config(new runtime::NetworkConfig),
     m_network_manager(new runtime::NetworkManager),
     m_socket_manager(new runtime::SocketManager),
     m_proxy_manager(new runtime::ProxyManager) {
 }
 
-Runtime::~Runtime() = default;
+RuntimeManager::~RuntimeManager() = default;
 
 void
-Runtime::initialize() {
-  g_runtime = new Runtime();
+RuntimeManager::initialize() {
+  g_runtime = new RuntimeManager();
   g_runtime->m_initialized = true;
 }
 
 void
-Runtime::shutdown() {
+RuntimeManager::shutdown() {
   g_runtime->m_shutdown_called = true;
 }
 
 void
-Runtime::quick_shutdown() {
+RuntimeManager::quick_shutdown() {
   g_runtime->m_shutdown_called       = true;
   g_runtime->m_quick_shutdown_called = true;
 
@@ -58,18 +58,27 @@ Runtime::quick_shutdown() {
 }
 
 void
-Runtime::cleanup() {
+RuntimeManager::cleanup() {
   runtime::network_manager()->listen_close();
 }
 
 void
-Runtime::destroy() {
+RuntimeManager::destroy() {
   // Order matters for destruction.
-  g_runtime->m_proxy_manager.reset();
-  g_runtime->m_network_manager.reset();
-  g_runtime->m_socket_manager.reset();
+  //
+  // Doing manual delete so we can keep the ctor/dtors non-public.
 
-  g_runtime->m_network_config.reset();
+  delete g_runtime->m_proxy_manager;
+  g_runtime->m_proxy_manager = nullptr;
+
+  delete g_runtime->m_socket_manager;
+  g_runtime->m_socket_manager = nullptr;
+
+  delete g_runtime->m_network_manager;
+  g_runtime->m_network_manager = nullptr;
+
+  delete g_runtime->m_network_config;
+  g_runtime->m_network_config = nullptr;
 
   delete g_runtime;
   g_runtime = nullptr;

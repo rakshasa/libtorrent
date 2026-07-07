@@ -57,9 +57,6 @@ public:
 
   using category_t = socket_manager_category_t;
 
-  SocketManager();
-  ~SocketManager();
-
   uint32_t            size();
   uint32_t            max_size();
 
@@ -117,6 +114,10 @@ public:
   void                unsubscribe_from_changes(void* target);
 
 protected:
+  friend class torrent::RuntimeManager;
+
+  SocketManager();
+  ~SocketManager();
 
   auto                lock_guard() { return std::lock_guard(m_mutex); }
 

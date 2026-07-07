@@ -9,6 +9,8 @@
 
 #include <torrent/common.h>
 
+// TODO: Move to system.
+
 namespace torrent {
 
 enum {
@@ -35,7 +37,6 @@ enum {
 
   LOG_NON_CASCADING,
 
-  // TODO: Deprecate, not used. And add connection_poll and move to system.
   LOG_CONNECTION,
   LOG_CONNECTION_BIND,
   LOG_CONNECTION_FD,

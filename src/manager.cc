@@ -2,7 +2,6 @@
 
 #include "manager.h"
 
-#include "runtime.h"
 #include "data/chunk_list.h"
 #include "data/hash_torrent.h"
 #include "download/download_main.h"

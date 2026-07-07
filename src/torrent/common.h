@@ -83,6 +83,7 @@ class Piece;
 class ProtocolExtension;
 class Rate;
 class ResourceManager;
+class RuntimeManager;
 class Throttle;
 class TrackerController;
 class TrackerList;
@@ -100,6 +101,7 @@ namespace runtime {
 
 class NetworkConfig;
 class NetworkManager;
+class MemoryManager;
 class SocketManager;
 
 } // namespace runtime
