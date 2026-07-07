@@ -13,6 +13,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/utils/string_manip.h"
@@ -175,11 +176,11 @@ TrackerHttp::send_event_unsafe(tracker::TrackerState::event_enum state) {
   m_get.add_done_slot(tracker_thread::thread(), [this] { receive_done(); });
   m_get.add_failed_slot(tracker_thread::thread(), [this](const auto& str) { receive_signal_failed(str); });
 
-  LT_LOG("sending event : state:%s family:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), family_str(m_current_family), info().url.c_str());
+  LT_LOG("sending event : state:%s family:%s url:%s", option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), system::sa_family_enum(m_current_family), info().url.c_str());
 
   LT_LOG_DUMP(request_url.c_str(), request_url.size(),
               "sending event : state:%s family:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
-              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), family_str(m_current_family),
+              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, state), system::sa_family_enum(m_current_family),
               m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 
   net_thread::http_stack()->start_get(m_get);
@@ -201,7 +202,7 @@ TrackerHttp::send_scrape_unsafe() {
   m_get.add_done_slot(tracker_thread::thread(), [this] { receive_done(); });
   m_get.add_failed_slot(tracker_thread::thread(), [this](const auto& str) { receive_signal_failed(str); });
 
-  LT_LOG("sending scrape : family:%s url:%s", family_str(m_current_family), info().url.c_str());
+  LT_LOG("sending scrape : family:%s url:%s", system::sa_family_enum(m_current_family), info().url.c_str());
   LT_LOG_DUMP(request_url.c_str(), request_url.size(), "tracker scrape", 0);
 
   net_thread::http_stack()->start_get(m_get);
