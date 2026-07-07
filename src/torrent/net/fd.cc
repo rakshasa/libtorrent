@@ -9,7 +9,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/system/system.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
 #if defined(USE_EPOLL)

@@ -88,10 +88,6 @@ std::tuple<sa_unique_ptr,bool> sa_lookup_numeric(const std::string& address_str,
 
 sin46_shared_pair   try_lookup_numeric(const std::string& hostname, int family) LIBTORRENT_EXPORT;
 
-// TODO: Rename to family_enum and add family_enum_str.
-const char*         family_str(int family) LIBTORRENT_EXPORT;
-inline std::string  family_enum_str(int family) { return family_str(family); }
-
 namespace net {
 
 bool                                verify_url_guess_scheme(const std::string& url) LIBTORRENT_EXPORT;

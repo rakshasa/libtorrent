@@ -5,7 +5,7 @@
 #include "data/chunk_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/download_data.h"
-#include "torrent/system/system.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
 #include "hash_torrent.h"

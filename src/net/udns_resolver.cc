@@ -14,7 +14,7 @@
 #include "torrent/system/poll.h"
 #include "torrent/utils/log.h"
 #include "torrent/system/thread.h"
-#include "torrent/system/system.h"
+#include "torrent/system/types.h"
 
 #define LT_LOG(log_fmt, ...)                                \
   lt_log_print_subsystem(LOG_NET_DNS, "dns-resolver", log_fmt, __VA_ARGS__);

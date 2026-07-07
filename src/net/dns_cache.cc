@@ -8,7 +8,7 @@
 #include "net/dns_buffer.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/system/system.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -566,7 +566,7 @@ DnsCache::queue_resolve(void* requester, const std::string& hostname, int family
 void
 DnsCache::update_stale_info(const char* reason, void* requester, const std::string& hostname, int family, DnsCacheInfo& info) {
   LT_LOG_REQUESTER("stale cache entry with %s, retrying in background : hostname:%s family:%s",
-                   reason, hostname.c_str(), family_str(family));
+                   reason, hostname.c_str(), system::sa_family_enum(family));
 
   ThreadNet::thread_net()->dns_buffer()->resolve(this, hostname, family, []( auto, int, auto, int) {});
   info.updating = true;

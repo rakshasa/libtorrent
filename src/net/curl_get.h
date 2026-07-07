@@ -94,9 +94,12 @@ protected:
   bool                is_prepare_canceled_unsafe() const { return m_prepare_canceled; }
   bool                is_closing_unsafe() const          { return m_was_closed; }
 
+  int64_t             size_download_unsafe();
+
   auto                handle_unsafe() const           { return m_handle; }
 
   [[nodiscard]] bool  prepare_start_unsafe(CurlStack* stack);
+
   void                activate_unsafe();
   void                deactivate_unsafe();
   void                cleanup_unsafe();

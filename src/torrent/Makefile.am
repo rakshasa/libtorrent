@@ -82,9 +82,9 @@ libtorrent_torrent_la_SOURCES = \
 	system/poll_epoll.cc \
 	system/poll_kqueue.cc \
 	system/system.cc \
-	system/system.h \
 	system/thread.cc \
 	system/thread.h \
+	system/types.h \
 \
 	tracker/dht_controller.cc \
 	tracker/dht_controller.h \
@@ -213,8 +213,8 @@ libtorrent_torrent_system_includedir = $(includedir)/torrent/system
 libtorrent_torrent_system_include_HEADERS = \
 	system/callbacks.h \
 	system/poll.h \
-	system/system.h \
-	system/thread.h
+	system/thread.h \
+	system/types.h
 
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
 libtorrent_torrent_tracker_include_HEADERS = \
