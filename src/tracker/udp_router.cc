@@ -13,7 +13,7 @@
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
 #include "torrent/system/poll.h"
-#include "torrent/system/system.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -53,7 +53,7 @@ UdpRouter::open(int family) {
   auto bind_address = runtime::network_config()->bind_address_for_udp_connect(family);
 
   if (bind_address == nullptr) {
-    LT_LOG("could not open udp router : blocked or invalid bind address : family:%s", family_str(family));
+    LT_LOG("could not open udp router : blocked or invalid bind address : family:%s", system::sa_family_enum(family));
     return;
   }
 
@@ -63,13 +63,13 @@ UdpRouter::open(int family) {
   int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, family);
 
   if (fd == -1) {
-    LT_LOG("opening router failed : open failed : family:%s errno:%s", family_str(family), system::errno_enum_str(errno).c_str());
+    LT_LOG("opening router failed : open failed : family:%s errno:%s", system::sa_family_enum(family), system::errno_enum_str(errno).c_str());
     return;
   }
 
   if (!fd_bind(fd, bind_address.get())) {
     LT_LOG("opening router failed : bind failed : family:%s bind_address:%s errno:%s",
-           family_str(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(errno).c_str());
+           system::sa_family_enum(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(errno).c_str());
     fd_close(fd);
     return;
   }
@@ -82,7 +82,7 @@ UdpRouter::open(int family) {
       this_thread::poll()->insert_read(this);
     });
 
-  LT_LOG("opened udp router : family:%s bind_address:%s", family_str(family), sa_pretty_str(bind_address.get()).c_str());
+  LT_LOG("opened udp router : family:%s bind_address:%s", system::sa_family_enum(family), sa_pretty_str(bind_address.get()).c_str());
 }
 
 void
@@ -121,7 +121,7 @@ UdpRouter::updated_network_config(int family) {
   auto bind_address = runtime::network_config()->bind_address_for_udp_connect(family);
 
   if (bind_address == nullptr) {
-    LT_LOG("closing udp router due to invalid or blocked bind address : family:%s", family_str(family));
+    LT_LOG("closing udp router due to invalid or blocked bind address : family:%s", system::sa_family_enum(family));
     close();
     return;
   }
@@ -404,7 +404,7 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
     LT_LOG("failed to write datagram : address:%s errno:%s", sa_pretty_str(info->address.get()).c_str(), system::errno_enum_str(err).c_str());
 
     // TODO: Need to be handled differently.
-    throw internal_error("UdpRouter::try_write() failed to write datagram : " + family_enum_str(socket_address()->sa_family) + " : " +
+    throw internal_error("UdpRouter::try_write() failed to write datagram : " + system::sa_family_enum_str(socket_address()->sa_family) + " : " +
                          sa_pretty_str(info->address.get()) + " : " + system::errno_enum_str(err));
   }
 

@@ -11,7 +11,7 @@
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/system/poll.h"
-#include "torrent/system/system.h"
+#include "torrent/system/types.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/utils/log.h"
 

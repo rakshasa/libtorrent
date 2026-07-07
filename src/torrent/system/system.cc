@@ -1,7 +1,5 @@
 #include "config.h"
 
-#include "torrent/system/system.h"
-
 #include <cerrno>
 #include <cstdio>
 #include <netdb.h>
@@ -9,6 +7,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/system/callbacks.h"
 #include "torrent/system/thread.h"
+#include "torrent/system/types.h"
 
 namespace torrent::system {
 
@@ -126,9 +125,20 @@ errno_enum(int status) {
   };
 }
 
-std::string
-errno_enum_str(int status) {
-  return errno_enum(status);
+const char*
+sa_family_enum(int family) {
+  switch (family) {
+  case AF_UNSPEC:
+    return "AF_UNSPEC";
+  case AF_INET:
+    return "AF_INET";
+  case AF_INET6:
+    return "AF_INET6";
+  case AF_UNIX:
+    return "AF_UNIX";
+  default:
+    return "AF_UNKNOWN";
+  }
 }
 
 const char*
@@ -146,11 +156,6 @@ gai_enum_error(int status) {
   case EAI_SYSTEM:   return "EAI_SYSTEM";
   default:           return "unknown";
   }
-}
-
-std::string
-gai_enum_error_str(int status) {
-  return std::string(gai_enum_error(status));
 }
 
 } // namespace torrent::system

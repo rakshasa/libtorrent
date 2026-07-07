@@ -49,10 +49,7 @@ CurlGet::size_done() {
   if (m_handle == nullptr)
     return 0;
 
-  curl_off_t d = 0;
-  curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &d);
-
-  return d;
+  return size_download_unsafe();
 }
 
 int64_t
@@ -66,6 +63,20 @@ CurlGet::size_total() {
   curl_easy_getinfo(m_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &d);
 
   return d;
+}
+
+int64_t
+CurlGet::size_download_unsafe() {
+  if (m_handle == nullptr)
+    return 0;
+
+  curl_off_t size{};
+  curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &size);
+
+  if (size < 0)
+    return 0;
+
+  return size;
 }
 
 void
@@ -438,7 +449,7 @@ CurlGet::trigger_done() {
   if (m_was_closed)
     return;
 
-  LT_LOG("signal done", 0);
+  LT_LOG("signal done : size:%" PRIi64 " slots:%zu", size_download_unsafe(), m_signal_done.size());
 
   ::utils::slot_list_call(m_signal_done);
 }

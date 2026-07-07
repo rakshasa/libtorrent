@@ -6,7 +6,7 @@
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
-#include "torrent/system/system.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 #include "tracker/thread_tracker.h"
@@ -230,12 +230,12 @@ TrackerUdp::prepare_connect(int family, uint32_t id, buffer_type& buffer) {
   buffer.write_32(0);
   buffer.write_32(id);
 
-  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "prepare connect : family:%s id:%" PRIx32, family_str(family), id);
+  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "prepare connect : family:%s id:%" PRIx32, system::sa_family_enum(family), id);
 }
 
 bool
 TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
-  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process connect : family:%s id:%" PRIx32, family_str(family), id);
+  LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process connect : family:%s id:%" PRIx32, system::sa_family_enum(family), id);
 
   switch (process_header(family, 0, buffer)) {
   case -1:
@@ -305,14 +305,14 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
 
   LT_LOG_DUMP(buffer.begin(), buffer.size_end(),
               "prepare announce : state:%s family:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64,
-              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, m_send_state), family_str(family), state_for_family(family).transaction_id,
+              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, m_send_state), system::sa_family_enum(family), state_for_family(family).transaction_id,
               m_params.uploaded_adjusted, m_params.completed_adjusted, m_params.download_left);
 }
 
 bool
 TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
   LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "process announce : state:%s family:%s id:%" PRIx32,
-              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, m_send_state), family_str(family), id);
+              option_to_c_str_or_throw(OPTION_TRACKER_EVENT, m_send_state), system::sa_family_enum(family), id);
 
   switch (process_header(family, 1, buffer)) {
   case -1:
@@ -364,13 +364,13 @@ TrackerUdp::process_announce(int family, uint32_t id, buffer_type& buffer) {
   }
 
   if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0) {
-    LT_LOG("received announce response : family:%s hostname:%s port:%u peers:%zu", family_str(family), m_hostname.c_str(), m_port, l.size());
+    LT_LOG("received announce response : family:%s hostname:%s port:%u peers:%zu", system::sa_family_enum(family), m_hostname.c_str(), m_port, l.size());
 
     m_slot_new_peers(std::move(l));
     return false;
   }
 
-  LT_LOG("received announce success : family:%s hostname:%s port:%u peers:%zu", family_str(family), m_hostname.c_str(), m_port, l.size());
+  LT_LOG("received announce success : family:%s hostname:%s port:%u peers:%zu", system::sa_family_enum(family), m_hostname.c_str(), m_port, l.size());
 
   remove_events();
   update_requesting_state();
