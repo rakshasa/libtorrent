@@ -447,18 +447,6 @@ verify_libcurl_internal_wakeup(int fd) {
 
   // Linux eventfd (Only probe if it's an anonymous inode, NOT a socket)
   if (!S_ISREG(sb.st_mode) && !S_ISDIR(sb.st_mode)) {
-    bool is_nonblock{};
-
-    if (!fd_get_nonblock(fd, &is_nonblock)) {
-      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd_get_nonblock failed: %s", fd, system::errno_enum(errno));
-      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd_get_nonblock failed: " + system::errno_enum_str(errno));
-    }
-
-    if (!is_nonblock) {
-      LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd is blocking, expected non-blocking", fd);
-      throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): fd is blocking, expected non-blocking");
-    }
-
     char dummy[7] = {0};
 
     // Passing 7 bytes to an eventfd instantly returns EINVAL without altering state.
