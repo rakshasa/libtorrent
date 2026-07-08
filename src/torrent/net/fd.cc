@@ -34,9 +34,14 @@
                flags, errno, std::strerror(errno));
 #define LT_LOG_FD(log_fmt)                                      \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd);
+
 #define LT_LOG_FD_ERROR(log_fmt)                                        \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", \
-               fd, errno, std::strerror(errno));
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", \
+                 fd, errno, std::strerror(errno));                      \
+    errno = err;                                                        \
+  }
+
 #define LT_LOG_FD_SOCKADDR(log_fmt)                                   \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s", \
                fd, sa_pretty_str(sa).c_str());
