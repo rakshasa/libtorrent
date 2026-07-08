@@ -16,7 +16,7 @@
 #include "tracker/tracker_worker.h"
 
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                             \
-  lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker_manager", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(LOG_TRACKER_EVENTS, "tracker-manager", log_fmt, __VA_ARGS__);
 
 // TODO: Add leak check for trackers that are requesting when deleted, yet never got moved to delete
 // queue.

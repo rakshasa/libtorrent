@@ -389,12 +389,13 @@ verify_libcurl_internal_wakeup(int fd) {
 
   if (S_ISSOCK(sb.st_mode)) {
     auto local_addr = fd_get_socket_name(fd);
-    auto peer_addr  = fd_get_peer_name(fd);
 
     if (local_addr == nullptr) {
       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getsockname failed: %s", fd, system::errno_enum(errno));
       throw internal_error("verify_libcurl_internal_wakeup(fd:" + std::to_string(fd) + "): getsockname failed: " + system::errno_enum_str(errno));
     }
+
+    auto peer_addr  = fd_get_peer_name(fd);
 
     if (peer_addr == nullptr) {
       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : getpeername failed: %s", fd, system::errno_enum(errno));

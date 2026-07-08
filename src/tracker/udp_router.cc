@@ -17,7 +17,7 @@
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp-router", log_fmt, __VA_ARGS__);
   // lt_log_print_subsystem(LOG_TRACKER_REQUESTS, "udp_router", "%p : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
 // TODO: Add m_connections::iterator to info so we don't need to look them up. We should be able to

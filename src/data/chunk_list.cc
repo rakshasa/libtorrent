@@ -6,6 +6,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/data/download_data.h"
+#include "torrent/runtime/memory_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
@@ -95,7 +96,7 @@ ChunkList::get(size_type index, get_flags flags) {
   if (!node->is_valid()) {
     if (!m_manager->allocate(m_chunk_size, allocate_flags)) {
       LT_LOG_THIS(DEBUG, "Could not allocate: memory:%" PRIu64 " block:%" PRIu32 ".",
-                  m_manager->memory_usage(), m_manager->memory_block_count());
+                  runtime::memory_manager()->memory_usage(), runtime::memory_manager()->memory_block_count());
 
       return ChunkHandle::from_error(ENOMEM);
     }
@@ -113,8 +114,7 @@ ChunkList::get(size_type index, get_flags flags) {
       int err = errno;
 
       LT_LOG_THIS(DEBUG, "Could not create: memory:%" PRIu64 " block:%" PRIu32 " errno:%i errmsg:%s.",
-                  m_manager->memory_usage(),
-                  m_manager->memory_block_count(),
+                  runtime::memory_manager()->memory_usage(), runtime::memory_manager()->memory_block_count(),
                   err, std::strerror(err));
 
       m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);

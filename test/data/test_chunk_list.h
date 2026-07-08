@@ -1,6 +1,6 @@
-#include "helpers/test_fixture.h"
+#include "test/helpers/test_main_thread.h"
 
-class test_chunk_list : public test_fixture {
+class test_chunk_list : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE(test_chunk_list);
 
   CPPUNIT_TEST(test_basic);

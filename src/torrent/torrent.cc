@@ -7,7 +7,7 @@
 #include <curl/curl.h>
 
 #include "manager.h"
-#include "runtime.h"
+#include "runtime_manager.h"
 #include "thread_main.h"
 #include "data/thread_disk.h"
 #include "net/thread_net.h"
@@ -55,7 +55,7 @@ void
 initialize_main_thread() {
   ThreadMain::create_thread();
 
-  Runtime::initialize();
+  RuntimeManager::initialize();
   ThreadMain::thread_main()->init_thread();
 }
 
@@ -104,10 +104,10 @@ cleanup() {
   ThreadDisk::destroy_thread();
   ThreadNet::destroy_thread();
 
-  Runtime::cleanup();
+  RuntimeManager::cleanup();
   manager->cleanup();
 
-  Runtime::destroy();
+  RuntimeManager::destroy();
 
   delete manager;
   manager = nullptr;

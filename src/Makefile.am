@@ -12,8 +12,8 @@ libtorrent_la_LIBADD = \
 libtorrent_la_SOURCES = \
 	manager.cc \
 	manager.h \
-	runtime.cc \
-	runtime.h \
+	runtime_manager.cc \
+	runtime_manager.h \
 	thread_main.cc \
 	thread_main.h
 
