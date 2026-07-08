@@ -34,17 +34,17 @@
                flags, errno, std::strerror(errno));
 #define LT_LOG_FD(log_fmt)                                      \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd);
-
 #define LT_LOG_FD_ERROR(log_fmt)                                        \
   { int err = errno;                                                    \
     lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", \
                  fd, errno, std::strerror(errno));                      \
-    errno = err;                                                        \
-  }
-
+    errno = err; }
 #define LT_LOG_FD_SOCKADDR(log_fmt)                                   \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s", \
                fd, sa_pretty_str(sa).c_str());
+#define LT_LOG_FD_SOCKADDR_MSG(log_fmt, msg)                            \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s %s", \
+               fd, sa_pretty_str(sa).c_str(), msg);
 #define LT_LOG_FD_SOCKADDR_ERROR(log_fmt)                               \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s errno:%i message:'%s'", \
                fd, sa_pretty_str(sa).c_str(), errno, std::strerror(errno));
@@ -54,8 +54,10 @@
 #define LT_LOG_FD_FLAG(log_fmt)                                         \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x", fd, flags);
 #define LT_LOG_FD_FLAG_ERROR(log_fmt)                                   \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
-               fd, flags, errno, std::strerror(errno));
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
+                 fd, flags, errno, std::strerror(errno));               \
+    errno = err; }
 #define LT_LOG_FD_VALUE(log_fmt, value)                                 \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i", fd, (int)value);
 #define LT_LOG_FD_VALUE_ERROR(log_fmt, value)                           \
@@ -483,8 +485,9 @@ fd_get_socket_name(int fd) {
     LT_LOG_FD_ERROR("fd_get_socket_name() failed");
     return nullptr;
   }
+
   if (sau_length < sa_length(sa)) {
-    LT_LOG_FD_ERROR("fd_get_socket_name() returned invalid length");
+    LT_LOG_FD_SOCKADDR_MSG("fd_get_socket_name() returned invalid length", ("length:" + std::to_string(sa_length(sa))).c_str());
     return nullptr;
   }
 
