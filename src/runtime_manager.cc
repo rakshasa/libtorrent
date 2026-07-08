@@ -2,6 +2,7 @@
 
 #include "runtime_manager.h"
 
+#include "torrent/runtime/memory_manager.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/runtime.h"
@@ -23,6 +24,7 @@ void             quick_shutdown()         { g_runtime->quick_shutdown(); }
 
 NetworkConfig*   network_config()         { return g_runtime->network_config(); }
 
+MemoryManager*   memory_manager()         { return g_runtime->memory_manager(); }
 NetworkManager*  network_manager()        { return g_runtime->network_manager(); }
 SocketManager*   socket_manager()         { return g_runtime->socket_manager(); }
 ProxyManager*    proxy_manager()          { return g_runtime->proxy_manager(); }
@@ -31,6 +33,8 @@ ProxyManager*    proxy_manager()          { return g_runtime->proxy_manager(); }
 
 RuntimeManager::RuntimeManager()
   : m_network_config(new runtime::NetworkConfig),
+
+    m_memory_manager(new runtime::MemoryManager),
     m_network_manager(new runtime::NetworkManager),
     m_socket_manager(new runtime::SocketManager),
     m_proxy_manager(new runtime::ProxyManager) {
@@ -76,6 +80,9 @@ RuntimeManager::destroy() {
 
   delete g_runtime->m_network_manager;
   g_runtime->m_network_manager = nullptr;
+
+  delete g_runtime->m_memory_manager;
+  g_runtime->m_memory_manager = nullptr;
 
   delete g_runtime->m_network_config;
   g_runtime->m_network_config = nullptr;

@@ -18,6 +18,9 @@ public:
   uint64_t            max_memory_usage() const;
   void                set_max_memory_usage(uint64_t bytes);
 
+  void                account_memory_block(uint64_t bytes);
+  void                release_memory_block(uint64_t bytes);
+
 protected:
   friend class torrent::RuntimeManager;
 

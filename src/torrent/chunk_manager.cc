@@ -7,16 +7,13 @@
 
 #include "data/chunk_list.h"
 #include "torrent/exceptions.h"
+#include "torrent/runtime/memory_manager.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
 
 ChunkManager::ChunkManager() = default;
-
-ChunkManager::~ChunkManager() {
-  assert(m_memoryUsage == 0 && "ChunkManager::~ChunkManager() m_memoryUsage != 0.");
-  assert(m_memoryBlockCount == 0 && "ChunkManager::~ChunkManager() m_memoryBlockCount != 0.");
-}
+ChunkManager::~ChunkManager() = default;
 
 uint64_t
 ChunkManager::sync_queue_memory_usage() const {
@@ -39,23 +36,8 @@ ChunkManager::sync_queue_size() const {
 }
 
 uint64_t
-ChunkManager::estimate_max_memory_usage() {
-  rlimit rlp;
-
-  // TODO: Only check RLIMIT_AS.
-#ifdef RLIMIT_AS
-  if (getrlimit(RLIMIT_AS, &rlp) == 0 && rlp.rlim_cur != RLIM_INFINITY)
-#else
-  if (getrlimit(RLIMIT_DATA, &rlp) == 0 && rlp.rlim_cur != RLIM_INFINITY)
-#endif
-    return rlp.rlim_cur;
-
-  return uint64_t{DEFAULT_ADDRESS_SPACE_SIZE} << 20;
-}
-
-uint64_t
 ChunkManager::safe_free_diskspace() const {
-  return m_memoryUsage + (uint64_t{512} << 20);
+  return runtime::memory_manager()->memory_usage() + (uint64_t{512} << 20);
 }
 
 void
@@ -83,10 +65,13 @@ ChunkManager::erase(ChunkList* chunkList) {
 
 bool
 ChunkManager::allocate(uint32_t size, int flags) {
-  if (m_memoryUsage + size > (3 * m_maxMemoryUsage) / 4)
-    try_free_memory((1 * m_maxMemoryUsage) / 4);
+  auto memory_usage     = runtime::memory_manager()->memory_usage();
+  auto max_memory_usage = runtime::memory_manager()->max_memory_usage();
 
-  if (m_memoryUsage + size > m_maxMemoryUsage) {
+  if (memory_usage + size > (3 * max_memory_usage) / 4)
+    try_free_memory((1 * max_memory_usage) / 4);
+
+  if (memory_usage + size > max_memory_usage) {
     if (!(flags & allocate_dont_log))
       instrumentation_update(INSTRUMENTATION_MINCORE_ALLOC_FAILED, 1);
 
@@ -96,8 +81,7 @@ ChunkManager::allocate(uint32_t size, int flags) {
   if (!(flags & allocate_dont_log))
     instrumentation_update(INSTRUMENTATION_MINCORE_ALLOCATIONS, size);
 
-  m_memoryUsage += size;
-  m_memoryBlockCount++;
+  runtime::memory_manager()->account_memory_block(size);
 
   instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_COUNT, 1);
   instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_USAGE, size);
@@ -107,9 +91,6 @@ ChunkManager::allocate(uint32_t size, int flags) {
 
 void
 ChunkManager::deallocate(uint32_t size, int flags) {
-  if (size > m_memoryUsage)
-    throw internal_error("ChunkManager::deallocate(...) size > m_memoryUsage.");
-
   if (!(flags & allocate_dont_log)) {
     if (flags & allocate_revert_log)
       instrumentation_update(INSTRUMENTATION_MINCORE_ALLOCATIONS, -size);
@@ -117,8 +98,7 @@ ChunkManager::deallocate(uint32_t size, int flags) {
       instrumentation_update(INSTRUMENTATION_MINCORE_DEALLOCATIONS, size);
   }
 
-  m_memoryUsage -= size;
-  m_memoryBlockCount--;
+  runtime::memory_manager()->release_memory_block(size);
 
   instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_COUNT, -1);
   instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_USAGE, -static_cast<int64_t>(size));
@@ -135,7 +115,9 @@ ChunkManager::try_free_memory(uint64_t size) {
   if (m_timerStarved + 10 >= this_thread::cached_seconds().count())
     return;
 
-  sync_all(0, size <= m_memoryUsage ? (m_memoryUsage - size) : 0);
+  auto memory_usage = runtime::memory_manager()->memory_usage();
+
+  sync_all(0, size <= memory_usage ? (memory_usage - size) : 0);
 
   // The caller must ensure he tries to free a sufficiently large
   // amount of memory to ensure it, and other users, has enough memory
@@ -161,13 +143,18 @@ ChunkManager::sync_all(int flags, uint64_t target) {
 
   ChunkList::cache_list cache;
 
-  do {
+  while (true) {
     if (itr == base_type::end())
       itr = base_type::begin();
 
     (*itr)->sync_chunks(cache, static_cast<ChunkList::sync_flags>(flags));
 
-  } while (++itr != base_type::begin() + m_lastFreed && m_memoryUsage >= target);
+    if (++itr == base_type::begin() + m_lastFreed)
+      break;
+
+    if (runtime::memory_manager()->memory_usage() < target)
+      break;
+  }
 
   m_lastFreed = itr - begin();
 }

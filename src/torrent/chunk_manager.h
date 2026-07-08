@@ -80,6 +80,7 @@ public:
   bool                allocate(uint32_t size, int flags = 0);
   void                deallocate(uint32_t size, int flags = 0);
 
+  // TODO: Add as a subscription.
   void                try_free_memory(uint64_t size);
 
   void                periodic_sync();
@@ -97,13 +98,6 @@ private:
   ChunkManager& operator=(const ChunkManager&) = delete;
 
   void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
-
-  // 1/5 of the available memory should be enough for the client. If
-  // the client really requires alot more memory it should call this
-  // itself.
-  uint64_t            m_maxMemoryUsage{(estimate_max_memory_usage() * 4) / 5};
-
-  uint32_t            m_memoryBlockCount{0};
 
   bool                m_safeSync{false};
   uint32_t            m_timeoutSync{600};

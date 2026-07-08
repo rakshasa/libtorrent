@@ -205,6 +205,7 @@ libtorrent_torrent_peer_include_HEADERS = \
 
 libtorrent_torrent_runtime_includedir = $(includedir)/torrent/runtime
 libtorrent_torrent_runtime_include_HEADERS = \
+	runtime/memory_manager.h \
 	runtime/network_config.h \
 	runtime/network_manager.h \
 	runtime/proxy_manager.h \
