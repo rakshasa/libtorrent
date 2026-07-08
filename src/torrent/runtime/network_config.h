@@ -7,6 +7,8 @@
 #include <netinet/ip.h>
 #include <torrent/net/types.h>
 
+#include "encryption_policy.h"
+
 namespace torrent::runtime {
 
 class ProxyManager;
@@ -20,16 +22,6 @@ public:
   static constexpr int      iptos_lowdelay              = IPTOS_LOWDELAY;
   static constexpr int      iptos_throughput            = IPTOS_THROUGHPUT;
   static constexpr int      iptos_reliability           = IPTOS_RELIABILITY;
-
-  static constexpr uint32_t encryption_none             = 0;
-  static constexpr uint32_t encryption_allow_incoming   = 0x1;
-  static constexpr uint32_t encryption_try_outgoing     = 0x2;
-  static constexpr uint32_t encryption_require          = 0x3;
-  static constexpr uint32_t encryption_require_RC4      = 0x4;
-  static constexpr uint32_t encryption_enable_retry     = 0x8;
-  static constexpr uint32_t encryption_prefer_plaintext = 0x10;
-  // Internal to libtorrent.
-  static constexpr uint32_t encryption_retrying         = 0x40;
 
   NetworkConfig();
 
@@ -102,8 +94,8 @@ public:
   void                set_local_inet6_address(const sockaddr* sa);
   void                set_local_inet6_address_str(const std::string& addr);
 
-  uint32_t            encryption_options() const;
-  void                set_encryption_options(uint32_t opts);
+  EncryptionPolicy    encryption_policy() const;
+  void                set_encryption_policy(const EncryptionPolicy& policy);
 
   int                 listen_backlog() const;
   void                set_listen_backlog(int backlog);
@@ -174,7 +166,7 @@ private:
   c_sa_shared_ptr     m_local_inet_address;
   c_sa_shared_ptr     m_local_inet6_address;
 
-  int                 m_encryption_options{encryption_none};
+  EncryptionPolicy    m_encryption_policy{};
   int                 m_listen_backlog{SOMAXCONN};
   uint16_t            m_override_dht_port{0};
   uint32_t            m_send_buffer_size{0};

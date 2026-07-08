@@ -343,16 +343,16 @@ NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
   set_local_inet6_address(sa_lookup_address(addr, AF_INET6).get());
 }
 
-uint32_t
-NetworkConfig::encryption_options() const {
+EncryptionPolicy
+NetworkConfig::encryption_policy() const {
   auto guard = lock_guard();
-  return m_encryption_options;
+  return m_encryption_policy;
 }
 
 void
-NetworkConfig::set_encryption_options(uint32_t opts) {
+NetworkConfig::set_encryption_policy(const EncryptionPolicy& policy) {
   auto guard = lock_guard();
-  m_encryption_options = opts;
+  m_encryption_policy = policy;
 }
 
 int

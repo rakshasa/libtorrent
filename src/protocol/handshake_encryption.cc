@@ -1,8 +1,6 @@
 #include "config.h"
 
 #include "handshake_encryption.h"
-
-#include "torrent/runtime/network_config.h"
 #include "utils/diffie_hellman.h"
 #include "utils/sha1.h"
 
@@ -22,13 +20,25 @@ const unsigned char HandshakeEncryption::dh_prime[] = {
 const unsigned char HandshakeEncryption::dh_generator[] = { 2 };
 const unsigned char HandshakeEncryption::vc_data[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-bool
-HandshakeEncryption::should_retry() const {
-  return (m_options & runtime::NetworkConfig::encryption_enable_retry) != 0 && m_retry != HandshakeEncryption::RETRY_NONE;
+const char*
+HandshakeEncryption::crypto_name(int crypto) {
+  const bool has_plain = crypto & crypto_plain;
+  const bool has_rc4   = crypto & crypto_rc4;
+
+  if (has_plain && has_rc4)
+    return "both";
+
+  if (has_rc4)
+    return "rc4";
+
+  if (has_plain)
+    return "handshake-only";
+
+  return "none";
 }
 
-HandshakeEncryption::HandshakeEncryption(int options) :
-    m_options(options) {
+HandshakeEncryption::HandshakeEncryption(EncryptionPolicy policy) :
+    m_policy(policy) {
 }
 
 bool

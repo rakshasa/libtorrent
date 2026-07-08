@@ -9,6 +9,7 @@
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/runtime/encryption_policy.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/utils/option_strings.h"
 
@@ -53,18 +54,6 @@ constexpr option_pair option_list_heuristics_upload[] = {
   { NULL, 0 }
 };
 
-constexpr option_pair option_list_encryption[] = {
-  { "none",             runtime::NetworkConfig::encryption_none },
-  { "allow_incoming",   runtime::NetworkConfig::encryption_allow_incoming },
-  { "try_outgoing",     runtime::NetworkConfig::encryption_try_outgoing },
-  { "require",          runtime::NetworkConfig::encryption_require },
-  { "require_RC4",      runtime::NetworkConfig::encryption_require_RC4 },
-  { "require_rc4",      runtime::NetworkConfig::encryption_require_RC4 },
-  { "enable_retry",     runtime::NetworkConfig::encryption_enable_retry },
-  { "prefer_plaintext", runtime::NetworkConfig::encryption_prefer_plaintext },
-  { NULL, 0 }
-};
-
 constexpr option_pair option_list_ip_filter[] = {
   { "unwanted",  PeerInfo::flag_unwanted },
   { "preferred", PeerInfo::flag_preferred },
@@ -82,6 +71,14 @@ constexpr option_pair option_list_ip_tos[] = {
 constexpr option_pair option_list_tracker_mode[] = {
   { "normal",     choke_group::TRACKER_MODE_NORMAL },
   { "aggressive", choke_group::TRACKER_MODE_AGGRESSIVE },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_encryption_mode[] = {
+  { "deny",    ENCRYPTION_MODE_DENY    },
+  { "allow",   ENCRYPTION_MODE_ALLOW   },
+  { "prefer",  ENCRYPTION_MODE_PREFER  },
+  { "require", ENCRYPTION_MODE_REQUIRE },
   { NULL, 0 }
 };
 
@@ -128,7 +125,7 @@ constexpr const char* option_list_log_group[] = {
   "connection_bind",
   "connection_fd",
   "connection_filter",
-  "connection_hanshake",
+  "connection_handshake",
   "connection_listen",
 
   "dht",
@@ -206,10 +203,10 @@ constexpr std::array option_pair_lists{
   option_list_heuristics,
   option_list_heuristics_download,
   option_list_heuristics_upload,
-  option_list_encryption,
   option_list_ip_filter,
   option_list_ip_tos,
   option_list_tracker_mode,
+  option_list_encryption_mode,
 };
 static_assert(option_pair_lists.size() == OPTION_START_COMPACT);
 

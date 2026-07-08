@@ -113,10 +113,12 @@ public:
   auto*               proxy();
   void                set_proxy(net::proxy_ptr proxy);
 
-  void                initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options);
-  void                initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, int encryption_options, DownloadMain* d, PeerInfo* peerInfo);
+  void                initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, EncryptionPolicy policy);
+  void                initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, EncryptionPolicy policy, DownloadMain* d, PeerInfo* peerInfo);
 
   const sockaddr*     socket_address() const        { return m_address.get(); }
+
+  bool                is_incoming() const           { return m_incoming; }
 
   DownloadMain*       download()                    { return m_download; }
   Bitfield*           bitfield()                    { return &m_bitfield; }
@@ -135,8 +137,6 @@ public:
 
   HandshakeEncryption* encryption()                 { return &m_encryption; }
   ProtocolExtension*   extensions()                  { return m_extensions; }
-
-  int                 retry_options();
 
 protected:
   Handshake(const Handshake&) = delete;

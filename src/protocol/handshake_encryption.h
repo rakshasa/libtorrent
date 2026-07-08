@@ -1,10 +1,12 @@
 #ifndef LIBTORRENT_PROTOCOL_HANDSHAKE_ENCRYPTION_H
 #define LIBTORRENT_PROTOCOL_HANDSHAKE_ENCRYPTION_H
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 
 #include "encryption_info.h"
+#include "torrent/runtime/encryption_policy.h"
 
 namespace torrent {
 
@@ -12,12 +14,6 @@ class DiffieHellman;
 
 class HandshakeEncryption {
 public:
-  enum Retry {
-    RETRY_NONE,
-    RETRY_PLAIN,
-    RETRY_ENCRYPTED,
-  };
-
   static constexpr int           crypto_plain = 1;
   static constexpr int           crypto_rc4   = 2;
 
@@ -30,23 +26,19 @@ public:
   static const unsigned char vc_data[];
   static constexpr unsigned int  vc_length = 8;
 
-  HandshakeEncryption(int options);
-
-  bool                has_crypto_plain() const                     { return m_crypto & crypto_plain; }
-  bool                has_crypto_rc4() const                       { return m_crypto & crypto_rc4; }
+  HandshakeEncryption(EncryptionPolicy policy);
 
   const auto&         key()                                        { return m_key; }
   EncryptionInfo*     info()                                       { return &m_info; }
 
-  int                 options() const                              { return m_options; }
+  const EncryptionPolicy& policy() const                           { return m_policy; }
+
+  void                disarm_outgoing_alt_retry()                  { m_policy.disarm_outgoing_alt_retry(); }
 
   int                 crypto() const                               { return m_crypto; }
   void                set_crypto(int val)                          { m_crypto = val; }
 
-  Retry               retry() const                                { return m_retry; }
-  void                set_retry(Retry val)                         { m_retry = val; }
-
-  bool                should_retry() const;
+  static const char*  crypto_name(int crypto);
 
   const char*         sync() const                                 { return m_sync; }
   unsigned int        sync_length() const                          { return m_syncLength; }
@@ -77,10 +69,8 @@ private:
   // A pointer instead?
   EncryptionInfo      m_info;
 
-  int                 m_options;
+  EncryptionPolicy    m_policy;
   int                 m_crypto{0};
-
-  Retry               m_retry{RETRY_NONE};
 
   char                m_sync[20];
   unsigned int        m_syncLength{0};

@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 
+#include "torrent/runtime/encryption_policy.h"
 #include "torrent/common.h"
 #include "torrent/utils/unordered_vector.h"
 
@@ -52,7 +53,7 @@ private:
   HandshakeManager(const HandshakeManager&) = delete;
   HandshakeManager& operator=(const HandshakeManager&) = delete;
 
-  void                create_outgoing(const sockaddr* sa, DownloadMain* info, int encryptionOptions);
+  void                create_outgoing(const sockaddr* sa, DownloadMain* info, EncryptionPolicy policy);
   value_type          find_and_erase(Handshake* handshake);
 
   static ProtocolExtension DefaultExtensions;

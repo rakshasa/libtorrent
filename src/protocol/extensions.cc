@@ -14,6 +14,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/runtime/encryption_policy.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
@@ -103,8 +104,9 @@ ProtocolExtension::generate_handshake_message() {
 
   // Add "e" key if encryption is enabled, set it to 1 if we require
   // encryption for incoming connections, or 0 otherwise.
-  if ((runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_allow_incoming) != 0)
-    message[key_e] = (runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_require) != 0;
+  const auto& encryption_policy = runtime::network_config()->encryption_policy();
+  if (encryption_policy.handshake != EncryptionPolicy::Mode::deny)
+    message[key_e] = encryption_policy.handshake == EncryptionPolicy::Mode::require;
 
   message[key_p] = runtime::listen_port();
   message[key_v] = raw_string::from_c_str("libTorrent " VERSION);
