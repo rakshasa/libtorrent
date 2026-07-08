@@ -115,6 +115,7 @@ cleanup() {
   curl_global_cleanup();
 }
 
+ChunkManager*      chunk_manager()       { return manager->chunk_manager(); }
 ClientList*        client_list()         { return manager->client_list(); }
 FileManager*       file_manager()        { return manager->file_manager(); }
 ResourceManager*   resource_manager()    { return manager->resource_manager(); }
