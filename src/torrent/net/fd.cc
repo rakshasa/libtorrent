@@ -522,19 +522,6 @@ fd_get_socket_name(int fd) {
 }
 
 bool
-fd_get_type(int fd, int* value) {
-  socklen_t length = sizeof(int);
-
-  if (getsockopt(fd, SOL_SOCKET, SO_TYPE, value, &length) == -1) {
-    LT_LOG_FD_ERROR("fd_get_type() failed");
-    return false;
-  }
-
-  LT_LOG_FD_VALUE("fd_get_type() succeeded", *value);
-  return true;
-}
-
-bool
 fd_set_dont_route(int fd, bool state) {
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_DONTROUTE, state) == -1) {
     LT_LOG_FD_VALUE_ERROR("fd_set_dont_route() failed", state);
