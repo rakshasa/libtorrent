@@ -65,6 +65,8 @@ ChunkList::clear() {
     clear_chunk(chunk, release_default);
   }
 
+  runtime::memory_manager()->release_sync_queue(m_queue.size(), m_chunk_size);
+
   m_queue.clear();
 
   if (std::any_of(begin(), end(), std::mem_fn(&ChunkListNode::chunk)))
@@ -195,6 +197,8 @@ ChunkList::release(ChunkHandle* handle, release_flags flags) {
       // this branch.
       m_queue.push_back(handle->object());
 
+      runtime::memory_manager()->account_sync_queue(m_chunk_size);
+
     } else {
       handle->object()->dec_rw();
     }
@@ -315,6 +319,8 @@ ChunkList::sync_chunks(cache_list& cache, sync_flags flags) {
     instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_NOT_SYNCED, std::distance(m_queue.begin(), split));
     instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_NOT_DEALLOCATED, std::count_if(split, m_queue.end(), std::mem_fn(&ChunkListNode::is_valid)));
   }
+
+  runtime::memory_manager()->release_sync_queue(std::distance(split, m_queue.end()), m_chunk_size);
 
   m_queue.erase(split, m_queue.end());
 

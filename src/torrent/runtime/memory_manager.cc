@@ -67,15 +67,34 @@ MemoryManager::account_memory_block(uint64_t bytes) {
 
 void
 MemoryManager::release_memory_block(uint64_t bytes) {
-  auto previous_usage       = m_memory_usage.fetch_sub(bytes,   std::memory_order_acq_rel);
-  auto previous_block_count = m_memory_block_count.fetch_sub(1, std::memory_order_acq_rel);
+  auto previous_usage = m_memory_usage.fetch_sub(bytes,   std::memory_order_acq_rel);
+  auto previous_count = m_memory_block_count.fetch_sub(1, std::memory_order_acq_rel);
 
-  if (previous_block_count == 0)
-    throw internal_error("MemoryManager::release_memory_block() previous_block_count == 0.");
+  if (previous_count == 0)
+    throw internal_error("MemoryManager::release_memory_block() previous_count == 0.");
 
   if (previous_usage < bytes)
     throw internal_error("MemoryManager::release_memory_block() previous_usage < bytes.");
 }
 
+void
+MemoryManager::account_sync_queue(uint64_t bytes) {
+  m_sync_queue_block_count++;
+  m_sync_queue_memory_usage += bytes;
+}
+
+void
+MemoryManager::release_sync_queue(uint32_t count, uint32_t chunk_size) {
+  uint64_t bytes = static_cast<uint64_t>(count) * chunk_size;
+
+  auto previous_usage = m_sync_queue_memory_usage.fetch_sub(bytes, std::memory_order_acq_rel);
+  auto previous_count = m_sync_queue_block_count.fetch_sub(count, std::memory_order_acq_rel);
+
+  if (previous_count < count)
+    throw internal_error("MemoryManager::release_sync_queue() previous_count < count.");
+
+  if (previous_usage < bytes)
+    throw internal_error("MemoryManager::release_sync_queue() previous_usage < bytes.");
+}
 
 } // namespace torrent::runtime

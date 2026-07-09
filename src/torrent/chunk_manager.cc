@@ -16,26 +16,6 @@ ChunkManager::ChunkManager() = default;
 ChunkManager::~ChunkManager() = default;
 
 uint64_t
-ChunkManager::sync_queue_memory_usage() const {
-  uint64_t size = 0;
-
-  for (auto chunk : *this)
-    size += chunk->queue_size() * chunk->chunk_size();
-
-  return size;
-}
-
-uint32_t
-ChunkManager::sync_queue_size() const {
-  uint32_t size = 0;
-
-  for (auto chunk : *this)
-    size += chunk->queue_size();
-
-  return size;
-}
-
-uint64_t
 ChunkManager::safe_free_diskspace() const {
   return runtime::memory_manager()->memory_usage() + (uint64_t{512} << 20);
 }

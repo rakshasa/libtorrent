@@ -26,10 +26,6 @@ public:
   ChunkManager();
   ~ChunkManager();
 
-  uint64_t            sync_queue_memory_usage() const;
-
-  uint32_t            sync_queue_size() const;
-
   uint64_t            safe_free_diskspace() const;
 
   bool                safe_sync() const                         { return m_safeSync; }
