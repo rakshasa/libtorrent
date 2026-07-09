@@ -15,11 +15,6 @@ namespace torrent {
 ChunkManager::ChunkManager() = default;
 ChunkManager::~ChunkManager() = default;
 
-uint64_t
-ChunkManager::safe_free_diskspace() const {
-  return runtime::memory_manager()->memory_usage() + (uint64_t{512} << 20);
-}
-
 void
 ChunkManager::insert(ChunkList* chunkList) {
   chunkList->set_manager(this);

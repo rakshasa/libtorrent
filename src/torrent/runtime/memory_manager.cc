@@ -77,6 +77,35 @@ MemoryManager::release_memory_block(uint64_t bytes) {
     throw internal_error("MemoryManager::release_memory_block() previous_usage < bytes.");
 }
 
+uint64_t
+MemoryManager::sync_safe_free_diskspace() const {
+  return m_memory_usage + (uint64_t{512} << 20);
+}
+
+void
+MemoryManager::set_preload_type(uint32_t type) {
+  if (type > 2)
+    throw input_error("set_preload_type: invalid type: " + std::to_string(type));
+
+  m_preload_type = type;
+}
+
+void
+MemoryManager::set_preload_min_size(uint32_t bytes) {
+  if (bytes < (1 << 10))
+    throw input_error("set_preload_min_size: invalid size, must be at least 1 KB: " + std::to_string(bytes));
+
+  m_preload_min_size = bytes;
+}
+
+void
+MemoryManager::set_preload_required_rate(uint32_t bytes) {
+  if (bytes < (1 << 10))
+    throw input_error("set_preload_required_rate: invalid rate, must be at least 1 KB/s: " + std::to_string(bytes));
+
+  m_preload_required_rate = bytes;
+}
+
 void
 MemoryManager::account_sync_queue(uint64_t bytes) {
   m_sync_queue_block_count++;

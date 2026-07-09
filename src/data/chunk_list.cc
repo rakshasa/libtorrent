@@ -277,7 +277,9 @@ ChunkList::sync_chunks(cache_list& cache, sync_flags flags) {
   // If we got enough diskspace and have not requested safe syncing,
   // then sync all chunks with MS_ASYNC.
   if (!(flags & (sync_safe | sync_sloppy))) {
-    if (m_manager->safe_sync() || m_slot_free_diskspace(cache) <= m_manager->safe_free_diskspace())
+    if (runtime::memory_manager()->safe_sync())
+      flags = flags | sync_safe;
+    else if (m_slot_free_diskspace(cache) <= runtime::memory_manager()->sync_safe_free_diskspace())
       flags = flags | sync_safe;
     else
       flags = flags | sync_force;
@@ -378,7 +380,7 @@ inline bool
 ChunkList::check_node(ChunkListNode* node) {
   return
     node->time_modified() != 0us &&
-    node->time_modified() + std::chrono::seconds(m_manager->timeout_sync()) < this_thread::cached_time();
+    node->time_modified() + runtime::memory_manager()->timeout_sync() < this_thread::cached_time();
 }
 
 // Optimize the selection of chunks to sync. Continuous regions are

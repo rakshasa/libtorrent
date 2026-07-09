@@ -26,37 +26,6 @@ public:
   ChunkManager();
   ~ChunkManager();
 
-  uint64_t            safe_free_diskspace() const;
-
-  bool                safe_sync() const                         { return m_safeSync; }
-  void                set_safe_sync(uint32_t state)             { m_safeSync = state; }
-
-  // Set the interval to wait after the last write to a chunk before
-  // trying to sync it. By not forcing a sync too early it should give
-  // the kernel an oppertunity to sync at its convenience.
-  uint32_t            timeout_sync() const                      { return m_timeoutSync; }
-  void                set_timeout_sync(uint32_t seconds)        { m_timeoutSync = seconds; }
-
-  uint32_t            timeout_safe_sync() const                 { return m_timeoutSafeSync; }
-  void                set_timeout_safe_sync(uint32_t seconds)   { m_timeoutSafeSync = seconds; }
-
-  // Set to 0 to disable preloading.
-  //
-  // How the value is used is yet to be determined, but it won't be
-  // able to use actual requests in the request queue as we can easily
-  // stay ahead of it causing preloading to fail.
-  uint32_t            preload_type() const                      { return m_preloadType; }
-  void                set_preload_type(uint32_t t)              { m_preloadType = t; }
-
-  uint32_t            preload_min_size() const                  { return m_preloadMinSize; }
-  void                set_preload_min_size(uint32_t bytes)      { m_preloadMinSize = bytes; }
-
-  // Required rate before attempting to preload chunk, per whole
-  // megabyte of chunk size.
-  uint32_t            preload_required_rate() const             { return m_preloadRequiredRate; }
-  void                set_preload_required_rate(uint32_t bytes) { m_preloadRequiredRate = bytes; }
-
-
   void                insert(ChunkList* chunkList);
   void                erase(ChunkList* chunkList);
 
@@ -82,30 +51,11 @@ public:
 
   void                periodic_sync();
 
-  // Not sure if I wnt these here. Consider implementing a generic
-  // statistics API.
-  uint32_t            stats_preloaded() const                   { return m_statsPreloaded; }
-  void                inc_stats_preloaded()                     { m_statsPreloaded++; }
-
-  uint32_t            stats_not_preloaded() const               { return m_statsNotPreloaded; }
-  void                inc_stats_not_preloaded()                 { m_statsNotPreloaded++; }
-
 private:
   ChunkManager(const ChunkManager&) = delete;
   ChunkManager& operator=(const ChunkManager&) = delete;
 
   void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
-
-  bool                m_safeSync{false};
-  uint32_t            m_timeoutSync{600};
-  uint32_t            m_timeoutSafeSync{900};
-
-  uint32_t            m_preloadType{0};
-  uint32_t            m_preloadMinSize{256 << 10};
-  uint32_t            m_preloadRequiredRate{5 << 10};
-
-  uint32_t            m_statsPreloaded{0};
-  uint32_t            m_statsNotPreloaded{0};
 
   int32_t             m_timerStarved{0};
   size_type           m_lastFreed{0};
