@@ -446,13 +446,27 @@ fd_get_peer_name(int fd) {
     LT_LOG_FD_ERROR("fd_get_peer_name() failed");
     return nullptr;
   }
-  if (sau_length < sa_length(sa)) {
-    LT_LOG_FD_ERROR("fd_get_peer_name() returned invalid length");
+
+  if (sau_length <= sizeof(sockaddr_in6)) {
+    LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
+    return sa_copy(sa);
+  }
+
+  auto      buffer        = std::make_unique<char[]>(sau_length);
+  socklen_t buffer_length = sau_length;
+
+  if (getpeername(fd, reinterpret_cast<sockaddr*>(buffer.get()), &buffer_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_peer_name() failed reading variable length address");
     return nullptr;
   }
 
-  LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
-  return sa_copy(sa);
+  if (buffer_length != sau_length) {
+    LT_LOG_FD_ERROR("fd_get_peer_name() returned invalid length for variable length address");
+    return nullptr;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded reading variable length address");
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(buffer.release()));
 }
 
 bool
@@ -478,13 +492,27 @@ fd_get_socket_name(int fd) {
     LT_LOG_FD_ERROR("fd_get_socket_name() failed");
     return nullptr;
   }
-  if (sau_length < sa_length(sa)) {
-    LT_LOG_FD_ERROR("fd_get_socket_name() returned invalid length");
+
+  if (sau_length <= sizeof(sockaddr_in6)) {
+    LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
+    return sa_copy(sa);
+  }
+
+  auto      buffer        = std::make_unique<char[]>(sau_length);
+  socklen_t buffer_length = sau_length;
+
+  if (getsockname(fd, reinterpret_cast<sockaddr*>(buffer.get()), &buffer_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_socket_name() failed reading variable length address");
     return nullptr;
   }
 
-  LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
-  return sa_copy(sa);
+  if (buffer_length != sau_length) {
+    LT_LOG_FD_ERROR("fd_get_socket_name() returned invalid length for variable length address");
+    return nullptr;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded reading variable length address");
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(buffer.release()));
 }
 
 bool
