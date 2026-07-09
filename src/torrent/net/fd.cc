@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
@@ -435,40 +436,6 @@ fd_get_nonblock(int fd, bool* value) {
   return true;
 }
 
-
-c_sa_unique_ptr
-fd_get_peer_name(int fd) {
-  sa_inet_union sau{};
-  sockaddr*     sa         = &sau.sa;
-  socklen_t     sau_length = sizeof(sockaddr_in6);
-
-  if (getpeername(fd, sa, &sau_length) == -1) {
-    LT_LOG_FD_ERROR("fd_get_peer_name() failed");
-    return nullptr;
-  }
-
-  if (sau_length <= sizeof(sockaddr_in6)) {
-    LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
-    return sa_copy(sa);
-  }
-
-  auto      buffer        = std::make_unique<char[]>(sau_length);
-  socklen_t buffer_length = sau_length;
-
-  if (getpeername(fd, reinterpret_cast<sockaddr*>(buffer.get()), &buffer_length) == -1) {
-    LT_LOG_FD_ERROR("fd_get_peer_name() failed reading variable length address");
-    return nullptr;
-  }
-
-  if (buffer_length != sau_length) {
-    LT_LOG_FD_ERROR("fd_get_peer_name() returned invalid length for variable length address");
-    return nullptr;
-  }
-
-  LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded reading variable length address");
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(buffer.release()));
-}
-
 bool
 fd_get_socket_error(int fd, int* value) {
   socklen_t length = sizeof(int);
@@ -482,39 +449,6 @@ fd_get_socket_error(int fd, int* value) {
   return true;
 }
 
-c_sa_unique_ptr
-fd_get_socket_name(int fd) {
-  sa_inet_union sau{};
-  sockaddr*     sa         = &sau.sa;
-  socklen_t     sau_length = sizeof(sockaddr_in6);
-
-  if (getsockname(fd, sa, &sau_length) == -1) {
-    LT_LOG_FD_ERROR("fd_get_socket_name() failed");
-    return nullptr;
-  }
-
-  if (sau_length <= sizeof(sockaddr_in6)) {
-    LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
-    return sa_copy(sa);
-  }
-
-  auto      buffer        = std::make_unique<char[]>(sau_length);
-  socklen_t buffer_length = sau_length;
-
-  if (getsockname(fd, reinterpret_cast<sockaddr*>(buffer.get()), &buffer_length) == -1) {
-    LT_LOG_FD_ERROR("fd_get_socket_name() failed reading variable length address");
-    return nullptr;
-  }
-
-  if (buffer_length != sau_length) {
-    LT_LOG_FD_ERROR("fd_get_socket_name() returned invalid length for variable length address");
-    return nullptr;
-  }
-
-  LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded reading variable length address");
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(buffer.release()));
-}
-
 bool
 fd_get_type(int fd, int* value) {
   socklen_t length = sizeof(int);
@@ -525,6 +459,104 @@ fd_get_type(int fd, int* value) {
   }
 
   LT_LOG_FD_VALUE("fd_get_type() succeeded", *value);
+  return true;
+}
+
+c_sa_unique_ptr
+fd_get_peer_name(int fd) {
+  sockaddr_un sa_un{};
+  sockaddr*   sa         = reinterpret_cast<sockaddr*>(&sa_un);
+  socklen_t   sau_length = sizeof(sockaddr_un);
+
+  if (getpeername(fd, sa, &sau_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_peer_name() failed");
+    return nullptr;
+  }
+
+  if (sau_length > sizeof(sockaddr_un)) {
+    LT_LOG_FD("fd_get_peer_name() length exceeds buffer size");
+    return nullptr;
+  }
+
+  if (sa->sa_family == AF_UNIX) {
+    LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
+    return sa_unique_ptr(reinterpret_cast<sockaddr*>(new sockaddr_un(sa_un)));
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
+  return sa_copy(sa);
+}
+
+c_sa_unique_ptr
+fd_get_socket_name(int fd) {
+  sockaddr_un sa_un{};
+  sockaddr*   sa         = reinterpret_cast<sockaddr*>(&sa_un);
+  socklen_t   sau_length = sizeof(sockaddr_un);
+
+  if (getsockname(fd, sa, &sau_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_socket_name() failed");
+    return nullptr;
+  }
+
+  if (sau_length > sizeof(sockaddr_un)) {
+    LT_LOG_FD("fd_get_socket_name() length exceeds buffer size");
+    return nullptr;
+  }
+
+  if (sa->sa_family == AF_UNIX) {
+    LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
+    return sa_unique_ptr(reinterpret_cast<sockaddr*>(new sockaddr_un(sa_un)));
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
+  return sa_copy(sa);
+}
+
+bool
+fd_is_peer_name_anonymous(int fd) {
+  sockaddr_un sa_un;
+  socklen_t   length = sizeof(sockaddr_un);
+
+  if (getpeername(fd, reinterpret_cast<sockaddr*>(&sa_un), &length) == -1) {
+    LT_LOG_FD_ERROR("fd_is_peer_name_anonymous() failed");
+    return false;
+  }
+
+  if (sa_un.sun_family != AF_UNIX) {
+    LT_LOG_FD("fd_is_peer_name_anonymous() returned non-unix address");
+    return false;
+  }
+
+  if (sa_un.sun_path[0] != '\0') {
+    LT_LOG_FD("fd_is_peer_name_anonymous() returned non-anonymous address");
+    return false;
+  }
+
+  LT_LOG_FD("fd_is_peer_name_anonymous() returned anonymous address");
+  return true;
+}
+
+bool
+fd_is_socket_name_anonymous(int fd) {
+  sockaddr_un sa_un;
+  socklen_t   length = sizeof(sockaddr_un);
+
+  if (getsockname(fd, reinterpret_cast<sockaddr*>(&sa_un), &length) == -1) {
+    LT_LOG_FD_ERROR("fd_is_socket_name_anonymous() failed");
+    return false;
+  }
+
+  if (sa_un.sun_family != AF_UNIX) {
+    LT_LOG_FD("fd_is_socket_name_anonymous() returned non-unix address");
+    return false;
+  }
+
+  if (sa_un.sun_path[0] != '\0') {
+    LT_LOG_FD("fd_is_socket_name_anonymous() returned non-anonymous address");
+    return false;
+  }
+
+  LT_LOG_FD("fd_is_socket_name_anonymous() returned anonymous address");
   return true;
 }
 

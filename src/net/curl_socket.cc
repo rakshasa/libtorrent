@@ -396,7 +396,7 @@ verify_libcurl_internal_wakeup(int fd) {
     if (local_addr == nullptr)
       return error_fn("getsockname failed: " + system::errno_enum_str(errno));
 
-    auto peer_addr  = fd_get_peer_name(fd);
+    auto peer_addr = fd_get_peer_name(fd);
 
     if (peer_addr == nullptr)
       return error_fn("getpeername failed: " + system::errno_enum_str(errno));
