@@ -407,7 +407,7 @@ verify_libcurl_internal_wakeup(int fd) {
       auto *un_local = reinterpret_cast<const sockaddr_un*>(local_addr.get());
       auto *un_peer  = reinterpret_cast<const sockaddr_un*>(peer_addr.get());
 
-      if (strlen(un_local->sun_path) == 0 && strlen(un_peer->sun_path) == 0)
+      if (un_local->sun_path[0] == '\0' && un_peer->sun_path[0] == '\0')
         return;
 
       LT_LOG_DEBUG("verify_libcurl_internal_wakeup(fd:%i) : fd appears to be a unix socket, but local/peer addresses are not anonymous", 0);
