@@ -22,14 +22,14 @@ public:
   static constexpr int      iptos_reliability           = IPTOS_RELIABILITY;
 
   static constexpr uint32_t encryption_none             = 0;
-  static constexpr uint32_t encryption_allow_incoming   = 0x1;
-  static constexpr uint32_t encryption_try_outgoing     = 0x2;
-  static constexpr uint32_t encryption_require          = 0x3;
-  static constexpr uint32_t encryption_require_RC4      = 0x4;
-  static constexpr uint32_t encryption_enable_retry     = 0x8;
-  static constexpr uint32_t encryption_prefer_plaintext = 0x10;
+  static constexpr uint32_t encryption_allow_incoming   = (1 << 0);
+  static constexpr uint32_t encryption_try_outgoing     = (1 << 1);
+  static constexpr uint32_t encryption_require          = (1 << 2);
+  static constexpr uint32_t encryption_require_RC4      = (1 << 3);
+  static constexpr uint32_t encryption_enable_retry     = (1 << 4);
+  static constexpr uint32_t encryption_prefer_plaintext = (1 << 5);
   // Internal to libtorrent.
-  static constexpr uint32_t encryption_retrying         = 0x40;
+  static constexpr uint32_t encryption_retrying         = (1 << 6);
 
   NetworkConfig();
 
