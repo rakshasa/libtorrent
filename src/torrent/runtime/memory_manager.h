@@ -57,6 +57,9 @@ public:
   uint32_t            preload_required_rate() const;
   void                set_preload_required_rate(uint32_t bytes);
 
+  uint32_t            stats_preloaded() const;
+  uint32_t            stats_not_preloaded() const;
+
 protected:
   friend class torrent::ChunkList;
   friend class torrent::PeerConnectionBase;
@@ -102,6 +105,9 @@ inline auto     MemoryManager::timeout_sync() const            { return std::chr
 inline uint32_t MemoryManager::preload_type() const            { return m_preload_type.load(std::memory_order_acquire); }
 inline uint32_t MemoryManager::preload_min_size() const        { return m_preload_min_size.load(std::memory_order_acquire); }
 inline uint32_t MemoryManager::preload_required_rate() const   { return m_preload_required_rate.load(std::memory_order_acquire); }
+
+inline uint32_t MemoryManager::stats_preloaded() const         { return m_stats_preloaded.load(std::memory_order_acquire); }
+inline uint32_t MemoryManager::stats_not_preloaded() const     { return m_stats_not_preloaded.load(std::memory_order_acquire); }
 
 inline void     MemoryManager::increment_stats_preloaded()     { m_stats_preloaded.fetch_add(1, std::memory_order_acq_rel); }
 inline void     MemoryManager::increment_stats_not_preloaded() { m_stats_not_preloaded.fetch_add(1, std::memory_order_acq_rel); }

@@ -83,9 +83,17 @@ MemoryManager::sync_safe_free_diskspace() const {
 }
 
 void
+MemoryManager::set_timeout_sync(uint32_t seconds) {
+  if (seconds > 3600)
+    throw input_error("set_timeout_sync: invalid timeout, must be between 0 and 3600 seconds : " + std::to_string(seconds));
+
+  m_timeout_sync = seconds;
+}
+
+void
 MemoryManager::set_preload_type(uint32_t type) {
   if (type > 2)
-    throw input_error("set_preload_type: invalid type: " + std::to_string(type));
+    throw input_error("set_preload_type: invalid type : " + std::to_string(type));
 
   m_preload_type = type;
 }
@@ -93,7 +101,7 @@ MemoryManager::set_preload_type(uint32_t type) {
 void
 MemoryManager::set_preload_min_size(uint32_t bytes) {
   if (bytes < (1 << 10))
-    throw input_error("set_preload_min_size: invalid size, must be at least 1 KB: " + std::to_string(bytes));
+    throw input_error("set_preload_min_size: invalid size, must be at least 1 KB : " + std::to_string(bytes));
 
   m_preload_min_size = bytes;
 }
@@ -101,7 +109,7 @@ MemoryManager::set_preload_min_size(uint32_t bytes) {
 void
 MemoryManager::set_preload_required_rate(uint32_t bytes) {
   if (bytes < (1 << 10))
-    throw input_error("set_preload_required_rate: invalid rate, must be at least 1 KB/s: " + std::to_string(bytes));
+    throw input_error("set_preload_required_rate: invalid rate, must be at least 1 KB/s : " + std::to_string(bytes));
 
   m_preload_required_rate = bytes;
 }
