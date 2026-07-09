@@ -65,6 +65,8 @@ ChunkList::clear() {
     clear_chunk(chunk, release_default);
   }
 
+  runtime::memory_manager()->release_sync_queue(m_queue.size(), m_chunk_size);
+
   m_queue.clear();
 
   if (std::any_of(begin(), end(), std::mem_fn(&ChunkListNode::chunk)))
@@ -195,6 +197,8 @@ ChunkList::release(ChunkHandle* handle, release_flags flags) {
       // this branch.
       m_queue.push_back(handle->object());
 
+      runtime::memory_manager()->account_sync_queue(m_chunk_size);
+
     } else {
       handle->object()->dec_rw();
     }
@@ -273,7 +277,9 @@ ChunkList::sync_chunks(cache_list& cache, sync_flags flags) {
   // If we got enough diskspace and have not requested safe syncing,
   // then sync all chunks with MS_ASYNC.
   if (!(flags & (sync_safe | sync_sloppy))) {
-    if (m_manager->safe_sync() || m_slot_free_diskspace(cache) <= m_manager->safe_free_diskspace())
+    if (runtime::memory_manager()->safe_sync())
+      flags = flags | sync_safe;
+    else if (m_slot_free_diskspace(cache) <= runtime::memory_manager()->sync_safe_free_diskspace())
       flags = flags | sync_safe;
     else
       flags = flags | sync_force;
@@ -315,6 +321,8 @@ ChunkList::sync_chunks(cache_list& cache, sync_flags flags) {
     instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_NOT_SYNCED, std::distance(m_queue.begin(), split));
     instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_NOT_DEALLOCATED, std::count_if(split, m_queue.end(), std::mem_fn(&ChunkListNode::is_valid)));
   }
+
+  runtime::memory_manager()->release_sync_queue(std::distance(split, m_queue.end()), m_chunk_size);
 
   m_queue.erase(split, m_queue.end());
 
@@ -372,7 +380,7 @@ inline bool
 ChunkList::check_node(ChunkListNode* node) {
   return
     node->time_modified() != 0us &&
-    node->time_modified() + std::chrono::seconds(m_manager->timeout_sync()) < this_thread::cached_time();
+    node->time_modified() + runtime::memory_manager()->timeout_sync() < this_thread::cached_time();
 }
 
 // Optimize the selection of chunks to sync. Continuous regions are
