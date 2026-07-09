@@ -48,9 +48,6 @@ bool            fd_get_type(int fd, int* value) LIBTORRENT_EXPORT;
 c_sa_unique_ptr fd_get_peer_name(int fd) LIBTORRENT_EXPORT;
 c_sa_unique_ptr fd_get_socket_name(int fd) LIBTORRENT_EXPORT;
 
-bool            fd_is_peer_name_anonymous(int fd) LIBTORRENT_EXPORT;
-bool            fd_is_socket_name_anonymous(int fd) LIBTORRENT_EXPORT;
-
 bool            fd_set_dont_route(int fd, bool state) LIBTORRENT_EXPORT;
 bool            fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
 bool            fd_set_reuse_address(int fd, bool state) LIBTORRENT_EXPORT;
