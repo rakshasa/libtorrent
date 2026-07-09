@@ -36,11 +36,16 @@
 #define LT_LOG_FD(log_fmt)                                      \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd);
 #define LT_LOG_FD_ERROR(log_fmt)                                        \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", \
-               fd, errno, std::strerror(errno));
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%i message:'%s'", \
+                 fd, errno, std::strerror(errno));                      \
+    errno = err; }
 #define LT_LOG_FD_SOCKADDR(log_fmt)                                   \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s", \
                fd, sa_pretty_str(sa).c_str());
+#define LT_LOG_FD_SOCKADDR_MSG(log_fmt, msg)                            \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s %s", \
+               fd, sa_pretty_str(sa).c_str(), msg);
 #define LT_LOG_FD_SOCKADDR_ERROR(log_fmt)                               \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s errno:%i message:'%s'", \
                fd, sa_pretty_str(sa).c_str(), errno, std::strerror(errno));
@@ -50,8 +55,10 @@
 #define LT_LOG_FD_FLAG(log_fmt)                                         \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x", fd, flags);
 #define LT_LOG_FD_FLAG_ERROR(log_fmt)                                   \
-  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
-               fd, flags, errno, std::strerror(errno));
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%i message:'%s'", \
+                 fd, flags, errno, std::strerror(errno));               \
+    errno = err; }
 #define LT_LOG_FD_VALUE(log_fmt, value)                                 \
   lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i", fd, (int)value);
 #define LT_LOG_FD_VALUE_ERROR(log_fmt, value)                           \
@@ -515,50 +522,15 @@ fd_get_socket_name(int fd) {
 }
 
 bool
-fd_is_peer_name_anonymous(int fd) {
-  sockaddr_un sa_un;
-  socklen_t   length = sizeof(sockaddr_un);
+fd_get_type(int fd, int* value) {
+  socklen_t length = sizeof(int);
 
-  if (getpeername(fd, reinterpret_cast<sockaddr*>(&sa_un), &length) == -1) {
-    LT_LOG_FD_ERROR("fd_is_peer_name_anonymous() failed");
+  if (getsockopt(fd, SOL_SOCKET, SO_TYPE, value, &length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_type() failed");
     return false;
   }
 
-  if (sa_un.sun_family != AF_UNIX) {
-    LT_LOG_FD("fd_is_peer_name_anonymous() returned non-unix address");
-    return false;
-  }
-
-  if (sa_un.sun_path[0] != '\0') {
-    LT_LOG_FD("fd_is_peer_name_anonymous() returned non-anonymous address");
-    return false;
-  }
-
-  LT_LOG_FD("fd_is_peer_name_anonymous() returned anonymous address");
-  return true;
-}
-
-bool
-fd_is_socket_name_anonymous(int fd) {
-  sockaddr_un sa_un;
-  socklen_t   length = sizeof(sockaddr_un);
-
-  if (getsockname(fd, reinterpret_cast<sockaddr*>(&sa_un), &length) == -1) {
-    LT_LOG_FD_ERROR("fd_is_socket_name_anonymous() failed");
-    return false;
-  }
-
-  if (sa_un.sun_family != AF_UNIX) {
-    LT_LOG_FD("fd_is_socket_name_anonymous() returned non-unix address");
-    return false;
-  }
-
-  if (sa_un.sun_path[0] != '\0') {
-    LT_LOG_FD("fd_is_socket_name_anonymous() returned non-anonymous address");
-    return false;
-  }
-
-  LT_LOG_FD("fd_is_socket_name_anonymous() returned anonymous address");
+  LT_LOG_FD_VALUE("fd_get_type() succeeded", *value);
   return true;
 }
 
