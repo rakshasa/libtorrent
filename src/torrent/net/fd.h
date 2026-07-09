@@ -42,10 +42,11 @@ bool            fd_connect_with_family(int fd, const sockaddr* sa, int family) L
 bool            fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
 bool            fd_get_nonblock(int fd, bool* value) LIBTORRENT_EXPORT;
-c_sa_unique_ptr fd_get_peer_name(int fd) LIBTORRENT_EXPORT;
 bool            fd_get_socket_error(int fd, int* value) LIBTORRENT_EXPORT;
-c_sa_unique_ptr fd_get_socket_name(int fd) LIBTORRENT_EXPORT;
 bool            fd_get_type(int fd, int* value) LIBTORRENT_EXPORT;
+
+c_sa_unique_ptr fd_get_peer_name(int fd) LIBTORRENT_EXPORT;
+c_sa_unique_ptr fd_get_socket_name(int fd) LIBTORRENT_EXPORT;
 
 bool            fd_set_dont_route(int fd, bool state) LIBTORRENT_EXPORT;
 bool            fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
