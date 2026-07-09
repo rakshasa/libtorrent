@@ -171,8 +171,7 @@ sa_length(const sockaddr* sa) {
     return sizeof(sockaddr_in);
   case AF_INET6:
     return sizeof(sockaddr_in6);
-  case AF_UNIX:
-    return sizeof(sockaddr_un);
+  // case AF_UNIX:
   default:
     throw internal_error("torrent::sa_length() sockaddr is not a valid family");
   }
