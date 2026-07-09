@@ -475,6 +475,7 @@ fd_get_peer_name(int fd) {
 
   if (sau_length > sizeof(sockaddr_un)) {
     LT_LOG_FD("fd_get_peer_name() length exceeds buffer size");
+    errno = EOVERFLOW;
     return nullptr;
   }
 
@@ -500,6 +501,7 @@ fd_get_socket_name(int fd) {
 
   if (sau_length > sizeof(sockaddr_un)) {
     LT_LOG_FD("fd_get_socket_name() length exceeds buffer size");
+    errno = EOVERFLOW;
     return nullptr;
   }
 
