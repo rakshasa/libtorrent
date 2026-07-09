@@ -456,10 +456,10 @@ NetworkConfig::listen_addresses_unsafe() const {
   }
 
   if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC) {
-    if (m_block_ipv4in6)
-      return {inet_any_value, inet6_any_value, true};
-
-    return {nullptr, inet6_any_value, false};
+    // Always open separate 0.0.0.0 and :: sockets with IPV6_V6ONLY. Relying on a
+    // single dual-stack IPv6 socket (when block_ipv4in6 is false) fails when
+    // net.ipv6.bindv6only=1: only tcp6 appears and IPv4 inbound never works.
+    return {inet_any_value, inet6_any_value, true};
   }
 
   if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
