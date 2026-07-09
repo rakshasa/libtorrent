@@ -10,7 +10,7 @@
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
-#include "torrent/chunk_manager.h"
+// #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
 #include "torrent/data/block.h"
@@ -21,6 +21,7 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/runtime/memory_manager.h"
 #include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
@@ -331,22 +332,29 @@ PeerConnectionBase::load_up_chunk() {
 
   // Also check if we've already preloaded in the recent past, even
   // past unmaps.
-  ChunkManager* cm = manager->chunk_manager();
-  uint32_t preloadSize = m_upChunk.chunk()->chunk_size() - m_upPiece.offset();
+  auto* memory_manager = runtime::memory_manager();
+  auto  preload_type   = memory_manager->preload_type();
+  auto  preload_size   = m_upChunk.chunk()->chunk_size() - m_upPiece.offset();
 
-  if (cm->preload_type() == 0 ||
-      m_upChunk.object()->time_preloaded() >= this_thread::cached_time() - 60s ||
+  if (preload_type == 0 || preload_size < memory_manager->preload_min_size())
+    return;
 
-      preloadSize < cm->preload_min_size() ||
-      m_peerChunks.upload_throttle()->rate()->rate() < cm->preload_required_rate() * ((preloadSize + (2 << 20) - 1) / (2 << 20))) {
-    cm->inc_stats_not_preloaded();
+  if (m_upChunk.object()->time_preloaded() + 60s >= this_thread::cached_time()) {
+    memory_manager->increment_stats_not_preloaded();
     return;
   }
 
-  cm->inc_stats_preloaded();
+  auto preload_size_mb = (preload_size + (1 << 20) - 1) / (1 << 20);
+
+  if (m_peerChunks.upload_throttle()->rate()->rate() < memory_manager->preload_required_rate() * preload_size_mb) {
+    memory_manager->increment_stats_not_preloaded();
+    return;
+  }
+
+  memory_manager->increment_stats_preloaded();
 
   m_upChunk.object()->set_time_preloaded(this_thread::cached_time());
-  m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), cm->preload_type() == 1);
+  m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), (preload_type == 1));
 }
 
 void
