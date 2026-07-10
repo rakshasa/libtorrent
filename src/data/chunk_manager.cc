@@ -90,7 +90,7 @@ ChunkManager::try_free_memory(uint64_t size) {
   // The caller must ensure he tries to free a sufficiently large amount of memory to ensure it, and
   // other users, has enough memory space for at least 10 seconds.
 
-  if (m_last_try_free_memory + 10s >= this_thread::cached_seconds())
+  if (m_last_try_free_memory + 10s > this_thread::cached_seconds())
     return;
 
   auto memory_usage = runtime::memory_manager()->memory_usage();
