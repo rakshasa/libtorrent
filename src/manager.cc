@@ -3,12 +3,12 @@
 #include "manager.h"
 
 #include "data/chunk_list.h"
+#include "data/chunk_manager.h"
 #include "data/hash_torrent.h"
 #include "download/download_main.h"
 #include "download/download_wrapper.h"
 #include "net/listen.h"
 #include "protocol/handshake_manager.h"
-#include "torrent/chunk_manager.h"
 #include "torrent/throttle.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/download/choke_group.h"

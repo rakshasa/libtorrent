@@ -3,8 +3,8 @@
 #include "chunk_list.h"
 
 #include "data/chunk.h"
+#include "data/chunk_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/chunk_manager.h"
 #include "torrent/data/download_data.h"
 #include "torrent/runtime/memory_manager.h"
 #include "torrent/utils/log.h"
