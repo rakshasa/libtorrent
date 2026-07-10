@@ -25,6 +25,8 @@ libtorrent_other_la_SOURCES = \
 	data/chunk_list.cc \
 	data/chunk_list.h \
 	data/chunk_list_node.h \
+	data/chunk_manager.cc \
+	data/chunk_manager.h \
 	data/chunk_part.cc \
 	data/chunk_part.h \
 	data/hash_check_queue.cc \
