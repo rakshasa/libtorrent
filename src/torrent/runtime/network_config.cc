@@ -27,6 +27,8 @@ NetworkConfig::NetworkConfig() {
   m_bind_inet6_address  = sa_make_unspec();
   m_local_inet_address  = sa_make_unspec();
   m_local_inet6_address = sa_make_unspec();
+
+  m_delay_changed.slot() = [this]() { force_notify_changes(); };
 }
 
 bool
@@ -428,9 +430,24 @@ NetworkConfig::unsubscribe_from_changes(void* target) {
 }
 
 void
-NetworkConfig::notify_changes_unsafe() const {
-  for (auto& p : m_change_subscribers)
+NetworkConfig::force_notify_changes() {
+  subscriber_list subscribers;
+
+  {
+    auto guard = lock_guard();
+
+    this_thread::scheduler()->erase(&m_delay_changed);
+
+    subscribers = m_change_subscribers;
+  }
+
+  for (auto& p : subscribers)
     p.second();
+}
+
+void
+NetworkConfig::notify_changes_unsafe() {
+  this_thread::scheduler()->update_wait_for(&m_delay_changed, 200ms);
 }
 
 NetworkConfig::listen_addresses
