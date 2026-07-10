@@ -8,6 +8,7 @@ namespace torrent {
 class LIBTORRENT_EXPORT RuntimeManager {
 public:
   static void         initialize();
+  static void         initialize_network();
 
   static void         shutdown();
   static void         quick_shutdown();
@@ -16,6 +17,7 @@ public:
   static void         destroy();
 
   bool                is_initialized();
+  bool                is_network_initialized();
   bool                is_shutdown_called();
   bool                is_quick_shutdown_called();
 
@@ -40,11 +42,13 @@ private:
   align_cacheline
 
   std::atomic<bool>        m_initialized{};
+  std::atomic<bool>        m_network_initialized{};
   std::atomic<bool>        m_shutdown_called{};
   std::atomic<bool>        m_quick_shutdown_called{};
 };
 
 inline bool RuntimeManager::is_initialized()           { return m_initialized.load(std::memory_order_acquire); }
+inline bool RuntimeManager::is_network_initialized()   { return m_network_initialized.load(std::memory_order_acquire); }
 inline bool RuntimeManager::is_shutdown_called()       { return m_shutdown_called.load(std::memory_order_acquire); }
 inline bool RuntimeManager::is_quick_shutdown_called() { return m_quick_shutdown_called.load(std::memory_order_acquire); }
 

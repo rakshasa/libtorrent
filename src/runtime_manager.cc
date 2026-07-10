@@ -16,9 +16,11 @@ RuntimeManager* g_runtime{};
 namespace runtime {
 
 bool             is_initialized()         { return g_runtime->is_initialized(); }
+bool             is_network_initialized() { return g_runtime->is_network_initialized(); }
 bool             is_shutting_down()       { return g_runtime->is_shutdown_called(); }
 bool             is_quick_shutting_down() { return g_runtime->is_quick_shutdown_called(); }
 
+void             initialize_network()     { g_runtime->initialize_network(); }
 void             shutdown()               { g_runtime->shutdown(); }
 void             quick_shutdown()         { g_runtime->quick_shutdown(); }
 
@@ -46,6 +48,11 @@ void
 RuntimeManager::initialize() {
   g_runtime = new RuntimeManager();
   g_runtime->m_initialized = true;
+}
+
+void
+RuntimeManager::initialize_network() {
+  g_runtime->m_network_initialized = true;
 }
 
 void
