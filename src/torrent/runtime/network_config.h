@@ -141,6 +141,7 @@ protected:
 
   listen_addresses    listen_addresses_unsafe() const;
   int                 listen_backlog_unsafe() const;
+  uint16_t            override_dht_port_unsafe() const;
 
 private:
 

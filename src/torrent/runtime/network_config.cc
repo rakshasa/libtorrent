@@ -496,6 +496,11 @@ NetworkConfig::listen_backlog_unsafe() const {
   return m_listen_backlog;
 }
 
+uint16_t
+NetworkConfig::override_dht_port_unsafe() const {
+  return m_override_dht_port;
+}
+
 //
 // Helper Functions:
 //

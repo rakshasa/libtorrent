@@ -142,28 +142,37 @@ NetworkManager::is_listening_unsafe() const {
 }
 
 bool
-NetworkManager::listen_open_unsafe(uint16_t begin, uint16_t end) {
-  int backlog = 0;
-  NetworkConfig::listen_addresses listen_addresses = {};
-
+NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
   if (m_listen_inet->is_open() || m_listen_inet6->is_open())
     throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");
 
-  {
-    auto config_guard = runtime::network_config()->lock_guard();
-    backlog           = runtime::network_config()->listen_backlog_unsafe();
+  Listen::open_options options = {
+    .first_port = first,
+    .last_port  = last,
+  };
 
-    listen_addresses = runtime::network_config()->listen_addresses_unsafe();
+  NetworkConfig::listen_addresses listen_addresses;
+
+  {
+    auto nw_config    = runtime::network_config();
+    auto config_guard = nw_config->lock_guard();
+
+    options.backlog  = nw_config->listen_backlog_unsafe();
+    listen_addresses = nw_config->listen_addresses_unsafe();
+
+    if (first != last && nw_config->override_dht_port_unsafe() == 0)
+      options.check_dht = true;
   }
 
-  auto& [inet_address, inet6_address, block_ipv4in6] = listen_addresses;
+  auto [inet_address, inet6_address, block_ipv4in6] = listen_addresses;
+
+  options.block_ipv4in6 = block_ipv4in6;
 
   if (inet_address == nullptr && inet6_address == nullptr)
     throw input_error("Neither IPv4 nor IPv6 listen address are suitable for opening listen sockets, check block_ipv4 and block_ipv6 settings.");
 
   if (inet_address != nullptr && inet6_address != nullptr) {
-    if (!Listen::open_both(m_listen_inet.get(), m_listen_inet6.get(), inet_address.get(), inet6_address.get(),
-                           begin, end, backlog, block_ipv4in6))
+    if (!Listen::open_both(m_listen_inet.get(), m_listen_inet6.get(), inet_address.get(), inet6_address.get(), options))
       return false;
 
     m_listen_port = m_listen_inet->port();
@@ -171,7 +180,7 @@ NetworkManager::listen_open_unsafe(uint16_t begin, uint16_t end) {
   }
 
   if (inet_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet.get(), inet_address.get(), begin, end, backlog, false))
+    if (!Listen::open_single(m_listen_inet.get(), inet_address.get(), options))
       return false;
 
     m_listen_port = m_listen_inet->port();
@@ -179,7 +188,7 @@ NetworkManager::listen_open_unsafe(uint16_t begin, uint16_t end) {
   }
 
   if (inet6_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet6.get(), inet6_address.get(), begin, end, backlog, block_ipv4in6))
+    if (!Listen::open_single(m_listen_inet6.get(), inet6_address.get(), options))
       return false;
 
     m_listen_port = m_listen_inet6->port();
