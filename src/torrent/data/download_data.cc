@@ -2,6 +2,8 @@
 
 #include "torrent/exceptions.h"
 
+#include <algorithm>
+
 #include "download_data.h"
 
 namespace torrent {
@@ -16,14 +18,17 @@ download_data::calc_wanted_chunks() const {
 
   priority_ranges wanted_ranges = priority_ranges::create_union(m_normal_priority, m_high_priority);
 
-  if (m_completed_bitfield.is_all_unset())
-    return wanted_ranges.intersect_distance(0, m_completed_bitfield.size_bits());
-
   if (m_completed_bitfield.is_all_set())
     return 0;
 
-  if (m_completed_bitfield.empty())
-    throw internal_error("download_data::update_wanted_chunks() m_completed_bitfield.empty().");
+  // If we haven't allocated the bitfield yet, assume the worst case as it is for display reasons
+  // only.
+  if (m_completed_bitfield.is_all_unset() || m_completed_bitfield.empty()) {
+    auto wanted_count    = wanted_ranges.intersect_distance(0, m_completed_bitfield.size_bits());
+    auto remaining_count = m_completed_bitfield.size_unset();
+
+    return std::min<uint32_t>(wanted_count, remaining_count);
+  }
 
   uint32_t result = 0;
 
