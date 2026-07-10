@@ -4,9 +4,9 @@
 
 #include <functional>
 
+#include "data/chunk_manager.h"
 #include "data/hash_queue.h"
 #include "data/hash_queue_node.h"
-#include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/hash_string.h"
 #include "data/thread_disk.h"

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "torrent/chunk_manager.h"
+#include "data/chunk_manager.h"
 
 #include <cassert>
 #include <sys/resource.h>
@@ -81,23 +81,23 @@ ChunkManager::deallocate(uint32_t size, int flags) {
 
 void
 ChunkManager::try_free_memory(uint64_t size) {
-  // Ensure that we don't call this function too often when futile as
-  // it might be somewhat expensive.
+  // Ensure that we don't call this function too often when futile as it might be somewhat
+  // expensive.
   //
-  // Note that it won't be able to free chunks that are scheduled for
-  // hash checking, so a too low max memory setting will give problem
-  // at high transfer speed.
-  if (m_timerStarved + 10 >= this_thread::cached_seconds().count())
+  // Note that it won't be able to free chunks that are scheduled for hash checking, so a too low
+  // max memory setting will give problem at high transfer speed.
+  //
+  // The caller must ensure he tries to free a sufficiently large amount of memory to ensure it, and
+  // other users, has enough memory space for at least 10 seconds.
+
+  if (m_last_try_free_memory + 10s >= this_thread::cached_seconds())
     return;
 
   auto memory_usage = runtime::memory_manager()->memory_usage();
 
-  sync_all(0, size <= memory_usage ? (memory_usage - size) : 0);
+  sync_all(0, memory_usage - std::min(size, memory_usage));
 
-  // The caller must ensure he tries to free a sufficiently large
-  // amount of memory to ensure it, and other users, has enough memory
-  // space for at least 10 seconds.
-  m_timerStarved = this_thread::cached_seconds().count();
+  m_last_try_free_memory = this_thread::cached_seconds();
 }
 
 void
@@ -110,11 +110,10 @@ ChunkManager::sync_all(int flags, uint64_t target) {
   if (empty())
     return;
 
-  // Start from the next entry so that we don't end up repeatedly
-  // syncing the same torrent.
-  m_lastFreed = m_lastFreed % base_type::size() + 1;
+  // Start from the next entry so that we don't end up repeatedly syncing the same torrents.
+  m_last_freed_index = (m_last_freed_index % base_type::size()) + 1;
 
-  auto itr = base_type::begin() + m_lastFreed;
+  auto itr = base_type::begin() + m_last_freed_index;
 
   ChunkList::cache_list cache;
 
@@ -124,14 +123,14 @@ ChunkManager::sync_all(int flags, uint64_t target) {
 
     (*itr)->sync_chunks(cache, static_cast<ChunkList::sync_flags>(flags));
 
-    if (++itr == base_type::begin() + m_lastFreed)
+    if (++itr == base_type::begin() + m_last_freed_index)
       break;
 
     if (runtime::memory_manager()->memory_usage() < target)
       break;
   }
 
-  m_lastFreed = itr - begin();
+  m_last_freed_index = itr - begin();
 }
 
 } // namespace torrent

@@ -128,8 +128,6 @@ libtorrent_torrent_la_SOURCES = \
 \
 	bitfield.cc \
 	bitfield.h \
-	chunk_manager.cc \
-	chunk_manager.h \
 	common.h \
 	download.cc \
 	download.h \
@@ -251,7 +249,6 @@ libtorrent_torrent_utils_include_HEADERS = \
 libtorrent_torrent_includedir = $(includedir)/torrent
 libtorrent_torrent_include_HEADERS = \
 	bitfield.h \
-	chunk_manager.h \
 	common.h \
 	download.h \
 	download_info.h \

@@ -57,8 +57,8 @@ private:
 
   void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
 
-  int32_t             m_timerStarved{0};
-  size_type           m_lastFreed{0};
+  std::chrono::seconds m_last_try_free_memory{};
+  size_type            m_last_freed_index{};
 };
 
 } // namespace torrent

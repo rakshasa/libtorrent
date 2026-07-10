@@ -9,9 +9,9 @@
 #include <csignal>
 
 #include "data/chunk_handle.h"
+#include "data/chunk_manager.h"
 #include "data/thread_disk.h"
 #include "utils/sha1.h"
-#include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/system/callbacks.h"
 
