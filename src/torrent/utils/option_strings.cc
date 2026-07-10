@@ -128,7 +128,7 @@ constexpr const char* option_list_log_group[] = {
   "connection_bind",
   "connection_fd",
   "connection_filter",
-  "connection_hanshake",
+  "connection_handshake",
   "connection_listen",
 
   "dht",
