@@ -71,17 +71,7 @@ ThreadMain::init_after_setup() {
   runtime::network_config()->subscribe_to_changes(this, [this]() {
       callback(m_events_callback_id, []() {
           runtime::network_manager()->listen_restart();
-
-          try {
-            if (!runtime::network_manager()->dht_controller()->is_active())
-              return;
-
-            runtime::network_manager()->dht_controller()->stop();
-            runtime::network_manager()->dht_controller()->start();
-
-          } catch (torrent::input_error& e) {
-            lt_log_print(LOG_ERROR, "DHT restart failed: %s", e.what());
-          }
+          runtime::network_manager()->dht_restart();
         });
     });
 
