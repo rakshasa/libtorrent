@@ -46,7 +46,11 @@ public:
   // TODO: Move DHT on/off/auto handlig here.
 
   auto*               dht_controller();
+
+  void                dht_restart();
+
   uint16_t            dht_port();
+  void                set_dht_port(uint16_t port);
 
   void                dht_add_bootstrap_node(std::string host, int port);
   void                dht_add_peer_node(const sockaddr* sa, int port);
@@ -85,4 +89,4 @@ inline auto* NetworkManager::dht_controller() { return m_dht_controller.get(); }
 
 } // namespace torrent::runtime
 
-#endif // LIBTORRENT_TORRENT_RUNTIME_NETWORK_MANAGER_H
+#endif

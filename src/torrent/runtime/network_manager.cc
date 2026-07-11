@@ -100,38 +100,58 @@ NetworkManager::listen_port_or_throw() const {
 
 void
 NetworkManager::set_listen_port(uint16_t port) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   {
     auto guard = lock_guard();
+
+    if (port == 0)
+      throw input_error("Invalid listen port number, zero is not allowed.");
+
+    if (port == m_listen_port)
+      return;
 
     m_listen_port = port;
 
     listen_restart_unsafe();
   }
 
-  // TODO: Replace with a set_dht_port function.
-  // if (!is_network_initialized() || network_config()->is_block_incoming())
-  //   return;
+  if (runtime::network_config()->override_dht_port() == 0)
+    dht_restart();
+}
 
-  // if (runtime::network_config()->override_dht_port() != 0)
-  //   return;
+void
+NetworkManager::dht_restart() {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
 
-  // if (!runtime::network_manager()->dht_controller()->is_active())
-  //   return;
+  if (!runtime::network_manager()->dht_controller()->is_active())
+    return;
 
-  // try {
-  //   runtime::network_manager()->dht_controller()->stop();
-  //   runtime::network_manager()->dht_controller()->start();
+  try {
+    runtime::network_manager()->dht_controller()->stop();
+    runtime::network_manager()->dht_controller()->start();
 
-  // } catch (const base_error& e) {
-  //   LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", e.what());
-  //   return;
-  // }
+  } catch (const base_error& e) {
+    LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", e.what());
+    return;
+  }
 }
 
 uint16_t
 NetworkManager::dht_port() {
   // auto guard = lock_guard();
   return m_dht_controller->port();
+}
+
+void
+NetworkManager::set_dht_port(uint16_t port) {
+  if (port == runtime::network_config()->override_dht_port())
+    return;
+
+  runtime::network_config()->set_override_dht_port(port);
+
+  if (port != 0)
+    dht_restart();
 }
 
 // TODO: Make bootstrap nodes explicit, and when we add them also try adding as node if we're
