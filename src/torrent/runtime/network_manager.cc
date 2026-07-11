@@ -100,11 +100,32 @@ NetworkManager::listen_port_or_throw() const {
 
 void
 NetworkManager::set_listen_port(uint16_t port) {
-  auto guard = lock_guard();
+  {
+    auto guard = lock_guard();
 
-  m_listen_port = port;
+    m_listen_port = port;
 
-  listen_restart_unsafe();
+    listen_restart_unsafe();
+  }
+
+  // TODO: Replace with a set_dht_port function.
+  // if (!is_network_initialized() || network_config()->is_block_incoming())
+  //   return;
+
+  // if (runtime::network_config()->override_dht_port() != 0)
+  //   return;
+
+  // if (!runtime::network_manager()->dht_controller()->is_active())
+  //   return;
+
+  // try {
+  //   runtime::network_manager()->dht_controller()->stop();
+  //   runtime::network_manager()->dht_controller()->start();
+
+  // } catch (const base_error& e) {
+  //   LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", e.what());
+  //   return;
+  // }
 }
 
 uint16_t
@@ -221,21 +242,6 @@ NetworkManager::listen_restart_unsafe() {
 
   } catch (const base_error& e) {
     LT_LOG_NOTICE("Could not restart listen socket: %" PRIu16 " : %s", e.what());
-    return;
-  }
-
-  if (runtime::network_config()->override_dht_port() != 0)
-    return;
-
-  if (!runtime::network_manager()->dht_controller()->is_active())
-    return;
-
-  try {
-    runtime::network_manager()->dht_controller()->stop();
-    runtime::network_manager()->dht_controller()->start();
-
-  } catch (const base_error& e) {
-    LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", e.what());
     return;
   }
 }
