@@ -40,6 +40,8 @@ public:
   uint16_t            listen_port() const;
   uint16_t            listen_port_or_throw() const;
 
+  void                set_listen_port(uint16_t port);
+
   // TODO: Only allowed to be called from main thread (tracker thread when moved).
   // TODO: Move DHT on/off/auto handlig here.
 
@@ -63,14 +65,10 @@ protected:
   auto                listen_inet_unsafe()            { return m_listen_inet.get(); }
   auto                listen_inet6_unsafe()           { return m_listen_inet6.get(); }
 
-  // TODO: Rename updated_network_config()
-  void                restart_listen();
-
 private:
   bool                listen_open_unsafe(uint16_t first, uint16_t last);
   void                listen_close_unsafe();
-
-  void                perform_restart_listen();
+  void                listen_restart_unsafe();
 
   mutable std::mutex      m_mutex;
 

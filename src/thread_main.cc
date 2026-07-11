@@ -73,6 +73,9 @@ ThreadMain::init_after_setup() {
           runtime::network_manager()->listen_restart();
 
           try {
+            if (!runtime::network_manager()->dht_controller()->is_active())
+              return;
+
             runtime::network_manager()->dht_controller()->stop();
             runtime::network_manager()->dht_controller()->start();
 

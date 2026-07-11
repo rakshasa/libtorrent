@@ -53,6 +53,11 @@ RuntimeManager::initialize() {
 void
 RuntimeManager::initialize_network() {
   g_runtime->m_network_initialized = true;
+
+  auto listen_port = g_runtime->m_network_manager->listen_port();
+
+  if (listen_port != 0)
+    g_runtime->m_network_manager->listen_open(listen_port, listen_port);
 }
 
 void

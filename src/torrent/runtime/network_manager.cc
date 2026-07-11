@@ -2,9 +2,12 @@
 
 #include "torrent/runtime/network_manager.h"
 
+#include <cassert>
+
 #include "net/listen.h"
 #include "torrent/exceptions.h"
 #include "torrent/runtime/network_config.h"
+#include "torrent/runtime/runtime.h"
 #include "torrent/system/thread.h"
 #include "torrent/tracker/dht_controller.h"
 #include "torrent/utils/log.h"
@@ -76,24 +79,7 @@ NetworkManager::listen_close() {
 void
 NetworkManager::listen_restart() {
   auto guard = lock_guard();
-
-  if (network_config()->is_block_incoming()) {
-    listen_close_unsafe();
-    return;
-  }
-
-  // TODO: We don't properly re-open the listen socket if there's a change here.
-  if (!is_listening_unsafe())
-    return;
-
-  listen_close_unsafe();
-
-  try {
-    listen_open_unsafe(m_listen_port, m_listen_port);
-
-  } catch (const base_error& e) {
-    LT_LOG_NOTICE("could not restart listen socket: %s", e.what());
-  }
+  listen_restart_unsafe();
 }
 
 uint16_t
@@ -110,6 +96,15 @@ NetworkManager::listen_port_or_throw() const {
     throw input_error("Tried to get listen port but it is not set.");
 
   return m_listen_port;
+}
+
+void
+NetworkManager::set_listen_port(uint16_t port) {
+  auto guard = lock_guard();
+
+  m_listen_port = port;
+
+  listen_restart_unsafe();
 }
 
 uint16_t
@@ -143,6 +138,8 @@ NetworkManager::is_listening_unsafe() const {
 
 bool
 NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   if (m_listen_inet->is_open() || m_listen_inet6->is_open())
     throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");
 
@@ -200,8 +197,47 @@ NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
 
 void
 NetworkManager::listen_close_unsafe() {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
   m_listen_inet->close();
   m_listen_inet6->close();
+}
+
+void
+NetworkManager::listen_restart_unsafe() {
+  assert(std::this_thread::get_id() == main_thread::thread_id());
+
+  listen_close_unsafe();
+
+  // TODO: If listen port was always 0, we need to properly open it using port range/randomizing.
+  if (m_listen_port == 0)
+    return;
+
+  if (!is_network_initialized() || network_config()->is_block_incoming())
+    return;
+
+  try {
+    listen_open_unsafe(m_listen_port, m_listen_port);
+
+  } catch (const base_error& e) {
+    LT_LOG_NOTICE("Could not restart listen socket: %" PRIu16 " : %s", e.what());
+    return;
+  }
+
+  if (runtime::network_config()->override_dht_port() != 0)
+    return;
+
+  if (!runtime::network_manager()->dht_controller()->is_active())
+    return;
+
+  try {
+    runtime::network_manager()->dht_controller()->stop();
+    runtime::network_manager()->dht_controller()->start();
+
+  } catch (const base_error& e) {
+    LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", e.what());
+    return;
+  }
 }
 
 } // namespace torrent::runtime
