@@ -21,6 +21,7 @@ public:
   bool                is_shutdown_called();
   bool                is_quick_shutdown_called();
 
+  auto*               client_config();
   auto*               network_config();
 
   auto*               memory_manager();
@@ -32,6 +33,7 @@ private:
   RuntimeManager();
   ~RuntimeManager();
 
+  runtime::ClientConfig*   m_client_config;
   runtime::NetworkConfig*  m_network_config;
 
   runtime::MemoryManager*  m_memory_manager;
@@ -52,6 +54,7 @@ inline bool RuntimeManager::is_network_initialized()   { return m_network_initia
 inline bool RuntimeManager::is_shutdown_called()       { return m_shutdown_called.load(std::memory_order_acquire); }
 inline bool RuntimeManager::is_quick_shutdown_called() { return m_quick_shutdown_called.load(std::memory_order_acquire); }
 
+inline auto* RuntimeManager::client_config()           { return m_client_config; }
 inline auto* RuntimeManager::network_config()          { return m_network_config; }
 
 inline auto* RuntimeManager::memory_manager()          { return m_memory_manager; }
