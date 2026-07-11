@@ -66,6 +66,7 @@ libtorrent_torrent_la_SOURCES = \
 	peer/peer_list.cc \
 	peer/peer_list.h \
 \
+	runtime/client_config.cc \
 	runtime/client_config.h \
 	runtime/memory_manager.cc \
 	runtime/memory_manager.h \

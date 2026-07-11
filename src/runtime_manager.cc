@@ -2,6 +2,7 @@
 
 #include "runtime_manager.h"
 
+#include "torrent/exceptions.h"
 #include "torrent/runtime/client_config.h"
 #include "torrent/runtime/memory_manager.h"
 #include "torrent/runtime/network_config.h"
@@ -59,8 +60,26 @@ RuntimeManager::initialize_network() {
 
   auto listen_port = g_runtime->m_network_manager->listen_port();
 
-  if (listen_port != 0)
+  if (listen_port != 0) {
     g_runtime->m_network_manager->listen_open(listen_port, listen_port);
+    return;
+  }
+
+  auto port_range = runtime::client_config()->listen_port_range();
+
+  if (runtime::client_config()->listen_port_random()) {
+    uint16_t boundary = port_range.first + (random() % (port_range.second - port_range.first + 1));
+
+    if (runtime::network_manager()->listen_open(boundary, port_range.second) ||
+        runtime::network_manager()->listen_open(port_range.first, boundary))
+      return;
+
+  } else {
+    if (runtime::network_manager()->listen_open(port_range.first, port_range.second))
+      return;
+  }
+
+  throw input_error("Could not open/bind port for listening: " + std::string(std::strerror(errno)));
 }
 
 void
