@@ -4,11 +4,12 @@
 #include <functional>
 #include <string>
 
-#include "torrent/runtime/encryption_policy.h"
 #include "torrent/common.h"
 #include "torrent/utils/unordered_vector.h"
 
 namespace torrent {
+
+class EncryptionPolicy;
 
 class HandshakeManager : private utils::unordered_vector<std::unique_ptr<Handshake>> {
 public:
@@ -53,7 +54,8 @@ private:
   HandshakeManager(const HandshakeManager&) = delete;
   HandshakeManager& operator=(const HandshakeManager&) = delete;
 
-  void                create_outgoing(const sockaddr* sa, DownloadMain* info, EncryptionPolicy policy);
+  void                create_outgoing(const sockaddr* sa, DownloadMain* info, const EncryptionPolicy& policy);
+
   value_type          find_and_erase(Handshake* handshake);
 
   static ProtocolExtension DefaultExtensions;

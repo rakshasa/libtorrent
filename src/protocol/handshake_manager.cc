@@ -2,12 +2,12 @@
 
 #include "handshake_manager.h"
 
-#include "torrent/runtime/encryption_policy.h"
 #include "handshake.h"
 #include "manager.h"
 #include "peer_connection_base.h"
 #include "download/download_main.h"
 #include "net/proxy/proxy.h"
+#include "protocol/encryption_policy.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
@@ -112,10 +112,12 @@ HandshakeManager::add_incoming(std::unique_ptr<Handshake>& handshake, int fd, co
 
   LT_LOG_SA(sa, "accepted incoming connection: fd:%i", fd);
 
+  auto encryption_policy = EncryptionPolicy(runtime::network_config()->encryption_modes());
+
   if (sa_is_v4mapped(sa))
-    handshake->initialize_incoming(this, fd, sa_from_v4mapped(sa).get(), runtime::network_config()->encryption_policy());
+    handshake->initialize_incoming(this, fd, sa_from_v4mapped(sa).get(), encryption_policy);
   else
-    handshake->initialize_incoming(this, fd, sa, runtime::network_config()->encryption_policy());
+    handshake->initialize_incoming(this, fd, sa, encryption_policy);
 
   base_type::push_back(std::move(handshake));
 }
@@ -126,22 +128,24 @@ HandshakeManager::add_outgoing(const sockaddr* sa, DownloadMain* download) {
       !filter_sockaddr(sa))
     return;
 
-  auto policy = runtime::network_config()->encryption_policy();
+  auto encryption_policy = [download]() {
+      if (download->info()->is_meta_download())
+        return EncryptionPolicy(ENCRYPTION_MODE_DENY, ENCRYPTION_MODE_DENY);
 
-  if (download->info()->is_meta_download())
-    policy = EncryptionPolicy::disabled();
+      return EncryptionPolicy(runtime::network_config()->encryption_modes());
+    }();
 
   if (sa_is_v4mapped(sa))
-    create_outgoing(sa_from_v4mapped(sa).get(), download, policy);
+    create_outgoing(sa_from_v4mapped(sa).get(), download, encryption_policy);
   else
-    create_outgoing(sa, download, policy);
+    create_outgoing(sa, download, encryption_policy);
 }
 
 void
-HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, EncryptionPolicy policy) {
+HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, const EncryptionPolicy& policy) {
   int connection_options = PeerList::connect_keep_handshakes;
 
-  if (!policy.is_outgoing_retry)
+  if (!policy.is_retrying())
     connection_options |= PeerList::connect_filter_recent;
 
   PeerInfo* peer_info = download->peer_list()->connected(sa, connection_options);
@@ -170,25 +174,8 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, En
       if (fd == -1)
         return;
 
-      auto attempt_label = [&]() -> const char* {
-        switch (policy.handshake) {
-        case EncryptionPolicy::Mode::require:
-          return "require encrypted";
-        case EncryptionPolicy::Mode::allow:
-          return policy.is_outgoing_retry ? "encrypted retry" : "plain";
-        case EncryptionPolicy::Mode::prefer:
-          return policy.is_outgoing_retry ? "plain retry" : "prefer encrypted";
-        case EncryptionPolicy::Mode::deny:
-          return "plain";
-        }
-        return "plain";
-      };
-
-      if (handshake->proxy()) {
-        LT_LOG_SA(handshake->proxy()->proxy_address(), "created outgoing connection : proxy : %s : fd:%i encryption:%s", attempt_label(), fd, policy.to_string().c_str());
-      } else {
-        LT_LOG_SA(sa, "created outgoing connection : %s : fd:%i encryption:%s", attempt_label(), fd, policy.to_string().c_str());
-      }
+      LT_LOG_SA(handshake->proxy()->proxy_address(), "created outgoing connection : %i%s : %s/%s",
+                fd, handshake->proxy() ? " : proxy" : "", policy.handshake_c_str(), policy.stream_c_str());
 
       handshake->initialize_outgoing(this, fd, sa, policy, download, peer_info);
     };
@@ -284,18 +271,25 @@ HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
 
   handshake->destroy_connection();
 
-  LT_LOG_SA(sa, "Received error: message:%x %s.", message, handshake_strerror(error));
+  LT_LOG_SA(sa, "received error: message:%x %s.", message, handshake_strerror(error));
 
-  auto policy   = handshake->encryption()->policy();
-  auto download = handshake->download();
+  auto policy = handshake->encryption()->policy();
 
-  if (!handshake->is_incoming() && policy.should_outgoing_alt_retry()) {
-    LT_LOG_SA(sa, "Retrying %s.",
-              policy.handshake == EncryptionPolicy::Mode::allow ? "encrypted" : "plaintext");
+  if (handshake->is_incoming())
+    return;
 
-    policy.is_outgoing_retry = true;
-    create_outgoing(sa, download, policy);
-  }
+  if (policy.retry_plaintext_handshake())
+    policy = EncryptionPolicy(ENCRYPTION_MODE_DENY, policy.stream_mode());
+  else if (policy.retry_encrypted_handshake())
+    policy = EncryptionPolicy(ENCRYPTION_MODE_REQUIRE, policy.stream_mode());
+  else
+    return;
+
+  policy.set_retrying();
+
+  LT_LOG_SA(sa, "retrying handshake: %s/%s", policy.handshake_c_str(), policy.stream_c_str());
+
+  create_outgoing(sa, handshake->download(), policy);
 }
 
 void

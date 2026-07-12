@@ -124,6 +124,8 @@ libtorrent_other_la_SOURCES = \
 	net/udns/udns.h \
 	\
 	protocol/encryption_info.h \
+	protocol/encryption_policy.cc \
+	protocol/encryption_policy.h \
 	protocol/extensions.cc \
 	protocol/extensions.h \
 	protocol/handshake.cc \

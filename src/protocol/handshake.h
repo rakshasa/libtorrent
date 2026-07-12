@@ -4,12 +4,11 @@
 #include "net/protocol_buffer.h"
 #include "net/proxy/proxy.h"
 #include "net/socket_stream.h"
+#include "protocol/handshake_encryption.h"
 #include "torrent/bitfield.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/utils/scheduler.h"
-
-#include "handshake_encryption.h"
 
 namespace torrent {
 
@@ -103,6 +102,7 @@ public:
   const char*         type_name() const override    { return "handshake"; }
 
   bool                is_active() const             { return m_state != INACTIVE; }
+  bool                is_incoming() const           { return m_incoming; }
 
   State               state() const                 { return m_state; }
 
@@ -117,8 +117,6 @@ public:
   void                initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, EncryptionPolicy policy, DownloadMain* d, PeerInfo* peerInfo);
 
   const sockaddr*     socket_address() const        { return m_address.get(); }
-
-  bool                is_incoming() const           { return m_incoming; }
 
   DownloadMain*       download()                    { return m_download; }
   Bitfield*           bitfield()                    { return &m_bitfield; }

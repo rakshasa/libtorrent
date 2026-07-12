@@ -9,7 +9,7 @@
 #include "manager.h"
 #include "download/download_main.h"
 #include "net/throttle_list.h"
-#include "torrent/runtime/encryption_policy.h"
+#include "protocol/encryption_policy.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/download_info.h"
@@ -82,8 +82,7 @@ handshake_strerror(int err) {
 }
 
 Handshake::Handshake()
-  : m_encryption(EncryptionPolicy::disabled()),
-    m_extensions(HandshakeManager::default_extensions()) {
+  : m_extensions(HandshakeManager::default_extensions()) {
 
   m_readBuffer.reset();
   m_writeBuffer.reset();
@@ -109,11 +108,12 @@ void
 Handshake::initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, EncryptionPolicy policy) {
   set_manager(handshake_manager);
 
-  m_incoming   = true;
-  m_address    = sa_copy(sa);
-  m_encryption = policy;
+  m_incoming = true;
+  m_address  = sa_copy(sa);
 
-  if (m_encryption.policy().handshake != EncryptionPolicy::Mode::deny)
+  m_encryption.set_policy(policy);
+
+  if (m_encryption.policy().allow_encrypted_handshake())
     m_state = READ_ENC_KEY;
   else
     m_state = READ_INFO;
@@ -136,12 +136,12 @@ Handshake::initialize_outgoing(HandshakeManager* handshake_manager, int fd, cons
   m_peerInfo = peerInfo;
   m_peerInfo->set_flags(PeerInfo::flag_handshake);
 
-  m_incoming   = false;
-  m_address    = sa_copy(sa);
-  m_encryption = policy;
-
+  m_incoming          = false;
+  m_address           = sa_copy(sa);
   m_upload_throttle   = m_download->upload_throttle();
   m_download_throttle = m_download->download_throttle();
+
+  m_encryption.set_policy(policy);
 
   m_state = CONNECTING;
 
@@ -271,8 +271,7 @@ Handshake::read_encryption_key() {
       return false;
 
     if (m_readBuffer.peek_8() == 19 && std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) == 0) {
-      // got unencrypted BT handshake
-      if (m_encryption.policy().handshake == EncryptionPolicy::Mode::require)
+      if (m_encryption.policy().require_encrypted_handshake())
         throw handshake_error(handshake_dropped, e_handshake_unencrypted_rejected);
 
       m_state = READ_INFO;
@@ -290,16 +289,16 @@ Handshake::read_encryption_key() {
   if (m_readBuffer.size_end() < 96)
     return false;
 
-  // If the handshake fails after this, it wasn't because the peer
-  // doesn't like encrypted connections, so don't retry unencrypted.
-  if (!m_incoming)
-    m_encryption.disarm_outgoing_alt_retry();
+  // If the handshake fails after this, it wasn't because the peer doesn't like encrypted
+  // connections, so don't retry unencrypted.
+  m_encryption.policy().set_retry_disabled();
 
   if (m_incoming)
     prepare_key_plus_pad();
 
   if(!m_encryption.key()->compute_secret(m_readBuffer.position(), 96))
     throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+
   m_readBuffer.consume(96);
 
   // Determine the synchronisation string.
@@ -418,22 +417,34 @@ Handshake::read_encryption_negotiation() {
 
   // choose one of the offered encryptions, or check the chosen one is valid
   if (m_incoming) {
-    const auto& policy   = m_encryption.policy();
-    const int   offer    = m_encryption.crypto();
-    const int   selected = policy.incoming_crypto_select(offer);
+    // Incoming connection, select mode:
 
-    if (!selected) {
-      if (policy.stream == EncryptionPolicy::Mode::require)
-        throw handshake_error(handshake_dropped, e_handshake_unencrypted_rejected);
-      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
-    }
+    // TODO: Check if we (can use / are using) 'e' key in protocol extension.
 
-    m_encryption.set_crypto(selected);
+    auto selected_mode = [this]() {
+        if (m_encryption.has_stream_both()) {
+          if (m_encryption.policy().prefer_encrypted_stream())
+            return HandshakeEncryption::crypto_encrypted;
+          else
+            return HandshakeEncryption::crypto_plaintext;
 
-    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: selected stream cipher: %s (peer offered: %s)",
-                 sap_pretty_str(m_address).c_str(),
-                 HandshakeEncryption::crypto_name(selected),
-                 HandshakeEncryption::crypto_name(offer));
+        } else if (m_encryption.has_stream_plaintext()) {
+          if (!m_encryption.policy().allow_plaintext_stream())
+            throw handshake_error(handshake_failed, e_handshake_unencrypted_rejected);
+
+          return HandshakeEncryption::crypto_plaintext;
+
+        } else if (m_encryption.has_stream_encrypted()) {
+          if (!m_encryption.policy().allow_encrypted_stream())
+            throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+
+          return HandshakeEncryption::crypto_encrypted;
+        }
+
+        throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+      }();
+
+    m_encryption.set_crypto(selected_mode);
 
     // at this point we can also write the rest of our negotiation reply
     m_writeBuffer.write_32(m_encryption.crypto());
@@ -441,29 +452,32 @@ Handshake::read_encryption_negotiation() {
     m_encryption.info()->encrypt(m_writeBuffer.end() - 4 - 2, 4 + 2);
 
   } else {
-    // outgoing
-    if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4 && m_encryption.crypto() != HandshakeEncryption::crypto_plain)
-      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+    // Outgoing connection, verify offered modes:
+    //
+    // We don't disable retry on failure as the peer client might be badly implemented, and doesn't
+    // offer plaintext stream.
+    //
+    // Review other clients to see if they all behave correctly, in that case set retry to disabled.
 
-    if (m_encryption.policy().stream == EncryptionPolicy::Mode::require
-        && (m_encryption.crypto() != HandshakeEncryption::crypto_rc4))
-      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+    if (m_encryption.is_stream_plaintext()) {
+      LT_LOG_EXTRA_DEBUG_SA(m_address, "read_encryption_negotiation: peer offered plaintext stream", 0);
 
-    if (m_encryption.policy().stream == EncryptionPolicy::Mode::deny
-        && (m_encryption.crypto() != HandshakeEncryption::crypto_plain))
-      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+      if (m_encryption.policy().require_encrypted_stream())
+        throw handshake_error(handshake_failed, e_handshake_unencrypted_rejected);
 
-    lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: peer selected stream cipher: %s",
-                 sap_pretty_str(m_address).c_str(),
-                 HandshakeEncryption::crypto_name(m_encryption.crypto()));
-  }
-
-  if (!m_incoming) {
-    // decrypt appropriate part of buffer: only pad or all
-    if (m_encryption.crypto() == HandshakeEncryption::crypto_plain)
       m_encryption.info()->decrypt(m_readBuffer.position(), std::min<uint32_t>(m_readPos, m_readBuffer.remaining()));
-    else
+
+    } if (m_encryption.is_stream_encrypted()) {
+      LT_LOG_EXTRA_DEBUG_SA(m_address, "read_encryption_negotiation: peer offered encrypted stream", 0);
+
+      if (m_encryption.policy().require_plaintext_stream())
+        throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+
       m_encryption.info()->decrypt(m_readBuffer.position(), m_readBuffer.remaining());
+
+    } else {
+      throw handshake_error(handshake_failed, e_handshake_invalid_encryption);
+    }
   }
 
   // next, skip padC/padD
@@ -474,7 +488,7 @@ Handshake::read_encryption_negotiation() {
 bool
 Handshake::read_negotiation_reply() {
   if (!m_incoming) {
-    if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4)
+    if (m_encryption.is_stream_plaintext())
       m_encryption.info()->set_obfuscated();
 
     m_state = READ_INFO;
@@ -515,16 +529,14 @@ Handshake::read_info() {
   if (m_readBuffer.remaining() < part1_size)
     return false;
 
-  m_readBuffer.consume(20);
-
   // Should do some option field stuff here, for now just copy.
+  m_readBuffer.consume(20);
   m_readBuffer.read_range(m_options, m_options + 8);
 
   // Check the info hash.
   if (m_incoming) {
     if (m_download != NULL) {
-      // Have the download from the encrypted handshake, make sure it
-      // matches the BT handshake.
+      // Have the download from the encrypted handshake, make sure it matches the BT handshake.
       if (m_download->info()->hash().not_equal_to(reinterpret_cast<char*>(m_readBuffer.position())))
         throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
@@ -540,12 +552,12 @@ Handshake::read_info() {
     prepare_handshake();
 
   } else {
+    // If it fails after this, a plaintext handshake isn't being rejected because it is unencrypted,
+    // so don't retry.
+    m_encryption.policy().set_retry_disabled();
+
     if (m_download->info()->hash().not_equal_to(reinterpret_cast<char*>(m_readBuffer.position())))
       throw handshake_error(handshake_failed, e_handshake_invalid_value);
-
-    // If the handshake fails after this, it isn't being rejected because
-    // it is unencrypted, so don't retry.
-    m_encryption.disarm_outgoing_alt_retry();
   }
 
   m_readBuffer.consume(20);
@@ -619,15 +631,14 @@ Handshake::read_extension() {
 
   int32_t need = m_readBuffer.peek_32() + 4 - m_readBuffer.remaining();
 
-  // We currently can't handle an extension handshake that doesn't
-  // completely fit in the buffer.  However these messages are usually
-  // ~100 bytes large and the buffer holds over 1000 bytes so it
-  // should be ok. Else maybe figure out how to disable extensions for
-  // when peer connects next time.
+  // We currently can't handle an extension handshake that doesn't completely fit in the buffer.
+  // However these messages are usually ~100 bytes large and the buffer holds over 1000 bytes so it
+  // should be ok. Else maybe figure out how to disable extensions for when peer connects next time.
   //
-  // In addition, make sure there's at least 5 bytes available after
-  // the PEX message has been read, so that we can fit the preamble of
-  // the BITFIELD message.
+  //
+  // In addition, make sure there's at least 5 bytes available after the PEX message has been read,
+  // so that we can fit the preamble of the BITFIELD message.
+
   if (need + 5 > m_readBuffer.reserved_left()) {
     m_readBuffer.move_unused();
 
@@ -794,7 +805,7 @@ restart:
       if (m_readBuffer.remaining() > m_encryption.length_ia())
         throw handshake_error(handshake_failed, e_handshake_invalid_value);
 
-      if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4)
+      if (m_encryption.is_stream_plaintext())
         m_encryption.info()->set_obfuscated();
 
       m_state = READ_INFO;
@@ -993,22 +1004,24 @@ Handshake::event_write() {
 
       m_writeBuffer.reset();
 
-      {
-        const auto& policy = m_encryption.policy();
-        const bool  use_pe = policy.outgoing_uses_pe();
+      if (m_encryption.policy().prefer_encrypted_handshake()) {
+        prepare_key_plus_pad();
 
-        if (use_pe) {
-          prepare_key_plus_pad();
-          m_state = READ_ENC_KEY;
+        if (!m_encryption.policy().is_retrying() && m_encryption.policy().allow_plaintext_handshake())
+          m_encryption.policy().set_retry_plaintext();
 
-        } else {
-          prepare_handshake();
+        m_state = READ_ENC_KEY;
 
-          if (m_incoming)
-            m_state = READ_PEER;
-          else
-            m_state = READ_INFO;
-        }
+      } else {
+        prepare_handshake();
+
+        if (!m_encryption.policy().is_retrying() && m_encryption.policy().allow_encrypted_handshake())
+          m_encryption.policy().set_retry_encrypted();
+
+        if (m_incoming)
+          m_state = READ_PEER;
+        else
+          m_state = READ_INFO;
       }
 
       break;
@@ -1084,7 +1097,14 @@ Handshake::prepare_enc_negotiation() {
   HandshakeEncryption::copy_vc(m_writeBuffer.end());
   m_writeBuffer.move_end(HandshakeEncryption::vc_length);
 
-  m_writeBuffer.write_32(m_encryption.policy().outgoing_crypto_offer());
+  if (m_encryption.policy().allow_plaintext_stream() && m_encryption.policy().allow_encrypted_stream())
+    m_writeBuffer.write_32(HandshakeEncryption::crypto_plaintext | HandshakeEncryption::crypto_encrypted);
+  else if (m_encryption.policy().allow_plaintext_stream())
+    m_writeBuffer.write_32(HandshakeEncryption::crypto_plaintext);
+  else if (m_encryption.policy().allow_encrypted_stream())
+    m_writeBuffer.write_32(HandshakeEncryption::crypto_encrypted);
+  else
+    throw internal_error("Handshake::prepare_enc_negotiation() invalid policy");
 
   m_writeBuffer.write_16(0);
   m_writeBuffer.write_16(handshake_size);

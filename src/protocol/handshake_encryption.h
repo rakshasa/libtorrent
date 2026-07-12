@@ -5,8 +5,8 @@
 #include <cstring>
 #include <memory>
 
-#include "encryption_info.h"
-#include "torrent/runtime/encryption_policy.h"
+#include "protocol/encryption_info.h"
+#include "protocol/encryption_policy.h"
 
 namespace torrent {
 
@@ -14,31 +14,33 @@ class DiffieHellman;
 
 class HandshakeEncryption {
 public:
-  static constexpr int           crypto_plain = 1;
-  static constexpr int           crypto_rc4   = 2;
+  static constexpr int           crypto_plaintext = 0x1;
+  static constexpr int           crypto_encrypted = 0x2;
 
-  static const unsigned char dh_prime[];
+  static const unsigned char     dh_prime[];
   static constexpr unsigned int  dh_prime_length = 96;
 
-  static const unsigned char dh_generator[];
+  static const unsigned char     dh_generator[];
   static constexpr unsigned int  dh_generator_length = 1;
 
-  static const unsigned char vc_data[];
+  static const unsigned char     vc_data[];
   static constexpr unsigned int  vc_length = 8;
 
-  HandshakeEncryption(EncryptionPolicy policy);
+  bool                is_stream_encrypted() const;
+  bool                is_stream_plaintext() const;
+
+  bool                has_stream_both() const;
+  bool                has_stream_encrypted() const;
+  bool                has_stream_plaintext() const;
 
   const auto&         key()                                        { return m_key; }
   EncryptionInfo*     info()                                       { return &m_info; }
 
-  const EncryptionPolicy& policy() const                           { return m_policy; }
-
-  void                disarm_outgoing_alt_retry()                  { m_policy.disarm_outgoing_alt_retry(); }
+  auto&               policy();
+  void                set_policy(const EncryptionPolicy& policy);
 
   int                 crypto() const                               { return m_crypto; }
   void                set_crypto(int val)                          { m_crypto = val; }
-
-  static const char*  crypto_name(int crypto);
 
   const char*         sync() const                                 { return m_sync; }
   unsigned int        sync_length() const                          { return m_syncLength; }
@@ -77,6 +79,15 @@ private:
 
   unsigned int        m_lengthIA{0};
 };
+
+inline bool  HandshakeEncryption::is_stream_encrypted() const                { return m_crypto == crypto_encrypted; }
+inline bool  HandshakeEncryption::is_stream_plaintext() const                { return m_crypto == crypto_plaintext; }
+inline bool  HandshakeEncryption::has_stream_both() const                    { return has_stream_plaintext() && has_stream_encrypted(); }
+inline bool  HandshakeEncryption::has_stream_encrypted() const               { return (m_crypto & crypto_encrypted) != 0; }
+inline bool  HandshakeEncryption::has_stream_plaintext() const               { return (m_crypto & crypto_plaintext) != 0; }
+
+inline auto& HandshakeEncryption::policy()                                   { return m_policy; }
+inline void  HandshakeEncryption::set_policy(const EncryptionPolicy& policy) { m_policy = policy; }
 
 } // namespace torrent
 

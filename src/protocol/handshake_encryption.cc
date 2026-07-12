@@ -20,27 +20,6 @@ const unsigned char HandshakeEncryption::dh_prime[] = {
 const unsigned char HandshakeEncryption::dh_generator[] = { 2 };
 const unsigned char HandshakeEncryption::vc_data[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-const char*
-HandshakeEncryption::crypto_name(int crypto) {
-  const bool has_plain = crypto & crypto_plain;
-  const bool has_rc4   = crypto & crypto_rc4;
-
-  if (has_plain && has_rc4)
-    return "both";
-
-  if (has_rc4)
-    return "rc4";
-
-  if (has_plain)
-    return "handshake-only";
-
-  return "none";
-}
-
-HandshakeEncryption::HandshakeEncryption(EncryptionPolicy policy) :
-    m_policy(policy) {
-}
-
 bool
 HandshakeEncryption::initialize() {
   m_key = std::make_unique<DiffieHellman>(dh_prime, dh_prime_length, dh_generator, dh_generator_length);

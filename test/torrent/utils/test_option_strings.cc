@@ -3,7 +3,6 @@
 #include "test_option_strings.h"
 
 #include <torrent/download.h>
-#include <torrent/runtime/encryption_policy.h>
 #include <torrent/utils/option_strings.h>
 #include <torrent/utils/log.h>
 
@@ -23,10 +22,10 @@ test_option_strings::test_entries() {
   TEST_ENTRY(OPTION_CONNECTION_TYPE, "initial_seed", torrent::Download::CONNECTION_INITIAL_SEED);
   TEST_ENTRY(OPTION_CONNECTION_TYPE, "metadata", torrent::Download::CONNECTION_METADATA);
 
-  TEST_ENTRY(OPTION_ENCRYPTION_MODE, "deny",    torrent::ENCRYPTION_MODE_DENY);
-  TEST_ENTRY(OPTION_ENCRYPTION_MODE, "allow",   torrent::ENCRYPTION_MODE_ALLOW);
-  TEST_ENTRY(OPTION_ENCRYPTION_MODE, "prefer",  torrent::ENCRYPTION_MODE_PREFER);
-  TEST_ENTRY(OPTION_ENCRYPTION_MODE, "require", torrent::ENCRYPTION_MODE_REQUIRE);
+  TEST_ENTRY(OPTION_ENCRYPTION_STREAM, "stream_deny",    torrent::ENCRYPTION_MODE_DENY);
+  TEST_ENTRY(OPTION_ENCRYPTION_STREAM, "stream_allow",   torrent::ENCRYPTION_MODE_ALLOW);
+  TEST_ENTRY(OPTION_ENCRYPTION_STREAM, "stream_prefer",  torrent::ENCRYPTION_MODE_PREFER);
+  TEST_ENTRY(OPTION_ENCRYPTION_STREAM, "stream_require", torrent::ENCRYPTION_MODE_REQUIRE);
 
   TEST_ENTRY(OPTION_LOG_GROUP, "critical", torrent::LOG_CRITICAL);
   TEST_ENTRY(OPTION_LOG_GROUP, "storage_notice", torrent::LOG_STORAGE_NOTICE);
