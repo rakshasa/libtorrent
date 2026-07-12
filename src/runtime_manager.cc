@@ -65,17 +65,17 @@ RuntimeManager::initialize_network() {
     return;
   }
 
-  auto port_range = runtime::client_config()->listen_port_range();
+  auto port_range = g_runtime->m_client_config->listen_port_range();
 
-  if (runtime::client_config()->listen_port_random()) {
+  if (g_runtime->m_client_config->listen_port_random()) {
     uint16_t boundary = port_range.first + (random() % (port_range.second - port_range.first + 1));
 
-    if (runtime::network_manager()->listen_open(boundary, port_range.second) ||
-        runtime::network_manager()->listen_open(port_range.first, boundary))
+    if (g_runtime->m_network_manager->listen_open(boundary, port_range.second) ||
+        g_runtime->m_network_manager->listen_open(port_range.first, boundary))
       return;
 
   } else {
-    if (runtime::network_manager()->listen_open(port_range.first, port_range.second))
+    if (g_runtime->m_network_manager->listen_open(port_range.first, port_range.second))
       return;
   }
 
@@ -100,7 +100,7 @@ RuntimeManager::quick_shutdown() {
 
 void
 RuntimeManager::cleanup() {
-  runtime::network_manager()->listen_close();
+  g_runtime->m_network_manager->listen_close();
 }
 
 void
