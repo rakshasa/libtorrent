@@ -40,11 +40,17 @@ public:
   uint16_t            listen_port() const;
   uint16_t            listen_port_or_throw() const;
 
+  void                set_listen_port(uint16_t port);
+
   // TODO: Only allowed to be called from main thread (tracker thread when moved).
   // TODO: Move DHT on/off/auto handlig here.
 
   auto*               dht_controller();
+
+  void                dht_restart();
+
   uint16_t            dht_port();
+  void                set_dht_port(uint16_t port);
 
   void                dht_add_bootstrap_node(std::string host, int port);
   void                dht_add_peer_node(const sockaddr* sa, int port);
@@ -63,14 +69,10 @@ protected:
   auto                listen_inet_unsafe()            { return m_listen_inet.get(); }
   auto                listen_inet6_unsafe()           { return m_listen_inet6.get(); }
 
-  // TODO: Rename updated_network_config()
-  void                restart_listen();
-
 private:
   bool                listen_open_unsafe(uint16_t first, uint16_t last);
   void                listen_close_unsafe();
-
-  void                perform_restart_listen();
+  void                listen_restart_unsafe();
 
   mutable std::mutex      m_mutex;
 
@@ -87,4 +89,4 @@ inline auto* NetworkManager::dht_controller() { return m_dht_controller.get(); }
 
 } // namespace torrent::runtime
 
-#endif // LIBTORRENT_TORRENT_RUNTIME_NETWORK_MANAGER_H
+#endif

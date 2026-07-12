@@ -10,6 +10,7 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
+#include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
@@ -70,8 +71,7 @@ ThreadMain::init_after_setup() {
   runtime::network_config()->subscribe_to_changes(this, [this]() {
       callback(m_events_callback_id, []() {
           runtime::network_manager()->listen_restart();
-
-          // TODO: Restart DHT.
+          runtime::network_manager()->dht_restart();
         });
     });
 

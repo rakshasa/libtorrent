@@ -38,7 +38,7 @@ protected:
   void                      call_events() override;
   std::chrono::microseconds next_timeout() override;
 
-  static void               set_thread_base(system::Thread* thread)       { m_thread_base = thread; }
+  static void               set_thread_base(system::Thread* thread);
 
 private:
   static void               set_max_connections();
@@ -51,6 +51,9 @@ private:
   std::unique_ptr<HashQueue> m_hash_queue;
   std::function<void()>      m_slot_client_callback;
 };
+
+inline void ThreadMain::set_thread_base(system::Thread* thread) { m_thread_base = thread; }
+
 
 } // namespace torrent
 
