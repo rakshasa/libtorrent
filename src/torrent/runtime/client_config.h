@@ -23,8 +23,8 @@ protected:
   auto                lock_guard() const;
 
 private:
-  ClientConfig();
-  ~ClientConfig();
+  ClientConfig() = default;
+  ~ClientConfig() = default;
 
   mutable std::mutex  m_mutex;
 

@@ -82,6 +82,9 @@ RuntimeManager::initialize_network() {
   throw input_error("Could not open/bind port for listening: " + std::string(std::strerror(errno)));
 }
 
+// TODO: When changing listen port right before shutdown, it takes 10s for udp_routers to
+// close. Likely rtorrent thinks downloads are not done, or something. (even if all are closed)
+
 void
 RuntimeManager::shutdown() {
   g_runtime->m_shutdown_called = true;
