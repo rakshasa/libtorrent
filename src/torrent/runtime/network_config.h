@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <torrent/net/types.h>
+#include <torrent/utils/scheduler.h>
 
 #include "encryption_policy.h"
 
@@ -113,6 +114,8 @@ public:
   void                subscribe_to_changes(void* target, const std::function<void()>& callback);
   void                unsubscribe_from_changes(void* target);
 
+  void                force_notify_changes();
+
 protected:
   friend class torrent::ConnectionManager;
   friend class torrent::runtime::NetworkManager;
@@ -126,10 +129,11 @@ protected:
   void                unlock() const                  { m_mutex.unlock(); }
   auto&               mutex() const                   { return m_mutex; }
 
-  void                notify_changes_unsafe() const;
+  void                notify_changes_unsafe();
 
   listen_addresses    listen_addresses_unsafe() const;
   int                 listen_backlog_unsafe() const;
+  uint16_t            override_dht_port_unsafe() const;
 
 private:
 
@@ -172,7 +176,8 @@ private:
   uint32_t            m_send_buffer_size{0};
   uint32_t            m_receive_buffer_size{0};
 
-  subscriber_list     m_change_subscribers;
+  subscriber_list       m_change_subscribers;
+  utils::SchedulerEntry m_delay_changed;
 };
 
 } // namespace torrent::config

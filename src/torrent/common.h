@@ -99,6 +99,7 @@ class Resolver;
 
 namespace runtime {
 
+class ClientConfig;
 class NetworkConfig;
 class NetworkManager;
 class MemoryManager;

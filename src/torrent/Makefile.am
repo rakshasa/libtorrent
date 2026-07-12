@@ -66,6 +66,8 @@ libtorrent_torrent_la_SOURCES = \
 	peer/peer_list.cc \
 	peer/peer_list.h \
 \
+	runtime/client_config.cc \
+	runtime/client_config.h \
 	runtime/memory_manager.cc \
 	runtime/memory_manager.h \
 	runtime/encryption_policy.cc \
@@ -205,11 +207,9 @@ libtorrent_torrent_peer_include_HEADERS = \
 
 libtorrent_torrent_runtime_includedir = $(includedir)/torrent/runtime
 libtorrent_torrent_runtime_include_HEADERS = \
-<<<<<<< HEAD
+	runtime/client_config.h \
 	runtime/memory_manager.h \
-=======
 	runtime/encryption_policy.h \
->>>>>>> ba5e9137 (Replace encryption bitmask with EncryptionPolicy)
 	runtime/network_config.h \
 	runtime/network_manager.h \
 	runtime/proxy_manager.h \
