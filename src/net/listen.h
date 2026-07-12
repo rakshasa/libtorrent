@@ -11,16 +11,22 @@ namespace torrent {
 
 class Listen : public Event {
 public:
+  struct open_options {
+    uint16_t        first_port{};
+    uint16_t        last_port{};
+    int             backlog{};
+    bool            block_ipv4in6{};
+    bool            check_dht{};
+  };
+
   ~Listen() override { close(); }
 
   const char*         type_name() const override { return "listen"; }
 
-  static bool         open_single(Listen* listen, const sockaddr* bind_address,
-                                  uint16_t first, uint16_t last, int backlog, bool block_ipv4in6);
+  static bool         open_single(Listen* listen, const sockaddr* bind_address, open_options options);
 
-  static bool         open_both(Listen* listen_inet, Listen* listen_inet6,
-                                const sockaddr* bind_inet_address, const sockaddr* bind_inet6_address,
-                                uint16_t first, uint16_t last, int backlog, bool block_ipv4in6);
+  static bool         open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bind_inet_address, const sockaddr* bind_inet6_address,
+                                open_options options);
 
   void                close();
 
