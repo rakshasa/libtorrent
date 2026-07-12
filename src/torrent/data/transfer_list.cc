@@ -243,14 +243,18 @@ TransferList::mark_and_disconnect_if_single_peer(BlockList* block_list) {
   auto itr = block_list->begin();
 
   while (itr != block_list->end()) {
-    for (auto& transfer : *itr->transfers()) {
-      peer_info = transfer->peer_info();
+    auto* transfers = (itr++)->transfers();
+
+    if (!transfers->empty()) {
+      peer_info = transfers->front()->peer_info();
       break;
     }
   }
 
   while (itr != block_list->end()) {
-    for (auto& transfer : *itr->transfers()) {
+    auto* transfers = (itr++)->transfers();
+
+    for (auto& transfer : *transfers) {
       if (transfer->peer_info() != peer_info)
         return;
     }
