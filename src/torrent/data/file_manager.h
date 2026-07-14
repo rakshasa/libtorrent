@@ -36,12 +36,15 @@ public:
   bool                advise_random_hashing() const         { return m_advise_random_hashing; }
   void                set_advise_random_hashing(bool state) { m_advise_random_hashing = state; }
 
+  // Idle seconds before closing open FDs; 0 disables.
+  uint32_t            close_idle() const                    { return m_close_idle; }
+  void                set_close_idle(uint32_t seconds)      { m_close_idle = seconds; }
+
   bool                open(value_type file, bool hashing, int prot, int flags);
   void                close(value_type file);
 
-  // TODO: Close all files held by a download after hashing. Also flush all memory chunks.
-
   void                close_least_active();
+  void                periodic_close_idle();
 
   // Statistics:
   uint64_t            files_opened_counter() const { return m_files_opened_counter; }
@@ -53,6 +56,7 @@ private:
   FileManager& operator=(const FileManager&) = delete;
 
   size_type           m_max_open_files{0};
+  uint32_t            m_close_idle{60};
   bool                m_advise_random{false};
   bool                m_advise_random_hashing{false};
 

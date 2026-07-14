@@ -111,4 +111,28 @@ FileManager::close_least_active() {
     close(least);
 }
 
+void
+FileManager::periodic_close_idle() {
+  if (m_close_idle == 0 || empty())
+    return;
+
+  const uint64_t now = this_thread::cached_time().count();
+  const uint64_t limit = static_cast<uint64_t>(m_close_idle) * 1'000'000ull;
+
+  size_type i = 0;
+  while (i < size()) {
+    File* f = base_type::operator[](i);
+
+    if (!f->is_open() || f->last_touched() > now) {
+      ++i;
+      continue;
+    }
+
+    if (now - f->last_touched() >= limit)
+      close(f);
+    else
+      ++i;
+  }
+}
+
 } // namespace torrent
