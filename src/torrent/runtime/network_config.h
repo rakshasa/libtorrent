@@ -17,20 +17,10 @@ NetworkConfig* network_config() LIBTORRENT_EXPORT;
 class LIBTORRENT_EXPORT NetworkConfig {
 public:
   // TODO: Remove.
-  static constexpr int      iptos_default               = 0;
-  static constexpr int      iptos_lowdelay              = IPTOS_LOWDELAY;
-  static constexpr int      iptos_throughput            = IPTOS_THROUGHPUT;
-  static constexpr int      iptos_reliability           = IPTOS_RELIABILITY;
-
-  static constexpr uint32_t encryption_none             = 0;
-  static constexpr uint32_t encryption_allow_incoming   = 0x1;
-  static constexpr uint32_t encryption_try_outgoing     = 0x2;
-  static constexpr uint32_t encryption_require          = 0x3;
-  static constexpr uint32_t encryption_require_RC4      = 0x4;
-  static constexpr uint32_t encryption_enable_retry     = 0x8;
-  static constexpr uint32_t encryption_prefer_plaintext = 0x10;
-  // Internal to libtorrent.
-  static constexpr uint32_t encryption_retrying         = 0x40;
+  static constexpr int iptos_default     = 0;
+  static constexpr int iptos_lowdelay    = IPTOS_LOWDELAY;
+  static constexpr int iptos_throughput  = IPTOS_THROUGHPUT;
+  static constexpr int iptos_reliability = IPTOS_RELIABILITY;
 
   NetworkConfig();
 
@@ -103,9 +93,6 @@ public:
   void                set_local_inet6_address(const sockaddr* sa);
   void                set_local_inet6_address_str(const std::string& addr);
 
-  uint32_t            encryption_options() const;
-  void                set_encryption_options(uint32_t opts);
-
   int                 listen_backlog() const;
   void                set_listen_backlog(int backlog);
 
@@ -117,6 +104,9 @@ public:
 
   uint32_t            receive_buffer_size() const;
   void                set_receive_buffer_size(uint32_t s);
+
+  auto                encryption_modes() const;
+  void                set_encryption_modes(encryption_mode handshake, encryption_mode stream);
 
   // The lock is held while the callback is called, so use Thread::callback().
   void                subscribe_to_changes(void* target, const std::function<void()>& callback);
@@ -178,15 +168,23 @@ private:
   c_sa_shared_ptr     m_local_inet_address;
   c_sa_shared_ptr     m_local_inet6_address;
 
-  int                 m_encryption_options{encryption_none};
   int                 m_listen_backlog{SOMAXCONN};
   uint16_t            m_override_dht_port{0};
   uint32_t            m_send_buffer_size{0};
   uint32_t            m_receive_buffer_size{0};
 
+  encryption_mode     m_handshake_encryption_mode{ENCRYPTION_MODE_ALLOW};
+  encryption_mode     m_stream_encryption_mode{ENCRYPTION_MODE_ALLOW};
+
   subscriber_list       m_change_subscribers;
   utils::SchedulerEntry m_delay_changed;
 };
+
+inline auto
+NetworkConfig::encryption_modes() const {
+  auto guard = lock_guard();
+  return std::make_pair(m_handshake_encryption_mode, m_stream_encryption_mode);
+}
 
 } // namespace torrent::config
 

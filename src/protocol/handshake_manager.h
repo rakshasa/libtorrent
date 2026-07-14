@@ -9,6 +9,8 @@
 
 namespace torrent {
 
+class EncryptionPolicy;
+
 class HandshakeManager : private utils::unordered_vector<std::unique_ptr<Handshake>> {
 public:
   using base_type = utils::unordered_vector<std::unique_ptr<Handshake>>;
@@ -52,7 +54,8 @@ private:
   HandshakeManager(const HandshakeManager&) = delete;
   HandshakeManager& operator=(const HandshakeManager&) = delete;
 
-  void                create_outgoing(const sockaddr* sa, DownloadMain* info, int encryptionOptions);
+  void                create_outgoing(const sockaddr* sa, DownloadMain* info, const EncryptionPolicy& policy);
+
   value_type          find_and_erase(Handshake* handshake);
 
   static ProtocolExtension DefaultExtensions;

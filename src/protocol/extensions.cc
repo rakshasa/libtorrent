@@ -5,9 +5,10 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "manager.h"
 #include "download/download_main.h"
 #include "download/download_wrapper.h"
-#include "manager.h"
+#include "protocol/encryption_policy.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download_info.h"
@@ -101,10 +102,16 @@ DataBuffer
 ProtocolExtension::generate_handshake_message() {
   ExtHandshakeMessage message;
 
-  // Add "e" key if encryption is enabled, set it to 1 if we require
-  // encryption for incoming connections, or 0 otherwise.
-  if ((runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_allow_incoming) != 0)
-    message[key_e] = (runtime::network_config()->encryption_options() & runtime::NetworkConfig::encryption_require) != 0;
+  // Add "e" key if encryption is enabled, set it to 1 if we require encryption for incoming
+  // connections, or 0 otherwise.
+  //
+  // TODO: Figure out if we can set 'prefer' instead of 'require' here.
+
+  auto encryption_policy = EncryptionPolicy(runtime::network_config()->encryption_modes());
+
+  if (encryption_policy.allow_encrypted_handshake())
+    message[key_e] = encryption_policy.require_encrypted_stream();
+    // message[key_e] = encryption_policy.prefer_encrypted_stream();
 
   message[key_p] = runtime::listen_port();
   message[key_v] = raw_string::from_c_str("libTorrent " VERSION);
