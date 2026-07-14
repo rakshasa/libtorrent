@@ -475,7 +475,7 @@ NetworkConfig::listen_addresses_unsafe() const {
     if (m_block_ipv4in6)
       return {inet_any_value, inet6_any_value, true};
 
-    return {nullptr, inet6_any_value, false};
+    return {inet_any_value, inet6_any_value, false};
   }
 
   if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
