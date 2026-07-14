@@ -174,8 +174,11 @@ HandshakeManager::create_outgoing(const sockaddr* sa, DownloadMain* download, co
       if (fd == -1)
         return;
 
-      LT_LOG_SA(handshake->proxy()->proxy_address(), "created outgoing connection : %i%s : %s/%s",
-                fd, handshake->proxy() ? " : proxy" : "", policy.handshake_c_str(), policy.stream_c_str());
+      if (handshake->proxy()) {
+        LT_LOG_SA(handshake->proxy()->proxy_address(), "created outgoing connection : %i : proxy : %s/%s", fd, policy.handshake_c_str(), policy.stream_c_str());
+      } else {
+        LT_LOG_SA(sa, "created outgoing connection : %i : %s/%s", fd, policy.handshake_c_str(), policy.stream_c_str());
+      }
 
       handshake->initialize_outgoing(this, fd, sa, policy, download, peer_info);
     };
