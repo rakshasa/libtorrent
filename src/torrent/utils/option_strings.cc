@@ -53,15 +53,27 @@ constexpr option_pair option_list_heuristics_upload[] = {
   { NULL, 0 }
 };
 
-constexpr option_pair option_list_encryption[] = {
-  { "none",             runtime::NetworkConfig::encryption_none },
-  { "allow_incoming",   runtime::NetworkConfig::encryption_allow_incoming },
-  { "try_outgoing",     runtime::NetworkConfig::encryption_try_outgoing },
-  { "require",          runtime::NetworkConfig::encryption_require },
-  { "require_RC4",      runtime::NetworkConfig::encryption_require_RC4 },
-  { "require_rc4",      runtime::NetworkConfig::encryption_require_RC4 },
-  { "enable_retry",     runtime::NetworkConfig::encryption_enable_retry },
-  { "prefer_plaintext", runtime::NetworkConfig::encryption_prefer_plaintext },
+constexpr option_pair option_list_encryption_mode[] = {
+  { "deny",    ENCRYPTION_MODE_DENY    },
+  { "allow",   ENCRYPTION_MODE_ALLOW   },
+  { "prefer",  ENCRYPTION_MODE_PREFER  },
+  { "require", ENCRYPTION_MODE_REQUIRE },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_encryption_handshake[] = {
+  { "handshake_deny",    ENCRYPTION_MODE_DENY    },
+  { "handshake_allow",   ENCRYPTION_MODE_ALLOW   },
+  { "handshake_prefer",  ENCRYPTION_MODE_PREFER  },
+  { "handshake_require", ENCRYPTION_MODE_REQUIRE },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_encryption_stream[] = {
+  { "stream_deny",    ENCRYPTION_MODE_DENY    },
+  { "stream_allow",   ENCRYPTION_MODE_ALLOW   },
+  { "stream_prefer",  ENCRYPTION_MODE_PREFER  },
+  { "stream_require", ENCRYPTION_MODE_REQUIRE },
   { NULL, 0 }
 };
 
@@ -206,7 +218,9 @@ constexpr std::array option_pair_lists{
   option_list_heuristics,
   option_list_heuristics_download,
   option_list_heuristics_upload,
-  option_list_encryption,
+  option_list_encryption_mode,
+  option_list_encryption_handshake,
+  option_list_encryption_stream,
   option_list_ip_filter,
   option_list_ip_tos,
   option_list_tracker_mode,

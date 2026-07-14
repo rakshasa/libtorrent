@@ -345,16 +345,15 @@ NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
   set_local_inet6_address(sa_lookup_address(addr, AF_INET6).get());
 }
 
-uint32_t
-NetworkConfig::encryption_options() const {
-  auto guard = lock_guard();
-  return m_encryption_options;
-}
-
 void
-NetworkConfig::set_encryption_options(uint32_t opts) {
+NetworkConfig::set_encryption_modes(encryption_mode handshake, encryption_mode stream) {
+  if (handshake == ENCRYPTION_MODE_DENY && stream == ENCRYPTION_MODE_REQUIRE)
+    throw internal_error("Invalid encryption modes: handshake_deny/stream_require");
+
   auto guard = lock_guard();
-  m_encryption_options = opts;
+
+  m_handshake_encryption_mode = handshake;
+  m_stream_encryption_mode = stream;
 }
 
 int

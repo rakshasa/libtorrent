@@ -22,6 +22,14 @@ using namespace std::chrono_literals;
 
 namespace torrent {
 
+// TODO: Move
+enum encryption_mode : uint8_t {
+  ENCRYPTION_MODE_DENY,
+  ENCRYPTION_MODE_ALLOW,
+  ENCRYPTION_MODE_PREFER,
+  ENCRYPTION_MODE_REQUIRE,
+};
+
 namespace system {
 
 using callback_id = std::shared_ptr<std::atomic<uint32_t>>;
