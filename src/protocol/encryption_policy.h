@@ -55,6 +55,9 @@ inline void EncryptionPolicy::set_retry_disabled()                { m_retry_mode
 inline void EncryptionPolicy::set_retry_plaintext()               { m_retry_mode = ENCRYPTION_MODE_DENY; }
 inline void EncryptionPolicy::set_retry_encrypted()               { m_retry_mode = ENCRYPTION_MODE_REQUIRE; }
 
+inline encryption_mode EncryptionPolicy::handshake_mode() const   { return m_handshake_mode; }
+inline encryption_mode EncryptionPolicy::stream_mode() const      { return m_stream_mode; }
+
 inline bool EncryptionPolicy::allow_plaintext_handshake() const   { return m_handshake_mode != ENCRYPTION_MODE_REQUIRE; }
 inline bool EncryptionPolicy::allow_encrypted_handshake() const   { return m_handshake_mode != ENCRYPTION_MODE_DENY; }
 inline bool EncryptionPolicy::prefer_encrypted_handshake() const  { return m_handshake_mode == ENCRYPTION_MODE_PREFER || m_handshake_mode == ENCRYPTION_MODE_REQUIRE; }
