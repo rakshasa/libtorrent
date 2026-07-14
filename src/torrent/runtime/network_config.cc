@@ -475,6 +475,7 @@ NetworkConfig::listen_addresses_unsafe() const {
     if (m_block_ipv4in6)
       return {inet_any_value, inet6_any_value, true};
 
+    // TODO: Detect if net.inet6.ip6.v6only=1 and only return inet in those cases.
     return {inet_any_value, inet6_any_value, false};
   }
 
