@@ -449,6 +449,11 @@ NetworkConfig::notify_changes_unsafe() {
   this_thread::scheduler()->update_wait_for(&m_delay_changed, 200ms);
 }
 
+// sockaddr: bind inet
+// sockaddr: bind inet6
+// bool:     block ipv4in6
+// bool:     fallback to '::' and close 0.0.0.0 if ipv6only fails
+
 NetworkConfig::listen_addresses
 NetworkConfig::listen_addresses_unsafe() const {
   auto inet_address  = m_block_ipv4 ? nullptr : m_bind_inet_address;
@@ -459,34 +464,34 @@ NetworkConfig::listen_addresses_unsafe() const {
 
   if (inet_address == nullptr) {
     if (inet6_address->sa_family == AF_UNSPEC)
-      return {nullptr, inet6_any_value, m_block_ipv4in6};
+      return {nullptr, inet6_any_value, m_block_ipv4in6, false};
 
-    return {nullptr, inet6_address, m_block_ipv4in6};
+    return {nullptr, inet6_address, m_block_ipv4in6, false};
   }
 
   if (inet6_address == nullptr) {
     if (inet_address->sa_family == AF_UNSPEC)
-      return {inet_any_value, nullptr, false};
+      return {inet_any_value, nullptr, false, false};
 
-    return {inet_address, nullptr, false};
+    return {inet_address, nullptr, false, false};
   }
 
   if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC) {
     if (m_block_ipv4in6)
-      return {inet_any_value, inet6_any_value, true};
+      return {inet_any_value, inet6_any_value, true, false};
 
     // TODO: Detect if net.inet6.ip6.v6only=1 and return inet+inet6 only for those cases.
-    return {inet_any_value, inet6_any_value, true};
+    return {inet_any_value, inet6_any_value, true, true};
   }
 
   if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
-    return {inet_address, inet6_address, m_block_ipv4in6};
+    return {inet_address, inet6_address, m_block_ipv4in6, false};
 
   if (inet_address->sa_family != AF_UNSPEC)
-    return {inet_address, nullptr, false};
+    return {inet_address, nullptr, false, false};
 
   if (inet6_address->sa_family != AF_UNSPEC)
-    return {nullptr, inet6_address, m_block_ipv4in6};
+    return {nullptr, inet6_address, m_block_ipv4in6, false};
 
   throw internal_error("NetworkConfig::listen_addresses_unsafe(): reached unreachable code.");
 }

@@ -16,6 +16,7 @@ public:
     uint16_t        last_port{};
     int             backlog{};
     bool            block_ipv4in6{};
+    bool            fallback_to_single{};
     bool            check_dht{};
   };
 

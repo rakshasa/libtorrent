@@ -10,6 +10,7 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/poll.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \
@@ -29,13 +30,13 @@ listen_fd_open(const sockaddr* bind_address) {
   int stream_fd = fd_open(fd_flag_stream | open_flags);
 
   if (stream_fd == -1)
-    throw resource_error("Could not open stream socket for listening: " + std::string(strerror(errno)));
+    throw resource_error("Could not open stream socket for listening: " + system::errno_enum_str(errno));
 
   int datagram_fd = fd_open(fd_flag_datagram | open_flags);
 
   if (datagram_fd == -1) {
     fd_close(stream_fd);
-    throw resource_error("Could not open datagram socket for listening: " + std::string(strerror(errno)));
+    throw resource_error("Could not open datagram socket for listening: " + system::errno_enum_str(errno));
   }
 
   return std::make_tuple(stream_fd, datagram_fd);
@@ -55,7 +56,7 @@ listen_open_range(uint16_t first, uint16_t last, bool check_dht, const sockaddr*
 
     // Try to bind the datagram socket to the same port to verify DHT availability.
     if (check_dht && !fd_bind(datagram_fd, try_address.get())) {
-      LT_LOG("failed to bind datagram socket on port %" PRIu16 " to verify DHT availability : %s", first, std::strerror(errno));
+      LT_LOG("failed to bind datagram socket on port %" PRIu16 " to verify DHT availability : %s", first, system::errno_enum(errno));
 
       fd_close(stream_fd);
       fd_close(datagram_fd);
@@ -90,14 +91,14 @@ Listen::open_single(Listen* listen, const sockaddr* bind_address, open_options o
   auto [listen_fd, listen_port] = listen_open_range(options.first_port, options.last_port, options.check_dht, bind_address);
 
   if (listen_fd == -1) {
-    LT_LOG("failed to find a suitable listen port : options.last_port error : %s", std::strerror(errno));
+    LT_LOG("failed to find a suitable listen port : options.last_port error : %s", system::errno_enum(errno));
     return false;
   }
 
   auto error_fn = [listen_fd](std::string msg) {
       fd_close(listen_fd);
 
-      LT_LOG("%s : %s", msg.c_str(), std::strerror(errno));
+      LT_LOG("%s : %s", msg.c_str(), system::errno_enum(errno));
       throw resource_error(msg + ": " + std::string(strerror(errno)));
     };
 
@@ -137,7 +138,7 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bin
     std::tie(inet_fd, inet_port) = listen_open_range(options.first_port, options.last_port, options.check_dht, bind_inet_address);
 
     if (inet_fd == -1) {
-      LT_LOG("Unable to find a suitable ipv4 listen port : options.last_port error : %s", std::strerror(errno));
+      LT_LOG("Unable to find a suitable ipv4 listen port : options.last_port error : %s", system::errno_enum(errno));
       return false;
     }
 
@@ -149,12 +150,12 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bin
     fd_close(inet_fd);
     options.first_port = inet_port + 1;
 
-    LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : options.last_port error : %s", inet_port, std::strerror(errno));
+    LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : options.last_port error : %s", inet_port, system::errno_enum(errno));
   }
 
   try {
     auto error_fn = [](std::string msg) {
-        LT_LOG("%s : %s", msg.c_str(), std::strerror(errno));
+        LT_LOG("%s : %s", msg.c_str(), system::errno_enum(errno));
         throw resource_error(msg + ": " + std::string(strerror(errno)));
       };
 
@@ -165,19 +166,39 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bin
     if (!fd_listen(inet_fd, options.backlog))
       error_fn("Could not listen on ipv4 socket");
 
-    if (options.block_ipv4in6 && !fd_set_v6only(inet6_fd, true))
-      error_fn("Could not set IPV6_V6ONLY on ipv6 socket");
+    if (options.fallback_to_single) {
+      if (!fd_set_v6only(inet6_fd, true)) {
+        if (errno != EADDRINUSE)
+          error_fn("Could not set IPV6_V6ONLY on ipv6 socket");
+
+        LT_LOG("Could not set IPV6_V6ONLY on ipv6 socket, falling back to single unspec ipv6 listen", 0);
+
+        fd_close(inet_fd);
+        inet_fd = -1;
+
+        if (!fd_set_v6only(inet6_fd, true))
+          error_fn("Could not set IPV6_V6ONLY on ipv6 socket for fallback");
+      }
+
+    } else if (options.block_ipv4in6) {
+      if (!fd_set_v6only(inet6_fd, true))
+        error_fn("Could not set IPV6_V6ONLY on ipv6 socket");
+    }
 
     if (!fd_listen(inet6_fd, options.backlog))
       error_fn("Could not listen on ipv6 socket");
 
   } catch (...) {
-    fd_close(inet_fd);
+    if (inet_fd != -1)
+      fd_close(inet_fd);
+
     fd_close(inet6_fd);
     throw;
   }
 
-  listen_inet->open_done(inet_fd, inet_port, options.backlog);
+  if (inet_fd != -1)
+    listen_inet->open_done(inet_fd, inet_port, options.backlog);
+
   listen_inet6->open_done(inet6_fd, inet_port, options.backlog);
   return true;
 }
@@ -230,7 +251,7 @@ Listen::event_read() {
       if (errno == ECONNABORTED)
         return;
 
-      throw resource_error("Listener port accept() failed: " + std::string(std::strerror(errno)));
+      throw resource_error("Listener port accept() failed: " + system::errno_enum_str(errno));
     }
 
     auto open_func = [&]() {
@@ -276,10 +297,10 @@ Listen::event_error() {
   int socket_error;
 
   if (!fd_get_socket_error(file_descriptor(), &socket_error))
-    throw internal_error("Listener port could not get socket error: " + std::string(std::strerror(errno)));
+    throw internal_error("Listener port could not get socket error: " + system::errno_enum_str(errno));
 
   if (socket_error != 0)
-    throw internal_error("Listener port received an error event: " + std::string(std::strerror(socket_error)));
+    throw internal_error("Listener port received an error event: " + system::errno_enum_str(socket_error));
 }
 
 } // namespace torrent

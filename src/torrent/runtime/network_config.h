@@ -119,7 +119,7 @@ protected:
   friend class torrent::runtime::NetworkManager;
   friend class torrent::runtime::ProxyManager;
 
-  using listen_addresses = std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool>;
+  using listen_addresses = std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool, bool>;
   using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
 
   void                lock() const                    { m_mutex.lock(); }
