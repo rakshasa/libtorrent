@@ -475,8 +475,8 @@ NetworkConfig::listen_addresses_unsafe() const {
     if (m_block_ipv4in6)
       return {inet_any_value, inet6_any_value, true};
 
-    // TODO: Detect if net.inet6.ip6.v6only=1 and only return inet in those cases.
-    return {inet_any_value, inet6_any_value, false};
+    // TODO: Detect if net.inet6.ip6.v6only=1 and return inet+inet6 only for those cases.
+    return {inet_any_value, inet6_any_value, true};
   }
 
   if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
