@@ -59,6 +59,22 @@ File::set_completed_chunks(uint32_t v) {
   m_completed = v;
 }
 
+void
+File::set_priority(priority_enum t) {
+  auto old = m_priority;
+  m_priority = t;
+
+  // Off: drop create/resize and close FD; leaving off: restore both flags.
+  if (t == PRIORITY_OFF) {
+    unset_flags(flag_create_queued | flag_resize_queued);
+
+    if (is_open() && !is_padding())
+      manager->file_manager()->close(this);
+  } else if (old == PRIORITY_OFF) {
+    set_flags(flag_create_queued | flag_resize_queued);
+  }
+}
+
 // At some point we should pass flags for deciding if the correct size
 // is necessary, etc.
 

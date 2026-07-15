@@ -113,7 +113,7 @@ DownloadMain::open(int flags) {
     throw internal_error("Tried to open a download that is already open");
 
   // TODO: Move file_list open calls to DownloadMain.
-  file_list()->open(true, (flags & FileList::open_no_create));
+  file_list()->open(flags & FileList::open_no_create);
 
   m_chunkList->resize(file_list()->size_chunks());
   m_chunkStatistics->initialize(file_list()->size_chunks());
@@ -159,10 +159,9 @@ void DownloadMain::start(int flags) {
   // references go to zero.
   file_list()->close_all_files();
 
-  // If the FileList::open_no_create flag was not set, our new
-  // behavior is to create all zero-length files with
-  // flag_queued_create set.
-  file_list()->open(false, (flags & ~FileList::open_no_create));
+  // Re-open file list paths/dirs. Files open on demand in prepare().
+  // Zero-length entries are not materialized (no chunk I/O).
+  file_list()->open(flags & ~FileList::open_no_create);
 
   info()->set_flags(DownloadInfo::flag_active);
   chunk_list()->set_flags(ChunkList::flag_active);
@@ -195,6 +194,9 @@ DownloadMain::stop() {
 
   if (info()->upload_unchoked() != 0 || info()->download_unchoked() != 0)
     throw internal_error("DownloadMain::stop(): info()->upload_unchoked() != 0 || info()->download_unchoked() != 0.");
+
+  // Close all FDs here; prepare() reopens on demand.
+  file_list()->close_all_files();
 }
 
 bool
