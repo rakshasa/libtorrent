@@ -204,7 +204,7 @@ NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
 
   auto [inet_address, inet6_address, block_ipv4in6] = listen_addresses;
 
-  options.block_ipv4in6      = block_ipv4in6;
+  options.block_ipv4in6 = block_ipv4in6;
 
   if (inet_address == nullptr && inet6_address == nullptr)
     throw input_error("Neither IPv4 nor IPv6 listen address are suitable for opening listen sockets, check block_ipv4 and block_ipv6 settings.");
