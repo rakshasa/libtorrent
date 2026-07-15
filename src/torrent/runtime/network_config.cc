@@ -452,7 +452,6 @@ NetworkConfig::notify_changes_unsafe() {
 // sockaddr: bind inet
 // sockaddr: bind inet6
 // bool:     block ipv4in6
-// bool:     fallback to '::' and close 0.0.0.0 if ipv6only fails
 
 NetworkConfig::listen_addresses
 NetworkConfig::listen_addresses_unsafe() const {
@@ -464,34 +463,34 @@ NetworkConfig::listen_addresses_unsafe() const {
 
   if (inet_address == nullptr) {
     if (inet6_address->sa_family == AF_UNSPEC)
-      return {nullptr, inet6_any_value, m_block_ipv4in6, false};
+      return {nullptr, inet6_any_value, m_block_ipv4in6};;
 
-    return {nullptr, inet6_address, m_block_ipv4in6, false};
+    return {nullptr, inet6_address, m_block_ipv4in6};;
   }
 
   if (inet6_address == nullptr) {
     if (inet_address->sa_family == AF_UNSPEC)
-      return {inet_any_value, nullptr, false, false};
+      return {inet_any_value, nullptr, false};;
 
-    return {inet_address, nullptr, false, false};
+    return {inet_address, nullptr, false};;
   }
 
   if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC) {
     if (m_block_ipv4in6)
-      return {inet_any_value, inet6_any_value, true, false};
+      return {inet_any_value, inet6_any_value, true};;
 
     // TODO: Detect if net.inet6.ip6.v6only=1 and return inet+inet6 only for those cases.
-    return {inet_any_value, inet6_any_value, true, true};
+    return {inet_any_value, inet6_any_value, true};
   }
 
   if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
-    return {inet_address, inet6_address, m_block_ipv4in6, false};
+    return {inet_address, inet6_address, m_block_ipv4in6};;
 
   if (inet_address->sa_family != AF_UNSPEC)
-    return {inet_address, nullptr, false, false};
+    return {inet_address, nullptr, false};;
 
   if (inet6_address->sa_family != AF_UNSPEC)
-    return {nullptr, inet6_address, m_block_ipv4in6, false};
+    return {nullptr, inet6_address, m_block_ipv4in6};;
 
   throw internal_error("NetworkConfig::listen_addresses_unsafe(): reached unreachable code.");
 }
