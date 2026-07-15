@@ -46,7 +46,7 @@ inline auto ClientConfig::lock_guard() const             { return std::lock_guar
 inline bool ClientConfig::listen_port_random() const     { return m_listen_port_random; }
 inline void ClientConfig::set_listen_port_random(bool v) { m_listen_port_random = v; }
 
-inline bool ClientConfig::is_pex_enabled() const            { return m_pex_enabled; }
+inline bool ClientConfig::is_pex_enabled() const         { return m_pex_enabled; }
 inline void ClientConfig::set_pex_enabled(bool v)        { m_pex_enabled = v; }
 
 } // namespace torrent::runtime
