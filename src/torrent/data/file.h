@@ -106,6 +106,7 @@ private:
   File(const File&) = delete;
   File& operator=(const File&) = delete;
 
+  bool                ensure_size_for_write();
   bool                resize_file() const;
 
   int                 m_fd{-1};

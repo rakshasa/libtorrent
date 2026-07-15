@@ -59,9 +59,20 @@ File::set_completed_chunks(uint32_t v) {
   m_completed = v;
 }
 
+// Grow on write whenever on-disk size is wrong (e.g. 0-byte stub after
+// create without resize, or resize_queued lost). create_chunk refuses maps
+// past EOF, so a short file can never receive pieces until resized.
+bool
+File::ensure_size_for_write() {
+  if (!has_permissions(PROT_WRITE))
+    return true;
+
+  m_flags &= ~flag_resize_queued;
+  return resize_file();
+}
+
 // At some point we should pass flags for deciding if the correct size
 // is necessary, etc.
-
 bool
 File::prepare(bool hashing, int prot, int flags) {
   if (is_padding())
@@ -69,12 +80,8 @@ File::prepare(bool hashing, int prot, int flags) {
 
   m_last_touched = this_thread::cached_time().count();
 
-  // Check if we got write protection and flag_resize_queued is
-  // set. If so don't quit as we need to try re-sizing, instead call
-  // resize_file.
-
   if (is_open() && has_permissions(prot))
-    return true;
+    return ensure_size_for_write();
 
   // For now don't allow overridding this check in prepare.
   if (m_flags & flag_create_queued)
@@ -88,13 +95,7 @@ File::prepare(bool hashing, int prot, int flags) {
   m_flags |= flag_previously_created;
   m_flags &= ~flag_create_queued;
 
-  // Replace PROT_WRITE with something prettier.
-  if ((m_flags & flag_resize_queued) && has_permissions(PROT_WRITE)) {
-    m_flags &= ~flag_resize_queued;
-    return resize_file();
-  }
-
-  return true;
+  return ensure_size_for_write();
 }
 
 void
