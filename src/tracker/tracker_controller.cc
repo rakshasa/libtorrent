@@ -548,7 +548,7 @@ TrackerController::receive_success(const tracker::Tracker& tracker, TrackerContr
 
   if ((m_flags & flag_requesting))
     update_timeout(30);
-  else if (!m_tracker_list->has_active()) {
+  else if (!m_tracker_list->has_active_not_scrape()) {
     std::chrono::seconds normal_interval;
 
     tracker.lock_and_call_state([&](const tracker::TrackerState& state) {

@@ -708,6 +708,49 @@ TestTrackerController::test_new_peers() {
   CPPUNIT_ASSERT(tracker_0_0.state().latest_new_peers() == 20);
 }
 
+// Regression test for the stale-announce bug:
+// If an announce succeeds while a scrape is still active on another tracker, the
+// controller must still schedule the next announce timeout.  Before the fix it
+// used has_active() which counted scrapes as active, so it skipped scheduling
+// and the next announce was never started once the scrape finished.
+void
+TestTrackerController::test_success_with_active_scrape_reschedules_timeout() {
+  TEST_MULTI3_BEGIN();
+
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+  auto tracker_1_0_worker = TrackerTest::test_worker(tracker_1_0);
+
+  // Send an announce on tracker_0_0 and a scrape on tracker_1_0.  Use the
+  // worker directly for the scrape so the test does not depend on cached time
+  // or scrape intervals.
+  tracker_controller.send_update_event();
+
+  tracker_1_0_worker->set_scrapable();
+  tracker_1_0_worker->send_scrape(torrent::tracker::TrackerParams{});
+
+  std::this_thread::sleep_for(100ms);
+
+  CPPUNIT_ASSERT(tracker_0_0.is_requesting());
+  CPPUNIT_ASSERT(tracker_1_0.is_requesting());
+  CPPUNIT_ASSERT(!tracker_1_0.is_requesting_not_scrape());
+
+  // Announce succeeds while the scrape is still in progress.
+  CPPUNIT_ASSERT(tracker_0_0_worker->trigger_success());
+
+  // The next announce timeout must be queued despite the active scrape.
+  // trigger_success() resets the tracker's normal interval to the default,
+  // so just verify the timeout is set and non-zero.
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() > 0);
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() <=
+                 tracker_0_0.state().normal_interval().count() + 1);
+
+  // Let the scrape finish.
+  CPPUNIT_ASSERT(tracker_1_0_worker->trigger_scrape());
+
+  TEST_MULTIPLE_END(1, 0);
+}
+
 // Add new function for finding the first tracker that will time out,
 // e.g. both with failure mode and normal rerequesting.
 
