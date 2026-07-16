@@ -235,18 +235,58 @@ ChunkSelector::search_linear_byte(utils::PartialQueue* pq, uint32_t index, Bitfi
   return true;
 }
 
+// First untouched index in [first, last) that lies in priority ranges.
+static uint32_t
+next_wanted_in_ranges(const Bitfield* untouched,
+                      const download_data::priority_ranges* ranges,
+                      uint32_t first,
+                      uint32_t last) {
+  if (first >= last)
+    return ChunkSelector::invalid_chunk;
+
+  for (auto itr = ranges->find(first); itr != ranges->end() && itr->first < last; ++itr) {
+    uint32_t f = std::max(first, itr->first);
+    uint32_t l = std::min(last, itr->second);
+
+    for (uint32_t i = f; i < l; ++i) {
+      if (untouched->get(i))
+        return i;
+    }
+  }
+
+  return ChunkSelector::invalid_chunk;
+}
+
 void
 ChunkSelector::advance_position() {
+  if (empty()) {
+    m_position = invalid_chunk;
+    return;
+  }
 
-  // Need to replace with a special-purpose function for finding the
-  // next position.
+  // Start from the current cursor (inclusive). Callers either leave a random /
+  // sticky index that may still be wanted, or have just cleared m_position via
+  // using_index so this index is no longer untouched and we move past it.
+  uint32_t start = m_position;
 
-//   int position = m_position;
+  if (start == invalid_chunk || start >= size())
+    start = 0;
 
-//   ((m_position = search_linear(&m_bitfield, &m_highPriority, position, size())) == invalid_chunk &&
-//    (m_position = search_linear(&m_bitfield, &m_highPriority, 0, position)) == invalid_chunk &&
-//    (m_position = search_linear(&m_bitfield, &m_normalPriority, position, size())) == invalid_chunk &&
-//    (m_position = search_linear(&m_bitfield, &m_normalPriority, 0, position)) == invalid_chunk);
+  const Bitfield* untouched = m_data->untouched_bitfield();
+  const auto*     high      = m_data->high_priority();
+  const auto*     normal    = m_data->normal_priority();
+
+  // Prefer high priority, then normal; wrap [start, size) then [0, start).
+  uint32_t pos = next_wanted_in_ranges(untouched, high, start, size());
+
+  if (pos == invalid_chunk)
+    pos = next_wanted_in_ranges(untouched, high, 0, start);
+  if (pos == invalid_chunk)
+    pos = next_wanted_in_ranges(untouched, normal, start, size());
+  if (pos == invalid_chunk)
+    pos = next_wanted_in_ranges(untouched, normal, 0, start);
+
+  m_position = pos;
 }
 
 } // namespace torrent
