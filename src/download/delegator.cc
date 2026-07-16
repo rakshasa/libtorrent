@@ -11,7 +11,7 @@
 namespace torrent {
 
 std::vector<BlockTransfer*>
-Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPieces) {
+Delegator::delegate(PeerChunks* peerChunks, std::optional<uint32_t> affinity, uint32_t maxPieces) {
   // TODO: Make sure we don't queue the same piece several time on the same peer when
   // it timeout cancels them.
   std::vector<BlockTransfer*> new_transfers;
@@ -22,12 +22,12 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
   // in progress.
 
   // TODO: What if the hash failed? Don't want data from that peer again.
-  if (affinity >= 0) {
+  if (affinity) {
     for (BlockList* itr : m_transfers) {
       if (new_transfers.size() >= maxPieces)
         return new_transfers;
 
-      if (affinity == itr->index())
+      if (*affinity == itr->index())
         delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
     }
   }

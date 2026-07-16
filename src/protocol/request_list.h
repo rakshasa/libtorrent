@@ -2,6 +2,7 @@
 #define LIBTORRENT_REQUEST_LIST_H
 
 #include <deque>
+#include <optional>
 #include <vector>
 
 #include "torrent/data/block_transfer.h"
@@ -103,7 +104,7 @@ private:
 
   queues_type          m_queues;
 
-  int32_t              m_affinity{-1};
+  std::optional<uint32_t> m_affinity;
 
   std::chrono::microseconds m_last_choke{};
   std::chrono::microseconds m_last_unchoke{};
