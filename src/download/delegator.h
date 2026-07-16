@@ -2,6 +2,7 @@
 #define LIBTORRENT_DELEGATOR_H
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -26,7 +27,7 @@ public:
   TransferList*       transfer_list()                     { return &m_transfers; }
   const TransferList* transfer_list() const               { return &m_transfers; }
 
-  std::vector<BlockTransfer*> delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPieces);
+  std::vector<BlockTransfer*> delegate(PeerChunks* peerChunks, std::optional<uint32_t> affinity, uint32_t maxPieces);
 
   bool               get_aggressive() const               { return m_aggressive; }
   void               set_aggressive(bool a)               { m_aggressive = a; }
