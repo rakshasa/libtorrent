@@ -200,7 +200,7 @@ Chunk::preload(uint32_t position, uint32_t length, bool useAdvise) {
 
     } else {
       for (char* first = static_cast<char*>(data.first), *last = static_cast<char*>(data.first) + data.second; first < last; first += 4096)
-        [[maybe_unused]] volatile char touchChunk = *static_cast<char*>(data.first);
+        [[maybe_unused]] volatile char touchChunk = *first;
 
       // Make sure we touch the last page in the range.
       [[maybe_unused]] volatile char ouchChunk = *(static_cast<char*>(data.first) + data.second - 1);
