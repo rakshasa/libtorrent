@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <array>
+
 #include <torrent/object.h>
 #include <torrent/object_stream.h>
 #include "torrent/object_static_map.h"
@@ -268,6 +270,15 @@ ObjectStaticMapTest::test_read_single() {
   CPPUNIT_ASSERT(static_map_read_bencode_exception(map_incomplete, "d1:b"));
   CPPUNIT_ASSERT(static_map_read_bencode_exception(map_incomplete, "d1:bi1"));
   CPPUNIT_ASSERT(static_map_read_bencode_exception(map_incomplete, "d1:bi1e"));
+}
+
+void
+ObjectStaticMapTest::test_read_unknown_truncated_value() {
+  test_single_type map;
+  const std::array<char, 8> input = {'d', '1', ':', 'x', 'l', 'l', 'l', 'i'};
+
+  CPPUNIT_ASSERT_THROW(torrent::static_map_read_bencode(input.data(), input.data() + input.size(), map),
+                       torrent::bencode_error);
 }
 
 void
