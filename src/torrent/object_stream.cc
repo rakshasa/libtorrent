@@ -292,8 +292,11 @@ object_read_bencode_skip_c(const char* first, const char* last) {
 
     switch (*first) {
     case 'i':
-      if (first != last && *++first == '-') {
-        if (first != last && *++first == '0')
+      if (++first == last)
+        throw torrent::bencode_error("Invalid bencode data.");
+
+      if (*first == '-') {
+        if (++first == last || *first == '0')
           throw torrent::bencode_error("Invalid bencode data.");
       }
 
