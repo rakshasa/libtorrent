@@ -48,7 +48,7 @@ public:
   void                cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
 
   // Returns NULL if not tracking the torrent unless create is true.
-  DhtTracker*         get_tracker(const HashString& hash, bool create);
+  DhtTracker*         get_tracker(const HashString& hash, bool create, uint32_t source = 0);
 
   // Check if we are interested in inserting a new node of the given ID
   // into our table (i.e. if we have space or bad nodes in the corresponding bucket).
@@ -84,8 +84,8 @@ public:
   Object*             store_cache(Object* container) const;
 
   // Create and verify a token. Tokens are valid between 15-30 minutes from creation.
-  raw_string          make_token(const sockaddr* sa, char* buffer) const;
-  bool                token_valid(raw_string token, const sockaddr* sa) const;
+  raw_string          make_token(const sockaddr* sa, const HashString& hash, char* buffer) const;
+  bool                token_valid(raw_string token, const sockaddr* sa, const HashString& hash) const;
 
   tracker::DhtController::statistics_type get_statistics() const;
   void                                    reset_statistics()  { m_server.reset_statistics(); }
@@ -99,6 +99,12 @@ private:
 
   // Maximum number of potential contacts to keep until bootstrap complete.
   static constexpr unsigned int num_bootstrap_contacts = 64;
+
+  // Maximum number of torrents for which remote peers are tracked.
+  static constexpr size_t max_trackers = 4096;
+
+  // Maximum number of torrents a remote peer can create.
+  static constexpr size_t max_trackers_per_peer = 64;
 
   using DhtBucketList = std::map<const HashString, DhtBucket*>;
 
@@ -118,7 +124,7 @@ private:
   void                receive_timeout_bootstrap();
 
   // buffer needs to hold an SHA1 hash (20 bytes), not just the token (8 bytes)
-  static char*        generate_token(const sockaddr* sa, int token, char buffer[20]);
+  static char*        generate_token(const sockaddr* sa, const HashString& hash, int token, char buffer[20]);
 
   utils::SchedulerEntry m_task_timeout;
 
@@ -142,8 +148,8 @@ private:
 };
 
 inline raw_string
-DhtRouter::make_token(const sockaddr* sa, char* buffer) const {
-  return raw_string(generate_token(sa, m_curToken, buffer), size_token);
+DhtRouter::make_token(const sockaddr* sa, const HashString& hash, char* buffer) const {
+  return raw_string(generate_token(sa, hash, m_curToken, buffer), size_token);
 }
 
 } // namespace torrent
