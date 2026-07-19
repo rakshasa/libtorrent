@@ -6,6 +6,7 @@
 
 #include "net/listen.h"
 #include "torrent/exceptions.h"
+#include "torrent/runtime/client_config.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
 #include "torrent/system/thread.h"
@@ -114,6 +115,8 @@ NetworkManager::set_listen_port(uint16_t port) {
     m_listen_port = port;
 
     listen_restart_unsafe();
+
+    client_config()->set_listen_port_range(port, port);
   }
 
   if (runtime::network_config()->override_dht_port() == 0)
