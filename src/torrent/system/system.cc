@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <netdb.h>
+#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/system/callbacks.h"
