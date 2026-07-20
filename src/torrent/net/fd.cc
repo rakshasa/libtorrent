@@ -1,0 +1,646 @@
+#include "config.h"
+
+#include "fd.h"
+
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+#include "torrent/exceptions.h"
+#include "torrent/net/socket_address.h"
+#include "torrent/system/types.h"
+#include "torrent/utils/log.h"
+
+#if defined(USE_EPOLL)
+#include <sys/epoll.h>
+#elif defined(USE_KQUEUE)
+#include <sys/time.h>
+#include <sys/event.h>
+#else
+#error "Must enable at least one of either kqueue or epoll"
+#endif
+
+#ifdef USE_INOTIFY
+#include <sys/inotify.h>
+#endif
+
+#define LT_LOG(log_fmt, ...)                                    \
+  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__);
+#define LT_LOG_FLAG(log_fmt)                                            \
+  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x", flags);
+#define LT_LOG_FLAG_ERROR(log_fmt)                                      \
+  lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt " : flags:0x%x errno:%s", \
+               flags, system::errno_enum(errno));
+#define LT_LOG_FD(log_fmt)                                  \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt, fd);
+#define LT_LOG_FD_ERROR(log_fmt)                                        \
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : errno:%s",   \
+                 fd, system::errno_enum(errno));                        \
+    errno = err; }
+#define LT_LOG_FD_SOCKADDR(log_fmt)                                     \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s",   \
+               fd, sa_pretty_str(sa).c_str());
+#define LT_LOG_FD_SOCKADDR_MSG(log_fmt, msg)                            \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s %s", \
+               fd, sa_pretty_str(sa).c_str(), msg);
+
+#define LT_LOG_FD_SOCKADDR_ERROR(log_fmt)                               \
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s errno:%s", \
+                 fd, sa_pretty_str(sa).c_str(), system::errno_enum(errno)); \
+    errno = err; }
+
+#define LT_LOG_FD_SAP(log_fmt)                                          \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : address:%s",   \
+               fd, sap_pretty_str(sap).c_str());
+#define LT_LOG_FD_FLAG(log_fmt)                                         \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x", fd, flags);
+#define LT_LOG_FD_FLAG_ERROR(log_fmt)                                   \
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : flags:0x%x errno:%s", \
+                 fd, flags, system::errno_enum(errno));                 \
+    errno = err; }
+#define LT_LOG_FD_VALUE(log_fmt, value)                                 \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i", fd, (int)value);
+#define LT_LOG_FD_VALUE_ERROR(log_fmt, value)                           \
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i errno:%s", \
+                 fd, (int)value, system::errno_enum(errno));            \
+    errno = err; }
+
+namespace torrent {
+
+int fd__accept(int socket, sockaddr *address, socklen_t *address_len) {
+#ifdef HAVE_ACCEPT4
+  return ::accept4(socket, address, address_len, SOCK_CLOEXEC);
+#else
+  return ::accept(socket, address, address_len);
+#endif
+}
+int fd__bind(int socket, const sockaddr *address, socklen_t address_len) { return ::bind(socket, address, address_len); }
+int fd__close(int fildes) { return ::close(fildes); }
+int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return ::connect(socket, address, address_len); }
+int fd__fcntl_int(int fildes, int cmd, int arg) { return ::fcntl(fildes, cmd, arg); }
+int fd__listen(int socket, int backlog) { return ::listen(socket, backlog); }
+int fd__setsockopt_int(int socket, int level, int option_name, int option_value) { return ::setsockopt(socket, level, option_name, &option_value, sizeof(int)); }
+int fd__socket(int domain, int type, int protocol) {
+#ifdef SOCK_CLOEXEC
+  type |= SOCK_CLOEXEC;
+#endif
+  return ::socket(domain, type, protocol);
+}
+
+int
+fd_open(fd_flags flags) {
+  int domain;
+  int protocol;
+
+  if (!fd_valid_flags(flags))
+    throw internal_error("torrent::fd_open failed: invalid fd_flags");
+
+  if ((flags & fd_flag_stream)) {
+    domain = SOCK_STREAM;
+    protocol = IPPROTO_TCP;
+  } else if ((flags & fd_flag_datagram)) {
+    domain = SOCK_DGRAM;
+    protocol = IPPROTO_UDP;
+  } else {
+    LT_LOG_FLAG("fd_open missing socket type");
+    errno = EINVAL;
+    return -1;
+  }
+
+  int fd = -1;
+
+  if (fd == -1 && !(flags & fd_flag_v4only)) {
+    LT_LOG_FLAG("fd_open opening ipv6 socket");
+    fd = fd__socket(PF_INET6, domain, protocol);
+  }
+
+  if (fd == -1 && !(flags & fd_flag_v6only)) {
+    LT_LOG_FLAG("fd_open opening ipv4 socket");
+    fd = fd__socket(PF_INET, domain, protocol);
+  }
+
+  if (fd == -1) {
+    LT_LOG_FLAG_ERROR("fd_open failed to open socket");
+    return -1;
+  }
+
+  if ((flags & fd_flag_v6only) && !fd_set_v6only(fd, true)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open failed to set v6only");
+    fd__close(fd);
+    return -1;
+  }
+
+  if ((flags & fd_flag_nonblock) && !fd_set_nonblock(fd)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open failed to set nonblock");
+    fd__close(fd);
+    return -1;
+  }
+
+  if ((flags & fd_flag_reuse_address) && !fd_set_reuse_address(fd, true)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open failed to set reuse_address");
+    fd__close(fd);
+    return -1;
+  }
+
+  LT_LOG_FD_FLAG("fd_open succeeded");
+  return fd;
+}
+
+int
+fd_open_family(fd_flags flags, int family) {
+  if (family != AF_INET && family != AF_INET6) {
+    LT_LOG_FLAG("fd_open_family invalid family");
+    errno = EINVAL;
+    return -1;
+  }
+
+  if (family == AF_INET)
+    flags |= fd_flag_v4;
+
+  return fd_open(flags);
+}
+
+int
+fd_open_local(fd_flags flags) {
+  if ((flags & ~(fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address)))
+    throw internal_error("torrent::fd_open_local() invalid fd_flags");
+
+  if (!(flags & fd_flag_stream))
+    throw internal_error("torrent::fd_open_local() only stream sockets supported");
+
+  int fd = fd__socket(AF_LOCAL, SOCK_STREAM, 0);
+
+  if (fd == -1) {
+    LT_LOG_FLAG_ERROR("fd_open_local() failed to open socket");
+    return -1;
+  }
+
+  if ((flags & fd_flag_nonblock) && !fd_set_nonblock(fd)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open_local() failed to set nonblock");
+    fd__close(fd);
+    return -1;
+  }
+
+  if ((flags & fd_flag_reuse_address) && !fd_set_reuse_address(fd, true)) {
+    LT_LOG_FD_FLAG_ERROR("fd_open_local() failed to set reuse_address");
+    fd__close(fd);
+    return -1;
+  }
+
+  LT_LOG_FD_FLAG("fd_open_local() succeeded");
+  return fd;
+}
+
+int
+fd_open_file(const std::string& path, int flags, mode_t mode) {
+  int fd = ::open(path.c_str(), flags | O_CLOEXEC, mode);
+
+  if (fd == -1) {
+    LT_LOG_FLAG_ERROR("fd_open_file failed to open file");
+    return -1;
+  }
+
+  LT_LOG_FD_FLAG("fd_open_file succeeded");
+  return fd;
+}
+
+void
+fd_open_pipe(int& fd1, int& fd2) {
+  int result[2];
+
+#ifdef HAVE_PIPE2
+  int status = pipe2(result, O_CLOEXEC);
+#else
+  int status = pipe(result);
+#endif
+
+  if (status == -1)
+    throw internal_error("torrent::fd_open_pipe failed: " + system::errno_enum_str(errno));
+
+  fd1 = result[0];
+  fd2 = result[1];
+
+  LT_LOG("fd_open_pipe succeeded : fd1:%i fd2:%i", fd1, fd2);
+}
+
+void
+fd_open_socket_pair(int& fd1, int& fd2) {
+  int result[2];
+  int type = SOCK_STREAM;
+
+#ifdef SOCK_CLOEXEC
+  type |= SOCK_CLOEXEC;
+#endif
+
+  if (socketpair(AF_LOCAL, type, 0, result) == -1)
+    throw internal_error("torrent::fd_open_socket_pair failed: " + system::errno_enum_str(errno));
+
+  fd1 = result[0];
+  fd2 = result[1];
+
+  LT_LOG("fd_open_socket_pair succeeded : fd1:%i fd2:%i", fd1, fd2);
+}
+
+int
+fd_open_epoll([[maybe_unused]] int size) {
+#ifdef USE_EPOLL
+#ifdef HAVE_EPOLL_CREATE1
+  int fd = epoll_create1(EPOLL_CLOEXEC);
+#else
+  int fd = epoll_create(size);
+#endif
+
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_epoll failed: " + system::errno_enum_str(errno));
+
+  return fd;
+
+#else
+  throw internal_error("torrent::fd_open_epoll called but epoll support is not compiled in");
+#endif
+}
+
+int
+fd_open_kqueue() {
+#ifdef USE_KQUEUE
+#ifdef HAVE_KQUEUE1
+  int fd = kqueue1(O_CLOEXEC);
+#else
+  int fd = kqueue();
+#endif
+
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_kqueue failed: " + system::errno_enum_str(errno));
+
+  return fd;
+
+#else
+  throw internal_error("torrent::fd_open_kqueue called but kqueue support is not compiled in");
+#endif
+}
+
+int
+fd_open_inotify() {
+#ifdef USE_INOTIFY
+#ifdef HAVE_INOTIFY_INIT1
+  int fd = inotify_init1(IN_CLOEXEC);
+#else
+  int fd = inotify_init();
+#endif
+
+  if (fd == -1)
+    throw internal_error("torrent::fd_open_inotify failed: " + system::errno_enum_str(errno));
+
+  return fd;
+
+#else
+  throw internal_error("torrent::fd_open_inotify called but inotify support is not compiled in");
+#endif
+}
+
+void
+fd_close(int fd) {
+  if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
+    throw internal_error("torrent::fd_close: tried to close stdin/out/err");
+
+  if (fd__close(fd) == -1)
+    throw internal_error("torrent::fd_close: " + system::errno_enum_str(errno));
+
+  LT_LOG_FD("fd_close succeeded");
+}
+
+int
+fd_accept(int fd) {
+  int connection_fd = fd__accept(fd, nullptr, nullptr);
+
+  if (connection_fd == -1) {
+    LT_LOG_FD_ERROR("fd_accept() failed");
+    return -1;
+  }
+
+  LT_LOG_FD("fd_accept() succeeded");
+  return connection_fd;
+}
+
+fd_sap_tuple
+fd_sap_accept(int fd) {
+  sa_inet_union sau{};
+  socklen_t sau_length = sizeof(sockaddr_in6);
+
+  int connection_fd = fd__accept(fd, &sau.sa, &sau_length);
+
+  if (connection_fd == -1) {
+    LT_LOG_FD_ERROR("fd_sap_accept() failed");
+    return fd_sap_tuple{-1, nullptr};
+  }
+
+  auto sap = sa_copy(&sau.sa);
+
+  LT_LOG_FD_SAP("fd_sap_accept() succeeded");
+  return fd_sap_tuple{connection_fd, std::move(sap)};
+}
+
+bool
+fd_bind(int fd, const sockaddr* sa) {
+  if (fd__bind(fd, sa, sa_length(sa)) == -1) {
+    LT_LOG_FD_SOCKADDR_ERROR("fd_bind() failed");
+    return false;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_bind() succeeded");
+  return true;
+}
+
+bool
+fd_bind_with_length(int fd, const sockaddr* sa, socklen_t length) {
+  if (fd__bind(fd, sa, length) == -1) {
+    LT_LOG_FD_SOCKADDR_ERROR("fd_bind() failed");
+    return false;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_bind() succeeded");
+  return true;
+}
+
+bool
+fd_connect(int fd, const sockaddr* sa) {
+  if (fd__connect(fd, sa, sa_length(sa)) == 0) {
+    LT_LOG_FD_SOCKADDR("fd_connect() succeeded");
+    return true;
+  }
+
+  if (errno == EINPROGRESS) {
+    LT_LOG_FD_SOCKADDR("fd_connect() succeeded and in progress");
+    return true;
+  }
+
+  LT_LOG_FD_SOCKADDR_ERROR("fd_connect() failed");
+  return false;
+}
+
+bool
+fd_connect_with_family(int fd, const sockaddr* sa, int family) {
+  switch (sa->sa_family) {
+  case AF_UNSPEC:
+    errno = EINVAL;
+    LT_LOG_FD("fd_connect_with_family() cannot connect unspecified address");
+    return false;
+
+  case AF_INET:
+    if (family == AF_INET6) {
+      LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv4 using ipv6");
+      return fd_connect(fd, sa_to_v4mapped(sa).get());
+    }
+
+    LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv4");
+    return fd_connect(fd, sa);
+
+  case AF_INET6:
+    if (family == AF_INET) {
+      if (sa_is_v4mapped(sa)) {
+        LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv4in6 as ipv4");
+        return fd_connect(fd, sa_from_v4mapped(sa).get());
+      }
+
+      errno = EINVAL;
+      LT_LOG_FD("fd_connect_with_family() cannot connect ipv6 address with ipv4 bind");
+      return false;
+    }
+
+    LT_LOG_FD_SOCKADDR("fd_connect_with_family() connecting ipv6");
+    return fd_connect(fd, sa);
+
+  default:
+    errno = EINVAL;
+    LT_LOG_FD_VALUE("fd_connect_with_family() invalid sa_family", sa->sa_family);
+    return false;
+  }
+}
+
+bool
+fd_listen(int fd, int backlog) {
+  if (fd__listen(fd, backlog) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_listen() failed", backlog);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_listen() succeeded", backlog);
+  return true;
+}
+
+bool
+fd_get_nonblock(int fd, bool* value) {
+  int flags = fd__fcntl_int(fd, F_GETFL, 0);
+
+  if (flags == -1) {
+    LT_LOG_FD_ERROR("fd_get_nonblock() failed");
+    return false;
+  }
+
+  *value = (flags & O_NONBLOCK) != 0;
+
+  LT_LOG_FD_VALUE("fd_get_nonblock() succeeded", *value);
+  return true;
+}
+
+bool
+fd_get_socket_error(int fd, int* value) {
+  socklen_t length = sizeof(int);
+
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, value, &length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_socket_error() failed");
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_get_socket_error() succeeded", *value);
+  return true;
+}
+
+bool
+fd_get_type(int fd, int* value) {
+  socklen_t length = sizeof(int);
+
+  if (getsockopt(fd, SOL_SOCKET, SO_TYPE, value, &length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_type() failed");
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_get_type() succeeded", *value);
+  return true;
+}
+
+c_sa_unique_ptr
+fd_get_peer_name(int fd) {
+  sockaddr_un sa_un{};
+  sockaddr*   sa         = reinterpret_cast<sockaddr*>(&sa_un);
+  socklen_t   sau_length = sizeof(sockaddr_un);
+
+  if (getpeername(fd, sa, &sau_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_peer_name() failed");
+    return nullptr;
+  }
+
+  if (sau_length > sizeof(sockaddr_un)) {
+    LT_LOG_FD("fd_get_peer_name() length exceeds buffer size");
+    errno = EOVERFLOW;
+    return nullptr;
+  }
+
+  if (sa->sa_family == AF_UNIX) {
+    LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
+    return sa_unique_ptr(reinterpret_cast<sockaddr*>(new sockaddr_un(sa_un)));
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_peer_name() succeeded");
+  return sa_copy(sa);
+}
+
+c_sa_unique_ptr
+fd_get_socket_name(int fd) {
+  sockaddr_un sa_un{};
+  sockaddr*   sa         = reinterpret_cast<sockaddr*>(&sa_un);
+  socklen_t   sau_length = sizeof(sockaddr_un);
+
+  if (getsockname(fd, sa, &sau_length) == -1) {
+    LT_LOG_FD_ERROR("fd_get_socket_name() failed");
+    return nullptr;
+  }
+
+  if (sau_length > sizeof(sockaddr_un)) {
+    LT_LOG_FD("fd_get_socket_name() length exceeds buffer size");
+    errno = EOVERFLOW;
+    return nullptr;
+  }
+
+  if (sa->sa_family == AF_UNIX) {
+    LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
+    return sa_unique_ptr(reinterpret_cast<sockaddr*>(new sockaddr_un(sa_un)));
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_get_socket_name() succeeded");
+  return sa_copy(sa);
+}
+
+bool
+fd_set_dont_route(int fd, bool state) {
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_DONTROUTE, state) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_dont_route() failed", state);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_dont_route() succeeded", state);
+  return true;
+}
+
+bool
+fd_set_nonblock(int fd) {
+  int flags = fd__fcntl_int(fd, F_GETFL, 0);
+  if (flags == -1) {
+    LT_LOG_FD_ERROR("fd_set_nonblock() failed reading flags");
+    return false;
+  }
+
+  if (fd__fcntl_int(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    LT_LOG_FD_ERROR("fd_set_nonblock() failed");
+    return false;
+  }
+
+  LT_LOG_FD("fd_set_nonblock() succeeded");
+  return true;
+}
+
+bool
+fd_set_reuse_address(int fd, bool state) {
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_REUSEADDR, state) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_reuse_address() failed", state);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_reuse_address() succeeded", state);
+  return true;
+}
+
+bool
+fd_set_priority(int fd, int family, int priority) {
+  int level;
+  int opt;
+
+  switch (family) {
+    case AF_INET:
+      level = IPPROTO_IP;
+      opt = IP_TOS;
+      break;
+    case AF_INET6:
+      level = IPPROTO_IPV6;
+      opt = IPV6_TCLASS;
+      break;
+    default:
+      errno = EINVAL;
+      LT_LOG_FD_VALUE("fd_set_priority invalid family", family);
+      return false;
+  }
+
+  if (fd__setsockopt_int(fd, level, opt, priority) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_priority() failed", priority);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_priority() succeeded", priority);
+  return true;
+}
+
+bool
+fd_set_tcp_nodelay(int fd) {
+  if (fd__setsockopt_int(fd, IPPROTO_TCP, TCP_NODELAY, true) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_tcp_nodelay() failed", true);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_tcp_nodelay() succeeded", true);
+  return true;
+}
+
+bool
+fd_set_v6only(int fd, bool state) {
+  if (fd__setsockopt_int(fd, IPPROTO_IPV6, IPV6_V6ONLY, state) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_v6only() failed", state);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_v6only() succeeded", state);
+  return true;
+}
+
+bool
+fd_set_send_buffer_size(int fd, uint32_t size) {
+  int opt = size;
+
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_SNDBUF, opt) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_send_buffer_size() failed", opt);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_send_buffer_size() succeeded", opt);
+  return true;
+}
+
+bool
+fd_set_receive_buffer_size(int fd, uint32_t size) {
+  int opt = size;
+
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_RCVBUF, opt) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_receive_buffer_size() failed", opt);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_receive_buffer_size() succeeded", opt);
+  return true;
+}
+
+} // namespace torrent

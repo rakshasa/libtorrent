@@ -1,0 +1,53 @@
+               MULTITRACKER METADATA ENTRY SPECIFICATION
+               =========================================
+
+This specification is for John Hoffman's proposed extension to the
+BitTorrent metadata format.  This extension is not official as of this
+writing.
+
+
+* "announce-list"
+
+In addition to the standard "announce" key, in the main area of the
+metadata file and not part of the "info" section, will be a new key,
+"announce-list".  This key will refer to a list of lists of URLs, and
+will contain a list of tiers of announces.  If the client is compatible
+with the multitracker specification, and if the "announce-list" key is
+present, the client will ignore the "announce" key and only use the
+URLs in "announce-list".
+
+
+* order of processing
+
+The tiers of announces will be processed sequentially; all URLs in each
+tier must be checked before the client goes on to the next tier.  URLs
+within each tier will be processed in a randomly chosen order; in other
+words, the list will be shuffled when first read, and then parsed in
+order.  In addition, if a connection with a tracker is successful, it
+will be moved to the front of the tier.
+
+
+* examples.
+
+d['announce-list'] = [ [tracker1], [backup1], [backup2] ]
+  On each announce, first try tracker1, then if that cannot be reached,
+  try backup1 and backup2 respectively.  On the next announce, repeat
+  in the same order.  This is meant for when the trackers are standard
+  and can not share information.
+
+d['announce-list'] = [[ tracker1, tracker2, tracker3 ]]
+  First, shuffle the list.  (For argument's sake, we'll say the list
+  has already been shuffled.)  Then, if tracker1 cannot be reached, try
+  tracker2.  If tracker2 can be reached, the list is now:
+  tracker2,tracker1,tracker3.  From then on, this will be the order the
+  client tries.  If later neither tracker2 nor tracker1 can be reached,
+  but tracker3 responds, then the list will be changed to:
+  tracker3,tracker2,tracker1, and will be tried in that order in the
+  future.  This form is meant for trackers which can trade peer
+  information and will cause the clients to help balance the load
+  between the trackers.
+
+d['announce-list'] = [ [ tracker1, tracker2 ], [backup1] ]
+  The first tier, consisting of tracker1 and tracker2, is shuffled.
+  Both trackers 1 and 2 will be tried on each announce (though perhaps
+  in varying order) before the client tries to reach backup1.

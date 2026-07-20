@@ -1,0 +1,219 @@
+#include "config.h"
+
+#include "test_main_thread.h"
+
+#include <signal.h>
+
+#include "runtime_manager.h"
+#include "thread_main.h"
+#include "data/thread_disk.h"
+#include "net/thread_net.h"
+#include "test/helpers/mock_function.h"
+#include "torrent/exceptions.h"
+#include "torrent/net/resolver.h"
+#include "torrent/utils/log.h"
+#include "torrent/utils/scheduler.h"
+#include "tracker/thread_tracker.h"
+
+std::unique_ptr<TestMainThread>
+TestMainThread::create() {
+  // Needs to be called before Thread is created.
+  mock_redirect_defaults();
+
+  auto main_thread = std::unique_ptr<TestMainThread>(new TestMainThread());
+
+  torrent::ThreadMain::set_thread_base(main_thread.get());
+  return main_thread;
+}
+
+std::unique_ptr<TestMainThread>
+TestMainThread::create_with_mock() {
+  auto main_thread = std::unique_ptr<TestMainThread>(new TestMainThread());
+
+  torrent::ThreadMain::set_thread_base(main_thread.get());
+  return main_thread;
+}
+
+void
+TestMainThread::destroy() {
+  torrent::ThreadMain::set_thread_base(nullptr);
+}
+
+void
+TestMainThread::init_thread() {
+  m_resolver = std::make_unique<torrent::net::Resolver>();
+  m_state = STATE_INITIALIZED;
+
+  //m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
+
+  init_thread_local();
+}
+
+void
+TestMainThread::cleanup_thread() {
+}
+
+void
+TestMainThread::test_set_cached_time(std::chrono::microseconds t) {
+  set_cached_time(365 * 24h + t);
+}
+
+void
+TestMainThread::test_add_cached_time(std::chrono::microseconds t) {
+  set_cached_time(cached_time() + t);
+}
+
+void
+TestMainThread::test_process_events_without_cached_time() {
+  process_events_without_cached_time();
+}
+
+void
+TestMainThread::call_events() {
+  process_callbacks();
+}
+
+std::chrono::microseconds
+TestMainThread::next_timeout() {
+  return 10min;
+}
+
+void
+TestFixtureWithMainThread::setUp() {
+  test_fixture::setUp();
+
+  m_main_thread = TestMainThread::create();
+
+  torrent::RuntimeManager::initialize();
+  m_main_thread->init_thread();
+}
+
+void
+TestFixtureWithMainThread::tearDown() {
+  torrent::RuntimeManager::cleanup();
+
+  m_main_thread.reset();
+  TestMainThread::destroy();
+
+  test_fixture::tearDown();
+}
+
+void
+TestFixtureWithMainAndDiskThread::setUp() {
+  test_fixture::setUp();
+
+  m_main_thread = TestMainThread::create();
+
+  torrent::RuntimeManager::initialize();
+  m_main_thread->init_thread();
+
+  // m_hash_check_queue.slot_chunk_done() binds to main_thread().
+
+  torrent::ThreadDisk::create_thread();
+  torrent::disk_thread::thread()->init_thread();
+  torrent::disk_thread::thread()->start_thread();
+
+  signal(SIGUSR1, [](auto){});
+}
+
+void
+TestFixtureWithMainAndDiskThread::tearDown() {
+  torrent::disk_thread::thread()->stop_thread_wait();
+
+  torrent::RuntimeManager::cleanup();
+
+  torrent::ThreadDisk::destroy_thread();
+  TestMainThread::destroy();
+
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}
+
+void
+TestFixtureWithMainAndTrackerThread::setUp() {
+  test_fixture::setUp();
+
+  m_main_thread = TestMainThread::create();
+
+  torrent::RuntimeManager::initialize();
+  m_main_thread->init_thread();
+
+  log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
+  log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
+
+  torrent::ThreadTracker::create_thread();
+  torrent::tracker_thread::thread()->init_thread();
+  torrent::tracker_thread::thread()->start_thread();
+}
+
+void
+TestFixtureWithMainAndTrackerThread::tearDown() {
+  torrent::tracker_thread::thread()->stop_thread_wait();
+
+  torrent::RuntimeManager::cleanup();
+  torrent::ThreadTracker::destroy_thread();
+
+  TestMainThread::destroy();
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}
+
+void
+TestFixtureWithMainNetTrackerThread::setUp() {
+  test_fixture::setUp();
+
+  m_main_thread = TestMainThread::create();
+
+  torrent::RuntimeManager::initialize();
+  m_main_thread->init_thread();
+
+  log_add_group_output(torrent::LOG_TRACKER_EVENTS, "test_output");
+  log_add_group_output(torrent::LOG_TRACKER_REQUESTS, "test_output");
+
+  torrent::ThreadNet::create_thread();
+  torrent::ThreadTracker::create_thread();
+
+  torrent::net_thread::thread()->init_thread();
+  torrent::tracker_thread::thread()->init_thread();
+
+  torrent::net_thread::thread()->start_thread();
+  torrent::tracker_thread::thread()->start_thread();
+}
+
+void
+TestFixtureWithMainNetTrackerThread::tearDown() {
+  torrent::tracker_thread::thread()->stop_thread_wait();
+  torrent::net_thread::thread()->stop_thread_wait();
+
+  torrent::RuntimeManager::cleanup();
+  torrent::ThreadTracker::destroy_thread();
+  torrent::ThreadNet::destroy_thread();
+
+  TestMainThread::destroy();
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}
+
+void
+TestFixtureWithMockAndMainThread::setUp() {
+  test_fixture::setUp();
+
+  m_main_thread = TestMainThread::create_with_mock();
+
+  torrent::RuntimeManager::initialize();
+  m_main_thread->init_thread();
+}
+
+void
+TestFixtureWithMockAndMainThread::tearDown() {
+  torrent::RuntimeManager::cleanup();
+
+  TestMainThread::destroy();
+  m_main_thread.reset();
+
+  test_fixture::tearDown();
+}
+

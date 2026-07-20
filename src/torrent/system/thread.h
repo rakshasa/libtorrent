@@ -1,0 +1,159 @@
+#ifndef LIBTORRENT_TORRENT_UTILS_THREAD_H
+#define LIBTORRENT_TORRENT_UTILS_THREAD_H
+
+#include <atomic>
+#include <functional>
+#include <map>
+#include <mutex>
+#include <pthread.h>
+#include <vector>
+#include <sys/types.h>
+#include <torrent/common.h>
+
+namespace torrent::system {
+
+class ThreadInternal;
+
+class LIBTORRENT_EXPORT Thread {
+public:
+  using pthread_func = void* (*)(void*);
+
+  enum state_type {
+    STATE_UNKNOWN,
+    STATE_INITIALIZED,
+    STATE_ACTIVE,
+    STATE_INACTIVE
+  };
+
+  static constexpr int flag_do_shutdown  = 0x1;
+  static constexpr int flag_did_shutdown = 0x2;
+
+  // The ctor and dtor are called outside of the thread, so thread-specific initialization and
+  // destruction should be done in init_thread() and cleanup_thread() respectively.
+  Thread();
+  virtual ~Thread();
+
+  // TODO: Should we clear m_self after event_loop ends?
+  static Thread*      self();
+  virtual const char* name() const = 0;
+
+  bool                is_initialized() const { return state() == STATE_INITIALIZED; }
+  bool                is_active()      const { return state() == STATE_ACTIVE; }
+  bool                is_inactive()    const { return state() == STATE_INACTIVE; }
+
+  bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
+  bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
+
+  pthread_t           pthread() const      { return m_thread; }
+  std::thread::id     thread_id() const    { return m_thread_id; }
+
+  state_type          state() const        { return m_state; }
+  int                 flags() const        { return m_flags; }
+
+  // TODO: This shouldn't be atomic, and should be in torrent::this_thread::cached_time().
+  auto                cached_time() const  { return m_cached_time.load(); }
+
+  virtual void        init_thread();
+
+  void                start_thread();
+  void                stop_thread_wait();
+
+  void                callback(std::function<void ()>&& fn);
+  void                callback(system::callback_id& id, std::function<void ()>&& fn);
+  void                callback_interrupt(std::function<void ()>&& fn);
+  void                callback_interrupt(system::callback_id& id, std::function<void ()>&& fn);
+
+  void                cancel_callback(system::callback_id& id);
+  void                cancel_callback_and_wait(system::callback_id& id);
+  void                cancel_callback_and_wait(callback_id& id, Thread* other_thread);
+
+  void                interrupt();
+
+  // TODO: Move to protected.
+  void                event_loop();
+
+protected:
+  friend class system::Poll;
+  friend class ThreadInternal;
+
+  net::Resolver*      resolver()  { return m_resolver.get(); }
+  utils::Scheduler*   scheduler() { return m_scheduler.get(); }
+
+  bool                has_callbacks()           const { return m_has_callbacks.load(); }
+  bool                has_interrupt_callbacks() const { return m_has_interrupt_callbacks.load(); }
+  bool                has_any_callbacks()       const { return has_callbacks() || has_interrupt_callbacks(); }
+
+  static void*        enter_event_loop(void* thread);
+
+  virtual void                      call_events() = 0;
+  virtual std::chrono::microseconds next_timeout() = 0;
+
+  virtual void        init_thread_pre_start();
+  void                init_thread_local();
+  virtual void        init_thread_post_local();
+
+  // It is assumed that any thread-specific resources no longer are accessed at the time
+  // cleanup_thread is called, or that those resources remain safe to call.
+  //
+  // This mean that e.g. tracker::Manager never gets called once thread_tracker is stopped.
+  virtual void        cleanup_thread();
+  void                cleanup_thread_local();
+
+  void                process_events();
+  void                process_events_without_cached_time();
+  void                process_callbacks(bool only_interrupt = false);
+
+  void                set_cached_time(std::chrono::microseconds t);
+
+  struct callback_type {
+    callback_id            id;
+    std::function<void ()> fn;
+    uint32_t               expected_id;
+  };
+
+  void                callback(bool is_interrupt, std::function<void ()>&& fn);
+  void                callback(bool is_interrupt, system::callback_id& id, std::function<void ()>&& fn);
+
+  static thread_local Thread*  m_self;
+
+  // TODO: Remove m_thread.
+  pthread_t                    m_thread{};
+  std::atomic<std::thread::id> m_thread_id;
+  std::atomic<state_type>      m_state{STATE_UNKNOWN};
+  std::atomic<int>             m_flags{0};
+
+  // TODO: Optimize these into an int.
+  std::atomic<bool>            m_has_callbacks{};
+  std::atomic<bool>            m_has_interrupt_callbacks{};
+
+  // TODO: Make it so only thread_this can access m_cached_time.
+  std::atomic<std::chrono::microseconds> m_cached_time;
+
+  align_cacheline
+
+  int                               m_instrumentation_index;
+
+  std::unique_ptr<system::Poll>     m_poll;
+  std::unique_ptr<net::Resolver>    m_resolver;
+  std::unique_ptr<utils::Scheduler> m_scheduler;
+
+  align_cacheline
+
+  std::mutex                 m_callbacks_lock;
+  std::vector<callback_type> m_callbacks;
+  std::vector<callback_type> m_interrupt_callbacks;
+
+  // Only data used in self thread below:
+  align_cacheline
+
+  callback_id                m_callback_processing_id{};
+};
+
+inline void Thread::callback(std::function<void ()>&& fn)                                    { callback(false, std::move(fn)); }
+inline void Thread::callback(system::callback_id& id, std::function<void ()>&& fn)           { callback(false, id, std::move(fn)); }
+inline void Thread::callback_interrupt(std::function<void ()>&& fn)                          { callback(true, std::move(fn)); }
+inline void Thread::callback_interrupt(system::callback_id& id, std::function<void ()>&& fn) { callback(true, id, std::move(fn)); }
+
+} // namespace torrent::system
+
+#endif

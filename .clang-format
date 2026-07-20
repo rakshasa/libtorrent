@@ -1,0 +1,37 @@
+---
+BasedOnStyle: LLVM
+Standard: c++20
+
+AllowShortFunctionsOnASingleLine: All
+AllowShortLambdasOnASingleLine: All
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+BinPackArguments: false
+BinPackParameters: false
+BreakConstructorInitializers: AfterColon
+BreakStringLiterals: false
+ColumnLimit: 0
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ContinuationIndentWidth: 2
+Cpp11BracedListStyle: false
+IndentCaseLabels: false
+IndentWidth: 2
+PackConstructorInitializers: Never
+PenaltyReturnTypeOnItsOwnLine: 130
+PointerAlignment: Left
+SpacesInContainerLiterals: true
+
+AlignEscapedNewlines: Right
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignConsecutiveMacros:
+  Enabled: true
+AlignConsecutiveAssignments:
+  Enabled: true
+
+IncludeCategories:
+  - Regex: "^(config|globals)\\.h"
+    Priority: -1
+  - Regex: "^torrent/.*"
+    Priority: 1

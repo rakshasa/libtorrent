@@ -1,0 +1,162 @@
+#include "config.h"
+
+#include "torrent/net/http_get.h"
+
+#include <cassert>
+#include <utility>
+
+#include "net/curl_get.h"
+#include "net/curl_stack.h"
+#include "torrent/exceptions.h"
+#include "torrent/net/http_stack.h"
+#include "torrent/system/thread.h"
+
+namespace torrent::net {
+
+// TODO: Use Resolver for dns lookups?
+
+HttpGet::HttpGet() = default;
+
+HttpGet::HttpGet(std::string url, std::shared_ptr<std::ostream> stream)
+  : m_curl_get(new CurlGet(std::move(url), std::move(stream))) {
+}
+
+HttpGet::~HttpGet() = default;
+
+void
+HttpGet::close_and_keep_callbacks() {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::close() called on an invalid HttpGet object.");
+
+  CurlGet::close_and_keep_callbacks(m_curl_get);
+}
+
+void
+HttpGet::close_and_cancel_callbacks(system::Thread* callback_thread) {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::close_and_cancel_callbacks() called on an invalid HttpGet object.");
+
+  CurlGet::close_and_cancel_callbacks(m_curl_get, callback_thread);
+}
+
+void
+HttpGet::wait_for_close() {
+  if (!is_valid())
+    throw torrent::internal_error("HttpGet::wait_for_close() called on an invalid HttpGet object.");
+
+  m_curl_get->wait_for_close();
+}
+
+bool
+HttpGet::try_wait_for_close() {
+  if (!is_valid())
+    return false;
+
+  return m_curl_get->try_wait_for_close();
+}
+
+void
+HttpGet::reset(const std::string& url, std::shared_ptr<std::ostream> stream) {
+  m_curl_get = std::make_shared<CurlGet>();
+  m_curl_get->reset(url, std::move(stream));
+}
+
+std::string
+HttpGet::url() const {
+  return m_curl_get->url();
+}
+
+int64_t
+HttpGet::size_done() const {
+  return m_curl_get->size_done();
+}
+
+int64_t
+HttpGet::size_total() const {
+  return m_curl_get->size_total();
+}
+
+uint32_t
+HttpGet::timeout() const {
+  return m_curl_get->timeout();
+}
+
+void
+HttpGet::set_timeout(uint32_t seconds) {
+  m_curl_get->set_timeout(seconds);
+}
+
+uint32_t
+HttpGet::max_file_size() const {
+  return m_curl_get->max_file_size();
+}
+
+void
+HttpGet::set_max_file_size(uint32_t bytes) {
+  m_curl_get->set_max_file_size(bytes);
+}
+
+void
+HttpGet::set_redirect_only_http_https() {
+  m_curl_get->set_redirect_only_http_https();
+}
+
+void
+HttpGet::use_ipv4() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV4);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_NONE);
+}
+
+void
+HttpGet::use_ipv6() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV6);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_NONE);
+}
+
+void
+HttpGet::use_family(int family) {
+  if (family == AF_INET)
+    use_ipv4();
+  else if (family == AF_INET6)
+    use_ipv6();
+  else
+    throw torrent::internal_error("HttpGet::use_family() called with an invalid address family.");
+}
+
+void
+HttpGet::prefer_ipv4() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV4);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_IPV6);
+}
+
+void
+HttpGet::prefer_ipv6() {
+  m_curl_get->set_initial_resolve(CurlGet::RESOLVE_IPV6);
+  m_curl_get->set_retry_resolve(CurlGet::RESOLVE_IPV4);
+}
+
+void
+HttpGet::add_done_slot(system::Thread* thread, const std::function<void()>& fn) {
+  if (m_curl_get == nullptr)
+    throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
+
+  m_curl_get->add_done_slot([thread, fn, curl_get = m_curl_get]() {
+      thread->callback(curl_get->callback_id(), [fn]() {
+          fn();
+        });
+    });
+}
+
+void
+HttpGet::add_failed_slot(system::Thread* thread, const std::function<void(const std::string&)>& fn) {
+  if (m_curl_get == nullptr)
+    throw torrent::internal_error("HttpGet::add_failed_slot() called on an invalid HttpGet object.");
+
+  m_curl_get->add_failed_slot([thread, fn, curl_get = m_curl_get](const std::string& error) {
+      thread->callback(curl_get->callback_id(), [fn, error]() {
+          fn(error);
+        });
+    });
+}
+
+} // namespace torrent::net

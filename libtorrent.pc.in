@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libtorrent
+Description: A BitTorrent library
+Version: @VERSION@
+Requires.private: zlib, libcrypto, libcurl
+Libs: -L${libdir} -ltorrent
+Libs.private: @PTHREAD_LIBS@ @ATOMIC_LIBS@ @LIBCURL_LIBS@
+Cflags: -I${includedir}

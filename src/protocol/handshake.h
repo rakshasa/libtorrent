@@ -1,0 +1,222 @@
+#ifndef LIBTORRENT_HANDSHAKE_H
+#define LIBTORRENT_HANDSHAKE_H
+
+#include "net/protocol_buffer.h"
+#include "net/proxy/proxy.h"
+#include "net/socket_stream.h"
+#include "protocol/handshake_encryption.h"
+#include "torrent/bitfield.h"
+#include "torrent/net/socket_address.h"
+#include "torrent/peer/peer_info.h"
+#include "torrent/utils/scheduler.h"
+
+namespace torrent {
+
+class HandshakeManager;
+class DownloadMain;
+class ThrottleList;
+
+namespace net::proxy {
+
+class Proxy;
+
+} // namespace net::proxy
+
+const char* handshake_strerror(int err);
+
+class Handshake : public SocketStream {
+public:
+  static constexpr uint32_t part1_size     = 20 + 28;
+  static constexpr uint32_t part2_size     = 20;
+  static constexpr uint32_t handshake_size = part1_size + part2_size;
+  static constexpr uint32_t read_message_size = 2 * 5;
+
+  static constexpr uint32_t protocol_bitfield  = 5;
+  static constexpr uint32_t protocol_port      = 9;
+  static constexpr uint32_t protocol_extension = 20;
+
+  static constexpr uint32_t enc_negotiation_size = 8 + 4 + 2;
+  static constexpr uint32_t enc_pad_size         = 512;
+  static constexpr uint32_t enc_pad_read_size    = 96 + enc_pad_size + 20;
+
+  static constexpr uint32_t buffer_size = enc_pad_read_size + 20 + enc_negotiation_size + enc_pad_size + 2 + handshake_size + read_message_size;
+
+  static constexpr int e_handshake_not_bittorrent            = 0;
+  static constexpr int e_handshake_not_accepting_connections = 1;
+  static constexpr int e_handshake_unknown_download          = 2;
+  static constexpr int e_handshake_inactive_download         = 3;
+  static constexpr int e_handshake_unwanted_connection       = 4;
+  static constexpr int e_handshake_is_self                   = 5;
+  static constexpr int e_handshake_invalid_value             = 6;
+  static constexpr int e_handshake_unencrypted_rejected      = 7;
+  static constexpr int e_handshake_invalid_encryption        = 8;
+  static constexpr int e_handshake_encryption_sync_failed    = 9;
+  static constexpr int e_handshake_network_unreachable       = 10;
+  static constexpr int e_handshake_network_timeout           = 11;
+  static constexpr int e_handshake_toomanyfailed             = 12;
+  static constexpr int e_handshake_no_peer_info              = 13;
+  static constexpr int e_handshake_network_socket_error      = 14;
+  static constexpr int e_handshake_network_read_error        = 15;
+  static constexpr int e_handshake_network_write_error       = 16;
+  static constexpr int e_last                                = 17;
+
+  // static constexpr int handshake_incoming           = 1;
+  static constexpr int handshake_outgoing           = 2;
+  static constexpr int handshake_outgoing_encrypted = 3;
+  static constexpr int handshake_outgoing_proxy     = 4;
+  // static constexpr int handshake_success            = 5;
+  static constexpr int handshake_dropped            = 6;
+  static constexpr int handshake_failed             = 7;
+  // static constexpr int handshake_retry_plaintext    = 8;
+  // static constexpr int handshake_retry_encrypted    = 9;
+
+  using Buffer = ProtocolBuffer<buffer_size>;
+
+  enum State {
+    INACTIVE,
+    CONNECTING,
+    POST_HANDSHAKE,
+
+    PROXY_WRITE,
+    PROXY_READ,
+    PROXY_DONE,
+
+    READ_ENC_KEY,
+    READ_ENC_SYNC,
+    READ_ENC_SKEY,
+    READ_ENC_NEGOT,
+    READ_ENC_PAD,
+    READ_ENC_IA,
+
+    READ_INFO,
+    READ_PEER,
+    READ_MESSAGE,
+    READ_BITFIELD,
+    READ_EXT,
+    READ_PORT
+  };
+
+  Handshake();
+  ~Handshake() override;
+
+  const char*         type_name() const override    { return "handshake"; }
+
+  bool                is_active() const             { return m_state != INACTIVE; }
+  bool                is_incoming() const           { return m_incoming; }
+
+  State               state() const                 { return m_state; }
+
+  PeerInfo*           peer_info()                   { return m_peerInfo; }
+  const PeerInfo*     peer_info() const             { return m_peerInfo; }
+  void                set_peer_info(PeerInfo* p);
+
+  auto*               proxy();
+  void                set_proxy(net::proxy_ptr proxy);
+
+  void                initialize_incoming(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, EncryptionPolicy policy);
+  void                initialize_outgoing(HandshakeManager* handshake_manager, int fd, const sockaddr* sa, EncryptionPolicy policy, DownloadMain* d, PeerInfo* peerInfo);
+
+  const sockaddr*     socket_address() const        { return m_address.get(); }
+
+  DownloadMain*       download()                    { return m_download; }
+  Bitfield*           bitfield()                    { return &m_bitfield; }
+
+  void                release_connection();
+  void                destroy_connection(bool use_socket_manager = true);
+
+  const void*         unread_data()                 { return m_readBuffer.position(); }
+  uint32_t            unread_size() const           { return m_readBuffer.remaining(); }
+
+  std::chrono::microseconds initialized_time() const { return m_initialized_time; }
+
+  void                event_read() override;
+  void                event_write() override;
+  void                event_error() override;
+
+  HandshakeEncryption* encryption()                 { return &m_encryption; }
+  ProtocolExtension*   extensions()                  { return m_extensions; }
+
+protected:
+  Handshake(const Handshake&) = delete;
+  Handshake& operator=(const Handshake&) = delete;
+
+  void                set_manager(HandshakeManager* handshake_manager);
+
+  void                read_done();
+
+  bool                fill_read_buffer(int size);
+
+  // Check what is unnessesary.
+  bool                read_proxy();
+  bool                read_encryption_key();
+  bool                read_encryption_sync();
+  bool                read_encryption_skey();
+  bool                read_encryption_negotiation();
+  bool                read_negotiation_reply();
+  bool                read_info();
+  bool                read_peer();
+  bool                read_bitfield();
+  bool                read_extension();
+  bool                read_port();
+
+  void                prepare_key_plus_pad();
+  void                prepare_enc_negotiation();
+  void                prepare_handshake();
+  void                prepare_peer_info();
+  void                prepare_bitfield();
+  void                prepare_post_handshake(bool must_write);
+
+  void                write_done();
+  void                write_proxy();
+  void                write_extension_handshake();
+  void                write_bitfield();
+
+  inline void         validate_download();
+
+  uint32_t            read_unthrottled(void* buf, uint32_t length);
+  uint32_t            write_unthrottled(const void* buf, uint32_t length);
+
+  static constexpr auto m_protocol = "BitTorrent protocol";
+
+  State               m_state{INACTIVE};
+
+  HandshakeManager*   m_manager;
+
+  PeerInfo*           m_peerInfo{};
+  DownloadMain*       m_download{};
+  net::proxy_ptr      m_proxy;
+
+  Bitfield            m_bitfield;
+
+  ThrottleList*       m_upload_throttle;
+  ThrottleList*       m_download_throttle;
+
+  utils::SchedulerEntry     m_task_timeout;
+  std::chrono::microseconds m_initialized_time;
+
+  uint32_t            m_readPos;
+  uint32_t            m_writePos;
+
+  bool                m_readDone{false};
+  bool                m_writeDone{false};
+
+  bool                m_incoming;
+
+  c_sa_unique_ptr     m_address;
+  char                m_options[8];
+
+  HandshakeEncryption m_encryption;
+  ProtocolExtension*  m_extensions;
+
+  // Put these last to keep variables closer to *this.
+  Buffer              m_readBuffer;
+  Buffer              m_writeBuffer;
+};
+
+inline void  Handshake::set_peer_info(PeerInfo* p)      { m_peerInfo = p; }
+inline auto* Handshake::proxy()                         { return m_proxy.get(); }
+inline void  Handshake::set_proxy(net::proxy_ptr proxy) { m_proxy = std::move(proxy); }
+
+} // namespace torrent
+
+#endif

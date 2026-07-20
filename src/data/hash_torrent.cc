@@ -1,0 +1,218 @@
+#include "config.h"
+
+#include <cstring>
+
+#include "data/chunk_list.h"
+#include "torrent/exceptions.h"
+#include "torrent/data/download_data.h"
+#include "torrent/system/types.h"
+#include "torrent/utils/log.h"
+
+#include "hash_torrent.h"
+
+#define LT_LOG_THIS(log_level, log_fmt, ...)                            \
+  lt_log_print_data(LOG_STORAGE_##log_level, m_chunk_list->data(), "hash_torrent", log_fmt, __VA_ARGS__);
+
+namespace torrent {
+
+HashTorrent::HashTorrent(ChunkList* c) :
+    m_chunk_list(c) {
+  m_delay_retry.slot() = [this] { queue(false); };
+}
+
+bool
+HashTorrent::start(bool try_quick) {
+  LT_LOG_THIS(INFO, "start : position:%u size:%zu quick:%u.", m_position, m_chunk_list->size(), try_quick);
+
+  if (m_position == m_chunk_list->size())
+    return true;
+
+  if (m_position > 0 || m_chunk_list->empty())
+    throw internal_error("HashTorrent::start() call failed.");
+
+  m_error_message.clear();
+  m_outstanding = 0;
+
+  queue(try_quick);
+  return m_position == m_chunk_list->size();
+}
+
+void
+HashTorrent::clear() {
+  LT_LOG_THIS(INFO, "clear", 0);
+
+  m_outstanding = -1;
+  m_position = 0;
+  m_errno = 0;
+
+  this_thread::scheduler()->erase(&m_delay_checked);
+  this_thread::scheduler()->erase(&m_delay_retry);
+}
+
+bool
+HashTorrent::is_checked() const {
+  // When closed the chunk list is empty. Position can be equal to
+  // chunk list for a short while as we have outstanding chunks, so
+  // check the latter.
+  return !m_chunk_list->empty() && m_position == m_chunk_list->size() && m_outstanding == -1;
+}
+
+// After all chunks are checked it won't show as is_checked until
+// after this function is called. This allows for the hash done signal
+// to be delayed.
+void
+HashTorrent::confirm_checked() {
+  LT_LOG_THIS(INFO, "confirmed checked", 0);
+
+  if (m_outstanding != 0)
+    throw internal_error("HashTorrent::confirm_checked() m_outstanding != 0.");
+
+  m_outstanding = -1;
+}
+
+void
+HashTorrent::receive_chunkdone(uint32_t index) {
+  LT_LOG_THIS(DEBUG, "received chunk done: index:%" PRIu32 " outstanding:%i.", index, m_outstanding);
+
+  if (m_outstanding <= 0)
+    throw internal_error("HashTorrent::receive_chunkdone() m_outstanding <= 0.");
+
+  // m_signalChunk will always point to
+  // DownloadMain::receive_hash_done, so it will take care of cleanup.
+  //
+  // Make sure we call chunkdone before torrentDone has a chance to
+  // trigger.
+  m_outstanding--;
+
+  queue(false);
+}
+
+// Mark unsuccessful checks so that if we have just stopped the
+// hash checker it will ensure those pieces get rechecked upon
+// restart.
+void
+HashTorrent::receive_chunk_cleared(uint32_t index) {
+  LT_LOG_THIS(DEBUG, "received chunk cleared: index:%" PRIu32 " outstanding:%i.", index, m_outstanding);
+
+  if (m_outstanding <= 0)
+    throw internal_error("HashTorrent::receive_chunk_cleared() m_outstanding < 0.");
+
+  if (m_ranges.has(index))
+    throw internal_error("HashTorrent::receive_chunk_cleared() m_ranges.has(index).");
+
+  m_outstanding--;
+  m_ranges.insert(index, index + 1);
+}
+
+void
+HashTorrent::queue(bool quick) {
+  LT_LOG_THIS(INFO, "queuing : position:%u outstanding:%i quick:%u", m_position, m_outstanding, quick);
+
+  if (!is_checking())
+    throw internal_error("HashTorrent::queue() called but it's not running.");
+
+  while (m_position < m_chunk_list->size()) {
+    if (m_outstanding > 10 && m_outstanding * m_chunk_list->chunk_size() > (128 << 20))
+      return;
+
+    // Not very efficient, but this is seldomly done.
+    auto itr = m_ranges.find(m_position);
+
+    if (itr == m_ranges.end()) {
+      m_position = m_chunk_list->size();
+      break;
+    } else if (m_position < itr->first) {
+      m_position = itr->first;
+    }
+
+    // Need to do increment later if we're going to support resume
+    // hashing a quick hashed torrent.
+    ChunkHandle handle = m_chunk_list->get(m_position, ChunkList::get_dont_log | ChunkList::get_hashing);
+
+    if (quick) {
+      // We're not actually interested in doing any hashing, so just
+      // skip what we know is not possible to hash.
+      //
+      // If the file does not exist then no valid error number is
+      // returned.
+
+      if (m_outstanding != 0)
+        throw internal_error("HashTorrent::queue() quick hashing but m_outstanding != 0.");
+
+      if (handle.is_valid()) {
+        LT_LOG_THIS(DEBUG, "quick : skip valid handle : position:%u", m_position);
+        return m_chunk_list->release(&handle, ChunkList::release_dont_log);
+      }
+
+      if (handle.error_number() != 0 && handle.error_number() != ENOENT) {
+        LT_LOG_THIS(DEBUG, "quick : skip invalid handle with non-ENOENT error : position:%u errno:%s",
+                    m_position, system::errno_enum(handle.error_number()));
+        return;
+      }
+
+      m_position++;
+      continue;
+    }
+
+    // If the error number is not valid, then we've just encountered a
+    // file that hasn't be created/resized. Which means we ignore it
+    // when doing initial hashing.
+    if (handle.error_number() == ENOMEM) {
+      LT_LOG_THIS(INFO, "ENOMEM during hash, retrying: position:%u outstanding:%i", m_position, m_outstanding);
+
+      if (m_outstanding == 0)
+        this_thread::scheduler()->update_wait_for(&m_delay_retry, std::chrono::milliseconds(100));
+
+      return;
+    }
+
+    if (handle.error_number() != 0 && handle.error_number() != ENOENT) {
+      if (handle.is_valid())
+        throw internal_error("HashTorrent::queue() valid handle with error number: " + system::errno_enum_str(handle.error_number()));
+
+      // We wait for all the outstanding chunks to be checked before
+      // borking completely, else low-memory devices might not be able
+      // to finish the hash check.
+      if (m_outstanding != 0)
+        return;
+
+      // The rest of the outstanding chunks get ignored by
+      // DownloadWrapper::receive_hash_done. Obsolete.
+      auto error_pos = m_position;
+
+      clear();
+
+      m_errno = handle.error_number();
+      m_error_message = "Hash check I/O error at chunk " + std::to_string(error_pos) + ": " + std::strerror(handle.error_number());
+
+      LT_LOG_THIS(INFO, "completed with error: position:%u errno:%s", m_position, system::errno_enum(handle.error_number()));
+
+      this_thread::scheduler()->update_wait_for(&m_delay_checked, 0s);
+      return;
+    }
+
+    m_position++;
+
+    if (!handle.is_valid() && handle.error_number() == 0)
+      throw internal_error("HashTorrent::queue() invalid handle but no error.");
+
+    // Missing file, skip the hash check.
+    if (!handle.is_valid())
+      continue;
+
+    if (m_slot_check_chunk)
+      m_slot_check_chunk(handle);
+
+    m_outstanding++;
+  }
+
+  if (m_outstanding == 0) {
+    LT_LOG_THIS(INFO, "completed : position:%u", m_position);
+
+    // Update the scheduled item just to make sure that if hashing is
+    // started again during the delay it won't cause an exception.
+    this_thread::scheduler()->update_wait_for(&m_delay_checked, 0s);
+  }
+}
+
+} // namespace torrent

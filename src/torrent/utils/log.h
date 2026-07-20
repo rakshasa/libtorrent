@@ -1,0 +1,207 @@
+#ifndef LIBTORRENT_UTILS_LOG_H
+#define LIBTORRENT_UTILS_LOG_H
+
+#include <array>
+#include <bitset>
+#include <functional>
+#include <string>
+#include <vector>
+
+#include <torrent/common.h>
+
+// TODO: Move to system.
+
+namespace torrent {
+
+enum {
+  LOG_CRITICAL,
+  LOG_ERROR,
+  LOG_WARN,
+  LOG_NOTICE,
+  LOG_INFO,
+  LOG_DEBUG,
+
+  LOG_STORAGE_CRITICAL,
+  LOG_STORAGE_ERROR,
+  LOG_STORAGE_WARN,
+  LOG_STORAGE_NOTICE,
+  LOG_STORAGE_INFO,
+  LOG_STORAGE_DEBUG,
+
+  LOG_TORRENT_CRITICAL,
+  LOG_TORRENT_ERROR,
+  LOG_TORRENT_WARN,
+  LOG_TORRENT_NOTICE,
+  LOG_TORRENT_INFO,
+  LOG_TORRENT_DEBUG,
+
+  LOG_NON_CASCADING,
+
+  LOG_CONNECTION,
+  LOG_CONNECTION_BIND,
+  LOG_CONNECTION_FD,
+  LOG_CONNECTION_FILTER,
+  LOG_CONNECTION_HANDSHAKE,
+  LOG_CONNECTION_LISTEN,
+
+  LOG_DHT,
+  LOG_DHT_ALL,
+  LOG_DHT_ERROR,
+  LOG_DHT_CONTROLLER,
+  LOG_DHT_NODE,
+  LOG_DHT_ROUTER,
+  LOG_DHT_SERVER,
+
+  LOG_INSTRUMENTATION_MEMORY,
+  LOG_INSTRUMENTATION_MINCORE,
+  LOG_INSTRUMENTATION_CHOKE,
+  LOG_INSTRUMENTATION_POLLING,
+  LOG_INSTRUMENTATION_TRANSFERS,
+
+  LOG_MOCK_CALLS,
+
+  LOG_NET_DNS,
+  LOG_NET_HTTP,
+  LOG_NET_SOCKET,
+
+  LOG_PEER_CHOKE_QUEUE,
+  LOG_PEER_LIST_EVENTS,
+  LOG_PEER_LIST_ADDRESS,
+
+  LOG_PROTOCOL_PIECE_EVENTS,
+  LOG_PROTOCOL_METADATA_EVENTS,
+  LOG_PROTOCOL_NETWORK_ERRORS,
+  LOG_PROTOCOL_STORAGE_ERRORS,
+
+  LOG_RESUME_DATA,
+
+  LOG_RPC_EVENTS,
+  LOG_RPC_DUMP,
+
+  LOG_SESSION_EVENTS,
+  LOG_STORAGE,
+
+  LOG_SYSTEM,
+  LOG_SYSTEM_POLL,
+  LOG_SYSTEM_THREAD,
+
+  LOG_TRACKER_DUMP,
+  LOG_TRACKER_EVENTS,
+  LOG_TRACKER_REQUESTS,
+
+  LOG_UI_EVENTS,
+
+  LOG_GROUP_MAX_SIZE
+};
+
+#define lt_log_is_valid(log_group) (torrent::log_groups[log_group].valid())
+
+#define lt_log_print(log_group, ...)                                    \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(NULL, NULL, NULL, 0, __VA_ARGS__); }
+
+#define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
+  { if (torrent::log_groups[log_group].valid())                         \
+    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__); }
+
+#define lt_log_print_info(log_group, log_info, log_subsystem, ...)      \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, NULL, 0, __VA_ARGS__); }
+
+#define lt_log_print_data(log_group, log_data, log_subsystem, ...)      \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_data->hash(), log_subsystem, NULL, 0, __VA_ARGS__); }
+
+#define lt_log_print_dump(log_group, log_dump_data, log_dump_size, ...) \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(NULL, NULL, log_dump_data, log_dump_size, __VA_ARGS__); }
+
+#define lt_log_print_hash_dump(log_group, log_dump_data, log_dump_size, log_hash, log_subsystem, ...) \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); }
+
+#define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, log_subsystem, ...) \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); }
+
+#define lt_log_print_subsystem(log_group, log_subsystem, ...)           \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__); }
+
+using log_slot = std::function<void(const char*, size_t, int)>;
+
+class LIBTORRENT_EXPORT log_group {
+public:
+  using outputs_type = std::bitset<64>;
+
+  log_group() {
+    m_outputs.reset();
+    m_cached_outputs.reset();
+  }
+
+  bool                valid() const { return m_first != NULL; }
+  bool                empty() const { return m_first == NULL; }
+
+  size_t              size_outputs() const { return std::distance(m_first, m_last); }
+
+  static size_t       max_size_outputs() { return 64; }
+
+  //
+  // Internal:
+  //
+
+  void                internal_print(const HashString* hash, const char* subsystem,
+                                     const void* dump_data, size_t dump_size,
+                                     const char* fmt, ...);
+
+  const outputs_type& outputs() const                    { return m_outputs; }
+  const outputs_type& cached_outputs() const             { return m_cached_outputs; }
+
+  void                clear_cached_outputs()             { m_cached_outputs = m_outputs; }
+
+  void                set_outputs(const outputs_type& val)        { m_outputs = val; }
+  void                set_cached_outputs(const outputs_type& val) { m_cached_outputs = val; }
+
+  void                set_output_at(size_t index, bool val)       { m_outputs[index] = val; }
+
+  void                set_cached(log_slot* f, log_slot* l)        { m_first = f; m_last = l; }
+
+private:
+  outputs_type        m_outputs;
+  outputs_type        m_cached_outputs;
+
+  log_slot*           m_first{};
+  log_slot*           m_last{};
+};
+
+using log_group_list = std::array<log_group, LOG_GROUP_MAX_SIZE>;
+using log_output_list = std::vector<std::pair<std::string, log_slot>>;
+
+extern log_group_list log_groups LIBTORRENT_EXPORT;
+extern log_output_list log_outputs LIBTORRENT_EXPORT;
+
+void log_initialize() LIBTORRENT_EXPORT;
+void log_cleanup() LIBTORRENT_EXPORT;
+
+void log_open_output(const char* name, const log_slot& slot) LIBTORRENT_EXPORT;
+void log_close_output(const char* name) LIBTORRENT_EXPORT;
+void log_close_output_str(const std::string& name) LIBTORRENT_EXPORT;
+
+void log_add_group_output(int group, const char* name) LIBTORRENT_EXPORT;
+void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
+
+void log_add_child(int group, int child) LIBTORRENT_EXPORT;
+void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
+
+void log_open_file_output(const char* name, const char* filename, bool append = false, bool flush = false) LIBTORRENT_EXPORT;
+void log_open_gz_file_output(const char* name, const char* filename, bool append = false) LIBTORRENT_EXPORT;
+
+//
+// Implementation:
+//
+
+inline void log_close_output_str(const std::string& name) { log_close_output(name.c_str()); }
+
+} // namespace torrent
+
+#endif

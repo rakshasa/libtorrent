@@ -1,0 +1,215 @@
+#include "config.h"
+
+#include "torrent/torrent.h"
+
+#include <algorithm>
+#include <random>
+#include <curl/curl.h>
+
+#include "manager.h"
+#include "runtime_manager.h"
+#include "thread_main.h"
+#include "data/thread_disk.h"
+#include "net/thread_net.h"
+#include "torrent/exceptions.h"
+#include "torrent/system/poll.h"
+#include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/socket_manager.h"
+#include "tracker/thread_tracker.h"
+#include "utils/instrumentation.h"
+
+// TODO: Refactor these uses.
+#include "download/download_constructor.h"
+#include "download/download_manager.h"
+#include "download/download_wrapper.h"
+#include "torrent/download/resource_manager.h"
+#include "protocol/peer_factory.h"
+#include "torrent/download_info.h"
+#include "torrent/object.h"
+#include "torrent/object_stream.h"
+#include "torrent/throttle.h"
+#include "torrent/peer/connection_list.h"
+
+namespace torrent {
+
+namespace {
+
+std::string
+generate_random(size_t length) {
+  std::random_device rd;
+  std::mt19937 mt(rd());
+
+  using bytes_randomizer = std::independent_bits_engine<std::mt19937, CHAR_BIT, uint8_t>;
+  bytes_randomizer bytes(mt);
+
+  std::string s;
+  s.reserve(length);
+
+  std::generate_n(std::back_inserter(s), length, std::ref(bytes));
+  return s;
+}
+
+}
+
+void
+initialize_main_thread() {
+  ThreadMain::create_thread();
+
+  RuntimeManager::initialize();
+  ThreadMain::thread_main()->init_thread();
+}
+
+void
+initialize() {
+  if (manager != nullptr)
+    throw internal_error("torrent::initialize(...) called but the library has already been initialized");
+
+  instrumentation_initialize();
+  curl_global_init(CURL_GLOBAL_ALL);
+
+  manager = new Manager;
+
+  ThreadDisk::create_thread();
+  ThreadNet::create_thread();
+  ThreadTracker::create_thread();
+
+  runtime::socket_manager()->set_max_size_and_adjust(this_thread::poll()->open_max());
+
+  ThreadMain::thread_main()->init_after_setup();
+
+  disk_thread::thread()->init_thread();
+  net_thread::thread()->init_thread();
+  tracker_thread::thread()->init_thread();
+
+  disk_thread::thread()->start_thread();
+  net_thread::thread()->start_thread();
+  tracker_thread::thread()->start_thread();
+}
+
+// Clean up and close stuff. Stopping all torrents and waiting for
+// them to finish is not required, but recommended.
+void
+cleanup() {
+  if (manager == nullptr)
+    throw internal_error("torrent::cleanup() called but the library is not initialized.");
+
+  // Might need to wait for the threads to finish?
+  runtime::network_manager()->cleanup();
+
+  tracker_thread::thread()->stop_thread_wait();
+  disk_thread::thread()->stop_thread_wait();
+  net_thread::thread()->stop_thread_wait();
+
+  ThreadTracker::destroy_thread();
+  ThreadDisk::destroy_thread();
+  ThreadNet::destroy_thread();
+
+  RuntimeManager::cleanup();
+  manager->cleanup();
+
+  RuntimeManager::destroy();
+
+  delete manager;
+  manager = nullptr;
+
+  curl_global_cleanup();
+}
+
+ClientList*        client_list()         { return manager->client_list(); }
+FileManager*       file_manager()        { return manager->file_manager(); }
+ResourceManager*   resource_manager()    { return manager->resource_manager(); }
+
+Throttle* down_throttle_global() { return manager->download_throttle(); }
+Throttle* up_throttle_global()   { return manager->upload_throttle(); }
+
+const Rate* down_rate()          { return manager->download_throttle()->rate(); }
+const Rate* up_rate()            { return manager->upload_throttle()->rate(); }
+
+Download
+download_add(Object* object, uint32_t tracker_key) {
+  auto download = std::make_unique<DownloadWrapper>();
+
+  DownloadConstructor ctor;
+
+  ctor.set_download(download.get());
+  ctor.initialize(*object);
+
+  std::string infoHash;
+  if (download->info()->is_meta_download())
+    infoHash = object->get_key("info").get_key("pieces").as_string();
+  else
+    infoHash = object_sha1(&object->get_key("info"));
+
+  if (manager->download_manager()->find(infoHash) != manager->download_manager()->end())
+    throw input_error("Info hash already used by another torrent.");
+
+  if (!download->info()->is_meta_download()) {
+    char buffer[1024];
+    uint64_t metadata_size = 0;
+    object_write_bencode_c(&object_write_to_size, &metadata_size, object_buffer_t(buffer, buffer + sizeof(buffer)), &object->get_key("info"));
+    download->main()->set_metadata_size(metadata_size);
+  }
+
+  std::string local_id = PEER_NAME + generate_random(20 - std::string(PEER_NAME).size());
+
+  download->set_hash_queue(ThreadMain::thread_main()->hash_queue());
+  download->initialize(infoHash, local_id, tracker_key);
+
+  // Add trackers, etc, after setting the info hash so that log
+  // entries look sane.
+  ctor.parse_tracker(*object);
+
+  // Default PeerConnection factory functions.
+  download->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
+
+  // Consider move as much as possible into this function
+  // call. Anything that won't cause possible torrent creation errors
+  // go in there.
+  manager->initialize_download(download.get());
+
+  download->set_bencode(object);
+  return Download(download.release());
+}
+
+void
+download_remove(Download d) {
+  manager->cleanup_download(d.ptr());
+}
+
+// Add all downloads to dlist. Make sure it's cleared.
+void
+download_list(DList& dlist) {
+  dlist.insert(dlist.end(), manager->download_manager()->begin(), manager->download_manager()->end());
+}
+
+// Make sure you check that it's valid.
+Download
+download_find(const std::string& infohash) {
+  return *manager->download_manager()->find(infohash);
+}
+
+uint32_t
+download_priority(Download d) {
+  auto itr = manager->resource_manager()->find(d.ptr()->main());
+
+  if (itr == manager->resource_manager()->end())
+    throw internal_error("torrent::download_priority(...) could not find the download in the resource manager.");
+
+  return itr->priority();
+}
+
+// TODO: Remove this.
+void
+download_set_priority(Download d, uint32_t pri) {
+  auto itr = manager->resource_manager()->find(d.ptr()->main());
+
+  if (itr == manager->resource_manager()->end())
+    throw internal_error("torrent::download_set_priority(...) could not find the download in the resource manager.");
+
+  if (pri > 1024)
+    throw internal_error("torrent::download_set_priority(...) received an invalid priority.");
+
+  ResourceManager::set_priority(itr, pri);
+}
+
+} // namespace torrent

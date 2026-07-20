@@ -1,0 +1,191 @@
+#ifndef LIBTORRENT_TORRENT_RUNTIME_NETWORK_CONFIG_H
+#define LIBTORRENT_TORRENT_RUNTIME_NETWORK_CONFIG_H
+
+#include <mutex>
+#include <vector>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <torrent/net/types.h>
+#include <torrent/utils/scheduler.h>
+
+namespace torrent::runtime {
+
+class ProxyManager;
+
+NetworkConfig* network_config() LIBTORRENT_EXPORT;
+
+class LIBTORRENT_EXPORT NetworkConfig {
+public:
+  // TODO: Remove.
+  static constexpr int iptos_default     = 0;
+  static constexpr int iptos_lowdelay    = IPTOS_LOWDELAY;
+  static constexpr int iptos_throughput  = IPTOS_THROUGHPUT;
+  static constexpr int iptos_reliability = IPTOS_RELIABILITY;
+
+  NetworkConfig();
+
+  // TODO: Move helper functions in rtorrent manager here.
+
+  // TODO: Verify we attempt to connect to cached peers on startup, even before tracker requests.
+
+  bool                is_block_udp() const;
+  bool                is_block_ipv4() const;
+  bool                is_block_ipv6() const;
+  bool                is_block_ipv4in6() const;
+  bool                is_block_incoming() const;
+  bool                is_block_outgoing() const;
+  bool                is_prefer_ipv6() const;
+
+  void                set_block_ipv4(bool v);
+  void                set_block_ipv6(bool v);
+  void                set_block_ipv4in6(bool v);
+  void                set_block_outgoing(bool v);
+  void                set_prefer_ipv6(bool v);
+
+  int                 priority() const;
+  void                set_priority(int p);
+
+  // Use bind_address_best_match for display purposes only, or if you manually check blocking.
+  //
+  // If bind_address_or_null returns null, then available protocols are blocked. This means if the
+  // user binds to e.g. inet6 and blocks ipv6, then no connections are possible.
+  //
+  // To bind one and keep the other protocol unbound, set the other address to either 0.0.0.0 or ::.
+
+  c_sa_shared_ptr     bind_address_best_match() const;
+  std::string         bind_address_best_match_str() const;
+  c_sa_shared_ptr     bind_address_or_unspec_and_null() const;
+  c_sa_shared_ptr     bind_address_or_any_and_null() const;
+  c_sa_shared_ptr     bind_address_for_connect(int family) const;
+  c_sa_shared_ptr     bind_address_for_udp_connect(int family) const;
+
+  c_sa_shared_ptr     bind_inet_address() const;
+  std::string         bind_inet_address_str() const;
+  c_sa_shared_ptr     bind_inet6_address() const;
+  std::string         bind_inet6_address_str() const;
+
+  std::tuple<c_sa_shared_ptr, c_sa_shared_ptr> bind_addresses_or_null() const;
+  std::tuple<c_sa_shared_ptr, c_sa_shared_ptr> bind_udp_addresses_or_null() const;
+  std::tuple<std::string, std::string>         bind_addresses_str() const;
+
+  c_sa_shared_ptr     local_address_best_match() const;
+  std::string         local_address_best_match_str() const;
+  c_sa_shared_ptr     local_address_or_unspec_and_null() const;
+  c_sa_shared_ptr     local_address_or_any_and_null() const;
+
+  c_sa_shared_ptr     local_inet_address() const;
+  c_sa_shared_ptr     local_inet_address_or_null() const;
+  std::string         local_inet_address_str() const;
+  c_sa_shared_ptr     local_inet6_address() const;
+  c_sa_shared_ptr     local_inet6_address_or_null() const;
+  std::string         local_inet6_address_str() const;
+
+  void                set_bind_address(const sockaddr* sa);
+  void                set_bind_address_str(const std::string& addr);
+  void                set_bind_inet_address(const sockaddr* sa);
+  void                set_bind_inet_address_str(const std::string& addr);
+  void                set_bind_inet6_address(const sockaddr* sa);
+  void                set_bind_inet6_address_str(const std::string& addr);
+  void                set_local_address(const sockaddr* sa);
+  void                set_local_address_str(const std::string& addr);
+  void                set_local_inet_address(const sockaddr* sa);
+  void                set_local_inet_address_str(const std::string& addr);
+  void                set_local_inet6_address(const sockaddr* sa);
+  void                set_local_inet6_address_str(const std::string& addr);
+
+  int                 listen_backlog() const;
+  void                set_listen_backlog(int backlog);
+
+  uint16_t            override_dht_port() const;
+  void                set_override_dht_port(uint16_t port);
+
+  uint32_t            send_buffer_size() const;
+  void                set_send_buffer_size(uint32_t s);
+
+  uint32_t            receive_buffer_size() const;
+  void                set_receive_buffer_size(uint32_t s);
+
+  auto                encryption_modes() const;
+  void                set_encryption_modes(encryption_mode handshake, encryption_mode stream);
+
+  // The lock is held while the callback is called, so use Thread::callback().
+  void                subscribe_to_changes(void* target, const std::function<void()>& callback);
+  void                unsubscribe_from_changes(void* target);
+
+  void                force_notify_changes();
+
+protected:
+  friend class torrent::ConnectionManager;
+  friend class torrent::runtime::NetworkManager;
+  friend class torrent::runtime::ProxyManager;
+
+  using listen_addresses = std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool>;
+  using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
+
+  void                lock() const                    { m_mutex.lock(); }
+  auto                lock_guard() const              { return std::lock_guard(m_mutex); }
+  void                unlock() const                  { m_mutex.unlock(); }
+  auto&               mutex() const                   { return m_mutex; }
+
+  void                notify_changes_unsafe();
+
+  listen_addresses    listen_addresses_unsafe() const;
+  int                 listen_backlog_unsafe() const;
+  uint16_t            override_dht_port_unsafe() const;
+
+private:
+
+  c_sa_shared_ptr     generic_address_best_match(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  std::string         generic_address_best_match_str(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_or_unspec_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_or_any_and_null(const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_for_connect(int family, bool is_udp, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+  c_sa_shared_ptr     generic_address_for_family(int family, const c_sa_shared_ptr& inet_address, const c_sa_shared_ptr& inet6_address) const;
+
+  void                set_generic_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
+  void                set_generic_inet_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, const sockaddr* sa);
+  void                set_generic_inet6_address_unsafe(const char* category, c_sa_shared_ptr& inet6_address, const sockaddr* sa);
+
+  std::tuple<c_sa_shared_ptr, c_sa_shared_ptr> bind_addresses_or_null_unsafe() const;
+
+  mutable std::mutex  m_mutex;
+
+  bool                m_block_ipv4{};
+  bool                m_block_ipv6{};
+  bool                m_block_ipv4in6{};
+  bool                m_block_outgoing{};
+  bool                m_prefer_ipv6{};
+
+  // Directly modified by ProxyManager.
+  bool                m_block_udp{};
+  bool                m_block_incoming{};
+
+  // TODO: Rename m_tos_priority.
+  int                 m_priority{iptos_throughput};
+
+  c_sa_shared_ptr     m_bind_inet_address;
+  c_sa_shared_ptr     m_bind_inet6_address;
+  c_sa_shared_ptr     m_local_inet_address;
+  c_sa_shared_ptr     m_local_inet6_address;
+
+  int                 m_listen_backlog{SOMAXCONN};
+  uint16_t            m_override_dht_port{0};
+  uint32_t            m_send_buffer_size{0};
+  uint32_t            m_receive_buffer_size{0};
+
+  encryption_mode     m_handshake_encryption_mode{ENCRYPTION_MODE_ALLOW};
+  encryption_mode     m_stream_encryption_mode{ENCRYPTION_MODE_ALLOW};
+
+  subscriber_list       m_change_subscribers;
+  utils::SchedulerEntry m_delay_changed;
+};
+
+inline auto
+NetworkConfig::encryption_modes() const {
+  auto guard = lock_guard();
+  return std::make_pair(m_handshake_encryption_mode, m_stream_encryption_mode);
+}
+
+} // namespace torrent::config
+
+#endif

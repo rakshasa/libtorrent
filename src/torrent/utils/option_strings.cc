@@ -1,0 +1,312 @@
+#include "config.h"
+
+#include <array>
+#include <cstring>
+
+#include "torrent/download.h"
+#include "torrent/exceptions.h"
+#include "torrent/object.h"
+#include "torrent/download/choke_group.h"
+#include "torrent/download/choke_queue.h"
+#include "torrent/peer/peer_info.h"
+#include "torrent/runtime/network_config.h"
+#include "torrent/utils/option_strings.h"
+
+namespace torrent {
+
+struct option_single {
+  unsigned int size;
+  const char* const* name;
+};
+
+struct option_pair {
+  const char*  name;
+  unsigned int value;
+};
+
+constexpr option_pair option_list_connection_type[] = {
+  { "leech",        Download::CONNECTION_LEECH },
+  { "seed",         Download::CONNECTION_SEED },
+  { "initial_seed", Download::CONNECTION_INITIAL_SEED },
+  { "metadata",     Download::CONNECTION_METADATA },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_heuristics[] = {
+  { "upload_leech",              HEURISTICS_UPLOAD_LEECH },
+  { "upload_leech_experimental", HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               HEURISTICS_UPLOAD_SEED },
+  { "download_leech",            HEURISTICS_DOWNLOAD_LEECH },
+  { "invalid",                   HEURISTICS_MAX_SIZE },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_heuristics_download[] = {
+  { "download_leech",            HEURISTICS_DOWNLOAD_LEECH },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_heuristics_upload[] = {
+  { "upload_leech",              HEURISTICS_UPLOAD_LEECH },
+  { "upload_leech_experimental", HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               HEURISTICS_UPLOAD_SEED },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_encryption_mode[] = {
+  { "deny",    ENCRYPTION_MODE_DENY    },
+  { "allow",   ENCRYPTION_MODE_ALLOW   },
+  { "prefer",  ENCRYPTION_MODE_PREFER  },
+  { "require", ENCRYPTION_MODE_REQUIRE },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_encryption_handshake[] = {
+  { "handshake_deny",    ENCRYPTION_MODE_DENY    },
+  { "handshake_allow",   ENCRYPTION_MODE_ALLOW   },
+  { "handshake_prefer",  ENCRYPTION_MODE_PREFER  },
+  { "handshake_require", ENCRYPTION_MODE_REQUIRE },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_encryption_stream[] = {
+  { "stream_deny",    ENCRYPTION_MODE_DENY    },
+  { "stream_allow",   ENCRYPTION_MODE_ALLOW   },
+  { "stream_prefer",  ENCRYPTION_MODE_PREFER  },
+  { "stream_require", ENCRYPTION_MODE_REQUIRE },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_ip_filter[] = {
+  { "unwanted",  PeerInfo::flag_unwanted },
+  { "preferred", PeerInfo::flag_preferred },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_ip_tos[] = {
+  { "default",     runtime::NetworkConfig::iptos_default },
+  { "lowdelay",    runtime::NetworkConfig::iptos_lowdelay },
+  { "throughput",  runtime::NetworkConfig::iptos_throughput },
+  { "reliability", runtime::NetworkConfig::iptos_reliability },
+  { NULL, 0 }
+};
+
+constexpr option_pair option_list_tracker_mode[] = {
+  { "normal",     choke_group::TRACKER_MODE_NORMAL },
+  { "aggressive", choke_group::TRACKER_MODE_AGGRESSIVE },
+  { NULL, 0 }
+};
+
+constexpr const char* option_list_handshake_connection[] = {
+  "none",
+  "incoming",
+  "outgoing_normal",
+  "outgoing_encrypted",
+  "outgoing_proxy",
+  "success",
+  "dropped",
+  "failed",
+  "retry_plaintext",
+  "retry_encrypted",
+
+  nullptr
+};
+
+constexpr const char* option_list_log_group[] = {
+  "critical",
+  "error",
+  "warn",
+  "notice",
+  "info",
+  "debug",
+
+  "storage_critical",
+  "storage_error",
+  "storage_warn",
+  "storage_notice",
+  "storage_info",
+  "storage_debug",
+
+  "torrent_critical",
+  "torrent_error",
+  "torrent_warn",
+  "torrent_notice",
+  "torrent_info",
+  "torrent_debug",
+
+  "__non_cascading__",
+
+  "connection",
+  "connection_bind",
+  "connection_fd",
+  "connection_filter",
+  "connection_handshake",
+  "connection_listen",
+
+  "dht",
+  "dht_all",
+  "dht_error",
+  "dht_controller",
+  "dht_node",
+  "dht_router",
+  "dht_server",
+
+  "instrumentation_memory",
+  "instrumentation_mincore",
+  "instrumentation_choke",
+  "instrumentation_polling",
+  "instrumentation_transfers",
+
+  "mock_calls",
+
+  "net_dns",
+  "net_http",
+  "net_socket",
+
+  "peer_choke_queue",
+  "peer_list_events",
+  "peer_list_address",
+
+  "protocol_piece_events",
+  "protocol_metadata_events",
+  "protocol_network_errors",
+  "protocol_storage_errors",
+
+  "resume_data",
+
+  "rpc_events",
+  "rpc_dump",
+
+  "session_events",
+  "storage",
+
+  "system",
+  "system_poll",
+  "system_thread",
+
+  "tracker_dump",
+  "tracker_events",
+  "tracker_requests",
+
+  "ui_events",
+
+  NULL
+};
+
+constexpr const char* option_list_socket_category[] = {
+  "generic",
+  "http",
+  "internal",
+  "rpc",
+  "files",
+
+  NULL
+};
+
+constexpr const char* option_list_tracker_event[] = {
+  "updated",
+  "completed",
+  "started",
+  "stopped",
+  "scrape",
+
+  NULL
+};
+
+constexpr std::array option_pair_lists{
+  option_list_connection_type,
+  option_list_heuristics,
+  option_list_heuristics_download,
+  option_list_heuristics_upload,
+  option_list_encryption_mode,
+  option_list_encryption_handshake,
+  option_list_encryption_stream,
+  option_list_ip_filter,
+  option_list_ip_tos,
+  option_list_tracker_mode,
+};
+static_assert(option_pair_lists.size() == OPTION_START_COMPACT);
+
+#define OPTION_SINGLE_ENTRY(single_name) \
+  option_single{ sizeof(single_name) / sizeof(const char*) - 1, single_name }
+
+constexpr std::array option_single_lists{
+  OPTION_SINGLE_ENTRY(option_list_handshake_connection),
+  OPTION_SINGLE_ENTRY(option_list_log_group),
+  OPTION_SINGLE_ENTRY(option_list_socket_category),
+  OPTION_SINGLE_ENTRY(option_list_tracker_event),
+};
+static_assert(option_single_lists.size() == OPTION_SINGLE_SIZE);
+
+int
+option_find_string(option_enum opt_enum, const char* name) {
+  if (opt_enum < OPTION_START_COMPACT) {
+    auto itr = option_pair_lists[opt_enum];
+
+    do {
+      if (std::strcmp(itr->name, name) == 0)
+        return itr->value;
+    } while ((++itr)->name != NULL);
+
+  } else if (opt_enum < OPTION_MAX_SIZE) {
+    auto itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
+
+    do {
+      if (std::strcmp(*itr, name) == 0)
+        return std::distance(option_single_lists[opt_enum - OPTION_START_COMPACT].name, itr);
+    } while (*++itr != NULL);
+  }
+
+  throw input_error("invalid option name : enum:" + std::to_string(opt_enum) + " name:'" + std::string(name) + "'");
+}
+
+const char*
+option_to_c_str(option_enum opt_enum, unsigned int value, const char* not_found) {
+  if (opt_enum < OPTION_START_COMPACT) {
+    auto itr = option_pair_lists[opt_enum];
+
+    do {
+      if (itr->value == value)
+        return itr->name;
+
+    } while ((++itr)->name != nullptr);
+
+  } else if (opt_enum < OPTION_MAX_SIZE) {
+    if (value < option_single_lists[opt_enum - OPTION_START_COMPACT].size)
+      return option_single_lists[opt_enum - OPTION_START_COMPACT].name[value];
+  }
+
+  return not_found;
+}
+
+const char*
+option_to_c_str_or_throw(option_enum opt_enum, unsigned int value, const char* not_found) {
+  const char* result = option_to_c_str(opt_enum, value, nullptr);
+
+  if (result == nullptr)
+    throw input_error(std::string(not_found) + " : enum:" + std::to_string(opt_enum) + " value:" + std::to_string(value));
+
+  return result;
+}
+
+torrent::Object
+option_list_strings(option_enum opt_enum) {
+  Object::list_type result;
+
+  if (opt_enum < OPTION_START_COMPACT) {
+    auto itr = option_pair_lists[opt_enum];
+
+    while (itr->name != NULL)
+      result.emplace_back(std::string(itr++->name));
+
+  } else if (opt_enum < OPTION_MAX_SIZE) {
+    auto itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
+
+    while (*itr != NULL)
+      result.emplace_back(std::string(*itr++));
+  }
+
+  return Object::from_list(result);
+}
+
+} // namespace torrent

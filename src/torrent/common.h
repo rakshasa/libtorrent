@@ -1,0 +1,208 @@
+#ifndef LIBTORRENT_COMMON_H
+#define LIBTORRENT_COMMON_H
+
+#include <new>
+#include <atomic>
+#include <cerrno>
+#include <cinttypes>
+#include <cstddef>
+#include <cstring>
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <string>
+#include <thread>
+
+struct sockaddr;
+struct sockaddr_in;
+struct sockaddr_in6;
+struct sockaddr_un;
+
+using namespace std::chrono_literals;
+
+namespace torrent {
+
+// TODO: Move
+enum encryption_mode : uint8_t {
+  ENCRYPTION_MODE_DENY,
+  ENCRYPTION_MODE_ALLOW,
+  ENCRYPTION_MODE_PREFER,
+  ENCRYPTION_MODE_REQUIRE,
+};
+
+namespace system {
+
+using callback_id = std::shared_ptr<std::atomic<uint32_t>>;
+
+} // namespace system
+
+enum priority_enum {
+  PRIORITY_OFF = 0,
+  PRIORITY_NORMAL,
+  PRIORITY_HIGH
+};
+
+enum tracker_enum {
+  TRACKER_NONE,
+  TRACKER_HTTP,
+  TRACKER_UDP,
+  TRACKER_DHT,
+};
+
+// Just forward declare everything here so we can keep the actual
+// headers clean.
+class AddressList;
+class AvailableList;
+class Bitfield;
+class Block;
+class BlockFailed;
+class BlockList;
+class BlockTransfer;
+class Chunk;
+class ChunkList;
+class ChunkManager;
+class ChunkSelector;
+class ClientInfo;
+class ClientList;
+class ConnectionList;
+class ConnectionManager;
+class DhtRouter;
+class Download;
+class DownloadInfo;
+class DownloadMain;
+class DownloadWrapper;
+class FileList;
+class FileManager;
+class Event;
+class File;
+class FileList;
+class Handshake;
+class HandshakeManager;
+class HashString;
+class Listen;
+class MemoryChunk;
+class Object;
+class Path;
+class Peer;
+class PeerConnectionBase;
+class PeerInfo;
+class PeerList;
+class Piece;
+class ProtocolExtension;
+class Rate;
+class ResourceManager;
+class RuntimeManager;
+class Throttle;
+class TrackerController;
+class TrackerList;
+class TransferList;
+
+namespace net {
+
+class HttpGet;
+class HttpStack;
+class Resolver;
+
+} // namespace net
+
+namespace runtime {
+
+class ClientConfig;
+class NetworkConfig;
+class NetworkManager;
+class MemoryManager;
+class SocketManager;
+
+} // namespace runtime
+
+namespace tracker {
+
+class DhtController;
+class Manager;
+class Tracker;
+
+} // namespace tracker
+
+namespace system {
+
+class Poll;
+class Thread;
+
+} // namespace system
+
+namespace utils {
+
+class Scheduler;
+class SchedulerEntry;
+
+} // namespace utils
+
+} // namespace torrent
+
+
+// This should only need to be set when compiling libtorrent.
+#ifdef SUPPORT_ATTRIBUTE_VISIBILITY
+  #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
+  #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
+#else
+  #define LIBTORRENT_NO_EXPORT
+  #define LIBTORRENT_EXPORT
+#endif
+
+#define align_cacheline alignas(LT_SMP_CACHE_BYTES)
+
+
+namespace torrent::this_thread {
+
+system::Thread*           thread() LIBTORRENT_EXPORT;
+const char*               thread_name() LIBTORRENT_EXPORT;
+std::string               thread_name_str() LIBTORRENT_EXPORT;
+std::thread::id           thread_id() LIBTORRENT_EXPORT;
+
+std::chrono::microseconds cached_time() LIBTORRENT_EXPORT;
+std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
+
+system::Poll*             poll() LIBTORRENT_EXPORT;
+net::Resolver*            resolver() LIBTORRENT_EXPORT;
+utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
+
+} // namespace torrent::this_thread
+
+namespace torrent::disk_thread {
+
+system::Thread*          thread() LIBTORRENT_EXPORT;
+std::thread::id          thread_id() LIBTORRENT_EXPORT;
+
+} // namespace torrent::disk_thread
+
+namespace torrent::main_thread {
+
+system::Thread*          thread() LIBTORRENT_EXPORT;
+std::thread::id          thread_id() LIBTORRENT_EXPORT;
+
+void                     set_client_callback(std::function<void()> fn) LIBTORRENT_EXPORT;
+
+uint32_t                 hash_queue_size() LIBTORRENT_EXPORT;
+
+} // namespace torrent::main_thread
+
+namespace torrent::net_thread {
+
+system::Thread*          thread() LIBTORRENT_EXPORT;
+std::thread::id          thread_id() LIBTORRENT_EXPORT;
+
+// TODO: Move to runtime.
+net::HttpStack*          http_stack() LIBTORRENT_EXPORT;
+
+} // namespace torrent::net_thread
+
+namespace torrent::tracker_thread {
+
+system::Thread*          thread() LIBTORRENT_EXPORT;
+std::thread::id          thread_id() LIBTORRENT_EXPORT;
+
+tracker::Manager*        manager() LIBTORRENT_EXPORT;
+
+} // namespace torrent::tracker_thread
+
+#endif
