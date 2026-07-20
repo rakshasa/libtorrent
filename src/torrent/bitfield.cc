@@ -131,4 +131,16 @@ Bitfield::unset_range(size_type first, size_type last) {
     unset(first++);
 }
 
+Bitfield::size_type
+Bitfield::find_first_set(size_type first, size_type last) const {
+  while (first < last) {
+    if (get(first))
+      return first;
+
+    ++first;
+  }
+
+  return last;
+}
+
 } // namespace torrent

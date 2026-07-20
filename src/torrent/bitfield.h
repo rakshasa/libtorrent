@@ -58,6 +58,9 @@ public:
 
   bool                get(size_type idx) const      { return m_data[idx / 8] & mask_at(idx % 8); }
 
+  // First set index in [first, last), or last if none.
+  size_type           find_first_set(size_type first, size_type last) const;
+
   void                set(size_type idx)            { m_set += !get(idx); m_data[idx / 8] |=  mask_at(idx % 8); }
   void                unset(size_type idx)          { m_set -=  get(idx); m_data[idx / 8] &= ~mask_at(idx % 8); }
 
