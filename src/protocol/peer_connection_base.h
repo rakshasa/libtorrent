@@ -37,9 +37,6 @@ public:
   using EncryptBuffer = ProtocolBuffer<16384>;
 #endif
 
-  // Find an optimal number for this.
-  static constexpr uint32_t read_size = 64;
-
   // Bitmasks for peer exchange messages to send.
   static constexpr int PEX_DO      = (1 << 0);
   static constexpr int PEX_ENABLE  = (1 << 1);
