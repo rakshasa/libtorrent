@@ -804,17 +804,27 @@ PeerConnectionBase::up_chunk_release() {
 
 void
 PeerConnectionBase::read_request_piece(const Piece& p) {
-  auto itr = std::find(m_peerChunks.upload_queue()->begin(),
-                       m_peerChunks.upload_queue()->end(),
-                       p);
+  auto upload_queue = m_peerChunks.upload_queue();
 
-  if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17)) {
+  if (m_upChoke.choked() ||
+      upload_queue->size() >= ProtocolExtension::max_request_queue_size ||
+      p.length() > (1 << 17)) {
     LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
     return;
   }
 
-  m_peerChunks.upload_queue()->push_back(p);
+  auto itr = std::find(upload_queue->begin(),
+                       upload_queue->end(),
+                       p);
+
+  if (itr != upload_queue->end()) {
+    LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        p.index(), p.offset(), p.length());
+    return;
+  }
+
+  upload_queue->push_back(p);
   write_insert_poll_safe();
 
   LT_LOG_PIECE_EVENTS("(up)   request_added    %" PRIu32 " %" PRIu32 " %" PRIu32,
