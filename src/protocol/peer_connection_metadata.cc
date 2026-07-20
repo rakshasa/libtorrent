@@ -188,19 +188,14 @@ PeerConnectionMetadata::event_read() {
 
   try {
 
-    // Normal read.
-    //
-    // We rarely will read zero bytes as the read of 64 bytes will
-    // almost always either not fill up or it will require additional
-    // reads.
-    //
-    // Only loop when end hits 64.
+    // Normal read: fill the full protocol buffer; loop while it is full
+    // (socket may still have data).
 
     do {
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
-        if (m_down->buffer()->size_end() < read_size) {
-          unsigned int length = read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end());
+        if (m_down->buffer()->size_end() < ProtocolRead::buffer_size) {
+          unsigned int length = read_stream_throws(m_down->buffer()->end(), ProtocolRead::buffer_size - m_down->buffer()->size_end());
           m_down->throttle()->node_used_unthrottled(length);
 
           if (is_encrypted())
@@ -212,7 +207,7 @@ PeerConnectionMetadata::event_read() {
         while (read_message())
           ; // Do nothing.
 
-        if (m_down->buffer()->size_end() == read_size) {
+        if (m_down->buffer()->size_end() == ProtocolRead::buffer_size) {
           m_down->buffer()->move_unused();
           break;
         } else {
