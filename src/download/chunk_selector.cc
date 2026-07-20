@@ -245,13 +245,13 @@ next_wanted_in_ranges(const Bitfield* untouched,
     return ChunkSelector::invalid_chunk;
 
   for (auto itr = ranges->find(first); itr != ranges->end() && itr->first < last; ++itr) {
-    uint32_t f = std::max(first, itr->first);
-    uint32_t l = std::min(last, itr->second);
+    uint32_t range_first = std::max(first, itr->first);
+    uint32_t range_last  = std::min(last, itr->second);
 
-    for (uint32_t i = f; i < l; ++i) {
-      if (untouched->get(i))
-        return i;
-    }
+    uint32_t chunk = untouched->find_first_set(range_first, range_last);
+
+    if (chunk != range_last)
+      return chunk;
   }
 
   return ChunkSelector::invalid_chunk;
