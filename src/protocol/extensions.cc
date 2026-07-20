@@ -115,7 +115,7 @@ ProtocolExtension::generate_handshake_message() {
 
   message[key_p] = runtime::listen_port();
   message[key_v] = raw_string::from_c_str("libTorrent " VERSION);
-  message[key_reqq] = 2048;  // maximum request queue size
+  message[key_reqq] = max_request_queue_size;
 
   if (!m_download->info()->is_meta_download())
     message[key_metadataSize] = m_download->info()->metadata_size();
