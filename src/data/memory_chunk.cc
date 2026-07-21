@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "data/thread_disk.h"
 #include "torrent/exceptions.h"
 #include "memory_chunk.h"
 
@@ -50,7 +51,20 @@ MemoryChunk::unmap() {
   if (!is_valid())
     throw internal_error("MemoryChunk::unmap() called on an invalid object");
 
-  if (munmap(m_ptr, m_end - m_ptr) != 0)
+  void*  ptr    = m_ptr;
+  size_t length = static_cast<size_t>(m_end - m_ptr);
+
+  // Drop VA ownership on this thread; disk does MS_ASYNC + munmap so the
+  // caller (usually main) is not blocked on writeback kickoff or teardown.
+  if (ThreadDisk* disk = ThreadDisk::thread_disk(); disk != nullptr && disk->is_active()) {
+    disk->queue_munmap(ptr, length);
+    return;
+  }
+
+  // No disk thread (tests/shutdown): best-effort async kick then unmap.
+  ::msync(ptr, length, MS_ASYNC);
+
+  if (munmap(ptr, length) != 0)
     throw internal_error("MemoryChunk::unmap() system call failed: " + std::string(std::strerror(errno)));
 }
 

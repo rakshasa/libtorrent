@@ -3,6 +3,7 @@
 #include "data/thread_disk.h"
 
 #include <cassert>
+#include <sys/mman.h>
 
 #include "thread_main.h"
 #include "data/hash_check_queue.h"
@@ -71,7 +72,43 @@ ThreadDisk::init_thread() {
 
 void
 ThreadDisk::cleanup_thread() {
+  // Drain pending unmaps so we do not leak mappings at shutdown.
+  perform_munmaps();
+
   assert(m_hash_check_queue->empty() && "ThreadDisk::cleanup_thread(): m_hash_check_queue not empty.");
+  assert(m_munmaps.empty() && "ThreadDisk::cleanup_thread(): m_munmaps not empty.");
+}
+
+void
+ThreadDisk::queue_munmap(void* ptr, size_t length) {
+  if (ptr == nullptr || length == 0)
+    return;
+
+  {
+    auto lock = std::lock_guard(m_munmap_lock);
+    m_munmaps.emplace_back(ptr, length);
+  }
+
+  interrupt();
+}
+
+void
+ThreadDisk::perform_munmaps() {
+  std::deque<std::pair<void*, size_t>> local;
+
+  {
+    auto lock = std::lock_guard(m_munmap_lock);
+    local.swap(m_munmaps);
+  }
+
+  // MS_ASYNC here (not on main): start writeback of dirty MAP_SHARED pages
+  // as each region is retired so the kernel does not accumulate multi-GB
+  // dirty sets for a later flusher storm. Then drop the mapping. Failures
+  // are ignored — munmap still proceeds; durability is not required here.
+  for (auto& region : local) {
+    ::msync(region.first, region.second, MS_ASYNC);
+    ::munmap(region.first, region.second);
+  }
 }
 
 void
@@ -87,6 +124,7 @@ ThreadDisk::call_events() {
     throw shutdown_exception();
   }
 
+  perform_munmaps();
   process_callbacks();
 }
 
