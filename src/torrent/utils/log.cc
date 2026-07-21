@@ -130,6 +130,18 @@ log_rebuild_cache() {
 }
 
 void
+log_group::internal_print(const std::string& message) {
+  if (message.empty())
+    return;
+
+  auto lock = std::scoped_lock(log_mutex);
+
+  std::for_each(m_first, m_last, [this, &message](const auto& elem) {
+    return elem(message.c_str(), message.size(), std::distance(log_groups.begin(), this));
+  });
+}
+
+void
 log_group::internal_print(const HashString* hash, const char* subsystem, const void* dump_data, size_t dump_size, const char* fmt, ...) {
   va_list ap;
   const unsigned int buffer_size = 4096;
