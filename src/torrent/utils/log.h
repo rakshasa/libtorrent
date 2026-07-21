@@ -150,6 +150,7 @@ public:
   // Internal:
   //
 
+  void                internal_print(const std::string& message);
   void                internal_print(const HashString* hash, const char* subsystem,
                                      const void* dump_data, size_t dump_size,
                                      const char* fmt, ...);
