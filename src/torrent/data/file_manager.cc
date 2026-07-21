@@ -6,13 +6,54 @@
 #include <cassert>
 #include <fcntl.h>
 #include <limits>
+#include <unistd.h>
 
 #include "manager.h"
 #include "data/socket_file.h"
+#include "data/thread_disk.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/file.h"
 
 namespace torrent {
+
+namespace {
+
+// Synchronous close on the calling thread (main under pressure / tests).
+void
+close_fd_now(int fd) {
+  if (fd < 0)
+    return;
+
+  ::close(fd);
+}
+
+// Prefer disk thread so main/UI is not blocked on slow FS close.
+void
+close_fd_deferred(int fd) {
+  if (fd < 0)
+    return;
+
+  if (ThreadDisk* disk = ThreadDisk::thread_disk(); disk != nullptr && disk->is_active())
+    disk->queue_close_fd(fd);
+  else
+    close_fd_now(fd);
+}
+
+void
+close_fds_deferred(const std::vector<int>& fds) {
+  if (fds.empty())
+    return;
+
+  if (ThreadDisk* disk = ThreadDisk::thread_disk(); disk != nullptr && disk->is_active()) {
+    disk->queue_close_fds(fds);
+    return;
+  }
+
+  for (int fd : fds)
+    close_fd_now(fd);
+}
+
+} // namespace
 
 FileManager::~FileManager() {
   assert(empty() && "FileManager::~FileManager() called but empty() != true.");
@@ -71,15 +112,12 @@ FileManager::open(value_type file, [[maybe_unused]] bool hashing, int prot, int 
   return true;
 }
 
-void
-FileManager::close(value_type file) {
-  if (!file->is_open())
-    return;
+int
+FileManager::detach(value_type file) {
+  if (file == nullptr || !file->is_open() || file->is_padding())
+    return -1;
 
-  if (file->is_padding())
-    return;
-
-  SocketFile(file->file_descriptor()).close();
+  int fd = file->file_descriptor();
 
   file->set_protection(0);
   file->reset_file_descriptor();
@@ -87,12 +125,36 @@ FileManager::close(value_type file) {
   auto itr = std::find(begin(), end(), file);
 
   if (itr == end())
-    throw internal_error("FileManager::close_file(...) itr == end().");
+    throw internal_error("FileManager::detach(...) itr == end().");
 
   *itr = back();
   base_type::pop_back();
 
   m_files_closed_counter++;
+  return fd;
+}
+
+void
+FileManager::close(value_type file) {
+  close_fd_deferred(detach(file));
+}
+
+void
+FileManager::close_files(const std::vector<value_type>& files) {
+  if (files.empty())
+    return;
+
+  std::vector<int> fds;
+  fds.reserve(files.size());
+
+  for (value_type file : files) {
+    int fd = detach(file);
+
+    if (fd >= 0)
+      fds.push_back(fd);
+  }
+
+  close_fds_deferred(fds);
 }
 
 void
@@ -107,8 +169,9 @@ FileManager::close_least_active() {
     }
   }
 
+  // Free a kernel slot immediately so open-at-cap does not soft-overshoot.
   if (least)
-    close(least);
+    close_fd_now(detach(least));
 }
 
 } // namespace torrent
