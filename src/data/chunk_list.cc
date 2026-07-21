@@ -162,9 +162,9 @@ ChunkList::get(size_type index, get_flags flags) {
   return ChunkHandle(node, flags & get_writable, flags & get_blocking);
 }
 
-// The chunks in 'm_queue' have been modified and need to be synced
-// when appropriate. Hopefully keeping the chunks mmap'ed for a while
-// will allow us to schedule writes at more resonable intervals.
+// Writable and read handles share the same last-ref unmap path: drop the
+// hold and munmap when references hit zero. Do not keep a sticky writable
+// ref on m_queue just to leave the chunk mmap'd for a later sync pass.
 
 void
 ChunkList::release(ChunkHandle* handle, release_flags flags) {
@@ -185,31 +185,16 @@ ChunkList::release(ChunkHandle* handle, release_flags flags) {
     handle->object()->dec_blocking();
   }
 
-  if (handle->is_writable()) {
+  if (handle->is_writable())
+    handle->object()->dec_rw();
+  else
+    handle->object()->dec_references();
 
-    if (handle->object()->writable() == 1) {
-      if (is_queued(handle->object()))
-        throw internal_error("ChunkList::release(...) tried to queue an already queued chunk.");
+  if (handle->object()->references() == 0) {
+    if (is_queued(handle->object()))
+      throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
 
-      // Only add those that have a modification time set?
-      //
-      // Only chunks that are not already in the queue will execute
-      // this branch.
-      m_queue.push_back(handle->object());
-
-      runtime::memory_manager()->account_sync_queue(m_chunk_size);
-
-    } else {
-      handle->object()->dec_rw();
-    }
-
-  } else {
-    if (handle->object()->dec_references() == 0) {
-      if (is_queued(handle->object()))
-        throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
-
-      clear_chunk(handle->object(), flags);
-    }
+    clear_chunk(handle->object(), flags);
   }
 
   handle->clear();
