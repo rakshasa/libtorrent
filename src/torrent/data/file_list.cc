@@ -484,10 +484,15 @@ FileList::close() {
 
   LT_LOG_FL(INFO, "Closing.", 0);
 
+  std::vector<File*> files;
+  files.reserve(size());
+
   for (auto& entry : *this) {
     entry->unset_flags_protected(File::flag_active);
-    manager->file_manager()->close(entry.get());
+    files.push_back(entry.get());
   }
+
+  manager->file_manager()->close_files(files);
 
   m_is_open = false;
   m_indirect_links.clear();
@@ -502,8 +507,13 @@ FileList::close_all_files() {
 
   LT_LOG_FL(INFO, "Closing all files.", 0);
 
+  std::vector<File*> files;
+  files.reserve(size());
+
   for (auto& entry : *this)
-    manager->file_manager()->close(entry.get());
+    files.push_back(entry.get());
+
+  manager->file_manager()->close_files(files);
 }
 
 void
