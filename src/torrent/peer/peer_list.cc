@@ -101,13 +101,19 @@ uint32_t
 PeerList::insert_available(const void* al) {
   auto address_list = static_cast<const AddressList*>(al);
 
+  if (m_available_list->size() >= m_available_list->max_size())
+    return 0;
+
   uint32_t inserted = 0;
   uint32_t invalid = 0;
   uint32_t unneeded = 0;
   uint32_t updated = 0;
 
-  if (m_available_list->size() + address_list->size() > m_available_list->capacity())
-    m_available_list->reserve(m_available_list->size() + address_list->size() + 128);
+  auto remaining = m_available_list->max_size() - m_available_list->size();
+  auto reserve_size = m_available_list->size() + std::min(remaining, address_list->size());
+
+  if (reserve_size > m_available_list->capacity())
+    m_available_list->reserve(reserve_size);
 
   // Optimize this so that we don't traverse the tree for every
   // insert, since we know 'al' is sorted.
@@ -115,7 +121,12 @@ PeerList::insert_available(const void* al) {
   auto avail_itr  = m_available_list->begin();
   auto avail_last = m_available_list->end();
 
-  for (const auto& addr : *address_list) {
+  auto addr_itr  = address_list->begin();
+  auto addr_last = address_list->end();
+
+  while (addr_itr != addr_last &&
+         m_available_list->size() < m_available_list->max_size()) {
+    const auto& addr = *addr_itr++;
     auto addr_str = sa_addr_str(&addr.sa);
     auto port = sa_port(&addr.sa);
 
