@@ -3,7 +3,6 @@
 #include "data/thread_disk.h"
 
 #include <cassert>
-#include <unistd.h>
 
 #include "thread_main.h"
 #include "data/hash_check_queue.h"
@@ -72,50 +71,7 @@ ThreadDisk::init_thread() {
 
 void
 ThreadDisk::cleanup_thread() {
-  // Drain pending closes so we do not leak fds at shutdown.
-  perform_close_fds();
-
   assert(m_hash_check_queue->empty() && "ThreadDisk::cleanup_thread(): m_hash_check_queue not empty.");
-  assert(m_close_fds.empty() && "ThreadDisk::cleanup_thread(): m_close_fds not empty.");
-}
-
-void
-ThreadDisk::queue_close_fd(int fd) {
-  if (fd < 0)
-    return;
-
-  {
-    auto lock = std::lock_guard(m_close_fds_lock);
-    m_close_fds.push_back(fd);
-  }
-
-  interrupt();
-}
-
-void
-ThreadDisk::queue_close_fds(const std::vector<int>& fds) {
-  if (fds.empty())
-    return;
-
-  {
-    auto lock = std::lock_guard(m_close_fds_lock);
-    m_close_fds.insert(m_close_fds.end(), fds.begin(), fds.end());
-  }
-
-  interrupt();
-}
-
-void
-ThreadDisk::perform_close_fds() {
-  std::deque<int> local;
-
-  {
-    auto lock = std::lock_guard(m_close_fds_lock);
-    local.swap(m_close_fds);
-  }
-
-  for (int fd : local)
-    ::close(fd);
 }
 
 void
@@ -131,7 +87,6 @@ ThreadDisk::call_events() {
     throw shutdown_exception();
   }
 
-  perform_close_fds();
   process_callbacks();
 }
 
