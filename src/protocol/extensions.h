@@ -44,6 +44,9 @@ public:
   static constexpr size_t metadata_piece_shift = 14;
   static constexpr size_t metadata_piece_size  = 1 << metadata_piece_shift;
 
+  // Maximum number of upload requests accepted from one peer.
+  static constexpr size_t max_request_queue_size = 2048;
+
   ProtocolExtension();
   ~ProtocolExtension() { delete [] m_read; }
   ProtocolExtension(const ProtocolExtension&) = default;
