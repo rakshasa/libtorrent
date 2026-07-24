@@ -52,6 +52,8 @@ FdCloseQueue::~FdCloseQueue() {
   }
 
   m_wakeup_worker.store(true, std::memory_order_release);
+  m_wakeup_worker.notify_all();
+
   m_worker.wait();
 }
 
