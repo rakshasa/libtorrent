@@ -110,6 +110,7 @@ Manager::receive_tick() {
 
   m_resource_manager->receive_tick();
   m_chunk_manager->periodic_sync();
+  m_file_manager->periodic_close_idle();
 
   // To ensure the downloads get equal chance over time at using
   // various limited resources, like sockets for handshakes, cycle the
