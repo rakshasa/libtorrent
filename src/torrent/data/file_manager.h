@@ -39,6 +39,9 @@ public:
   bool                open(value_type file, bool hashing, int prot, int flags);
   void                close(value_type file);
 
+  // Detach files and queue their fds for close on the disk thread.
+  void                close_files(const std::vector<value_type>& files);
+
   // TODO: Close all files held by a download after hashing. Also flush all memory chunks.
 
   void                close_least_active();
@@ -51,6 +54,9 @@ public:
 private:
   FileManager(const FileManager&) = delete;
   FileManager& operator=(const FileManager&) = delete;
+
+  // Detach bookkeeping and return the raw fd (or -1). FileManager close paths own ::close.
+  int                 detach(value_type file);
 
   size_type           m_max_open_files{0};
   bool                m_advise_random{false};
