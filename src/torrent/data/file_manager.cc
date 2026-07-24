@@ -10,50 +10,15 @@
 
 #include "manager.h"
 #include "data/socket_file.h"
-#include "data/thread_disk.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/file.h"
+#include "utils/fd_close_queue.h"
 
 namespace torrent {
 
-namespace {
-
-// Synchronous close on the calling thread (main under pressure / tests).
-void
-close_fd_now(int fd) {
-  if (fd < 0)
-    return;
-
-  ::close(fd);
+FileManager::FileManager() {
+  m_fd_close_queue = std::make_unique<utils::FdCloseQueue>();
 }
-
-// Prefer disk thread so main/UI is not blocked on slow FS close.
-void
-close_fd_deferred(int fd) {
-  if (fd < 0)
-    return;
-
-  if (ThreadDisk* disk = ThreadDisk::thread_disk(); disk != nullptr && disk->is_active())
-    disk->queue_close_fd(fd);
-  else
-    close_fd_now(fd);
-}
-
-void
-close_fds_deferred(const std::vector<int>& fds) {
-  if (fds.empty())
-    return;
-
-  if (ThreadDisk* disk = ThreadDisk::thread_disk(); disk != nullptr && disk->is_active()) {
-    disk->queue_close_fds(fds);
-    return;
-  }
-
-  for (int fd : fds)
-    close_fd_now(fd);
-}
-
-} // namespace
 
 FileManager::~FileManager() {
   assert(empty() && "FileManager::~FileManager() called but empty() != true.");
@@ -66,23 +31,18 @@ FileManager::set_max_open_files(size_type s) {
 
   m_max_open_files = s;
 
-  while (size() > m_max_open_files)
-    close_least_active();
+  verify_max_open_or_evict(0);
 }
 
 bool
-FileManager::open(value_type file, [[maybe_unused]] bool hashing, int prot, int flags) {
+FileManager::open(File* file, [[maybe_unused]] bool hashing, int prot, int flags) {
   if (file->is_padding())
     return true;
 
   if (file->is_open())
     close(file);
 
-  if (size() > m_max_open_files)
-    throw internal_error("FileManager::open_file(...) m_openSize > m_max_open_files.");
-
-  if (size() == m_max_open_files)
-    close_least_active();
+  verify_max_open_or_evict(1);
 
   SocketFile fd;
 
@@ -112,20 +72,50 @@ FileManager::open(value_type file, [[maybe_unused]] bool hashing, int prot, int 
   return true;
 }
 
+void
+FileManager::close(File* file) {
+  m_fd_close_queue->close_fd(detach(file));
+}
+
+// TODO: We need to store the iterator in File to optimize closing files.
+
+void
+FileManager::close_files(const std::vector<File*>& files) {
+  if (files.empty())
+    return;
+
+  std::vector<int> closed_fds;
+  closed_fds.reserve(files.size());
+
+  for (auto* file : files) {
+    if (!file->is_open() || file->is_padding())
+      continue;
+
+    closed_fds.push_back(detach(file));
+  }
+
+  if (!closed_fds.empty())
+    m_fd_close_queue->close_fds(std::move(closed_fds));
+}
+
 int
-FileManager::detach(value_type file) {
-  if (file == nullptr || !file->is_open() || file->is_padding())
-    return -1;
-
-  int fd = file->file_descriptor();
-
-  file->set_protection(0);
-  file->reset_file_descriptor();
+FileManager::detach(File* file) {
+  assert(file->is_open() && !file->is_padding());
 
   auto itr = std::find(begin(), end(), file);
 
   if (itr == end())
     throw internal_error("FileManager::detach(...) itr == end().");
+
+  return detach(itr);
+}
+
+int
+FileManager::detach(iterator itr) {
+  int fd = (*itr)->file_descriptor();
+
+  (*itr)->set_protection(0);
+  (*itr)->reset_file_descriptor();
 
   *itr = back();
   base_type::pop_back();
@@ -135,43 +125,59 @@ FileManager::detach(value_type file) {
 }
 
 void
-FileManager::close(value_type file) {
-  close_fd_deferred(detach(file));
-}
+FileManager::verify_max_open_or_evict(unsigned int reserve_count) {
+  if (reserve_count > m_max_open_files)
+    throw input_error("FileManager::verify_max_open_or_evict() reserve_count > max_open_files.");
 
-void
-FileManager::close_files(const std::vector<value_type>& files) {
-  if (files.empty())
-    return;
+  if (size() + reserve_count > m_max_open_files) {
+    evict_least_active(size() + reserve_count - m_max_open_files);
 
-  std::vector<int> fds;
-  fds.reserve(files.size());
-
-  for (value_type file : files) {
-    int fd = detach(file);
-
-    if (fd >= 0)
-      fds.push_back(fd);
+    if (size() + reserve_count > m_max_open_files)
+      throw internal_error("FileManager::verify_max_open_or_evict() failed to evict enough files.");
   }
 
-  close_fds_deferred(fds);
+  auto current_count = size() + reserve_count + m_fd_close_queue->size();
+
+  if (current_count > m_max_open_files)
+    m_fd_close_queue->wait_for(current_count - m_max_open_files);
 }
 
 void
-FileManager::close_least_active() {
-  File* least = nullptr;
-  uint64_t last = std::numeric_limits<int64_t>::max();
+FileManager::evict_least_active(unsigned int count) {
+  if (count == 0)
+    return;
 
-  for (auto f : *this) {
-    if (f->is_open() && f->last_touched() <= last) {
-      last = f->last_touched();
-      least = f;
+  std::vector<File*> files_to_close;
+  files_to_close.reserve(count);
+
+  auto sort_fn = [&files_to_close]() {
+      std::sort(files_to_close.begin(), files_to_close.end(), [](auto* a, auto* b) { return a->last_touched() < b->last_touched(); });
+    };
+
+  for (auto* file : *this) {
+    if (files_to_close.size() < count) {
+      files_to_close.push_back(file);
+
+      if (files_to_close.size() == count)
+        sort_fn();
+
+      continue;
+    }
+
+    if (file->last_touched() >= files_to_close.back()->last_touched())
+      continue;
+
+    files_to_close.back() = file;
+
+    for (auto itr = std::prev(files_to_close.end()); itr != files_to_close.begin(); --itr) {
+      if ((*itr)->last_touched() >= (*std::prev(itr))->last_touched())
+        break;
+
+      std::iter_swap(itr, std::prev(itr));
     }
   }
 
-  // Free a kernel slot immediately so open-at-cap does not soft-overshoot.
-  if (least)
-    close_fd_now(detach(least));
+  close_files(files_to_close);
 }
 
 } // namespace torrent
