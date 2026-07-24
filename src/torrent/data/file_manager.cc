@@ -81,9 +81,6 @@ FileManager::close(File* file) {
 
 void
 FileManager::close_files(const std::vector<File*>& files) {
-  if (files.empty())
-    return;
-
   std::vector<int> closed_fds;
   closed_fds.reserve(files.size());
 
@@ -94,8 +91,7 @@ FileManager::close_files(const std::vector<File*>& files) {
     closed_fds.push_back(detach(file));
   }
 
-  if (!closed_fds.empty())
-    m_fd_close_queue->close_fds(std::move(closed_fds));
+  m_fd_close_queue->close_fds(std::move(closed_fds));
 }
 
 int
@@ -140,6 +136,9 @@ FileManager::verify_max_open_or_evict(unsigned int reserve_count) {
 
   if (current_count > m_max_open_files)
     m_fd_close_queue->wait_for(current_count - m_max_open_files);
+
+  if (size() + reserve_count > m_max_open_files)
+    throw internal_error("FileManager::verify_max_open_or_evict() failed to wait for enough files to close.");
 }
 
 void
@@ -150,24 +149,15 @@ FileManager::evict_least_active(unsigned int count) {
   std::vector<File*> files_to_close;
   files_to_close.reserve(count);
 
-  auto sort_fn = [&files_to_close]() {
-      std::sort(files_to_close.begin(), files_to_close.end(), [](auto* a, auto* b) { return a->last_touched() < b->last_touched(); });
-    };
-
   for (auto* file : *this) {
-    if (files_to_close.size() < count) {
+    if (files_to_close.size() == count) {
+      if (file->last_touched() >= files_to_close.back()->last_touched())
+        continue;
+
+      files_to_close.back() = file;
+    } else {
       files_to_close.push_back(file);
-
-      if (files_to_close.size() == count)
-        sort_fn();
-
-      continue;
     }
-
-    if (file->last_touched() >= files_to_close.back()->last_touched())
-      continue;
-
-    files_to_close.back() = file;
 
     for (auto itr = std::prev(files_to_close.end()); itr != files_to_close.begin(); --itr) {
       if ((*itr)->last_touched() >= (*std::prev(itr))->last_touched())
