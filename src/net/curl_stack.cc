@@ -161,6 +161,8 @@ CurlStack::start_get(const std::shared_ptr<CurlGet>& curl_get) {
 
     curl_get->activate_unsafe();
   }
+
+  ensure_timeout_scheduled();
 }
 
 void
@@ -233,16 +235,29 @@ CurlStack::receive_timeout() {
     return;
   }
 
-  if (!m_task_timeout.is_scheduled()) {
-    // Sometimes libcurl forgets to reset the timeout. Try to poll the value in that case, or use 10
-    // seconds max.
-    long timeout_ms;
-    curl_multi_timeout(m_handle, &timeout_ms);
+  ensure_timeout_scheduled();
+}
 
-    auto timeout = std::max<std::chrono::microseconds>(std::chrono::milliseconds(timeout_ms), 10s);
+// The multi-socket API only enforces CURLOPT_TIMEOUT when libcurl is driven by socket activity or
+// the timer task. If the timer is not scheduled while transfers are active (e.g. libcurl cleared
+// it, or a connection through a dead proxy never produces socket events), a hung transfer would
+// never time out. Guarantee the stack is polled at least every 10 seconds while non-empty.
+void
+CurlStack::ensure_timeout_scheduled() {
+  assert(std::this_thread::get_id() == m_thread->thread_id());
 
-    torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, timeout);
-  }
+  if (base_type::empty() || m_task_timeout.is_scheduled())
+    return;
+
+  long timeout_ms{};
+  curl_multi_timeout(m_handle, &timeout_ms);
+
+  std::chrono::microseconds timeout = 10s;
+
+  if (timeout_ms >= 0)
+    timeout = std::min<std::chrono::microseconds>(std::chrono::milliseconds(timeout_ms), timeout);
+
+  torrent::this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, timeout);
 }
 
 // TODO: Check if curl_get is still active.
