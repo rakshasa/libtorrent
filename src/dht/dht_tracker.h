@@ -23,8 +23,11 @@ public:
   // large peer tables for very active torrents.
   static constexpr unsigned int max_size = 128;
 
+  explicit            DhtTracker(uint32_t creator) : m_creator(creator) {}
+
   bool                empty() const                { return m_peers.empty(); }
   size_t              size() const                 { return m_peers.size(); }
+  uint32_t            creator() const              { return m_creator; }
 
   void                add_peer(uint32_t addr_n, uint16_t port);
   raw_list            get_peers(unsigned int maxPeers = max_peers);
@@ -48,6 +51,7 @@ private:
 
   using PeerList = std::vector<BencodeAddress>;
 
+  uint32_t               m_creator;
   PeerList               m_peers;
   std::vector<uint32_t>  m_lastSeen;
 };

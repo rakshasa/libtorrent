@@ -332,15 +332,15 @@ DhtServer::create_find_node_response(const DhtMessage& req, DhtMessage& reply) {
 
 void
 DhtServer::create_get_peers_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply) {
-  reply[key_r_token] = m_router->make_token(sa, reply.data_end);
-  reply.data_end += reply[key_r_token].as_raw_string().size();
-
   raw_string info_hash_str = req[key_a_infoHash].as_raw_string();
 
   if (info_hash_str.size() < HashString::size_data)
     throw dht_error(dht_error_protocol, "info hash too short");
 
   const HashString* info_hash = HashString::cast_from(info_hash_str.data());
+
+  reply[key_r_token] = m_router->make_token(sa, *info_hash, reply.data_end);
+  reply.data_end += reply[key_r_token].as_raw_string().size();
 
   DhtTracker* tracker = m_router->get_tracker(*info_hash, false);
 
@@ -365,15 +365,21 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
   if (info_hash.size() < HashString::size_data)
     throw dht_error(dht_error_protocol, "info hash too short");
 
-  if (!m_router->token_valid(req[key_a_token].as_raw_string(), sa))
+  const HashString* hash = HashString::cast_from(info_hash.data());
+
+  if (!m_router->token_valid(req[key_a_token].as_raw_string(), sa, *hash))
     throw dht_error(dht_error_protocol, "Token invalid.");
 
   if (!sa_is_inet(sa))
     throw internal_error("DhtServer::create_announce_peer_response called with non-inet address.");
 
-  DhtTracker* tracker = m_router->get_tracker(*HashString::cast_from(info_hash.data()), true);
+  uint32_t source = reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr;
+  DhtTracker* tracker = m_router->get_tracker(*hash, true, source);
 
-  tracker->add_peer(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, req[key_a_port].as_value());
+  if (tracker == nullptr)
+    throw dht_error(dht_error_generic, "Too many tracked torrents.");
+
+  tracker->add_peer(source, req[key_a_port].as_value());
 }
 
 void

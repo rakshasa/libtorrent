@@ -2,6 +2,7 @@
 
 #include "dht_router.h"
 
+#include <algorithm>
 #include <cassert>
 
 #include "dht_bucket.h"
@@ -141,7 +142,7 @@ DhtRouter::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht
 }
 
 DhtTracker*
-DhtRouter::get_tracker(const HashString& hash, bool create) {
+DhtRouter::get_tracker(const HashString& hash, bool create, uint32_t source) {
   auto itr = m_trackers.find(hash);
 
   if (itr != m_trackers.end())
@@ -150,7 +151,15 @@ DhtRouter::get_tracker(const HashString& hash, bool create) {
   if (!create)
     return NULL;
 
-  auto [tr, inserted] = m_trackers.emplace(hash, new DhtTracker());
+  if (m_trackers.size() >= max_trackers)
+    return NULL;
+
+  if (std::count_if(m_trackers.begin(), m_trackers.end(),
+                    [source](const auto& tracker) { return tracker.second->creator() == source; }) >=
+      max_trackers_per_peer)
+    return NULL;
+
+  auto [tr, inserted] = m_trackers.emplace(hash, new DhtTracker(source));
 
   if (!inserted)
     throw internal_error("DhtRouter::get_tracker did not actually insert tracker.");
@@ -485,7 +494,7 @@ DhtRouter::receive_timeout() {
 }
 
 char*
-DhtRouter::generate_token(const sockaddr* sa, int token, char buffer[20]) {
+DhtRouter::generate_token(const sockaddr* sa, const HashString& hash, int token, char buffer[20]) {
   if (!sa_is_inet(sa))
     throw internal_error("DhtRouter::generate_token called with non-inet address.");
 
@@ -495,13 +504,14 @@ DhtRouter::generate_token(const sockaddr* sa, int token, char buffer[20]) {
   sha.init();
   sha.update(&token, sizeof(token));
   sha.update(&key, 4);
+  sha.update(hash.data(), HashString::size_data);
   sha.final_c(buffer);
 
   return buffer;
 }
 
 bool
-DhtRouter::token_valid(raw_string token, const sockaddr* sa) const {
+DhtRouter::token_valid(raw_string token, const sockaddr* sa, const HashString& hash) const {
   if (token.size() != size_token)
     return false;
 
@@ -513,8 +523,8 @@ DhtRouter::token_valid(raw_string token, const sockaddr* sa) const {
   // Else if token recently changed, some clients may be using the older one.
   // That way a token is valid for 15-30 minutes, instead of 0-15.
   return
-    token == raw_string(generate_token(sa, m_curToken, reference), size_token) ||
-    token == raw_string(generate_token(sa, m_prevToken, reference), size_token);
+    token == raw_string(generate_token(sa, hash, m_curToken, reference), size_token) ||
+    token == raw_string(generate_token(sa, hash, m_prevToken, reference), size_token);
 }
 
 DhtNode*
