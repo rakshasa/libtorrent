@@ -151,13 +151,6 @@ FileManager::get_least_active(unsigned int count) {
     return {};
 
   std::vector<File*> files;
-
-  if (count > size()) {
-    files.resize(size());
-    std::copy(begin(), end(), files.begin());
-    return files;
-  }
-
   files.reserve(count);
 
   for (auto* file : *this) {
