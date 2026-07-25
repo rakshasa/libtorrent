@@ -123,6 +123,9 @@ libtorrent_other_la_SOURCES = \
 	net/udns/config.h \
 	net/udns/udns.h \
 	\
+	process/process_worker.cc \
+	process/process_worker.h \
+	\
 	protocol/encryption_info.h \
 	protocol/encryption_policy.cc \
 	protocol/encryption_policy.h \

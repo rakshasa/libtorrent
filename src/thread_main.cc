@@ -3,6 +3,7 @@
 #include "thread_main.h"
 
 #include "manager.h"
+#include "runtime_manager.h"
 #include "data/hash_queue.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/net/resolver.h"
@@ -10,6 +11,8 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
+#include "torrent/system/ipc/factory.h"
+#include "torrent/system/ipc/router.h"
 #include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 
@@ -35,6 +38,23 @@ uint32_t        hash_queue_size()                                               
 
 } // namespace main_thread
 
+namespace runtime {
+
+void
+initialize_worker_process_and_main_thread() {
+  system::ipc::RouterFactory worker_factory;
+
+  worker_factory.initialize(1 * 4096);
+
+  ThreadMain::create_thread(worker_factory.create_parent_router());
+
+  RuntimeManager::initialize();
+  ThreadMain::thread_main()->init_thread();
+}
+
+} // namespace runtime
+
+
 ThreadMain*     ThreadMain::m_thread_main{};
 system::Thread* ThreadMain::m_thread_base{};
 
@@ -43,12 +63,13 @@ ThreadMain::~ThreadMain() {
 }
 
 void
-ThreadMain::create_thread() {
+ThreadMain::create_thread(system::ipc_router_ptr worker_router) {
   m_thread_main = new ThreadMain;
   m_thread_base = m_thread_main;
 
   m_thread_main->m_events_callback_id = system::make_callback_id();
   m_thread_main->m_hash_queue         = std::make_unique<HashQueue>();
+  m_thread_main->m_worker_router      = std::move(worker_router);
 }
 
 void
@@ -87,7 +108,11 @@ ThreadMain::cleanup_thread() {
 
   cancel_callback(m_events_callback_id);
 
+  // TODO: Shutdown should close the control fd.
+  m_worker_router->test_close_control_fd();
+
   m_hash_queue.reset();
+  m_worker_router.reset();
 
   m_thread_main = nullptr;
   m_thread_base = nullptr;

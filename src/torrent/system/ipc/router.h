@@ -81,6 +81,9 @@ public:
   void                process_reads_post_polling();
 
 private:
+  Router(const Router&) = delete;
+  Router& operator=(const Router&) = delete;
+
   void                process_reads();
 
   using handler_map = std::map<uint32_t, RouterHandler>;
