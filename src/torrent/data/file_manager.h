@@ -61,12 +61,17 @@ private:
   FileManager(const FileManager&) = delete;
   FileManager& operator=(const FileManager&) = delete;
 
+  using cache_type = std::vector<std::pair<File*, uint64_t>>;
+
   // Detach bookkeeping and return the raw fd (or -1). FileManager close paths own ::close.
   int                 detach(File* file);
   int                 detach(iterator itr);
 
   void                verify_max_open_or_evict(unsigned int reserve_count);
+
+  std::vector<File*>  get_least_active(unsigned int count);
   void                evict_least_active(unsigned int count);
+  unsigned int        evict_least_active_from_cache(unsigned int count);
 
   size_type           m_max_open_files{};
   bool                m_advise_random{};
@@ -75,6 +80,8 @@ private:
   uint64_t            m_files_opened_counter{};
   uint64_t            m_files_closed_counter{};
   uint64_t            m_files_failed_counter{};
+
+  cache_type          m_least_active_cache;
 
   std::unique_ptr<utils::FdCloseQueue> m_fd_close_queue;
 };

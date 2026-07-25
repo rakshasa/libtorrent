@@ -116,6 +116,10 @@ FileManager::detach(iterator itr) {
   *itr = back();
   base_type::pop_back();
 
+  std::erase_if(m_least_active_cache, [itr](const auto& pair) {
+      return pair.first == *itr || pair.second != pair.first->last_touched();
+    });
+
   m_files_closed_counter++;
   return fd;
 }
@@ -141,25 +145,25 @@ FileManager::verify_max_open_or_evict(unsigned int reserve_count) {
     throw internal_error("FileManager::verify_max_open_or_evict() failed to wait for enough files to close.");
 }
 
-void
-FileManager::evict_least_active(unsigned int count) {
+std::vector<File*>
+FileManager::get_least_active(unsigned int count) {
   if (count == 0)
-    return;
+    return {};
 
-  std::vector<File*> files_to_close;
-  files_to_close.reserve(count);
+  std::vector<File*> files;
+  files.reserve(count);
 
   for (auto* file : *this) {
-    if (files_to_close.size() == count) {
-      if (file->last_touched() >= files_to_close.back()->last_touched())
+    if (files.size() == count) {
+      if (file->last_touched() >= files.back()->last_touched())
         continue;
 
-      files_to_close.back() = file;
+      files.back() = file;
     } else {
-      files_to_close.push_back(file);
+      files.push_back(file);
     }
 
-    for (auto itr = std::prev(files_to_close.end()); itr != files_to_close.begin(); --itr) {
+    for (auto itr = std::prev(files.end()); itr != files.begin(); --itr) {
       if ((*itr)->last_touched() >= (*std::prev(itr))->last_touched())
         break;
 
@@ -167,7 +171,60 @@ FileManager::evict_least_active(unsigned int count) {
     }
   }
 
+  return files;
+}
+
+void
+FileManager::evict_least_active(unsigned int count) {
+  count = evict_least_active_from_cache(count);
+
+  if (count == 0)
+    return;
+
+  auto cache_size     = m_max_open_files / 16;
+  auto files_to_close = get_least_active(count + cache_size);
+
+  cache_type cache;
+
+  if (files_to_close.size() > count) {
+    cache.reserve(files_to_close.size() - count);
+
+    for (size_t i = count; i < files_to_close.size(); i++)
+      cache.emplace_back(files_to_close[i], files_to_close[i]->last_touched());
+  }
+
+  m_least_active_cache.clear();
+
   close_files(files_to_close);
+
+  m_least_active_cache = std::move(cache);
+}
+
+unsigned int
+FileManager::evict_least_active_from_cache(unsigned int count) {
+  std::vector<File*> files;
+  files.reserve(count);
+
+  int idx = 0;
+
+  for (auto& pair : m_least_active_cache) {
+    if (count == 0)
+      break;
+
+    idx++;
+
+    if (pair.first->last_touched() != pair.second)
+      continue;
+
+    files.push_back(pair.first);
+    count--;
+  }
+
+  m_least_active_cache.erase(m_least_active_cache.begin(), m_least_active_cache.begin() + idx);
+
+  close_files(files);
+
+  return count;
 }
 
 } // namespace torrent
