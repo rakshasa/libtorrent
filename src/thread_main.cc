@@ -5,14 +5,15 @@
 #include "manager.h"
 #include "runtime_manager.h"
 #include "data/hash_queue.h"
+#include "process/process_worker.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
-#include "torrent/system/ipc/factory.h"
-#include "torrent/system/ipc/router.h"
+// #include "torrent/system/ipc/factory.h"
+// #include "torrent/system/ipc/router.h"
 #include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 
@@ -42,11 +43,10 @@ namespace runtime {
 
 void
 initialize_worker_process_and_main_thread() {
-  system::ipc::RouterFactory worker_factory;
+  auto worker_process = std::make_unique<process::ProcessWorker>();
+  worker_process->spawn();
 
-  worker_factory.initialize(1 * 4096);
-
-  ThreadMain::create_thread(worker_factory.create_parent_router());
+  ThreadMain::create_thread(std::move(worker_process));
 
   RuntimeManager::initialize();
   ThreadMain::thread_main()->init_thread();
@@ -63,13 +63,13 @@ ThreadMain::~ThreadMain() {
 }
 
 void
-ThreadMain::create_thread(system::ipc_router_ptr worker_router) {
+ThreadMain::create_thread(worker_process_ptr worker_process) {
   m_thread_main = new ThreadMain;
   m_thread_base = m_thread_main;
 
   m_thread_main->m_events_callback_id = system::make_callback_id();
   m_thread_main->m_hash_queue         = std::make_unique<HashQueue>();
-  m_thread_main->m_worker_router      = std::move(worker_router);
+  m_thread_main->m_worker_process     = std::move(worker_process);
 }
 
 void
@@ -109,10 +109,11 @@ ThreadMain::cleanup_thread() {
   cancel_callback(m_events_callback_id);
 
   // TODO: Shutdown should close the control fd.
-  m_worker_router->test_close_control_fd();
+  // m_worker_router->test_close_control_fd();
+  // m_worker_process->wait_for_shutdown();
 
   m_hash_queue.reset();
-  m_worker_router.reset();
+  m_worker_process.reset();
 
   m_thread_main = nullptr;
   m_thread_base = nullptr;

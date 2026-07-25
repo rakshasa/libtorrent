@@ -6,8 +6,6 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/system/ipc/factory.h"
-#include "torrent/system/ipc/router.h"
-#include "torrent/system/ipc/segment.h"
 
 namespace torrent::process {
 
@@ -26,6 +24,8 @@ ProcessWorker::spawn() {
     throw internal_error("fork() failed: " + std::string(strerror(errno)));
 
   if (pid != 0) {
+    // TODO: Add pid to sig handler to kill child process on crash.
+
     m_router = factory.create_parent_router();
     return;
   }
