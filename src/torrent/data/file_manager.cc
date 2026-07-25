@@ -235,22 +235,22 @@ FileManager::periodic_close_idle() {
   auto now  = this_thread::cached_time();
   auto idle = std::chrono::seconds(m_close_idle);
 
-  size_type i = 0;
-  while (i < size()) {
-    File* f = base_type::operator[](i);
+  std::vector<File*> files;
 
-    if (!f->is_open()) {
-      ++i;
+  for (auto* file : *this) {
+    if (!file->is_open())
       continue;
-    }
 
-    auto touched = std::chrono::microseconds(f->last_touched());
+    auto touched = std::chrono::microseconds(file->last_touched());
 
     if (touched <= now && now - touched >= idle)
-      close(f);
-    else
-      ++i;
+      files.push_back(file);
   }
+
+  if (files.empty())
+    return;
+
+  close_files(files);
 }
 
 } // namespace torrent
