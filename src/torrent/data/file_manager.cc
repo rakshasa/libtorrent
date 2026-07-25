@@ -191,8 +191,6 @@ FileManager::evict_least_active(unsigned int count) {
 
     for (size_t i = count; i < files_to_close.size(); i++)
       cache.emplace_back(files_to_close[i], files_to_close[i]->last_touched());
-
-    files_to_close.resize(count);
   }
 
   m_least_active_cache.clear();
