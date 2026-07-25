@@ -90,6 +90,17 @@ libtorrent_torrent_la_SOURCES = \
 	system/thread.h \
 	system/types.h \
 \
+	system/ipc/channel.cc
+	system/ipc/channel.h
+	system/ipc/control_fd.cc
+	system/ipc/control_fd.h
+	system/ipc/factory.cc
+	system/ipc/factory.h
+	system/ipc/router.cc
+	system/ipc/router.h
+	system/ipc/segment.cc
+	system/ipc/segment.h
+\
 	tracker/dht_controller.cc \
 	tracker/dht_controller.h \
 	tracker/manager.cc \
