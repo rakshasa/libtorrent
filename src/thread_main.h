@@ -12,15 +12,19 @@ namespace torrent {
 
 class HashQueue;
 
-namespace system::ipc {
-class Router;
+namespace process {
+class ProcessWorker;
 }
 
 class LIBTORRENT_EXPORT ThreadMain : public system::Thread {
 public:
+  using worker_process_ptr = std::unique_ptr<process::ProcessWorker>;
+
+
   ~ThreadMain() override;
 
-  static void            create_thread(system::ipc_router_ptr worker_router);
+  static void            create_thread(worker_process_ptr worker_process);
+
   static ThreadMain*     thread_main()         { return m_thread_main; }
   static system::Thread* thread_base()         { return m_thread_base; }
 
@@ -50,16 +54,15 @@ private:
   static ThreadMain*        m_thread_main;
   static system::Thread*    m_thread_base;
 
+  worker_process_ptr        m_worker_process;
+
   system::callback_id       m_events_callback_id;
 
-  std::unique_ptr<HashQueue>           m_hash_queue;
-  std::unique_ptr<system::ipc::Router> m_worker_router;
-
+  std::unique_ptr<HashQueue> m_hash_queue;
   std::function<void()>      m_slot_client_callback;
 };
 
 inline void ThreadMain::set_thread_base(system::Thread* thread) { m_thread_base = thread; }
-
 
 } // namespace torrent
 

@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <torrent/common.h>
+#include <torrent/system/ipc/router.h>
+#include <torrent/system/ipc/segment.h>
 
 // Holds the everything needed to create a Router.
 
