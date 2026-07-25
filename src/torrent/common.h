@@ -4,21 +4,17 @@
 #include <new>
 #include <atomic>
 #include <cerrno>
-#include <cinttypes>
 #include <cstddef>
 #include <cstring>
-#include <chrono>
 #include <functional>
-#include <memory>
 #include <string>
 #include <thread>
+#include <torrent/system/common.h>
 
 struct sockaddr;
 struct sockaddr_in;
 struct sockaddr_in6;
 struct sockaddr_un;
-
-using namespace std::chrono_literals;
 
 namespace torrent {
 
@@ -29,12 +25,6 @@ enum encryption_mode : uint8_t {
   ENCRYPTION_MODE_PREFER,
   ENCRYPTION_MODE_REQUIRE,
 };
-
-namespace system {
-
-using callback_id = std::shared_ptr<std::atomic<uint32_t>>;
-
-} // namespace system
 
 enum priority_enum {
   PRIORITY_OFF = 0,
@@ -138,18 +128,6 @@ class SchedulerEntry;
 } // namespace utils
 
 } // namespace torrent
-
-
-// This should only need to be set when compiling libtorrent.
-#ifdef SUPPORT_ATTRIBUTE_VISIBILITY
-  #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
-  #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
-#else
-  #define LIBTORRENT_NO_EXPORT
-  #define LIBTORRENT_EXPORT
-#endif
-
-#define align_cacheline alignas(LT_SMP_CACHE_BYTES)
 
 
 namespace torrent::this_thread {

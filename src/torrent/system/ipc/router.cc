@@ -16,6 +16,9 @@
 
 namespace torrent::system::ipc {
 
+// TODO: Add entry_fd and kqueue support.
+// TODO: Add watchdog.
+
 Router::Router(int fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment)
   : m_read_segment(std::move(read_segment)),
     m_write_segment(std::move(write_segment)) {
@@ -33,7 +36,6 @@ void
 Router::open_control_fd() {
   torrent::this_thread::poll()->open(m_control_fd.get());
   torrent::this_thread::poll()->insert_read(m_control_fd.get());
-  torrent::this_thread::poll()->insert_error(m_control_fd.get());
 }
 
 void

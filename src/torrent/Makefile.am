@@ -82,6 +82,7 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/socket_manager.h \
 \
 	system/callbacks.h \
+	system/common.h \
 	system/poll.h \
 	system/poll_epoll.cc \
 	system/poll_kqueue.cc \
@@ -90,16 +91,16 @@ libtorrent_torrent_la_SOURCES = \
 	system/thread.h \
 	system/types.h \
 \
-	system/ipc/channel.cc
-	system/ipc/channel.h
-	system/ipc/control_fd.cc
-	system/ipc/control_fd.h
-	system/ipc/factory.cc
-	system/ipc/factory.h
-	system/ipc/router.cc
-	system/ipc/router.h
-	system/ipc/segment.cc
-	system/ipc/segment.h
+	system/ipc/channel.cc \
+	system/ipc/channel.h \
+	system/ipc/control_fd.cc \
+	system/ipc/control_fd.h \
+	system/ipc/factory.cc \
+	system/ipc/factory.h \
+	system/ipc/router.cc \
+	system/ipc/router.h \
+	system/ipc/segment.cc \
+	system/ipc/segment.h \
 \
 	tracker/dht_controller.cc \
 	tracker/dht_controller.h \
@@ -227,9 +228,18 @@ libtorrent_torrent_runtime_include_HEADERS = \
 libtorrent_torrent_system_includedir = $(includedir)/torrent/system
 libtorrent_torrent_system_include_HEADERS = \
 	system/callbacks.h \
+	system/common.h \
 	system/poll.h \
 	system/thread.h \
 	system/types.h
+
+libtorrent_torrent_system_ipc_includedir = $(includedir)/torrent/system/ipc
+libtorrent_torrent_system_ipc_include_HEADERS = \
+	system/ipc/channel.h \
+	system/ipc/control_fd.h \
+	system/ipc/factory.h \
+	system/ipc/router.h \
+	system/ipc/segment.h
 
 libtorrent_torrent_tracker_includedir = $(includedir)/torrent/tracker
 libtorrent_torrent_tracker_include_HEADERS = \

@@ -52,14 +52,6 @@ generate_random(size_t length) {
 }
 
 void
-initialize_main_thread() {
-  ThreadMain::create_thread();
-
-  RuntimeManager::initialize();
-  ThreadMain::thread_main()->init_thread();
-}
-
-void
 initialize() {
   if (manager != nullptr)
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
