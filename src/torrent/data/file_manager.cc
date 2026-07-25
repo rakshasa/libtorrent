@@ -108,16 +108,17 @@ FileManager::detach(File* file) {
 
 int
 FileManager::detach(iterator itr) {
-  int fd = (*itr)->file_descriptor();
+  auto* file = *itr;
+  int   fd   = file->file_descriptor();
 
-  (*itr)->set_protection(0);
-  (*itr)->reset_file_descriptor();
+  file->set_protection(0);
+  file->reset_file_descriptor();
 
   *itr = back();
   base_type::pop_back();
 
-  std::erase_if(m_least_active_cache, [itr](const auto& pair) {
-      return pair.first == *itr || pair.second != pair.first->last_touched();
+  std::erase_if(m_least_active_cache, [file](const auto& pair) {
+      return pair.first == file || pair.second != pair.first->last_touched();
     });
 
   m_files_closed_counter++;
