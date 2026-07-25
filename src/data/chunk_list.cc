@@ -205,7 +205,24 @@ ChunkList::clear_chunk(ChunkListNode* node, release_flags flags) {
   if (!node->is_valid())
     throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
 
-  delete node->chunk();
+  // Drop VA ownership here and queue MS_ASYNC + munmap on ChunkManager's
+  // MemoryUnmapQueue worker so MemoryChunk stays a simple type.
+  Chunk* chunk = node->chunk();
+
+  for (auto& part : *chunk) {
+    MemoryChunk& mc = part.chunk();
+
+    if (!mc.is_valid())
+      continue;
+
+    void*  ptr    = mc.ptr();
+    size_t length = static_cast<size_t>(mc.end() - mc.ptr());
+
+    mc.clear();
+    m_manager->queue_munmap(ptr, length);
+  }
+
+  delete chunk;
   node->set_chunk(NULL);
 
   m_manager->deallocate(m_chunk_size, (flags & release_dont_log) ? ChunkManager::allocate_dont_log : 0);
