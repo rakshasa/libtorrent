@@ -179,8 +179,9 @@ CurlGet::start(const std::shared_ptr<CurlGet>& curl_get, CurlStack* stack) {
   if (self->m_was_started)
     throw torrent::internal_error("CurlGet::start() called on an already started object.");
 
-  self->m_was_started  = true;
-  self->m_stack_thread = stack->thread();
+  self->m_was_started   = true;
+  self->m_start_pending = true;
+  self->m_stack_thread  = stack->thread();
 
   stack->thread()->callback(self->m_callback_id, [stack, curl_get]() {
       stack->start_get(curl_get);
@@ -210,6 +211,7 @@ CurlGet::close_self(const std::shared_ptr<CurlGet>& curl_get, system::Thread* ca
   if (m_stack == nullptr) {
     if (m_was_started) {
       m_stack_thread     = nullptr;
+      m_start_pending    = false;
       m_was_started      = false;
       m_was_closed       = false;
       m_prepare_canceled = false;
@@ -236,6 +238,11 @@ bool
 CurlGet::prepare_start_unsafe(CurlStack* stack) {
   if (m_handle != nullptr)
     throw torrent::internal_error("CurlGet::prepare_start(...) called on a stacked object.");
+
+  if (!m_start_pending)
+    return false;
+
+  m_start_pending = false;
 
   if (m_stream == nullptr)
     throw torrent::internal_error("CurlGet::prepare_start(...) called with a null stream.");
@@ -378,6 +385,7 @@ CurlGet::cleanup_unsafe() {
   }
 
   m_stack_thread     = nullptr;
+  m_start_pending    = false;
   m_was_started      = false;
   m_was_closed       = false;
   m_prepare_canceled = false;

@@ -130,6 +130,7 @@ private:
 
   bool                m_active{};
   bool                m_prepare_canceled{};
+  bool                m_start_pending{};
   bool                m_was_started{};
   bool                m_was_closed{};
   bool                m_was_cleaned_up{};
