@@ -349,36 +349,63 @@ PeerConnection<type>::event_read() {
 
     // Normal read.
     //
-    // We rarely will read zero bytes as the read of 64 bytes will
-    // almost always either not fill up or it will require additional
-    // reads.
+    // Leech clean IDLE fills sizeof_piece so PIECE payload stays on
+    // READ_PIECE → mmap; incomplete messages top up to buffer_size.
+    // Seed / initial-seed never receive PIECE; fill the full protocol
+    // buffer to reduce syscalls on REQUEST/HAVE control traffic.
     //
-    // Only loop when end hits 64.
+    // Loop when the fill budget is met (socket may still have data) or
+    // an incomplete message still needs more bytes.
 
     do {
 
       switch (m_down->get_state()) {
-      case ProtocolRead::IDLE:
-        if (m_down->buffer()->size_end() < read_size) {
-          unsigned int length = read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end());
+      case ProtocolRead::IDLE: {
+        const uint32_t target = [&] {
+          // Leech clean with in-flight requests: piece header only; else full buffer.
+          if (type != Download::CONNECTION_LEECH)
+            return ProtocolRead::buffer_size;
+
+          if (m_down->buffer()->remaining() == 0 && request_list()->pipe_size() != 0)
+            return ProtocolRead::sizeof_piece;
+
+          return ProtocolRead::buffer_size;
+        }();
+
+        if (m_down->buffer()->size_end() < target) {
+          unsigned int length = read_stream_throws(m_down->buffer()->end(), target - m_down->buffer()->size_end());
           m_down->throttle()->node_used_unthrottled(length);
+
+          if (length == 0) {
+            m_down->buffer()->move_unused();
+            return;
+          }
 
           if (is_encrypted())
             m_encryption.decrypt(m_down->buffer()->end(), length);
 
           m_down->buffer()->move_end(length);
+        } else {
+          // At fill target with no room left but still an incomplete message
+          // (corrupt length / hostile peer). Without this, remaining > 0 would
+          // loop forever with no further reads.
+          if (m_down->buffer()->remaining() > 0)
+            throw communication_error("PeerConnection::event_read() download buffer full with incomplete message.");
         }
 
         while (read_message())
           ; // Do nothing.
 
-        if (m_down->buffer()->size_end() == read_size) {
+        // Continue for another fill when we hit the budget, or when an
+        // incomplete message still needs more bytes (poll-churn fix).
+        if (m_down->buffer()->remaining() > 0 || m_down->buffer()->size_end() == target) {
           m_down->buffer()->move_unused();
           break;
         } else {
           m_down->buffer()->move_unused();
           return;
         }
+      }
 
       case ProtocolRead::READ_PIECE:
         if (type != Download::CONNECTION_LEECH)
