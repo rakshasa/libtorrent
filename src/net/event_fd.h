@@ -1,11 +1,13 @@
 #ifndef LIBTORRENT_NET_EVENT_FD_H
 #define LIBTORRENT_NET_EVENT_FD_H
 
-#include "torrent/event.h"
+#include <atomic>
+
+#include "torrent/system/event.h"
 
 namespace torrent::net {
 
-class EventFd : public Event {
+class EventFd : public system::Event {
 public:
   EventFd() = default;
 
@@ -22,7 +24,9 @@ protected:
   void                event_error() override;
 
 private:
-  align_cacheline std::atomic<int> m_safe_fd{-1};
+  align_cacheline
+
+  std::atomic<int>    m_safe_fd{-1};
 };
 
 } // namespace torrent::net
