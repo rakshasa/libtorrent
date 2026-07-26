@@ -4,13 +4,13 @@
 #include <curl/curl.h>
 
 #include "net/curl_stack.h"
-#include "torrent/event.h"
+#include "torrent/system/event.h"
 
 namespace torrent::net {
 
 class CurlGet;
 
-class CurlSocket : public torrent::Event {
+class CurlSocket : public system::Event {
 public:
   CurlSocket(CurlStack* stack);
   ~CurlSocket() override;
@@ -51,4 +51,4 @@ private:
 
 } // namespace torrent::net
 
-#endif // LIBTORRENT_NET_CURL_SOCKET_H
+#endif

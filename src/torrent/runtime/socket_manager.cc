@@ -5,10 +5,10 @@
 #include <algorithm>
 #include <cassert>
 
-#include "torrent/event.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
+#include "torrent/system/event.h"
 #include "torrent/system/thread.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -284,7 +284,7 @@ SocketManager::can_open_socket_unsafe(category_t category) {
 }
 
 void
-SocketManager::open_event_or_throw(Event* event, category_t category, std::function<void ()> func) {
+SocketManager::open_event_or_throw(system::Event* event, category_t category, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (event->is_open())
@@ -319,7 +319,7 @@ SocketManager::open_event_or_throw(Event* event, category_t category, std::funct
 }
 
 bool
-SocketManager::open_event_or_cleanup(Event* event, category_t category, std::function<void ()> func, std::function<void (bool)> cleanup) {
+SocketManager::open_event_or_cleanup(system::Event* event, category_t category, std::function<void ()> func, std::function<void (bool)> cleanup) {
   auto guard = lock_guard();
 
   if (event->is_open())
@@ -375,7 +375,7 @@ SocketManager::open_event_or_cleanup(Event* event, category_t category, std::fun
 }
 
 void
-SocketManager::close_event_or_throw(Event* event, std::function<void ()> func) {
+SocketManager::close_event_or_throw(system::Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -410,7 +410,7 @@ SocketManager::close_event_or_throw(Event* event, std::function<void ()> func) {
 }
 
 void
-SocketManager::register_event_or_throw(Event* event, category_t category, std::function<void ()> func) {
+SocketManager::register_event_or_throw(system::Event* event, category_t category, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -437,7 +437,7 @@ SocketManager::register_event_or_throw(Event* event, category_t category, std::f
 }
 
 void
-SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> func) {
+SocketManager::unregister_event_or_throw(system::Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -468,8 +468,8 @@ SocketManager::unregister_event_or_throw(Event* event, std::function<void ()> fu
 }
 
 // Always returns non-null if func() succeeds.
-Event*
-SocketManager::transfer_event(Event* event_from, std::function<Event* ()> func) {
+system::Event*
+SocketManager::transfer_event(system::Event* event_from, std::function<system::Event* ()> func) {
   auto guard = lock_guard();
 
   if (!event_from->is_open())
@@ -520,7 +520,7 @@ SocketManager::execute_if_not_present(int fd, std::function<void ()> func) {
 }
 
 bool
-SocketManager::mark_event_active_or_fail(Event* event) {
+SocketManager::mark_event_active_or_fail(system::Event* event) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -564,7 +564,7 @@ SocketManager::mark_event_active_or_fail(Event* event) {
 }
 
 void
-SocketManager::mark_event_inactive(Event* event, std::function<void ()> func) {
+SocketManager::mark_event_inactive(system::Event* event, std::function<void ()> func) {
   auto guard = lock_guard();
 
   if (!event->is_open())
@@ -597,7 +597,7 @@ SocketManager::mark_event_inactive(Event* event, std::function<void ()> func) {
 // TODO: Rename inet?
 
 bool
-SocketManager::mark_stream_event_inactive(Event* event, std::function<void ()> func, std::function<void ()> on_reuse) {
+SocketManager::mark_stream_event_inactive(system::Event* event, std::function<void ()> func, std::function<void ()> on_reuse) {
   auto guard = lock_guard();
 
   if (!event->is_open())

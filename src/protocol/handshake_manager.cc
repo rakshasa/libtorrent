@@ -233,7 +233,7 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
   auto fd        = handshake->file_descriptor();
   auto peer_info = handshake->peer_info();
 
-  auto new_event = runtime::socket_manager()->transfer_event(handshake.get(), [&]() -> Event* {
+  auto new_event = runtime::socket_manager()->transfer_event(handshake.get(), [&]() {
       LT_LOG_SA(peer_info->socket_address(), "transfering handshake: type:%s id:%s", peer_type, hash_str.c_str());
 
       handshake->release_connection();
