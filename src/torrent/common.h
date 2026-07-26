@@ -63,7 +63,6 @@ class DownloadMain;
 class DownloadWrapper;
 class FileList;
 class FileManager;
-class Event;
 class File;
 class FileList;
 class Handshake;
@@ -112,13 +111,6 @@ class Manager;
 class Tracker;
 
 } // namespace tracker
-
-namespace system {
-
-class Poll;
-class Thread;
-
-} // namespace system
 
 namespace utils {
 

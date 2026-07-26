@@ -5,8 +5,8 @@
 #include <mutex>
 #include <string>
 
-#include "torrent/event.h"
 #include "torrent/net/types.h"
+#include "torrent/system/event.h"
 #include "torrent/utils/scheduler.h"
 
 struct dns_ctx;
@@ -16,7 +16,7 @@ namespace torrent::net {
 struct UdnsQuery;
 class  UdnsResolverInternal;
 
-class UdnsResolver : public Event {
+class UdnsResolver : public system::Event {
 public:
   using query_map = std::multimap<void*, std::unique_ptr<UdnsQuery>>;
 

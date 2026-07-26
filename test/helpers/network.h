@@ -9,7 +9,7 @@
 #include "torrent/net/address_info.h"
 #include "torrent/utils/chrono.h"
 
-bool check_event_is_readable(torrent::Event* event, std::chrono::microseconds timeout);
+bool check_event_is_readable(torrent::system::Event* event, std::chrono::microseconds timeout);
 
 //
 // Socket addresses

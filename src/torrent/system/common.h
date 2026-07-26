@@ -8,20 +8,14 @@
 
 using namespace std::chrono_literals;
 
-// TODO: Add std::chrono::seconds, etc.
-
 
 namespace torrent::system {
 
-namespace ipc {
-
-class Router;
-
-} // namespace ipc
+class Event;
+class Poll;
+class Thread;
 
 using callback_id    = std::shared_ptr<std::atomic<uint32_t>>;
-using ipc_router_ptr = std::unique_ptr<ipc::Router>;
-
 
 } // namespace torrent::system
 
