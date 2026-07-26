@@ -4,8 +4,7 @@
 #include <functional>
 #include <string>
 #include <vector>
-
-#include <torrent/event.h>
+#include <torrent/system/event.h>
 
 namespace torrent {
 
@@ -19,7 +18,7 @@ struct watch_descriptor {
   slot_string slot;
 };
 
-class LIBTORRENT_EXPORT directory_events : public Event {
+class LIBTORRENT_EXPORT directory_events : public system::Event {
 public:
   static constexpr int flag_on_added   = 0x1;
   static constexpr int flag_on_removed = 0x2;

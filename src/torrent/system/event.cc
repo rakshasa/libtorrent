@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "event.h"
+#include "torrent/system/event.h"
 
 #include <cassert>
 
@@ -8,10 +8,10 @@
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 
-namespace torrent {
+namespace torrent::system {
 
 Event::~Event() {
-  assert(m_poll_event == nullptr && "Event::~Event() called with m_poll_event != nullptr.");
+  assert(m_poll_event == nullptr);
 }
 
 int
@@ -131,4 +131,4 @@ Event::update_and_verify_peer_address() {
   return true;
 }
 
-} // namespace torrent
+} // namespace torrent::system

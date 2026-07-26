@@ -42,7 +42,7 @@ struct SocketInfo {
   // TODO: Fd not needed here.
 
   int               fd{-1};
-  Event*            event{};
+  system::Event*    event{};
   system::Thread*   thread{};
   int               flags{};
 
@@ -87,27 +87,27 @@ public:
   // To avoid reuse race conditions, these calls must also add the Event to read/write polling.
 
   // Throw internal_error on conflicts, as the caller isn't expecting conflicts.
-  void                open_event_or_throw(Event* event, category_t category, std::function<void ()> func);
+  void                open_event_or_throw(system::Event* event, category_t category, std::function<void ()> func);
 
   // Try to reuse existing socket, if that fails call cleanup.
   //
   // This is used for listen accept and other cases where the caller doesn't mind ignoring failures.
-  bool                open_event_or_cleanup(Event* event, category_t category, std::function<void ()> func, std::function<void (bool)> cleanup);
+  bool                open_event_or_cleanup(system::Event* event, category_t category, std::function<void ()> func, std::function<void (bool)> cleanup);
 
-  void                close_event_or_throw(Event* event, std::function<void ()> func);
+  void                close_event_or_throw(system::Event* event, std::function<void ()> func);
 
   // Event already opened the socket, just register it.
-  void                register_event_or_throw(Event* event, category_t category, std::function<void ()> func);
-  void                unregister_event_or_throw(Event* event, std::function<void ()> func);
+  void                register_event_or_throw(system::Event* event, category_t category, std::function<void ()> func);
+  void                unregister_event_or_throw(system::Event* event, std::function<void ()> func);
 
   // The func must close event_from and the pointer must remain valid.
-  Event*              transfer_event(Event* event_from, std::function<Event* ()> func);
+  system::Event*      transfer_event(system::Event* event_from, std::function<system::Event* ()> func);
 
   bool                execute_if_not_present(int fd, std::function<void ()> func);
 
-  [[nodiscard]] bool  mark_event_active_or_fail(Event* event);
-  void                mark_event_inactive(Event* event, std::function<void ()> func);
-  [[nodiscard]] bool  mark_stream_event_inactive(Event* event, std::function<void ()> func, std::function<void ()> on_reuse);
+  [[nodiscard]] bool  mark_event_active_or_fail(system::Event* event);
+  void                mark_event_inactive(system::Event* event, std::function<void ()> func);
+  [[nodiscard]] bool  mark_stream_event_inactive(system::Event* event, std::function<void ()> func, std::function<void ()> on_reuse);
 
   // The lock is held while the callback is called, so use Thread::callback().
   void                subscribe_to_changes(void* target, const std::function<void()>& callback);

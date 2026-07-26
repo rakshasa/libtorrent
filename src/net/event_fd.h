@@ -1,11 +1,11 @@
 #ifndef LIBTORRENT_NET_EVENT_FD_H
 #define LIBTORRENT_NET_EVENT_FD_H
 
-#include "torrent/event.h"
+#include "torrent/system/event.h"
 
 namespace torrent::net {
 
-class EventFd : public Event {
+class EventFd : public system::Event {
 public:
   EventFd() = default;
 

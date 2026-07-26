@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <map>
 #include <type_traits>
-#include <torrent/event.h>
 #include <torrent/net/socket_address.h>
+#include <torrent/system/event.h>
 
 // Compare arguments to mock functions with what is expected. The lhs
 // are the expected arguments, rhs are the ones called with.
@@ -94,14 +94,14 @@ inline bool mock_compare_arg<const sockaddr*>(const sockaddr* lhs, const sockadd
 }
 
 template <>
-inline bool mock_compare_arg<torrent::Event*>(torrent::Event* lhs, torrent::Event* rhs) {
-  if (mock_compare_map<torrent::Event>::is_key(lhs)) {
-    if (!mock_compare_map<torrent::Event>::has_value(rhs)) {
-      mock_compare_map<torrent::Event>::values[lhs] = rhs;
+inline bool mock_compare_arg<torrent::system::Event*>(torrent::system::Event* lhs, torrent::system::Event* rhs) {
+  if (mock_compare_map<torrent::system::Event>::is_key(lhs)) {
+    if (!mock_compare_map<torrent::system::Event>::has_value(rhs)) {
+      mock_compare_map<torrent::system::Event>::values[lhs] = rhs;
       return true;
     }
 
-    return mock_compare_map<torrent::Event>::has_key(lhs) && mock_compare_map<torrent::Event>::get(lhs) == rhs;
+    return mock_compare_map<torrent::system::Event>::has_key(lhs) && mock_compare_map<torrent::system::Event>::get(lhs) == rhs;
   }
 
   return lhs == rhs;
