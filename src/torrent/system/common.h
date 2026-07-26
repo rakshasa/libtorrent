@@ -15,7 +15,12 @@ class Event;
 class Poll;
 class Thread;
 
+namespace ipc {
+class Router;
+}
+
 using callback_id    = std::shared_ptr<std::atomic<uint32_t>>;
+using ipc_router_ptr = std::unique_ptr<ipc::Router>;
 
 } // namespace torrent::system
 
