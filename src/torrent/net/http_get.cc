@@ -140,8 +140,8 @@ HttpGet::add_done_slot(system::Thread* thread, const std::function<void()>& fn) 
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_done_slot() called on an invalid HttpGet object.");
 
-  m_curl_get->add_done_slot([thread, fn, curl_get = m_curl_get]() {
-      thread->callback(curl_get->callback_id(), [fn]() {
+  m_curl_get->add_done_slot([thread, fn, callback_id = m_curl_get->callback_id()]() mutable {
+      thread->callback(callback_id, [fn]() {
           fn();
         });
     });
@@ -152,8 +152,8 @@ HttpGet::add_failed_slot(system::Thread* thread, const std::function<void(const 
   if (m_curl_get == nullptr)
     throw torrent::internal_error("HttpGet::add_failed_slot() called on an invalid HttpGet object.");
 
-  m_curl_get->add_failed_slot([thread, fn, curl_get = m_curl_get](const std::string& error) {
-      thread->callback(curl_get->callback_id(), [fn, error]() {
+  m_curl_get->add_failed_slot([thread, fn, callback_id = m_curl_get->callback_id()](const std::string& error) mutable {
+      thread->callback(callback_id, [fn, error]() {
           fn(error);
         });
     });
