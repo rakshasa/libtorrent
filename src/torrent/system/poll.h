@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_TORRENT_SYSTEM_POLL_H
 #define LIBTORRENT_TORRENT_SYSTEM_POLL_H
 
+#include <atomic>
 #include <memory>
 #include <vector>
 #include <torrent/system/common.h>
@@ -71,7 +72,9 @@ private:
 
   std::unique_ptr<PollInternal> m_internal;
 
-  align_cacheline std::atomic<int> m_polling_state{};
+  align_cacheline
+
+  std::atomic<int>    m_polling_state{};
 };
 
 } // namespace torrent
