@@ -2,7 +2,7 @@
 #define LIBTORRENT_TORRENT_SYSTEM_IPC_CONTROL_FD_H
 
 #include <atomic>
-#include <torrent/event.h>
+#include <torrent/system/event.h>
 
 namespace torrent::system::ipc {
 
