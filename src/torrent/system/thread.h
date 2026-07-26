@@ -6,6 +6,7 @@
 #include <map>
 #include <mutex>
 #include <pthread.h>
+#include <thread>
 #include <vector>
 #include <sys/types.h>
 #include <torrent/common.h>

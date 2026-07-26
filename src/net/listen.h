@@ -5,11 +5,13 @@
 #include <functional>
 #include <memory>
 
-#include "torrent/event.h"
+#include "torrent/system/event.h"
 
 namespace torrent {
 
-class Listen : public Event {
+class Handshake;
+
+class Listen : public system::Event {
 public:
   struct open_options {
     uint16_t        first_port{};

@@ -82,6 +82,9 @@ libtorrent_torrent_la_SOURCES = \
 	runtime/socket_manager.h \
 \
 	system/callbacks.h \
+	system/common.h \
+	system/event.cc \
+	system/event.h \
 	system/poll.h \
 	system/poll_epoll.cc \
 	system/poll_kqueue.cc \
@@ -134,8 +137,6 @@ libtorrent_torrent_la_SOURCES = \
 	download.cc \
 	download.h \
 	download_info.h \
-	event.cc \
-	event.h \
 	exceptions.cc \
 	exceptions.h \
 	hash_string.h \
@@ -216,6 +217,8 @@ libtorrent_torrent_runtime_include_HEADERS = \
 libtorrent_torrent_system_includedir = $(includedir)/torrent/system
 libtorrent_torrent_system_include_HEADERS = \
 	system/callbacks.h \
+	system/common.h \
+	system/event.h \
 	system/poll.h \
 	system/thread.h \
 	system/types.h
@@ -256,7 +259,6 @@ libtorrent_torrent_include_HEADERS = \
 	download.h \
 	download_info.h \
 	exceptions.h \
-	event.h \
 	hash_string.h \
 	object.h \
 	object_raw_bencode.h \

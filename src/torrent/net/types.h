@@ -6,7 +6,7 @@
 #include <tuple>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <torrent/common.h>
+#include <torrent/system/common.h>
 
 struct sockaddr_in;
 struct sockaddr_in6;

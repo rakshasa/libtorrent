@@ -1,16 +1,18 @@
-#ifndef LIBTORRENT_TORRENT_EVENT_H
-#define LIBTORRENT_TORRENT_EVENT_H
+#ifndef LIBTORRENT_TORRENT_SYSTEM_EVENT_H
+#define LIBTORRENT_TORRENT_SYSTEM_EVENT_H
 
 #include <memory>
-#include <torrent/common.h>
 #include <torrent/net/types.h>
+#include <torrent/system/common.h>
 
-namespace torrent {
+namespace torrent::runtime {
+class SocketManager;
+}
 
-namespace system {
+namespace torrent::system {
+
 class PollEvent;
 class PollInternal;
-}
 
 class LIBTORRENT_EXPORT Event {
 public:
@@ -37,8 +39,8 @@ public:
   // TODO: Add bool event_fd_reused().
 
 protected:
-  friend class system::Poll;
-  friend class system::PollInternal;
+  friend class Poll;
+  friend class PollInternal;
   friend class runtime::SocketManager;
 
   void                reset_file_descriptor();
@@ -53,7 +55,7 @@ protected:
   bool                update_and_verify_socket_address();
   bool                update_and_verify_peer_address();
 
-  std::shared_ptr<system::PollEvent> m_poll_event;
+  std::shared_ptr<PollEvent> m_poll_event;
 
 private:
   int                 m_fileDesc{-1};
@@ -76,6 +78,6 @@ inline auto Event::peer_address() const        { return m_peer_address.get(); }
 inline auto Event::socket_address() const                      { return m_socket_address.get(); }
 inline void Event::set_socket_address(c_sa_unique_ptr address) { m_socket_address = std::move(address); }
 
-} // namespace torrent
+} // namespace torrent::system
 
 #endif
