@@ -2,6 +2,7 @@
 #define LIBTORRENT_TORRENT_RUNTIME_NETWORK_MANAGER_H
 
 #include <mutex>
+#include <torrent/common.h>
 #include <torrent/net/types.h>
 
 namespace torrent {

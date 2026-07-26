@@ -4,10 +4,10 @@
 
 #include <sys/select.h>
 
-#include "torrent/event.h"
+#include "torrent/system/event.h"
 
 bool
-check_event_is_readable(torrent::Event* event, std::chrono::microseconds timeout) {
+check_event_is_readable(torrent::system::Event* event, std::chrono::microseconds timeout) {
   int fd = event->file_descriptor();
 
   fd_set read_fds;

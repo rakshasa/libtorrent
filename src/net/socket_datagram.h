@@ -3,11 +3,11 @@
 
 #include <sys/socket.h>
 
-#include "torrent/event.h"
+#include "torrent/system/event.h"
 
 namespace torrent {
 
-class SocketDatagram : public Event {
+class SocketDatagram : public system::Event {
 public:
   ~SocketDatagram() override;
 

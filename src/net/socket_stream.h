@@ -4,12 +4,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "torrent/event.h"
 #include "torrent/exceptions.h"
+#include "torrent/system/event.h"
 
 namespace torrent {
 
-class SocketStream : public Event {
+class SocketStream : public system::Event {
 public:
   ~SocketStream() override;
 

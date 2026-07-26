@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_TORRENT_SYSTEM_TYPES_H
 #define LIBTORRENT_TORRENT_SYSTEM_TYPES_H
 
-#include <torrent/common.h>
+#include <torrent/system/common.h>
 
 namespace torrent::system {
 
@@ -13,7 +13,6 @@ inline std::string  sa_family_enum_str(int family);
 
 const char*         gai_enum_error(int status) LIBTORRENT_EXPORT;
 inline std::string  gai_enum_error_str(int status);
-
 
 //
 // Implemention:
