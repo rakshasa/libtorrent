@@ -28,7 +28,6 @@ inline Segment::~Segment()          { m_size = 0; m_addr = nullptr; }
 inline void*  Segment::address()    { return m_addr; }
 inline size_t Segment::size() const { return m_size; }
 
-
 }
 
 #endif

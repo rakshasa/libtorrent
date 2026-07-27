@@ -25,8 +25,11 @@ public:
   std::unique_ptr<Router> create_child_router();
 
 private:
-  int                      m_socket_1{};
-  int                      m_socket_2{};
+  int                 m_control_fd_1{};
+  int                 m_control_fd_2{};
+
+  int                 m_keepalive_fd_1{};
+  int                 m_keepalive_fd_2{};
 
   // TODO: Copy move these to router.
   std::unique_ptr<Segment> m_segment_1;

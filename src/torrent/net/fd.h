@@ -48,6 +48,7 @@ bool            fd_get_type(int fd, int* value) LIBTORRENT_EXPORT;
 c_sa_unique_ptr fd_get_peer_name(int fd) LIBTORRENT_EXPORT;
 c_sa_unique_ptr fd_get_socket_name(int fd) LIBTORRENT_EXPORT;
 
+bool            fd_set_close_on_exec(int fd, bool state) LIBTORRENT_EXPORT;
 bool            fd_set_dont_route(int fd, bool state) LIBTORRENT_EXPORT;
 bool            fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
 bool            fd_set_reuse_address(int fd, bool state) LIBTORRENT_EXPORT;
@@ -57,6 +58,9 @@ bool            fd_set_v6only(int fd, bool state) LIBTORRENT_EXPORT;
 
 bool            fd_set_send_buffer_size(int fd, uint32_t size) LIBTORRENT_EXPORT;
 bool            fd_set_receive_buffer_size(int fd, uint32_t size) LIBTORRENT_EXPORT;
+
+bool            fd_set_send_timeout(int fd, std::chrono::microseconds timeout) LIBTORRENT_EXPORT;
+bool            fd_set_receive_timeout(int fd, std::chrono::microseconds timeout) LIBTORRENT_EXPORT;
 
 // Defined with gnu::weak so that we can override them in tests.
 [[gnu::weak]] int fd__accept(int socket, sockaddr *address, socklen_t *address_len) LIBTORRENT_EXPORT;

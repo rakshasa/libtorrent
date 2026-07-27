@@ -528,6 +528,23 @@ fd_get_socket_name(int fd) {
 }
 
 bool
+fd_set_close_on_exec(int fd, bool state) {
+  int flags = fd__fcntl_int(fd, F_GETFD, 0);
+  if (flags == -1) {
+    LT_LOG_FD_ERROR("fd_set_close_on_exec() failed reading flags");
+    return false;
+  }
+
+  if (fd__fcntl_int(fd, F_SETFD, state ? (flags | FD_CLOEXEC) : (flags & ~FD_CLOEXEC)) == -1) {
+    LT_LOG_FD_ERROR("fd_set_close_on_exec() failed");
+    return false;
+  }
+
+  LT_LOG_FD("fd_set_close_on_exec() succeeded");
+  return true;
+}
+
+bool
 fd_set_dont_route(int fd, bool state) {
   if (fd__setsockopt_int(fd, SOL_SOCKET, SO_DONTROUTE, state) == -1) {
     LT_LOG_FD_VALUE_ERROR("fd_set_dont_route() failed", state);
@@ -640,6 +657,36 @@ fd_set_receive_buffer_size(int fd, uint32_t size) {
   }
 
   LT_LOG_FD_VALUE("fd_set_receive_buffer_size() succeeded", opt);
+  return true;
+}
+
+bool
+fd_set_send_timeout(int fd, std::chrono::microseconds timeout) {
+  timeval tv;
+  tv.tv_sec  = static_cast<time_t>(timeout.count() / 1000000);
+  tv.tv_usec = static_cast<suseconds_t>(timeout.count() % 1000000);
+
+  if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_send_timeout() failed", timeout.count());
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_send_timeout() succeeded", timeout.count());
+  return true;
+}
+
+bool
+fd_set_receive_timeout(int fd, std::chrono::microseconds timeout) {
+  timeval tv;
+  tv.tv_sec  = static_cast<time_t>(timeout.count() / 1000000);
+  tv.tv_usec = static_cast<suseconds_t>(timeout.count() % 1000000);
+
+  if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_receive_timeout() failed", timeout.count());
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_set_receive_timeout() succeeded", timeout.count());
   return true;
 }
 

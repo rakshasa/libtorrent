@@ -103,6 +103,8 @@ libtorrent_torrent_la_SOURCES = \
 	system/ipc/router.h \
 	system/ipc/segment.cc \
 	system/ipc/segment.h \
+	system/ipc/wakeup_fd.cc \
+	system/ipc/wakeup_fd.h \
 \
 	tracker/dht_controller.cc \
 	tracker/dht_controller.h \
