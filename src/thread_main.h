@@ -1,8 +1,6 @@
 #ifndef LIBTORRENT_THREAD_MAIN_H
 #define LIBTORRENT_THREAD_MAIN_H
 
-#include <memory>
-
 #include "torrent/common.h"
 #include "torrent/system/thread.h"
 
@@ -16,7 +14,7 @@ namespace process {
 class ProcessWorker;
 }
 
-class LIBTORRENT_EXPORT ThreadMain : public system::Thread {
+class ThreadMain : public system::Thread {
 public:
   using worker_process_ptr = std::unique_ptr<process::ProcessWorker>;
 

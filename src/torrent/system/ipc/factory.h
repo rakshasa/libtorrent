@@ -25,13 +25,10 @@ public:
   std::unique_ptr<Router> create_child_router();
 
 private:
-  int                 m_control_fd_1{};
-  int                 m_control_fd_2{};
+  std::pair<int, int>      m_control_fds{};
+  std::pair<int, int>      m_keepalive_fds{};
+  std::pair<int, int>      m_wakeup_fds{};
 
-  int                 m_keepalive_fd_1{};
-  int                 m_keepalive_fd_2{};
-
-  // TODO: Copy move these to router.
   std::unique_ptr<Segment> m_segment_1;
   std::unique_ptr<Segment> m_segment_2;
 };
