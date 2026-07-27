@@ -52,13 +52,14 @@ public:
   constexpr static uint32_t flag_close = 0x80000000;
   constexpr static uint32_t flag_mask  = 0xF0000000;
 
-  Router(int fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment);
+  Router(int control_fd, int keepalive_fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment);
   ~Router();
 
   void                open_control_fd();
   void                test_close_control_fd();
 
   PublicControlFd     control_fd();
+  int                 keepalive_fd() const;
 
   // TODO: Replace uint32_t with struct with member functions.
   uint32_t            register_handler(data_func on_read, data_func on_error);
@@ -91,7 +92,11 @@ private:
   // TODO: Add a flag to shm that indicates if the other side is in an event loop and will soon
   // check the channel. This avoids unnessesary writes of wakeup messages.
 
+  // TODO: Add event_fd/kevent and do control_fd in a separate thread to avoid child deadlocks.
+
   std::unique_ptr<ControlFd> m_control_fd;
+  // std::unique_ptr<ControlFd> m_keepalive_fd;
+  int                        m_keepalive_fd{};
 
   std::unique_ptr<Segment>   m_read_segment;
   std::unique_ptr<Segment>   m_write_segment;
@@ -103,7 +108,7 @@ private:
   handler_map         m_handlers;
 };
 
-// inline int  Router::file_descriptor() const               { return m_fd; }
+inline int  Router::keepalive_fd() const                     { return m_keepalive_fd; }
 inline void Router::send_fatal_error(const std::string& msg) { send_fatal_error(msg.c_str(), msg.size()); }
 
 } // namespace torrent::system::ipc

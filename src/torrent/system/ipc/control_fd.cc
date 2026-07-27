@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/system/types.h"
 
 namespace torrent::system::ipc {
 
@@ -26,6 +27,49 @@ ControlFd::close() {
     throw internal_error("ControlFd::close() error closing control fd: " + std::string(std::strerror(errno)));
 
   set_file_descriptor(-1);
+}
+
+bool
+ControlFd::check_is_alive(int fd) {
+  char dummy;
+  auto bytes = ::recv(fd, &dummy, 1, MSG_PEEK | MSG_DONTWAIT);
+
+  if (bytes == 0)
+    return false;
+
+  if (bytes == -1) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+      return true;
+
+    if (errno == ECONNRESET || errno == ENOTCONN || errno == EPIPE)
+      return false;
+
+    // throw internal_error("ControlFd::check_is_alive() recv() failed: " + errno_enum_str(errno));
+    return false;
+  }
+
+  return true;
+}
+
+void
+ControlFd::wait_is_alive(int fd) {
+  while (true) {
+    char dummy;
+    auto bytes = ::recv(fd, &dummy, 1, MSG_PEEK);
+
+    if (bytes == 0)
+      return;
+
+    if (bytes == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+        continue;
+
+      if (errno == ECONNRESET || errno == ENOTCONN || errno == EPIPE)
+        return;
+
+      throw internal_error("ControlFd::wait_is_alive() recv() failed: " + std::string(std::strerror(errno)));
+    }
+  }
 }
 
 void

@@ -12,6 +12,8 @@ class LIBTORRENT_EXPORT PublicControlFd {
 public:
   PublicControlFd(ControlFd* control_fd) : m_control_fd(control_fd) {}
 
+  int  file_descriptor() const;
+
   void register_interrupt_handler(std::function<void()>&& fn);
   void register_message_handler(std::function<void(std::string)>&& fn);
 
@@ -40,6 +42,9 @@ public:
   void                send_forceful_shutdown();
   void                send_fatal_error(const char* msg, uint32_t size);
 
+  static bool         check_is_alive(int fd);
+  static void         wait_is_alive(int fd);
+
 private:
   friend class PublicControlFd;
 
@@ -56,6 +61,7 @@ private:
   std::function<void(bool)>        m_slot_shutdown;
 };
 
+inline int  PublicControlFd::file_descriptor() const                                         { return m_control_fd->file_descriptor(); }
 inline void PublicControlFd::register_interrupt_handler(std::function<void()>&& fn)          { m_control_fd->m_slot_interrupt = std::move(fn); }
 inline void PublicControlFd::register_message_handler(std::function<void(std::string)>&& fn) { m_control_fd->m_slot_message   = std::move(fn); }
 inline void PublicControlFd::register_closed_handler(std::function<void(int)>&& fn)          { m_control_fd->m_slot_closed    = std::move(fn); }

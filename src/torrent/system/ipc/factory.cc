@@ -7,11 +7,50 @@
 #include <sys/socket.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
+#include "torrent/system/types.h"
 #include "torrent/system/ipc/channel.h"
 #include "torrent/system/ipc/router.h"
 #include "torrent/system/ipc/segment.h"
 
 namespace torrent::system::ipc {
+
+namespace {
+
+std::pair<int, int>
+create_socket_pair() {
+  auto setup_socket = [](int fd) {
+      if (!fd_set_send_timeout(fd, 2s))
+        throw internal_error("ControlFd::send_fatal_error(): fd_set_send_timeout() failed: " + errno_enum_str(errno));
+
+      if (!fd_set_receive_timeout(fd, 2s))
+        throw internal_error("ControlFd::initialize(): fd_set_receive_timeout() failed: " + errno_enum_str(errno));
+
+      // Linux kernels require O_NONBLOCK alongside SO_SNDTIMEO to respect timeouts on AF_LOCAL.
+      // macOS and BSD require the socket to remain blocking for the timeout to function.
+
+#ifdef __linux__
+      int flags = ::fcntl(fd, F_GETFL, 0);
+
+      if (flags == -1 || ::fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+        throw internal_error("RouterFactory::initialize(): fcntl(O_NONBLOCK) failed: " + errno_enum_str(errno));
+
+#endif
+    };
+
+  int fd_0;
+  int fd_1;
+
+  fd_open_socket_pair(fd_0, fd_1);
+
+  setup_socket(fd_0);
+  setup_socket(fd_1);
+
+  return {fd_0, fd_1};
+}
+
+} // namespace anonymous
+
 
 void
 RouterFactory::initialize(uint32_t segment_size) {
@@ -24,57 +63,40 @@ RouterFactory::initialize(uint32_t segment_size) {
   static_cast<torrent::system::ipc::Channel*>(m_segment_1->address())->initialize(m_segment_1->address(), m_segment_1->size());
   static_cast<torrent::system::ipc::Channel*>(m_segment_2->address())->initialize(m_segment_2->address(), m_segment_2->size());
 
-  int socket_pair[2]{};
-
-  if (::socketpair(AF_LOCAL, SOCK_STREAM, 0, socket_pair) == -1)
-    throw internal_error("RouterFactory::initialize(): socketpair() failed: " + std::string(strerror(errno)));
-
-  // Use timeouts as the control channel should never be able to exhaust buffers.
-  //
-  // Sockets remain blocking on macOS/BSD, but use O_NONBLOCK loops on Linux to respect timeouts.
-
-  auto setup_socket = [](int fd) {
-      struct timeval timeout{2, 0};
-
-      if (::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) == -1)
-        throw internal_error("ControlFd::send_fatal_error(): setsockopt(SO_SNDTIMEO) failed: " + std::string(std::strerror(errno)));
-
-      if (::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1)
-        throw internal_error("ControlFd::initialize(): setsockopt(SO_RCVTIMEO) failed: " + std::string(strerror(errno)));
-
-      // Linux kernels require O_NONBLOCK alongside SO_SNDTIMEO to respect timeouts on AF_LOCAL.
-      // macOS and BSD require the socket to remain blocking for the timeout to function.
-
-#ifdef __linux__
-      int flags = ::fcntl(fd, F_GETFL, 0);
-
-      if (flags == -1 || ::fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-        throw internal_error("RouterFactory::initialize(): fcntl(O_NONBLOCK) failed: " + std::string(strerror(errno)));
-
-#endif
-    };
-
-  setup_socket(socket_pair[0]);
-  setup_socket(socket_pair[1]);
-
-  m_socket_1 = socket_pair[0];
-  m_socket_2 = socket_pair[1];
+  std::tie(m_control_fd_1, m_control_fd_2)     = create_socket_pair();
+  std::tie(m_keepalive_fd_1, m_keepalive_fd_2) = create_socket_pair();
 }
 
-// TODO: Use unique_ptr in Router, and let it steal our ptrs.
+// TODO: Use unique_ptr in Router for Segments, and let it steal our ptrs.
+
+// TODO: When adding EventFd/kqueue-event for wakeup, move control-fd listening to a separate thread and remove keepalife_fd.
 
 std::unique_ptr<Router>
 RouterFactory::create_parent_router() {
-  ::close(m_socket_2);
+  ::close(m_control_fd_2);
+  ::close(m_keepalive_fd_2);
 
-  return std::make_unique<Router>(m_socket_1, std::move(m_segment_1), std::move(m_segment_2));
+  if (!fd_set_close_on_exec(m_control_fd_1, true))
+    throw internal_error("RouterFactory::create_parent_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
+
+  if (!fd_set_close_on_exec(m_keepalive_fd_1, true))
+    throw internal_error("RouterFactory::create_parent_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
+
+  return std::make_unique<Router>(m_control_fd_1, m_keepalive_fd_1, std::move(m_segment_1), std::move(m_segment_2));
 }
 
 std::unique_ptr<Router>
 RouterFactory::create_child_router() {
-  ::close(m_socket_1);
+  ::close(m_control_fd_1);
+  ::close(m_keepalive_fd_1);
 
-  return std::make_unique<Router>(m_socket_2, std::move(m_segment_2), std::move(m_segment_1));
+  if (!fd_set_close_on_exec(m_control_fd_2, true))
+    throw internal_error("RouterFactory::create_child_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
+
+  if (!fd_set_close_on_exec(m_keepalive_fd_2, true))
+    throw internal_error("RouterFactory::create_child_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
+
+  return std::make_unique<Router>(m_control_fd_2, m_keepalive_fd_2, std::move(m_segment_2), std::move(m_segment_1));
 }
 
 } // namespace torrent::system::ipc

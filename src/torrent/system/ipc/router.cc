@@ -19,12 +19,14 @@ namespace torrent::system::ipc {
 // TODO: Add entry_fd and kqueue support.
 // TODO: Add watchdog.
 
-Router::Router(int fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment)
+Router::Router(int control_fd, int keepalive_fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment)
   : m_read_segment(std::move(read_segment)),
     m_write_segment(std::move(write_segment)) {
 
   m_control_fd = std::make_unique<ControlFd>();
-  m_control_fd->open(fd);
+  m_control_fd->open(control_fd);
+
+  m_keepalive_fd = keepalive_fd;
 
   m_read_channel  = static_cast<Channel*>(m_read_segment->address());
   m_write_channel = static_cast<Channel*>(m_write_segment->address());
