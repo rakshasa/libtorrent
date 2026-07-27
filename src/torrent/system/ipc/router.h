@@ -52,7 +52,17 @@ public:
   constexpr static uint32_t flag_close = 0x80000000;
   constexpr static uint32_t flag_mask  = 0xF0000000;
 
-  Router(int control_fd, int keepalive_fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment);
+  struct create_args {
+    bool                     is_parent{};
+    int                      control_fd{};
+    int                      keepalive_fd{};
+    std::pair<int, int>      wakeup_fds{};
+    std::unique_ptr<Segment> read_segment;
+    std::unique_ptr<Segment> write_segment;
+  };
+
+
+  Router(create_args args);
   ~Router();
 
   void                open_control_fd();
@@ -95,8 +105,8 @@ private:
   // TODO: Add event_fd/kevent and do control_fd in a separate thread to avoid child deadlocks.
 
   std::unique_ptr<ControlFd> m_control_fd;
-  // std::unique_ptr<ControlFd> m_keepalive_fd;
   int                        m_keepalive_fd{};
+  
 
   std::unique_ptr<Segment>   m_read_segment;
   std::unique_ptr<Segment>   m_write_segment;

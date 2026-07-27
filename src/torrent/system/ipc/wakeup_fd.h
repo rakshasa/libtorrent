@@ -18,7 +18,7 @@ public:
 
   const char*         type_name() const override { return "wakeup_fd"; }
 
-  void                add_to_poll(int fd);
+  void                add_to_poll(std::pair<int, int> fd_pair, bool is_parent);
   void                remove_from_poll(Poll* poll);
 
   void                send_signal();

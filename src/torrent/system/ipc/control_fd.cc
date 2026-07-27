@@ -72,12 +72,12 @@ ControlFd::wait_is_alive(int fd) {
   }
 }
 
-void
-ControlFd::send_interrupt() {
-  char dummy = 0;
+// void
+// ControlFd::send_interrupt() {
+//   char dummy = 0;
 
-  send_message_internal(&dummy, 0);
-}
+//   send_message_internal(&dummy, 0);
+// }
 
 void
 ControlFd::send_shutdown_message(bool graceful) {
@@ -158,7 +158,7 @@ ControlFd::event_read() {
 #ifdef __linux__
             // On Linux, the socket is non-blocking. To prevent a 100% CPU hot-loop while waiting
             // for the payload, throttle with a tiny sleep.
-            std::this_thread::sleep_for(std::chrono::microseconds(100));
+            std::this_thread::sleep_for(10ms);
             continue;
 #else
             // On macOS/BSD, the socket is blocking. If EAGAIN happens mid-packet, it means the
@@ -186,10 +186,10 @@ ControlFd::event_read() {
   char     buffer[max_message_size];
   uint16_t message_size = ntohs(size_network_order);
 
-  if (message_size == 0) {
-    m_slot_interrupt();
-    return;
-  }
+  // if (message_size == 0) {
+  //   m_slot_interrupt();
+  //   return;
+  // }
 
   if (message_size > max_message_size) {
     m_slot_closed(EIO);

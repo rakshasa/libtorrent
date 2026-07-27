@@ -12,6 +12,7 @@
 #include "torrent/system/ipc/channel.h"
 #include "torrent/system/ipc/router.h"
 #include "torrent/system/ipc/segment.h"
+#include "torrent/system/ipc/wakeup_fd.h"
 
 namespace torrent::system::ipc {
 
@@ -63,8 +64,10 @@ RouterFactory::initialize(uint32_t segment_size) {
   static_cast<torrent::system::ipc::Channel*>(m_segment_1->address())->initialize(m_segment_1->address(), m_segment_1->size());
   static_cast<torrent::system::ipc::Channel*>(m_segment_2->address())->initialize(m_segment_2->address(), m_segment_2->size());
 
-  std::tie(m_control_fd_1, m_control_fd_2)     = create_socket_pair();
-  std::tie(m_keepalive_fd_1, m_keepalive_fd_2) = create_socket_pair();
+  m_control_fds   = create_socket_pair();
+  m_keepalive_fds = create_socket_pair();
+
+  m_wakeup_fds = WakeupFd::create_fd_pair();
 }
 
 // TODO: Use unique_ptr in Router for Segments, and let it steal our ptrs.
@@ -73,30 +76,48 @@ RouterFactory::initialize(uint32_t segment_size) {
 
 std::unique_ptr<Router>
 RouterFactory::create_parent_router() {
-  ::close(m_control_fd_2);
-  ::close(m_keepalive_fd_2);
+  ::close(m_control_fds.second);
+  ::close(m_keepalive_fds.second);
 
-  if (!fd_set_close_on_exec(m_control_fd_1, true))
+  if (!fd_set_close_on_exec(m_control_fds.first, true))
     throw internal_error("RouterFactory::create_parent_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
 
-  if (!fd_set_close_on_exec(m_keepalive_fd_1, true))
+  if (!fd_set_close_on_exec(m_keepalive_fds.first, true))
     throw internal_error("RouterFactory::create_parent_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
 
-  return std::make_unique<Router>(m_control_fd_1, m_keepalive_fd_1, std::move(m_segment_1), std::move(m_segment_2));
+  // return std::make_unique<Router>(m_control_fd.first, m_keepalive_fd.first, std::move(m_segment_1), std::move(m_segment_2));
+
+  return std::make_unique<Router>(Router::create_args{
+      true,
+      m_control_fds.first,
+      m_keepalive_fds.first,
+      m_wakeup_fds,
+      std::move(m_segment_1),
+      std::move(m_segment_2)
+    });
 }
 
 std::unique_ptr<Router>
 RouterFactory::create_child_router() {
-  ::close(m_control_fd_1);
-  ::close(m_keepalive_fd_1);
+  ::close(m_control_fds.first);
+  ::close(m_keepalive_fds.first);
 
-  if (!fd_set_close_on_exec(m_control_fd_2, true))
+  if (!fd_set_close_on_exec(m_control_fds.second, true))
     throw internal_error("RouterFactory::create_child_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
 
-  if (!fd_set_close_on_exec(m_keepalive_fd_2, true))
+  if (!fd_set_close_on_exec(m_keepalive_fds.second, true))
     throw internal_error("RouterFactory::create_child_router(): fd_set_close_on_exec() failed: " + errno_enum_str(errno));
 
-  return std::make_unique<Router>(m_control_fd_2, m_keepalive_fd_2, std::move(m_segment_2), std::move(m_segment_1));
+  // Router::create_args args;
+
+  return std::make_unique<Router>(Router::create_args{
+      false,
+      m_control_fds.second,
+      m_keepalive_fds.second,
+      m_wakeup_fds,
+      std::move(m_segment_2),
+      std::move(m_segment_1)
+    });
 }
 
 } // namespace torrent::system::ipc
