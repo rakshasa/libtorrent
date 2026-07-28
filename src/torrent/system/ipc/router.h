@@ -3,7 +3,7 @@
 
 #include <map>
 #include <memory>
-#include <torrent/common.h>
+#include <torrent/system/common.h>
 
 // Uses read and write shm::Channel for inter-process communication.
 //
@@ -21,11 +21,11 @@
 
 namespace torrent::system::ipc {
 
-// Add to common.h
 class Channel;
 class ControlFd;
 class PublicControlFd;
 class Segment;
+class WakeupFd;
 
 struct RouterHandler {
   using data_func = std::function<void(void* data, uint32_t size)>;
@@ -105,8 +105,8 @@ private:
   // TODO: Add event_fd/kevent and do control_fd in a separate thread to avoid child deadlocks.
 
   std::unique_ptr<ControlFd> m_control_fd;
+  std::unique_ptr<WakeupFd>  m_wakeup_fd{};
   int                        m_keepalive_fd{};
-  
 
   std::unique_ptr<Segment>   m_read_segment;
   std::unique_ptr<Segment>   m_write_segment;

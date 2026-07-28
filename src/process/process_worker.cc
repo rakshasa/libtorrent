@@ -1,11 +1,12 @@
 #include "config.h"
 
-#include "process_worker.h"
+#include "process/process_worker.h"
 
 #include <future>
 #include <unistd.h>
 #include <iostream>
 
+#include "process/worker/thread_worker.h"
 #include "torrent/exceptions.h"
 #include "torrent/system/ipc/control_fd.h"
 #include "torrent/system/ipc/factory.h"
@@ -81,7 +82,14 @@ ProcessWorker::spawn() {
 
   // Add a thread that peeks at control_fd and sleeps
 
-  ::sleep(180);
+  // ::sleep(180);
+
+  worker::ThreadWorker::create_thread();
+
+  worker::ThreadWorker::thread_worker()->event_loop();
+
+
+
 
   // int control_fd = m_router->control_fd().file_descriptor();
 

@@ -28,8 +28,7 @@ EventFd::add_to_poll() {
     throw internal_error("EventFd::add_to_poll() eventfd failed: " + std::string(std::strerror(errno)));
 
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
-      this_thread::poll()->open(this);
-      this_thread::poll()->insert_read(this);
+      this_thread::poll()->open_and_insert_read(this);
     });
 }
 

@@ -63,7 +63,7 @@ ThreadWorker::init_after_setup() {
 void
 ThreadWorker::cleanup_thread() {
   m_thread_worker = nullptr;
-  m_self        = nullptr;
+  m_self          = nullptr;
 }
 
 void

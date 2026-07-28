@@ -134,8 +134,7 @@ DhtServer::start(int port) {
 
   // TODO: This throws internal_error on failure.
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
-      this_thread::poll()->open(this);
-      this_thread::poll()->insert_read(this);
+      this_thread::poll()->open_and_insert_read(this);
     });
 }
 

@@ -40,11 +40,11 @@ namespace torrent::system {
 
 class PollEvent {
 public:
-  PollEvent(system::Event* e) : event(e) {}
+  PollEvent(Event* e) : event(e) {}
   ~PollEvent() = default;
 
   uint32_t            mask{};
-  system::Event*      event{};
+  Event*      event{};
 };
 
 class PollInternal {
@@ -54,11 +54,11 @@ public:
   static constexpr uint32_t flag_read  = 0x1;
   static constexpr uint32_t flag_write = 0x2;
 
-  uint32_t            event_mask(system::Event* event);
-  void                set_event_mask(system::Event* event, uint32_t mask);
+  uint32_t            event_mask(Event* event);
+  void                set_event_mask(Event* event, uint32_t mask);
 
   void                flush();
-  void                modify(system::Event* event, unsigned short op, short mask);
+  void                modify(Event* event, unsigned short op, short mask);
 
   inline void         create_user_event();
   inline void         poke_user_event();
@@ -78,7 +78,7 @@ public:
 };
 
 uint32_t
-PollInternal::event_mask(system::Event* event) {
+PollInternal::event_mask(Event* event) {
   // TODO: Replace `file_descriptor()` with m_event_poll.
 
   if (event->file_descriptor() == -1)
@@ -96,7 +96,7 @@ PollInternal::event_mask(system::Event* event) {
 }
 
 void
-PollInternal::set_event_mask(system::Event* event, uint32_t mask) {
+PollInternal::set_event_mask(Event* event, uint32_t mask) {
   if (event->file_descriptor() == -1)
     throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: " + event->print_name_fd_str());
 
@@ -117,7 +117,7 @@ PollInternal::flush() {
 }
 
 void
-PollInternal::modify(system::Event* event, unsigned short op, short mask) {
+PollInternal::modify(Event* event, unsigned short op, short mask) {
   LT_LOG_EVENT("modify event : op:%hx mask:%hx changed:%u", op, mask, m_changed_events);
 
   // Flush the changed filters to the kernel if the buffer is full.
@@ -330,7 +330,7 @@ Poll::open_max() const {
 }
 
 void
-Poll::open(system::Event* event) {
+Poll::open(Event* event) {
   LT_LOG_EVENT("open event", 0);
 
   if (event->file_descriptor() == -1)
@@ -348,7 +348,26 @@ Poll::open(system::Event* event) {
 }
 
 void
-Poll::close(system::Event* event) {
+Poll::open_and_insert_read(Event* event) {
+  open(event);
+  insert_read(event);
+}
+
+void
+Poll::open_and_insert_read_write(Event* event) {
+  open(event);
+  insert_read(event);
+  insert_write(event);
+}
+
+void
+Poll::open_and_insert_write(Event* event) {
+  open(event);
+  insert_write(event);
+}
+
+void
+Poll::close(Event* event) {
   LT_LOG_EVENT("close event", 0);
 
   auto* poll_event = event->m_poll_event.get();
@@ -375,17 +394,17 @@ Poll::close(system::Event* event) {
 }
 
 bool
-Poll::in_read(system::Event* event) {
+Poll::in_read(Event* event) {
   return m_internal->event_mask(event) & PollInternal::flag_read;
 }
 
 bool
-Poll::in_write(system::Event* event) {
+Poll::in_write(Event* event) {
   return m_internal->event_mask(event) & PollInternal::flag_write;
 }
 
 void
-Poll::insert_read(system::Event* event) {
+Poll::insert_read(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
   if (event_mask & PollInternal::flag_read)
@@ -398,7 +417,7 @@ Poll::insert_read(system::Event* event) {
 }
 
 void
-Poll::insert_write(system::Event* event) {
+Poll::insert_write(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
   if (event_mask & PollInternal::flag_write)
@@ -411,7 +430,7 @@ Poll::insert_write(system::Event* event) {
 }
 
 void
-Poll::remove_read(system::Event* event) {
+Poll::remove_read(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
   if (!(event_mask & PollInternal::flag_read))
@@ -424,7 +443,7 @@ Poll::remove_read(system::Event* event) {
 }
 
 void
-Poll::remove_write(system::Event* event) {
+Poll::remove_write(Event* event) {
   auto event_mask = m_internal->event_mask(event);
 
   if (!(event_mask & PollInternal::flag_write))
@@ -437,7 +456,7 @@ Poll::remove_write(system::Event* event) {
 }
 
 void
-Poll::remove_and_close(system::Event* event) {
+Poll::remove_and_close(Event* event) {
   LT_LOG_EVENT("remove and close", 0);
 
   remove_read(event);

@@ -34,22 +34,22 @@ namespace torrent::system {
 
 class PollEvent {
 public:
-  PollEvent(system::Event* event) : event(event) {}
+  PollEvent(Event* event) : event(event) {}
   ~PollEvent() = default;
 
   uint32_t            mask{};
-  system::Event*      event{};
+  Event*      event{};
 };
 
 class PollInternal {
 public:
   using Table = std::map<unsigned int, std::shared_ptr<PollEvent>>;
 
-  uint32_t            event_mask(system::Event* event);
-  void                set_event_mask(system::Event* event, uint32_t mask);
+  uint32_t            event_mask(Event* event);
+  void                set_event_mask(Event* event, uint32_t mask);
 
   void                flush();
-  void                modify(system::Event* event, unsigned short op, uint32_t mask, uint32_t old_mask);
+  void                modify(Event* event, unsigned short op, uint32_t mask, uint32_t old_mask);
 
   int                 m_fd{};
 
@@ -66,7 +66,7 @@ public:
 };
 
 uint32_t
-PollInternal::event_mask(system::Event* event) {
+PollInternal::event_mask(Event* event) {
   if (event->file_descriptor() == -1)
     throw internal_error("PollInternal::event_mask() invalid file descriptor for event: " + event->print_name_fd_str());
 
@@ -82,7 +82,7 @@ PollInternal::event_mask(system::Event* event) {
 }
 
 void
-PollInternal::set_event_mask(system::Event* event, uint32_t mask) {
+PollInternal::set_event_mask(Event* event, uint32_t mask) {
   if (event->file_descriptor() == -1)
     throw internal_error("PollInternal::set_event_mask() invalid file descriptor for event: " + event->print_name_fd_str());
 
@@ -92,7 +92,7 @@ PollInternal::set_event_mask(system::Event* event, uint32_t mask) {
 // See https://github.com/enki/libev/blob/master/ev_epoll.c for suggestions.
 
 void
-PollInternal::modify(system::Event* event, unsigned short op, uint32_t mask, uint32_t old_mask) {
+PollInternal::modify(Event* event, unsigned short op, uint32_t mask, uint32_t old_mask) {
   if (event_mask(event) == mask)
     return;
 
@@ -315,7 +315,7 @@ Poll::open_max() const {
 // TODO: Make open register for at least error events.
 
 void
-Poll::open(system::Event* event) {
+Poll::open(Event* event) {
   LT_LOG_EVENT("open event", 0);
 
   if (event->file_descriptor() == -1)
@@ -333,7 +333,26 @@ Poll::open(system::Event* event) {
 }
 
 void
-Poll::close(system::Event* event) {
+Poll::open_and_insert_read(Event* event) {
+  open(event);
+  insert_read(event);
+}
+
+void
+Poll::open_and_insert_read_write(Event* event) {
+  open(event);
+  insert_read(event);
+  insert_write(event);
+}
+
+void
+Poll::open_and_insert_write(Event* event) {
+  open(event);
+  insert_write(event);
+}
+
+void
+Poll::close(Event* event) {
   LT_LOG_EVENT("close event", 0);
 
   auto* poll_event = event->m_poll_event.get();
@@ -358,17 +377,17 @@ Poll::close(system::Event* event) {
 }
 
 bool
-Poll::in_read(system::Event* event) {
+Poll::in_read(Event* event) {
   return m_internal->event_mask(event) & EPOLLIN;
 }
 
 bool
-Poll::in_write(system::Event* event) {
+Poll::in_write(Event* event) {
   return m_internal->event_mask(event) & EPOLLOUT;
 }
 
 void
-Poll::insert_read(system::Event* event) {
+Poll::insert_read(Event* event) {
   auto mask = m_internal->event_mask(event);
 
   if (mask & EPOLLIN)
@@ -383,7 +402,7 @@ Poll::insert_read(system::Event* event) {
 }
 
 void
-Poll::insert_write(system::Event* event) {
+Poll::insert_write(Event* event) {
   auto mask = m_internal->event_mask(event);
 
   if (mask & EPOLLOUT)
@@ -398,7 +417,7 @@ Poll::insert_write(system::Event* event) {
 }
 
 void
-Poll::remove_read(system::Event* event) {
+Poll::remove_read(Event* event) {
   auto mask     = m_internal->event_mask(event);
   auto new_mask = mask & ~EPOLLIN;
 
@@ -414,7 +433,7 @@ Poll::remove_read(system::Event* event) {
 }
 
 void
-Poll::remove_write(system::Event* event) {
+Poll::remove_write(Event* event) {
   auto mask     = m_internal->event_mask(event);
   auto new_mask = mask & ~EPOLLOUT;
 
@@ -430,7 +449,7 @@ Poll::remove_write(system::Event* event) {
 }
 
 void
-Poll::remove_and_close(system::Event* event) {
+Poll::remove_and_close(Event* event) {
   remove_read(event);
   remove_write(event);
 

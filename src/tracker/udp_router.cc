@@ -78,8 +78,7 @@ UdpRouter::open(int family) {
   set_socket_address(sa_copy(bind_address.get()));
 
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
-      this_thread::poll()->open(this);
-      this_thread::poll()->insert_read(this);
+      this_thread::poll()->open_and_insert_read(this);
     });
 
   LT_LOG("opened udp router : family:%s bind_address:%s", system::sa_family_enum(family), sa_pretty_str(bind_address.get()).c_str());
