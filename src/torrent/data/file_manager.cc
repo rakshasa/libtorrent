@@ -232,6 +232,11 @@ FileManager::evict_least_active_from_cache(unsigned int count) {
     if (pair.first->last_touched() != pair.second)
       continue;
 
+    if (!pair.first->is_open())
+      continue;
+
+    assert(!pair.first->is_padding());
+
     files.push_back(pair.first);
     count--;
   }
