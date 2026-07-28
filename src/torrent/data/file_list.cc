@@ -27,7 +27,9 @@
 
 namespace torrent {
 
-static void
+namespace {
+
+void
 verify_file_list(const FileList* fl) {
   if (fl->empty())
     throw internal_error("verify_file_list() 1.", fl->data()->hash());
@@ -40,6 +42,8 @@ verify_file_list(const FileList* fl) {
         (*itr)->match_depth_next() >= (*itr)->path()->size())
       throw internal_error("verify_file_list() 3.", fl->data()->hash());
 }
+
+} // namespace anonymous
 
 FileList::FileList() = default;
 
@@ -441,15 +445,10 @@ FileList::open(bool hashing, int flags) {
     }
 
   } catch (const local_error& e) {
-    std::vector<File*> files;
-    files.reserve(size());
-
-    for (auto& entry : *this) {
+    for (auto& entry : *this)
       entry->unset_flags_protected(File::flag_active);
-      files.push_back(entry.get());
-    }
 
-    manager->file_manager()->close_files(files);
+    manager->file_manager()->close_files(*this);
 
     if (itr == end()) {
       LT_LOG_FL(ERROR, "Failed to prepare file list: %s", e.what());
@@ -489,15 +488,10 @@ FileList::close() {
 
   LT_LOG_FL(INFO, "Closing.", 0);
 
-  std::vector<File*> files;
-  files.reserve(size());
-
-  for (auto& entry : *this) {
+  for (auto& entry : *this)
     entry->unset_flags_protected(File::flag_active);
-    files.push_back(entry.get());
-  }
 
-  manager->file_manager()->close_files(files);
+  manager->file_manager()->close_files(*this);
 
   m_is_open = false;
   m_indirect_links.clear();
@@ -512,13 +506,7 @@ FileList::close_all_files() {
 
   LT_LOG_FL(INFO, "Closing all files.", 0);
 
-  std::vector<File*> files;
-  files.reserve(size());
-
-  for (auto& entry : *this)
-    files.push_back(entry.get());
-
-  manager->file_manager()->close_files(files);
+  manager->file_manager()->close_files(*this);
 }
 
 void
