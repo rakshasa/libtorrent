@@ -71,8 +71,7 @@ directory_events::open() {
   if (!is_open())
     return false;
 
-  this_thread::poll()->open(this);
-  this_thread::poll()->insert_read(this);
+  this_thread::poll()->open_and_insert_read(this);
 
   return true;
 }

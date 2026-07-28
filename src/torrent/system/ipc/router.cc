@@ -12,6 +12,7 @@
 #include "torrent/system/ipc/channel.h"
 #include "torrent/system/ipc/control_fd.h"
 #include "torrent/system/ipc/segment.h"
+#include "torrent/system/ipc/wakeup_fd.h"
 #include "torrent/system/poll.h"
 
 namespace torrent::system::ipc {
@@ -19,14 +20,17 @@ namespace torrent::system::ipc {
 // TODO: Add entry_fd and kqueue support.
 // TODO: Add watchdog.
 
-Router::Router(int control_fd, int keepalive_fd, std::unique_ptr<Segment> read_segment, std::unique_ptr<Segment> write_segment)
-  : m_read_segment(std::move(read_segment)),
-    m_write_segment(std::move(write_segment)) {
+Router::Router(create_args args)
+  : m_read_segment(std::move(args.read_segment)),
+    m_write_segment(std::move(args.write_segment)) {
 
   m_control_fd = std::make_unique<ControlFd>();
-  m_control_fd->open(control_fd);
+  m_control_fd->open(args.control_fd);
 
-  m_keepalive_fd = keepalive_fd;
+  m_wakeup_fd  = std::make_unique<WakeupFd>();
+  m_wakeup_fd->open(args.wakeup_fds, args.is_parent);
+
+  m_keepalive_fd = args.keepalive_fd;
 
   m_read_channel  = static_cast<Channel*>(m_read_segment->address());
   m_write_channel = static_cast<Channel*>(m_write_segment->address());
@@ -34,10 +38,14 @@ Router::Router(int control_fd, int keepalive_fd, std::unique_ptr<Segment> read_s
 
 Router::~Router() = default;
 
+// TODO: Rename...
 void
 Router::open_control_fd() {
-  torrent::this_thread::poll()->open(m_control_fd.get());
-  torrent::this_thread::poll()->insert_read(m_control_fd.get());
+  this_thread::poll()->open_and_insert_read(m_control_fd.get());
+
+  // runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
+  this_thread::poll()->open_and_insert_read(m_wakeup_fd.get());
+    // });
 }
 
 void
@@ -45,7 +53,6 @@ Router::test_close_control_fd() {
   if (!m_control_fd->is_polling())
     return;
 
-  torrent::this_thread::poll()->remove_and_close(m_control_fd.get());
   m_control_fd->close();
 }
 

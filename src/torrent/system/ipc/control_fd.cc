@@ -23,6 +23,9 @@ ControlFd::close() {
   if (!is_open())
     return;
 
+  if (is_polling())
+    torrent::this_thread::poll()->remove_and_close(m_control_fd.get());
+
   if (::close(file_descriptor()) == -1)
     throw internal_error("ControlFd::close() error closing control fd: " + std::string(std::strerror(errno)));
 

@@ -42,7 +42,7 @@ WakeupFd::create_fd_pair() {
 }
 
 void
-WakeupFd::add_to_poll(std::pair<int, int> fd_pair, bool is_parent) {
+WakeupFd::open(std::pair<int, int> fd_pair, bool is_parent) {
   // Close the unused end of the socket pair.
 
 #ifdef USE_EVENT_FD
@@ -66,21 +66,18 @@ WakeupFd::add_to_poll(std::pair<int, int> fd_pair, bool is_parent) {
 
   if (!fd_set_close_on_exec(file_descriptor(), true))
     throw internal_error("WakeupFd::add_to_poll() fd_set_close_on_exec() failed: " + errno_enum_str(errno));
-
-  // runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
-      this_thread::poll()->open(this);
-      this_thread::poll()->insert_read(this);
-    // });
 }
 
 void
-WakeupFd::remove_from_poll(Poll* poll) {
+WakeupFd::close(Poll* poll) {
   if (!is_open())
     return;
 
-  runtime::socket_manager()->unregister_event_or_throw(this, [this, poll]() {
+  if (is_polling()) {
+  // runtime::socket_manager()->unregister_event_or_throw(this, [this, poll]() {
       poll->remove_and_close(this);
-    });
+    // });
+  }
 
   fd_close(file_descriptor());
   reset_file_descriptor();

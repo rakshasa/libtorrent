@@ -28,22 +28,26 @@ public:
   // Event::get_fd() is guaranteed to be valid and remain constant
   // from open(...) is called to close(...) returns. The implementor
   // of this class should not open nor close the file descriptor.
-  void                open(system::Event* event);
-  void                close(system::Event* event);
+  void                open(Event* event);
+  void                open_and_insert_read(Event* event);
+  void                open_and_insert_read_write(Event* event);
+  void                open_and_insert_write(Event* event);
+
+  void                close(Event* event);
 
   // Functions for checking whetever the Event is listening to r/w/e?
-  bool                in_read(system::Event* event);
-  bool                in_write(system::Event* event);
+  bool                in_read(Event* event);
+  bool                in_write(Event* event);
 
   // These functions may be called on 'event's that might, or might
   // not, already be in the set.
-  void                insert_read(system::Event* event);
-  void                insert_write(system::Event* event);
+  void                insert_read(Event* event);
+  void                insert_write(Event* event);
 
-  void                remove_read(system::Event* event);
-  void                remove_write(system::Event* event);
+  void                remove_read(Event* event);
+  void                remove_write(Event* event);
 
-  void                remove_and_close(system::Event* event);
+  void                remove_and_close(Event* event);
 
   // Add one for HUP? Or would that be in event?
 
