@@ -94,6 +94,21 @@ FileManager::close_files(const std::vector<File*>& files) {
   m_fd_close_queue->close_fds(std::move(closed_fds));
 }
 
+void
+FileManager::close_files(const std::vector<std::unique_ptr<File>>& files) {
+  std::vector<int> closed_fds;
+  closed_fds.reserve(files.size());
+
+  for (auto& file : files) {
+    if (!file->is_open() || file->is_padding())
+      continue;
+
+    closed_fds.push_back(detach(file.get()));
+  }
+
+  m_fd_close_queue->close_fds(std::move(closed_fds));
+}
+
 int
 FileManager::detach(File* file) {
   assert(file->is_open() && !file->is_padding());

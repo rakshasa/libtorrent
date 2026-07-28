@@ -51,6 +51,7 @@ public:
 
   // Detach files and queue their fds for close on the disk thread.
   void                close_files(const std::vector<File*>& files);
+  void                close_files(const std::vector<std::unique_ptr<File>>& files);
 
   // TODO: Close all files held by a download after hashing. Also flush all memory chunks.
 
