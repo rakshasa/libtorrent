@@ -441,10 +441,15 @@ FileList::open(bool hashing, int flags) {
     }
 
   } catch (const local_error& e) {
+    std::vector<File*> files;
+    files.reserve(size());
+
     for (auto& entry : *this) {
       entry->unset_flags_protected(File::flag_active);
-      manager->file_manager()->close(entry.get());
+      files.push_back(entry.get());
     }
+
+    manager->file_manager()->close_files(files);
 
     if (itr == end()) {
       LT_LOG_FL(ERROR, "Failed to prepare file list: %s", e.what());
