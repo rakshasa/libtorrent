@@ -3,7 +3,6 @@
 #include "download/download_constructor.h"
 
 #include <algorithm>
-#include <cstdio>
 #include <cstring>
 
 #include "manager.h"
@@ -241,14 +240,14 @@ DownloadConstructor::create_path(const Object::list_type& plist) {
 }
 
 static const char*
-parse_base32_sha1(const char* pos, HashString& hash) {
+parse_base32_sha1(const char* pos, const char* end, HashString& hash) {
   HashString::iterator hashItr = hash.begin();
 
   static constexpr int base_shift = 8+8-5;
   int shift = base_shift;
   uint16_t decoded = 0;
 
-  while (*pos) {
+  while (pos != end) {
     char c = *pos++;
     uint16_t value;
 
@@ -282,34 +281,36 @@ parse_base32_sha1(const char* pos, HashString& hash) {
 
 void
 DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
-  if (std::strncmp(uri.c_str(), "magnet:?", 8))
+  if (uri.compare(0, 8, "magnet:?") != 0)
     throw input_error("Invalid magnet URI.");
 
   const char* pos = uri.c_str() + 8;
+  const char* end = uri.c_str() + uri.size();
 
   Object trackers(Object::create_list());
   HashString hash;
   bool hashValid = false;
 
-  while (*pos) {
+  while (pos != end) {
     const char* tagStart = pos;
 
-    while (*pos != '=') {
-      if (!*pos++)
-        break;
-    }
+    while (pos != end && *pos != '=')
+      pos++;
+
+    if (pos == end)
+      throw input_error("Invalid magnet URI.");
 
     raw_string tag(tagStart, pos - tagStart);
     pos++;
 
     // hash may be base32 encoded (optional in BEP 0009 and common practice)
     if (raw_bencode_equal_c_str(tag, "xt")) {
-      if (strncmp(pos, "urn:btih:", 9))
+      if (end - pos < 9 || std::memcmp(pos, "urn:btih:", 9) != 0)
         throw input_error("Invalid magnet URI.");
 
       pos += 9;
 
-      const char* nextPos = parse_base32_sha1(pos, hash);
+      const char* nextPos = parse_base32_sha1(pos, end, hash);
 
       if (nextPos != NULL) {
         pos       = nextPos;
@@ -321,12 +322,19 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
     // everything else, including sometimes the hash, is url encoded.
     std::string decoded;
 
-    while (*pos) {
+    while (pos != end) {
       char c = *pos++;
       if (c == '%') {
-        if (sscanf(pos, "%02hhx", &c) != 1)
+        if (end - pos < 2)
           throw input_error("Invalid magnet URI.");
 
+        char high = utils::hex_to_value_or_error(pos[0]);
+        char low  = utils::hex_to_value_or_error(pos[1]);
+
+        if (high == static_cast<char>(-1) || low == static_cast<char>(-1))
+          throw input_error("Invalid magnet URI.");
+
+        c = (high << 4) | low;
         pos += 2;
 
       } else if (c == '&') {
