@@ -129,7 +129,7 @@ private:
   auto&               managed_size_unsafe(category_t category);
   auto&               max_size_unsafe(category_t category);
 
-  void                adjust_allocation_unsafe();
+  void                adjust_allocation_unsafe(uint32_t max_open);
 
   void                notify_changes_unsafe() const;
 
