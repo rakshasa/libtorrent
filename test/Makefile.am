@@ -1,5 +1,6 @@
 TESTS = \
 	LibTorrent_Test_Torrent_Net \
+	LibTorrent_Test_Torrent_Runtime \
 	LibTorrent_Test_Torrent_Utils \
 	LibTorrent_Test_Torrent \
 	LibTorrent_Test_Data \
@@ -20,6 +21,7 @@ LibTorrent_Test_LDADD = \
 	../src/torrent/libtorrent_torrent.la
 
 LibTorrent_Test_Torrent_Net_LDADD = $(LibTorrent_Test_LDADD)
+LibTorrent_Test_Torrent_Runtime_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_Utils_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Data_LDADD = $(LibTorrent_Test_LDADD)
@@ -57,6 +59,10 @@ LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_fd.h \
 	torrent/net/test_socket_address.cc \
 	torrent/net/test_socket_address.h
+
+LibTorrent_Test_Torrent_Runtime_SOURCES = $(LibTorrent_Test_Common) \
+	torrent/runtime/test_socket_manager.cc \
+	torrent/runtime/test_socket_manager.h
 
 LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_extents.cc \
@@ -124,6 +130,8 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 
 LibTorrent_Test_Torrent_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS)
+LibTorrent_Test_Torrent_Runtime_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Torrent_Runtime_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Torrent_Utils_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Utils_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Torrent_CXXFLAGS = $(CPPUNIT_CFLAGS)
