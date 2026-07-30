@@ -3,6 +3,7 @@
 #include "torrent/runtime/socket_manager.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 
 #include "torrent/exceptions.h"
@@ -164,45 +165,49 @@ SocketManager::set_max_size_and_adjust(uint32_t max_open) {
 
   auto guard = lock_guard();
 
-  m_max_size = max_open;
-  adjust_allocation_unsafe();
+  adjust_allocation_unsafe(max_open);
 }
 
 void
 SocketManager::adjust_allocation() {
   auto guard = lock_guard();
 
-  adjust_allocation_unsafe();
+  adjust_allocation_unsafe(m_max_size.load());
 }
 
 void
-SocketManager::adjust_allocation_unsafe() {
-  auto max_open = m_max_size.load();
-
+SocketManager::adjust_allocation_unsafe(uint32_t max_open) {
   uint32_t total_allocated{};
 
-  auto set_category = [this, &total_allocated](category_t category, uint32_t allocation) {
+  std::array<uint32_t, category_count> new_max_size{};
+
+  auto calculate_category = [this, &total_allocated, &new_max_size](category_t category, uint32_t allocation) {
       allocation = std::max(allocation, m_category_min_alloc[static_cast<uint32_t>(category)].load());
       allocation = std::min(allocation, m_category_max_alloc[static_cast<uint32_t>(category)].load());
 
-      total_allocated           += allocation;
-      max_size_unsafe(category)  = allocation;
+      total_allocated                               += allocation;
+      new_max_size[static_cast<uint32_t>(category)]  = allocation;
     };
 
-  set_category(category_internal, calculate_internal(max_open));
-  set_category(category_http,     calculate_http(max_open));
-  set_category(category_rpc,      calculate_rpc(max_open));
-  set_category(category_files,    calculate_files(max_open));
+  calculate_category(category_internal, calculate_internal(max_open));
+  calculate_category(category_http,     calculate_http(max_open));
+  calculate_category(category_rpc,      calculate_rpc(max_open));
+  calculate_category(category_files,    calculate_files(max_open));
 
   total_allocated += calculate_reserved(max_open);
 
   auto min_generic = calculate_min_generic(max_open);
 
   if (total_allocated + min_generic + 8 > max_open)
-    throw internal_error("set_max_size_and_adjust: total + min_generic + 8 reserve exceeds max_open : " +
-                         std::to_string(total_allocated) + " + " + std::to_string(min_generic) + " + 8 > " + std::to_string(max_open));
+    throw input_error("adjust_allocation: total + min_generic + 8 reserve exceeds max_open : " +
+                      std::to_string(total_allocated) + " + " + std::to_string(min_generic) + " + 8 > " + std::to_string(max_open));
 
-  max_size_unsafe(category_generic) = max_open - total_allocated;
+  new_max_size[static_cast<uint32_t>(category_generic)] = max_open - total_allocated;
+
+  m_max_size = max_open;
+
+  for (uint32_t i = 0; i < category_count; i++)
+    max_size_unsafe(static_cast<category_t>(i)) = new_max_size[i];
 
   notify_changes_unsafe();
 }
