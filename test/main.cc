@@ -21,6 +21,7 @@
 #include "helpers/utils.h"
 
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/net");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/runtime");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/utils");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("data");
