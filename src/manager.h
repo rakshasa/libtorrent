@@ -6,7 +6,7 @@
 #include <string>
 
 #include "torrent/common.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 namespace torrent {
 
@@ -49,8 +49,8 @@ private:
   Throttle*             m_uploadThrottle;
   Throttle*             m_downloadThrottle;
 
-  unsigned int          m_ticks{0};
-  utils::SchedulerEntry m_task_tick;
+  unsigned int           m_ticks{0};
+  system::SchedulerEntry m_task_tick;
 };
 
 extern Manager* manager;

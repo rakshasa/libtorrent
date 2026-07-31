@@ -7,7 +7,7 @@
 
 #include "torrent/net/types.h"
 #include "torrent/system/event.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 struct dns_ctx;
 
@@ -62,7 +62,7 @@ protected:
   system::Thread*     m_thread{};
   ::dns_ctx*          m_ctx{};
 
-  utils::SchedulerEntry m_task_timeout;
+  system::SchedulerEntry m_task_timeout;
 
   std::mutex          m_mutex;
 

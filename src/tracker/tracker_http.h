@@ -7,8 +7,8 @@
 
 #include "tracker/tracker_worker.h"
 #include "torrent/net/http_get.h"
+#include "torrent/system/scheduler.h"
 #include "torrent/tracker/tracker_state.h"
-#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -66,7 +66,7 @@ private:
   std::string         m_last_error_message;
   bool                m_requested_scrape{};
 
-  utils::SchedulerEntry m_delay_scrape;
+  system::SchedulerEntry m_delay_scrape;
 };
 
 } // namespace torrent

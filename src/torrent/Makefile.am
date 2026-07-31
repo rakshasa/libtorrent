@@ -88,6 +88,8 @@ libtorrent_torrent_la_SOURCES = \
 	system/poll.h \
 	system/poll_epoll.cc \
 	system/poll_kqueue.cc \
+	system/scheduler.cc \
+	system/scheduler.h \
 	system/system.cc \
 	system/thread.cc \
 	system/thread.h \
@@ -123,8 +125,6 @@ libtorrent_torrent_la_SOURCES = \
 	utils/ranges.h \
 	utils/resume.cc \
 	utils/resume.h \
-	utils/scheduler.cc \
-	utils/scheduler.h \
 	utils/string_manip.cc \
 	utils/string_manip.h \
 	utils/unordered_vector.h \
@@ -220,6 +220,7 @@ libtorrent_torrent_system_include_HEADERS = \
 	system/common.h \
 	system/event.h \
 	system/poll.h \
+	system/scheduler.h \
 	system/thread.h \
 	system/types.h
 
@@ -247,7 +248,6 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/random.h \
 	utils/ranges.h \
 	utils/resume.h \
-	utils/scheduler.h \
 	utils/string_manip.h \
 	utils/unordered_vector.h \
 	utils/uri_parser.h

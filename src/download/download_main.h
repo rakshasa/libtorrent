@@ -11,8 +11,8 @@
 #include "torrent/data/file_list.h"
 #include "torrent/download/group_entry.h"
 #include "torrent/peer/peer_list.h"
+#include "torrent/system/scheduler.h"
 #include "torrent/tracker/wrappers.h"
-#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -163,12 +163,12 @@ private:
   slot_count_handshakes_type m_slot_count_handshakes;
   slot_hash_check_add_type   m_slot_hash_check_add;
 
-  utils::SchedulerEntry      m_delay_download_done;
-  utils::SchedulerEntry      m_delay_partially_done;
-  utils::SchedulerEntry      m_delay_partially_restarted;
+  system::SchedulerEntry     m_delay_download_done;
+  system::SchedulerEntry     m_delay_partially_done;
+  system::SchedulerEntry     m_delay_partially_restarted;
 
-  utils::SchedulerEntry      m_delay_disconnect_peers;
-  utils::SchedulerEntry      m_task_tracker_request;
+  system::SchedulerEntry     m_delay_disconnect_peers;
+  system::SchedulerEntry     m_task_tracker_request;
 };
 
 } // namespace torrent
