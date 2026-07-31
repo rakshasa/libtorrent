@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
+#include "torrent/system/poll.h"
 #include "torrent/system/types.h"
 
 namespace torrent::system::ipc {
@@ -24,12 +26,10 @@ ControlFd::close() {
     return;
 
   if (is_polling())
-    torrent::this_thread::poll()->remove_and_close(m_control_fd.get());
+    torrent::this_thread::poll()->remove_and_close(this);
 
-  if (::close(file_descriptor()) == -1)
-    throw internal_error("ControlFd::close() error closing control fd: " + std::string(std::strerror(errno)));
-
-  set_file_descriptor(-1);
+  fd_close(file_descriptor());
+  reset_file_descriptor();
 }
 
 bool

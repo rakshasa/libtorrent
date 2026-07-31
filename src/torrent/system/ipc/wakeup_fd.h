@@ -19,9 +19,9 @@ public:
   const char*         type_name() const override { return "wakeup_fd"; }
 
   void                open(std::pair<int, int> fd_pair, bool is_parent);
-  void                close(Poll* poll);
+  void                close();
 
-  void                send_signal();
+  void                send_interrupt();
 
 private:
   void                event_read() override;

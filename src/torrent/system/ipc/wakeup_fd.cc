@@ -69,13 +69,13 @@ WakeupFd::open(std::pair<int, int> fd_pair, bool is_parent) {
 }
 
 void
-WakeupFd::close(Poll* poll) {
+WakeupFd::close() {
   if (!is_open())
     return;
 
   if (is_polling()) {
   // runtime::socket_manager()->unregister_event_or_throw(this, [this, poll]() {
-      poll->remove_and_close(this);
+    this_thread::poll()->remove_and_close(this);
     // });
   }
 
@@ -84,7 +84,7 @@ WakeupFd::close(Poll* poll) {
 }
 
 void
-WakeupFd::send_signal() {
+WakeupFd::send_interrupt() {
 #ifdef USE_EVENT_FD
   uint64_t value{1};
 #else
