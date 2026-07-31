@@ -17,8 +17,6 @@ namespace {
 
 void
 start_control_watchdog(int fd) {
-  // Peek at messages every 600 seconds using nonblocking read, and if the control fd is closed, exit the process.
-
   // TODO: gracefully exit before killing the process.
 
   [[maybe_unused]] auto watchdog_thread = std::async(std::launch::async, [fd]() {
@@ -39,9 +37,10 @@ start_control_watchdog(int fd) {
       system::ipc::ControlFd::wait_is_alive(fd);
 
       // Allow main thread a chance to exit gracefully before killing the process.
-      // std::this_thread::sleep_for(10s);
+      // std::this_thread::sleep_for(100ms);
 
-      std::this_thread::sleep_for(100ms);
+      std::this_thread::sleep_for(10s);
+
 
       std::cout << "ProcessWorker::watchdog: control fd closed, exiting process." << std::endl;
 
@@ -76,13 +75,7 @@ ProcessWorker::spawn() {
 
   m_router = factory.create_child_router();
 
-  // TODO: Make sure control fd is closed on exec.
-
   start_control_watchdog(m_router->keepalive_fd());
-
-  // Add a thread that peeks at control_fd and sleeps
-
-  // ::sleep(180);
 
   worker::ThreadWorker::create_thread();
   worker::ThreadWorker::thread_worker()->init_thread();
