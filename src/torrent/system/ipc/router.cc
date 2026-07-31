@@ -40,7 +40,7 @@ Router::~Router() = default;
 
 // TODO: Rename...
 void
-Router::open_control_fd() {
+Router::open_fds() {
   this_thread::poll()->open_and_insert_read(m_control_fd.get());
 
   // runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
@@ -49,11 +49,9 @@ Router::open_control_fd() {
 }
 
 void
-Router::test_close_control_fd() {
-  if (!m_control_fd->is_polling())
-    return;
-
+Router::close_fds() {
   m_control_fd->close();
+  m_wakeup_fd->close();
 }
 
 PublicControlFd
@@ -135,8 +133,18 @@ Router::write(uint32_t id, uint32_t size, void* data) {
   if (!m_write_channel->write(id, size, data))
     return false;
 
+  // TODO: This can falsely trigger, so we need to check if the last message we wrote was already
+  // consumed before interrupting.
+  //
+  // TODO: We would have to have a counter_id that both sides increment?
+
+
+  // TODO: !!! Verify flag_polling gets set before we re-check the channel.
+
+  // TODO: !!! We need to keep an add a interrupt flag too, so that if the consumer knows how to do polling correctly (with zero timeout)
+
   if (m_write_channel->consumer_state().load(std::memory_order_acquire) & Channel::flag_polling)
-    m_control_fd->send_interrupt();
+    m_wakeup_fd->send_interrupt();
 
   return true;
 }

@@ -126,6 +126,9 @@ libtorrent_other_la_SOURCES = \
 	process/process_worker.cc \
 	process/process_worker.h \
 	\
+	process/worker/thread_worker.cc \
+	process/worker/thread_worker.h \
+	\
 	protocol/encryption_info.h \
 	protocol/encryption_policy.cc \
 	protocol/encryption_policy.h \

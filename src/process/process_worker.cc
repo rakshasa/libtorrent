@@ -85,11 +85,13 @@ ProcessWorker::spawn() {
   // ::sleep(180);
 
   worker::ThreadWorker::create_thread();
+  worker::ThreadWorker::thread_worker()->init_thread();
+
+  m_router->open_fds();
 
   worker::ThreadWorker::thread_worker()->event_loop();
 
-
-
+  m_router->close_fds();
 
   // int control_fd = m_router->control_fd().file_descriptor();
 

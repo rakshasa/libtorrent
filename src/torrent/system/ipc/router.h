@@ -65,8 +65,8 @@ public:
   Router(create_args args);
   ~Router();
 
-  void                open_control_fd();
-  void                test_close_control_fd();
+  void                open_fds();
+  void                close_fds();
 
   PublicControlFd     control_fd();
   int                 keepalive_fd() const;
