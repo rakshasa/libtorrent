@@ -70,7 +70,8 @@ add_redirects(posix_spawn_file_actions_t* actions, int log_fd, bool use_pipe) {
 } // namespace anonymous
 
 SpawnProcess::~SpawnProcess() {
-  close_fds();
+  fd_close_and_clear(m_parent_fd);
+  fd_close_and_clear(m_child_fd);
 }
 
 int
@@ -115,20 +116,17 @@ SpawnProcess::execute(const char* path, char* const argv[]) {
   if (spawn_status != 0)
     throw torrent::input_error("ExecFile::execute() posix_spawn failed: " + system::errno_enum_str(spawn_status));
 
+  fd_close_and_clear(m_child_fd);
+
   // TODO: Write to log.
   if (m_background)
     return 0;
-
-  if (m_child_pid != 0) {
-    fd_close(m_child_fd);
-    m_child_fd = -1;
-  }
 
   return spawn_status;
 }
 
 std::string
-SpawnProcess::capture() {
+SpawnProcess::capture_child_output() {
   assert(m_capture_output);
 
   std::string result;
@@ -141,27 +139,22 @@ SpawnProcess::capture() {
       break;
 
     if (length == -1) {
-      // if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-      //   continue;
-
-      // TODO: Log errno.
-      // throw internal_error("ExecFile::capture() read failed: " + std::string(std::strerror(errno)));
+      // TODO: This should throw input_error
       break;
     }
 
-    if (length > 0)
-      result.append(buffer, length);
+    result.append(buffer, length);
   }
 
-  // torrent::fd_close(m_parent_fd);
-  // m_parent_fd = -1;
-
+  fd_close_and_clear(m_parent_fd);
   return result;
 }
 
+int
+SpawnProcess::wait_for_child() {
   int status;
 
-  while (::waitpid(child_pid, &status, 0) == -1) {
+  while (::waitpid(m_child_pid, &status, 0) == -1) {
     switch (errno) {
     case EINTR:
       continue;
@@ -174,28 +167,9 @@ SpawnProcess::capture() {
     }
   };
 
-  // Check return value?
-  if (m_log_fd != -1) {
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-      result = write(m_log_fd, "\n--- Success ---\n", sizeof("\n--- Success ---\n"));
-    else
-      result = write(m_log_fd, "\n--- Error ---\n", sizeof("\n--- Error ---\n"));
-  }
+  // TODO: Write to log.
 
   return status;
-}
-
-void
-SpawnProcess::close_fds() {
-  if (m_parent_fd != -1) {
-    fd_close(m_parent_fd);
-    m_parent_fd = -1;
-  }
-
-  if (m_child_fd != -1) {
-    fd_close(m_child_fd);
-    m_child_fd = -1;
-  }
 }
 
 } // namespace torrent::system

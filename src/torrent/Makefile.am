@@ -90,6 +90,8 @@ libtorrent_torrent_la_SOURCES = \
 	system/poll_kqueue.cc \
 	system/scheduler.cc \
 	system/scheduler.h \
+	system/spawn_process.cc \
+	system/spawn_process.h \
 	system/system.cc \
 	system/thread.cc \
 	system/thread.h \
@@ -221,6 +223,7 @@ libtorrent_torrent_system_include_HEADERS = \
 	system/event.h \
 	system/poll.h \
 	system/scheduler.h \
+	system/spawn_process.h \
 	system/thread.h \
 	system/types.h
 

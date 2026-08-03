@@ -10,18 +10,18 @@ public:
   SpawnProcess() = default;
   ~SpawnProcess();
 
+  pid_t               child_pid() const;
+
   void                set_background(bool background);
   void                set_capture_output(bool capture);
 
   void                set_log_fd(int fd);
 
   int                 execute(const char* path, char* const argv[]);
-
-  std::string         capture();
+  std::string         capture_child_output();
+  int                 wait_for_child();
 
 private:
-  void                close_fds();
-
   bool                m_background{};
   bool                m_capture_output{};
 
@@ -32,6 +32,7 @@ private:
   pid_t               m_child_pid{};
 };
 
+inline pid_t SpawnProcess::child_pid() const               { return m_child_pid; }
 inline void SpawnProcess::set_background(bool background)  { m_background = background; }
 inline void SpawnProcess::set_capture_output(bool capture) { m_capture_output = capture; }
 inline void SpawnProcess::set_log_fd(int fd)               { m_log_fd = fd; }
