@@ -174,6 +174,9 @@ DhtServer::reset_statistics() {
 // Ping a node whose ID we know.
 void
 DhtServer::ping(const HashString& id, const sockaddr* sa) {
+  if (m_transactions.size() >= max_transactions)
+    return;
+
   // No point pinging a node that we're already contacting otherwise.
   auto itr = m_transactions.lower_bound(DhtTransaction::key(sa, 0));
 
@@ -547,7 +550,8 @@ DhtServer::add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority
 
     // Reply packets will be processed after all of our own packets have been send.
     case packet_prio_reply:
-      m_lowQueue.push_back(std::move(packet));
+      if (m_lowQueue.size() < max_reply_packets)
+        m_lowQueue.push_back(std::move(packet));
       break;
 
     default:
@@ -732,7 +736,7 @@ DhtServer::clear_transactions() {
 
 void
 DhtServer::event_read() {
-  while (true) {
+  for (unsigned int count = 0; count < max_read_datagrams; ++count) {
     Object request;
     int type = '?';
     DhtMessage message;
