@@ -76,6 +76,11 @@ private:
   static constexpr int dht_error_protocol   = 203;
   static constexpr int dht_error_bad_method = 204;
 
+  // Bound work and state created from a single readable socket event.
+  static constexpr unsigned int max_read_datagrams = 64;
+  static constexpr size_t       max_reply_packets  = 1024;
+  static constexpr size_t       max_transactions   = 1024;
+
   struct [[gnu::packed]] compact_node_info {
     char                 _id[20];
     SocketAddressCompact _addr;
