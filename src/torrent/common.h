@@ -112,13 +112,6 @@ class Tracker;
 
 } // namespace tracker
 
-namespace utils {
-
-class Scheduler;
-class SchedulerEntry;
-
-} // namespace utils
-
 } // namespace torrent
 
 
@@ -134,7 +127,7 @@ std::chrono::seconds      cached_seconds() LIBTORRENT_EXPORT;
 
 system::Poll*             poll() LIBTORRENT_EXPORT;
 net::Resolver*            resolver() LIBTORRENT_EXPORT;
-utils::Scheduler*         scheduler() LIBTORRENT_EXPORT;
+system::Scheduler*        scheduler() LIBTORRENT_EXPORT;
 
 } // namespace torrent::this_thread
 

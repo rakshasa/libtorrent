@@ -1,21 +1,18 @@
-#ifndef TORRENT_UTILS_SCHEDULER_H
-#define TORRENT_UTILS_SCHEDULER_H
+#ifndef LIBTORRENT_TORRENT_SYSTEM_SCHEDULER_H
+#define LIBTORRENT_TORRENT_SYSTEM_SCHEDULER_H
 
-#include <atomic>
 #include <functional>
-#include <memory>
 #include <thread>
-#include <vector>
-#include <torrent/common.h>
+#include <torrent/system/common.h>
 
-namespace torrent::utils {
+namespace torrent::system {
 
 class SchedulerEntry;
 class Scheduler;
 
 struct SchedulerHandle {
-  SchedulerEntry* entry{};
-  Scheduler*      scheduler{};
+  SchedulerEntry*           entry{};
+  Scheduler*                scheduler{};
   std::chrono::microseconds time{};
 };
 
@@ -93,6 +90,6 @@ public:
   void                external_set_cached_time(time_type t)      { set_cached_time(t); }
 };
 
-} // namespace torrent::utils
+} // namespace torrent::system
 
-#endif // TORRENT_UTILS_SCHEDULER_H
+#endif

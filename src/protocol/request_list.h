@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "torrent/data/block_transfer.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 #include "utils/instrumentation.h"
 #include "utils/queue_buckets.h"
 
@@ -110,8 +110,8 @@ private:
   std::chrono::microseconds m_last_unchoke{};
   size_t                    m_last_unordered_position{0};
 
-  torrent::utils::SchedulerEntry m_delay_remove_choked;
-  torrent::utils::SchedulerEntry m_delay_process_unordered;
+  torrent::system::SchedulerEntry m_delay_remove_choked;
+  torrent::system::SchedulerEntry m_delay_process_unordered;
 };
 
 inline

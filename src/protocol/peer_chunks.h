@@ -7,7 +7,7 @@
 #include "torrent/bitfield.h"
 #include "torrent/data/piece.h"
 #include "torrent/rate.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 #include "utils/partial_queue.h"
 
 namespace torrent {

@@ -11,7 +11,7 @@
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 namespace torrent::tracker {
 
@@ -124,7 +124,7 @@ private:
   write_queue_type      m_write_queue;
   timeout_queue_type    m_timeout_queue;
 
-  utils::SchedulerEntry m_task_timeout;
+  system::SchedulerEntry m_task_timeout;
 
   buffer_type           m_buffer;
 

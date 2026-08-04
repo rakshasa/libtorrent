@@ -12,9 +12,9 @@
 #include "torrent/system/poll.h"
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/system/scheduler.h"
 #include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/scheduler.h"
 #include "utils/instrumentation.h"
 #include "utils/thread_internal.h"
 
@@ -34,7 +34,7 @@ void Thread::cleanup_thread() {}
 Thread::Thread()
   : m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
     m_poll(system::Poll::create()),
-    m_scheduler(new utils::Scheduler) {
+    m_scheduler(new system::Scheduler) {
 
   m_cached_time = utils::time_since_epoch();
   m_scheduler->set_cached_time(m_cached_time);
@@ -437,7 +437,7 @@ std::chrono::seconds      cached_seconds()  { return system::ThreadInternal::cac
 
 system::Poll*             poll()            { return system::ThreadInternal::poll(); }
 net::Resolver*            resolver()        { return system::ThreadInternal::resolver(); }
-utils::Scheduler*         scheduler()       { return system::ThreadInternal::scheduler(); }
+system::Scheduler*        scheduler()       { return system::ThreadInternal::scheduler(); }
 
 const char*
 thread_name() {

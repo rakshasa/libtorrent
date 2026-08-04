@@ -13,6 +13,8 @@ namespace torrent::system {
 
 class Event;
 class Poll;
+class Scheduler;
+class SchedulerEntry;
 class Thread;
 
 using callback_id    = std::shared_ptr<std::atomic<uint32_t>>;
