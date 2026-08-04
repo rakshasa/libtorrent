@@ -30,7 +30,9 @@ void            fd_open_socket_pair(int& fd1, int& fd2) LIBTORRENT_EXPORT;
 int             fd_open_epoll(int size) LIBTORRENT_EXPORT;
 int             fd_open_kqueue() LIBTORRENT_EXPORT;
 int             fd_open_inotify() LIBTORRENT_EXPORT;
+
 void            fd_close(int fd) LIBTORRENT_EXPORT;
+void            fd_close_and_clear(int& fd) LIBTORRENT_EXPORT;
 
 int             fd_accept(int fd) LIBTORRENT_EXPORT;
 fd_sap_tuple    fd_sap_accept(int fd) LIBTORRENT_EXPORT;
