@@ -17,6 +17,8 @@
 
 namespace {
 
+constexpr uint32_t allocation_headroom = 8;
+
 uint32_t
 calculate_min_generic(uint32_t open_max) {
   if (open_max >= 16384)
@@ -125,6 +127,27 @@ SocketManager::category_max_size(category_t category) {
 }
 
 uint32_t
+SocketManager::generic_min_allocation() {
+  return calculate_min_generic(m_max_size);
+}
+
+uint32_t
+SocketManager::reserved_allocation() {
+  return calculate_reserved(m_max_size);
+}
+
+uint32_t
+SocketManager::available_allocation() {
+  auto max_open  = m_max_size.load();
+  auto allocated = calculate_min_generic(max_open) + calculate_reserved(max_open) + allocation_headroom;
+
+  if (allocated >= max_open)
+    return 0;
+
+  return max_open - allocated;
+}
+
+uint32_t
 SocketManager::category_min_allocation(category_t category) {
   if (category == category_generic || static_cast<uint32_t>(category) >= category_count)
     throw internal_error("SocketManager::category_min_allocation(): invalid category");
@@ -198,7 +221,7 @@ SocketManager::adjust_allocation_unsafe(uint32_t max_open) {
 
   auto min_generic = calculate_min_generic(max_open);
 
-  if (total_allocated + min_generic + 8 > max_open)
+  if (total_allocated + min_generic + allocation_headroom > max_open)
     throw input_error("adjust_allocation: total + min_generic + 8 reserve exceeds max_open : " +
                       std::to_string(total_allocated) + " + " + std::to_string(min_generic) + " + 8 > " + std::to_string(max_open));
 
