@@ -94,6 +94,21 @@ FileManager::close_files(const std::vector<File*>& files) {
   m_fd_close_queue->close_fds(std::move(closed_fds));
 }
 
+void
+FileManager::close_files(const std::vector<std::unique_ptr<File>>& files) {
+  std::vector<int> closed_fds;
+  closed_fds.reserve(files.size());
+
+  for (auto& file : files) {
+    if (!file->is_open() || file->is_padding())
+      continue;
+
+    closed_fds.push_back(detach(file.get()));
+  }
+
+  m_fd_close_queue->close_fds(std::move(closed_fds));
+}
+
 int
 FileManager::detach(File* file) {
   assert(file->is_open() && !file->is_padding());
@@ -108,16 +123,17 @@ FileManager::detach(File* file) {
 
 int
 FileManager::detach(iterator itr) {
-  int fd = (*itr)->file_descriptor();
+  auto* file = *itr;
+  int   fd   = file->file_descriptor();
 
-  (*itr)->set_protection(0);
-  (*itr)->reset_file_descriptor();
+  file->set_protection(0);
+  file->reset_file_descriptor();
 
   *itr = back();
   base_type::pop_back();
 
-  std::erase_if(m_least_active_cache, [itr](const auto& pair) {
-      return pair.first == *itr || pair.second != pair.first->last_touched();
+  std::erase_if(m_least_active_cache, [file](const auto& pair) {
+      return pair.first == file || pair.second != pair.first->last_touched();
     });
 
   m_files_closed_counter++;
@@ -215,6 +231,11 @@ FileManager::evict_least_active_from_cache(unsigned int count) {
 
     if (pair.first->last_touched() != pair.second)
       continue;
+
+    if (!pair.first->is_open())
+      continue;
+
+    assert(!pair.first->is_padding());
 
     files.push_back(pair.first);
     count--;

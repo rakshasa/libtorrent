@@ -13,6 +13,8 @@ namespace torrent::system {
 
 class Event;
 class Poll;
+class Scheduler;
+class SchedulerEntry;
 class Thread;
 
 namespace ipc {

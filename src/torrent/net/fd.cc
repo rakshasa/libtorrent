@@ -315,6 +315,15 @@ fd_close(int fd) {
   LT_LOG_FD("fd_close succeeded");
 }
 
+void
+fd_close_and_clear(int& fd) {
+  if (fd == -1)
+    return;
+
+  fd_close(fd);
+  fd = -1;
+}
+
 int
 fd_accept(int fd) {
   int connection_fd = fd__accept(fd, nullptr, nullptr);

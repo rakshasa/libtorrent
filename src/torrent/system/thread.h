@@ -77,8 +77,8 @@ protected:
   friend class system::Poll;
   friend class ThreadInternal;
 
-  net::Resolver*      resolver()  { return m_resolver.get(); }
-  utils::Scheduler*   scheduler() { return m_scheduler.get(); }
+  auto*               resolver()  { return m_resolver.get(); }
+  auto*               scheduler() { return m_scheduler.get(); }
 
   bool                has_callbacks()           const { return m_has_callbacks.load(); }
   bool                has_interrupt_callbacks() const { return m_has_interrupt_callbacks.load(); }
@@ -134,9 +134,9 @@ protected:
 
   int                               m_instrumentation_index;
 
-  std::unique_ptr<system::Poll>     m_poll;
-  std::unique_ptr<net::Resolver>    m_resolver;
-  std::unique_ptr<utils::Scheduler> m_scheduler;
+  std::unique_ptr<system::Poll>      m_poll;
+  std::unique_ptr<net::Resolver>     m_resolver;
+  std::unique_ptr<system::Scheduler> m_scheduler;
 
   align_cacheline
 

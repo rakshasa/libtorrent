@@ -4,8 +4,8 @@
 #include <functional>
 #include <string>
 
+#include "torrent/system/scheduler.h"
 #include "torrent/tracker/tracker_state.h"
-#include "torrent/utils/scheduler.h"
 
 // TODO: Remove all unused functions and slots, move to src/tracker. Then add a
 // TrackerControllerWrapper that download and api uses.
@@ -108,8 +108,8 @@ private:
   slot_tracker        m_slot_tracker_enabled;
   slot_tracker        m_slot_tracker_disabled;
 
-  utils::SchedulerEntry m_task_timeout;
-  utils::SchedulerEntry m_task_scrape;
+  system::SchedulerEntry m_task_timeout;
+  system::SchedulerEntry m_task_scrape;
 };
 
 uint32_t tracker_next_timeout(const tracker::Tracker& tracker, int controller_flags);
