@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "torrent/object.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 #include "tracker/tracker_worker.h"
 
 namespace torrent {
@@ -72,7 +72,7 @@ private:
   std::atomic<int>        m_replied;
   std::atomic<int>        m_contacted;
 
-  utils::SchedulerEntry   m_delay_clear_state;
+  system::SchedulerEntry  m_delay_clear_state;
 };
 
 inline void TrackerDht::set_weak_tracker(std::weak_ptr<TrackerDht> weak_tracker) { m_weak_tracker = std::move(weak_tracker); }

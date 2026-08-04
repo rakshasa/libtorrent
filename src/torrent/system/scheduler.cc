@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 #include <algorithm>
 #include <cassert>
@@ -8,12 +8,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/utils/chrono.h"
 
-namespace torrent::utils {
-
-static constexpr auto compare = [](const std::unique_ptr<SchedulerHandle>& a,
-                                   const std::unique_ptr<SchedulerHandle>& b) {
-  return a->time > b->time;
-};
+namespace torrent::system {
 
 SchedulerEntry::~SchedulerEntry() {
   assert(!is_scheduled() && "SchedulerEntry::~SchedulerEntry() called on a scheduled item.");
@@ -24,7 +19,8 @@ SchedulerEntry::~SchedulerEntry() {
 Scheduler::time_type
 Scheduler::next_timeout(Scheduler::time_type max_timeout) {
   while (!m_heap.empty() && m_heap.front()->entry == nullptr) {
-    std::ranges::pop_heap(m_heap, compare);
+    std::ranges::pop_heap(m_heap, [](auto& a, auto& b) { return a->time > b->time; });
+
     m_heap.pop_back();
   }
 
@@ -66,7 +62,7 @@ Scheduler::push_entry(SchedulerEntry* entry, time_type time) {
   entry->set_handle(handle.get());
 
   m_heap.push_back(std::move(handle));
-  std::ranges::push_heap(m_heap, compare);
+  std::ranges::push_heap(m_heap, [](auto& a, auto& b) { return a->time > b->time; });
 }
 
 void
@@ -101,7 +97,7 @@ Scheduler::wait_for_ceil_seconds(SchedulerEntry* entry, Scheduler::time_type tim
   if (time > Scheduler::time_type(10 * 365 * 24h))
     throw torrent::internal_error("Scheduler::wait_after_ceil_seconds(...) received a too large timer.");
 
-  wait_until(entry, ceil_seconds(m_cached_time + time));
+  wait_until(entry, utils::ceil_seconds(m_cached_time + time));
 }
 
 void
@@ -142,13 +138,14 @@ Scheduler::update_wait_for_ceil_seconds(SchedulerEntry* entry, Scheduler::time_t
   if (time > Scheduler::time_type(10 * 365 * 24h))
     throw torrent::internal_error("Scheduler::update_wait_after_ceil_seconds(...) received a too large timer.");
 
-  update_wait_until(entry, ceil_seconds(m_cached_time + time));
+  update_wait_until(entry, utils::ceil_seconds(m_cached_time + time));
 }
 
 void
 Scheduler::perform(Scheduler::time_type current_time) {
   while (!m_heap.empty() && m_heap.front()->time <= current_time) {
-    std::ranges::pop_heap(m_heap, compare);
+    std::ranges::pop_heap(m_heap, [](auto& a, auto& b) { return a->time > b->time; });
+
     auto handle = std::move(m_heap.back());
     m_heap.pop_back();
 
@@ -160,4 +157,4 @@ Scheduler::perform(Scheduler::time_type current_time) {
   }
 }
 
-} // namespace torrent::utils
+} // namespace torrent::system

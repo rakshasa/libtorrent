@@ -1,8 +1,8 @@
 #ifndef LIBTORRENT_UTILS_FD_CLOSE_QUEUE_H
 #define LIBTORRENT_UTILS_FD_CLOSE_QUEUE_H
 
-#include <deque>
 #include <future>
+#include <vector>
 #include <torrent/common.h>
 
 namespace torrent::utils {
