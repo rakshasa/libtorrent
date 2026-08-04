@@ -5,11 +5,13 @@
 #include <vector>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <torrent/common.h>
 #include <torrent/net/types.h>
-#include <torrent/utils/scheduler.h>
+#include <torrent/system/scheduler.h>
 
 namespace torrent::runtime {
 
+class NetworkConfig;
 class ProxyManager;
 
 NetworkConfig* network_config() LIBTORRENT_EXPORT;
@@ -176,8 +178,8 @@ private:
   encryption_mode     m_handshake_encryption_mode{ENCRYPTION_MODE_ALLOW};
   encryption_mode     m_stream_encryption_mode{ENCRYPTION_MODE_ALLOW};
 
-  subscriber_list       m_change_subscribers;
-  utils::SchedulerEntry m_delay_changed;
+  subscriber_list        m_change_subscribers;
+  system::SchedulerEntry m_delay_changed;
 };
 
 inline auto

@@ -8,7 +8,7 @@
 #include "torrent/bitfield.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 namespace torrent {
 
@@ -191,7 +191,7 @@ protected:
   ThrottleList*       m_upload_throttle;
   ThrottleList*       m_download_throttle;
 
-  utils::SchedulerEntry     m_task_timeout;
+  system::SchedulerEntry    m_task_timeout;
   std::chrono::microseconds m_initialized_time;
 
   uint32_t            m_readPos;

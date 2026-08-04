@@ -10,7 +10,7 @@
 #include "net/socket_datagram.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 // TODO: Remove.
 #include "net/address_list.h"
@@ -145,7 +145,7 @@ private:
   packet_queue        m_lowQueue;
   transaction_map     m_transactions;
 
-  utils::SchedulerEntry m_task_timeout;
+  system::SchedulerEntry m_task_timeout;
 
   unsigned int        m_queriesReceived{};
   unsigned int        m_queriesSent{};

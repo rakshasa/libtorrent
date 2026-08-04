@@ -10,7 +10,7 @@
 #include <vector>
 #include <curl/curl.h>
 
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 namespace torrent::net {
 
@@ -91,9 +91,9 @@ private:
 
   // Unprotected members (including base_type vector), only changed in ways that are implicitly
   // thread-safe. E.g. before any threads are started or only within the owning thread.
-  system::Thread*       m_thread{};
-  CURLM*                m_handle{};
-  utils::SchedulerEntry m_task_timeout;
+  system::Thread*        m_thread{};
+  CURLM*                 m_handle{};
+  system::SchedulerEntry m_task_timeout;
 
   socket_map_type       m_socket_map;
 

@@ -5,7 +5,7 @@
 
 #include "torrent/common.h"
 #include "torrent/throttle.h"
-#include "torrent/utils/scheduler.h"
+#include "torrent/system/scheduler.h"
 
 namespace torrent {
 
@@ -44,7 +44,7 @@ private:
   uint32_t            m_unused_quota{0};
 
   std::chrono::microseconds m_time_last_tick;
-  utils::SchedulerEntry     m_task_tick;
+  system::SchedulerEntry    m_task_tick;
 };
 
 } // namespace torrent

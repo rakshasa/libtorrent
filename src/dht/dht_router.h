@@ -7,8 +7,8 @@
 #include "torrent/hash_string.h"
 #include "torrent/object.h"
 #include "torrent/net/types.h"
+#include "torrent/system/scheduler.h"
 #include "torrent/tracker/dht_controller.h"
-#include "torrent/utils/scheduler.h"
 
 #include <optional>
 
@@ -120,7 +120,7 @@ private:
   // buffer needs to hold an SHA1 hash (20 bytes), not just the token (8 bytes)
   static char*        generate_token(const sockaddr* sa, int token, char buffer[20]);
 
-  utils::SchedulerEntry m_task_timeout;
+  system::SchedulerEntry m_task_timeout;
 
   DhtServer           m_server{nullptr};
   DhtNodeList         m_nodes;

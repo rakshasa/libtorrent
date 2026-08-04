@@ -6,8 +6,8 @@
 #include <string>
 
 #include "data/chunk_handle.h"
+#include "torrent/system/scheduler.h"
 #include "torrent/utils/ranges.h"
-#include "torrent/utils/scheduler.h"
 
 namespace torrent {
 
@@ -57,9 +57,9 @@ private:
 
   ChunkList*          m_chunk_list;
 
-  slot_chunk_handle     m_slot_check_chunk;
-  utils::SchedulerEntry m_delay_checked;
-  utils::SchedulerEntry m_delay_retry;
+  slot_chunk_handle      m_slot_check_chunk;
+  system::SchedulerEntry m_delay_checked;
+  system::SchedulerEntry m_delay_retry;
 };
 
 } // namespace torrent
