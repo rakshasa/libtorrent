@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_TORRENT_SYSTEM_SCHEDULER_H
 #define LIBTORRENT_TORRENT_SYSTEM_SCHEDULER_H
 
+#include <functional>
 #include <thread>
 #include <torrent/system/common.h>
 
