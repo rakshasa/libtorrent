@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <spawn.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
