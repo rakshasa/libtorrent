@@ -118,7 +118,7 @@ jobs:
               curl \
               libtool \
               pkgconf \
-              openssl3 \
+              openssl \
               gcc14
 
             # /usr/sbin/pkg_add -v \
