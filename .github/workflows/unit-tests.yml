@@ -103,23 +103,23 @@ jobs:
             export PKG_PATH="https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/${ARCH}/${OS_VERSION}/All/"
 
             # 2. Clean up conflicting legacy GCC artifacts
-            sudo rm -rf /usr/pkg/gcc10/libexec/gcc/x86_64--netbsd/10.5.0/cc1plus
+            rm -rf /usr/pkg/gcc10/libexec/gcc/x86_64--netbsd/10.5.0/cc1plus
 
             # 3. Update the package database and install pkgin if not present
-            sudo /usr/sbin/pkg_add -U pkgin || true
+            /usr/sbin/pkg_add -U pkgin || true
 
             # 4. Install packages using pkgin (handles dependencies and upgrades automatically)
             # NOTE: 'openssl' is removed because it is provided by the NetBSD base system.
-            sudo pkgin -y update
-            sudo pkgin -y install \
-            automake \
-            autoconf \
-            cppunit \
-            curl \
-            libtool \
-            pkgconf \
-            openssl3 \
-            gcc14
+            pkgin -y update
+            pkgin -y install \
+              automake \
+              autoconf \
+              cppunit \
+              curl \
+              libtool \
+              pkgconf \
+              openssl3 \
+              gcc14
 
             # /usr/sbin/pkg_add -v \
             #   automake \
@@ -150,19 +150,19 @@ jobs:
     env:
       # TODO: Try without this:
       TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY: YES
-      AUTOCONF_VERSION: 2.63
+      AUTOCONF_VERSION: 2.65
       AUTOMAKE_VERSION: 1.18
     steps:
       - uses: actions/checkout@v4
       - uses: vmactions/openbsd-vm@v1
         with:
-          # Upgraded to utilize native EVFILT_USER features in 7.9
+          # Upgraded to utilize native EVFILT_USER features in 7.9 release:
           release: "7.9"
           envs: 'TEST_IGNORE_SIGNAL_INTERRUPT_LATENCY AUTOCONF_VERSION AUTOMAKE_VERSION'
           prepare: |
             pkg_add -v -I \
               automake-1.18.1 \
-              autoconf-2.63p1 \
+              autoconf-2.65p1 \
               cppunit \
               curl \
               libtool \
