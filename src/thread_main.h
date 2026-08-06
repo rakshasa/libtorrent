@@ -18,7 +18,6 @@ class ThreadMain : public system::Thread {
 public:
   using worker_process_ptr = std::unique_ptr<process::ProcessWorker>;
 
-
   ~ThreadMain() override;
 
   static void            create_thread(worker_process_ptr worker_process);
@@ -34,7 +33,8 @@ public:
 
   void                   set_client_callback(std::function<void()> fn);
 
-  HashQueue*             hash_queue()          { return m_hash_queue.get(); }
+  HashQueue*              hash_queue()          { return m_hash_queue.get(); }
+  // process::ProcessWorker* worker_process()      { return m_worker_process.get(); }
 
 protected:
   friend class ::TestMainThread;

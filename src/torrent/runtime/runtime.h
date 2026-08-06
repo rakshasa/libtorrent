@@ -13,6 +13,8 @@ bool                is_shutting_down() LIBTORRENT_EXPORT;
 bool                is_quick_shutting_down() LIBTORRENT_EXPORT;
 
 void                initialize_worker_process_and_main_thread() LIBTORRENT_EXPORT;
+
+void                initialize_worker_process() LIBTORRENT_EXPORT;
 void                initialize_network() LIBTORRENT_EXPORT;
 
 void                shutdown() LIBTORRENT_EXPORT;

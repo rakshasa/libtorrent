@@ -19,6 +19,7 @@ class Thread;
 
 namespace ipc {
 class Router;
+class RouterFactory;
 }
 
 using callback_id    = std::shared_ptr<std::atomic<uint32_t>>;

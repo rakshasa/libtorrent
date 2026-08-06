@@ -12,8 +12,6 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
-// #include "torrent/system/ipc/factory.h"
-// #include "torrent/system/ipc/router.h"
 #include "torrent/tracker/dht_controller.h"
 #include "utils/instrumentation.h"
 
@@ -50,6 +48,11 @@ initialize_worker_process_and_main_thread() {
 
   RuntimeManager::initialize();
   ThreadMain::thread_main()->init_thread();
+}
+
+void
+initialize_worker_process() {
+  // ThreadMain::thread_main()->worker_process()->init_parent_process();
 }
 
 } // namespace runtime

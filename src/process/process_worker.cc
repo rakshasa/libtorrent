@@ -10,6 +10,17 @@
 #include "torrent/exceptions.h"
 #include "torrent/system/ipc/control_fd.h"
 #include "torrent/system/ipc/factory.h"
+#include "torrent/utils/log.h"
+
+#define LT_LOG_PARENT(log_fmt, ...)                                     \
+  lt_log_print(LOG_SYSTEM_IPC, "parent->ipc: " log_fmt, __VA_ARGS__);
+#define LT_LOG_PARENT_EVENTS(log_fmt, ...)                              \
+  lt_log_print(LOG_SYSTEM_IPC_EVENTS, "parent->ipc: " log_fmt, __VA_ARGS__);
+
+#define LT_LOG_CHILD(log_fmt, ...)                                      \
+  lt_log_print(LOG_SYSTEM_IPC, "worker->ipc: " log_fmt, __VA_ARGS__);
+#define LT_LOG_CHILD_EVENTS(log_fmt, ...)                               \
+  lt_log_print(LOG_SYSTEM_IPC_EVENTS, "worker->ipc: " log_fmt, __VA_ARGS__);
 
 namespace torrent::process {
 
@@ -57,9 +68,9 @@ ProcessWorker::~ProcessWorker() = default;
 
 void
 ProcessWorker::spawn() {
-  system::ipc::RouterFactory factory;
+  m_factory = std::make_unique<system::ipc::RouterFactory>();
 
-  factory.initialize(1 * 4096);
+  m_factory->initialize(1 * 4096);
 
   pid_t pid = ::fork();
 
@@ -67,20 +78,11 @@ ProcessWorker::spawn() {
     throw internal_error("fork() failed: " + std::string(strerror(errno)));
 
   if (pid != 0) {
-    // TODO: Add pid to sig handler to kill child process on crash.
-
-    m_router = factory.create_parent_router();
+    init_parent_process();
     return;
   }
 
-  m_router = factory.create_child_router();
-
-  start_control_watchdog(m_router->keepalive_fd());
-
-  worker::ThreadWorker::create_thread();
-  worker::ThreadWorker::thread_worker()->init_thread();
-
-  m_router->open_fds();
+  init_child_process();
 
   worker::ThreadWorker::thread_worker()->event_loop();
 
@@ -98,6 +100,44 @@ ProcessWorker::spawn() {
   std::cout << "ProcessWorker: control fd closed, exiting child process." << std::endl;
 
   ::exit(0);
+}
+
+void
+ProcessWorker::init_parent_process() {
+  m_router = m_factory->create_parent_router();
+  m_factory.reset();
+
+  // router->control_fd().register_interrupt_handler([]()                  { std::cout << "PARENT: received interrupt on control fd." << std::endl; });
+  // router->control_fd().register_message_handler([](auto msg)            { handle_control_message("PARENT:CONTROL", msg); });
+  // router->control_fd().register_closed_handler([router](int error_code) { handle_control_closed(router, "PARENT:CONTROL", error_code); });
+  // router->control_fd().register_shutdown_handler([](bool graceful)      { handle_control_shutdown("PARENT:CONTROL", graceful); });
+
+  // std::cout << "PARENT: started: fd." << std::endl;
+
+  // auto parent_handler = new ParentHandler{};
+  // parent_handler->id = 1;
+
+  // router->register_handler(1,
+  //                          [parent_handler](void* data, uint32_t size) { parent_handler->on_read(data, size); },
+  //                          [parent_handler](void* data, uint32_t size) { parent_handler->on_error(data, size); });
+
+  // auto handler_1 = parent_handler->create_new_channel(router);
+  // auto handler_2 = parent_handler->create_new_channel(router);
+
+
+}
+
+void
+ProcessWorker::init_child_process() {
+  m_router = m_factory->create_child_router();
+  m_factory.reset();
+
+  start_control_watchdog(m_router->keepalive_fd());
+
+  worker::ThreadWorker::create_thread();
+  worker::ThreadWorker::thread_worker()->init_thread();
+
+  m_router->open_fds();
 }
 
 } // namespace torrent::process
