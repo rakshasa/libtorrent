@@ -83,8 +83,8 @@ public:
   Delegator*           delegator()                       { return m_delegator; }
   void                 set_delegator(Delegator* d)       { m_delegator = d; }
 
-  PeerChunks*          peer_chunks()                     { return m_peerChunks; }
-  void                 set_peer_chunks(PeerChunks* b)    { m_peerChunks = b; }
+  PeerChunks*          peer_chunks()                     { return m_peer_chunks; }
+  void                 set_peer_chunks(PeerChunks* b)    { m_peer_chunks = b; }
 
   BlockTransfer*       transfer()                        { return m_transfer; }
   const BlockTransfer* transfer() const                  { return m_transfer; }
@@ -98,7 +98,7 @@ private:
   void                 delay_process_unordered();
 
   Delegator*           m_delegator{};
-  PeerChunks*          m_peerChunks{};
+  PeerChunks*          m_peer_chunks{};
 
   BlockTransfer*       m_transfer{};
 
