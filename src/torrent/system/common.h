@@ -22,6 +22,7 @@ class Thread;
 namespace ipc {
 
 class Router;
+class RouterFactory;
 
 } // namespace ipc
 

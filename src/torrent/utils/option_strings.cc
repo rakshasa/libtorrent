@@ -164,6 +164,8 @@ constexpr const char* option_list_log_group[] = {
   "storage_errors",
 
   "system",
+  "system_ipc",
+  "system_ipc_events",
   "system_poll",
   "system_thread",
 
