@@ -7,6 +7,7 @@
 #include "peer_connection_base.h"
 #include "download/download_main.h"
 #include "net/proxy/proxy.h"
+#include "protocol/extensions.h"
 #include "protocol/encryption_policy.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"

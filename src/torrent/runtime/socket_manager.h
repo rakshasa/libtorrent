@@ -66,6 +66,10 @@ public:
   uint32_t            category_min_allocation(category_t category);
   uint32_t            category_max_allocation(category_t category);
 
+  uint32_t            generic_min_allocation();
+  uint32_t            reserved_allocation();
+  uint32_t            available_allocation();
+
   void                set_category_min_allocation(category_t category, uint32_t min_alloc);
   void                set_category_max_allocation(category_t category, uint32_t max_alloc);
 

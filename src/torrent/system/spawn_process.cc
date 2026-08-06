@@ -88,7 +88,7 @@ SpawnProcess::execute(const char* path, char* const argv[]) {
 
   auto [actions, attr] = make_spawn_actions();
 
-  add_redirects(&actions, m_log_fd, m_capture_output);
+  std::tie(m_parent_fd, m_child_fd) = add_redirects(&actions, m_log_fd, m_capture_output);
 
   short spawn_flags = 0;
 

@@ -77,7 +77,7 @@ RequestList::~RequestList() {
 
 std::vector<const Piece*>
 RequestList::delegate(uint32_t maxPieces) {
-  std::vector<BlockTransfer*> transfers = m_delegator->delegate(m_peerChunks, m_affinity, maxPieces);
+  std::vector<BlockTransfer*> transfers = m_delegator->delegate(m_peer_chunks, m_affinity, maxPieces);
 
   std::vector<const Piece*> pieces;
 
@@ -268,7 +268,7 @@ RequestList::downloading(const Piece& piece) {
   // Create a dummy BlockTransfer object to hold the piece
   // information.
   m_transfer = new BlockTransfer();
-  Block::create_dummy(m_transfer, m_peerChunks->peer_info(), piece);
+  Block::create_dummy(m_transfer, m_peer_chunks->peer_info(), piece);
 
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
 
@@ -312,7 +312,7 @@ RequestList::transfer_dissimilar() {
 
   auto dummy = new BlockTransfer();
 
-  Block::create_dummy(dummy, m_peerChunks->peer_info(), m_transfer->piece());
+  Block::create_dummy(dummy, m_peer_chunks->peer_info(), m_transfer->piece());
   dummy->set_position(m_transfer->position());
 
   // TODO.... peer_info still on a block we no longer control?..
@@ -323,7 +323,7 @@ RequestList::transfer_dissimilar() {
 bool
 RequestList::is_interested_in_active() const {
   auto list = m_delegator->transfer_list();
-  return std::any_of(list->begin(), list->end(), [this](auto transfer) { return m_peerChunks->bitfield()->get(transfer->index()); });
+  return std::any_of(list->begin(), list->end(), [this](auto transfer) { return m_peer_chunks->bitfield()->get(transfer->index()); });
 }
 
 uint32_t
