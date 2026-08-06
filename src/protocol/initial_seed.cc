@@ -1,50 +1,14 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
+
+#include "protocol/initial_seed.h"
 
 #include <cstring>
 
 #include "download/chunk_statistics.h"
+#include "protocol/peer_connection_base.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/peer_info.h"
-
-#include "initial_seed.h"
-#include "peer_connection_base.h"
 
 namespace torrent {
 
@@ -53,9 +17,9 @@ PeerInfo* const InitialSeeding::chunk_unknown = (PeerInfo*) 1;
 PeerInfo* const InitialSeeding::chunk_done    = (PeerInfo*) 2;
 
 InitialSeeding::InitialSeeding(DownloadMain* download) :
-    m_chunksLeft(download->file_list()->size_chunks()),
+    m_chunks_left(download->file_list()->size_chunks()),
     m_download(download),
-    m_peerChunks(new PeerInfo* [m_chunksLeft] {}) {
+    m_peer_chunks(new PeerInfo* [m_chunks_left] {}) {
 }
 
 InitialSeeding::~InitialSeeding() {
@@ -88,14 +52,14 @@ InitialSeeding::chunk_seen(uint32_t index, PeerConnectionBase* pcb) {
     complete(pcb);
 
   PeerInfo* peer = pcb->mutable_peer_info();
-  PeerInfo* old = m_peerChunks[index];
+  PeerInfo* old = m_peer_chunks[index];
 
   // We didn't send this chunk. Is someone else initial seeding too?
   // Or maybe we restarted and the peer got this chunk from someone
   // we did send it to. Either way, we don't know who it belongs to.
   // Don't mark it done until we see it from someone else, though.
   if (old == chunk_unsent) {
-    m_peerChunks[index] = chunk_unknown;
+    m_peer_chunks[index] = chunk_unknown;
     return;
   }
 
@@ -103,8 +67,9 @@ InitialSeeding::chunk_seen(uint32_t index, PeerConnectionBase* pcb) {
     return;
 
   // We've seen two peers on the swarm receive this chunk.
-  m_peerChunks[index] = chunk_done;
-  if (--m_chunksLeft == 0)
+  m_peer_chunks[index] = chunk_done;
+
+  if (--m_chunks_left == 0)
     complete(pcb);
 
   // The peer we sent it to originally may now receive another chunk.
@@ -113,8 +78,8 @@ InitialSeeding::chunk_seen(uint32_t index, PeerConnectionBase* pcb) {
 
 void
 InitialSeeding::chunk_complete(uint32_t index, PeerConnectionBase* pcb) {
-  clear_peer(m_peerChunks[index]);
-  m_peerChunks[index] = chunk_unknown;
+  clear_peer(m_peer_chunks[index]);
+  m_peer_chunks[index] = chunk_unknown;
   chunk_seen(index, pcb);
 }
 
@@ -134,18 +99,18 @@ InitialSeeding::new_peer(PeerConnectionBase* pcb) {
 
   // If we're on the second round, don't check
   // it until we're about to offer a chunk.
-  if (m_peerChunks[m_nextChunk] != chunk_unsent)
+  if (m_peer_chunks[m_next_chunk] != chunk_unsent)
     return;
 
   // But during primary initial seeding (some chunks not sent at all),
   // check that nobody already has the next chunk we were going to send.
-  while (m_peerChunks[m_nextChunk] == chunk_unsent && (*m_download->chunk_statistics())[m_nextChunk]) {
+  while (m_peer_chunks[m_next_chunk] == chunk_unsent && (*m_download->chunk_statistics())[m_next_chunk]) {
     // Could set to chunk_done if enough peers have it, but if that was the
     // last one it could cause initial seeding to end and all connections to
     // be closed, and now is a bad time for that (still being set up). Plus
     // this gives us the opportunity to wait for HAVE messages and resend
     // the chunk if it's not being shared.
-    m_peerChunks[m_nextChunk] = chunk_unknown;
+    m_peer_chunks[m_next_chunk] = chunk_unknown;
     find_next(false, pcb);
   }
 }
@@ -156,9 +121,9 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
 
   // If this peer completely downloaded the chunk we offered and we have too
   // many unused upload slots, give it another chunk to download for free.
-  if (peer->is_blocked() && chunkDone != no_offer && m_peerChunks[chunkDone] == peer &&
+  if (peer->is_blocked() && chunkDone != no_offer && m_peer_chunks[chunkDone] == peer &&
       m_download->choke_group()->up_queue()->size_total() * 10 < 9 * m_download->choke_group()->up_queue()->max_unchoked()) {
-    m_peerChunks[chunkDone] = chunk_unknown;
+    m_peer_chunks[chunkDone] = chunk_unknown;
     peer->unset_flags(PeerInfo::flag_blocked);
 
   // Otherwise check if we can offer a chunk normally.
@@ -170,30 +135,30 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
 
     // Re-connection of a peer we already sent a chunk.
     // Offer the same chunk again.
-    auto peerChunksEnd = m_peerChunks.get() + m_download->file_list()->size_chunks();
-    auto itr           = std::find(m_peerChunks.get(), peerChunksEnd, peer);
+    auto peerChunksEnd = m_peer_chunks.get() + m_download->file_list()->size_chunks();
+    auto itr           = std::find(m_peer_chunks.get(), peerChunksEnd, peer);
     if (itr != peerChunksEnd)
-      return itr - m_peerChunks.get();
+      return itr - m_peer_chunks.get();
 
     // Couldn't find the chunk, we probably sent it to someone
     // else since the disconnection. So offer a new one.
   }
 
-  uint32_t index = m_nextChunk;
+  uint32_t index = m_next_chunk;
   bool secondary = false;
 
   // If we already sent this chunk to someone else, we're on the second
   // (or more) round. We might have already found this chunk elsewhere on
   // the swarm since then and need to find a different one if so.
-  if (m_peerChunks[index] != chunk_unsent) {
+  if (m_peer_chunks[index] != chunk_unsent) {
     secondary = true;
 
     // Accounting for peers whose bitfield we didn't check when connecting.
     // If the chunk stats say there are enough peers who have it, believe that.
-    if (m_peerChunks[index] != chunk_done && (*m_download->chunk_statistics())[index] > 1)
+    if (m_peer_chunks[index] != chunk_done && (*m_download->chunk_statistics())[index] > 1)
       chunk_complete(index, pcb);
 
-    if (m_peerChunks[index] == chunk_done)
+    if (m_peer_chunks[index] == chunk_done)
       index = find_next(true, pcb);
   }
 
@@ -202,7 +167,7 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
   // else. We do not override the peer we sent it to, so they
   // cannot be unblocked, but when initial seeding completes
   // everyone is unblocked anyway.
-  if (m_chunksLeft == 1 && valid_peer(m_peerChunks[index])) {
+  if (m_chunks_left == 1 && valid_peer(m_peer_chunks[index])) {
     peer->set_flags(PeerInfo::flag_blocked);
     return index;
   }
@@ -213,7 +178,7 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
   if (pcb->bitfield()->get(index))
     return no_offer;
 
-  m_peerChunks[index] = peer;
+  m_peer_chunks[index] = peer;
   peer->set_flags(PeerInfo::flag_blocked);
   find_next(secondary, pcb);
   return index;
@@ -221,58 +186,60 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
 
 bool
 InitialSeeding::should_upload(uint32_t index) {
-  return m_peerChunks[index] != chunk_done;
+  return index < m_download->file_list()->size_chunks() && m_peer_chunks[index] != chunk_done;
 }
 
 uint32_t
 InitialSeeding::find_next(bool secondary, PeerConnectionBase* pcb) {
   if (!secondary) {
     // Primary seeding: find next chunk not sent yet.
-    while (++m_nextChunk < m_download->file_list()->size_chunks()) {
-      if (m_peerChunks[m_nextChunk] == chunk_unsent) {
-        if (!(*m_download->chunk_statistics())[m_nextChunk])
-          return m_nextChunk;
+    while (++m_next_chunk < m_download->file_list()->size_chunks()) {
+      if (m_peer_chunks[m_next_chunk] == chunk_unsent) {
+        if (!(*m_download->chunk_statistics())[m_next_chunk])
+          return m_next_chunk;
 
         // Someone has this one already. We don't know if we sent it or not.
-        m_peerChunks[m_nextChunk] = chunk_unknown;
+        m_peer_chunks[m_next_chunk] = chunk_unknown;
       }
     }
 
     // Went through all chunks. Continue with secondary seeding.
-    m_nextChunk--;
+    m_next_chunk--;
   }
 
   // Secondary seeding: find next chunk that's not done yet.
   do {
-    if (++m_nextChunk == m_download->file_list()->size_chunks())
-      m_nextChunk = 0;
+    if (++m_next_chunk == m_download->file_list()->size_chunks())
+      m_next_chunk = 0;
 
-    if (m_peerChunks[m_nextChunk] != chunk_done && (*m_download->chunk_statistics())[m_nextChunk] > 1)
-      chunk_complete(m_nextChunk, pcb);
+    if (m_peer_chunks[m_next_chunk] != chunk_done && (*m_download->chunk_statistics())[m_next_chunk] > 1)
+      chunk_complete(m_next_chunk, pcb);
 
-  } while (m_peerChunks[m_nextChunk] == chunk_done);
+  } while (m_peer_chunks[m_next_chunk] == chunk_done);
 
-  return m_nextChunk;
+  return m_next_chunk;
 }
 
 void
 InitialSeeding::complete(PeerConnectionBase* pcb) {
   unblock_all();
-  m_chunksLeft = 0;
-  m_nextChunk = no_offer;
+
+  m_chunks_left = 0;
+  m_next_chunk  = no_offer;
 
   // We think all chunks should be well seeded now. Check to make sure.
   for (uint32_t i = 0; i < m_download->file_list()->size_chunks(); i++) {
     if (m_download->chunk_statistics()->complete() + (*m_download->chunk_statistics())[i] < 2) {
       // Chunk too rare, send it again before switching to normal seeding.
-      m_chunksLeft++;
-      m_peerChunks[i] = chunk_unsent;
-      if (m_nextChunk == no_offer)
-        m_nextChunk = i;
+      m_chunks_left++;
+      m_peer_chunks[i] = chunk_unsent;
+
+      if (m_next_chunk == no_offer)
+        m_next_chunk = i;
     }
   }
 
-  if (m_chunksLeft)
+  if (m_chunks_left)
     return;
 
   m_download->initial_seeding_done(pcb);

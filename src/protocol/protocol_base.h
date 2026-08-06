@@ -2,10 +2,12 @@
 #define LIBTORRENT_NET_PROTOCOL_BASE_H
 
 #include "net/protocol_buffer.h"
+#include "torrent/data/piece.h"
 
 namespace torrent {
 
 class Piece;
+class ThrottleList;
 
 class ProtocolBase {
 public:
@@ -126,7 +128,7 @@ ProtocolBase::read_request() {
   uint32_t index = m_buffer.read_32();
   uint32_t offset = m_buffer.read_32();
   uint32_t length = m_buffer.read_32();
-  
+
   return Piece(index, offset, length);
 }
 
