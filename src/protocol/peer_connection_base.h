@@ -1,11 +1,10 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
-#include "thread_main.h"
 #include "data/chunk_handle.h"
+#include "net/data_buffer.h"
 #include "net/socket_stream.h"
 #include "protocol/encryption_info.h"
-#include "protocol/extensions.h"
 #include "protocol/peer_chunks.h"
 #include "protocol/protocol_base.h"
 #include "protocol/request_list.h"
@@ -50,39 +49,39 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  bool                is_up_choked() const            { return m_upChoke.choked(); }
-  bool                is_up_interested() const        { return m_upChoke.queued(); }
-  bool                is_up_snubbed() const           { return m_upChoke.snubbed(); }
+  bool                is_up_choked() const            { return m_up_choke.choked(); }
+  bool                is_up_interested() const        { return m_up_choke.queued(); }
+  bool                is_up_snubbed() const           { return m_up_choke.snubbed(); }
 
-  bool                is_down_queued() const          { return m_downChoke.queued(); }
-  bool                is_down_local_unchoked() const  { return m_downChoke.unchoked(); }
-  bool                is_down_remote_unchoked() const { return m_downUnchoked; }
-  bool                is_down_interested() const      { return m_downInterested; }
+  bool                is_down_queued() const          { return m_down_choke.queued(); }
+  bool                is_down_local_unchoked() const  { return m_down_choke.unchoked(); }
+  bool                is_down_remote_unchoked() const { return m_down_unchoked; }
+  bool                is_down_interested() const      { return m_down_interested; }
 
   void                set_upload_snubbed(bool v);
 
-  bool                is_seeder() const               { return m_peerChunks.is_seeder(); }
-  bool                is_not_seeder() const           { return !m_peerChunks.is_seeder(); }
+  bool                is_seeder() const               { return m_peer_chunks.is_seeder(); }
+  bool                is_not_seeder() const           { return !m_peer_chunks.is_seeder(); }
 
   bool                is_encrypted() const            { return m_encryption.is_encrypted(); }
   bool                is_obfuscated() const           { return m_encryption.is_obfuscated(); }
 
   PeerInfo*           mutable_peer_info()             { return m_peerInfo; }
 
-  PeerChunks*         peer_chunks()                   { return &m_peerChunks; }
-  const PeerChunks*   c_peer_chunks() const           { return &m_peerChunks; }
+  PeerChunks*         peer_chunks()                   { return &m_peer_chunks; }
+  const PeerChunks*   c_peer_chunks() const           { return &m_peer_chunks; }
 
-  choke_status*       up_choke()                      { return &m_upChoke; }
-  choke_status*       down_choke()                    { return &m_downChoke; }
+  choke_status*       up_choke()                      { return &m_up_choke; }
+  choke_status*       down_choke()                    { return &m_down_choke; }
 
   DownloadMain*       download()                      { return m_download; }
-  RequestList*        request_list()                { return &m_request_list; }
-  const RequestList*  request_list() const          { return &m_request_list; }
+  RequestList*        request_list()                  { return &m_request_list; }
+  const RequestList*  request_list() const            { return &m_request_list; }
 
   ProtocolExtension*  extensions()                    { return m_extensions; }
-  DataBuffer*         extension_message()             { return &m_extensionMessage; }
+  DataBuffer*         extension_message()             { return &m_extension_message; }
 
-  void                do_peer_exchange()              { m_sendPEXMask |= PEX_DO; }
+  void                do_peer_exchange()              { m_send_pex_mask |= PEX_DO; }
   inline void         set_peer_exchange(bool state);
 
   // These must be implemented by the child class.
@@ -154,14 +153,14 @@ protected:
   ProtocolRead*       m_down;
   ProtocolWrite*      m_up;
 
-  PeerChunks          m_peerChunks;
+  PeerChunks          m_peer_chunks;
 
   RequestList         m_request_list;
-  ChunkHandle         m_downChunk;
-  uint32_t            m_downStall{0};
+  ChunkHandle         m_down_chunk;
+  uint32_t            m_down_stall{};
 
-  Piece               m_upPiece;
-  ChunkHandle         m_upChunk;
+  Piece               m_up_piece;
+  ChunkHandle         m_up_chunk;
 
   // The interested state no longer follows the spec's wording as it
   // has been swapped.
@@ -173,43 +172,30 @@ protected:
   //
   // In the downlod object, 'queued' now means the same as the spec's
   // 'unchoked', while 'unchoked' means we start requesting pieces.
-  choke_status        m_upChoke;
-  choke_status        m_downChoke;
+  choke_status        m_up_choke;
+  choke_status        m_down_choke;
 
-  bool                m_downInterested{false};
-  bool                m_downUnchoked{false};
+  bool                m_down_interested{};
+  bool                m_down_unchoked{};
 
-  bool                m_sendChoked{false};
-  bool                m_sendInterested{false};
-  bool                m_tryRequest{true};
+  bool                m_send_choked{};
+  bool                m_send_interested{};
+  bool                m_tryRequest{};
 
-  int                 m_sendPEXMask{0};
+  int                 m_send_pex_mask{};
 
   std::chrono::microseconds m_time_last_read{};
 
-  DataBuffer          m_extensionMessage;
-  uint32_t            m_extensionOffset;
+  DataBuffer          m_extension_message;
+  uint32_t            m_extension_offset;
 
-  std::unique_ptr<EncryptBuffer> m_encryptBuffer;
+  std::unique_ptr<EncryptBuffer> m_encrypt_buffer;
+
   EncryptionInfo      m_encryption;
   ProtocolExtension*  m_extensions{};
 
-  bool                m_incoreContinous{false};
+  bool                m_incore_continous{};
 };
-
-inline void
-PeerConnectionBase::set_peer_exchange(bool state) {
-  if (m_extensions->is_default() || !m_extensions->is_remote_supported(ProtocolExtension::UT_PEX))
-    return;
-
-  if (state) {
-    m_sendPEXMask = PEX_ENABLE | (m_sendPEXMask & ~PEX_DISABLE);
-    m_extensions->set_local_enabled(ProtocolExtension::UT_PEX);
-  } else {
-    m_sendPEXMask = PEX_DISABLE | (m_sendPEXMask & ~PEX_ENABLE);
-    m_extensions->unset_local_enabled(ProtocolExtension::UT_PEX);
-  }
-}
 
 inline void
 PeerConnectionBase::push_unread(const void* data, uint32_t size) {
