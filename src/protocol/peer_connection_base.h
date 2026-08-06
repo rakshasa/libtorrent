@@ -82,7 +82,7 @@ public:
   DataBuffer*         extension_message()             { return &m_extension_message; }
 
   void                do_peer_exchange()              { m_send_pex_mask |= PEX_DO; }
-  inline void         set_peer_exchange(bool state);
+  void                set_peer_exchange(bool state);
 
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
