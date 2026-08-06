@@ -5,17 +5,14 @@
 #include <cstring>
 #include <sstream>
 
-#include "download/chunk_selector.h"
-#include "download/chunk_statistics.h"
 #include "download/download_main.h"
-#include "manager.h"
 #include "protocol/extensions.h"
-#include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/runtime/runtime.h"
 #include "torrent/utils/log.h"
+
+#include "torrent/runtime/runtime.h"
 
 #define LT_LOG_METADATA_EVENTS(log_fmt, ...)                            \
   lt_log_print_info(LOG_PROTOCOL_METADATA_EVENTS, this->download()->info(), "metadata_events", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
@@ -276,7 +273,7 @@ PeerConnectionMetadata::fill_write_buffer() {
   if (m_tryRequest)
     m_tryRequest = try_request_metadata_pieces();
 
-  if (m_sendPEXMask && m_up->can_write_extension() &&
+  if (m_send_pex_mask && m_up->can_write_extension() &&
       send_pex_message()) {
     // Don't do anything else if send_pex_message() succeeded.
 
@@ -383,9 +380,9 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
     return false;
 
   if (request_list()->queued_empty())
-    m_downStall = 0;
+    m_down_stall = 0;
 
-  uint32_t pipeSize = request_list()->calculate_pipe_size(m_peerChunks.download_throttle()->rate()->rate());
+  uint32_t pipeSize = request_list()->calculate_pipe_size(m_peer_chunks.download_throttle()->rate()->rate());
 
   // Don't start requesting if we can't do it in large enough chunks.
   if (request_list()->pipe_size() >= (pipeSize + 10) / 2)
@@ -403,7 +400,7 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
 
   const Piece* p = pieces.front();
 
-  if (!m_download->file_list()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->index()))
+  if (!m_download->file_list()->is_valid_piece(*p) || !m_peer_chunks.bitfield()->get(p->index()))
     throw internal_error("PeerConnectionMetadata::try_request_metadata_pieces() tried to use an invalid piece.");
 
   // DEBUG:
