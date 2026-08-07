@@ -411,6 +411,9 @@ FileList::open(bool hashing, int flags) {
 
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
+      if (entry->path()->empty())
+        throw storage_error("Empty filename is not allowed.");
+
       if (entry->path()->back().empty())
         entry->set_frozen_path(std::string());
       else
@@ -422,8 +425,6 @@ FileList::open(bool hashing, int flags) {
       if (entry->size_bytes() > m_max_file_size)
         throw storage_error("File exceedes the configured max file size.");
 
-      if (entry->path()->empty())
-        throw storage_error("Empty filename is not allowed.");
 
       // Handle directory creation outside of open_file, so we can do
       // it here if necessary.
