@@ -264,7 +264,7 @@ NetworkManager::listen_restart_unsafe() {
     listen_open_unsafe(m_listen_port, m_listen_port);
 
   } catch (const base_error& e) {
-    LT_LOG_NOTICE("Could not restart listen socket: %" PRIu16 " : %s", e.what());
+    LT_LOG_NOTICE("Could not restart listen socket: %" PRIu16 " : %s", m_listen_port, e.what());
     return;
   }
 }
