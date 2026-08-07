@@ -53,6 +53,7 @@ class LIBTORRENT_EXPORT SocketManager {
 public:
   static constexpr uint32_t category_count     = 5;
   static constexpr uint32_t category_max_alloc = 1000000;
+  static constexpr uint32_t http_max_alloc     = 4096;
   static constexpr int      flag_inactive = (1 << 0);
 
   using category_t = socket_manager_category_t;
@@ -65,6 +66,8 @@ public:
 
   uint32_t            category_min_allocation(category_t category);
   uint32_t            category_max_allocation(category_t category);
+
+  uint32_t            category_alloc_limit(category_t category);
 
   uint32_t            generic_min_allocation();
   uint32_t            reserved_allocation();
