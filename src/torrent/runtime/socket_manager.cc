@@ -20,6 +20,14 @@ namespace {
 constexpr uint32_t allocation_headroom = 8;
 
 uint32_t
+calculate_alloc_limit(torrent::runtime::socket_manager_category_t category) {
+  if (category == torrent::runtime::category_http)
+    return torrent::runtime::SocketManager::http_max_alloc;
+
+  return torrent::runtime::SocketManager::category_max_alloc;
+}
+
+uint32_t
 calculate_min_generic(uint32_t open_max) {
   if (open_max >= 16384)
     return 12288;
@@ -127,6 +135,11 @@ SocketManager::category_max_size(category_t category) {
 }
 
 uint32_t
+SocketManager::category_alloc_limit(category_t category) {
+  return calculate_alloc_limit(category);
+}
+
+uint32_t
 SocketManager::generic_min_allocation() {
   return calculate_min_generic(m_max_size);
 }
@@ -207,6 +220,10 @@ SocketManager::adjust_allocation_unsafe(uint32_t max_open) {
   auto calculate_category = [this, &total_allocated, &new_max_size](category_t category, uint32_t allocation) {
       allocation = std::max(allocation, m_category_min_alloc[static_cast<uint32_t>(category)].load());
       allocation = std::min(allocation, m_category_max_alloc[static_cast<uint32_t>(category)].load());
+
+      if (allocation > calculate_alloc_limit(category))
+        throw input_error("adjust_allocation: allocation exceeds the category limit : " +
+                          std::to_string(allocation) + " > " + std::to_string(calculate_alloc_limit(category)));
 
       total_allocated                               += allocation;
       new_max_size[static_cast<uint32_t>(category)]  = allocation;
