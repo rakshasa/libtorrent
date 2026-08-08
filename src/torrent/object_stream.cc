@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <algorithm>
+
 #include "torrent/object_stream.h"
 
 #include <iostream>
@@ -22,17 +24,21 @@ object_read_string(std::istream* input, std::string& str) {
   if (input->fail() || input->get() != ':')
     return false;
 
-  try {
-  	str.resize(size);
+  str.clear();
 
-  } catch (const std::length_error&) {
-    return false;
-  }
+  while (size != 0) {
+    char     buffer[8192];
+    uint32_t chunk = std::min<uint32_t>(size, sizeof(buffer));
 
-  for (auto& c : str) {
-    if (!input->good())
-      break;
-    c = input->get();
+    input->read(buffer, chunk);
+
+    auto read_size = input->gcount();
+
+    if (read_size <= 0)
+      return false;
+
+    str.append(buffer, read_size);
+    size -= read_size;
   }
 
   return !input->fail();
