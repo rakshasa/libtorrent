@@ -231,8 +231,10 @@ DhtRouter::contact(const sockaddr* sa, int port) {
   if (sa_tmp->sa_family != AF_INET)
     return;
 
-  if (sap_is_any(sa_tmp))
-    throw input_error("DhtRouter::contact() called with any address.");
+  if (sap_is_any(sa_tmp)) {
+    LT_LOG_THIS("not contacting node, any address : %s", sa_addr_str(sa_tmp.get()).c_str());
+    return;
+  }
 
   sap_set_port(sa_tmp, port);
 
