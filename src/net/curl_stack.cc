@@ -56,7 +56,7 @@ CurlStack::~CurlStack() {
 void
 CurlStack::set_max_cache_connections(unsigned int value) {
   if (value > 1024)
-    throw torrent::internal_error("CurlStack::set_max_cache_connections() called with a value greater than 1024.");
+    throw torrent::input_error("CurlStack::set_max_cache_connections() called with a value greater than 1024.");
 
   auto guard = lock_guard();
 
@@ -68,7 +68,7 @@ CurlStack::set_max_cache_connections(unsigned int value) {
 void
 CurlStack::set_max_host_connections(unsigned int value) {
   if (value > 1024)
-    throw torrent::internal_error("CurlStack::set_max_host_connections() called with a value greater than 1024.");
+    throw torrent::input_error("CurlStack::set_max_host_connections() called with a value greater than 1024.");
 
   auto guard = lock_guard();
 
