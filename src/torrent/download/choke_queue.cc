@@ -156,6 +156,11 @@ choke_queue::rebuild_containers(container_type* queued, container_type* unchoked
 
 void
 choke_queue::balance() {
+  // A group that was never given its slots cannot be balanced; calling through
+  // an empty std::function would terminate the client.
+  if (!m_slotCanUnchoke)
+    return;
+
   LT_LOG_THIS("balancing queue: heuristics:%i currently_unchoked:%" PRIu32 " max_unchoked:%" PRIu32,
               m_heuristics,
               m_currently_unchoked,
