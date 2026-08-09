@@ -18,27 +18,31 @@ namespace torrent {
 
 static bool
 object_read_string(std::istream* input, std::string& str) {
-  uint32_t size;
-  *input >> size;
+  uint32_t remaining;
+  *input >> remaining;
 
   if (input->fail() || input->get() != ':')
     return false;
 
+  // Limit to 32 MiB, used in many clients.
+  if (remaining > 1 << 25)
+    return false;
+
   str.clear();
 
-  while (size != 0) {
-    char     buffer[8192];
-    uint32_t chunk = std::min<uint32_t>(size, sizeof(buffer));
+  while (remaining != 0) {
+    // Read in chunks of 64 KiB, it is very unlikely that a bencode stream is really that large so
+    // we're assuming this fails at some point.
+    uint32_t read_size = std::min<uint32_t>(remaining, 1 << 16);
 
-    input->read(buffer, chunk);
+    str.resize(str.size() + read_size);
 
-    auto read_size = input->gcount();
+    input->read(str.data() + str.size() - read_size, read_size);
 
-    if (read_size <= 0)
+    if (input->gcount() != read_size)
       return false;
 
-    str.append(buffer, read_size);
-    size -= read_size;
+    remaining -= read_size;
   }
 
   return !input->fail();
