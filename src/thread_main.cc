@@ -10,6 +10,7 @@
 #include "torrent/net/resolver.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
+#include "torrent/runtime/runtime.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/callbacks.h"
 #include "torrent/tracker/dht_controller.h"
@@ -40,9 +41,9 @@ uint32_t        hash_queue_size()                                               
 namespace runtime {
 
 void
-initialize_worker_process_and_main_thread() {
+initialize_worker_process_and_main_thread(std::function<void()> init_child_fn) {
   auto worker_process = std::make_unique<process::ProcessWorker>();
-  worker_process->spawn();
+  worker_process->spawn(init_child_fn);
 
   ThreadMain::create_thread(std::move(worker_process));
 
@@ -58,8 +59,8 @@ initialize_worker_process() {
 } // namespace runtime
 
 
-ThreadMain*     ThreadMain::m_thread_main{};
-system::Thread* ThreadMain::m_thread_base{};
+LIBTORRENT_EXPORT ThreadMain*     ThreadMain::m_thread_main{};
+LIBTORRENT_EXPORT system::Thread* ThreadMain::m_thread_base{};
 
 ThreadMain::~ThreadMain() {
   cleanup_thread();

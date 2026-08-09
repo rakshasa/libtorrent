@@ -48,10 +48,9 @@ start_control_watchdog(int fd) {
       system::ipc::ControlFd::wait_is_alive(fd);
 
       // Allow main thread a chance to exit gracefully before killing the process.
-      // std::this_thread::sleep_for(100ms);
+      std::this_thread::sleep_for(100ms);
 
-      std::this_thread::sleep_for(10s);
-
+      // std::this_thread::sleep_for(10s);
 
       std::cout << "ProcessWorker::watchdog: control fd closed, exiting process." << std::endl;
 
@@ -67,7 +66,7 @@ ProcessWorker::~ProcessWorker() = default;
 // TODO: Change EventFd to be the interrupt handler for poll? And add an option to make it cross-process.
 
 void
-ProcessWorker::spawn() {
+ProcessWorker::spawn(std::function<void()> init_child_fn) {
   m_factory = std::make_unique<system::ipc::RouterFactory>();
 
   m_factory->initialize(1 * 4096);
@@ -82,6 +81,7 @@ ProcessWorker::spawn() {
     return;
   }
 
+  init_child_fn();
   init_child_process();
 
   worker::ThreadWorker::thread_worker()->event_loop();
@@ -104,6 +104,8 @@ ProcessWorker::spawn() {
 
 void
 ProcessWorker::init_parent_process() {
+  LT_LOG_PARENT("ProcessWorker::init_parent_process() called.", 0);
+
   m_router = m_factory->create_parent_router();
   m_factory.reset();
 
@@ -124,11 +126,15 @@ ProcessWorker::init_parent_process() {
   // auto handler_1 = parent_handler->create_new_channel(router);
   // auto handler_2 = parent_handler->create_new_channel(router);
 
+  m_router->open_fds();
 
+  LT_LOG_PARENT("ProcessWorker::init_parent_process() finished.", 0);
 }
 
 void
 ProcessWorker::init_child_process() {
+  LT_LOG_CHILD("ProcessWorker::init_child_process() called.", 0);
+
   m_router = m_factory->create_child_router();
   m_factory.reset();
 
@@ -138,6 +144,8 @@ ProcessWorker::init_child_process() {
   worker::ThreadWorker::thread_worker()->init_thread();
 
   m_router->open_fds();
+
+  LT_LOG_CHILD("ProcessWorker::init_child_process() finished.", 0);
 }
 
 } // namespace torrent::process

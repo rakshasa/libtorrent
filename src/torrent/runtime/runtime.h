@@ -1,10 +1,15 @@
 #ifndef LIBTORRENT_TORRENT_RUNTIME_RUNTIME_H
 #define LIBTORRENT_TORRENT_RUNTIME_RUNTIME_H
 
-#include <torrent/common.h>
+#include <torrent/system/common.h>
 
 namespace torrent::runtime {
 
+class ClientConfig;
+class NetworkConfig;
+class NetworkManager;
+class MemoryManager;
+class SocketManager;
 class ProxyManager;
 
 bool                is_initialized() LIBTORRENT_EXPORT;
@@ -12,7 +17,7 @@ bool                is_network_initialized() LIBTORRENT_EXPORT;
 bool                is_shutting_down() LIBTORRENT_EXPORT;
 bool                is_quick_shutting_down() LIBTORRENT_EXPORT;
 
-void                initialize_worker_process_and_main_thread() LIBTORRENT_EXPORT;
+void                initialize_worker_process_and_main_thread(std::function<void()> init_child_fn) LIBTORRENT_EXPORT;
 
 void                initialize_worker_process() LIBTORRENT_EXPORT;
 void                initialize_network() LIBTORRENT_EXPORT;
