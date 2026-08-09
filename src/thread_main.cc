@@ -53,7 +53,7 @@ initialize_worker_process_and_main_thread(std::function<void()> init_child_fn) {
 
 void
 initialize_worker_process() {
-  // ThreadMain::thread_main()->worker_process()->init_parent_process();
+  ThreadMain::worker_process()->init_parent_process();
 }
 
 } // namespace runtime

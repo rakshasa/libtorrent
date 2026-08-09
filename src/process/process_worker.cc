@@ -8,6 +8,7 @@
 
 #include "process/worker/thread_worker.h"
 #include "torrent/exceptions.h"
+#include "torrent/system/types.h"
 #include "torrent/system/ipc/control_fd.h"
 #include "torrent/system/ipc/factory.h"
 #include "torrent/utils/log.h"
@@ -52,7 +53,7 @@ start_control_watchdog(int fd) {
 
       // std::this_thread::sleep_for(10s);
 
-      std::cout << "ProcessWorker::watchdog: control fd closed, exiting process." << std::endl;
+      LT_LOG_CHILD("ProcessWorker::watchdog: control fd closed, exiting process.", 0);
 
       ::exit(1);
     });
@@ -76,10 +77,8 @@ ProcessWorker::spawn(std::function<void()> init_child_fn) {
   if (pid == -1)
     throw internal_error("fork() failed: " + std::string(strerror(errno)));
 
-  if (pid != 0) {
-    init_parent_process();
+  if (pid != 0)
     return;
-  }
 
   init_child_fn();
   init_child_process();
@@ -97,7 +96,7 @@ ProcessWorker::spawn(std::function<void()> init_child_fn) {
 
   // std::this_thread::sleep_for(5s);
 
-  std::cout << "ProcessWorker: control fd closed, exiting child process." << std::endl;
+  LT_LOG_CHILD("ProcessWorker: control fd closed, exiting child process.", 0);
 
   ::exit(0);
 }
@@ -109,10 +108,23 @@ ProcessWorker::init_parent_process() {
   m_router = m_factory->create_parent_router();
   m_factory.reset();
 
-  // router->control_fd().register_interrupt_handler([]()                  { std::cout << "PARENT: received interrupt on control fd." << std::endl; });
-  // router->control_fd().register_message_handler([](auto msg)            { handle_control_message("PARENT:CONTROL", msg); });
-  // router->control_fd().register_closed_handler([router](int error_code) { handle_control_closed(router, "PARENT:CONTROL", error_code); });
-  // router->control_fd().register_shutdown_handler([](bool graceful)      { handle_control_shutdown("PARENT:CONTROL", graceful); });
+  // m_router->control_fd().register_interrupt_handler([]() {
+  //     LT_LOG_PARENT("ProcessWorker::init_parent_process(): control fd interrupt received.", 0);
+  //   });
+
+  m_router->control_fd().register_message_handler([](auto msg) {
+      LT_LOG_PARENT("ProcessWorker::init_parent_process(): control fd message received : %s", msg.c_str());
+    });
+
+  m_router->control_fd().register_closed_handler([router = m_router.get()](int error_code) {
+      LT_LOG_PARENT("ProcessWorker::init_parent_process(): control fd closed with error code: %s", system::errno_enum(error_code));
+    });
+
+  m_router->control_fd().register_shutdown_handler([](bool graceful) {
+      LT_LOG_PARENT("ProcessWorker::init_parent_process(): control fd shutdown received. graceful: %i", (int)graceful);
+
+      throw shutdown_exception();
+    });
 
   // std::cout << "PARENT: started: fd." << std::endl;
 
@@ -137,6 +149,20 @@ ProcessWorker::init_child_process() {
 
   m_router = m_factory->create_child_router();
   m_factory.reset();
+
+  m_router->control_fd().register_message_handler([](auto msg) {
+      LT_LOG_CHILD("ProcessWorker::init_child_process(): control fd message received : %s", msg.c_str());
+    });
+
+  m_router->control_fd().register_closed_handler([router = m_router.get()](int error_code) {
+      LT_LOG_CHILD("ProcessWorker::init_child_process(): control fd closed with error code: %s", system::errno_enum(error_code));
+    });
+
+  m_router->control_fd().register_shutdown_handler([](bool graceful) {
+      LT_LOG_CHILD("ProcessWorker::init_child_process(): control fd shutdown received. graceful: %i", (int)graceful);
+
+      throw shutdown_exception();
+    });
 
   start_control_watchdog(m_router->keepalive_fd());
 
