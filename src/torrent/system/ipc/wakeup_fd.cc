@@ -2,6 +2,7 @@
 
 #include "torrent/system/ipc/wakeup_fd.h"
 
+#include <future>
 #include <unistd.h>
 
 #include "torrent/exceptions.h"
@@ -85,6 +86,9 @@ WakeupFd::close() {
 
 void
 WakeupFd::send_interrupt() {
+  if (!is_open())
+    return;
+
 #ifdef USE_EVENT_FD
   uint64_t value{1};
 #else
@@ -133,8 +137,18 @@ WakeupFd::event_read() {
       return;
 
     case 0:
-      throw internal_error("WakeupFd::event_read() read returned 0: " + this_thread::thread_name_str());
+      {
+        // Close and then ignore as control or keepalive fd handles shutdown for us.
+        close();
 
+        [[maybe_unused]] auto shutdown_future = std::async(std::launch::async, []() {
+            std::this_thread::sleep_for(5s);
+
+            ::exit(220);
+          });
+
+        return;
+      }
     case -1:
       if (errno == EINTR)
         continue;
@@ -142,7 +156,7 @@ WakeupFd::event_read() {
       if (errno == EAGAIN || errno == EWOULDBLOCK)
         return;
 
-      throw internal_error("WakeupFd::event_read() read failed: " + std::string(std::strerror(errno)));
+      throw internal_error("WakeupFd::event_read() read failed: " + this_thread::thread_name_str() + " : " + system::errno_enum_str(errno));
 
     default:
       throw internal_error("WakeupFd::event_read() read returned unexpected value: " + this_thread::thread_name_str());

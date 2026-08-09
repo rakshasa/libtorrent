@@ -25,6 +25,8 @@ public:
   static ThreadMain*     thread_main()         { return m_thread_main; }
   static system::Thread* thread_base()         { return m_thread_base; }
 
+  static auto*           worker_process()      { return m_thread_main->m_worker_process.get(); }
+
   const char*            name() const override { return "rtorrent-main"; }
 
   void                   init_thread() override;
@@ -33,8 +35,7 @@ public:
 
   void                   set_client_callback(std::function<void()> fn);
 
-  HashQueue*              hash_queue()          { return m_hash_queue.get(); }
-  // process::ProcessWorker* worker_process()      { return m_worker_process.get(); }
+  HashQueue*             hash_queue()          { return m_hash_queue.get(); }
 
 protected:
   friend class ::TestMainThread;
