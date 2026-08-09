@@ -12,7 +12,7 @@ public:
 
   auto&               router();
 
-  void                spawn();
+  void                spawn(std::function<void()> init_child_fn);
 
   void                init_parent_process();
 

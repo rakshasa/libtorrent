@@ -5,6 +5,10 @@
 #include <cinttypes>
 #include <memory>
 
+struct sockaddr;
+struct sockaddr_in;
+struct sockaddr_in6;
+struct sockaddr_un;
 
 using namespace std::chrono_literals;
 

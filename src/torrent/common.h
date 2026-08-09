@@ -11,11 +11,6 @@
 #include <thread>
 #include <torrent/system/common.h>
 
-struct sockaddr;
-struct sockaddr_in;
-struct sockaddr_in6;
-struct sockaddr_un;
-
 namespace torrent {
 
 // TODO: Move
