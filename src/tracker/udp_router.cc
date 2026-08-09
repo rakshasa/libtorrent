@@ -552,7 +552,7 @@ UdpRouter::event_read() {
     }
 
     if (bytes_read == 0)
-      throw internal_error("UdpRouter::event_read() read datagram of length 0");
+      continue;
 
     m_buffer.set_end(bytes_read);
 

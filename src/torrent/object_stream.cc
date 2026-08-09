@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <algorithm>
+
 #include "torrent/object_stream.h"
 
 #include <iostream>
@@ -16,23 +18,31 @@ namespace torrent {
 
 static bool
 object_read_string(std::istream* input, std::string& str) {
-  uint32_t size;
-  *input >> size;
+  uint32_t remaining;
+  *input >> remaining;
 
   if (input->fail() || input->get() != ':')
     return false;
 
-  try {
-  	str.resize(size);
-
-  } catch (const std::length_error&) {
+  // Limit to 32 MiB, used in many clients.
+  if (remaining > 1 << 25)
     return false;
-  }
 
-  for (auto& c : str) {
-    if (!input->good())
-      break;
-    c = input->get();
+  str.clear();
+
+  while (remaining != 0) {
+    // Read in chunks of 64 KiB, it is very unlikely that a bencode stream is really that large so
+    // we're assuming this fails at some point.
+    uint32_t read_size = std::min<uint32_t>(remaining, 1 << 16);
+
+    str.resize(str.size() + read_size);
+
+    input->read(str.data() + str.size() - read_size, read_size);
+
+    if (input->gcount() != read_size)
+      return false;
+
+    remaining -= read_size;
   }
 
   return !input->fail();

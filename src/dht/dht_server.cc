@@ -489,6 +489,11 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtM
   if (response[key_r_values].is_raw_list())
     announce->receive_peers(response[key_r_values].as_raw_list());
 
+  // Restrict the length of tokens. We echo them back in announce_peer, and the
+  // query has to fit in a single packet.
+  if (response[key_r_token].is_raw_string() && response[key_r_token].as_raw_string().size() > 64)
+    throw dht_error(dht_error_protocol, "Token length too long");
+
   if (response[key_r_token].is_raw_string())
     add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionAnnouncePeer(transaction->id(),
                                                                                    transaction->address(),

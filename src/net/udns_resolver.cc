@@ -160,7 +160,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
 
       // Unrecoverable errors, like ENOMEM.
       if (::dns_status(m_ctx) != DNS_E_BADQUERY)
-        throw new internal_error("dns_submit_a4 failed");
+        throw internal_error("dns_submit_a4 failed");
 
       // UDNS will fail immediately during submission of malformed domain names,
       // e.g., `..`. In order to maintain a clean interface, keep track of this
@@ -192,7 +192,7 @@ UdnsResolver::resolve(void* requester, const std::string& hostname, int family, 
       }
 
       if (::dns_status(m_ctx) != DNS_E_BADQUERY)
-        throw new internal_error("dns_submit_a6 failed");
+        throw internal_error("dns_submit_a6 failed");
 
       query->error_sin = EAI_NONAME;
 

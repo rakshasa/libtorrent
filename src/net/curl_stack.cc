@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "torrent/runtime/socket_manager.h"
+
 #include "curl_stack.h"
 
 #include <algorithm>
@@ -54,7 +56,7 @@ CurlStack::~CurlStack() {
 void
 CurlStack::set_max_cache_connections(unsigned int value) {
   if (value > 1024)
-    throw torrent::internal_error("CurlStack::set_max_cache_connections() called with a value greater than 1024.");
+    throw torrent::input_error("CurlStack::set_max_cache_connections() called with a value greater than 1024.");
 
   auto guard = lock_guard();
 
@@ -66,7 +68,7 @@ CurlStack::set_max_cache_connections(unsigned int value) {
 void
 CurlStack::set_max_host_connections(unsigned int value) {
   if (value > 1024)
-    throw torrent::internal_error("CurlStack::set_max_host_connections() called with a value greater than 1024.");
+    throw torrent::input_error("CurlStack::set_max_host_connections() called with a value greater than 1024.");
 
   auto guard = lock_guard();
 
@@ -77,8 +79,9 @@ CurlStack::set_max_host_connections(unsigned int value) {
 
 void
 CurlStack::set_max_total_connections(unsigned int value) {
-  if (value > 4096)
-    throw torrent::internal_error("CurlStack::set_max_total_connections() called with a value greater than 4096.");
+  if (value > torrent::runtime::SocketManager::http_max_alloc)
+    throw torrent::internal_error("CurlStack::set_max_total_connections() called with a value greater than " +
+                                  std::to_string(torrent::runtime::SocketManager::http_max_alloc) + ".");
 
   auto guard = lock_guard();
 
