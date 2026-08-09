@@ -150,6 +150,8 @@ ProcessWorker::init_child_process() {
   m_router = m_factory->create_child_router();
   m_factory.reset();
 
+  // TODO: Register SIGSEGV/ETC handlers, send backtrace to parent process.
+
   m_router->control_fd().register_message_handler([](auto msg) {
       LT_LOG_CHILD("ProcessWorker::init_child_process(): control fd message received : %s", msg.c_str());
     });
