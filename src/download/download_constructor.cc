@@ -61,6 +61,9 @@ DownloadConstructor::parse_info(const Object& b) {
     m_download->info()->set_flags(DownloadInfo::flag_meta_download);
 
   if (m_download->info()->is_meta_download()) {
+    if (b.has_key("length") || b.has_key("files"))
+      throw input_error("Meta-download has file entries.");
+
     if (b.get_key_string("pieces").length() != HashString::size_data)
       throw input_error("Meta-download has invalid piece data.");
 
