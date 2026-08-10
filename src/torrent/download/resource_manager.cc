@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <numeric>
 
 #include "download/download_main.h"
@@ -62,13 +63,13 @@ ResourceManager::update_group_iterators() {
   auto group_itr = m_choke_groups.begin();
 
   while (group_itr != m_choke_groups.end()) {
-    (*group_itr)->set_first(&*entry_itr);
+    (*group_itr)->set_first(std::to_address(entry_itr));
 
     entry_itr = std::find_if(entry_itr, end(), [group_itr, this](value_type v) {
       return (std::distance(m_choke_groups.begin(), group_itr)) < v.group();
     });
 
-    (*group_itr)->set_last(&*entry_itr);
+    (*group_itr)->set_last(std::to_address(entry_itr));
     group_itr++;
   }
 }
@@ -79,14 +80,14 @@ ResourceManager::validate_group_iterators() {
   auto group_itr = m_choke_groups.begin();
 
   while (group_itr != m_choke_groups.end()) {
-    if ((*group_itr)->first() != &*entry_itr)
+    if ((*group_itr)->first() != std::to_address(entry_itr))
       throw internal_error("ResourceManager::receive_tick() invalid first iterator.");
 
     entry_itr = std::find_if(entry_itr, end(), [group_itr, this](value_type v) {
       return (std::distance(m_choke_groups.begin(), group_itr)) < v.group();
     });
 
-    if ((*group_itr)->last() != &*entry_itr)
+    if ((*group_itr)->last() != std::to_address(entry_itr))
       throw internal_error("ResourceManager::receive_tick() invalid last iterator.");
 
     group_itr++;
