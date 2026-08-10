@@ -298,7 +298,9 @@ TrackerUdp::prepare_announce(int family, uint32_t id, buffer_type& buffer) {
 
   buffer.write_32(info().key);
   buffer.write_32(m_params.numwant);
-  buffer.write_16(runtime::listen_port());
+
+  auto local_port = runtime::network_config()->local_port_for_family(family);
+  buffer.write_16(local_port != 0 ? local_port : runtime::listen_port());
 
   if (buffer.size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce() unexpected buffer size.");

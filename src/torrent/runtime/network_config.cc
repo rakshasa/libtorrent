@@ -264,6 +264,53 @@ NetworkConfig::local_inet6_address_str() const {
   return sa_addr_str(m_local_inet6_address.get());
 }
 
+uint16_t
+NetworkConfig::local_inet_port() const {
+  auto guard = lock_guard();
+  return m_local_inet_port;
+}
+
+uint16_t
+NetworkConfig::local_inet6_port() const {
+  auto guard = lock_guard();
+  return m_local_inet6_port;
+}
+
+uint16_t
+NetworkConfig::local_port_for_family(int family) const {
+  auto guard = lock_guard();
+
+  switch (family) {
+  case AF_INET:  return m_local_inet_port;
+  case AF_INET6: return m_local_inet6_port;
+  default:
+    throw input_error("NetworkConfig::local_port_for_family() called with invalid address family");
+  }
+}
+
+uint16_t
+NetworkConfig::local_port_best_match() const {
+  auto guard = lock_guard();
+
+  if (m_local_inet_port == 0)
+    return m_local_inet6_port;
+
+  if (m_local_inet6_port == 0)
+    return m_local_inet_port;
+
+  if (m_prefer_ipv6) {
+    if (m_block_ipv6 && !m_block_ipv4)
+      return m_local_inet_port;
+
+    return m_local_inet6_port;
+  }
+
+  if (m_block_ipv4 && !m_block_ipv6)
+    return m_local_inet6_port;
+
+  return m_local_inet_port;
+}
+
 void
 NetworkConfig::set_bind_address(const sockaddr* sa) {
   auto guard = lock_guard();
@@ -343,6 +390,25 @@ NetworkConfig::set_local_inet6_address(const sockaddr* sa) {
 void
 NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
   set_local_inet6_address(sa_lookup_address(addr, AF_INET6).get());
+}
+
+void
+NetworkConfig::set_local_inet_port(uint16_t port) {
+  auto guard = lock_guard();
+  m_local_inet_port = port;
+}
+
+void
+NetworkConfig::set_local_inet6_port(uint16_t port) {
+  auto guard = lock_guard();
+  m_local_inet6_port = port;
+}
+
+void
+NetworkConfig::set_local_port(uint16_t port) {
+  auto guard = lock_guard();
+  m_local_inet_port  = port;
+  m_local_inet6_port = port;
 }
 
 void
