@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <limits>
 
 #include "manager.h"
 #include "download/download_wrapper.h"
@@ -202,7 +203,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
 
     int64_t length = object.get_key_value("length");
 
-    if (length < 0 || torrent_size + length < 0)
+    if (length < 0 || length > std::numeric_limits<int64_t>::max() - torrent_size)
       throw input_error("Bad torrent file, invalid length for file.");
 
     torrent_size += length;
