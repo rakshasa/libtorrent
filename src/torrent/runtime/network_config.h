@@ -82,6 +82,13 @@ public:
   c_sa_shared_ptr     local_inet6_address_or_null() const;
   std::string         local_inet6_address_str() const;
 
+  // Ports reported to trackers, parallel to the local addresses above. A port of 0 means unset,
+  // in which case trackers fall back to reporting runtime::listen_port().
+  uint16_t            local_inet_port() const;
+  uint16_t            local_inet6_port() const;
+  uint16_t            local_port_for_family(int family) const;
+  uint16_t            local_port_best_match() const;
+
   void                set_bind_address(const sockaddr* sa);
   void                set_bind_address_str(const std::string& addr);
   void                set_bind_inet_address(const sockaddr* sa);
@@ -94,6 +101,10 @@ public:
   void                set_local_inet_address_str(const std::string& addr);
   void                set_local_inet6_address(const sockaddr* sa);
   void                set_local_inet6_address_str(const std::string& addr);
+
+  void                set_local_inet_port(uint16_t port);
+  void                set_local_inet6_port(uint16_t port);
+  void                set_local_port(uint16_t port);
 
   int                 listen_backlog() const;
   void                set_listen_backlog(int backlog);
@@ -169,6 +180,9 @@ private:
   c_sa_shared_ptr     m_bind_inet6_address;
   c_sa_shared_ptr     m_local_inet_address;
   c_sa_shared_ptr     m_local_inet6_address;
+
+  uint16_t            m_local_inet_port{0};
+  uint16_t            m_local_inet6_port{0};
 
   int                 m_listen_backlog{SOMAXCONN};
   uint16_t            m_override_dht_port{0};
