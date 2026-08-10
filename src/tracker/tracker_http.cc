@@ -313,7 +313,9 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, int f
   if (m_params.numwant >= 0 && state != tracker::TrackerState::EVENT_STOPPED)
     s << "&numwant=" << m_params.numwant;
 
-  s << "&port="       << runtime::listen_port()
+  auto local_port = runtime::network_config()->local_port_for_family(family);
+
+  s << "&port="       << (local_port != 0 ? local_port : runtime::listen_port())
     << "&uploaded="   << m_params.uploaded_adjusted
     << "&downloaded=" << m_params.completed_adjusted
     << "&left="       << m_params.download_left;
