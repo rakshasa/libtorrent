@@ -38,12 +38,7 @@ DownloadConstructor::parse_name(const Object& b) {
   if (is_invalid_path_element(b.get_key("name")))
     throw input_error("Bad torrent file, \"name\" is an invalid path name.");
 
-  auto& name = b.get_key_string("name");
-
-  if (name.empty())
-    throw internal_error("DownloadConstructor::parse_name(...) Ended up with an empty Path.");
-
-  m_download->info()->set_name(name);
+  m_download->info()->set_name(b.get_key_string("name"));
 }
 
 void
@@ -155,6 +150,7 @@ bool
 DownloadConstructor::is_valid_path_element(const Object& b) {
   return
     b.is_string() &&
+    !b.as_string().empty() &&
     b.as_string() != "." &&
     b.as_string() != ".." &&
     std::find(b.as_string().begin(), b.as_string().end(), '/') == b.as_string().end() &&
