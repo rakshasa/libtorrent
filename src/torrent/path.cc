@@ -23,6 +23,19 @@ Path::insert_path(iterator pos, const std::string& path) {
   }
 }
 
+bool
+Path::compare_less(const Path* left, const Path* right) {
+  return std::lexicographical_compare(left->begin(), left->end(), right->begin(), right->end(),
+                                      [](const auto& l, const auto& r) { return l.str() < r.str(); });
+}
+
+bool
+Path::is_prefix(const Path* prefix, const Path* path) {
+  return prefix->size() <= path->size() &&
+    std::equal(prefix->begin(), prefix->end(), path->begin(),
+               [](const auto& l, const auto& r) { return l.str() == r.str(); });
+}
+
 std::string
 Path::as_string() const {
   if (empty())
