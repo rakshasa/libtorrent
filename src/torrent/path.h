@@ -36,6 +36,9 @@ public:
 
   base_type*         base()                               { return this; }
   const base_type*   base() const                         { return this; }
+
+  static bool        compare_less(const Path* left, const Path* right);
+  static bool        is_prefix(const Path* prefix, const Path* path);
 };
 
 inline void Path::push_back(const std::string& path) { insert_path(end(), path); }
