@@ -544,7 +544,8 @@ PeerConnectionBase::down_chunk_skip() {
     return false;
   }
 
-  uint32_t length = read_stream_throws(m_nullBuffer, std::min(quota, m_request_list.transfer()->piece().length() - m_request_list.transfer()->position()));
+  uint32_t remaining = m_request_list.transfer()->piece().length() - m_request_list.transfer()->position();
+  uint32_t length = read_stream_throws(m_nullBuffer, std::min({quota, remaining, static_cast<uint32_t>(null_buffer_size)}));
   throttle->node_used(m_peer_chunks.download_throttle(), length);
 
   if (is_encrypted())

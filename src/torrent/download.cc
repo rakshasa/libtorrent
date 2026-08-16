@@ -339,6 +339,9 @@ Download::update_range(int flags, uint32_t first, uint32_t last) {
   if (m_ptr->main()->file_list()->bitfield()->empty())
     throw input_error("Download::clear_range(...) Bitfield is empty.");
 
+  if (first > last || last > m_ptr->main()->file_list()->bitfield()->size_bits())
+    throw input_error("Download::update_range(...) Range is out of bounds.");
+
   if (flags & update_range_recheck)
     m_ptr->hash_checker()->hashing_ranges().insert(first, last);
 

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <limits>
 
 #include "manager.h"
 #include "download/download_wrapper.h"
@@ -37,12 +38,7 @@ DownloadConstructor::parse_name(const Object& b) {
   if (is_invalid_path_element(b.get_key("name")))
     throw input_error("Bad torrent file, \"name\" is an invalid path name.");
 
-  auto& name = b.get_key_string("name");
-
-  if (name.empty())
-    throw internal_error("DownloadConstructor::parse_name(...) Ended up with an empty Path.");
-
-  m_download->info()->set_name(name);
+  m_download->info()->set_name(b.get_key_string("name"));
 }
 
 void
@@ -61,6 +57,9 @@ DownloadConstructor::parse_info(const Object& b) {
     m_download->info()->set_flags(DownloadInfo::flag_meta_download);
 
   if (m_download->info()->is_meta_download()) {
+    if (b.has_key("length") || b.has_key("files"))
+      throw input_error("Meta-download has file entries.");
+
     if (b.get_key_string("pieces").length() != HashString::size_data)
       throw input_error("Meta-download has invalid piece data.");
 
@@ -151,6 +150,7 @@ bool
 DownloadConstructor::is_valid_path_element(const Object& b) {
   return
     b.is_string() &&
+    !b.as_string().empty() &&
     b.as_string() != "." &&
     b.as_string() != ".." &&
     std::find(b.as_string().begin(), b.as_string().end(), '/') == b.as_string().end() &&
@@ -199,7 +199,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
 
     int64_t length = object.get_key_value("length");
 
-    if (length < 0 || torrent_size + length < 0)
+    if (length < 0 || length > std::numeric_limits<int64_t>::max() - torrent_size)
       throw input_error("Bad torrent file, invalid length for file.");
 
     torrent_size += length;

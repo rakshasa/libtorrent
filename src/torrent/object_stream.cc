@@ -444,19 +444,23 @@ object_write_bencode_c_value(object_write_data_t* output, int64_t src) {
   if (src == 0)
     return object_write_bencode_c_char(output, '0');
 
+  uint64_t value;
+
   if (src < 0) {
     object_write_bencode_c_char(output, '-');
-    src = -src;
+    value = -static_cast<uint64_t>(src);
+  } else {
+    value = static_cast<uint64_t>(src);
   }
 
   char buffer[20];
   char* first = buffer + 20;
 
   // We don't need locale support, so just do this directly.
-  while (src != 0) {
-    *--first = '0' + src % 10;
+  while (value != 0) {
+    *--first = '0' + value % 10;
 
-    src /= 10;
+    value /= 10;
   }
 
   object_write_bencode_c_string(output, first, 20 - std::distance(buffer, first));
