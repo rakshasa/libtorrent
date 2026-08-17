@@ -48,13 +48,34 @@
 #include "chunk_iterator.h"
 
 namespace {
-jmp_buf jmp_disk_full;
+thread_local jmp_buf jmp_disk_full;
 
 void
 bus_handler(int, siginfo_t* si, void*) {
   if (si && si->si_code == BUS_ADRERR)
     longjmp(jmp_disk_full, 1);
 }
+
+class bus_handler_guard {
+public:
+  bus_handler_guard() {
+    struct sigaction sa{};
+
+    sa.sa_sigaction = &bus_handler;
+    sa.sa_flags = SA_SIGINFO;
+    sigfillset(&sa.sa_mask);
+
+    sigaction(SIGBUS, &sa, &m_oldact);
+  }
+
+  ~bus_handler_guard() { sigaction(SIGBUS, &m_oldact, nullptr); }
+
+  bus_handler_guard(const bus_handler_guard&) = delete;
+  bus_handler_guard& operator=(const bus_handler_guard&) = delete;
+
+private:
+  struct sigaction m_oldact;
+};
 } // namespace
 
 namespace torrent {
@@ -236,12 +257,6 @@ Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
-  struct sigaction sa{}, oldact;
-  sa.sa_sigaction = &bus_handler;
-  sa.sa_flags = SA_SIGINFO;
-  sigfillset(&sa.sa_mask);
-  sigaction(SIGBUS, &sa, &oldact);
-
   if (position + length > m_chunkSize)
     throw internal_error("Chunk::from_buffer(...) position + length > m_chunkSize.");
 
@@ -250,6 +265,8 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
 
   Chunk::data_type data;
   ChunkIterator itr(this, position, position + length);
+
+  bus_handler_guard guard;
 
   if (setjmp(jmp_disk_full) == 0) {
       do {
@@ -262,8 +279,6 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
       throw storage_error("no space left on disk");
   }
 
-  sigaction(SIGBUS, &oldact, NULL);
-  
   return true;
 }
 
