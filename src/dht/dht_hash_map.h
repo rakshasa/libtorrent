@@ -39,6 +39,7 @@
 
 #include "config.h"
 
+#include <cstring>
 #include <unordered_map>
 
 #include "dht_node.h"
@@ -60,35 +61,21 @@ static constexpr unsigned int hashstring_hash_ofs = 8;
 
 struct hashstring_ptr_hash {
   size_t operator () (const HashString* n) const {
-#if USE_ALIGNED
-    size_t result = 0;
-    const char *first = n->data() + hashstring_hash_ofs;
-    const char *last = first + sizeof(size_t);
+    size_t result;
 
-    while (first != last)
-      result = (result << 8) + *first++;
-    
+    std::memcpy(&result, n->data() + hashstring_hash_ofs, sizeof(result));
+
     return result;
-#else
-    return *reinterpret_cast<const size_t*>(n->data() + hashstring_hash_ofs);
-#endif
   }
 };
 
 struct hashstring_hash {
   size_t operator () (const HashString& n) const {
-#if USE_ALIGNED
-    size_t result = 0;
-    const char *first = n.data() + hashstring_hash_ofs;
-    const char *last = first + sizeof(size_t);
+    size_t result;
 
-    while (first != last)
-      result = (result << 8) + *first++;
-    
+    std::memcpy(&result, n.data() + hashstring_hash_ofs, sizeof(result));
+
     return result;
-#else
-    return *reinterpret_cast<const size_t*>(n.data() + hashstring_hash_ofs);
-#endif
   }
 };
 
