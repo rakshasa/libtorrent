@@ -162,8 +162,13 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
   if (is_invalid_path_element(b.get_key("name")))
     throw input_error("Bad torrent file, \"name\" is an invalid path name.");
 
+  int64_t length = chunkSize == 1 ? 1 : b.get_key_value("length");
+
+  if (length < 0)
+    throw input_error("Bad torrent file, invalid length for file.");
+
   FileList* fileList = m_download->main()->file_list();
-  fileList->initialize(chunkSize == 1 ? 1 : b.get_key_value("length"), chunkSize);
+  fileList->initialize(length, chunkSize);
   fileList->set_multi_file(false);
 
   Path path;
