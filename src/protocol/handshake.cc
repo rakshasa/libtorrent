@@ -467,7 +467,7 @@ Handshake::read_encryption_negotiation() {
 
       m_encryption.info()->decrypt(m_readBuffer.position(), std::min<uint32_t>(m_readPos, m_readBuffer.remaining()));
 
-    } if (m_encryption.is_stream_encrypted()) {
+    } else if (m_encryption.is_stream_encrypted()) {
       LT_LOG_EXTRA_DEBUG_SA(m_address, "read_encryption_negotiation: peer offered encrypted stream", 0);
 
       if (m_encryption.policy().require_plaintext_stream())
