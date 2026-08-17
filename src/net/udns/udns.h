@@ -83,7 +83,8 @@ enum dns_class {	/* DNS RR Classes */
   DNS_C_IN	= 1,	/* Internet */
   DNS_C_CH	= 3,	/* CHAOS */
   DNS_C_HS	= 4,	/* HESIOD */
-  DNS_C_ANY	= 255	/* wildcard */
+  DNS_C_ANY	= 255,	/* wildcard */
+  DNS_C_MAX	= 65536
 };
 
 enum dns_type {		/* DNS RR Types */
