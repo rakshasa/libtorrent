@@ -172,11 +172,17 @@ ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& 
   auto end = buffer;
 
   end += sprintf(end, "d5:added%d:", added_len);
-  memcpy(end, added.begin()->c_str(), added_len);
+
+  if (!added.empty())
+    memcpy(end, added.begin()->c_str(), added_len);
+
   end += added_len;
 
   end += sprintf(end, "7:dropped%d:", removed_len);
-  memcpy(end, removed.begin()->c_str(), removed_len);
+
+  if (!removed.empty())
+    memcpy(end, removed.begin()->c_str(), removed_len);
+
   end += removed_len;
 
   *end++ = 'e';
