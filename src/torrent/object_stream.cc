@@ -77,15 +77,19 @@ object_read_bencode_c_value(const char* first, const char* last, int64_t& value)
 
 raw_string
 object_read_bencode_c_string(const char* first, const char* last) {
-  // Set the most-significant bit so that if there are no numbers in
-  // the input it will fail the length check, while "0" will shift the
-  // bit out.
-  unsigned int length = 0x1U << (std::numeric_limits<unsigned int>::digits - 1);
+  const char* start  = first;
+  uint64_t    length = 0;
 
-  while (first != last && *first >= '0' && *first <= '9')
+  while (first != last && *first >= '0' && *first <= '9') {
     length = length * 10 + (*first++ - '0');
 
-  if (length + 1 > static_cast<unsigned int>(std::distance(first, last)) || length + 1 == 0 || *first++ != ':')
+    if (length > static_cast<uint64_t>(std::numeric_limits<unsigned int>::max()))
+      throw torrent::bencode_error("Invalid bencode data.");
+  }
+
+  if (first == start ||
+      length + 1 > static_cast<uint64_t>(std::distance(first, last)) ||
+      *first++ != ':')
     throw torrent::bencode_error("Invalid bencode data.");
 
   return raw_string(first, length);
