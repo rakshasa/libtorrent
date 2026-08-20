@@ -50,6 +50,8 @@ object_read_string(std::istream* input, std::string& str) {
 
 static const char*
 object_read_bencode_c_value(const char* first, const char* last, int64_t& value) {
+  const char* start = first;
+
   if (first == last)
     return first;
 
@@ -64,13 +66,20 @@ object_read_bencode_c_value(const char* first, const char* last, int64_t& value)
     first++;
   }
 
-  value = 0;
+  uint64_t result = 0;
+  uint64_t limit  = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + (neg ? 1 : 0);
 
-  while (first != last && *first >= '0' && *first <= '9')
-    value = value * 10 + (*first++ - '0');
+  while (first != last && *first >= '0' && *first <= '9') {
+    uint64_t digit = *first - '0';
 
-  if (neg)
-    value = -value;
+    if (result > (limit - digit) / 10)
+      return start;
+
+    result = result * 10 + digit;
+    first++;
+  }
+
+  value = neg ? static_cast<int64_t>(0 - result) : static_cast<int64_t>(result);
 
   return first;
 }
