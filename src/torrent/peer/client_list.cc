@@ -198,8 +198,8 @@ ClientList::insert_helper(ClientInfo::id_type type,
 bool
 ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
   if (id[0] == '-' && id[7] == '-' &&
-      std::isalpha(id[1]) && std::isalpha(id[2]) &&
-      std::isxdigit(id[3]) && std::isxdigit(id[4]) && std::isxdigit(id[5]) && std::isxdigit(id[6])) {
+      std::isalpha(id.at_uchar(1)) && std::isalpha(id.at_uchar(2)) &&
+      std::isxdigit(id.at_uchar(3)) && std::isxdigit(id.at_uchar(4)) && std::isxdigit(id.at_uchar(5)) && std::isxdigit(id.at_uchar(6))) {
     dest->set_type(ClientInfo::TYPE_AZUREUS);
 
     dest->mutable_key()[0] = id[1];
@@ -208,8 +208,8 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     for (int i = 0; i < 4; i++)
       dest->mutable_version()[i] = dest->mutable_upper_version()[i] = utils::hex_to_value_or_zero(id[3 + i]);
 
-  } else if (std::isalpha(id[0]) && id[4] == '-' &&
-             std::isxdigit(id[1]) && std::isxdigit(id[2]) && std::isxdigit(id[3])) {
+  } else if (std::isalpha(id.at_uchar(0)) && id[4] == '-' &&
+             std::isxdigit(id.at_uchar(1)) && std::isxdigit(id.at_uchar(2)) && std::isxdigit(id.at_uchar(3))) {
     dest->set_type(ClientInfo::TYPE_COMPACT);
 
     dest->mutable_key()[0] = id[0];
@@ -220,8 +220,8 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value_or_zero(id[3]);
     dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
 
-  } else if (std::isalpha(id[0]) && std::isdigit(id[1]) && id[2] == '-' &&
-             std::isdigit(id[3]) && (id[6] == '-' || id[7] == '-')) {
+  } else if (std::isalpha(id.at_uchar(0)) && std::isdigit(id.at_uchar(1)) && id[2] == '-' &&
+             std::isdigit(id.at_uchar(3)) && (id[6] == '-' || id[7] == '-')) {
 
     dest->set_type(ClientInfo::TYPE_MAINLINE);
 
@@ -230,12 +230,12 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
 
     dest->mutable_version()[0] = dest->mutable_upper_version()[0] = utils::hex_to_value_or_zero(id[1]);
 
-    if (id[4] == '-' && std::isdigit(id[5]) && id[6] == '-') {
+    if (id[4] == '-' && std::isdigit(id.at_uchar(5)) && id[6] == '-') {
       dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value_or_zero(id[3]);
       dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value_or_zero(id[5]);
       dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
 
-    } else if (std::isdigit(id[4]) && id[5] == '-' && std::isdigit(id[6]) && id[7] == '-') {
+    } else if (std::isdigit(id.at_uchar(4)) && id[5] == '-' && std::isdigit(id.at_uchar(6)) && id[7] == '-') {
       dest->mutable_version()[1] = dest->mutable_upper_version()[1] = utils::hex_to_value_or_zero(id[3]) * 10 + utils::hex_to_value_or_zero(id[4]);
       dest->mutable_version()[2] = dest->mutable_upper_version()[2] = utils::hex_to_value_or_zero(id[6]);
       dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
