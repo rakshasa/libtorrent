@@ -9,6 +9,7 @@ class ObjectStreamTest : public CppUnit::TestFixture {
   CPPUNIT_TEST(testOutputMask);
   CPPUNIT_TEST(testBuffer);
   CPPUNIT_TEST(testReadBencodeC);
+  CPPUNIT_TEST(test_read_value_bounds);
 
   CPPUNIT_TEST(test_read_skip);
   CPPUNIT_TEST(test_read_skip_invalid);
@@ -22,6 +23,7 @@ public:
   void testBuffer();
 
   void testReadBencodeC();
+  void test_read_value_bounds();
 
   void test_read_skip();
   void test_read_skip_invalid();
