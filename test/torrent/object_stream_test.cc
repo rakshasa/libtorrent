@@ -195,3 +195,29 @@ ObjectStreamTest::test_write() {
   obj.as_map()["d"] = torrent::Object();
   CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:test1:cl3:fooee"));
 }
+
+static bool
+read_string_rejected(const char* input) {
+  try {
+    torrent::Object tmp;
+    torrent::object_read_bencode_c(input, input + std::strlen(input), &tmp);
+    return false;
+
+  } catch (const torrent::bencode_error&) {
+    return true;
+  }
+}
+
+void
+ObjectStreamTest::test_read_string_length() {
+  torrent::Object tmp;
+  const char* input = "4:abcd";
+
+  CPPUNIT_ASSERT(torrent::object_read_bencode_c(input, input + std::strlen(input), &tmp) != input);
+  CPPUNIT_ASSERT(tmp.is_raw_string() || tmp.is_string());
+
+  CPPUNIT_ASSERT(read_string_rejected("4294967296:abcd"));
+  CPPUNIT_ASSERT(read_string_rejected("4294967300:abcd"));
+  CPPUNIT_ASSERT(read_string_rejected("18446744073709551616:abcd"));
+  CPPUNIT_ASSERT(read_string_rejected(":abcd"));
+}
