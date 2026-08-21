@@ -13,6 +13,7 @@
 #include "torrent/net/fd.h"
 #include "torrent/system/event.h"
 #include "torrent/system/thread.h"
+#include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                        \
@@ -194,6 +195,8 @@ Poll::cleanup_thread() {
 unsigned int
 Poll::do_poll(std::chrono::microseconds timeout) {
   int status = poll(timeout);
+
+  this_thread::thread()->set_cached_time(torrent::utils::time_since_epoch());
 
   if (status == -1) {
     if (errno != EINTR)
