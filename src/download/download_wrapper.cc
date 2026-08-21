@@ -8,6 +8,7 @@
 #include "download/chunk_selector.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
+#include "manager.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
@@ -346,6 +347,17 @@ DownloadWrapper::receive_update_priorities() {
       this_thread::scheduler()->wait_for(&m_main->delay_partially_done(), 0us);
     else
       this_thread::scheduler()->wait_for(&m_main->delay_partially_restarted(), 0us);
+  }
+
+  // Bulk priority update: drop create/resize and FDs for off files.
+  for (auto& file : *m_main->file_list()) {
+    if (file->priority() != PRIORITY_OFF)
+      continue;
+
+    file->unset_flags(File::flag_create_queued | File::flag_resize_queued);
+
+    if (file->is_open())
+      manager->file_manager()->close(file.get());
   }
 }
 

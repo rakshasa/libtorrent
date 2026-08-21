@@ -126,7 +126,7 @@ protected:
 
   void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
 
-  void                open(bool hashing, int flags) LIBTORRENT_NO_EXPORT;
+  void                open(int flags) LIBTORRENT_NO_EXPORT;
   void                close() LIBTORRENT_NO_EXPORT;
   void                close_all_files() LIBTORRENT_NO_EXPORT;
 
@@ -146,7 +146,7 @@ protected:
   void                reset_filesize(int64_t) LIBTORRENT_NO_EXPORT;
 
 private:
-  bool                open_file(File* node, const Path& lastPath, bool hashing, int flags) LIBTORRENT_NO_EXPORT;
+  bool                setup_file_path(File* node, const Path& lastPath, int flags) LIBTORRENT_NO_EXPORT;
   void                make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) LIBTORRENT_NO_EXPORT;
 
   Chunk*              create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot) LIBTORRENT_NO_EXPORT;
