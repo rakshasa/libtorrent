@@ -248,4 +248,30 @@ FileManager::evict_least_active_from_cache(unsigned int count) {
   return count;
 }
 
+void
+FileManager::periodic_close_idle() {
+  if (m_close_idle == 0 || empty())
+    return;
+
+  auto now  = this_thread::cached_time();
+  auto idle = std::chrono::seconds(m_close_idle);
+
+  std::vector<File*> files;
+
+  for (auto* file : *this) {
+    if (!file->is_open())
+      continue;
+
+    auto touched = std::chrono::microseconds(file->last_touched());
+
+    if (touched <= now && now - touched >= idle)
+      files.push_back(file);
+  }
+
+  if (files.empty())
+    return;
+
+  close_files(files);
+}
+
 } // namespace torrent
