@@ -51,29 +51,21 @@ object_read_string(std::istream* input, std::string& str) {
 
 static const char*
 object_read_bencode_c_value(const char* first, const char* last, int64_t& value) {
-  if (first == last)
-    return first;
+  auto errc = std::from_chars(first, last, value, 10);
 
-  bool neg = false;
+  if (errc.ec != std::errc() || errc.ptr == first)
+    throw torrent::bencode_error("Invalid bencode data: invalid integer.");
 
-  if (*first == '-') {
-    // Don't allow '-0', or '-' followed by non-numeral.
-    if ((first + 1) == last || *(first + 1) <= '0' || *(first + 1) > '9')
-      return first;
+  if (errc.ptr >= last || *errc.ptr != 'e')
+    throw torrent::bencode_error("Invalid bencode data: missing 'e' terminator.");
 
-    neg = true;
-    first++;
-  }
+  if (value != 0 && *first == '0')
+    throw torrent::bencode_error("Invalid bencode data: leading zeros are not allowed.");
 
-  value = 0;
+  if (value == 0 && *first == '-')
+    throw torrent::bencode_error("Invalid bencode data: negative zero is not allowed.");
 
-  while (first != last && *first >= '0' && *first <= '9')
-    value = value * 10 + (*first++ - '0');
-
-  if (neg)
-    value = -value;
-
-  return first;
+  return errc.ptr + 1;
 }
 
 raw_string
@@ -195,12 +187,7 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
   switch (*first) {
   case 'i':
     *object = Object::create_value();
-    first = object_read_bencode_c_value(first + 1, last, object->as_value());
-
-    if (first == last || *first++ != 'e')
-      break;
-
-    return first;
+    return object_read_bencode_c_value(first + 1, last, object->as_value());
 
   case 'l':
     if (++depth >= 1024)
