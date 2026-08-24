@@ -50,38 +50,21 @@ object_read_string(std::istream* input, std::string& str) {
 
 static const char*
 object_read_bencode_c_value(const char* first, const char* last, int64_t& value) {
-  const char* start = first;
+  auto errc = std::from_chars(first, last, value, 10);
 
-  if (first == last)
-    return first;
+  if (errc.ec != std::errc() || errc.ptr == first)
+    throw torrent::bencode_error("Invalid bencode data: invalid integer.");
 
-  bool neg = false;
+  if (errc.ptr >= last || *errc.ptr != 'e')
+    throw torrent::bencode_error("Invalid bencode data: missing 'e' terminator.");
 
-  if (*first == '-') {
-    // Don't allow '-0', or '-' followed by non-numeral.
-    if ((first + 1) == last || *(first + 1) <= '0' || *(first + 1) > '9')
-      return first;
+  if (value != 0 && *first == '0')
+    throw torrent::bencode_error("Invalid bencode data: leading zeros are not allowed.");
 
-    neg = true;
-    first++;
-  }
+  if (value == 0 && *first == '-')
+    throw torrent::bencode_error("Invalid bencode data: negative zero is not allowed.");
 
-  uint64_t result = 0;
-  uint64_t limit  = static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + (neg ? 1 : 0);
-
-  while (first != last && *first >= '0' && *first <= '9') {
-    uint64_t digit = *first - '0';
-
-    if (result > (limit - digit) / 10)
-      return start;
-
-    result = result * 10 + digit;
-    first++;
-  }
-
-  value = neg ? static_cast<int64_t>(0 - result) : static_cast<int64_t>(result);
-
-  return first;
+  return errc.ptr + 1;
 }
 
 raw_string
@@ -204,12 +187,7 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
   switch (*first) {
   case 'i':
     *object = Object::create_value();
-    first = object_read_bencode_c_value(first + 1, last, object->as_value());
-
-    if (first == last || *first++ != 'e')
-      break;
-
-    return first;
+    return object_read_bencode_c_value(first + 1, last, object->as_value());
 
   case 'l':
     if (++depth >= 1024)
