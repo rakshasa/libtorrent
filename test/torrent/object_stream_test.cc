@@ -273,4 +273,15 @@ ObjectStreamTest::test_read_value_bounds() {
   CPPUNIT_ASSERT(read_value_rejected("i-9223372036854775809e"));
   CPPUNIT_ASSERT(read_value_rejected("i18446744073709551615e"));
   CPPUNIT_ASSERT(read_value_rejected("i99999999999999999999e"));
+
+  CPPUNIT_ASSERT(read_value_ok("i0e", 0));
+  CPPUNIT_ASSERT(read_value_ok("i-1e", -1));
+
+  CPPUNIT_ASSERT(read_value_rejected("i01e"));
+  CPPUNIT_ASSERT(read_value_rejected("i00e"));
+  CPPUNIT_ASSERT(read_value_rejected("i000e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-0e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-00e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-01e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-000123e"));
 }
