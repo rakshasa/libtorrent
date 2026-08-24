@@ -196,6 +196,46 @@ ObjectStreamTest::test_write() {
   CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:test1:cl3:fooee"));
 }
 
+namespace {
+
+bool
+read_string_accepted(const char* input) {
+  try {
+    uint64_t string_length = std::strlen(input);
+
+    torrent::Object tmp;
+    auto last = torrent::object_read_bencode_c(input, input + string_length, &tmp);
+
+    return tmp.is_string() && last == input + string_length;
+
+  } catch (const torrent::bencode_error&) {
+    return false;
+  }
+}
+
+} // namespace anonymous
+
+void
+ObjectStreamTest::test_read_string_length() {
+  CPPUNIT_ASSERT(read_string_accepted("0:"));
+  CPPUNIT_ASSERT(read_string_accepted("1:a"));
+  CPPUNIT_ASSERT(read_string_accepted("4:abcd"));
+  CPPUNIT_ASSERT(read_string_accepted("10:abcdefghij"));
+
+  CPPUNIT_ASSERT(!read_string_accepted("4294967296:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("4294967300:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("18446744073709551616:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted(":abcd"));
+
+  CPPUNIT_ASSERT(!read_string_accepted("4:abc"));
+  CPPUNIT_ASSERT(!read_string_accepted("4:abcde"));
+  CPPUNIT_ASSERT(!read_string_accepted("-4:abcd"));
+
+  CPPUNIT_ASSERT(!read_string_accepted("0x4:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("0X4:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("a:abcdefghij"));
+}
+
 static bool
 read_value_ok(const char* input, int64_t expected) {
   try {
