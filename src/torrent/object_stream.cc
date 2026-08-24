@@ -59,11 +59,17 @@ object_read_bencode_c_value(const char* first, const char* last, int64_t& value)
   if (errc.ptr >= last || *errc.ptr != 'e')
     throw torrent::bencode_error("Invalid bencode data: missing 'e' terminator.");
 
-  if (value != 0 && *first == '0')
-    throw torrent::bencode_error("Invalid bencode data: leading zeros are not allowed.");
+  if (*first == '-') {
+    if (value == 0)
+      throw torrent::bencode_error("Invalid bencode data: negative zero is not allowed.");
 
-  if (value == 0 && *first == '-')
-    throw torrent::bencode_error("Invalid bencode data: negative zero is not allowed.");
+    if (*(first + 1) == '0' && errc.ptr != first + 2)
+      throw torrent::bencode_error("Invalid bencode data: leading zeros are not allowed.");
+
+  } else {
+    if (*first == '0' && errc.ptr != first + 1)
+      throw torrent::bencode_error("Invalid bencode data: leading zeros are not allowed.");
+  }
 
   return errc.ptr + 1;
 }
