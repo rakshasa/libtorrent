@@ -4,6 +4,7 @@
 
 #include "torrent/object_stream.h"
 
+#include <charconv>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -77,22 +78,17 @@ object_read_bencode_c_value(const char* first, const char* last, int64_t& value)
 
 raw_string
 object_read_bencode_c_string(const char* first, const char* last) {
-  const char* start  = first;
-  uint64_t    length = 0;
+  uint32_t length{};
 
-  while (first != last && *first >= '0' && *first <= '9') {
-    length = length * 10 + (*first++ - '0');
+  auto errc = std::from_chars(first, last, length, 10);
 
-    if (length > static_cast<uint64_t>(std::numeric_limits<unsigned int>::max()))
-      throw torrent::bencode_error("Invalid bencode data.");
-  }
+  if (errc.ec != std::errc() || errc.ptr == first || errc.ptr == last || *errc.ptr != ':')
+    throw torrent::bencode_error("Invalid bencode data: string length is invalid.");
 
-  if (first == start ||
-      length + 1 > static_cast<uint64_t>(std::distance(first, last)) ||
-      *first++ != ':')
-    throw torrent::bencode_error("Invalid bencode data.");
+  if (std::distance(errc.ptr + 1, last) < static_cast<std::ptrdiff_t>(length))
+    throw torrent::bencode_error("Invalid bencode data: string length exceeds available data.");
 
-  return raw_string(first, length);
+  return raw_string(errc.ptr + 1, length);
 }
 
 // Could consider making this non-recursive, but they seldomly are
