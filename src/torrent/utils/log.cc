@@ -280,8 +280,20 @@ log_close_output(const char* name) {
 
   auto itr = log_find_output_name(name);
 
-  if (itr != log_outputs.end())
-    log_outputs.erase(itr);
+  if (itr == log_outputs.end())
+    return;
+
+  size_t index = std::distance(log_outputs.begin(), itr);
+  log_outputs.erase(itr);
+
+  for (auto& group : log_groups) {
+    auto outputs = group.outputs();
+    auto lower = outputs & log_group::outputs_type((uint64_t{1} << index) - 1);
+
+    group.set_outputs(lower | ((outputs >> (index + 1)) << index));
+  }
+
+  log_rebuild_cache();
 }
 
 void
