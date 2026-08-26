@@ -35,7 +35,7 @@ public:
   // A node ID of all zero.
   static HashString zero_id;
 
-  DhtRouter(const Object& cache);
+  DhtRouter(tracker::DhtController* controller, const Object& cache);
   ~DhtRouter();
 
   void                start(int port);
@@ -100,6 +100,8 @@ private:
   // Maximum number of potential contacts to keep until bootstrap complete.
   static constexpr unsigned int num_bootstrap_contacts = 64;
 
+  bool                check_nodes_populated() const    { return m_nodes.size() >= num_bootstrap_complete; }
+
   using DhtBucketList = std::map<const HashString, DhtBucket*>;
 
   DhtBucketList::iterator find_bucket(const HashString& id);
@@ -119,6 +121,8 @@ private:
 
   // buffer needs to hold an SHA1 hash (20 bytes), not just the token (8 bytes)
   static char*        generate_token(const sockaddr* sa, int token, char buffer[20]);
+
+  tracker::DhtController* m_controller;
 
   system::SchedulerEntry m_task_timeout;
 
