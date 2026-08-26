@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_TRACKER_DHT_CONTROLLER_H
 #define LIBTORRENT_TRACKER_DHT_CONTROLLER_H
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <torrent/common.h>
@@ -44,6 +45,7 @@ public:
   bool                is_valid();
   bool                is_active();
   bool                is_receiving_requests();
+  bool                is_nodes_populated();
 
   void                set_receive_requests(bool state);
 
@@ -69,19 +71,34 @@ public:
   void                reset_statistics();
 
 protected:
+  friend class torrent::DhtRouter;
   friend class torrent::TrackerDht;
+
+  void                set_nodes_populated(bool state);
 
   // Called from tracker_thread.
   void                announce(const HashString& info_hash, std::weak_ptr<TrackerDht> weak_tracker);
   void                cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> weak_tracker);
 
 private:
+  std::atomic<bool>   m_nodes_populated{false};
+
   std::mutex          m_lock;
   uint16_t            m_port{0};
   bool                m_receive_requests{true};
 
   std::unique_ptr<DhtRouter> m_router;
 };
+
+inline bool
+DhtController::is_nodes_populated() {
+  return m_nodes_populated.load(std::memory_order_relaxed);
+}
+
+inline void
+DhtController::set_nodes_populated(bool state) {
+  m_nodes_populated.store(state, std::memory_order_relaxed);
+}
 
 } // namespace torrent::tracker
 
