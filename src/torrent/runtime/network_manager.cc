@@ -169,10 +169,11 @@ NetworkManager::dht_add_bootstrap_node(std::string host, int port){
 }
 
 void
-NetworkManager::dht_add_peer_node([[maybe_unused]] const sockaddr* sa, [[maybe_unused]] int port) {
-  // Ignore peer nodes as we shouldn't need them(?)
-  //
-  // Re-enable this if it causes issues.
+NetworkManager::dht_add_peer_node(const sockaddr* sa, int port) {
+  if (m_dht_controller->is_nodes_populated())
+    return;
+
+  m_dht_controller->add_node(sa, port);
 }
 
 bool
