@@ -1,4 +1,4 @@
-AC_INIT([[libtorrent]],[[0.16.20]],[[sundell.software@gmail.com]])
+AC_INIT([[libtorrent]],[[0.16.21]],[[sundell.software@gmail.com]])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIRS([scripts])
