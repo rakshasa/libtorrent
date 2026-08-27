@@ -275,7 +275,7 @@ FileManager::periodic_close_idle() {
 
     auto last_touched = utils::cast_seconds(file->last_touched_usec());
 
-    if (last_touched <= cached_seconds && cached_seconds - last_touched >= m_close_idle_timeout)
+    if (last_touched < cached_seconds && cached_seconds - last_touched >= m_close_idle_timeout)
       files.push_back(file);
   }
 
