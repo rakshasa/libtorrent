@@ -42,9 +42,8 @@ public:
   bool                advise_random_hashing() const         { return m_advise_random_hashing; }
   void                set_advise_random_hashing(bool state) { m_advise_random_hashing = state; }
 
-  // Idle seconds before closing open FDs; 0 disables.
-  uint32_t            close_idle() const                    { return m_close_idle; }
-  void                set_close_idle(uint32_t seconds)      { m_close_idle = seconds; }
+  auto                close_idle_timeout() const;
+  void                set_close_idle_timeout(std::chrono::seconds timeout);
 
   bool                open(File* file, bool hashing, int prot, int flags);
   void                close(File* file);
@@ -80,8 +79,11 @@ private:
   void                evict_least_active(unsigned int count);
   unsigned int        evict_least_active_from_cache(unsigned int count);
 
-  size_type           m_max_open_files{};
-  uint32_t            m_close_idle{60};
+  size_type            m_max_open_files{};
+
+  std::chrono::seconds m_close_idle_timeout{10min};
+  std::chrono::seconds m_close_idle_last_check{};
+
   bool                m_advise_random{};
   bool                m_advise_random_hashing{};
 
@@ -93,6 +95,9 @@ private:
 
   std::unique_ptr<utils::FdCloseQueue> m_fd_close_queue;
 };
+
+inline auto FileManager::close_idle_timeout() const                           { return m_close_idle_timeout; }
+inline void FileManager::set_close_idle_timeout(std::chrono::seconds timeout) { m_close_idle_timeout = timeout; }
 
 } // namespace torrent
 

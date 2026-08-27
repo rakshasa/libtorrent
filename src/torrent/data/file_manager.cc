@@ -12,6 +12,7 @@
 #include "data/socket_file.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/file.h"
+#include "torrent/utils/chrono.h"
 #include "utils/fd_close_queue.h"
 
 namespace torrent {
@@ -81,6 +82,9 @@ FileManager::close(File* file) {
 
 void
 FileManager::close_files(const std::vector<File*>& files) {
+  if (files.empty())
+    return;
+
   std::vector<int> closed_fds;
   closed_fds.reserve(files.size());
 
@@ -96,6 +100,9 @@ FileManager::close_files(const std::vector<File*>& files) {
 
 void
 FileManager::close_files(const std::vector<std::unique_ptr<File>>& files) {
+  if (files.empty())
+    return;
+
   std::vector<int> closed_fds;
   closed_fds.reserve(files.size());
 
@@ -250,11 +257,15 @@ FileManager::evict_least_active_from_cache(unsigned int count) {
 
 void
 FileManager::periodic_close_idle() {
-  if (m_close_idle == 0 || empty())
+  if (m_close_idle_timeout == 0s || empty())
     return;
 
-  auto now  = this_thread::cached_time();
-  auto idle = std::chrono::seconds(m_close_idle);
+  auto cached_seconds = this_thread::cached_seconds();
+
+  if (cached_seconds - m_close_idle_last_check < m_close_idle_timeout / 4)
+    return;
+
+  m_close_idle_last_check = cached_seconds;
 
   std::vector<File*> files;
 
@@ -262,14 +273,11 @@ FileManager::periodic_close_idle() {
     if (!file->is_open())
       continue;
 
-    auto touched = std::chrono::microseconds(file->last_touched());
+    auto last_touched = utils::cast_seconds(file->last_touched_usec());
 
-    if (touched <= now && now - touched >= idle)
+    if (last_touched <= cached_seconds && cached_seconds - last_touched >= m_close_idle_timeout)
       files.push_back(file);
   }
-
-  if (files.empty())
-    return;
 
   close_files(files);
 }
