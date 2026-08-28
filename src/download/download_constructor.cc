@@ -45,6 +45,19 @@ sanitize_file_name(std::string name, const char* context) {
   return result;
 }
 
+bool
+any_of_shared_prefix(const std::vector<FileList::split_type>& split_list) {
+  std::vector<const Path*> sorted_paths;
+  sorted_paths.reserve(split_list.size());
+
+  for (const auto& split : split_list)
+    sorted_paths.push_back(&std::get<1>(split));
+
+  std::sort(sorted_paths.begin(), sorted_paths.end(), &Path::compare_less);
+
+  return std::adjacent_find(sorted_paths.begin(), sorted_paths.end(), &Path::is_prefix) != sorted_paths.end();
+}
+
 } // namespace
 
 void
@@ -241,15 +254,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
     split_list.emplace_back(length, path, attr_flags);
   }
 
-  std::vector<const Path*> sorted_paths;
-  sorted_paths.reserve(split_list.size());
-
-  for (const auto& split : split_list)
-    sorted_paths.push_back(&std::get<1>(split));
-
-  std::sort(sorted_paths.begin(), sorted_paths.end(), &Path::compare_less);
-
-  if (std::adjacent_find(sorted_paths.begin(), sorted_paths.end(), &Path::is_prefix) != sorted_paths.end())
+  if (any_of_shared_prefix(split_list))
     throw input_error("Bad torrent file, a file path is a duplicate or the prefix of another.");
 
   FileList* file_list = m_download->main()->file_list();
