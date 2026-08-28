@@ -27,8 +27,14 @@ public:
   using base_type::at;
   using base_type::operator[];
 
+  static bool        is_prefix(const Path* prefix, const Path* path);
+  static bool        is_valid_component(const std::string& name);
+
   void               insert_path(iterator pos, const std::string& path);
+  void               insert_component(iterator pos, const std::string& name);
+
   void               push_back(const std::string& path);
+  void               push_back_component(const std::string& name);
 
   // Return the path as a string with '/' deliminator. The deliminator
   // is only inserted between path elements.
@@ -38,10 +44,10 @@ public:
   const base_type*   base() const                         { return this; }
 
   static bool        compare_less(const Path* left, const Path* right);
-  static bool        is_prefix(const Path* prefix, const Path* path);
 };
 
-inline void Path::push_back(const std::string& path) { insert_path(end(), path); }
+inline void Path::push_back(const std::string& path)           { insert_path(end(), path); }
+inline void Path::push_back_component(const std::string& name) { insert_component(end(), name); }
 
 } // namespace torrent
 
