@@ -111,6 +111,8 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
   // Don't clear packet_sent to ensure disownable flag remains set.
   switch (family) {
   case AF_INET:
+    m_inet_state.error_message = msg;
+
     if (m_inet_state.transaction_id == 0)
       return; // TODO: Should we throw?
 
@@ -118,6 +120,8 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
     m_inet_state.connection_id  = 0;
     break;
   case AF_INET6:
+    m_inet6_state.error_message = msg;
+
     if (m_inet6_state.transaction_id == 0)
       return; // TODO: Should we throw?
 
@@ -129,14 +133,16 @@ TrackerUdp::reset_family_with_error(int family, const std::string& msg) {
   }
 
   if (m_inet_state.transaction_id != 0 || m_inet6_state.transaction_id != 0)
-    return; // TODO: Save message.
+    return;
 
   LT_LOG("closing with error : hostname:%s port:%u : %s", m_hostname.c_str(), m_port, msg.c_str());
 
   remove_events();
   update_requesting_state();
 
-  m_slot_failure(msg);
+  auto& last_msg = family == AF_INET ? m_inet6_state.error_message : m_inet_state.error_message;
+
+  m_slot_failure(generate_error_message(family, msg, last_msg));
 }
 
 void

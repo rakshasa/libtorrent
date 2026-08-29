@@ -74,8 +74,10 @@ protected:
   auto&               callback_id()                         { return m_callback_id; }
   void                remove_events();
 
-  tracker::TrackerState&       state()                      { return m_state; }
-  const tracker::TrackerState& state() const                { return m_state; }
+  auto&               state();
+  const auto&         state() const;
+
+  std::string         generate_error_message(int current_family, const std::string& current_msg, const std::string& last_msg);
 
   // Do not lock when calling these functions/slots:
   //
@@ -142,6 +144,9 @@ inline void
 TrackerWorker::set_tracker_id_unsafe(const std::string& id) {
   m_tracker_id = id;
 }
+
+inline auto&       TrackerWorker::state()       { return m_state; }
+inline const auto& TrackerWorker::state() const { return m_state; }
 
 } // namespace torrent
 
