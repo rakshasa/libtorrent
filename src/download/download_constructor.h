@@ -27,9 +27,6 @@ private:
   void                add_tracker_group(const Object& b);
   void                add_tracker_single(const Object& b, int group);
 
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
-
   void                parse_single_file(const Object& b, uint32_t chunkSize);
   void                parse_multi_files(const Object& b, uint32_t chunkSize);
 
