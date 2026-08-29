@@ -498,13 +498,11 @@ TrackerHttp::receive_failed(const std::string& msg) {
     LT_LOG("received failure : previous family succeeded : url:%s : %s", info().url.c_str(), msg.c_str());
     m_slot_success(AddressList());
 
-  } else if (!m_last_error_message.empty()) {
-    LT_LOG("received failure : previous family also failed : url:%s : %s /// %s", info().url.c_str(), msg.c_str(), m_last_error_message.c_str());
-    m_slot_failure(msg + " /// " + m_last_error_message);
-
   } else {
-    LT_LOG("received failure : url:%s : %s", info().url.c_str(), msg.c_str());
-    m_slot_failure(msg);
+    auto error_msg = generate_error_message(m_current_family, msg, m_last_error_message);
+
+    LT_LOG("received failure : url:%s : %s", info().url.c_str(), error_msg.c_str());
+    m_slot_failure(error_msg);
   }
 
   if (m_requested_scrape && m_data == nullptr)

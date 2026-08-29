@@ -25,9 +25,10 @@ private:
   using buffer_type = ProtocolBuffer<512>;
 
   struct family_state {
-    uint32_t transaction_id{};
-    uint64_t connection_id{};
-    bool     packet_sent{};
+    uint32_t    transaction_id{};
+    uint64_t    connection_id{};
+    bool        packet_sent{};
+    std::string error_message;
   };
 
   void                close_directly();
