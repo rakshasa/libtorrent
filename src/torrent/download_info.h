@@ -50,6 +50,9 @@ public:
   const string_utf8&  name() const                                 { return m_name; }
   void                set_name(const std::string& s)               { m_name.reset(s); }
 
+  const std::string&  name_sanitized() const                       { return m_name_sanitized; }
+  void                set_name_sanitized(const std::string& s)     { m_name_sanitized = s; }
+
   const HashString&   hash() const                                 { return m_hash; }
   const HashString&   info_hash() const                            { return m_hash; }
   HashString&         mutable_hash()                               { return m_hash; }
@@ -140,6 +143,7 @@ protected:
 
 private:
   string_utf8         m_name;
+  std::string         m_name_sanitized;
 
   HashString          m_hash{HashString::new_zero()};
   HashString          m_hash_obfuscated{HashString::new_zero()};

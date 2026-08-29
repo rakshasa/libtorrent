@@ -78,8 +78,8 @@ DownloadConstructor::initialize(Object& b) {
 
 void
 DownloadConstructor::parse_name(const Object& b) {
-  auto name           = b.get_key_string("name");
-  auto sanitized_name = sanitize_file_name(name, "dict-key \"name\"");
+  auto original_name  = b.get_key_string("name");
+  auto sanitized_name = sanitize_file_name(original_name, "dict-key \"name\"");
 
   if (!Path::is_valid_component(sanitized_name))
     throw input_error("Bad torrent file, dict-key \"name\" contains invalid characters or is empty.");
@@ -87,7 +87,9 @@ DownloadConstructor::parse_name(const Object& b) {
   if (runtime::client_config()->torrent_name_use_sanitized())
     m_download->info()->set_name(sanitized_name);
   else
-    m_download->info()->set_name(name);
+    m_download->info()->set_name(original_name);
+
+  m_download->info()->set_name_sanitized(sanitized_name);
 }
 
 void
