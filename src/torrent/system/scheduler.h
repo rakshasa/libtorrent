@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <thread>
+#include <vector>
 #include <torrent/system/common.h>
 
 namespace torrent::system {
