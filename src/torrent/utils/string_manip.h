@@ -1,10 +1,12 @@
 #ifndef LIBTORRENT_TORRENT_UTILS_STRING_MANIP_H
 #define LIBTORRENT_TORRENT_UTILS_STRING_MANIP_H
 
+#include <cstdint>
 #include <exception>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
 

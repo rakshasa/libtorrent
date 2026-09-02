@@ -1,8 +1,10 @@
 #ifndef LIBTORRENT_TORRENT_SYSTEM_COMMON_H
 #define LIBTORRENT_TORRENT_SYSTEM_COMMON_H
 
+#include <atomic>
 #include <chrono>
 #include <cinttypes>
+#include <cstdint>
 #include <memory>
 
 
