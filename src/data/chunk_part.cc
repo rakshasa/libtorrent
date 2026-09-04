@@ -11,7 +11,10 @@ void
 ChunkPart::clear() {
   switch (m_mapped) {
   case MAPPED_MMAP:
-    m_chunk.unmap();
+    // ChunkList::clear_chunk may already have queued the mapping and cleared
+    // the MemoryChunk; only munmap when this path still owns the VA.
+    if (m_chunk.is_valid())
+      m_chunk.unmap();
     break;
 
   default:

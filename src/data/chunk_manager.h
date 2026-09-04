@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_CHUNK_MANAGER_H
 #define LIBTORRENT_CHUNK_MANAGER_H
 
+#include <memory>
 #include <vector>
 #include <torrent/common.h>
 
@@ -8,6 +9,12 @@ namespace torrent {
 
 // TODO: Currently all chunk lists are inserted, despite the download
 // not being open/active.
+
+namespace utils {
+
+class MemoryUnmapQueue;
+
+} // namespace utils
 
 class LIBTORRENT_EXPORT ChunkManager : private std::vector<ChunkList*> {
 public:
@@ -46,6 +53,9 @@ public:
   bool                allocate(uint32_t size, int flags = 0);
   void                deallocate(uint32_t size, int flags = 0);
 
+  // Drop VA ownership; worker thread does MS_ASYNC + munmap.
+  void                queue_munmap(void* ptr, size_t length);
+
   // TODO: Add as a subscription.
   void                try_free_memory(uint64_t size);
 
@@ -59,6 +69,8 @@ private:
 
   std::chrono::seconds m_last_try_free_memory{};
   size_type            m_last_freed_index{};
+
+  std::unique_ptr<utils::MemoryUnmapQueue> m_munmap_queue;
 };
 
 } // namespace torrent

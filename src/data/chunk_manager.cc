@@ -9,11 +9,20 @@
 #include "torrent/exceptions.h"
 #include "torrent/runtime/memory_manager.h"
 #include "utils/instrumentation.h"
+#include "utils/memory_unmap_queue.h"
 
 namespace torrent {
 
-ChunkManager::ChunkManager() = default;
+ChunkManager::ChunkManager() {
+  m_munmap_queue = std::make_unique<utils::MemoryUnmapQueue>();
+}
+
 ChunkManager::~ChunkManager() = default;
+
+void
+ChunkManager::queue_munmap(void* ptr, size_t length) {
+  m_munmap_queue->queue(ptr, length);
+}
 
 void
 ChunkManager::insert(ChunkList* chunkList) {
