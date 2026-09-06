@@ -3,6 +3,7 @@
 #include "tracker_worker.h"
 
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/system/callbacks.h"

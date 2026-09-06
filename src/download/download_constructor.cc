@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <ranges>
 
 #include "manager.h"
 #include "download/download_wrapper.h"
@@ -269,12 +270,19 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
 
 Path
 DownloadConstructor::create_path(const Object::list_type& plist) {
-  if (plist.empty())
-    throw input_error("Bad torrent file, \"path\" has zero entries.");
+  auto view = [&plist]() {
+      if (!plist.empty() && plist.front().as_string().empty())
+        return plist | std::views::drop(1);
+
+      return plist | std::views::drop(0);
+    }();
+
+  if (view.empty())
+    throw input_error("Bad torrent file, \"path\" has zero entries or only an empty entry.");
 
   Path p;
 
-  for (const auto& path : plist) {
+  for (const auto& path : view) {
     auto sanitized_name = sanitize_file_name(path.as_string(), "a value in dict-key \"path\"");
 
     if (!Path::is_valid_component(sanitized_name))
