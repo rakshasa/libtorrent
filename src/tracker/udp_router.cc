@@ -389,7 +389,7 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
       continue;
     }
 
-    if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR)
+    if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR || err == ENOBUFS)
       return EAGAIN;
 
     // To properly handle this, try_write() returning true means we don't touch the connection again.
