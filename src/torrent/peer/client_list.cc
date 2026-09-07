@@ -20,7 +20,7 @@ ClientList::ClientList() {
 
   // First batch of clients.
   // Updated list of clients.
-  insert_helper(ClientInfo::TYPE_AZUREUS, "lt", NULL, NULL, "libTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "lt", NULL, NULL, "rTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "qB", NULL, NULL, "qBittorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "UT", NULL, NULL, "uTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "TR", NULL, NULL, "Transmission");
@@ -37,7 +37,7 @@ ClientList::ClientList() {
 
   // Other clients.
   insert_helper(ClientInfo::TYPE_AZUREUS, "7T", NULL, NULL, "aTorrent");
-  insert_helper(ClientInfo::TYPE_COMPACT, "A", NULL, NULL, "ABC");
+  insert_helper(ClientInfo::TYPE_COMPACT, "A",  NULL, NULL, "ABC");
   insert_helper(ClientInfo::TYPE_AZUREUS, "A~", NULL, NULL, "Ares");
   insert_helper(ClientInfo::TYPE_AZUREUS, "AG", NULL, NULL, "Ares");
   insert_helper(ClientInfo::TYPE_AZUREUS, "AN", NULL, NULL, "Ares");
@@ -95,7 +95,7 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_AZUREUS, "MT", NULL, NULL, "MoonlightTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "NE", NULL, NULL, "BT Next Evolution");
   insert_helper(ClientInfo::TYPE_AZUREUS, "NX", NULL, NULL, "Net Transport");
-  insert_helper(ClientInfo::TYPE_COMPACT, "O", NULL, NULL, "Osprey Permaseed");
+  insert_helper(ClientInfo::TYPE_COMPACT, "O",  NULL, NULL, "Osprey Permaseed");
   insert_helper(ClientInfo::TYPE_AZUREUS, "OS", NULL, NULL, "OneSwarm");
   insert_helper(ClientInfo::TYPE_AZUREUS, "OT", NULL, NULL, "OmegaTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "PC", NULL, NULL, "CacheLogic");
@@ -103,14 +103,14 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_AZUREUS, "PT", NULL, NULL, "Popcorn Time");
   insert_helper(ClientInfo::TYPE_AZUREUS, "PD", NULL, NULL, "Pando");
   insert_helper(ClientInfo::TYPE_AZUREUS, "pX", NULL, NULL, "pHoeniX");
-  insert_helper(ClientInfo::TYPE_COMPACT, "Q", NULL, NULL, "BTQueue");
+  insert_helper(ClientInfo::TYPE_COMPACT, "Q",  NULL, NULL, "BTQueue");
   insert_helper(ClientInfo::TYPE_AZUREUS, "QD", NULL, NULL, "qqdownload");
   insert_helper(ClientInfo::TYPE_AZUREUS, "QT", NULL, NULL, "Qt 4 Torrent");
-  insert_helper(ClientInfo::TYPE_COMPACT, "R", NULL, NULL, "Tribler");
+  insert_helper(ClientInfo::TYPE_COMPACT, "R",  NULL, NULL, "Tribler");
   insert_helper(ClientInfo::TYPE_AZUREUS, "RS", NULL, NULL, "Rufus");
   insert_helper(ClientInfo::TYPE_AZUREUS, "RT", NULL, NULL, "Retriever");
   insert_helper(ClientInfo::TYPE_AZUREUS, "RZ", NULL, NULL, "RezTorrent");
-  insert_helper(ClientInfo::TYPE_COMPACT, "S", NULL, NULL, "Shadow's client");
+  insert_helper(ClientInfo::TYPE_COMPACT, "S",  NULL, NULL, "Shadow's client");
   insert_helper(ClientInfo::TYPE_AZUREUS, "S~", NULL, NULL, "Shareaza alpha/beta");
   insert_helper(ClientInfo::TYPE_AZUREUS, "SB", NULL, NULL, "SwiftBit");
   insert_helper(ClientInfo::TYPE_AZUREUS, "SG", NULL, NULL, "GS Torrent");
@@ -123,14 +123,14 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_AZUREUS, "st", NULL, NULL, "SharkTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "SZ", NULL, NULL, "Shareaza");
   insert_helper(ClientInfo::TYPE_AZUREUS, "tT", NULL, NULL, "tTorrent");
-  insert_helper(ClientInfo::TYPE_COMPACT, "T", NULL, NULL, "BitTornado");
+  insert_helper(ClientInfo::TYPE_COMPACT, "T",  NULL, NULL, "BitTornado");
   insert_helper(ClientInfo::TYPE_AZUREUS, "TB", NULL, NULL, "Torch");
   insert_helper(ClientInfo::TYPE_AZUREUS, "TG", NULL, NULL, "Torrent GO");
   insert_helper(ClientInfo::TYPE_AZUREUS, "TL", NULL, NULL, "Tribler");
   insert_helper(ClientInfo::TYPE_AZUREUS, "TN", NULL, NULL, "Torrent.NET");
   insert_helper(ClientInfo::TYPE_AZUREUS, "TS", NULL, NULL, "Torrentstorm");
   insert_helper(ClientInfo::TYPE_AZUREUS, "TT", NULL, NULL, "TuoTu");
-  insert_helper(ClientInfo::TYPE_COMPACT, "U", NULL, NULL, "UPnP NAT BitTorrent");
+  insert_helper(ClientInfo::TYPE_COMPACT, "U",  NULL, NULL, "UPnP NAT BitTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "UE", NULL, NULL, "uTorrent Embedded");
   insert_helper(ClientInfo::TYPE_AZUREUS, "UL", NULL, NULL, "uLeecher!");
   insert_helper(ClientInfo::TYPE_AZUREUS, "UW", NULL, NULL, "uTorrent Web");
@@ -266,7 +266,7 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
   if (itr == end())
     dest->set_info(begin()->info());
   else
-    dest->set_info(itr->info());    
+    dest->set_info(itr->info());
 
   return true;
 }
