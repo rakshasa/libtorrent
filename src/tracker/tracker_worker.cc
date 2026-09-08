@@ -46,10 +46,10 @@ TrackerWorker::generate_error_message(int current_family, const std::string& cur
     return current_family_str + current_msg;
 
   if (current_msg == not_resolved_msg && last_msg != not_resolved_msg)
-    return current_family_str + current_msg;
+    return last_family_str + last_msg;
 
   if (last_msg == not_resolved_msg && current_msg != not_resolved_msg)
-    return last_family_str + last_msg;
+    return current_family_str + current_msg;
 
   return current_family_str + current_msg + "  |  " + last_family_str + last_msg;
 }
