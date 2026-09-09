@@ -45,17 +45,20 @@ Download::open(int flags) {
   m_ptr->main()->open(FileList::open_no_create);
   m_ptr->hash_checker()->hashing_ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
 
-  // Mark the files by default to be created and resized. The client
-  // should be allowed to pass a flag that will keep the old settings,
-  // although loading resume data should really handle everything
-  // properly.
+  // Mark non-off files by default to be created and resized. Off files are
+  // only created when a wanted boundary piece actually needs to write into
+  // them (see FileList::create_chunk_part). Resume may still adjust flags.
   int fileFlags = File::flag_create_queued | File::flag_resize_queued;
 
   if (flags & open_enable_fallocate)
     fileFlags |= File::flag_fallocate;
 
-  for (auto& file : *m_ptr->main()->file_list())
+  for (auto& file : *m_ptr->main()->file_list()) {
+    if (file->priority() == PRIORITY_OFF)
+      continue;
+
     file->set_flags(fileFlags);
+  }
 }
 
 void
