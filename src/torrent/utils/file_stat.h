@@ -32,7 +32,7 @@ public:
   time_t              modified_time() const                    { return m_stat.st_mtime; }
 
 private:
-  struct stat         m_stat;
+  struct stat         m_stat{};
 };
 
 } // namespace torrent::utils
