@@ -651,12 +651,12 @@ FileList::create_chunk(uint64_t offset, uint32_t length, bool hashing, int prot)
 
 Chunk*
 FileList::create_chunk_index(uint32_t index, int prot) {
-  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), false, prot);
+  return create_chunk(chunk_index_position(index), chunk_index_size(index), false, prot);
 }
 
 Chunk*
 FileList::create_hashing_chunk_index(uint32_t index, int prot) {
-  return create_chunk(static_cast<uint64_t>(index) * chunk_size(), chunk_index_size(index), true, prot);
+  return create_chunk(chunk_index_position(index), chunk_index_size(index), true, prot);
 }
 
 void
