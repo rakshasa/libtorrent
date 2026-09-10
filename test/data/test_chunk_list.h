@@ -6,6 +6,7 @@ class test_chunk_list : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_get_release);
   CPPUNIT_TEST(test_blocking);
+  CPPUNIT_TEST(test_find_address);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -13,6 +14,7 @@ public:
   void test_basic();
   void test_get_release();
   void test_blocking();
+  void test_find_address();
 };
 
 #include "data/chunk_list.h"

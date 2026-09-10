@@ -137,4 +137,29 @@ test_chunk_list::test_blocking() {
   CLEANUP_CHUNK_LIST();
 }
 
+// A valid chunk that does not contain the address must not hide the
+// chunk that follows it.
+void
+test_chunk_list::test_find_address() {
+  SETUP_CHUNK_LIST();
+
+  torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_not_hashing);
+  torrent::ChunkHandle handle_1 = chunk_list->get(1, torrent::ChunkList::get_not_hashing);
+
+  CPPUNIT_ASSERT(handle_0.is_valid());
+  CPPUNIT_ASSERT(handle_1.is_valid());
+
+  char* address = (*chunk_list)[1].chunk()->front().chunk().begin();
+
+  auto result = chunk_list->find_address(address);
+
+  CPPUNIT_ASSERT(result.first != chunk_list->end());
+  CPPUNIT_ASSERT(result.first->index() == 1);
+
+  chunk_list->release(&handle_0, torrent::ChunkList::release_default);
+  chunk_list->release(&handle_1, torrent::ChunkList::release_default);
+
+  CLEANUP_CHUNK_LIST();
+}
+
 // TODO: Add tests for get_hashing, etc.
