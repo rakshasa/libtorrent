@@ -48,7 +48,6 @@ public:
   void                stop();
 
   class choke_group*       choke_group()                           { return m_choke_group; }
-  const class choke_group* c_choke_group() const                   { return m_choke_group; }
   void                     set_choke_group(class choke_group* grp) { m_choke_group = grp; }
 
   tracker::TrackerControllerWrapper tracker_controller()           { return m_tracker_controller; }
@@ -88,10 +87,6 @@ public:
 
   void                set_metadata_size(size_t s);
 
-  // Carefull with these.
-  void                setup_delegator();
-  void                setup_tracker();
-
   using slot_count_handshakes_type = std::function<uint32_t(DownloadMain*)>;
   using slot_hash_check_add_type   = std::function<void(ChunkHandle)>;
 
@@ -112,8 +107,6 @@ public:
   void                receive_tracker_success();
   void                receive_tracker_request();
 
-  void                receive_do_peer_exchange();
-
   void                do_peer_exchange();
 
   void                update_endgame();
@@ -125,9 +118,6 @@ public:
   auto&               delay_disconnect_peers()    { return m_delay_disconnect_peers; }
 
 private:
-  void                setup_start();
-  void                setup_stop();
-
   DownloadInfo*       m_info;
 
   tracker::TrackerControllerWrapper m_tracker_controller;
