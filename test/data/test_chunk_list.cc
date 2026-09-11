@@ -18,7 +18,7 @@ func_create_chunk(uint32_t index, [[maybe_unused]] int prot_flags) {
   std::memset(memory_part1, index, 10);
 
   torrent::Chunk* chunk = new torrent::Chunk();
-  chunk->push_back(torrent::ChunkPart::MAPPED_MMAP, torrent::MemoryChunk(memory_part1, memory_part1, memory_part1 + 10, torrent::MemoryChunk::prot_read, 0));
+  chunk->push_back(torrent::ChunkPart::MAPPED_MMAP, torrent::MemoryChunk(memory_part1, memory_part1, memory_part1 + 10, torrent::MemoryChunk::prot_read));
 
   if (chunk == NULL)
     throw torrent::internal_error("func_create_chunk() failed: chunk == NULL.");
