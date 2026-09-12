@@ -89,17 +89,11 @@ public:
   uint16_t            local_port_for_family(int family) const;
   uint16_t            local_port_best_match() const;
 
-  void                set_bind_address(const sockaddr* sa);
   void                set_bind_address_str(const std::string& addr);
-  void                set_bind_inet_address(const sockaddr* sa);
   void                set_bind_inet_address_str(const std::string& addr);
-  void                set_bind_inet6_address(const sockaddr* sa);
   void                set_bind_inet6_address_str(const std::string& addr);
-  void                set_local_address(const sockaddr* sa);
   void                set_local_address_str(const std::string& addr);
-  void                set_local_inet_address(const sockaddr* sa);
   void                set_local_inet_address_str(const std::string& addr);
-  void                set_local_inet6_address(const sockaddr* sa);
   void                set_local_inet6_address_str(const std::string& addr);
 
   void                set_local_inet_port(uint16_t port);
@@ -132,7 +126,7 @@ protected:
   friend class torrent::runtime::NetworkManager;
   friend class torrent::runtime::ProxyManager;
 
-  using listen_addresses = std::tuple<c_sa_shared_ptr, c_sa_shared_ptr, bool>;
+  using listen_addresses = std::tuple<c_sa_shared_ptr, std::string, c_sa_shared_ptr, std::string, bool>;
   using subscriber_list  = std::vector<std::pair<void*, std::function<void()>>>;
 
   void                lock() const                    { m_mutex.lock(); }
@@ -177,7 +171,9 @@ private:
   int                 m_priority{iptos_throughput};
 
   c_sa_shared_ptr     m_bind_inet_address;
+  std::string         m_bind_inet_device_name;
   c_sa_shared_ptr     m_bind_inet6_address;
+  std::string         m_bind_inet6_device_name;
   c_sa_shared_ptr     m_local_inet_address;
   c_sa_shared_ptr     m_local_inet6_address;
 
