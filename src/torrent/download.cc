@@ -54,8 +54,15 @@ Download::open(int flags) {
   if (flags & open_enable_fallocate)
     fileFlags |= File::flag_fallocate;
 
-  for (auto& file : *m_ptr->main()->file_list())
+  // Assign these three rather than only adding them, so that opening
+  // without open_enable_fallocate clears a flag left over from an
+  // earlier open. Any other flag on the file is left alone.
+  int fileFlagsMask = File::flag_create_queued | File::flag_resize_queued | File::flag_fallocate;
+
+  for (auto& file : *m_ptr->main()->file_list()) {
     file->set_flags(fileFlags);
+    file->unset_flags(fileFlagsMask & ~fileFlags);
+  }
 }
 
 void
