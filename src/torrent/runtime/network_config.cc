@@ -20,7 +20,21 @@ namespace {
 c_sa_shared_ptr inet_any_value  = sa_make_inet_any();
 c_sa_shared_ptr inet6_any_value = sa_make_inet6_any();
 
+std::pair<c_sa_shared_ptr, std::string>
+sa_lookup_address_with_device_name(const std::string& address_str, int family) {
+  auto split = address_str.find('%');
+  auto sa    = sa_lookup_address(address_str.substr(0, split), family);
+
+  if (split == std::string::npos)
+    return {sa, ""};
+
+  if (split == address_str.size() - 1)
+    throw input_error("Invalid address string, device name is empty");
+
+  return {sa, address_str.substr(split + 1)};
 }
+
+} // namespace anonymous
 
 NetworkConfig::NetworkConfig() {
   m_bind_inet_address   = sa_make_unspec();
@@ -312,84 +326,74 @@ NetworkConfig::local_port_best_match() const {
 }
 
 void
-NetworkConfig::set_bind_address(const sockaddr* sa) {
-  auto guard = lock_guard();
-
-  set_generic_address_unsafe("bind", m_bind_inet_address, m_bind_inet6_address, sa);
-  notify_changes_unsafe();
-}
-
-void
 NetworkConfig::set_bind_address_str(const std::string& addr) {
-  set_bind_address(sa_lookup_address(addr, AF_UNSPEC).get());
-}
+  auto [sa, device_name] = sa_lookup_address_with_device_name(addr, AF_UNSPEC);
 
-void
-NetworkConfig::set_bind_inet_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
-  set_generic_inet_address_unsafe("bind", m_bind_inet_address, sa);
+  set_generic_address_unsafe("bind", m_bind_inet_address, m_bind_inet6_address, sa.get());
+
+  m_bind_inet_device_name  = m_bind_inet_address->sa_family  == AF_INET  ? device_name : "";
+  m_bind_inet6_device_name = m_bind_inet6_address->sa_family == AF_INET6 ? device_name : "";
+
   notify_changes_unsafe();
 }
 
 void
 NetworkConfig::set_bind_inet_address_str(const std::string& addr) {
-  set_bind_inet_address(sa_lookup_address(addr, AF_INET).get());
-}
+  auto [sa, device_name] = sa_lookup_address_with_device_name(addr, AF_INET);
 
-void
-NetworkConfig::set_bind_inet6_address(const sockaddr* sa) {
   auto guard = lock_guard();
 
-  set_generic_inet6_address_unsafe("bind", m_bind_inet6_address, sa);
+  set_generic_inet_address_unsafe("bind", m_bind_inet_address, sa.get());
+  m_bind_inet_device_name = device_name;
+
   notify_changes_unsafe();
 }
 
 void
 NetworkConfig::set_bind_inet6_address_str(const std::string& addr) {
-  set_bind_inet6_address(sa_lookup_address(addr, AF_INET6).get());
-}
-
-void
-NetworkConfig::set_local_address(const sockaddr* sa) {
-  if (sa_is_any(sa))
-    throw input_error("Tried to set local address to an any address.");
+  auto [sa, device_name] = sa_lookup_address_with_device_name(addr, AF_INET6);
 
   auto guard = lock_guard();
-  set_generic_address_unsafe("local", m_local_inet_address, m_local_inet6_address, sa);
+
+  set_generic_inet6_address_unsafe("bind", m_bind_inet6_address, sa.get());
+  m_bind_inet6_device_name = device_name;
+
+  notify_changes_unsafe();
 }
 
 void
 NetworkConfig::set_local_address_str(const std::string& addr) {
-  set_local_address(sa_lookup_address(addr, AF_UNSPEC).get());
-}
+  auto sa = sa_lookup_address(addr, AF_UNSPEC);
 
-void
-NetworkConfig::set_local_inet_address(const sockaddr* sa) {
-  if (sa_is_any(sa))
-    throw input_error("Tried to set local inet address to an any address.");
+  if (sa_is_any(sa.get()))
+    throw input_error("Tried to set local address to an any address.");
 
   auto guard = lock_guard();
-  set_generic_inet_address_unsafe("local", m_local_inet_address, sa);
+  set_generic_address_unsafe("local", m_local_inet_address, m_local_inet6_address, sa.get());
 }
 
 void
 NetworkConfig::set_local_inet_address_str(const std::string& addr) {
-  set_local_inet_address(sa_lookup_address(addr, AF_INET).get());
-}
+  auto sa = sa_lookup_address(addr, AF_INET);
 
-void
-NetworkConfig::set_local_inet6_address(const sockaddr* sa) {
-  if (sa_is_any(sa))
-    throw input_error("Tried to set local inet6 address to an any address.");
+  if (sa_is_any(sa.get()))
+    throw input_error("Tried to set local inet address to an any address.");
 
   auto guard = lock_guard();
-  set_generic_inet6_address_unsafe("local", m_local_inet6_address, sa);
+  set_generic_inet_address_unsafe("local", m_local_inet_address, sa.get());
 }
 
 void
 NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
-  set_local_inet6_address(sa_lookup_address(addr, AF_INET6).get());
+  auto sa = sa_lookup_address(addr, AF_INET6);
+
+  if (sa_is_any(sa.get()))
+    throw input_error("Tried to set local inet6 address to an any address.");
+
+  auto guard = lock_guard();
+  set_generic_inet6_address_unsafe("local", m_local_inet6_address, sa.get());
 }
 
 void
@@ -529,34 +533,34 @@ NetworkConfig::listen_addresses_unsafe() const {
 
   if (inet_address == nullptr) {
     if (inet6_address->sa_family == AF_UNSPEC)
-      return {nullptr, inet6_any_value, m_block_ipv4in6};;
+      return {nullptr, "", inet6_any_value, "", m_block_ipv4in6};;
 
-    return {nullptr, inet6_address, m_block_ipv4in6};;
+    return {nullptr, "", inet6_address, m_bind_inet6_device_name, m_block_ipv4in6};;
   }
 
   if (inet6_address == nullptr) {
     if (inet_address->sa_family == AF_UNSPEC)
-      return {inet_any_value, nullptr, false};;
+      return {inet_any_value, "", nullptr, "", false};;
 
-    return {inet_address, nullptr, false};;
+    return {inet_address, m_bind_inet_device_name, nullptr, "", false};;
   }
 
   if (inet_address->sa_family == AF_UNSPEC && inet6_address->sa_family == AF_UNSPEC) {
     if (m_block_ipv4in6)
-      return {inet_any_value, inet6_any_value, true};;
+      return {inet_any_value, "", inet6_any_value, "", true};;
 
     // TODO: Detect if net.inet6.ip6.v6only=1 and return inet+inet6 only for those cases.
-    return {inet_any_value, inet6_any_value, true};
+    return {inet_any_value, m_bind_inet_device_name, inet6_any_value, m_bind_inet6_device_name, true};
   }
 
   if (inet_address->sa_family != AF_UNSPEC && inet6_address->sa_family != AF_UNSPEC)
-    return {inet_address, inet6_address, m_block_ipv4in6};;
+    return {inet_address, m_bind_inet_device_name, inet6_address, m_bind_inet6_device_name, m_block_ipv4in6};;
 
   if (inet_address->sa_family != AF_UNSPEC)
-    return {inet_address, nullptr, false};;
+    return {inet_address, m_bind_inet_device_name, nullptr, "", false};;
 
   if (inet6_address->sa_family != AF_UNSPEC)
-    return {nullptr, inet6_address, m_block_ipv4in6};;
+    return {nullptr, "", inet6_address, m_bind_inet6_device_name, m_block_ipv4in6};;
 
   throw internal_error("NetworkConfig::listen_addresses_unsafe(): reached unreachable code.");
 }

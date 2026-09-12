@@ -26,6 +26,21 @@
 #include <sys/inotify.h>
 #endif
 
+// #include <stdbool.h>
+// #include <cstring>
+// #include <charconv>
+// #include <system_error>
+// #include <sys/socket.h>
+// #include <sys/types.h>
+
+#if defined(__linux__)
+#  include <net/if.h>
+#elif defined(__APPLE__)
+#  include <net/if.h>
+#  include <netinet/in.h>
+#endif
+
+
 #define LT_LOG(log_fmt, ...)                                    \
   lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__);
 #define LT_LOG_FLAG(log_fmt)                                            \
@@ -70,6 +85,14 @@
     lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i errno:%s", \
                  fd, (int)value, system::errno_enum(errno));            \
     errno = err; }
+
+#define LT_LOG_FD_DEVICE(msg)                                           \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " msg " : device:%s", fd, device);
+#define LT_LOG_FD_DEVICE_ERROR(msg)                                     \
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " msg " : device:%s errno:%s", fd, device, system::errno_enum(errno)); \
+    errno = err; }
+
 
 namespace torrent {
 
@@ -374,6 +397,67 @@ fd_bind_with_length(int fd, const sockaddr* sa, socklen_t length) {
   }
 
   LT_LOG_FD_SOCKADDR("fd_bind() succeeded");
+  return true;
+}
+
+bool
+fd_bind_to_device(int fd, const char* device) {
+  if (device == nullptr || *device == '\0') {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed : device string is empty");
+    return false;
+  }
+
+#if defined(__linux__)
+  if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, device, std::strlen(device)) == -1) {
+    LT_LOG_FD_DEVICE_ERROR("setsockopt(SO_BINDTODEVICE) failed");
+    return false;
+  }
+
+#elif defined(__APPLE__)
+  unsigned int ifindex = if_nametoindex(device);
+
+  if (ifindex == 0) {
+    LT_LOG_FD_DEVICE_ERROR("if_nametoindex() failed to resolve device");
+    return false;
+  }
+
+  // Attempt IPv4 binding first; if it returns -1 due to an invalid option/level for the socket
+  // domain, gracefully fallback to the IPv6 option.
+  if (setsockopt(fd, IPPROTO_IP, IP_BOUND_IF, &ifindex, sizeof(ifindex)) == -1) {
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_BOUND_IF, &ifindex, sizeof(ifindex)) == -1) {
+      LT_LOG_FD_DEVICE_ERROR("setsockopt(*_BOUND_IF) failed for both IPv4 and IPv6");
+      return false;
+    }
+  }
+
+#elif defined(__OpenBSD__)
+  const char* start = device;
+
+  if (std::strncmp(start, "rtable-", 7) == 0)
+    start += 7;
+
+  // Use modern std::from_chars to parse the number from the remaining pointer range
+  int rtable_id = 0;
+  auto [ptr, ec] = std::from_chars(start, start + std::strlen(start), rtable_id);
+
+  if (ec != std::errc{} || *ptr != '\0') {
+    LT_LOG_FD_DEVICE_ERROR("Invalid rtable format or trailing garbage for OpenBSD");
+    return false;
+  }
+
+  if (setsockopt(fd, SOL_SOCKET, SO_RTABLE, &rtable_id, sizeof(rtable_id)) == -1) {
+    LT_LOG_FD_DEVICE_ERROR("setsockopt(SO_RTABLE) failed");
+    return false;
+  }
+
+#else
+  // Unsupported platform fallback (e.g., FreeBSD, NetBSD)
+  // These platforms rely strictly on binding to specific interface IPs
+  LT_LOG_FD_DEVICE_ERROR("Device-name binding not natively supported on this OS");
+  return false;
+#endif
+
+  LT_LOG_FD_DEVICE("fd_bind_to_device() succeeded");
   return true;
 }
 
