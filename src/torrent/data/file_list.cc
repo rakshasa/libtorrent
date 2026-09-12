@@ -390,13 +390,15 @@ FileList::open(bool hashing, int flags) {
   Path lastPath;
   path_set pathSet;
 
-  auto itr = end();
+  const File* current_file = nullptr;
 
   try {
     if (!(flags & open_no_create) && !make_root_path())
       throw storage_error("Could not create directory '" + m_root_dir + "': " + std::strerror(errno));
 
     for (auto& entry : *this) {
+      current_file = entry.get();
+
       // We no longer consider it an error to open a previously opened
       // FileList as we now use the same function to create
       // non-existent files.
@@ -451,10 +453,10 @@ FileList::open(bool hashing, int flags) {
 
     manager->file_manager()->close_files(*this);
 
-    if (itr == end()) {
+    if (current_file == nullptr) {
       LT_LOG_FL(ERROR, "Failed to prepare file list: %s", e.what());
     } else {
-      LT_LOG_FL(ERROR, "Failed to prepare file '%s': %s", (*itr)->path()->as_string().c_str(), e.what());
+      LT_LOG_FL(ERROR, "Failed to prepare file '%s': %s", current_file->path()->as_string().c_str(), e.what());
     }
 
     // Set to false here in case we tried to open the FileList for the
