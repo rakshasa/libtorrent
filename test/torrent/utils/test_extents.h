@@ -4,9 +4,11 @@ class test_extents : public TestFixtureWithMainThread {
   CPPUNIT_TEST_SUITE(test_extents);
 
   CPPUNIT_TEST(test_basic);
+  CPPUNIT_TEST(test_empty);
 
   CPPUNIT_TEST_SUITE_END();
 
 public:
   void test_basic();
+  void test_empty();
 };

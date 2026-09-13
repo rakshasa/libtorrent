@@ -2,6 +2,8 @@
 
 #include "test_extents.h"
 
+#include <stdexcept>
+
 #include <torrent/utils/extents.h>
 #include <torrent/utils/log.h>
 
@@ -58,5 +60,20 @@ test_extents::test_basic() {
     CPPUNIT_ASSERT(extent_1.at(255) == 1);
 
     CPPUNIT_ASSERT(verify_extent_data(extent_1, idx_basic_1, val_basic_1));
+  };
+}
+
+void
+test_extents::test_empty() {
+  extent_type_1 extent_1;
+
+  { TEST_EXTENT_BEGIN("empty");
+
+    CPPUNIT_ASSERT(!extent_1.defined(0));
+    CPPUNIT_ASSERT(!extent_1.defined(~uint32_t()));
+    CPPUNIT_ASSERT(!extent_1.defined(0, ~uint32_t()));
+
+    CPPUNIT_ASSERT_THROW(extent_1.at(0), std::out_of_range);
+    CPPUNIT_ASSERT_THROW(extent_1.get_matching_key(0, 0), std::out_of_range);
   };
 }
