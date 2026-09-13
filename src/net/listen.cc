@@ -21,7 +21,7 @@ namespace torrent {
 namespace {
 
 std::tuple<int, int>
-listen_fd_open(const sockaddr* bind_address, bool block_ipv4in6) {
+listen_fd_open(const sockaddr* bind_address, const std::string& device_name, bool block_ipv4in6) {
   fd_flags open_flags = fd_flag_nonblock | fd_flag_reuse_address;
 
   if (bind_address->sa_family == AF_INET)
@@ -42,14 +42,21 @@ listen_fd_open(const sockaddr* bind_address, bool block_ipv4in6) {
     throw resource_error("Could not open datagram socket for listening: " + system::errno_enum_str(errno));
   }
 
+  if (!device_name.empty() &&
+      (!fd_bind_to_device(stream_fd, device_name.c_str()) || !fd_bind_to_device(datagram_fd, device_name.c_str()))) {
+    fd_close(stream_fd);
+    fd_close(datagram_fd);
+    throw resource_error("Could not bind listening sockets to device: " + device_name + " : " + system::errno_enum_str(errno));
+  }
+
   return std::make_tuple(stream_fd, datagram_fd);
 }
 
 std::tuple<int, uint16_t>
-listen_open_range(Listen::open_options options, const sockaddr* bind_address) {
+listen_open_range(Listen::open_options options, const sockaddr* bind_address, const std::string& device_name) {
   sa_unique_ptr try_address = sa_copy(bind_address);
 
-  auto [stream_fd, datagram_fd] = listen_fd_open(bind_address, options.block_ipv4in6);
+  auto [stream_fd, datagram_fd] = listen_fd_open(bind_address, device_name, options.block_ipv4in6);
 
   uint16_t port = options.first_port;
 
@@ -66,7 +73,7 @@ listen_open_range(Listen::open_options options, const sockaddr* bind_address) {
       fd_close(stream_fd);
       fd_close(datagram_fd);
 
-      std::tie(stream_fd, datagram_fd) = listen_fd_open(bind_address, options.block_ipv4in6);
+      std::tie(stream_fd, datagram_fd) = listen_fd_open(bind_address, device_name, options.block_ipv4in6);
       continue;
     }
 
@@ -84,7 +91,9 @@ listen_open_range(Listen::open_options options, const sockaddr* bind_address) {
 }
 
 bool
-Listen::open_single(Listen* listen, const sockaddr* bind_address, open_options options) {
+Listen::open_single(listen_info listen_info, open_options options) {
+  auto [listen, bind_address, device_name] = listen_info;
+
   listen->close();
 
   if (options.first_port == 0 || options.first_port > options.last_port)
@@ -93,7 +102,7 @@ Listen::open_single(Listen* listen, const sockaddr* bind_address, open_options o
   if (bind_address->sa_family != AF_INET && bind_address->sa_family != AF_INET6)
     throw input_error("Listening socket must be inet or inet6 address type");
 
-  auto [listen_fd, listen_port] = listen_open_range(options, bind_address);
+  auto [listen_fd, listen_port] = listen_open_range(options, bind_address, device_name);
 
   if (listen_fd == -1) {
     LT_LOG("failed to find a suitable listen port : options.last_port error : %s", system::errno_enum(errno));
@@ -118,7 +127,10 @@ Listen::open_single(Listen* listen, const sockaddr* bind_address, open_options o
 }
 
 bool
-Listen::open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bind_inet_address, const sockaddr* bind_inet6_address, open_options options) {
+Listen::open_both(listen_info listen4, listen_info listen6, open_options options) {
+  auto [listen_inet,  bind_inet_address,  bind_inet_device_name]  = listen4;
+  auto [listen_inet6, bind_inet6_address, bind_inet6_device_name] = listen6;
+
   listen_inet->close();
   listen_inet6->close();
 
@@ -140,7 +152,7 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bin
       return false;
     }
 
-    std::tie(inet_fd, inet_port) = listen_open_range(options, bind_inet_address);
+    std::tie(inet_fd, inet_port) = listen_open_range(options, bind_inet_address, bind_inet_device_name);
 
     if (inet_fd == -1) {
       LT_LOG("Unable to find a suitable ipv4 listen port : options.last_port error : %s", system::errno_enum(errno));
@@ -151,7 +163,7 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bin
     options.first_port = inet_port;
     options.last_port = inet_port;
 
-    std::tie(inet6_fd, inet6_port) = listen_open_range(inet6_options, bind_inet6_address);
+    std::tie(inet6_fd, inet6_port) = listen_open_range(inet6_options, bind_inet6_address, bind_inet6_device_name);
 
     if (inet6_fd != -1)
       break;

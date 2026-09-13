@@ -13,6 +13,8 @@ class Handshake;
 
 class Listen : public system::Event {
 public:
+  using listen_info = std::tuple<Listen*, const sockaddr*, std::string>;
+
   struct open_options {
     uint16_t        first_port{};
     uint16_t        last_port{};
@@ -25,10 +27,8 @@ public:
 
   const char*         type_name() const override { return "listen"; }
 
-  static bool         open_single(Listen* listen, const sockaddr* bind_address, open_options options);
-
-  static bool         open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bind_inet_address, const sockaddr* bind_inet6_address,
-                                open_options options);
+  static bool         open_single(listen_info listen, open_options options);
+  static bool         open_both(listen_info listen4, listen_info listen6, open_options options);
 
   void                close();
 

@@ -26,13 +26,6 @@
 #include <sys/inotify.h>
 #endif
 
-// #include <stdbool.h>
-// #include <cstring>
-// #include <charconv>
-// #include <system_error>
-// #include <sys/socket.h>
-// #include <sys/types.h>
-
 #if defined(__linux__)
 #  include <net/if.h>
 #elif defined(__APPLE__)

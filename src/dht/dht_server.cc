@@ -87,25 +87,29 @@ DhtServer::~DhtServer() {
 
 void
 DhtServer::start(int port) {
-  auto [bind_inet_address, bind_inet6_address] = runtime::network_config()->bind_udp_addresses_or_null();
+  auto [inet_address, inet_device, inet6_address, inet6_device] = runtime::network_config()->bind_udp_addresses_or_null();
 
-  if (bind_inet_address == nullptr)
+  if (inet_address == nullptr)
     throw resource_error("no valid bind address for DHT server");
 
   sa_unique_ptr bind_address;
+  std::string   bind_device;
 
-  switch (bind_inet_address->sa_family) {
+  switch (inet_address->sa_family) {
   case AF_INET:
-    bind_address = sa_copy(bind_inet_address.get());
+    bind_address = sa_copy(inet_address.get());
+    bind_device  = inet_device;
     break;
   case AF_UNSPEC:
     bind_address = sa_make_inet_any();
+    bind_device  = inet_device;
     break;
   default:
     throw resource_error("invalid address family for DHT server");
   }
 
-  m_router->set_address(bind_inet_address.get());
+  m_router->set_address(inet_address.get());
+
   sap_set_port(bind_address, port);
 
   LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
@@ -119,13 +123,17 @@ DhtServer::start(int port) {
 
   if (fd == -1) {
     LT_LOG_THIS("could not open datagram socket : %s", std::strerror(errno));
-
     throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
+  }
+
+  if (!bind_device.empty() && !fd_bind_to_device(fd, bind_device.c_str())) {
+    LT_LOG_THIS("could not bind datagram socket to device : %s : %s", bind_device.c_str(), std::strerror(errno));
+    fd_close(fd);
+    throw resource_error("could not bind datagram socket to device : " + bind_device + " : " + std::string(strerror(errno)));
   }
 
   if (!fd_bind(fd, bind_address.get())) {
     LT_LOG_THIS("could not bind datagram socket : %s", std::strerror(errno));
-
     fd_close(fd);
     throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
   }
