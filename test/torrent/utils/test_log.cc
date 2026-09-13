@@ -8,8 +8,10 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <string>
 
 #include "torrent/exceptions.h"
+#include "torrent/hash_string.h"
 #include "torrent/utils/log.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_log, "torrent/utils");
@@ -23,6 +25,16 @@ test_output(const char* output, unsigned int length, unsigned int mask) {
   CPPUNIT_ASSERT_MESSAGE("'" + std::string(output) + "' != '" + std::string(expected_output) + "'",
                          std::strcmp(output, expected_output) == 0);
   CPPUNIT_ASSERT_MESSAGE("'" + std::string(output) + "'", std::strlen(output) == length);
+  output_mask |= mask;
+}
+
+unsigned int output_length;
+
+void
+test_output_length(const char* output, unsigned int length, unsigned int mask) {
+  CPPUNIT_ASSERT_MESSAGE("reported length does not match the string written",
+                         std::strlen(output) == length);
+  output_length = length;
   output_mask |= mask;
 }
 
@@ -103,6 +115,29 @@ test_log::test_print() {
   torrent::log_add_group_output(0, "test_print_2");
 
   LTUNIT_ASSERT_OUTPUT(0, 0x1|0x2, "test_multiple", "test_multiple");
+}
+
+// The prefix written before the message leaves less than the full
+// buffer for vsnprintf, so the returned count must be clamped against
+// what is left rather than against the buffer size.
+void
+test_log::test_print_long_line() {
+  torrent::log_open_output("test_long_line",
+                           std::bind(&::test_output_length, std::placeholders::_1, std::placeholders::_2, 0x1));
+  torrent::log_add_group_output(0, "test_long_line");
+
+  torrent::HashString hash;
+  hash.clear();
+
+  std::string message(5000, 'x');
+
+  output_mask = 0;
+  output_length = 0;
+
+  lt_log_print_hash(0, hash, "subsystem", "%s", message.c_str());
+
+  CPPUNIT_ASSERT(output_mask == 0x1);
+  CPPUNIT_ASSERT(output_length < 4096);
 }
 
 enum {

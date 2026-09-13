@@ -160,7 +160,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 
   va_start(ap, fmt);
   int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);
-  first += std::min<unsigned int>(count, buffer_size - 1);
+  first += std::min<unsigned int>(count, buffer_size - (first - buffer) - 1);
   va_end(ap);
 
   if (count <= 0)
