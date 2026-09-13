@@ -35,7 +35,7 @@ void extents<Address, Value, Compare>::insert(key_type address_start, key_type a
   typename range_map_type::iterator iter = range_map.upper_bound(address_start); 
   if( iter != range_map.begin() ) { iter--; } 
   bool ignore_due_to_total_overlap = false;
-  while( iter->first <= address_end && iter != range_map.end() ) {
+  while( iter != range_map.end() && iter->first <= address_end ) {
     key_type delete_key = iter->first;
     bool do_delete_due_to_overlap        =  iter->first <= address_end && (iter->second).first >= address_start && (iter->second).second != value;
     bool do_delete_due_to_total_overlap  =  address_start <= iter->first && address_end >= (iter->second).first;
@@ -64,7 +64,7 @@ bool extents<Address, Value, Compare>::defined(key_type address_start, key_type 
   bool defined = false;
   auto iter = range_map.upper_bound(address_start);
   if( iter != range_map.begin() ) { iter--; } 
-  while( iter->first <= address_end && !defined && iter != range_map.end() ) {
+  while( iter != range_map.end() && iter->first <= address_end && !defined ) {
     defined = iter->first <= address_end && (iter->second).first >= address_start;
     iter++;
   }
@@ -84,7 +84,7 @@ typename extents<Address, Value, Compare>::key_type extents<Address, Value, Comp
   bool defined = false;
   auto iter = range_map.upper_bound(address_start);
   if( iter != range_map.begin() ) { iter--; } 
-  while( iter->first <= address_end && !defined && iter != range_map.end() ) {
+  while( iter != range_map.end() && iter->first <= address_end && !defined ) {
     defined = iter->first <= address_end && (iter->second).first >= address_start;
     if(defined)
       key = iter->first;
