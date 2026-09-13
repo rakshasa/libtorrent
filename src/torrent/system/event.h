@@ -26,6 +26,7 @@ public:
 
   auto                peer_address() const;
   auto                socket_address() const;
+  auto                socket_device_name() const;
 
   std::string         print_name_fd_str() const;
 
@@ -47,6 +48,7 @@ protected:
 
   void                set_file_descriptor(int fd);
   void                set_socket_address(c_sa_unique_ptr address);
+  void                set_socket_device_name(std::string device_name);
 
   bool                update_socket_address();
   bool                update_peer_address();
@@ -63,6 +65,7 @@ private:
   // TODO: Add socket type to validation.
   c_sa_unique_ptr     m_peer_address;
   c_sa_unique_ptr     m_socket_address;
+  std::string         m_socket_device_name;
 };
 
 inline bool Event::is_open() const             { return file_descriptor() != -1; }
@@ -75,8 +78,11 @@ inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }
 
 inline auto Event::peer_address() const        { return m_peer_address.get(); }
 
-inline auto Event::socket_address() const                      { return m_socket_address.get(); }
-inline void Event::set_socket_address(c_sa_unique_ptr address) { m_socket_address = std::move(address); }
+inline auto Event::socket_address() const                          { return m_socket_address.get(); }
+inline void Event::set_socket_address(c_sa_unique_ptr address)     { m_socket_address = std::move(address); }
+
+inline auto Event::socket_device_name() const                      { return m_socket_device_name; }
+inline void Event::set_socket_device_name(std::string device_name) { m_socket_device_name = std::move(device_name); }
 
 } // namespace torrent::system
 

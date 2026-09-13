@@ -317,7 +317,7 @@ namespace {
 
 int
 open_and_connect_socket(const sockaddr* connect_address) {
-  auto bind_address = runtime::network_config()->bind_address_for_connect(connect_address->sa_family);
+  auto [bind_address, device_name] = runtime::network_config()->bind_address_for_tcp_connect(connect_address->sa_family);
 
   if (bind_address == nullptr) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: blocked or invalid bind address", 0);
@@ -335,6 +335,11 @@ open_and_connect_socket(const sockaddr* connect_address) {
 
   if (!setup_socket(fd, connect_address->sa_family)) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: setup socket failed : fd:%i : %s", fd, std::strerror(errno));
+    return close_fn();
+  }
+
+  if (!device_name.empty() && !fd_bind_to_device(fd, device_name.c_str())) {
+    LT_LOG_SA(connect_address, "could not create outgoing connection: bind to device failed : fd:%i device:%s : %s", fd, device_name.c_str(), std::strerror(errno));
     return close_fn();
   }
 

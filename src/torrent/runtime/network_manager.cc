@@ -206,7 +206,7 @@ NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
       options.check_dht = true;
   }
 
-  auto [inet_address, inet6_address, block_ipv4in6] = listen_addresses;
+  auto [inet_address, inet_device_name, inet6_address, inet6_device_name, block_ipv4in6] = listen_addresses;
 
   options.block_ipv4in6 = block_ipv4in6;
 
@@ -214,7 +214,9 @@ NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
     throw input_error("Neither IPv4 nor IPv6 listen address are suitable for opening listen sockets, check block_ipv4 and block_ipv6 settings.");
 
   if (inet_address != nullptr && inet6_address != nullptr) {
-    if (!Listen::open_both(m_listen_inet.get(), m_listen_inet6.get(), inet_address.get(), inet6_address.get(), options))
+    if (!Listen::open_both({m_listen_inet.get(), inet_address.get(), inet_device_name},
+                           {m_listen_inet6.get(), inet6_address.get(), inet6_device_name},
+                           options))
       return false;
 
     m_listen_port = m_listen_inet->port();
@@ -222,7 +224,7 @@ NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
   }
 
   if (inet_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet.get(), inet_address.get(), options))
+    if (!Listen::open_single({m_listen_inet.get(), inet_address.get(), inet_device_name}, options))
       return false;
 
     m_listen_port = m_listen_inet->port();
@@ -230,7 +232,7 @@ NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
   }
 
   if (inet6_address != nullptr) {
-    if (!Listen::open_single(m_listen_inet6.get(), inet6_address.get(), options))
+    if (!Listen::open_single({m_listen_inet6.get(), inet6_address.get(), inet6_device_name}, options))
       return false;
 
     m_listen_port = m_listen_inet6->port();
