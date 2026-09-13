@@ -966,9 +966,6 @@ PeerConnectionBase::send_pex_message() {
 
   // Message to tell peer to stop/start doing PEX is small so send it first.
   if (m_send_pex_mask & (PEX_ENABLE | PEX_DISABLE)) {
-    if (!m_extensions->is_remote_supported(ProtocolExtension::UT_PEX))
-      throw internal_error("PeerConnectionBase::send_pex_message() Not supported by peer.");
-
     write_prepare_extension(ProtocolExtension::HANDSHAKE,
                             ProtocolExtension::generate_toggle_message(ProtocolExtension::UT_PEX, (m_send_pex_mask & PEX_ENABLE) != 0));
 
