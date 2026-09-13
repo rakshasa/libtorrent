@@ -125,7 +125,7 @@ SocketFile::create_padding_chunk(uint32_t length, int prot, int flags) {
   if (ptr == MAP_FAILED)
     return MemoryChunk();
 
-  return MemoryChunk(ptr, ptr, ptr + length, prot, flags);
+  return MemoryChunk(ptr, ptr, ptr + length, prot);
 }
 
 MemoryChunk
@@ -152,7 +152,7 @@ SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) 
   if (ptr == MAP_FAILED)
     return MemoryChunk();
 
-  return MemoryChunk(ptr, ptr + align, ptr + align + length, prot, flags);
+  return MemoryChunk(ptr, ptr + align, ptr + align + length, prot);
 }
 
 } // namespace torrent

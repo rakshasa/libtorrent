@@ -28,12 +28,11 @@ MemoryChunk::align_pair(uint32_t* offset, uint32_t* length) const {
   *offset -= *offset % m_pagesize;
 }
 
-MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags) :
+MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot) :
   m_ptr(ptr),
   m_begin(begin),
   m_end(end),
-  m_prot(prot),
-  m_flags(flags) {
+  m_prot(prot) {
 
   if (ptr == NULL)
     throw internal_error("MemoryChunk::MemoryChunk(...) received ptr == NULL");
