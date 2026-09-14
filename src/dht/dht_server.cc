@@ -126,7 +126,7 @@ DhtServer::start(int port) {
     throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
   }
 
-  if (!bind_device.empty() && !fd_bind_to_device(fd, bind_device.c_str())) {
+  if (!bind_device.empty() && !fd_bind_to_device(fd, bind_device.c_str(), bind_address->sa_family)) {
     LT_LOG_THIS("could not bind datagram socket to device : %s : %s", bind_device.c_str(), std::strerror(errno));
     fd_close(fd);
     throw resource_error("could not bind datagram socket to device : " + bind_device + " : " + std::string(strerror(errno)));

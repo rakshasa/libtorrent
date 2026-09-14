@@ -338,7 +338,7 @@ open_and_connect_socket(const sockaddr* connect_address) {
     return close_fn();
   }
 
-  if (!device_name.empty() && !fd_bind_to_device(fd, device_name.c_str())) {
+  if (!device_name.empty() && !fd_bind_to_device(fd, device_name.c_str(), connect_address->sa_family)) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: bind to device failed : fd:%i device:%s : %s", fd, device_name.c_str(), std::strerror(errno));
     return close_fn();
   }
