@@ -148,8 +148,8 @@ Listen::open_both(Listen* listen_inet, Listen* listen_inet6, const sockaddr* bin
     }
 
     auto inet6_options = options;
-    options.first_port = inet_port;
-    options.last_port = inet_port;
+    inet6_options.first_port = inet_port;
+    inet6_options.last_port = inet_port;
 
     std::tie(inet6_fd, inet6_port) = listen_open_range(inet6_options, bind_inet6_address);
 
