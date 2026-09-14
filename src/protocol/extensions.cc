@@ -114,7 +114,7 @@ ProtocolExtension::generate_handshake_message() {
     // message[key_e] = encryption_policy.prefer_encrypted_stream();
 
   message[key_p] = runtime::listen_port();
-  message[key_v] = raw_string::from_c_str("rTorrent " VERSION);
+  message[key_v] = raw_string::from_c_str("libTorrent " VERSION);
   message[key_reqq] = max_request_queue_size;
 
   if (!m_download->info()->is_meta_download())
