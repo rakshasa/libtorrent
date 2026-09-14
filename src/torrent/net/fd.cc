@@ -1,5 +1,13 @@
 #include "config.h"
 
+#if defined(__linux__)
+#  include <net/if.h>
+#elif defined(__APPLE__)
+#  define __APPLE_USE_RFC_3542
+#  include <net/if.h>
+#  include <netinet/in.h>
+#endif
+
 #include "fd.h"
 
 #include <charconv>
@@ -26,14 +34,6 @@
 #ifdef USE_INOTIFY
 #include <sys/inotify.h>
 #endif
-
-#if defined(__linux__)
-#  include <net/if.h>
-#elif defined(__APPLE__)
-#  include <net/if.h>
-#  include <netinet/in.h>
-#endif
-
 
 #define LT_LOG(log_fmt, ...)                                    \
   lt_log_print(LOG_CONNECTION_FD, "fd: " log_fmt, __VA_ARGS__);
@@ -395,7 +395,7 @@ fd_bind_with_length(int fd, const sockaddr* sa, socklen_t length) {
 }
 
 bool
-fd_bind_to_device(int fd, const char* device) {
+fd_bind_to_device(int fd, const char* device, int family) {
   if (device == nullptr || *device == '\0') {
     LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed : device string is empty");
     return false;
@@ -411,17 +411,65 @@ fd_bind_to_device(int fd, const char* device) {
   unsigned int ifindex = if_nametoindex(device);
 
   if (ifindex == 0) {
-    LT_LOG_FD_DEVICE_ERROR("if_nametoindex() failed to resolve device");
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to get ifindex for device");
     return false;
   }
 
-  // Attempt IPv4 binding first; if it returns -1 due to an invalid option/level for the socket
-  // domain, gracefully fallback to the IPv6 option.
-  if (setsockopt(fd, IPPROTO_IP, IP_BOUND_IF, &ifindex, sizeof(ifindex)) == -1) {
-    if (setsockopt(fd, IPPROTO_IPV6, IPV6_BOUND_IF, &ifindex, sizeof(ifindex)) == -1) {
-      LT_LOG_FD_DEVICE_ERROR("setsockopt(*_BOUND_IF) failed for both IPv4 and IPv6");
+  // bool bound{};
+
+  // if (family == AF_INET && setsockopt(fd, IPPROTO_IP, IP_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
+  //   LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind ipv4 socket to device");
+  //   return true;
+  // }
+
+  // if (family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
+  //   LG
+
+  // } else {
+  //   throw internal_error("fd_bind_to_device() invalid family specified for macOS binding");
+  // }
+
+  // if (!bound) {
+  //   LT_LOG_FD_DEVICE_ERROR("setsockopt(*_BOUND_IF) failed for specified family");
+  //   return false;
+  // }
+
+  int enforce = 1;
+
+  switch (family) {
+  case AF_INET:
+    if (setsockopt(fd, IPPROTO_IP, IP_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind ipv4 socket to device");
       return false;
     }
+
+    if (setsockopt(fd, IPPROTO_IP, IP_RECVIF, &enforce, sizeof(enforce)) != 0) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set IP_RECVIF for ipv4 socket");
+      return false;
+    }
+
+    break;
+  case AF_INET6:
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind ipv6 socket to device");
+      return false;
+    }
+
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &enforce, sizeof(enforce)) != 0) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set IPV6_RECVPKTINFO for ipv6 socket");
+      return false;
+    }
+
+    break;
+  case AF_UNSPEC:
+    throw internal_error("fd_bind_to_device() invalid family specified for macOS binding");
+  }
+
+  int dont_route = 1;
+
+  if (setsockopt(fd, SOL_SOCKET, SO_DONTROUTE, &dont_route, sizeof(dont_route)) == -1) {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set SO_DONTROUTE");
+    return false;
   }
 
 #elif defined(__OpenBSD__)
