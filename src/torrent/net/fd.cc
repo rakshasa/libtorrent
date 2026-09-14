@@ -403,7 +403,7 @@ fd_bind_to_device(int fd, const char* device, [[maybe_unused]] int family) {
   }
 
 #if defined(__linux__)
-  if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, device, strnlen_s(device, IFNAMSIZ)) == -1) {
+  if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, device, strnlen(device, IFNAMSIZ)) == -1) {
     LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind socket to device");
     return false;
   }
