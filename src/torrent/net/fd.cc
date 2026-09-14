@@ -1,6 +1,7 @@
 #include "config.h"
 
 #if defined(__linux__)
+#  include <string.h>
 #  include <net/if.h>
 #elif defined(__APPLE__)
 #  define __APPLE_USE_RFC_3542
