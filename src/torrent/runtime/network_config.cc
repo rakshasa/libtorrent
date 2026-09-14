@@ -333,8 +333,16 @@ NetworkConfig::set_bind_address_str(const std::string& addr) {
 
   set_generic_address_unsafe("bind", m_bind_inet_address, m_bind_inet6_address, sa.get());
 
-  m_bind_inet_device_name  = m_bind_inet_address->sa_family  == AF_INET  ? device_name : "";
-  m_bind_inet6_device_name = m_bind_inet6_address->sa_family == AF_INET6 ? device_name : "";
+  if (m_bind_inet_address->sa_family == AF_UNSPEC && m_bind_inet6_address->sa_family == AF_UNSPEC) {
+    m_bind_inet_device_name  = device_name;
+    m_bind_inet6_device_name = device_name;
+  } else if (m_bind_inet_address->sa_family == AF_INET) {
+    m_bind_inet_device_name  = device_name;
+    m_bind_inet6_device_name = "";
+  } else if (m_bind_inet6_address->sa_family == AF_INET6) {
+    m_bind_inet_device_name  = "";
+    m_bind_inet6_device_name = device_name;
+  }
 
   notify_changes_unsafe();
 }
