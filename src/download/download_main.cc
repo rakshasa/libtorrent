@@ -382,6 +382,16 @@ DownloadMain::do_peer_exchange() {
     auto pcb = connection->m_ptr();
     auto sa  = pcb->peer_info()->socket_address();
 
+    // Still using the old buffer? Make a copy in this rare case. Both pex buffers are freed at
+    // the end of this function, so the copy has to happen before any continue below.
+    DataBuffer* message = pcb->extension_message();
+
+    if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
+      auto buffer = new char[message->length()];
+      memcpy(buffer, message->data(), message->length());
+      message->set(buffer, buffer + message->length(), true);
+    }
+
     if (pcb->peer_info()->listen_port() != 0 && sa->sa_family == AF_INET) {
       // The reinterpret_cast requires const in push_back, while not in emplace_back.
       //
@@ -406,15 +416,6 @@ DownloadMain::do_peer_exchange() {
       pcb->set_peer_exchange(false);
 
       continue;
-    }
-
-    // Still using the old buffer? Make a copy in this rare case.
-    DataBuffer* message = pcb->extension_message();
-
-    if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
-      auto buffer = new char[message->length()];
-      memcpy(buffer, message->data(), message->length());
-      message->set(buffer, buffer + message->length(), true);
     }
 
     pcb->do_peer_exchange();
