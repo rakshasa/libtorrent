@@ -200,7 +200,8 @@ UdpRouter::transfer(uint32_t id, connection_params params) {
 
   auto new_itr = connect_unsafe(std::move(itr->second.address), params);
 
-  disconnect_unsafe(itr);
+  // connect_unsafe inserts into m_connections, which invalidates iterators when it rehashes.
+  disconnect_unsafe(m_connections.find(id));
 
   try_write_with_queues(new_itr->first, &new_itr->second);
 }
