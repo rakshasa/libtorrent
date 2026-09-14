@@ -426,7 +426,7 @@ fd_bind_to_device(int fd, const char* device, [[maybe_unused]] int family) {
     }
 
     if (setsockopt(fd, IPPROTO_IP, IP_RECVIF, &enforce, sizeof(enforce)) != 0 &&
-        errno != ENOPROTOOPT) {
+        errno != ENOPROTOOPT && errno != EINVAL) {
       LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set IP_RECVIF for ipv4 socket");
       return false;
     }
