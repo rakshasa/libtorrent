@@ -425,7 +425,8 @@ fd_bind_to_device(int fd, const char* device, [[maybe_unused]] int family) {
       return false;
     }
 
-    if (setsockopt(fd, IPPROTO_IP, IP_RECVIF, &enforce, sizeof(enforce)) != 0) {
+    if (setsockopt(fd, IPPROTO_IP, IP_RECVIF, &enforce, sizeof(enforce)) != 0 &&
+        errno != ENOPROTOOPT) {
       LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set IP_RECVIF for ipv4 socket");
       return false;
     }
@@ -437,13 +438,14 @@ fd_bind_to_device(int fd, const char* device, [[maybe_unused]] int family) {
       return false;
     }
 
-    if (setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &enforce, sizeof(enforce)) != 0) {
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &enforce, sizeof(enforce)) != 0 &&
+        errno != ENOPROTOOPT && errno != EINVAL) {
       LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set IPV6_RECVPKTINFO for ipv6 socket");
       return false;
     }
 
     break;
-  case AF_UNSPEC:
+  default:
     throw internal_error("fd_bind_to_device() invalid family specified for macOS binding");
   }
 
