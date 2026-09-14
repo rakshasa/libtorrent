@@ -395,15 +395,15 @@ fd_bind_with_length(int fd, const sockaddr* sa, socklen_t length) {
 }
 
 bool
-fd_bind_to_device(int fd, const char* device, int family) {
+fd_bind_to_device(int fd, const char* device, [[maybe_unused]] int family) {
   if (device == nullptr || *device == '\0') {
     LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed : device string is empty");
     return false;
   }
 
 #if defined(__linux__)
-  if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, device, std::strlen(device)) == -1) {
-    LT_LOG_FD_DEVICE_ERROR("setsockopt(SO_BINDTODEVICE) failed");
+  if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, device, std::strnlen(device, IFNAMSIZ)) == -1) {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind socket to device");
     return false;
   }
 
@@ -414,25 +414,6 @@ fd_bind_to_device(int fd, const char* device, int family) {
     LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to get ifindex for device");
     return false;
   }
-
-  // bool bound{};
-
-  // if (family == AF_INET && setsockopt(fd, IPPROTO_IP, IP_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
-  //   LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind ipv4 socket to device");
-  //   return true;
-  // }
-
-  // if (family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
-  //   LG
-
-  // } else {
-  //   throw internal_error("fd_bind_to_device() invalid family specified for macOS binding");
-  // }
-
-  // if (!bound) {
-  //   LT_LOG_FD_DEVICE_ERROR("setsockopt(*_BOUND_IF) failed for specified family");
-  //   return false;
-  // }
 
   int enforce = 1;
 
@@ -465,32 +446,22 @@ fd_bind_to_device(int fd, const char* device, int family) {
     throw internal_error("fd_bind_to_device() invalid family specified for macOS binding");
   }
 
-  int dont_route = 1;
-
-  if (setsockopt(fd, SOL_SOCKET, SO_DONTROUTE, &dont_route, sizeof(dont_route)) == -1) {
-    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set SO_DONTROUTE");
-    return false;
-  }
-
 #elif defined(__OpenBSD__)
-  // Use modern std::from_chars to parse the number from the remaining pointer range
-  int rtable_id = 0;
+  int rtable_id{};
   auto [ptr, ec] = std::from_chars(device, device + std::strlen(device), rtable_id);
 
   if (ec != std::errc{} || *ptr != '\0') {
-    LT_LOG_FD_DEVICE_ERROR("Invalid rtable format or trailing garbage for OpenBSD");
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed as OpenBSD expects a numeric routing table ID for device configuration.");
     return false;
   }
 
   if (setsockopt(fd, SOL_SOCKET, SO_RTABLE, &rtable_id, sizeof(rtable_id)) == -1) {
-    LT_LOG_FD_DEVICE_ERROR("setsockopt(SO_RTABLE) failed");
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set SO_RTABLE");
     return false;
   }
 
 #else
-  // Unsupported platform fallback (e.g., FreeBSD, NetBSD)
-  // These platforms rely strictly on binding to specific interface IPs
-  LT_LOG_FD_DEVICE_ERROR("Device-name binding not natively supported on this OS");
+  LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() is not supported on this platform.");
   return false;
 #endif
 
