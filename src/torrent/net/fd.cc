@@ -2,6 +2,7 @@
 
 #include "fd.h"
 
+#include <charconv>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -424,14 +425,9 @@ fd_bind_to_device(int fd, const char* device) {
   }
 
 #elif defined(__OpenBSD__)
-  const char* start = device;
-
-  if (std::strncmp(start, "rtable-", 7) == 0)
-    start += 7;
-
   // Use modern std::from_chars to parse the number from the remaining pointer range
   int rtable_id = 0;
-  auto [ptr, ec] = std::from_chars(start, start + std::strlen(start), rtable_id);
+  auto [ptr, ec] = std::from_chars(device, device + std::strlen(device), rtable_id);
 
   if (ec != std::errc{} || *ptr != '\0') {
     LT_LOG_FD_DEVICE_ERROR("Invalid rtable format or trailing garbage for OpenBSD");

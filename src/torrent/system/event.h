@@ -2,6 +2,7 @@
 #define LIBTORRENT_TORRENT_SYSTEM_EVENT_H
 
 #include <memory>
+#include <string>
 #include <torrent/net/types.h>
 #include <torrent/system/common.h>
 
