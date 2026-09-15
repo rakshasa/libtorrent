@@ -43,7 +43,8 @@ listen_fd_open(const sockaddr* bind_address, const std::string& device_name, boo
   }
 
   if (!device_name.empty() &&
-      (!fd_bind_to_device(stream_fd, device_name.c_str()) || !fd_bind_to_device(datagram_fd, device_name.c_str()))) {
+      (!fd_bind_to_device(stream_fd, device_name.c_str(), bind_address->sa_family) ||
+       !fd_bind_to_device(datagram_fd, device_name.c_str(), bind_address->sa_family))) {
     fd_close(stream_fd);
     fd_close(datagram_fd);
     throw resource_error("Could not bind listening sockets to device: " + device_name + " : " + system::errno_enum_str(errno));

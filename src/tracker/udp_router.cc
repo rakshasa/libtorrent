@@ -67,7 +67,7 @@ UdpRouter::open(int family) {
     return;
   }
 
-  if (!device_name.empty() && !fd_bind_to_device(fd, device_name.c_str())) {
+  if (!device_name.empty() && !fd_bind_to_device(fd, device_name.c_str(), family)) {
     LT_LOG("opening router failed : bind to device failed : family:%s device:%s errno:%s",
            system::sa_family_enum(family), device_name.c_str(), system::errno_enum_str(errno).c_str());
     fd_close(fd);
