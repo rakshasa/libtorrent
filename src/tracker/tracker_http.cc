@@ -313,7 +313,9 @@ TrackerHttp::request_announce_url(tracker::TrackerState::event_enum state, int f
   if (m_params.numwant >= 0 && state != tracker::TrackerState::EVENT_STOPPED)
     s << "&numwant=" << m_params.numwant;
 
-  s << "&port="       << runtime::listen_port()
+  auto local_port = runtime::network_config()->local_port_for_family(family);
+
+  s << "&port="       << (local_port != 0 ? local_port : runtime::listen_port())
     << "&uploaded="   << m_params.uploaded_adjusted
     << "&downloaded=" << m_params.completed_adjusted
     << "&left="       << m_params.download_left;
@@ -496,13 +498,11 @@ TrackerHttp::receive_failed(const std::string& msg) {
     LT_LOG("received failure : previous family succeeded : url:%s : %s", info().url.c_str(), msg.c_str());
     m_slot_success(AddressList());
 
-  } else if (!m_last_error_message.empty()) {
-    LT_LOG("received failure : previous family also failed : url:%s : %s /// %s", info().url.c_str(), msg.c_str(), m_last_error_message.c_str());
-    m_slot_failure(msg + " /// " + m_last_error_message);
-
   } else {
-    LT_LOG("received failure : url:%s : %s", info().url.c_str(), msg.c_str());
-    m_slot_failure(msg);
+    auto error_msg = generate_error_message(m_current_family, msg, m_last_error_message);
+
+    LT_LOG("received failure : url:%s : %s", info().url.c_str(), error_msg.c_str());
+    m_slot_failure(error_msg);
   }
 
   if (m_requested_scrape && m_data == nullptr)

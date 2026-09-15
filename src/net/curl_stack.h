@@ -63,6 +63,8 @@ public:
 
   bool                process_done_handle();
 
+  void                ensure_timeout_scheduled();
+
   system::Thread*     thread() const                         { return m_thread; }
 
 protected:

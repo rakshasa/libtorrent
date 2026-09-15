@@ -220,8 +220,13 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
       handshake->destroy_connection();
     };
 
-  if (!download->info()->is_active())
+  if (!download->info()->is_active()) {
+    // Fix race: inactive drop must not arm connect_filter_recent for 600s.
+    if (handshake->peer_info() != nullptr)
+      handshake->peer_info()->set_last_handshake(0);
+
     return error_func(Handshake::e_handshake_inactive_download);
+  }
 
   if (!download->connection_list()->want_connection(handshake->peer_info(), handshake->bitfield()))
     return error_func(Handshake::e_handshake_unwanted_connection);
@@ -273,6 +278,10 @@ HandshakeManager::receive_failed(Handshake* ptr, int message, int error) {
   auto handshake = find_and_erase(ptr);
   auto sa        = handshake->socket_address();
 
+  // Fix race: same as receive_succeeded.
+  if (error == Handshake::e_handshake_inactive_download && handshake->peer_info() != nullptr)
+    handshake->peer_info()->set_last_handshake(0);
+
   handshake->destroy_connection();
 
   LT_LOG_SA(sa, "received error: message:%x %s.", message, handshake_strerror(error));
@@ -308,7 +317,7 @@ namespace {
 
 int
 open_and_connect_socket(const sockaddr* connect_address) {
-  auto bind_address = runtime::network_config()->bind_address_for_connect(connect_address->sa_family);
+  auto [bind_address, device_name] = runtime::network_config()->bind_address_for_tcp_connect(connect_address->sa_family);
 
   if (bind_address == nullptr) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: blocked or invalid bind address", 0);
@@ -326,6 +335,11 @@ open_and_connect_socket(const sockaddr* connect_address) {
 
   if (!setup_socket(fd, connect_address->sa_family)) {
     LT_LOG_SA(connect_address, "could not create outgoing connection: setup socket failed : fd:%i : %s", fd, std::strerror(errno));
+    return close_fn();
+  }
+
+  if (!device_name.empty() && !fd_bind_to_device(fd, device_name.c_str(), connect_address->sa_family)) {
+    LT_LOG_SA(connect_address, "could not create outgoing connection: bind to device failed : fd:%i device:%s : %s", fd, device_name.c_str(), std::strerror(errno));
     return close_fn();
   }
 

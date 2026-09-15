@@ -195,3 +195,93 @@ ObjectStreamTest::test_write() {
   obj.as_map()["d"] = torrent::Object();
   CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:test1:cl3:fooee"));
 }
+
+namespace {
+
+bool
+read_string_accepted(const char* input) {
+  try {
+    uint64_t string_length = std::strlen(input);
+
+    torrent::Object tmp;
+    auto last = torrent::object_read_bencode_c(input, input + string_length, &tmp);
+
+    return tmp.is_string() && last == input + string_length;
+
+  } catch (const torrent::bencode_error&) {
+    return false;
+  }
+}
+
+} // namespace anonymous
+
+void
+ObjectStreamTest::test_read_string_length() {
+  CPPUNIT_ASSERT(read_string_accepted("0:"));
+  CPPUNIT_ASSERT(read_string_accepted("1:a"));
+  CPPUNIT_ASSERT(read_string_accepted("4:abcd"));
+  CPPUNIT_ASSERT(read_string_accepted("10:abcdefghij"));
+
+  CPPUNIT_ASSERT(!read_string_accepted("4294967296:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("4294967300:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("18446744073709551616:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted(":abcd"));
+
+  CPPUNIT_ASSERT(!read_string_accepted("4:abc"));
+  CPPUNIT_ASSERT(!read_string_accepted("4:abcde"));
+  CPPUNIT_ASSERT(!read_string_accepted("-4:abcd"));
+
+  CPPUNIT_ASSERT(!read_string_accepted("0x4:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("0X4:abcd"));
+  CPPUNIT_ASSERT(!read_string_accepted("a:abcdefghij"));
+}
+
+static bool
+read_value_ok(const char* input, int64_t expected) {
+  try {
+    torrent::Object tmp;
+    const char* last = input + std::strlen(input);
+
+    return torrent::object_read_bencode_c(input, last, &tmp) == last &&
+      tmp.is_value() && tmp.as_value() == expected;
+
+  } catch (const torrent::bencode_error&) {
+    return false;
+  }
+}
+
+static bool
+read_value_rejected(const char* input) {
+  try {
+    torrent::Object tmp;
+    torrent::object_read_bencode_c(input, input + std::strlen(input), &tmp);
+    return false;
+
+  } catch (const torrent::bencode_error&) {
+    return true;
+  }
+}
+
+void
+ObjectStreamTest::test_read_value_bounds() {
+  CPPUNIT_ASSERT(read_value_ok("i0e", 0));
+  CPPUNIT_ASSERT(read_value_ok("i-1e", -1));
+  CPPUNIT_ASSERT(read_value_ok("i9223372036854775807e", std::numeric_limits<int64_t>::max()));
+  CPPUNIT_ASSERT(read_value_ok("i-9223372036854775808e", std::numeric_limits<int64_t>::min()));
+
+  CPPUNIT_ASSERT(read_value_rejected("i9223372036854775808e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-9223372036854775809e"));
+  CPPUNIT_ASSERT(read_value_rejected("i18446744073709551615e"));
+  CPPUNIT_ASSERT(read_value_rejected("i99999999999999999999e"));
+
+  CPPUNIT_ASSERT(read_value_ok("i0e", 0));
+  CPPUNIT_ASSERT(read_value_ok("i-1e", -1));
+
+  CPPUNIT_ASSERT(read_value_rejected("i01e"));
+  CPPUNIT_ASSERT(read_value_rejected("i00e"));
+  CPPUNIT_ASSERT(read_value_rejected("i000e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-0e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-00e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-01e"));
+  CPPUNIT_ASSERT(read_value_rejected("i-000123e"));
+}

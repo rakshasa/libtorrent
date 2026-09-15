@@ -56,12 +56,25 @@ bool
 DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) {
   BIGNUM* k = BN_bin2bn(pubkey, length, nullptr);
 
-  m_secret = std::make_unique<char[]>(DH_size(dh_get(m_dh)));
-  m_size = DH_compute_key(reinterpret_cast<unsigned char*>(m_secret.get()), k, dh_get(m_dh));
-  
+  int secret_size = DH_size(dh_get(m_dh));
+
+  m_secret = std::make_unique<char[]>(secret_size);
+
+  int computed_size = DH_compute_key(reinterpret_cast<unsigned char*>(m_secret.get()), k, dh_get(m_dh));
+
   BN_free(k);
 
-  return m_size != -1;
+  if (computed_size == -1)
+    return false;
+
+  if (computed_size < secret_size) {
+    std::memmove(m_secret.get() + secret_size - computed_size, m_secret.get(), computed_size);
+    std::memset(m_secret.get(), 0, secret_size - computed_size);
+  }
+
+  m_size = secret_size;
+
+  return true;
 }
 
 void

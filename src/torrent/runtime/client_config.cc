@@ -24,4 +24,14 @@ ClientConfig::set_listen_port_range(uint16_t first, uint16_t last) {
   m_listen_port_last  = last;
 }
 
+void
+ClientConfig::set_file_name_replace_slash(const std::string& str) {
+  if (str.find('/') != std::string::npos || str.find('\0') != std::string::npos)
+    throw input_error("Invalid string for file_name.replace_slash, contains '/' or null character.");
+
+  auto guard = lock_guard();
+
+  m_file_name_replace_slash = str;
+}
+
 } // namespace torrent::runtime

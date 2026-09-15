@@ -44,7 +44,7 @@ class MemoryChunk {
   MemoryChunk& operator=(const MemoryChunk&) = default;
 
   // Doesn't allow ptr == NULL, use the default ctor instead.
-  MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags);
+  MemoryChunk(char* ptr, char* begin, char* end, int prot);
 
   bool                is_valid() const                                     { return m_ptr; }
   bool                is_readable() const                                  { return m_prot & PROT_READ; }
@@ -92,8 +92,7 @@ private:
   char*               m_begin{};
   char*               m_end{};
 
-  int                 m_prot;
-  int                 m_flags{PROT_NONE};
+  int                 m_prot{PROT_NONE};
 };
 
 inline bool
@@ -103,7 +102,7 @@ MemoryChunk::is_valid_range(uint32_t offset, uint32_t length) const {
 
 inline void
 MemoryChunk::clear() {
-  m_ptr = m_begin = m_end = NULL; m_flags = PROT_NONE;
+  m_ptr = m_begin = m_end = NULL; m_prot = PROT_NONE;
 }
 
 inline uint32_t

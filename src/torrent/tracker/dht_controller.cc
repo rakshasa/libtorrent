@@ -56,7 +56,7 @@ DhtController::initialize(const Object& dht_cache) {
   LT_LOG("initializing", 0);
 
   try {
-    m_router = std::make_unique<DhtRouter>(dht_cache);
+    m_router = std::make_unique<DhtRouter>(this, dht_cache);
 
   } catch (const torrent::local_error& e) {
     LT_LOG("initialization failed : %s", e.what());

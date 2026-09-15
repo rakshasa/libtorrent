@@ -18,9 +18,6 @@ download_data::calc_wanted_chunks() const {
 
   priority_ranges wanted_ranges = priority_ranges::create_union(m_normal_priority, m_high_priority);
 
-  if (m_completed_bitfield.is_all_set())
-    return 0;
-
   // If we haven't allocated the bitfield yet, assume the worst case as it is for display reasons
   // only.
   if (m_completed_bitfield.is_all_unset() || m_completed_bitfield.empty()) {

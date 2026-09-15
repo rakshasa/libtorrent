@@ -42,6 +42,8 @@ public:
   reference           operator [] (size_type n)         { return *(m_data + n); }
   const_reference     operator [] (size_type n) const   { return *(m_data + n); }
 
+  unsigned char       at_uchar(size_type n) const      { return static_cast<unsigned char>(*(m_data + n)); }
+
   value_type*         data()                            { return m_data; }
   const value_type*   data() const                      { return m_data; }
 

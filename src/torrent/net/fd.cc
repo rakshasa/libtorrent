@@ -1,7 +1,17 @@
 #include "config.h"
 
+#if defined(__linux__)
+#  include <string.h>
+#  include <net/if.h>
+#elif defined(__APPLE__)
+#  define __APPLE_USE_RFC_3542
+#  include <net/if.h>
+#  include <netinet/in.h>
+#endif
+
 #include "fd.h"
 
+#include <charconv>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -70,6 +80,14 @@
     lt_log_print(LOG_CONNECTION_FD, "fd->%i: " log_fmt " : value:%i errno:%s", \
                  fd, (int)value, system::errno_enum(errno));            \
     errno = err; }
+
+#define LT_LOG_FD_DEVICE(msg)                                           \
+  lt_log_print(LOG_CONNECTION_FD, "fd->%i: " msg " : device:%s", fd, device);
+#define LT_LOG_FD_DEVICE_ERROR(msg)                                     \
+  { int err = errno;                                                    \
+    lt_log_print(LOG_CONNECTION_FD, "fd->%i: " msg " : device:%s errno:%s", fd, device, system::errno_enum(errno)); \
+    errno = err; }
+
 
 namespace torrent {
 
@@ -374,6 +392,83 @@ fd_bind_with_length(int fd, const sockaddr* sa, socklen_t length) {
   }
 
   LT_LOG_FD_SOCKADDR("fd_bind() succeeded");
+  return true;
+}
+
+bool
+fd_bind_to_device(int fd, const char* device, [[maybe_unused]] int family) {
+  if (device == nullptr || *device == '\0') {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed : device string is empty");
+    return false;
+  }
+
+#if defined(__linux__)
+  if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, device, strnlen(device, IFNAMSIZ)) == -1) {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind socket to device");
+    return false;
+  }
+
+#elif defined(__APPLE__)
+  unsigned int ifindex = if_nametoindex(device);
+
+  if (ifindex == 0) {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to get ifindex for device");
+    return false;
+  }
+
+  int enforce = 1;
+
+  switch (family) {
+  case AF_INET:
+    if (setsockopt(fd, IPPROTO_IP, IP_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind ipv4 socket to device");
+      return false;
+    }
+
+    if (setsockopt(fd, IPPROTO_IP, IP_RECVIF, &enforce, sizeof(enforce)) != 0 &&
+        errno != ENOPROTOOPT && errno != EINVAL) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set IP_RECVIF for ipv4 socket");
+      return false;
+    }
+
+    break;
+  case AF_INET6:
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_BOUND_IF, &ifindex, sizeof(ifindex)) != 0) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to bind ipv6 socket to device");
+      return false;
+    }
+
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &enforce, sizeof(enforce)) != 0 &&
+        errno != ENOPROTOOPT && errno != EINVAL) {
+      LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set IPV6_RECVPKTINFO for ipv6 socket");
+      return false;
+    }
+
+    break;
+  default:
+    throw internal_error("fd_bind_to_device() invalid family specified for macOS binding");
+  }
+
+#elif defined(__OpenBSD__)
+  int rtable_id{};
+  auto [ptr, ec] = std::from_chars(device, device + std::strlen(device), rtable_id);
+
+  if (ec != std::errc{} || *ptr != '\0') {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed as OpenBSD expects a numeric routing table ID for device configuration.");
+    return false;
+  }
+
+  if (setsockopt(fd, SOL_SOCKET, SO_RTABLE, &rtable_id, sizeof(rtable_id)) == -1) {
+    LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() failed to set SO_RTABLE");
+    return false;
+  }
+
+#else
+  LT_LOG_FD_DEVICE_ERROR("fd_bind_to_device() is not supported on this platform.");
+  return false;
+#endif
+
+  LT_LOG_FD_DEVICE("fd_bind_to_device() succeeded");
   return true;
 }
 

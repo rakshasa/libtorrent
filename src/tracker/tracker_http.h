@@ -64,6 +64,7 @@ private:
 
   bool                m_last_success{};
   std::string         m_last_error_message;
+
   bool                m_requested_scrape{};
 
   system::SchedulerEntry m_delay_scrape;

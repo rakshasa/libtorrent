@@ -349,6 +349,8 @@ CurlSocket::handle_action(int ev_bitmask) {
   //
   while (stack->process_done_handle())
     ; // Do nothing.
+
+  stack->ensure_timeout_scheduled();
 }
 
 void

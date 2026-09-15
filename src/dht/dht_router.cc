@@ -22,8 +22,9 @@ namespace torrent {
 
 HashString DhtRouter::zero_id;
 
-DhtRouter::DhtRouter(const Object& cache)
+DhtRouter::DhtRouter(tracker::DhtController* controller, const Object& cache)
   : DhtNode(zero_id, sa_make_inet_any().get()), // actual ID is set later
+    m_controller(controller),
     m_server(this),
     m_curToken(random()),
     m_prevToken(random()),
@@ -106,6 +107,8 @@ DhtRouter::start(int port) {
   LT_LOG_THIS("starting: port:%d", port);
 
   m_server.start(port);
+
+  m_controller->set_nodes_populated(check_nodes_populated());
 
   // Set timeout slot and schedule it to be called immediately for initial bootstrapping if
   // necessary.
@@ -403,7 +406,9 @@ DhtRouter::receive_timeout_bootstrap() {
   // we have enough nodes in our routing table. After we have 32 nodes, we switch
   // to a less aggressive non-bootstrap mode of collecting nodes that contact us
   // and through doing normal torrent announces.
-  if (m_nodes.size() < num_bootstrap_complete) {
+  m_controller->set_nodes_populated(check_nodes_populated());
+
+  if (!check_nodes_populated()) {
     if (!m_contacts.has_value())
       throw internal_error("DhtRouter::receive_timeout_bootstrap called without contact list.");
 
@@ -480,6 +485,8 @@ DhtRouter::receive_timeout() {
     }
     ++itr;
   }
+
+  m_controller->set_nodes_populated(check_nodes_populated());
 
   m_server.update();
 

@@ -82,7 +82,7 @@ public:
 
   uint32_t            chunk_size() const                              { return m_chunk_size; }
   uint32_t            chunk_index_size(uint32_t index) const;
-  uint64_t            chunk_index_position(uint32_t index) const      { return index * chunk_size(); }
+  uint64_t            chunk_index_position(uint32_t index) const      { return static_cast<uint64_t>(index) * chunk_size(); }
 
   const download_data* data() const                                   { return &m_data; }
   const Bitfield*      bitfield() const                               { return m_data.completed_bitfield(); }

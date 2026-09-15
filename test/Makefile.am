@@ -83,6 +83,8 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_uri_parser.h
 
 LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
+	torrent/test_dht_controller.cc \
+	torrent/test_dht_controller.h \
 	torrent/object_test.cc \
 	torrent/object_test.h \
 	torrent/object_test_utils.cc \
@@ -105,6 +107,8 @@ LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/test_tracker_timeout.h
 
 LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
+	data/test_block.cc \
+	data/test_block.h \
 	data/test_chunk_list.cc \
 	data/test_chunk_list.h \
 	data/test_hash_check_queue.cc \

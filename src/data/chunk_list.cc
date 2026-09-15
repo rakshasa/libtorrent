@@ -430,8 +430,6 @@ ChunkList::find_address(void* ptr) {
 
     if (partition != first->chunk()->end())
       return chunk_address_result(first, partition);
-
-    first++;
   }
 
   return chunk_address_result(end(), Chunk::iterator());

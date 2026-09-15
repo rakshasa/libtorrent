@@ -82,6 +82,7 @@ public:
   void                set_protection(int prot)                 { m_protection = prot; }
 
   uint64_t            last_touched() const                     { return m_last_touched; }
+  auto                last_touched_usec() const                { return std::chrono::microseconds(m_last_touched); }
   void                set_last_touched(uint64_t t)             { m_last_touched = t; }
 
 protected:

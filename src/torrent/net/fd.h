@@ -39,6 +39,7 @@ fd_sap_tuple    fd_sap_accept(int fd) LIBTORRENT_EXPORT;
 
 bool            fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool            fd_bind_with_length(int fd, const sockaddr* sa, socklen_t length) LIBTORRENT_EXPORT;
+bool            fd_bind_to_device(int fd, const char* device, int family) LIBTORRENT_EXPORT;
 bool            fd_connect(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool            fd_connect_with_family(int fd, const sockaddr* sa, int family) LIBTORRENT_EXPORT;
 bool            fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
