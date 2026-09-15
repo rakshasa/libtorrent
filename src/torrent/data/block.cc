@@ -336,7 +336,7 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
 
   transfer->set_block(NULL);
 
-  if (transfer->stall() == 0) {
+  if (!transfer->is_erased() && transfer->stall() == 0) {
     if (m_notStalled == 0)
       throw internal_error("Block::invalidate_transfer(...) m_notStalled == 0.");
 
