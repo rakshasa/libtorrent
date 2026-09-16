@@ -46,12 +46,6 @@ public:
   template <typename Out>
   void                read_len(Out start, unsigned int len);
 
-  template <typename T>
-  inline T            read_int();
-
-  template <typename T>
-  inline T            peek_int();
-
   void                write_8(uint8_t v)            { *m_end++ = v; validate_end(); }
   void                write_16(uint16_t v);
   void                write_32(uint32_t v);

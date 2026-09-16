@@ -29,11 +29,6 @@ ChunkList::is_queued(ChunkListNode* node) {
   return std::find(m_queue.begin(), m_queue.end(), node) != m_queue.end();
 }
 
-bool
-ChunkList::has_chunk(size_type index, int prot) const {
-  return base_type::at(index).is_valid() && base_type::at(index).chunk()->has_permissions(prot);
-}
-
 void
 ChunkList::resize(size_type to_size) {
   LT_LOG_THIS(INFO, "Resizing: from:%zu to:%u.", size(), to_size);

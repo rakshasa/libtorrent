@@ -106,8 +106,6 @@ private:
 
   std::optional<uint32_t> m_affinity;
 
-  std::chrono::microseconds m_last_choke{};
-  std::chrono::microseconds m_last_unchoke{};
   size_t                    m_last_unordered_position{0};
 
   torrent::system::SchedulerEntry m_delay_remove_choked;

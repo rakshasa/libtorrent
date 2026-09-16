@@ -12,22 +12,6 @@ namespace torrent {
 SocketDatagram::~SocketDatagram() = default;
 
 int
-SocketDatagram::read_datagram(void* buffer, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to receive buffer length 0");
-
-  return ::recv(file_descriptor(), buffer, length, 0);
-}
-
-int
-SocketDatagram::write_datagram(const void* buffer, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to send buffer length 0");
-
-  return ::send(file_descriptor(), buffer, length, 0);
-}
-
-int
 SocketDatagram::read_datagram_sa(void* buffer, unsigned int length, sockaddr* from_sa, socklen_t from_length) {
   if (length == 0)
     throw internal_error("Tried to receive buffer length 0");

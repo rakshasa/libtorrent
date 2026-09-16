@@ -80,11 +80,6 @@ private:
 
 namespace torrent {
 
-bool
-Chunk::is_all_valid() const {
-  return !empty() && std::all_of(begin(), end(), std::mem_fn(&ChunkPart::is_valid));
-}
-
 void
 Chunk::clear() {
   std::for_each(begin(), end(), std::mem_fn(&ChunkPart::clear));

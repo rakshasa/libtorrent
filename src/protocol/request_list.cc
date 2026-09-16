@@ -120,11 +120,6 @@ RequestList::stall_prolonged() {
 
 void
 RequestList::choked() {
-  // Check if we want to update the choke timer; if non-zero and
-  // updated within a short timespan?
-
-  m_last_choke = torrent::this_thread::cached_time();
-
   if (m_queues.queue_empty(bucket_queued) && m_queues.queue_empty(bucket_unordered))
     return;
 
@@ -137,8 +132,6 @@ RequestList::choked() {
 
 void
 RequestList::unchoked() {
-  m_last_unchoke = torrent::this_thread::cached_time();
-
   // Clear choked queue if the peer doesn't start sending previously
   // requested pieces.
   //
