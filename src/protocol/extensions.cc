@@ -142,11 +142,15 @@ ProtocolExtension::build_bencode(size_t maxLength, const char* format, ...) {
 
   va_list args;
   va_start(args, format);
-  unsigned int length = vsnprintf(b, maxLength, format, args);
+  int length = vsnprintf(b, maxLength, format, args);
   va_end(args);
 
-  if (length > maxLength)
+  // vsnprintf returns the length it would have written, and reserves one
+  // byte of the buffer for the terminating null.
+  if (length < 0 || static_cast<size_t>(length) >= maxLength) {
+    delete [] b;
     throw internal_error("ProtocolExtension::build_bencode wrote past buffer.");
+  }
 
   return DataBuffer(b, b + length);
 }
@@ -370,7 +374,7 @@ ProtocolExtension::send_metadata_piece(size_t piece) {
   if (m_download->info()->is_meta_download() || piece >= pieceEnd) {
     // reject: { "msg_type" => 2, "piece" => ... }
     m_pendingType = UT_METADATA;
-    m_pending = build_bencode(sizeof(size_t) + 36, "d8:msg_typei2e5:piecei%zuee", piece);
+    m_pending = build_bencode(64, "d8:msg_typei2e5:piecei%zuee", piece);
     return;
   }
 
