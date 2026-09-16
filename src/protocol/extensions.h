@@ -76,9 +76,6 @@ public:
   void                unset_local_enabled(int t);
   void                set_remote_supported(int t)      { m_flags |= flag_remote_supported_base << t; }
 
-  // General information about peer from extension handshake.
-  uint32_t            max_queue_length() const         { return m_maxQueueLength; }
-
   // Handle reading extension data from peer.
   void                read_start(int type, uint32_t length, bool skip);
   bool                read_done();
@@ -123,8 +120,6 @@ private:
   // Map of IDs peer uses for each extension message type, excluding
   // HANDSHAKE.
   uint8_t             m_idMap[extension_count];
-
-  uint32_t            m_maxQueueLength;
 
   // Set HANDSHAKE as enabled and supported. Those bits should not be
   // touched.

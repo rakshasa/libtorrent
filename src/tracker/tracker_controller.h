@@ -94,7 +94,6 @@ private:
   void                do_scrape();
 
   void                update_timeout(uint32_t seconds_to_next);
-  void                update_timeout_next_to_request();
 
   inline tracker::TrackerState::event_enum current_send_event() const;
 

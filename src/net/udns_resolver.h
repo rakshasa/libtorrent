@@ -45,13 +45,10 @@ public:
 protected:
   friend class UdnsResolverInternal;
 
-  std::unique_ptr<UdnsQuery> erase_query(query_map::iterator itr);
-
   query_map::iterator        find_query_or_fail_unsafe(UdnsQuery* query);
 
   bool                try_resolve_numeric(std::unique_ptr<UdnsQuery>& query);
 
-  void                process_canceled();
   void                process_timeouts();
 
   static void         process_partial_result_unsafe(query_map::iterator itr);

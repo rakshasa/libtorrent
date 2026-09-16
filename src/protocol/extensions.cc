@@ -290,9 +290,6 @@ ProtocolExtension::parse_handshake() {
       m_peerInfo->set_listen_port(port);
   }
 
-  if (message[key_reqq].is_value())
-    m_maxQueueLength = message[key_reqq].as_value();
-
   if (message[key_metadataSize].is_value())
     m_download->set_metadata_size(message[key_metadataSize].as_value());
 

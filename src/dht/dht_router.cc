@@ -330,18 +330,6 @@ DhtRouter::node_inactive(const HashString& id, const sockaddr* sa) {
   return itr.node();
 }
 
-// We sent a query to the given node ID, but received a reply from a different
-// node ID, that means the address of the original ID is invalid now.
-void
-DhtRouter::node_invalid(const HashString& id) {
-  DhtNode* node = get_node(id);
-
-  if (node == NULL || node == this)
-    return;
-
-  delete_node(m_nodes.find(&node->id()));
-}
-
 Object*
 DhtRouter::store_cache(Object* container) const {
   container->insert_key("self_id", str());

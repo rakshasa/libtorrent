@@ -38,7 +38,6 @@ public:
 private:
   static void        delegate_from_blocklist(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, BlockList* c, PeerInfo* peerInfo);
   void               delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc, bool highPriority);
-  Block*             delegate_seeder(PeerChunks* peerChunks);
 
   TransferList       m_transfers;
 

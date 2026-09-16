@@ -118,11 +118,6 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   return pos;
 }
 
-bool
-ChunkSelector::is_wanted(uint32_t index) const {
-  return m_data->untouched_bitfield()->get(index) && (m_data->normal_priority()->has(index) || m_data->high_priority()->has(index));
-}
-
 void
 ChunkSelector::using_index(uint32_t index) {
   if (index >= size())

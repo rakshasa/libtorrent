@@ -86,8 +86,6 @@ public:
   void                set_manager(ChunkManager* manager)  { m_manager = manager; }
   void                set_chunk_size(uint32_t cs)         { m_chunk_size = cs; }
 
-  bool                has_chunk(size_type index, int prot) const;
-
   void                resize(size_type to_size);
   void                clear();
 

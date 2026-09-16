@@ -69,12 +69,11 @@ public:
   // Search for node with given address in O(n), disregarding the port.
   DhtNode*            find_node(const sockaddr* sa);
 
-  // Whenever a node queries us, replies, or is confirmed inactive (no reply) or
-  // invalid (reply with wrong ID), we need to update its status.
+  // Whenever a node queries us, replies, or is confirmed inactive (no reply),
+  // we need to update its status.
   DhtNode*            node_queried(const HashString& id, const sockaddr* sa);
   DhtNode*            node_replied(const HashString& id, const sockaddr* sa);
   DhtNode*            node_inactive(const HashString& id, const sockaddr* sa);
-  void                node_invalid(const HashString& id);
 
   // Store compact node information (26 bytes) for nodes closest to the
   // given ID in the given buffer, return new buffer end.

@@ -110,9 +110,6 @@ public:
 protected:
   static constexpr uint32_t extension_must_encrypt = ~uint32_t();
 
-  inline bool         read_remaining();
-  inline bool         write_remaining();
-
   void                load_up_chunk();
 
   void                read_request_piece(const Piece& p);
