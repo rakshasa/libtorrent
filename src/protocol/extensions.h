@@ -47,6 +47,8 @@ public:
   // Maximum number of upload requests accepted from one peer.
   static constexpr size_t max_request_queue_size = 2048;
 
+  static size_t       metadata_piece_length(size_t piece, size_t metadata_size);
+
   ProtocolExtension();
   ~ProtocolExtension() { delete [] m_read; }
   ProtocolExtension(const ProtocolExtension&) = default;
