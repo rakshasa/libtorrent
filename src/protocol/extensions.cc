@@ -351,6 +351,19 @@ ProtocolExtension::parse_ut_metadata() {
   return true;
 }
 
+size_t
+ProtocolExtension::metadata_piece_length(size_t piece, size_t metadata_size) {
+  size_t offset = piece << metadata_piece_shift;
+
+  if (offset >= metadata_size)
+    return 0;
+
+  if (metadata_size - offset < metadata_piece_size)
+    return metadata_size - offset;
+
+  return metadata_piece_size;
+}
+
 void
 ProtocolExtension::send_metadata_piece(size_t piece) {
   // Reject out-of-range piece, or if we don't have the complete metadata yet.
@@ -371,7 +384,7 @@ ProtocolExtension::send_metadata_piece(size_t piece) {
                          &(*manager->download_manager()->find(m_download->info()))->bencode()->get_key("info"));
 
   // data: { "msg_type" => 1, "piece" => ..., "total_size" => ... } followed by piece data (outside of dictionary)
-  size_t length = piece == pieceEnd - 1 ? m_download->info()->metadata_size() % metadata_piece_size : metadata_piece_size;
+  size_t length = metadata_piece_length(piece, metadataSize);
   m_pendingType = UT_METADATA;
   m_pending = build_bencode((2 * sizeof(size_t)) + length + 120, "d8:msg_typei1e5:piecei%zue10:total_sizei%zuee", piece, metadataSize);
 

@@ -417,10 +417,7 @@ void
 PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data, uint32_t length) {
   if (data == NULL) {
     // Length is not set in a reject message.
-    length = ProtocolExtension::metadata_piece_size;
-
-    if ((piece << ProtocolExtension::metadata_piece_shift) + ProtocolExtension::metadata_piece_size >= m_download->file_list()->size_bytes())
-      length = m_download->file_list()->chunk_size() % ProtocolExtension::metadata_piece_size;
+    length = ProtocolExtension::metadata_piece_length(piece, m_download->file_list()->size_bytes());
 
     m_tryRequest = false;
     read_cancel_piece(Piece(0, piece << ProtocolExtension::metadata_piece_shift, length));
