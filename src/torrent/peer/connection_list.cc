@@ -65,6 +65,7 @@ ConnectionList::insert(PeerInfo* peerInfo, int fd, Bitfield* bitfield, Encryptio
   peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
   if (peerConnection->file_descriptor() == -1) {
+    peerInfo->set_connection(NULL);
     delete peerConnection;
     return NULL;
   }

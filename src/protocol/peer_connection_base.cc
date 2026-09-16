@@ -107,6 +107,9 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
 
   } catch (const close_connection&) {
     // The handshake manager closes the socket for us.
+    if (!m_extensions->is_default())
+      delete m_extensions;
+
     m_peerInfo   = nullptr;
     m_download   = nullptr;
     m_extensions = nullptr;
