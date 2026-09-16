@@ -79,7 +79,12 @@ DhtRouter::DhtRouter(tracker::DhtController* controller, const Object& cache)
 
     if (cache.has_key("contacts")) {
       for (const auto& contact : cache.get_key_list("contacts")) {
-        auto litr = contact.as_list().begin();
+        const Object::list_type& list = contact.as_list();
+
+        if (list.size() != 2)
+          throw bencode_error("Loading cache: Invalid contact.");
+
+        auto litr = list.begin();
         auto host = litr->as_string();
         auto port = std::next(litr)->as_value();
 
