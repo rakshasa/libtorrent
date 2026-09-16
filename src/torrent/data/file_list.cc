@@ -385,6 +385,9 @@ FileList::open(bool hashing, int flags) {
   if (m_root_dir.empty())
     throw internal_error("FileList::open() m_root_dir.empty().", data()->hash());
 
+  // Rebuilt below by make_directory, so start from empty rather than
+  // depend on a preceding close().
+  m_indirect_links.clear();
   m_indirect_links.push_back(m_root_dir);
 
   Path lastPath;
