@@ -294,9 +294,6 @@ FileList::update_paths(iterator first, iterator last) {
 
 bool
 FileList::make_root_path() {
-  if (!is_open())
-    return false;
-
   return ::mkdir(m_root_dir.c_str(), 0777) == 0 || errno == EEXIST;
 }
 
