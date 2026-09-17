@@ -923,7 +923,7 @@ PeerConnectionBase::try_request_pieces() {
   if (request_list()->queued_empty())
     m_down_stall = 0;
 
-  uint32_t pipeSize = request_list()->calculate_pipe_size(m_peer_chunks.download_throttle()->rate()->rate());
+  uint32_t pipeSize = request_list()->calculate_pipe_size(m_peer_chunks.download_throttle()->rate_recent()->rate());
 
   // Don't start requesting if we can't do it in large enough chunks.
   if (request_list()->pipe_size() >= (pipeSize + 10) / 2)
