@@ -69,6 +69,11 @@ TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
 }
 
 bool
+TrackerList::has_in_use() const {
+  return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_in_use(); });
+}
+
+bool
 TrackerList::has_usable() const {
   return std::any_of(begin(), end(), [](auto& tracker) { return tracker.is_usable(); });
 }

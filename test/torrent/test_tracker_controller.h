@@ -17,6 +17,7 @@ class TestTrackerController : public TestFixtureWithMainAndTrackerThread {
   CPPUNIT_TEST(test_send_start);
   CPPUNIT_TEST(test_send_stop_normal);
   CPPUNIT_TEST(test_send_completed_normal);
+  CPPUNIT_TEST(test_send_completed_no_success);
   CPPUNIT_TEST(test_send_update_normal);
   CPPUNIT_TEST(test_send_update_failure);
   CPPUNIT_TEST(test_send_task_timeout);
@@ -49,6 +50,7 @@ public:
   void test_send_start();
   void test_send_stop_normal();
   void test_send_completed_normal();
+  void test_send_completed_no_success();
   void test_send_update_normal();
   void test_send_update_failure();
   void test_send_task_timeout();
