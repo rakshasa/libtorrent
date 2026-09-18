@@ -20,20 +20,6 @@ namespace {
 c_sa_shared_ptr inet_any_value  = sa_make_inet_any();
 c_sa_shared_ptr inet6_any_value = sa_make_inet6_any();
 
-std::pair<c_sa_shared_ptr, std::string>
-sa_lookup_address_with_device_name(const std::string& address_str, int family) {
-  auto split = address_str.find('%');
-  auto sa    = sa_lookup_address(address_str.substr(0, split), family);
-
-  if (split == std::string::npos)
-    return {sa, ""};
-
-  if (split == address_str.size() - 1)
-    throw input_error("Invalid address string, device name is empty");
-
-  return {sa, address_str.substr(split + 1)};
-}
-
 } // namespace anonymous
 
 NetworkConfig::NetworkConfig() {
@@ -214,6 +200,18 @@ NetworkConfig::bind_udp_addresses_or_null() const {
   return bind_addresses_or_null_unsafe();
 }
 
+std::string
+NetworkConfig::bind_inet_device_name() const {
+  auto guard = lock_guard();
+  return m_bind_inet_device_name;
+}
+
+std::string
+NetworkConfig::bind_inet6_device_name() const {
+  auto guard = lock_guard();
+  return m_bind_inet6_device_name;
+}
+
 c_sa_shared_ptr
 NetworkConfig::local_address_best_match() const {
   return generic_address_best_match(m_local_inet_address, m_local_inet6_address);
@@ -326,53 +324,62 @@ NetworkConfig::local_port_best_match() const {
 }
 
 void
-NetworkConfig::set_bind_address_str(const std::string& addr) {
-  auto [sa, device_name] = sa_lookup_address_with_device_name(addr, AF_UNSPEC);
+NetworkConfig::set_bind_address(const std::string& addr) {
+  auto sa = sa_lookup_address(addr, AF_UNSPEC);
 
   auto guard = lock_guard();
 
   set_generic_address_unsafe("bind", m_bind_inet_address, m_bind_inet6_address, sa.get());
-
-  if (m_bind_inet_address->sa_family == AF_UNSPEC && m_bind_inet6_address->sa_family == AF_UNSPEC) {
-    m_bind_inet_device_name  = device_name;
-    m_bind_inet6_device_name = device_name;
-  } else if (m_bind_inet_address->sa_family == AF_INET) {
-    m_bind_inet_device_name  = device_name;
-    m_bind_inet6_device_name = "";
-  } else if (m_bind_inet6_address->sa_family == AF_INET6) {
-    m_bind_inet_device_name  = "";
-    m_bind_inet6_device_name = device_name;
-  }
-
   notify_changes_unsafe();
 }
 
 void
-NetworkConfig::set_bind_inet_address_str(const std::string& addr) {
-  auto [sa, device_name] = sa_lookup_address_with_device_name(addr, AF_INET);
+NetworkConfig::set_bind_inet_address(const std::string& addr) {
+  auto sa = sa_lookup_address(addr, AF_INET);
 
   auto guard = lock_guard();
 
   set_generic_inet_address_unsafe("bind", m_bind_inet_address, sa.get());
-  m_bind_inet_device_name = device_name;
-
   notify_changes_unsafe();
 }
 
 void
-NetworkConfig::set_bind_inet6_address_str(const std::string& addr) {
-  auto [sa, device_name] = sa_lookup_address_with_device_name(addr, AF_INET6);
+NetworkConfig::set_bind_inet6_address(const std::string& addr) {
+  auto sa = sa_lookup_address(addr, AF_INET6);
 
   auto guard = lock_guard();
 
   set_generic_inet6_address_unsafe("bind", m_bind_inet6_address, sa.get());
-  m_bind_inet6_device_name = device_name;
-
   notify_changes_unsafe();
 }
 
 void
-NetworkConfig::set_local_address_str(const std::string& addr) {
+NetworkConfig::set_bind_device_name(const std::string& device_name) {
+  auto guard = lock_guard();
+
+  m_bind_inet_device_name  = device_name;
+  m_bind_inet6_device_name = device_name;
+  notify_changes_unsafe();
+}
+
+void
+NetworkConfig::set_bind_inet_device_name(const std::string& device_name) {
+  auto guard = lock_guard();
+
+  m_bind_inet_device_name = device_name;
+  notify_changes_unsafe();
+}
+
+void
+NetworkConfig::set_bind_inet6_device_name(const std::string& device_name) {
+  auto guard = lock_guard();
+
+  m_bind_inet6_device_name = device_name;
+  notify_changes_unsafe();
+}
+
+void
+NetworkConfig::set_local_address(const std::string& addr) {
   auto sa = sa_lookup_address(addr, AF_UNSPEC);
 
   if (sa_is_any(sa.get()))
@@ -383,7 +390,7 @@ NetworkConfig::set_local_address_str(const std::string& addr) {
 }
 
 void
-NetworkConfig::set_local_inet_address_str(const std::string& addr) {
+NetworkConfig::set_local_inet_address(const std::string& addr) {
   auto sa = sa_lookup_address(addr, AF_INET);
 
   if (sa_is_any(sa.get()))
@@ -394,7 +401,7 @@ NetworkConfig::set_local_inet_address_str(const std::string& addr) {
 }
 
 void
-NetworkConfig::set_local_inet6_address_str(const std::string& addr) {
+NetworkConfig::set_local_inet6_address(const std::string& addr) {
   auto sa = sa_lookup_address(addr, AF_INET6);
 
   if (sa_is_any(sa.get()))
