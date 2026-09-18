@@ -55,6 +55,7 @@ public:
   bool                has_active_not_scrape() const;
   bool                has_active_in_group(uint32_t group) const;
   bool                has_active_not_scrape_in_group(uint32_t group) const;
+  bool                has_in_use() const;
   bool                has_usable() const;
 
   void                clear();

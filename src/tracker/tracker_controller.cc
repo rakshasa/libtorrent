@@ -215,7 +215,7 @@ TrackerController::send_completed_event() {
   m_flags &= ~mask_send;
   m_flags |= flag_send_completed;
 
-  if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
+  if (!(m_flags & flag_active) || !m_tracker_list->has_in_use()) {
     LT_LOG_TRACKER_EVENTS("sending completed event : queued", 0);
     return;
   }

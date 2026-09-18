@@ -305,6 +305,27 @@ TestTrackerController::test_send_completed_normal() {
 }
 
 void
+TestTrackerController::test_send_completed_no_success() {
+  TEST_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
+
+  auto tracker_0_0_worker = TrackerTest::test_worker(tracker_0_0);
+
+  CPPUNIT_ASSERT(tracker_0_0_worker->trigger_failure());
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
+
+  // The tracker is enabled but has never answered, so there is nothing to send
+  // the completed event to. Keep the queued retry so it can be sent later.
+  tracker_controller.send_completed_event();
+
+  CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) ==
+                 torrent::TrackerController::flag_send_completed);
+  CPPUNIT_ASSERT(tracker_controller.is_timeout_queued());
+
+  TEST_SINGLE_END(0, 1);
+}
+
+void
 TestTrackerController::test_send_update_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
