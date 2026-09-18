@@ -59,7 +59,7 @@ DhtAnnounce::start_announce() {
       tracker->set_dht_announce_state();
     });
 
-  for (const auto& [node, _] : *this)
+  for (const auto& node : *this)
     set_node_active(node, true);
 
   return const_accessor(begin());

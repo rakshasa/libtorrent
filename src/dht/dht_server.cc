@@ -201,7 +201,7 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
   auto n = search->get_contact();
 
   while (n != search->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(n)), packet_prio_low);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(search, n)), packet_prio_low);
     n = search->get_contact();
   }
 
@@ -221,7 +221,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::
   auto n = announce->get_contact();
 
   while (n != announce->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(n)), packet_prio_high);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(announce, n)), packet_prio_high);
     n = announce->get_contact();
   }
 
@@ -523,7 +523,7 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   auto node = transaction->search()->get_contact();
 
   while (node != transaction->search()->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(node)), priority);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(transaction->search(), node)), priority);
     node = transaction->search()->get_contact();
   }
 
@@ -539,7 +539,7 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
     // We have found the 8 closest nodes to the info hash. Retrieve peers
     // from them and announce to them.
     for (node = announce->start_announce(); node != announce->end(); ++node)
-      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(node)), packet_prio_high);
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(transaction->search(), node)), packet_prio_high);
   }
 
   announce->update_status();

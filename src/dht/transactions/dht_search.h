@@ -2,6 +2,7 @@
 #define LIBTORRENT_DHT_TRANSACTIONS_DHT_SEARCH_H
 
 #include <memory>
+#include <set>
 
 #include "torrent/common.h"
 #include "torrent/hash_string.h"
@@ -12,9 +13,6 @@
 //
 // DhtSearch contains a list of nodes sorted by closeness to the given target, and returns what
 // nodes to contact with up to three concurrent transactions pending.
-//
-// The map element is the DhtSearch object itself to allow the returned accessors to know which
-// search a given node belongs to.
 
 // TODO: Consider moving this to dht/
 
@@ -43,11 +41,9 @@ private:
   const HashString    m_target;
 };
 
-// Use std::enable_shared_from_this as a temporary hack.
-
-class DhtSearch : public std::enable_shared_from_this<DhtSearch>, protected std::map<std::unique_ptr<DhtNode>, std::shared_ptr<DhtSearch>, dht_compare_closer> {
+class DhtSearch : protected std::set<std::unique_ptr<DhtNode>, dht_compare_closer> {
 public:
-  using base_type = std::map<std::unique_ptr<DhtNode>, std::shared_ptr<DhtSearch>, dht_compare_closer>;
+  using base_type = std::set<std::unique_ptr<DhtNode>, dht_compare_closer>;
 
   // max_contacts: Number of closest potential contact nodes to keep.
   // max_announce: Number of closest nodes we actually announce to.
@@ -57,16 +53,15 @@ public:
   DhtSearch(DhtServer* server, const HashString& target);
   virtual ~DhtSearch();
 
-  // Wrapper for iterators, allowing more convenient access to the key
-  // and element values, which also makes it easier to change the container
-  // without having to modify much code using iterators.
+  // Wrapper for iterators, allowing more convenient access to the element
+  // values, which also makes it easier to change the container without
+  // having to modify much code using iterators.
   template <typename T>
   struct accessor_wrapper : public T {
     accessor_wrapper() = default;
     accessor_wrapper(const T& itr) : T(itr) { }
 
-    const auto&                       node() const     { return (**this).first; }
-    const std::shared_ptr<DhtSearch>& search() const   { return (**this).second; }
+    const auto&         node() const   { return **this; }
   };
 
   using const_accessor = accessor_wrapper<base_type::const_iterator>;

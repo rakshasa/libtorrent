@@ -19,9 +19,6 @@ DhtSearch::DhtSearch(DhtServer* server, const HashString& target)
     m_next(end()),
     m_server(server),
     m_target(target) {
-
-  // TODO: Must be done manually to ensure we got a shared_ptr.
-  // add_contacts(contacts);
 }
 
 DhtSearch::~DhtSearch() {
@@ -30,23 +27,11 @@ DhtSearch::~DhtSearch() {
   // case.
   assert(!m_pending && "DhtSearch::~DhtSearch called with pending transactions.");
   assert(m_concurrency == 3 && "DhtSearch::~DhtSearch called with invalid concurrency limit.");
-
-  // TODO: Hack.
-  // for (auto& itr : *this)
-  //   itr.second->server()->check_search_trimming(itr.second);
 }
-
-// TODO: Check if DhtSearch gets stored somewhere, and DhtBucket seems the most likely candidate.
-//
-// This seems to be storing self in the map.
-
-//
-// TODO: Remove self stored in the map, and when getting accessor from map, also pass the (self) DhtSearch.
-//
 
 bool
 DhtSearch::add_contact(const HashString& id, const sockaddr* sa) {
-  auto [itr, added] = emplace(std::make_unique<DhtNode>(id, sa), shared_from_this());
+  auto [itr, added] = emplace(std::make_unique<DhtNode>(id, sa));
 
   if (added)
     m_restart = true;
@@ -113,13 +98,8 @@ DhtSearch::trim(bool is_final) {
     // If we have all we need, delete current node unless it is
     // currently being contacted.
     if (!itr.node()->is_active() && needClosest <= 0 && (!itr.node()->is_good() || needGood <= 0)) {
-      // TODO: Temporary hack.
-        // TODO: Add server function to add it to m_search if not complete.
-        // TODO: We should replace m_pending with a vector of txs.
-
-      // TODO: We're somehow storying self in the map, and erasing causes crash as m_pending == 2.
-
-      // itr.search()->server()->check_search_trimming(itr.search());
+      // TODO: Add server function to add it to m_search if not complete.
+      // TODO: We should replace m_pending with a vector of txs.
 
       erase(itr++);
       continue;
