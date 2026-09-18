@@ -8,6 +8,7 @@
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
+#include "dht/dht_tracker.h"
 #include "torrent/tracker/dht_controller.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_dht_controller, "torrent");
@@ -96,4 +97,27 @@ test_dht_controller::test_add_peer_node_after_bootstrap() {
   CPPUNIT_ASSERT(dht->is_nodes_populated());
 
   CPPUNIT_ASSERT_EQUAL(0u, add_peer_node_and_count_queries());
+}
+
+void
+test_dht_controller::test_add_peer_stores_compact_port_in_network_order() {
+  torrent::DhtTracker tracker;
+  auto sa = torrent::sa_make_inet_h(0x01020304, 0);
+  auto sin = reinterpret_cast<const sockaddr_in*>(sa.get());
+
+  tracker.add_peer(sin->sin_addr.s_addr, 1000);
+
+  torrent::raw_list peers = tracker.get_peers(1);
+  CPPUNIT_ASSERT_EQUAL(uint32_t{8}, peers.size());
+
+  auto data = reinterpret_cast<const unsigned char*>(peers.data());
+
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>('6'), data[0]);
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>(':'), data[1]);
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>(0x01), data[2]);
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>(0x02), data[3]);
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>(0x03), data[4]);
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>(0x04), data[5]);
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>(0x03), data[6]);
+  CPPUNIT_ASSERT_EQUAL(static_cast<unsigned char>(0xE8), data[7]);
 }

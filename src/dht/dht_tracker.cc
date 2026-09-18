@@ -9,7 +9,7 @@ DhtTracker::add_peer(uint32_t addr_n, uint16_t port) {
   if (port == 0)
     return;
 
-  SocketAddressCompact compact(addr_n, port);
+  SocketAddressCompact compact(addr_n, htons(port));
 
   unsigned int oldest = 0;
   uint32_t minSeen = ~uint32_t();
