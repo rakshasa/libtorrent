@@ -83,10 +83,10 @@ DhtTransaction::key_match(key_type key, const sockaddr* sa) {
 // DhtTransactionSearch:
 //
 
-DhtTransactionSearch::DhtTransactionSearch(int quick_timeout, int timeout, dht::DhtSearch::const_accessor& node)
+DhtTransactionSearch::DhtTransactionSearch(int quick_timeout, int timeout, std::shared_ptr<dht::DhtSearch> search, dht::DhtSearch::const_accessor& node)
   : DhtTransaction(quick_timeout, timeout, node.node()->id(), node.node()->address()),
     m_node(node),
-    m_search(node.search()) {
+    m_search(std::move(search)) {
 
   if (!m_hasQuickTimeout)
     m_search->m_concurrency++;
@@ -112,9 +112,6 @@ void
 DhtTransactionSearch::complete(bool success) {
   if (m_node == m_search->end())
     throw internal_error("DhtTransactionSearch::complete() called multiple times.");
-
-  if (m_node.search() != m_search)
-    throw internal_error("DhtTransactionSearch::complete() called for node from wrong search.");
 
   if (!m_hasQuickTimeout)
     m_search->m_concurrency--;

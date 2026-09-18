@@ -187,7 +187,7 @@ public:
   void                complete(bool success);
 
 protected:
-  DhtTransactionSearch(int quick_timeout, int timeout, dht::DhtSearch::const_accessor& node);
+  DhtTransactionSearch(int quick_timeout, int timeout, std::shared_ptr<dht::DhtSearch> search, dht::DhtSearch::const_accessor& node);
 
 private:
   dht::DhtSearch::const_accessor  m_node;
@@ -205,16 +205,16 @@ public:
 
 class DhtTransactionFindNode : public DhtTransactionSearch {
 public:
-  DhtTransactionFindNode(dht::DhtSearch::const_accessor& node)
-    : DhtTransactionSearch(4, 30, node) { }
+  DhtTransactionFindNode(std::shared_ptr<dht::DhtSearch> search, dht::DhtSearch::const_accessor& node)
+    : DhtTransactionSearch(4, 30, std::move(search), node) { }
 
   transaction_type           type() const override;
 };
 
 class DhtTransactionGetPeers : public DhtTransactionSearch {
 public:
-  DhtTransactionGetPeers(dht::DhtSearch::const_accessor& node)
-    : DhtTransactionSearch(-1, 30, node) { }
+  DhtTransactionGetPeers(std::shared_ptr<dht::DhtSearch> search, dht::DhtSearch::const_accessor& node)
+    : DhtTransactionSearch(-1, 30, std::move(search), node) { }
 
   transaction_type           type() const override;
 };
