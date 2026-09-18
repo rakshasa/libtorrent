@@ -120,7 +120,7 @@ RequestList::stall_prolonged() {
 
 void
 RequestList::choked() {
-  if (m_queues.queue_empty(bucket_queued) && m_queues.queue_empty(bucket_unordered))
+  if (m_queues.queue_empty(bucket_queued) && m_queues.queue_empty(bucket_unordered) && m_queues.queue_empty(bucket_stalled))
     return;
 
   m_queues.move_all_to(bucket_queued, bucket_choked);
