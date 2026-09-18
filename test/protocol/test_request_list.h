@@ -8,6 +8,7 @@ class TestRequestList : public test_fixture {
   CPPUNIT_TEST(test_single_canceled);
 
   CPPUNIT_TEST(test_choke_normal);
+  CPPUNIT_TEST(test_choke_stalled);
   CPPUNIT_TEST(test_choke_unchoke_discard);
   CPPUNIT_TEST(test_choke_unchoke_transfer);
 
@@ -20,6 +21,7 @@ public:
   void test_single_canceled();
 
   void test_choke_normal();
+  void test_choke_stalled();
   void test_choke_unchoke_discard();
   void test_choke_unchoke_transfer();
 };

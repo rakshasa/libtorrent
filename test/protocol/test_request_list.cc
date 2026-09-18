@@ -212,6 +212,29 @@ TestRequestList::test_choke_normal() {
 }
 
 void
+TestRequestList::test_choke_stalled() {
+  SETUP_ALL_WITH_3(basic);
+  VERIFY_QUEUE_SIZES(3, 0, 0, 0);
+
+  // A peer that stalls before it chokes leaves the queued and unordered
+  // buckets empty, which is the state choked() has to act on.
+  request_list->stall_prolonged();
+  VERIFY_QUEUE_SIZES(0, 0, 3, 0);
+
+  request_list->choked();
+
+  test_main_thread->test_set_cached_time(1s);
+  test_main_thread->test_process_events_without_cached_time();
+  VERIFY_QUEUE_SIZES(0, 0, 0, 3);
+
+  test_main_thread->test_set_cached_time(1s + 6s);
+  test_main_thread->test_process_events_without_cached_time();
+  VERIFY_QUEUE_SIZES(0, 0, 0, 0);
+
+  CLEAR_TRANSFERS();
+}
+
+void
 TestRequestList::test_choke_unchoke_discard() {
   SETUP_ALL_WITH_3(basic);
 
