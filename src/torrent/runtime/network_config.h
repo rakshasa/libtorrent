@@ -72,6 +72,9 @@ public:
   address_device_both bind_tcp_addresses_or_null() const;
   address_device_both bind_udp_addresses_or_null() const;
 
+  std::string         bind_inet_device_name() const;
+  std::string         bind_inet6_device_name() const;
+
   c_sa_shared_ptr     local_address_best_match() const;
   std::string         local_address_best_match_str() const;
   c_sa_shared_ptr     local_address_or_unspec_and_null() const;
@@ -91,12 +94,17 @@ public:
   uint16_t            local_port_for_family(int family) const;
   uint16_t            local_port_best_match() const;
 
-  void                set_bind_address_str(const std::string& addr);
-  void                set_bind_inet_address_str(const std::string& addr);
-  void                set_bind_inet6_address_str(const std::string& addr);
-  void                set_local_address_str(const std::string& addr);
-  void                set_local_inet_address_str(const std::string& addr);
-  void                set_local_inet6_address_str(const std::string& addr);
+  void                set_bind_address(const std::string& addr);
+  void                set_bind_inet_address(const std::string& addr);
+  void                set_bind_inet6_address(const std::string& addr);
+
+  void                set_bind_device_name(const std::string& device_name);
+  void                set_bind_inet_device_name(const std::string& device_name);
+  void                set_bind_inet6_device_name(const std::string& device_name);
+
+  void                set_local_address(const std::string& addr);
+  void                set_local_inet_address(const std::string& addr);
+  void                set_local_inet6_address(const std::string& addr);
 
   void                set_local_inet_port(uint16_t port);
   void                set_local_inet6_port(uint16_t port);
