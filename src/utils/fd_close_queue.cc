@@ -103,8 +103,12 @@ FdCloseQueue::close_fds(std::vector<int>&& fds) {
 
 void
 FdCloseQueue::wait_for(uint32_t max_remaining) {
-  while (m_remaining.load(std::memory_order_acquire) > max_remaining)
-    m_remaining.wait(max_remaining, std::memory_order_acquire);
+  auto current = m_remaining.load(std::memory_order_acquire);
+
+  while (current > max_remaining) {
+    m_remaining.wait(current, std::memory_order_acquire);
+    current = m_remaining.load(std::memory_order_acquire);
+  }
 }
 
 } // namespace torrent::utils
