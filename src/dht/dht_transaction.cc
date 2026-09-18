@@ -20,10 +20,10 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys;
 // DhtTransactionPacket:
 //
 
-DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, std::shared_ptr<DhtTransaction> t)
+DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, uint64_t transaction_key)
   : m_socket_address(sa_copy(s)),
     m_id(id),
-    m_transaction(std::move(t)) {
+    m_transaction_key(transaction_key) {
 
   build_buffer(d);
 }

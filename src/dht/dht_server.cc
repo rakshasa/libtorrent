@@ -623,7 +623,7 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
       break;
   }
 
-  auto packet = std::make_shared<DhtTransactionPacket>(transaction->address(), query, tID, transaction);
+  auto packet = std::make_shared<DhtTransactionPacket>(transaction->address(), query, tID, itr->first);
 
   transaction->set_packet(packet);
   add_packet(packet, priority);
@@ -871,7 +871,7 @@ DhtServer::process_queue(packet_queue& queue) {
     DhtTransaction::key_type transactionKey = 0;
 
     if(packet->has_transaction())
-      transactionKey = packet->transaction()->key(packet->id());
+      transactionKey = packet->transaction_key();
 
     // Make sure its transaction hasn't timed out yet, if it has/had one
     // and don't bother sending non-transaction packets (replies) after
@@ -908,7 +908,7 @@ DhtServer::process_queue(packet_queue& queue) {
       auto itr = m_transactions.find(transactionKey);
 
       if (itr != m_transactions.end())
-        packet->transaction()->reset_packet();
+        itr->second->reset_packet();
     }
   }
 }
