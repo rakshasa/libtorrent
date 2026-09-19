@@ -62,13 +62,14 @@ public:
 
   void                disconnect(uint32_t id);
 
+  using random_engine = std::independent_bits_engine<std::mt19937, 32, uint32_t>;
+
 private:
   UdpRouter(const UdpRouter&) = delete;
   UdpRouter& operator=(const UdpRouter&) = delete;
 
   struct connection_info;
 
-  using random_engine      = std::independent_bits_engine<std::default_random_engine, 32, uint32_t>;
   using connection_map     = std::unordered_map<uint32_t, connection_info>;
   using write_queue_type   = std::deque<std::pair<uint32_t, connection_info*>>;
   using timeout_queue_type = std::deque<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
