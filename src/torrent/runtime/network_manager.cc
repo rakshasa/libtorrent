@@ -135,7 +135,7 @@ NetworkManager::dht_restart() {
     runtime::network_manager()->dht_controller()->start();
 
   } catch (const base_error& e) {
-    LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", e.what());
+    LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", dht_port(), e.what());
     return;
   }
 }
