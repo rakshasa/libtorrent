@@ -83,6 +83,8 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_uri_parser.h
 
 LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
+	torrent/peer/test_peer_info.cc \
+	torrent/peer/test_peer_info.h \
 	torrent/test_dht_controller.cc \
 	torrent/test_dht_controller.h \
 	torrent/object_test.cc \
