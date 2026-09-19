@@ -48,12 +48,23 @@
 #include "chunk_iterator.h"
 
 namespace {
-thread_local jmp_buf jmp_disk_full;
+thread_local sigjmp_buf            jmp_disk_full;
+thread_local volatile sig_atomic_t jmp_disk_full_armed;
 
 void
-bus_handler(int, siginfo_t* si, void*) {
-  if (si && si->si_code == BUS_ADRERR)
-    longjmp(jmp_disk_full, 1);
+bus_handler(int signum, siginfo_t*, void*) {
+  if (!jmp_disk_full_armed) {
+    struct sigaction sa{};
+
+    sa.sa_handler = SIG_DFL;
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(signum, &sa, nullptr);
+    return;
+  }
+
+  jmp_disk_full_armed = 0;
+  siglongjmp(jmp_disk_full, 1);
 }
 
 class bus_handler_guard {
@@ -68,7 +79,10 @@ public:
     sigaction(SIGBUS, &sa, &m_oldact);
   }
 
-  ~bus_handler_guard() { sigaction(SIGBUS, &m_oldact, nullptr); }
+  ~bus_handler_guard() {
+    jmp_disk_full_armed = 0;
+    sigaction(SIGBUS, &m_oldact, nullptr);
+  }
 
   bus_handler_guard(const bus_handler_guard&) = delete;
   bus_handler_guard& operator=(const bus_handler_guard&) = delete;
@@ -263,15 +277,19 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
 
   bus_handler_guard guard;
 
-  if (setjmp(jmp_disk_full) == 0) {
+  if (sigsetjmp(jmp_disk_full, 1) == 0) {
+      jmp_disk_full_armed = 1;
+
       do {
         data = itr.data();
         std::memcpy(data.first, buffer, data.second);
 
         buffer = static_cast<const char*>(buffer) + data.second;
       } while (itr.next());
+
+      jmp_disk_full_armed = 0;
   } else {
-      throw storage_error("no space left on disk");
+      throw storage_error("failed to write chunk, the file was truncated or the disk is full");
   }
 
   return true;
