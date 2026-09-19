@@ -25,13 +25,24 @@
 
 namespace torrent::tracker {
 
-UdpRouter::UdpRouter()
-  : m_resolver_callback_id(system::make_callback_id()) {
+namespace {
 
+UdpRouter::random_engine
+create_random_engine() {
   std::random_device rd;
-  std::mt19937       mt(rd());
+  std::seed_seq      seed{rd(), rd(), rd(), rd(), rd(), rd(), rd(), rd()};
 
-  m_random_engine.seed(mt());
+  UdpRouter::random_engine engine;
+  engine.seed(seed);
+
+  return engine;
+}
+
+} // namespace
+
+UdpRouter::UdpRouter()
+  : m_random_engine(create_random_engine()),
+    m_resolver_callback_id(system::make_callback_id()) {
 
   m_task_timeout.slot() = [this] { receive_timeout(); };
 }
