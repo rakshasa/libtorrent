@@ -711,7 +711,9 @@ static_map_read_bencode_c(const char* first,
         break;
       }
 
-      stack_itr++;
+      if (++stack_itr == stack + 8)
+        throw torrent::bencode_error("Invalid bencode data.");
+
       stack_itr->set_key_index((stack_itr - 1)->next_key, key_search.second, 2);
 
       current_key[key_search.second] = ':';
