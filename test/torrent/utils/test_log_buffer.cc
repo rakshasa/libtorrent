@@ -2,6 +2,9 @@
 
 #include "test_log_buffer.h"
 
+#include <algorithm>
+
+#include "torrent/utils/log.h"
 #include "torrent/utils/log_buffer.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_log_buffer, "torrent/utils");
@@ -57,4 +60,28 @@ test_log_buffer::test_timestamps() {
   CPPUNIT_ASSERT(log.find_older(timestamp + 10 - 1)  == log.begin() + 1);
   CPPUNIT_ASSERT(log.find_older(timestamp + 10)      == log.end());
   CPPUNIT_ASSERT(log.find_older(timestamp + 10 + 1)  == log.end());
+}
+
+// log_open_log_buffer() registers an output slot holding a raw pointer to the buffer, so dropping
+// the buffer has to take the slot with it or the next log line writes into freed memory.
+void
+test_log_buffer::test_close_output_on_delete() {
+  const std::string name = "test_log_buffer_lifetime";
+
+  auto has_output = [&name]() {
+    return std::any_of(torrent::log_outputs.begin(), torrent::log_outputs.end(),
+                       [&name](const auto& output) { return output.first == name; });
+  };
+
+  auto outputs_before = torrent::log_outputs.size();
+
+  {
+    auto buffer = torrent::log_open_log_buffer(name.c_str());
+
+    CPPUNIT_ASSERT_EQUAL(outputs_before + 1, torrent::log_outputs.size());
+    CPPUNIT_ASSERT(has_output());
+  }
+
+  CPPUNIT_ASSERT(!has_output());
+  CPPUNIT_ASSERT_EQUAL(outputs_before, torrent::log_outputs.size());
 }
