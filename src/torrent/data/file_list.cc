@@ -349,6 +349,11 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   if (chunkSize == 0)
     throw internal_error("FileList::initialize() chunk_size() == 0.", data()->hash());
 
+  uint64_t chunk_count = torrentSize / chunkSize + (torrentSize % chunkSize != 0);
+
+  if (chunk_count > std::numeric_limits<Bitfield::size_type>::max())
+    throw input_error("Torrent has more chunks than the chunk index can address.");
+
   m_chunk_size = chunkSize;
   m_torrent_size = torrentSize;
   m_root_dir = ".";
