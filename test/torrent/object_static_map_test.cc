@@ -217,6 +217,7 @@ enum keys_raw { key_raw_a, key_raw_LAST };
 enum keys_raw_types { key_raw_types_empty, key_raw_types_list, key_raw_types_map, key_raw_types_str, key_raw_types_LAST};
 enum keys_multiple { key_multiple_a, key_multiple_b, key_multiple_c, key_multiple_LAST };
 enum keys_dict { key_dict_a_b, key_dict_LAST };
+enum keys_dict_depth { key_dict_depth_a, key_dict_depth_sentinel, key_dict_depth_LAST };
 
 typedef torrent::static_map_type<keys_empty, key_empty_LAST> test_empty_type;
 typedef torrent::static_map_type<keys_single, key_single_LAST> test_single_type;
@@ -224,6 +225,7 @@ typedef torrent::static_map_type<keys_raw, key_raw_LAST> test_raw_type;
 typedef torrent::static_map_type<keys_raw_types, key_raw_types_LAST> test_raw_types_type;
 typedef torrent::static_map_type<keys_multiple, key_multiple_LAST> test_multiple_type;
 typedef torrent::static_map_type<keys_dict, key_dict_LAST> test_dict_type;
+typedef torrent::static_map_type<keys_dict_depth, key_dict_depth_LAST> test_dict_depth_type;
 
 template <> const test_empty_type::key_list_type
 test_empty_type::keys = { };
@@ -240,6 +242,13 @@ template <> const test_multiple_type::key_list_type
 test_multiple_type::keys = { { key_multiple_a, "a" }, { key_multiple_b, "b*" }, { key_multiple_c, "c" } };
 template <> const test_dict_type::key_list_type
 test_dict_type::keys = { { key_dict_a_b, "a::b" } };
+// A key that fills max_key_size with no terminator, so that 'find_key_match'
+// reads key[max_key_size] out of the entry and into the next one, whose index
+// is all ':' bytes. This is the deepest nesting any key table can express.
+template <> const test_dict_depth_type::key_list_type
+test_dict_depth_type::keys = { { key_dict_depth_a, { 'a', ':', ':', ':', ':', ':', ':', ':',
+                                                     ':', ':', ':', ':', ':', ':', ':', ':' } },
+                               { 0x3a3a3a3a, "" } };
 
 void
 ObjectStaticMapTest::test_read_empty() {
@@ -353,6 +362,18 @@ ObjectStaticMapTest::test_read_dict() {
 
   CPPUNIT_ASSERT(static_map_read_bencode(map_normal, "d1:ad1:bi1eee"));
   CPPUNIT_ASSERT(map_normal[key_dict_a_b].as_value() == 1);
+}
+
+void
+ObjectStaticMapTest::test_read_dict_depth() {
+  test_dict_depth_type map_max;
+  test_dict_depth_type map_over;
+
+  CPPUNIT_ASSERT(test_dict_depth_type::keys[0].key[torrent::static_map_mapping_type::max_key_size] == ':');
+
+  CPPUNIT_ASSERT(static_map_read_bencode(map_max, "d1:ad" "0:d0:d0:d0:d0:d0:d" "eeeeeeee"));
+
+  CPPUNIT_ASSERT(static_map_read_bencode_exception(map_over, "d1:ad" "0:d0:d0:d0:d0:d0:d0:d" "eeeeeeeee"));
 }
 
 void
