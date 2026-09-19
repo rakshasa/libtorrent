@@ -147,7 +147,7 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
   if ((*blockListItr)->attempt() == 0) {
     unsigned int promoted = update_failed(*blockListItr, chunk);
 
-    if (promoted > 0 || promoted < (*blockListItr)->size()) {
+    if (promoted > 0 && promoted < (*blockListItr)->size()) {
       // Retry with the most popular blocks.
       (*blockListItr)->set_attempt(1);
       retry_most_popular(*blockListItr, chunk);

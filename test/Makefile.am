@@ -114,7 +114,9 @@ LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
 	data/test_hash_check_queue.cc \
 	data/test_hash_check_queue.h \
 	data/test_hash_queue.cc \
-	data/test_hash_queue.h
+	data/test_hash_queue.h \
+	data/test_transfer_list.cc \
+	data/test_transfer_list.h
 
 LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common) \
 	net/test_curl_get.cc \
