@@ -109,6 +109,8 @@ LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
 LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
 	data/test_block.cc \
 	data/test_block.h \
+	data/test_chunk.cc \
+	data/test_chunk.h \
 	data/test_chunk_list.cc \
 	data/test_chunk_list.h \
 	data/test_hash_check_queue.cc \
