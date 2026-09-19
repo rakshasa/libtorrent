@@ -764,6 +764,10 @@ struct udns_jranctx {	/* the context */
   unsigned a, b, c, d;
 };
 
+/* return a 32bit value from the system entropy source */
+UDNS_API unsigned
+udns_random32(void);
+
 /* initialize the RNG with a given seed */
 UDNS_API void
 udns_jraninit(struct udns_jranctx *x, unsigned seed);
