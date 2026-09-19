@@ -61,8 +61,8 @@ public:
   // Called every 15 minutes after updating nodes.
   void                update();
 
-  // Return candidate for replacement (a bad node or the oldest node); may
-  // return end() unless has_space() is true.
+  // Return candidate for replacement (a bad node or the oldest node); returns
+  // end() only when the bucket is empty.
   iterator            find_replacement_candidate(bool onlyOldest = false);
 
   // Split the bucket in two and redistribute nodes. Returned bucket is the

@@ -70,7 +70,7 @@ DhtBucket::find_replacement_candidate(bool onlyOldest) {
     if ((*itr)->is_bad() && !onlyOldest)
       return itr;
 
-    if ((*itr)->last_seen() < oldestTime) {
+    if (oldest == end() || (*itr)->last_seen() < oldestTime) {
       oldestTime = (*itr)->last_seen();
       oldest = itr;
     }
