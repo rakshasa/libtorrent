@@ -10,6 +10,7 @@
 #include "torrent/system/scheduler.h"
 #include "torrent/tracker/dht_controller.h"
 
+#include <chrono>
 #include <optional>
 
 namespace torrent {
@@ -31,6 +32,13 @@ public:
   static constexpr unsigned int timeout_bucket_bootstrap =     15 * 60;  // Bootstrap idle buckets after 15 minutes.
   static constexpr unsigned int timeout_remove_node      = 4 * 60 * 60;  // Remove unresponsive nodes after 4 hours.
   static constexpr unsigned int timeout_peer_announce    =     30 * 60;  // Remove peers which haven't reannounced for 30 minutes.
+  static constexpr unsigned int timeout_tracker_evict    =     60 * 60;  // Evict stale trackers hourly while at max_trackers.
+
+  // Maximum number of info hashes we keep peer lists for. Entries are removed
+  // once they hold no peers, and while the table is full the least recently
+  // announced 5% are evicted every timeout_tracker_evict.
+  static constexpr size_t max_trackers      = 1024;
+  static constexpr size_t num_tracker_evict = max_trackers / 20;
 
   // A node ID of all zero.
   static HashString zero_id;
@@ -49,6 +57,10 @@ public:
 
   // Returns NULL if not tracking the torrent unless create is true.
   DhtTracker*         get_tracker(const HashString& hash, bool create);
+
+  // Evict the least recently announced trackers if the table is full and
+  // timeout_tracker_evict has passed since the last eviction.
+  void                evict_stale_trackers();
 
   // Check if we are interested in inserting a new node of the given ID
   // into our table (i.e. if we have space or bad nodes in the corresponding bucket).
@@ -134,6 +146,7 @@ private:
   std::optional<std::deque<contact_t>> m_contacts;
 
   int                 m_numRefresh{0};
+  std::chrono::seconds m_lastTrackerEvict{0};
 
   bool                m_networkUp;
 

@@ -384,6 +384,9 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
 
   DhtTracker* tracker = m_router->get_tracker(*HashString::cast_from(info_hash.data()), true);
 
+  if (tracker == NULL)
+    throw dht_error(dht_error_generic, "Tracking too many info hashes");
+
   tracker->add_peer(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, req[key_a_port].as_value());
 }
 
