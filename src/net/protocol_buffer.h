@@ -98,6 +98,9 @@ private:
 template <uint16_t tmpl_size>
 inline bool
 ProtocolBuffer<tmpl_size>::consume(difference_type v) {
+  if (v < 0 || v > remaining())
+    throw internal_error("ProtocolBuffer::consume(...) called with an out of range length.");
+
   m_position += v;
 
   if (remaining())

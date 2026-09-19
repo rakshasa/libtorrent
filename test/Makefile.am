@@ -138,6 +138,8 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
 	\
+	protocol/test_protocol_buffer.cc \
+	protocol/test_protocol_buffer.h \
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h
 
