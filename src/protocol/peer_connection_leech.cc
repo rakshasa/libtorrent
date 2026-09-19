@@ -20,9 +20,9 @@
 #include "torrent/runtime/runtime.h"
 
 #define LT_LOG_NETWORK_ERRORS(log_fmt, ...)                              \
-  lt_log_print_info(LOG_PROTOCOL_NETWORK_ERRORS, this->download()->info(), "network_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+  lt_log_print_info(LOG_PROTOCOL_NETWORK_ERRORS, this->download()->info(), "network_errors", "%40.40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
 #define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                              \
-  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->download()->info(), "storage_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->download()->info(), "storage_errors", "%40.40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
 
 namespace torrent {
 
