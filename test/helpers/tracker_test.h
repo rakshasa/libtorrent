@@ -23,6 +23,7 @@ public:
   bool                trigger_success(uint32_t new_peers = 0, uint32_t sum_peers = 0);
   bool                trigger_success(torrent::AddressList* address_list, uint32_t new_peers = 0);
   bool                trigger_failure();
+  bool                trigger_failure(const std::string& msg);
   bool                trigger_scrape();
 
   void                set_close_on_done(bool state);
