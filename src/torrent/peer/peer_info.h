@@ -94,7 +94,7 @@ private:
   // Replace id with a char buffer, or a cheap struct?
   int                 m_flags{0};
   HashString          m_id;
-  char                m_id_hex[40];
+  char                m_id_hex[41]{};
 
   ClientInfo          m_clientInfo;
 
