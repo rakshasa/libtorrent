@@ -80,6 +80,9 @@ public:
 
   size_type           size() const                              { return base_type::size(); }
 
+  // Incremented whenever the contents or the order of the list change.
+  uint32_t            change_counter() const                    { return m_changeCounter; }
+
   size_type           max_size() const                          { return m_maxSize; }
   void                set_max_size(size_type v);
 
@@ -112,6 +115,8 @@ private:
 
   size_type           m_minSize{50};
   size_type           m_maxSize{100};
+
+  uint32_t            m_changeCounter{0};
 
   signal_peer_type    m_signalConnected;
   signal_peer_type    m_signalDisconnected;
