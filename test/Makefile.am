@@ -85,6 +85,8 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/test_dht_controller.cc \
 	torrent/test_dht_controller.h \
+	torrent/test_connection_list.cc \
+	torrent/test_connection_list.h \
 	torrent/object_test.cc \
 	torrent/object_test.h \
 	torrent/object_test_utils.cc \
