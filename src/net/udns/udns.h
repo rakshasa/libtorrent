@@ -350,6 +350,7 @@ struct dns_parse {	/* RR/packet parsing state */
   int dnsp_nrr;			/* RR count so far */
   unsigned dnsp_ttl;		/* TTL value so far */
   dnscc_t *dnsp_qdn;		/* the RR DN we're looking for */
+  dnscc_t *dnsp_qdn0;		/* the question DN, before CNAME chasing */
   enum dns_class dnsp_qcls;	/* RR class we're looking for or 0 */
   enum dns_type  dnsp_qtyp;	/* RR type we're looking for or 0 */
   dnsc_t dnsp_dnbuf[DNS_MAXDN];	/* domain buffer */

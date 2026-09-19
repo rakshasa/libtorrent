@@ -123,6 +123,8 @@ LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
 	data/test_hash_queue.h
 
 LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common) \
+	net/test_udns_stdrr.cc \
+	net/test_udns_stdrr.h \
 	net/test_curl_get.cc \
 	net/test_curl_get.h \
 	net/test_udns_parse.cc \

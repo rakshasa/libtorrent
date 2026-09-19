@@ -103,6 +103,7 @@ dns_initparse(struct dns_parse *p, dnscc_t *qdn,
   p->dnsp_end = end;
   p->dnsp_rrl = dns_numan(pkt);
   p->dnsp_qdn = qdn;
+  p->dnsp_qdn0 = qdn;
   assert(cur + 4 <= end);
   if ((p->dnsp_qtyp = (enum dns_type)dns_get16(cur+0)) == DNS_T_ANY) p->dnsp_qtyp = (enum dns_type)0;
   if ((p->dnsp_qcls = (enum dns_class)dns_get16(cur+2)) == DNS_C_ANY) p->dnsp_qcls = (enum dns_class)0;
@@ -150,20 +151,39 @@ int dns_nextrr(struct dns_parse *p, struct dns_rr *rr) {
   return 0;
 }
 
+/* Space dns_stdrr_finish() may use for one name.  Never zero, so that a name
+ * dns_dntop() refuses to convert still has room for the terminator.
+ */
+static unsigned dns_stdrr_nsize(dnscc_t *dn) {
+  unsigned size = dns_dntop_size(dn);
+  return size ? size : 1;
+}
+
+/* Write one name into the space dns_stdrr_nsize() reserved for it and return
+ * the position of the next name.
+ */
+static char *dns_stdrr_name(char *cp, dnscc_t *dn) {
+  int r = dns_dntop(dn, cp, dns_stdrr_nsize(dn));
+  if (r <= 0) {
+    *cp = '\0';
+    r = 1;
+  }
+  return cp + r;
+}
+
 int dns_stdrr_size(const struct dns_parse *p) {
   return
-    dns_dntop_size(p->dnsp_qdn) +
-    (p->dnsp_qdn == dns_payload(p->dnsp_pkt) ? 0 :
-     dns_dntop_size(dns_payload(p->dnsp_pkt)));
+    dns_stdrr_nsize(p->dnsp_qdn) +
+    (p->dnsp_qdn == p->dnsp_qdn0 ? 0 : dns_stdrr_nsize(p->dnsp_qdn0));
 }
 
 void *dns_stdrr_finish(struct dns_rr_null *ret, char *cp,
                        const struct dns_parse *p) {
-  cp += dns_dntop(p->dnsp_qdn, (ret->dnsn_cname = cp), DNS_MAXNAME);
-  if (p->dnsp_qdn == dns_payload(p->dnsp_pkt))
+  cp = dns_stdrr_name((ret->dnsn_cname = cp), p->dnsp_qdn);
+  if (p->dnsp_qdn == p->dnsp_qdn0)
     ret->dnsn_qname = ret->dnsn_cname;
   else
-    dns_dntop(dns_payload(p->dnsp_pkt), (ret->dnsn_qname = cp), DNS_MAXNAME);
+    dns_stdrr_name((ret->dnsn_qname = cp), p->dnsp_qdn0);
   ret->dnsn_ttl = p->dnsp_ttl;
   return ret;
 }
