@@ -349,8 +349,13 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
   }
 
   // Do the canceling magic here.
-  if (transfer->peer_info()->connection() != NULL)
+  if (transfer->peer_info()->connection() != NULL) {
     transfer->peer_info()->connection()->cancel_transfer(transfer);
+    return;
+  }
+
+  transfer->set_peer_info(NULL);
+  delete transfer;
 }
 
 void

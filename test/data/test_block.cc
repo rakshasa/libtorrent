@@ -39,3 +39,21 @@ test_block::test_completed_skips_erased_not_stalled_accounting() {
   CPPUNIT_ASSERT(block.completed(leader));
   CPPUNIT_ASSERT(block.is_finished());
 }
+
+void
+test_block::test_invalidate_transfer_without_connection() {
+  torrent::PeerInfo peer(wrap_ai_get_first_sa("1.2.3.4", "5000").get());
+
+  CPPUNIT_ASSERT(peer.connection() == nullptr);
+  CPPUNIT_ASSERT_EQUAL(static_cast<uint32_t>(0), peer.transfer_counter());
+
+  {
+    torrent::BlockList block_list(torrent::Piece(0, 0, 16), 16);
+    torrent::Block&    block = block_list[0];
+
+    CPPUNIT_ASSERT(block.insert(&peer) != nullptr);
+    CPPUNIT_ASSERT_EQUAL(static_cast<uint32_t>(1), peer.transfer_counter());
+  }
+
+  CPPUNIT_ASSERT_EQUAL(static_cast<uint32_t>(0), peer.transfer_counter());
+}
