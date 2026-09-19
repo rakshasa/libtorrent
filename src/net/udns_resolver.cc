@@ -370,7 +370,7 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
   auto lock  = std::lock_guard(query->parent->m_mutex);
 
   if (query->deleted) {
-    LT_LOG_QUERY("A records received, but query was deleted : name:%s", query->requester, query->hostname.c_str());
+    LT_LOG_QUERY("A records received, but query was deleted : name:%s", query->hostname.c_str());
     throw internal_error("UdnsResolver::a4_callback_wrapper called with deleted query");
   }
 

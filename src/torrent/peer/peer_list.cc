@@ -401,7 +401,7 @@ PeerList::insert_pex_list(const raw_string& pex_list) {
   l.parse_address_compact(pex_list);
   l.sort_and_unique();
 
-  LT_LOG_EVENTS("inserting pex list: %" PRIu32 " peers", l.size());
+  LT_LOG_EVENTS("inserting pex list: %zu peers", l.size());
 
   return insert_available(&l);
 }

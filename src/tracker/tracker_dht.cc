@@ -123,7 +123,7 @@ TrackerDht::set_dht_announce_state() {
 
 void
 TrackerDht::receive_peers(AddressList&& address_list) {
-  LT_LOG("received peers : dht_state:%s replied:%d contacted:%d size:%" PRIu32,
+  LT_LOG("received peers : dht_state:%s replied:%d contacted:%d size:%zu",
          states[m_dht_state], m_replied.load(), m_contacted.load(), address_list.size());
 
   m_slot_new_peers(std::move(address_list));
