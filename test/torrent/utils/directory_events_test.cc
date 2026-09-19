@@ -162,3 +162,32 @@ utils_directory_events_test::test_ready_allows_added_sibling() {
   events.close();
 #endif
 }
+
+// Removing a watched directory queues an IN_IGNORED with no name, and inotify hands it to the same
+// read() as the events for every other watch on that descriptor.
+void
+utils_directory_events_test::test_unnamed_event_does_not_drop_rest_of_batch() {
+#ifdef USE_INOTIFY
+  torrent::directory_events events;
+  std::vector<std::string> paths;
+  CPPUNIT_ASSERT(events.open());
+
+  events.notify_on(m_root + "/child", added_flags, [](auto){});
+  events.notify_on(m_root + "/other", added_flags, [&paths](const std::string& path) {
+    paths.push_back(path);
+  });
+
+  int removed = ::rmdir((m_root + "/child").c_str());
+
+  assert_write_file(m_root + "/other/batch.torrent");
+
+  events.event_read();
+  events.close();
+
+  ::unlink((m_root + "/other/batch.torrent").c_str());
+
+  CPPUNIT_ASSERT_EQUAL(0, removed);
+  CPPUNIT_ASSERT(!paths.empty());
+  CPPUNIT_ASSERT_EQUAL(m_root + "/other/batch.torrent", paths.front());
+#endif
+}

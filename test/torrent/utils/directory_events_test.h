@@ -14,6 +14,7 @@ class utils_directory_events_test : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_added_allows_ready_parent);
   CPPUNIT_TEST(test_ready_allows_added_sibling);
   CPPUNIT_TEST(test_symlink_watch_uses_configured_callback_path);
+  CPPUNIT_TEST(test_unnamed_event_does_not_drop_rest_of_batch);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -26,6 +27,7 @@ public:
   void test_added_allows_ready_parent();
   void test_ready_allows_added_sibling();
   void test_symlink_watch_uses_configured_callback_path();
+  void test_unnamed_event_does_not_drop_rest_of_batch();
 
 private:
   std::string m_link;

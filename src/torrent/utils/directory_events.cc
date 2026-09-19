@@ -156,17 +156,19 @@ directory_events::event_read() {
   while (event + 1 <= reinterpret_cast<struct inotify_event*>(buffer + result)) {
     auto next_event = reinterpret_cast<char*>(event) + sizeof(struct inotify_event) + event->len;
 
-    if (event->len == 0 || next_event > buffer + result)
+    if (next_event > buffer + result)
       return;
 
-    auto itr = std::find_if(m_wd_list.begin(), m_wd_list.end(), [event](const auto& w) {
-      return event->wd == w.descriptor;
-    });
+    if (event->len != 0) {
+      auto itr = std::find_if(m_wd_list.begin(), m_wd_list.end(), [event](const auto& w) {
+        return event->wd == w.descriptor;
+      });
 
-    if (itr != m_wd_list.end()) {
-      std::string sname(event->name);
-      if (sname.size() >= 8 && sname.compare(sname.size() - 8, 8, ".torrent") == 0)
-        itr->slot(itr->path + event->name);
+      if (itr != m_wd_list.end()) {
+        std::string sname(event->name);
+        if (sname.size() >= 8 && sname.compare(sname.size() - 8, 8, ".torrent") == 0)
+          itr->slot(itr->path + event->name);
+      }
     }
 
     event = reinterpret_cast<struct inotify_event*>(next_event);
