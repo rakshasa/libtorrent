@@ -403,6 +403,21 @@ static unsigned dns_nonrandom_32(void) {
 #endif
 }
 
+unsigned udns_random32(void) {
+#ifndef WINDOWS
+  unsigned x;
+  int fd = open("/dev/urandom", O_RDONLY);
+
+  if (fd >= 0) {
+    ssize_t n = read(fd, &x, sizeof(x));
+    close(fd);
+    if (n == (ssize_t)sizeof(x))
+      return x;
+  }
+#endif
+  return dns_nonrandom_32();
+}
+
 /* This is historic deprecated API */
 UDNS_API unsigned dns_random16(void);
 unsigned dns_random16(void) {
@@ -411,7 +426,7 @@ unsigned dns_random16(void) {
 }
 
 static void dns_init_rng(struct dns_ctx *ctx) {
-  udns_jraninit(&ctx->dnsc_jran, dns_nonrandom_32());
+  udns_jraninit(&ctx->dnsc_jran, udns_random32());
   ctx->dnsc_nextid = 0;
 }
 
@@ -1008,7 +1023,8 @@ again: /* receive the reply */
   pcur = dns_payload(pbuf);
 
   /* check reply header */
-  if (pcur > pend || dns_numqd(pbuf) > 1 || dns_opcode(pbuf) != 0) {
+  if (pcur > pend || !dns_qr(pbuf) ||
+      dns_numqd(pbuf) > 1 || dns_opcode(pbuf) != 0) {
     DNS_DBG(ctx, -1/*bad reply*/, &sns.sa, slen, pbuf, r);
     goto again;
   }

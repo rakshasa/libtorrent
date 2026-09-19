@@ -130,7 +130,9 @@ LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common) \
 	net/test_curl_get.cc \
 	net/test_curl_get.h \
 	net/test_udns_parse.cc \
-	net/test_udns_parse.h
+	net/test_udns_parse.h \
+	net/test_udns_resolver.cc \
+	net/test_udns_resolver.h
 
 LibTorrent_Test_Tracker_SOURCES = $(LibTorrent_Test_Common) \
 	tracker/test_udp_router.cc \
