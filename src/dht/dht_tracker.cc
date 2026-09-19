@@ -85,4 +85,12 @@ DhtTracker::prune(uint32_t maxAge) {
     throw internal_error("DhtTracker::prune did inconsistent peer pruning.");
 }
 
+uint32_t
+DhtTracker::last_seen() const {
+  if (m_lastSeen.empty())
+    return 0;
+
+  return *std::max_element(m_lastSeen.begin(), m_lastSeen.end());
+}
+
 } // namespace torrent

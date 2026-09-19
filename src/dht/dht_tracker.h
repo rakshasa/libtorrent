@@ -33,6 +33,9 @@ public:
   // more than the given number of seconds.
   void                prune(uint32_t maxAge);
 
+  // Time of the most recent announce, or zero if no peers are tracked.
+  uint32_t            last_seen() const;
+
 private:
   // We need to store the address as a bencoded string.
   struct [[gnu::packed]] BencodeAddress {
