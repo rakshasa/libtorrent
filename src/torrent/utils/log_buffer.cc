@@ -3,6 +3,7 @@
 #include "log_buffer.h"
 
 #include <algorithm>
+#include <string>
 
 #include "log.h"
 
@@ -35,15 +36,12 @@ log_buffer::lock_and_push_log(const char* data, size_t length, int group) {
   unlock();
 }
 
-static void
-log_buffer_deleter(log_buffer* lb) {
-  delete lb;
-}
-
 log_buffer_ptr
 log_open_log_buffer(const char* name) {
-  // TODO: Deregister when deleting.
-  auto buffer = log_buffer_ptr(new log_buffer, &log_buffer_deleter);
+  auto buffer = log_buffer_ptr(new log_buffer, [output_name = std::string(name)](log_buffer* lb) {
+      log_close_output(output_name.c_str());
+      delete lb;
+    });
 
   log_open_output(name, [b = buffer.get()](auto d, auto l, auto g) { b->lock_and_push_log(d, l, g); });
   return buffer;
