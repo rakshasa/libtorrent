@@ -111,6 +111,8 @@ LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
 	data/test_block.h \
 	data/test_chunk_list.cc \
 	data/test_chunk_list.h \
+	data/test_file_manager.cc \
+	data/test_file_manager.h \
 	data/test_hash_check_queue.cc \
 	data/test_hash_check_queue.h \
 	data/test_hash_queue.cc \

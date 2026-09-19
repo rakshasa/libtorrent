@@ -218,6 +218,9 @@ FileManager::evict_least_active(unsigned int count) {
 
   m_least_active_cache.clear();
 
+  if (files_to_close.size() > count)
+    files_to_close.resize(count);
+
   close_files(files_to_close);
 
   m_least_active_cache = std::move(cache);
