@@ -55,7 +55,7 @@ dns_getdn(dnscc_t *pkt, dnscc_t **cur, dnscc_t *end,
       return -1;
     c = *pp++;			/* length of the label */
     if (!c) {			/* empty label: terminate */
-      if (dn >= de)		/* can't fit terminator */
+      if (dp >= de)		/* can't fit terminator */
         goto noroom;
       *dp++ = 0;
       /* return next pos: either after the first jump or current */
