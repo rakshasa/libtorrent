@@ -2,6 +2,9 @@
 
 #include "test/torrent/test_tracker_list.h"
 
+#include <algorithm>
+#include <string>
+
 #include "net/address_list.h"
 #include "torrent/utils/uri_parser.h"
 
@@ -378,6 +381,68 @@ TestTrackerList::test_scrape_success() {
   CPPUNIT_ASSERT(tracker_0.state().success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
   CPPUNIT_ASSERT(tracker_0.state().scrape_counter() == 1);
+
+  tracker_list.clear();
+  std::this_thread::sleep_for(100ms);
+}
+
+static const std::string hostile_tracker_message =
+  std::string("evil\x1b[31m\x1b]0;xterm-title\x07\r\nforged log line\x7f\xc3\xa9") + std::string(4096, 'a');
+
+static bool
+has_unprintable_bytes(const std::string& str) {
+  return std::any_of(str.begin(), str.end(), [](char c) { return c < 0x20 || c > 0x7e; });
+}
+
+void
+TestTrackerList::test_failure_message_sanitized() {
+  TRACKER_LIST_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+
+  std::string received_msg;
+
+  tracker_list.slot_failure() = [&failure_counter, &received_msg](torrent::tracker::Tracker, const std::string& msg) {
+      failure_counter++;
+      received_msg = msg;
+    };
+
+  auto tracker_0_worker = TrackerTest::test_worker(tracker_0);
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_failure(hostile_tracker_message));
+
+  CPPUNIT_ASSERT(failure_counter == 1);
+  CPPUNIT_ASSERT(!received_msg.empty());
+  CPPUNIT_ASSERT(!has_unprintable_bytes(received_msg));
+  CPPUNIT_ASSERT(received_msg.size() <= 512);
+
+  tracker_list.clear();
+  std::this_thread::sleep_for(100ms);
+}
+
+void
+TestTrackerList::test_scrape_failure_message_sanitized() {
+  TRACKER_LIST_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+
+  std::string received_msg;
+
+  tracker_list.slot_scrape_failure() = [&scrape_failure_counter, &received_msg](torrent::tracker::Tracker, const std::string& msg) {
+      scrape_failure_counter++;
+      received_msg = msg;
+    };
+
+  auto tracker_0_worker = TrackerTest::test_worker(tracker_0);
+
+  tracker_0_worker->set_scrapable();
+  tracker_list.send_scrape(tracker_0);
+
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_failure(hostile_tracker_message));
+
+  CPPUNIT_ASSERT(scrape_failure_counter == 1);
+  CPPUNIT_ASSERT(!received_msg.empty());
+  CPPUNIT_ASSERT(!has_unprintable_bytes(received_msg));
+  CPPUNIT_ASSERT(received_msg.size() <= 512);
 
   tracker_list.clear();
   std::this_thread::sleep_for(100ms);

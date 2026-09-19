@@ -14,6 +14,7 @@
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/string_manip.h"
 #include "tracker/thread_tracker.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
@@ -23,6 +24,15 @@
   lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list", log_fmt, __VA_ARGS__);
 
 namespace torrent {
+
+namespace {
+constexpr size_t max_failure_message_size = 512;
+
+std::string
+sanitize_failure_message(const std::string& msg) {
+  return utils::sanitize_string(msg).substr(0, max_failure_message_size);
+}
+} // namespace
 
 TrackerList::TrackerList() :
   m_state(DownloadInfo::STOPPED),
@@ -441,8 +451,10 @@ void
 TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   assert(std::this_thread::get_id() == main_thread::thread_id());
 
+  auto sanitized_msg = sanitize_failure_message(msg);
+
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
-         tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
+         tracker.get_worker(), tracker.group(), tracker.url().c_str(), sanitized_msg.c_str());
 
   if (find(tracker) == end())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
@@ -455,7 +467,7 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   }
 
   if (m_slot_failed)
-    m_slot_failed(tracker, msg);
+    m_slot_failed(tracker, sanitized_msg);
 }
 
 void
@@ -482,14 +494,16 @@ void
 TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& msg) {
   assert(std::this_thread::get_id() == main_thread::thread_id());
 
+  auto sanitized_msg = sanitize_failure_message(msg);
+
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
-         tracker.get_worker(), tracker.group(), tracker.url().c_str(), msg.c_str());
+         tracker.get_worker(), tracker.group(), tracker.url().c_str(), sanitized_msg.c_str());
 
   if (find(tracker) == end())
     throw internal_error("TrackerList::receive_scrape_failed(...) called but the iterator is invalid.");
 
   if (m_slot_scrape_failed)
-    m_slot_scrape_failed(tracker, msg);
+    m_slot_scrape_failed(tracker, sanitized_msg);
 }
 
 void

@@ -235,6 +235,11 @@ TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_pe
 
 bool
 TrackerTest::trigger_failure() {
+  return trigger_failure("failed");
+}
+
+bool
+TrackerTest::trigger_failure(const std::string& msg) {
   // C++20 allows notify_all() on atomic variables.
   for (int i = 0; i != 100 && !m_busy; i++)
     std::this_thread::sleep_for(10ms);
@@ -255,7 +260,7 @@ TrackerTest::trigger_failure() {
 
   if (state().latest_event() == torrent::tracker::TrackerState::EVENT_SCRAPE) {
     if (m_slot_scrape_failure)
-      m_slot_scrape_failure("failed");
+      m_slot_scrape_failure(msg);
 
   } else {
     {
@@ -265,7 +270,7 @@ TrackerTest::trigger_failure() {
     }
 
     if (m_slot_failure)
-      m_slot_failure("failed");
+      m_slot_failure(msg);
   }
 
   m_requesting_state = -1;

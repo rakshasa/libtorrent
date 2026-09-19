@@ -22,6 +22,9 @@ class TestTrackerList : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST(test_scrape_success);
   CPPUNIT_TEST(test_scrape_failure);
 
+  CPPUNIT_TEST(test_failure_message_sanitized);
+  CPPUNIT_TEST(test_scrape_failure_message_sanitized);
+
   CPPUNIT_TEST(test_has_active);
 
   CPPUNIT_TEST_SUITE_END();
@@ -43,6 +46,9 @@ public:
 
   void test_scrape_success();
   void test_scrape_failure();
+
+  void test_failure_message_sanitized();
+  void test_scrape_failure_message_sanitized();
 
   void test_has_active();
 };
