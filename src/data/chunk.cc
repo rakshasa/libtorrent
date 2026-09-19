@@ -229,7 +229,7 @@ Chunk::preload(uint32_t position, uint32_t length, bool useAdvise) {
 // matching.
 bool
 Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
-  if (position + length > m_chunkSize)
+  if (position > m_chunkSize || length > m_chunkSize - position)
     throw internal_error("Chunk::to_buffer(...) position + length > m_chunkSize.");
 
   if (length == 0)
@@ -252,7 +252,7 @@ Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
-  if (position + length > m_chunkSize)
+  if (position > m_chunkSize || length > m_chunkSize - position)
     throw internal_error("Chunk::from_buffer(...) position + length > m_chunkSize.");
 
   if (length == 0)
@@ -281,7 +281,7 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::compare_buffer(const void* buffer, uint32_t position, uint32_t length) {
-  if (position + length > m_chunkSize)
+  if (position > m_chunkSize || length > m_chunkSize - position)
     throw internal_error("Chunk::compare_buffer(...) position + length > m_chunkSize.");
 
   if (length == 0)
