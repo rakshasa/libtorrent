@@ -3,6 +3,8 @@
 #include "net/udns_resolver.h"
 
 #include <cassert>
+#include <cstdlib>
+#include <memory>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -366,6 +368,8 @@ UdnsResolver::process_timeouts() {
 
 void
 UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, void *data) {
+  const std::unique_ptr<::dns_rr_a4, void (*)(void*)> result_owner(result, &std::free);
+
   auto query = static_cast<UdnsQuery*>(data);
   auto lock  = std::lock_guard(query->parent->m_mutex);
 
@@ -426,6 +430,8 @@ UdnsResolverInternal::a4_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a4 *result, v
 
 void
 UdnsResolverInternal::a6_callback_wrapper(::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
+  const std::unique_ptr<::dns_rr_a6, void (*)(void*)> result_owner(result, &std::free);
+
   auto query = static_cast<UdnsQuery*>(data);
   auto lock  = std::lock_guard(query->parent->m_mutex);
 
