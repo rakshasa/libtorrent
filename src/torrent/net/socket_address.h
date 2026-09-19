@@ -23,6 +23,10 @@ bool sa_is_loopback(const sockaddr* sa) LIBTORRENT_EXPORT;
 bool sin_is_loopback(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 bool sin6_is_loopback(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
+bool sa_is_link_local(const sockaddr* sa) LIBTORRENT_EXPORT;
+bool sin_is_link_local(const sockaddr_in* sa) LIBTORRENT_EXPORT;
+bool sin6_is_link_local(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
+
 bool sa_is_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
 bool sin6_is_v4mapped(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 

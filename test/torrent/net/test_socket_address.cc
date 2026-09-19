@@ -61,6 +61,64 @@ test_socket_address::test_sa_is_broadcast() {
 }
 
 void
+test_socket_address::test_sa_is_link_local() {
+  auto sin_ll       = wrap_ai_get_first_sa("169.254.169.254");
+  auto sin_ll_first = wrap_ai_get_first_sa("169.254.0.0");
+  auto sin_ll_last  = wrap_ai_get_first_sa("169.254.255.255");
+  auto sin_below    = wrap_ai_get_first_sa("169.253.255.255");
+  auto sin_above    = wrap_ai_get_first_sa("169.255.0.0");
+  auto sin_routable = wrap_ai_get_first_sa("1.2.3.4");
+
+  auto sin6_v4_ll       = wrap_ai_get_first_sa("::ffff:169.254.169.254");
+  auto sin6_v4_above    = wrap_ai_get_first_sa("::ffff:169.255.0.0");
+  auto sin6_v4_routable = wrap_ai_get_first_sa("::ffff:1.2.3.4");
+
+  auto sin6_ll       = wrap_ai_get_first_sa("fe80::1");
+  auto sin6_mc_ll    = wrap_ai_get_first_sa("ff02::1");
+  auto sin6_mc_if    = wrap_ai_get_first_sa("ff01::1");
+  auto sin6_routable = wrap_ai_get_first_sa("2001:4860:4860::8888");
+
+  CPPUNIT_ASSERT(torrent::sa_is_link_local(sin_ll.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_link_local(sin_ll_first.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_link_local(sin_ll_last.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_link_local(sin6_ll.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_link_local(sin6_mc_ll.get()));
+
+  CPPUNIT_ASSERT(torrent::sa_is_link_local(sin6_v4_ll.get()));
+
+  CPPUNIT_ASSERT(!torrent::sa_is_link_local(sin_below.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_link_local(sin_above.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_link_local(sin_routable.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_link_local(sin6_v4_above.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_link_local(sin6_v4_routable.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_link_local(sin6_mc_if.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_link_local(sin6_routable.get()));
+}
+
+void
+test_socket_address::test_sa_is_loopback() {
+  auto sin_lo       = wrap_ai_get_first_sa("127.0.0.1");
+  auto sin_lo_high  = wrap_ai_get_first_sa("127.255.255.255");
+  auto sin_routable = wrap_ai_get_first_sa("1.2.3.4");
+
+  auto sin6_v4_lo       = wrap_ai_get_first_sa("::ffff:127.0.0.1");
+  auto sin6_v4_routable = wrap_ai_get_first_sa("::ffff:1.2.3.4");
+
+  auto sin6_lo       = wrap_ai_get_first_sa("::1");
+  auto sin6_routable = wrap_ai_get_first_sa("2001:4860:4860::8888");
+
+  CPPUNIT_ASSERT(torrent::sa_is_loopback(sin_lo.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_loopback(sin_lo_high.get()));
+  CPPUNIT_ASSERT(torrent::sa_is_loopback(sin6_lo.get()));
+
+  CPPUNIT_ASSERT(torrent::sa_is_loopback(sin6_v4_lo.get()));
+
+  CPPUNIT_ASSERT(!torrent::sa_is_loopback(sin_routable.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_loopback(sin6_v4_routable.get()));
+  CPPUNIT_ASSERT(!torrent::sa_is_loopback(sin6_routable.get()));
+}
+
+void
 test_socket_address::test_make() {
   torrent::sa_unique_ptr sa_unspec = torrent::sa_make_unspec();
   CPPUNIT_ASSERT(sa_unspec != nullptr);
