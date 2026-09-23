@@ -251,6 +251,15 @@ HandshakeManager::receive_succeeded(Handshake* ptr) {
     download->peer_list()->disconnected(peer_info, 0);
 
     lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager: duplicate peer: type:%s id:%s", peer_type, hash_str.c_str());
+
+    // insert() rejected the connection, so ownership of the extensions was
+    // never transferred. Clean up and free them here, mirroring
+    // Handshake::destroy_connection().
+    if (!handshake->extensions()->is_default()) {
+      handshake->extensions()->cleanup();
+      delete handshake->extensions();
+    }
+
     return;
   }
 

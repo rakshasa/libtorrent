@@ -53,7 +53,7 @@ private:
   system::SchedulerEntry m_task_tick;
 };
 
-extern Manager* manager;
+extern LIBTORRENT_EXPORT Manager* manager;
 
 } // namespace torrent
 

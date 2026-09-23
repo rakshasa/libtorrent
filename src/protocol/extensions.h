@@ -50,7 +50,7 @@ public:
   static size_t       metadata_piece_length(size_t piece, size_t metadata_size);
 
   ProtocolExtension();
-  ~ProtocolExtension() { delete [] m_read; m_pending.clear(); }
+  ~ProtocolExtension();
   ProtocolExtension(const ProtocolExtension&) = default;
   ProtocolExtension& operator=(const ProtocolExtension&) = default;
 
