@@ -482,6 +482,8 @@ TrackerHttp::receive_failed(const std::string& msg) {
 
     LT_LOG("received scrape failure : url:%s : %s", info().url.c_str(), msg.c_str());
 
+    update_requesting_state();
+
     m_requested_scrape = false;
     m_slot_scrape_failure(msg);
     return;
