@@ -1,4 +1,5 @@
 TESTS = \
+	LibTorrent_Test_Protocol \
 	LibTorrent_Test_Torrent_Net \
 	LibTorrent_Test_Torrent_Runtime \
 	LibTorrent_Test_Torrent_Utils \
@@ -51,6 +52,21 @@ LibTorrent_Test_Common = \
 	helpers/tracker_test.cc \
 	helpers/tracker_test.h \
 	helpers/utils.h
+
+# The two src/ files are compiled into the test binary itself: this test
+# constructs a full DownloadMain, and the convenience libraries have
+# circular references (other <-> torrent) that a single link pass cannot
+# close, so the leaf units the pass would miss are provided directly.
+LibTorrent_Test_Protocol_SOURCES = $(LibTorrent_Test_Common) \
+	protocol/test_extensions.cc \
+	protocol/test_extensions.h \
+	../src/data/socket_file.cc \
+	../src/utils/fd_close_queue.cc
+
+LibTorrent_Test_Protocol_LDADD = \
+	../src/libtorrent.la \
+	../src/libtorrent_other.la \
+	../src/torrent/libtorrent_torrent.la
 
 LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_address_info.cc \
@@ -153,6 +169,8 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h
 
+LibTorrent_Test_Protocol_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Protocol_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Torrent_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS)
 LibTorrent_Test_Torrent_Runtime_CXXFLAGS = $(CPPUNIT_CFLAGS)

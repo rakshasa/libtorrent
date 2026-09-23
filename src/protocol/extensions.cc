@@ -56,6 +56,17 @@ const message_type message_keys[] = {
   { "metadata_size", key_m_utMetadata }
 };
 
+ProtocolExtension::~ProtocolExtension() {
+  // A teardown path that skips cleanup() must still release this
+  // connection's share of the download's PEX count, or the count leaks and
+  // ~DownloadMain's size_pex assert kills the process on the next erase.
+  if (m_download != NULL && is_local_enabled(UT_PEX))
+    unset_local_enabled(UT_PEX);
+
+  delete [] m_read;
+  m_pending.clear();
+}
+
 void
 ProtocolExtension::cleanup() {
 //   if (is_default())
