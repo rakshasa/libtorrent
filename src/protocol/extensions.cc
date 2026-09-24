@@ -231,7 +231,7 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
 }
 
 bool
-ProtocolExtension::read_done() {
+ProtocolExtension::read_done(bool keep_unprocessed) {
   bool result = true;
 
   try {
@@ -250,11 +250,17 @@ ProtocolExtension::read_done() {
 //     throw internal_error("ProtocolExtension::read_done '" + std::string(m_read, std::distance(m_read, m_readPos)) + "'");
   }
 
+  m_flags |= flag_received_ext;
+
+  // Keep the message the parser could not process, so the caller can parse it
+  // again once the queued reply has been sent.
+  if (!result && keep_unprocessed)
+    return false;
+
   delete [] m_read;
   m_read = NULL;
 
   m_readType = FIRST_INVALID;
-  m_flags |= flag_received_ext;
 
   return result;
 }

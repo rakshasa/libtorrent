@@ -80,7 +80,10 @@ public:
 
   // Handle reading extension data from peer.
   void                read_start(int type, uint32_t length, bool skip);
-  bool                read_done();
+
+  // Pass keep_unprocessed when the caller is able to parse the message again
+  // later; it is then kept instead of being discarded.
+  bool                read_done(bool keep_unprocessed = false);
 
   char*               read_position()                  { return m_readPos; }
   bool                read_move(uint32_t v)            { m_readPos += v; return (m_readLeft -= v) == 0; }

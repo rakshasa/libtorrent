@@ -675,7 +675,7 @@ PeerConnectionBase::down_extension() {
 
   // If extension can't be processed yet (due to a pending write),
   // disable reads until the pending message is completely sent.
-  if (m_extensions->is_complete() && !m_extensions->is_invalid() && !m_extensions->read_done()) {
+  if (m_extensions->is_complete() && !m_extensions->is_invalid() && !m_extensions->read_done(true)) {
     this_thread::poll()->remove_read(this);
     return false;
   }
@@ -792,13 +792,10 @@ PeerConnectionBase::up_extension() {
   m_extension_message.clear();
 
   // If we have an unprocessed message, process it now and enable reads again.
-  if (m_extensions->is_complete() && !m_extensions->is_invalid()) {
-    // DEBUG: What, this should fail when we block, no?
-    if (!m_extensions->read_done())
-      throw internal_error("PeerConnectionBase::up_extension could not process complete extension message.");
-
+  // It can still be blocked by a reply queued ahead of it, in which case the
+  // next completed extension write tries again.
+  if (m_extensions->is_complete() && !m_extensions->is_invalid() && m_extensions->read_done(true))
     this_thread::poll()->insert_read(this);
-  }
 
   return true;
 }
