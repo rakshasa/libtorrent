@@ -346,7 +346,7 @@ PeerList::disconnected(iterator itr, int flags) {
   if (itr->second->transfer_counter() != 0) {
     // Currently we only log these as it only affects the culling of
     // peers.
-    LT_LOG_EVENTS("disconnected with non-zero transfer counter (%" PRIu32 ") for peer %40s",
+    LT_LOG_EVENTS("disconnected with non-zero transfer counter (%" PRIu32 ") for peer %40.40s",
                   itr->second->transfer_counter(), itr->second->id_hex());
   }
 
