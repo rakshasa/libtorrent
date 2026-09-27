@@ -43,8 +43,11 @@ ChunkManager::allocate(uint32_t size, int flags) {
   auto memory_usage     = runtime::memory_manager()->memory_usage();
   auto max_memory_usage = runtime::memory_manager()->max_memory_usage();
 
-  if (memory_usage + size > (3 * max_memory_usage) / 4)
+  if (memory_usage + size > (3 * max_memory_usage) / 4) {
     try_free_memory((1 * max_memory_usage) / 4);
+
+    memory_usage = runtime::memory_manager()->memory_usage();
+  }
 
   if (memory_usage + size > max_memory_usage) {
     if (!(flags & allocate_dont_log))
