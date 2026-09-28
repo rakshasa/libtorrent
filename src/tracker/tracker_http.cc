@@ -490,6 +490,8 @@ TrackerHttp::receive_failed(const std::string& msg) {
   }
 
   if (send_next_family()) {
+    LT_LOG("received failure : first family : url:%s : %s", info().url.c_str(), msg.c_str());
+
     m_last_success       = false;
     m_last_error_message = msg;
     return;
