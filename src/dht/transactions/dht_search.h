@@ -46,9 +46,10 @@ public:
   using base_type = std::set<std::unique_ptr<DhtNode>, dht_compare_closer>;
 
   // max_contacts: Number of closest potential contact nodes to keep.
-  // max_announce: Number of closest nodes we actually announce to.
+  // max_announce: Number of closest nodes we actually announce to: BEP 5's eight, the nodes that store an
+  // info-hash's peers (three missed the peers of a small swarm the IPv6 seed of which qBittorrent found).
   static constexpr unsigned int max_contacts = 18;
-  static constexpr unsigned int max_announce = 3;
+  static constexpr unsigned int max_announce = 8;
 
   DhtSearch(DhtServer* server, const HashString& target);
   virtual ~DhtSearch();

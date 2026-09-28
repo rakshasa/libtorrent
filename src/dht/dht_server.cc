@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 
 #include "manager.h"
 #include "dht/dht_bucket.h"
@@ -24,7 +25,7 @@
 #include "tracker/tracker_dht.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
+  lt_log_print_subsystem(torrent::LOG_DHT_SERVER, m_router->family() == AF_INET6 ? "dht6_server" : "dht_server", log_fmt, __VA_ARGS__);
 
 namespace {
 
@@ -64,6 +65,7 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 
   { key_r_id,       "r::id*S" },
   { key_r_nodes,    "r::nodes*S" },
+  { key_r_nodes6,   "r::nodes6*S" },
   { key_r_token,    "r::token*S" },
   { key_r_values,   "r::values*L" },
 
@@ -89,26 +91,36 @@ void
 DhtServer::start(int port) {
   auto [inet_address, inet_device, inet6_address, inet6_device] = runtime::network_config()->bind_udp_addresses_or_null();
 
-  if (inet_address == nullptr)
-    throw resource_error("no valid bind address for DHT server");
+  // The IPv6 server (BEP 32) binds the inet6 address, or any, v6-only; a null address means IPv6 (or UDP) is
+  // blocked in the network config.
+  bool is_inet6 = m_router->family() == AF_INET6;
+  auto family_address = is_inet6 ? inet6_address : inet_address;
+  auto family_device  = is_inet6 ? inet6_device : inet_device;
+
+  if (family_address == nullptr)
+    throw resource_error(is_inet6 ? "no valid inet6 bind address for DHT server" : "no valid bind address for DHT server");
 
   sa_unique_ptr bind_address;
   std::string   bind_device;
 
-  switch (inet_address->sa_family) {
+  switch (family_address->sa_family) {
   case AF_INET:
-    bind_address = sa_copy(inet_address.get());
-    bind_device  = inet_device;
+  case AF_INET6:
+    if (family_address->sa_family != m_router->family())
+      throw resource_error("invalid address family for DHT server");
+
+    bind_address = sa_copy(family_address.get());
+    bind_device  = family_device;
     break;
   case AF_UNSPEC:
-    bind_address = sa_make_inet_any();
-    bind_device  = inet_device;
+    bind_address = is_inet6 ? sa_make_inet6_any() : sa_make_inet_any();
+    bind_device  = family_device;
     break;
   default:
     throw resource_error("invalid address family for DHT server");
   }
 
-  m_router->set_address(inet_address.get());
+  m_router->set_address(bind_address.get());
 
   sap_set_port(bind_address, port);
 
@@ -118,6 +130,8 @@ DhtServer::start(int port) {
 
   if (bind_address->sa_family == AF_INET)
     open_flags |= fd_flag_v4;
+  else
+    open_flags |= fd_flag_v6only;
 
   int fd = fd_open(open_flags);
 
@@ -214,8 +228,8 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
 }
 
 void
-DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker) {
-  auto announce = std::make_shared<dht::DhtAnnounce>(this, infoHash, tracker);
+DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker, bool primary) {
+  auto announce = std::make_shared<dht::DhtAnnounce>(this, infoHash, tracker, primary);
   announce->add_contacts(contacts);
 
   auto n = announce->get_contact();
@@ -335,9 +349,11 @@ DhtServer::create_find_node_response(const DhtMessage& req, DhtMessage& reply) {
   if (target.size() < HashString::size_data)
     throw dht_error(dht_error_protocol, "target string too short");
 
-  reply[key_r_nodes] = m_router->get_closest_nodes(*HashString::cast_from(target.data()));
+  auto nodes_key = m_router->family() == AF_INET6 ? key_r_nodes6 : key_r_nodes;
 
-  if (reply[key_r_nodes].as_raw_string().empty())
+  reply[nodes_key] = m_router->get_closest_nodes(*HashString::cast_from(target.data()));
+
+  if (reply[nodes_key].as_raw_string().empty())
     throw dht_error(dht_error_generic, "No nodes");
 }
 
@@ -362,7 +378,10 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const sockaddr* sa, 
     if (nodes.empty())
       throw dht_error(dht_error_generic, "No peers nor nodes");
 
-    reply[key_r_nodes] = nodes;
+    reply[m_router->family() == AF_INET6 ? key_r_nodes6 : key_r_nodes] = nodes;
+
+  } else if (m_router->family() == AF_INET6) {
+    reply[key_r_values] = tracker->get_peers6();
 
   } else {
     reply[key_r_values] = tracker->get_peers();
@@ -379,15 +398,28 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
   if (!m_router->token_valid(req[key_a_token].as_raw_string(), sa))
     throw dht_error(dht_error_protocol, "Token invalid.");
 
-  if (!sa_is_inet(sa))
-    throw internal_error("DhtServer::create_announce_peer_response called with non-inet address.");
+  if (!req[key_a_port].is_value())
+    throw dht_error(dht_error_protocol, "Port missing.");
 
-  DhtTracker* tracker = m_router->get_tracker(*HashString::cast_from(info_hash.data()), true);
+  auto port = req[key_a_port].as_value();
+
+  if (port <= 0 || port > 65535)
+    throw dht_error(dht_error_protocol, "Port invalid.");
+
+  DhtTracker* tracker = nullptr;
+
+  if (sa_is_inet(sa) || sa_is_inet6(sa))
+    tracker = m_router->get_tracker(*HashString::cast_from(info_hash.data()), true);
+  else
+    throw internal_error("DhtServer::create_announce_peer_response called with non-inet address.");
 
   if (tracker == NULL)
     throw dht_error(dht_error_generic, "Tracking too many info hashes");
 
-  tracker->add_peer(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, req[key_a_port].as_value());
+  if (sa_is_inet(sa))
+    tracker->add_peer(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, port);
+  else
+    tracker->add_peer6(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr, port);
 }
 
 void
@@ -416,13 +448,24 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
 #endif
 
     // If we contact a node but its ID is not the one we expect, ignore the reply
-    // to prevent interference from rogue nodes.
+    // to prevent interference from rogue nodes. An IPv6 key folds the address, so the address is checked too.
     if ((id != transaction->id() && transaction->id() != torrent::DhtRouter::zero_id))
+      return;
+
+    if (!sa_equal_addr(transaction->address(), sa))
       return;
 
     switch (transaction->type()) {
       case DhtTransaction::DHT_FIND_NODE:
-        parse_find_node_reply(transaction->as_find_node(), response[key_r_nodes].as_raw_string());
+        // the get_peers walk of an announce: the peers a node on the way holds go to the tracker at once
+        if (transaction->as_find_node()->search()->is_announce() && response[key_r_values].is_raw_list()) {
+          auto announce = dynamic_cast<dht::DhtAnnounce*>(transaction->as_find_node()->search().get());
+
+          if (announce != nullptr)
+            announce->receive_peers(response[key_r_values].as_raw_list());
+        }
+
+        parse_find_node_reply(transaction->as_find_node(), response);
         break;
 
       case DhtTransaction::DHT_GET_PEERS:
@@ -469,21 +512,49 @@ DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
   m_transactions.erase(itr);
 }
 
+// The IPv4 server reads "nodes" (26 bytes a node), the IPv6 server "nodes6" (38 bytes, BEP 32). A reply without
+// its family's list carries no nodes; that is not a malformed reply.
 void
-DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, raw_string nodes) {
+DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, const DhtMessage& response) {
   transaction->complete(true);
 
   if (sizeof(const compact_node_info) != 26)
     throw internal_error("DhtServer::parse_find_node_reply(...) bad struct size.");
 
-  node_info_list list;
-  std::copy(reinterpret_cast<const compact_node_info*>(nodes.data()),
-            reinterpret_cast<const compact_node_info*>(nodes.data() + nodes.size() - nodes.size() % sizeof(compact_node_info)),
-            std::back_inserter(list));
+  if (m_router->family() == AF_INET6) {
+    if (response[key_r_nodes6].is_raw_string()) {
+      raw_string nodes = response[key_r_nodes6].as_raw_string();
 
-  for (auto& node : list) {
-    if (node.id() != m_router->id())
-      transaction->search()->add_contact(node.id(), sa_make_inet_n(node._addr.addr, node._addr.port).get());
+      for (auto itr = nodes.data(); itr + 38 <= nodes.data() + nodes.size(); itr += 38) {
+        const HashString* node_id = HashString::cast_from(itr);
+
+        if (*node_id == m_router->id())
+          continue;
+
+        auto sin6 = sin6_make();
+        std::memcpy(&sin6->sin6_addr, itr + 20, 16);
+        std::memcpy(&sin6->sin6_port, itr + 36, 2);
+
+        // a v4-mapped entry is an IPv4 node in disguise: not this table's
+        if (sin6_is_v4mapped(sin6.get()) || sin6_is_any(sin6.get()))
+          continue;
+
+        transaction->search()->add_contact(*node_id, sa_from_in6(std::move(sin6)).get());
+      }
+    }
+
+  } else if (response[key_r_nodes].is_raw_string()) {
+    raw_string nodes = response[key_r_nodes].as_raw_string();
+
+    node_info_list list;
+    std::copy(reinterpret_cast<const compact_node_info*>(nodes.data()),
+              reinterpret_cast<const compact_node_info*>(nodes.data() + nodes.size() - nodes.size() % sizeof(compact_node_info)),
+              std::back_inserter(list));
+
+    for (auto& node : list) {
+      if (node.id() != m_router->id())
+        transaction->search()->add_contact(node.id(), sa_make_inet_n(node._addr.addr, node._addr.port).get());
+    }
   }
 
   find_node_next(transaction);
@@ -612,7 +683,14 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
       break;
 
     case DhtTransaction::DHT_FIND_NODE:
-      query[key_a_target] = transaction->as_find_node()->search()->target_raw_string();
+      // A peer search walks with get_peers (BEP 5): every node on the way may hold the info-hash's peers and
+      // answers with them beside the closer nodes; a find_node walk only asked the last few nodes for peers.
+      if (transaction->as_find_node()->search()->is_announce()) {
+        query[key_q] = raw_string::from_c_str("get_peers");
+        query[key_a_infoHash] = transaction->as_find_node()->search()->target_raw_string();
+      } else {
+        query[key_a_target] = transaction->as_find_node()->search()->target_raw_string();
+      }
       break;
 
     case DhtTransaction::DHT_GET_PEERS:
@@ -769,14 +847,14 @@ DhtServer::event_read() {
       if (read < 0)
         break;
 
-      // We can currently only process mapped-IPv4 addresses, not real IPv6.
-      // Translate them to an af_inet socket_address.
+      // The IPv4 server takes mapped-IPv4 addresses as IPv4; the IPv6 server (a v6-only socket) takes real IPv6
+      // only. Each family's traffic belongs to its own router.
       if (sa_is_v4mapped(sa)) {
         auto sa_unmapped = sin_from_v4mapped_in6(&sa_raw);
         *reinterpret_cast<sockaddr_in*>(&sa_raw) = *sa_unmapped.get();
       }
 
-      if (sa->sa_family != AF_INET)
+      if (sa->sa_family != m_router->family())
         continue;
 
       // If it's not a valid bencode dictionary at all, it's probably not a DHT
