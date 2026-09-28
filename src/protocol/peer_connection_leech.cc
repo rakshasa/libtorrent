@@ -472,7 +472,7 @@ PeerConnection<type>::event_read() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (const storage_error& e) {
-    LT_LOG_NETWORK_ERRORS("storage read error: %s", e.what());
+    LT_LOG_STORAGE_ERRORS("storage read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (const base_error& e) {
