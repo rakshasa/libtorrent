@@ -53,8 +53,9 @@ public:
   // search.
   void                find_node(const DhtBucket& contacts, const HashString& target);
 
-  // Do DHT announce, starting with the given contacts.
-  void                announce(const DhtBucket& contacts, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker);
+  // Do DHT announce, starting with the given contacts. A primary announce reports its progress and outcome to
+  // the tracker, a secondary one (the other address family) only its peers.
+  void                announce(const DhtBucket& contacts, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker, bool primary = true);
 
   // Cancel given announce for given tracker, or all matching announces if info/tracker NULL.
   void                cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker);
@@ -116,8 +117,8 @@ private:
   void                process_response(const HashString& id, const sockaddr* sa, const DhtMessage& req);
   void                process_error(const sockaddr* sa, const DhtMessage& error);
 
-  void                parse_find_node_reply(DhtTransactionSearch* t, raw_string nodes);
-  void                add_search_contacts(DhtTransactionSearch* t, raw_string nodes);
+  void                parse_find_node_reply(DhtTransactionSearch* t, const DhtMessage& res);
+  void                add_search_contacts(DhtTransactionSearch* t, const DhtMessage& res);
   void                parse_get_peers_reply(DhtTransactionGetPeers* t, const DhtMessage& res);
 
   void                find_node_next(DhtTransactionSearch* t);

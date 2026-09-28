@@ -2,6 +2,9 @@
 
 #include "dht/dht_node.h"
 
+#include <cstring>
+
+#include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
@@ -29,8 +32,22 @@ DhtNode::DhtNode(const std::string& id, const Object& cache)
   : HashString(*HashString::cast_from(id.c_str())),
     m_last_seen(cache.get_key_value("t")) {
 
-  // TODO: Check how DHT handles inet6.
-  m_socket_address = sa_make_inet_h(cache.get_key_value("i"), cache.get_key_value("p"));
+  // An IPv6 node keeps its address as a 16-byte string ("i6"); an IPv4 node as a number ("i").
+  if (cache.has_key_string("i6")) {
+    const std::string& addr = cache.get_key_string("i6");
+
+    if (addr.size() != 16)
+      throw bencode_error("Loading cache: Invalid IPv6 node address.");
+
+    auto sin6 = sin6_make();
+    std::memcpy(&sin6->sin6_addr, addr.data(), 16);
+    sin6->sin6_port = htons(cache.get_key_value("p"));
+
+    m_socket_address = sa_from_in6(std::move(sin6));
+
+  } else {
+    m_socket_address = sa_make_inet_h(cache.get_key_value("i"), cache.get_key_value("p"));
+  }
 
   LT_LOG_THIS("initializing node : %s", sap_pretty_str(m_socket_address).c_str());
 
@@ -46,6 +63,15 @@ char*
 DhtNode::store_compact(char* buffer) const {
   HashString::cast_from(buffer)->assign(data());
 
+  if (m_socket_address->sa_family == AF_INET6) {
+    auto sin6 = reinterpret_cast<sockaddr_in6*>(m_socket_address.get());
+
+    std::memcpy(buffer + 20, &sin6->sin6_addr, 16);
+    std::memcpy(buffer + 36, &sin6->sin6_port, 2);
+
+    return buffer + compact_size_inet6;
+  }
+
   if (m_socket_address->sa_family != AF_INET)
     throw internal_error("DhtNode::store_compact called with non-inet address.");
 
@@ -54,18 +80,16 @@ DhtNode::store_compact(char* buffer) const {
   SocketAddressCompact compact(sin);
   std::memcpy(buffer + 20, compact.c_str(), 6);
 
-  return buffer + 26;
+  return buffer + compact_size_inet;
 }
 
 Object*
 DhtNode::store_cache(Object* container) const {
   if (m_socket_address->sa_family == AF_INET6) {
-    // Currently, all we support is in6addr_any (checked in the constructor),
-    // which is effectively equivalent to this. Note that we need to specify
-    // int64_t explicitly here because a zero constant is special in C++ and
-    // thus we need an explicit match.
-    container->insert_key("i", int64_t{0});
-    container->insert_key("p", sap_port(m_socket_address));
+    auto sin6 = reinterpret_cast<sockaddr_in6*>(m_socket_address.get());
+
+    container->insert_key("i6", std::string(reinterpret_cast<const char*>(&sin6->sin6_addr), 16));
+    container->insert_key("p", ntohs(sin6->sin6_port));
 
   } else if (m_socket_address->sa_family == AF_INET) {
     auto sin = reinterpret_cast<sockaddr_in*>(m_socket_address.get());

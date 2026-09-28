@@ -11,13 +11,17 @@
 
 namespace torrent::dht {
 
-DhtAnnounce::DhtAnnounce(DhtServer* server, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker)
+DhtAnnounce::DhtAnnounce(DhtServer* server, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker, bool primary)
   : DhtSearch(server, infoHash),
-    m_tracker(tracker) {
+    m_tracker(tracker),
+    m_primary(primary) {
 }
 
 DhtAnnounce::~DhtAnnounce() {
   assert(complete() && "DhtAnnounce::~DhtAnnounce called while announce not complete.");
+
+  if (!m_primary)
+    return;
 
   TrackerDht::add_event(m_tracker, [contacted = m_contacted, replied = m_replied](TrackerDht* tracker) {
       const char* failure = nullptr;
@@ -64,9 +68,11 @@ DhtAnnounce::start_announce() {
   if (targets.empty())
     return {};
 
-  TrackerDht::add_event(m_tracker, [](TrackerDht* tracker) {
-      tracker->set_dht_announce_state();
-    });
+  if (m_primary) {
+    TrackerDht::add_event(m_tracker, [](TrackerDht* tracker) {
+        tracker->set_dht_announce_state();
+      });
+  }
 
   return targets;
 }
@@ -88,6 +94,9 @@ DhtAnnounce::receive_peers(raw_list peers) {
 
 void
 DhtAnnounce::update_status() {
+  if (!m_primary)
+    return;
+
   TrackerDht::add_event(m_tracker, [contacted = m_contacted, replied = m_replied](TrackerDht* tracker) {
       tracker->receive_progress(replied, contacted);
     });

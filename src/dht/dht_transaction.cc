@@ -59,24 +59,33 @@ DhtTransaction::~DhtTransaction() {
     m_packet->set_failed();
 }
 
+// The upper 32 bits of a key name the node's address: the IPv4 address itself, or a 32-bit FNV-1a fold of the IPv6
+// address (each family's server keeps its own transactions, and a reply is also checked against the full address).
+static uint64_t
+dht_transaction_addr_key(const sockaddr* sa) {
+  if (sa_is_inet(sa))
+    return reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr;
+
+  if (!sa_is_inet6(sa))
+    throw internal_error("DhtTransaction::key() called with non-inet address.");
+
+  auto bytes = reinterpret_cast<const unsigned char*>(&reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr);
+  uint32_t hash = 2166136261u;
+
+  for (int i = 0; i < 16; i++)
+    hash = (hash ^ bytes[i]) * 16777619u;
+
+  return hash;
+}
+
 DhtTransaction::key_type
 DhtTransaction::key(const sockaddr* sa, int id) {
-  if (sa_is_inet(sa))
-    return (static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr) << 32) + id;
-  else if (sa_is_inet6(sa))
-    throw internal_error("DhtTransaction::key() called with inet6 address.");
-  else
-    throw internal_error("DhtTransaction::key() called with non-inet address.");
+  return (dht_transaction_addr_key(sa) << 32) + id;
 }
 
 bool
 DhtTransaction::key_match(key_type key, const sockaddr* sa) {
-  if (sa_is_inet(sa))
-    return (key >> 32) == static_cast<uint64_t>(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr);
-  else if (sa_is_inet6(sa))
-    throw internal_error("DhtTransaction::key_match() called with inet6 address.");
-  else
-    throw internal_error("DhtTransaction::key_match() called with non-inet address.");
+  return (key >> 32) == dht_transaction_addr_key(sa);
 }
 
 //

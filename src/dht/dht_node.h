@@ -21,6 +21,10 @@ public:
   // A node is considered bad if it failed to reply to this many queries.
   static constexpr unsigned int max_failed_replies = 5;
 
+  // Compact node information: the ID and the address, 26 bytes for IPv4 (BEP 5) and 38 for IPv6 (BEP 32).
+  static constexpr unsigned int compact_size_inet  = 26;
+  static constexpr unsigned int compact_size_inet6 = 38;
+
   DhtNode(const HashString& id, const sockaddr* sa);
   DhtNode(const std::string& id, const Object& cache);
   ~DhtNode() = default;
@@ -52,8 +56,8 @@ public:
 
   bool                is_in_range(const DhtBucket* b) { return b->is_in_range(*this); }
 
-  // Store compact node information (26 bytes address, port and ID) in the given
-  // buffer and return pointer to end of stored information.
+  // Store compact node information (ID, address and port: 26 bytes for IPv4, 38 for IPv6) in the
+  // given buffer and return pointer to end of stored information.
   char*               store_compact(char* buffer) const;
 
   // Store node cache in the given container object and return it.
