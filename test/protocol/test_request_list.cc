@@ -137,6 +137,28 @@ TestRequestList::test_basic() {
   CPPUNIT_ASSERT(request_list->transfer() == NULL);
 }
 
+// A peer queues a limited number of requests (rtorrent 2048, libtorrent-rasterbar and Transmission 500 to 2000,
+// uTorrent 255, told in the extension handshake's "reqq") and ignores the rest. The pipe is rate / 5 blocks, which
+// passes 2048 once a peer sends 10 MiB/s: capped at 500, and at a smaller "reqq" when the peer gave one.
+void
+TestRequestList::test_pipe_size_limit() {
+  SETUP_ALL(basic);
+
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10) == 12);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 2400) == 498);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 500);
+
+  request_list->set_peer_request_queue(255);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 255);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10) == 12);
+
+  request_list->set_peer_request_queue(2048);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 500);
+
+  request_list->set_peer_request_queue(0);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 500);
+}
+
 void
 TestRequestList::test_single_request() {
   SETUP_ALL(basic);
