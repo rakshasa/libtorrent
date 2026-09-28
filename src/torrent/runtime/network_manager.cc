@@ -170,10 +170,8 @@ NetworkManager::dht_add_bootstrap_node(std::string host, int port){
 
 void
 NetworkManager::dht_add_peer_node(const sockaddr* sa, int port) {
-  if (m_dht_controller->is_nodes_populated())
-    return;
-
-  m_dht_controller->add_node(sa, port);
+  // A family whose table is populated skips it, the other family may still need nodes (BEP 32).
+  m_dht_controller->add_peer_node(sa, port);
 }
 
 bool

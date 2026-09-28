@@ -35,6 +35,7 @@ const ExtHandshakeMessage::key_list_type ExtHandshakeMessage::keys = {
 template <>
 const ExtPEXMessage::key_list_type ExtPEXMessage::keys = {
   { key_pex_added,    "added*S" },
+  { key_pex_added6,   "added6*S" },
 };
 
 // DEBUG: Add type info.
@@ -328,10 +329,13 @@ ProtocolExtension::parse_ut_pex() {
   static_map_read_bencode(m_read, m_readPos, message);
 
   // TODO: Check if pex is enabled?
-  if (!message[key_pex_added].is_raw_string())
-    return true;
+  if (message[key_pex_added].is_raw_string())
+    m_download->peer_list()->insert_pex_list(message[key_pex_added].as_raw_string());
 
-  m_download->peer_list()->insert_pex_list(message[key_pex_added].as_raw_string());
+  // IPv6 peers come in "added6" (18 bytes each): the only way an IPv6-only peer's address travels by PEX.
+  if (message[key_pex_added6].is_raw_string())
+    m_download->peer_list()->insert_pex_list6(message[key_pex_added6].as_raw_string());
+
   return true;
 }
 

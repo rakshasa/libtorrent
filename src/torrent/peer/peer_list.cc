@@ -403,6 +403,21 @@ PeerList::cull_peers(int flags) {
 }
 
 uint32_t
+PeerList::insert_pex_list6(const raw_string& pex_list) {
+  if (pex_list.empty())
+    return 0;
+
+  AddressList l;
+
+  l.parse_address_compact_ipv6(std::string(pex_list.data(), pex_list.size()));
+  l.sort_and_unique();
+
+  LT_LOG_EVENTS("inserting pex list6: %" PRIu32 " peers", l.size());
+
+  return insert_available(&l);
+}
+
+uint32_t
 PeerList::insert_pex_list(const raw_string& pex_list) {
   if (pex_list.empty())
     return true;
