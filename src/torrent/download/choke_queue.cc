@@ -293,10 +293,12 @@ choke_queue::set_queued(PeerConnectionBase* pc, choke_status* base) {
   if (base->queued() || base->unchoked())
     return;
 
-  base->set_queued(true);
-
-  if (base->snubbed())
+  if (base->snubbed()) {
+    base->set_queued_snub(true);
     return;
+  }
+
+  base->set_queued(true);
 
   base->entry()->connection_queued(pc);
   modify_currently_queued(1);
@@ -312,13 +314,15 @@ choke_queue::set_queued(PeerConnectionBase* pc, choke_status* base) {
 
 void
 choke_queue::set_not_queued(PeerConnectionBase* pc, choke_status* base) {
+  if (base->snubbed()) {
+    base->set_queued_snub(false);
+    return;
+  }
+
   if (!base->queued())
     return;
 
   base->set_queued(false);
-
-  if (base->snubbed())
-    return;
 
   if (base->unchoked()) {
     m_slotConnection(pc, true);
@@ -347,6 +351,7 @@ choke_queue::set_snubbed(PeerConnectionBase* pc, choke_status* base) {
   base->entry()->connection_unqueued(pc);
   modify_currently_queued(-1);
 
+  base->set_queued_snub(true);
   base->set_queued(false);
 }
 
@@ -357,11 +362,14 @@ choke_queue::set_not_snubbed(PeerConnectionBase* pc, choke_status* base) {
 
   base->set_snubbed(false);
 
-  if (!base->queued())
+  if (!base->queued_snub())
     return;
 
   if (base->unchoked())
     throw internal_error("choke_queue::set_not_snubbed(...) base->unchoked().");
+
+  base->set_queued_snub(false);
+  base->set_queued(true);
 
   base->entry()->connection_queued(pc);
   modify_currently_queued(1);
@@ -393,6 +401,7 @@ choke_queue::disconnected(PeerConnectionBase* pc, choke_status* base) {
   }
 
   base->set_queued(false);
+  base->set_queued_snub(false);
 }
 
 // No need to do any choking as the next choke balancing will take
