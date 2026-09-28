@@ -88,3 +88,39 @@ test_dht_router::test_full_table_evicts_stale_trackers() {
   router.evict_stale_trackers();
   CPPUNIT_ASSERT_EQUAL(after_evict, tracker_count(router));
 }
+
+// rtorrent16: the IPv6 router (patches/libtorrent-dht-ipv6.patch) keeps IPv6 peers only, so its trackers' age
+// must come from their IPv6 announces. Read from the IPv4 list alone every one of them was 0 and a full table
+// dropped the first 5% in hash order, the freshest among them.
+void
+test_dht_router::test_full_inet6_table_evicts_stale_trackers() {
+  constexpr auto max_trackers = torrent::DhtRouter::max_trackers;
+  constexpr auto after_evict  = max_trackers - torrent::DhtRouter::num_tracker_evict;
+  constexpr auto evict_period = std::chrono::seconds(torrent::DhtRouter::timeout_tracker_evict);
+
+  torrent::DhtRouter router(nullptr, torrent::Object::create_map(), AF_INET6);
+
+  in6_addr addr{};
+  addr.s6_addr[0] = 0x2a;
+  addr.s6_addr[1] = 0x01;
+
+  for (unsigned int index = 0; index < max_trackers; index++) {
+    if (index == max_trackers / 2)
+      m_main_thread->test_add_cached_time(std::chrono::minutes(20));
+
+    addr.s6_addr[14] = static_cast<uint8_t>(index >> 8);
+    addr.s6_addr[15] = static_cast<uint8_t>(index & 0xff);
+
+    router.get_tracker(info_hash_for(index), true)->add_peer6(addr, 6881);
+  }
+
+  CPPUNIT_ASSERT(router.get_tracker(info_hash_for(0), false)->last_seen() != 0);
+
+  m_main_thread->test_add_cached_time(evict_period);
+  router.evict_stale_trackers();
+
+  CPPUNIT_ASSERT_EQUAL(after_evict, tracker_count(router));
+
+  for (unsigned int index = max_trackers / 2; index < max_trackers; index++)
+    CPPUNIT_ASSERT(router.get_tracker(info_hash_for(index), false) != nullptr);
+}
