@@ -135,6 +135,7 @@ uint32_t
 ThrottleList::node_used(ThrottleNode* node, uint32_t used) {
   add_rate(used);
   node->rate()->insert(used);
+  node->rate_recent()->insert(used);
 
   if (used == 0 || !m_enabled || node->list_iterator() == end())
     return used;
