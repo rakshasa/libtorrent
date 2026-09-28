@@ -24,6 +24,9 @@ public:
   bool                snubbed() const                         { return m_snubbed; }
   void                set_snubbed(bool s)                     { m_snubbed = s; }
 
+  bool                queued_snub() const                     { return m_queued_snub; }
+  void                set_queued_snub(bool s)                 { m_queued_snub = s; }
+
   auto                time_last_choke() const                          { return m_time_last_choke; }
   void                set_time_last_choke(std::chrono::microseconds t) { m_time_last_choke = t; }
 
@@ -34,6 +37,7 @@ private:
   bool                m_queued{false};
   bool                m_unchoked{false};
   bool                m_snubbed{false};
+  bool                m_queued_snub{false};
 
   std::chrono::microseconds m_time_last_choke{};
 };
