@@ -358,11 +358,12 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
     raw_string tag(tagStart, pos - tagStart);
     pos++;
 
-    // hash may be base32 encoded (optional in BEP 0009 and common practice)
-    if (raw_bencode_equal_c_str(tag, "xt")) {
-      if (end - pos < 9 || std::memcmp(pos, "urn:btih:", 9) != 0)
-        throw input_error("Invalid magnet URI.");
+    // skip exact topics other than urn:btih, such as the urn:btmh a hybrid torrent adds
+    bool is_btih = raw_bencode_equal_c_str(tag, "xt") &&
+                   end - pos >= 9 && std::memcmp(pos, "urn:btih:", 9) == 0;
 
+    // hash may be base32 encoded (optional in BEP 0009 and common practice)
+    if (is_btih) {
       pos += 9;
 
       const char* nextPos = parse_base32_sha1(pos, end, hash);
@@ -399,7 +400,7 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
       decoded.push_back(c);
     }
 
-    if (raw_bencode_equal_c_str(tag, "xt")) {
+    if (is_btih) {
       if (decoded.length() == torrent::HashString::size_data) {
         // url-encoded hash as per magnet URN specs
 
