@@ -707,7 +707,7 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
 
   // TODO: Check if this works right for zero-length files.
   std::for_each(firstItr,
-                lastItr == end() ? end() : (lastItr + 1),
+                lastItr == end() || (*lastItr)->range_first() > index ? lastItr : (lastItr + 1),
                 std::mem_fn(&File::inc_completed_protected));
 
   return lastItr;
