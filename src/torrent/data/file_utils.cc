@@ -28,6 +28,7 @@ file_split(FileList* fileList, FileList::iterator position, uint64_t maxSize, co
 
   name += srcPath->back().str();
   name += suffix;
+  name.resize(name_size + 3);
 
   for (unsigned int i = 0; i != splitSize; ++i, ++splitItr) {
     if (i == splitSize - 1 && (*position)->size_bytes() % maxSize != 0)
@@ -38,7 +39,6 @@ file_split(FileList* fileList, FileList::iterator position, uint64_t maxSize, co
     name[name_size + 0] = '0' + (i / 100) % 10;
     name[name_size + 1] = '0' + (i / 10) % 10;
     name[name_size + 2] = '0' + (i / 1) % 10;
-    name[name_size + 3] = '\0';
 
     std::get<1>(*splitItr) = *srcPath;
     std::get<1>(*splitItr).back().reset(name);
