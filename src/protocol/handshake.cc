@@ -1007,7 +1007,10 @@ Handshake::event_write() {
       if (m_encryption.policy().prefer_encrypted_handshake()) {
         prepare_key_plus_pad();
 
-        if (!m_encryption.policy().is_retrying() && m_encryption.policy().allow_plaintext_handshake())
+        // A plaintext handshake carries no RC4 stream, so there is no plaintext retry to arm when
+        // the stream is required to be encrypted.
+        if (!m_encryption.policy().is_retrying() && m_encryption.policy().allow_plaintext_handshake() &&
+            !m_encryption.policy().require_encrypted_stream())
           m_encryption.policy().set_retry_plaintext();
 
         m_state = READ_ENC_KEY;
