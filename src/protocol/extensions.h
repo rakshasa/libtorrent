@@ -155,6 +155,7 @@ enum ext_handshake_keys {
 
 enum ext_pex_keys {
   key_pex_added,
+  key_pex_added6,
   key_pex_LAST
 };
 

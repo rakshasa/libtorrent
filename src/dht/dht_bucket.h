@@ -105,7 +105,8 @@ private:
   HashString          m_begin;
   HashString          m_end;
 
-  char                m_fullCache[num_nodes * 26];
+  // Room for a reply's worth of IPv6 nodes (38 bytes each, BEP 32); an IPv4 bucket fills 26 bytes a node.
+  char                m_fullCache[num_nodes * 38];
 };
 
 // Helper class to recursively follow a chain of buckets.  It first recurses
