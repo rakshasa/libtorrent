@@ -324,18 +324,29 @@ RequestList::calculate_pipe_size(uint32_t rate) {
   // Change into KB.
   rate /= 1024;
 
+  uint32_t pipe;
+
   if (!m_delegator->get_aggressive()) {
     if (rate < 20)
-      return rate + 2;
+      pipe = rate + 2;
     else
-      return rate / 5 + 18;
+      pipe = rate / 5 + 18;
 
   } else {
     if (rate < 10)
-      return rate / 5 + 1;
+      pipe = rate / 5 + 1;
     else
-      return rate / 10 + 2;
+      pipe = rate / 10 + 2;
   }
+
+  // rate / 5 blocks is over three seconds of data in flight; past 2048 (10 MiB/s from one peer) an rtorrent seeder
+  // ignores the excess, and the connection waits on requests nobody will answer.
+  uint32_t limit = max_pipe_size;
+
+  if (m_peer_request_queue != 0)
+    limit = std::min(limit, m_peer_request_queue);
+
+  return std::min(pipe, limit);
 }
 
 } // namespace torrent
