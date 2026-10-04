@@ -1,14 +1,11 @@
 #ifndef LIBTORRENT_UTILS_RATE_H
 #define LIBTORRENT_UTILS_RATE_H
 
-#include <deque>
+#include <cstddef>
+#include <vector>
 #include <torrent/common.h>
 
 namespace torrent {
-
-// Keep the current rate count up to date for each call to rate() and
-// insert(...). This requires a mutable since rate() can be const, but
-// is justified as we avoid iterating the deque for each call.
 
 class LIBTORRENT_EXPORT Rate {
 public:
@@ -16,11 +13,11 @@ public:
   using rate_type  = uint64_t;
   using total_type = uint64_t;
 
-  using value_type = std::pair<timer_type, rate_type>;
-  using queue_type = std::deque<value_type>;
+  Rate(timer_type span);
 
-  Rate(timer_type span) :  m_span(span) {}
-
+  // The divisor grows from 1 second after the first insert, up to span().
+  // Inserts separated by startup_span() or more seconds restart that count;
+  // shorter pauses remain in the active period.
   // Bytes per second.
   rate_type           rate() const;
 
@@ -30,20 +27,31 @@ public:
 
   // Interval in seconds used to calculate the rate.
   timer_type          span() const                            { return m_span; }
-  void                set_span(timer_type s)                  { m_span = s; }
+  void                set_span(timer_type s);
+
+  // Pauses this long reset the active period; shorter pauses count toward its divisor.
+  timer_type          startup_span() const                    { return m_startup_span; }
+  void                set_startup_span(timer_type s);
 
   void                insert(rate_type bytes);
-
-  void                reset_rate()                            { m_current = 0; m_container.clear(); }
+  void                reset_rate();
 
 private:
-  inline void         discard_old() const;
+  void                advance_to(timer_type now) const;
+  void                clear_rate() const;
+  std::size_t         bucket_index(timer_type second) const;
 
-  mutable queue_type  m_container;
-
-  mutable rate_type   m_current{0};
-  total_type          m_total{0};
   timer_type          m_span;
+  timer_type          m_startup_span;
+  mutable std::vector<rate_type> m_buckets;
+  mutable rate_type   m_current{0};
+  mutable timer_type  m_last_second{0};
+  mutable timer_type  m_last_insert{0};
+  mutable timer_type  m_start{0};
+  mutable bool        m_has_last_second{false};
+  mutable bool        m_has_last_insert{false};
+  mutable bool        m_has_start{false};
+  total_type          m_total{0};
 };
 
 } // namespace torrent

@@ -91,6 +91,8 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/directory_events_test.h \
 	torrent/utils/test_option_strings.cc \
 	torrent/utils/test_option_strings.h \
+	torrent/utils/test_rate.cc \
+	torrent/utils/test_rate.h \
 	torrent/utils/test_queue_buckets.cc \
 	torrent/utils/test_queue_buckets.h \
 	torrent/utils/test_thread_base.cc \

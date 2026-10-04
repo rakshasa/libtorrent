@@ -11,7 +11,7 @@ LT_INIT([[disable-static]])
 AC_DEFINE([[PEER_NAME]], [["-lt1018-"]], [[Identifier that is part of the default peer id.]])
 AC_DEFINE([[PEER_VERSION]], [["lt\x10\x18"]], [[4 byte client and version identifier for DHT.]])
 
-LIBTORRENT_CURRENT=52
+LIBTORRENT_CURRENT=53
 LIBTORRENT_REVISION=0
 LIBTORRENT_AGE=0
 
