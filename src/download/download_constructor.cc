@@ -79,8 +79,18 @@ DownloadConstructor::initialize(Object& b) {
 
 void
 DownloadConstructor::parse_name(const Object& b) {
-  auto original_name  = b.get_key_string("name");
-  auto sanitized_name = sanitize_file_name(original_name, "dict-key \"name\"");
+  auto [original_name, sanitized_name] = [b]() {
+      if (runtime::client_config()->file_name_allow_legacy_utf8() && b.has_key_string("name.utf-8")) {
+        auto original_name  = b.get_key_string("name.utf-8");
+        auto sanitized_name = sanitize_file_name(original_name, "dict-key \"name.utf-8\"");
+        return std::make_pair(original_name, sanitized_name);
+
+      } else {
+        auto original_name  = b.get_key_string("name");
+        auto sanitized_name = sanitize_file_name(original_name, "dict-key \"name\"");
+        return std::make_pair(original_name, sanitized_name);
+      }
+  }();
 
   if (!Path::is_valid_component(sanitized_name))
     throw input_error("Bad torrent file, dict-key \"name\" contains invalid characters or is empty.");
@@ -133,7 +143,7 @@ DownloadConstructor::parse_info(const Object& b) {
   } else if (b.has_key("files")) {
     parse_multi_files(b.get_key("files"), chunkSize);
 
-    fileList->set_root_dir("./" + sanitize_file_name(m_download->info()->name().str(), "dict-key \"name\""));
+    fileList->set_root_dir("./" + sanitize_file_name(m_download->info()->name().str(), "dict-key \"name\" or \"name.utf-8\""));
 
   } else if (!m_download->info()->is_meta_download()) {
     throw input_error("Torrent must have either length or files entry.");
@@ -234,7 +244,9 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunk_size) {
   for (const auto& object : object_list) {
     Path path;
 
-    if (object.has_key_list("path"))
+    if (runtime::client_config()->file_name_allow_legacy_utf8() && object.has_key_list("path.utf-8"))
+      path = create_path(object.get_key_list("path.utf-8"));
+    else if (object.has_key_list("path"))
       path = create_path(object.get_key_list("path"));
 
     if (path.empty())

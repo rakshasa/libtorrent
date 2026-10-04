@@ -27,6 +27,9 @@ public:
   std::string         file_name_replace_slash() const;
   void                set_file_name_replace_slash(const std::string& str);
 
+  bool                file_name_allow_legacy_utf8() const;
+  void                set_file_name_allow_legacy_utf8(bool v);
+
 protected:
   friend class torrent::RuntimeManager;
 
@@ -48,6 +51,7 @@ private:
   std::atomic<bool>   m_listen_port_random{true};
   std::atomic<bool>   m_pex_enabled{true};
   std::atomic<bool>   m_torrent_name_use_sanitized{true};
+  std::atomic<bool>   m_file_name_allow_legacy_utf8{true};
 };
 
 inline auto ClientConfig::lock_guard() const                     { return std::lock_guard(m_mutex); }
@@ -61,7 +65,11 @@ inline void ClientConfig::set_pex_enabled(bool v)                { m_pex_enabled
 inline bool ClientConfig::torrent_name_use_sanitized() const     { return m_torrent_name_use_sanitized; }
 inline void ClientConfig::set_torrent_name_use_sanitized(bool v) { m_torrent_name_use_sanitized = v; }
 
-inline std::string ClientConfig::file_name_replace_slash() const { auto guard = lock_guard(); return m_file_name_replace_slash; }
+inline std::string ClientConfig::file_name_replace_slash() const  { auto guard = lock_guard(); return m_file_name_replace_slash; }
+
+inline bool ClientConfig::file_name_allow_legacy_utf8() const     { return m_file_name_allow_legacy_utf8; }
+inline void ClientConfig::set_file_name_allow_legacy_utf8(bool v) { m_file_name_allow_legacy_utf8 = v; }
+
 
 } // namespace torrent::runtime
 
