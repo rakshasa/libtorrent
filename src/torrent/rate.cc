@@ -109,6 +109,9 @@ Rate::insert(rate_type bytes) {
   if (m_current > (rate_type{1} << 40) || bytes > (rate_type{1} << 28))
     throw internal_error("Rate::insert(bytes) received out-of-bounds values..");
 
+  if (bytes == 0)
+    return;
+
   // A long pause starts a fresh active period so idle time and old samples
   // cannot dilute the rate after activity resumes.
   if (m_has_last_insert &&
