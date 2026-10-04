@@ -9,19 +9,23 @@
 namespace torrent {
 
 Rate::Rate(timer_type span) :
+  Rate(span, 3, 3) {
+}
+
+Rate::Rate(timer_type span, timer_type startup_span) :
+  Rate(span, startup_span, 3) {
+}
+
+Rate::Rate(timer_type span, timer_type startup_span, timer_type min_active_seconds) :
   m_span(std::max(timer_type{1}, span)),
-  m_startup_span(std::min(m_span, timer_type{3})),
+  m_startup_span(std::max(timer_type{1}, std::min(startup_span, m_span))),
+  m_min_active_seconds(std::max(timer_type{1}, std::min(min_active_seconds, m_span))),
   m_buckets(m_span, 0) {
 }
 
 size_t
 Rate::bucket_index(timer_type second) const {
-  auto index = static_cast<int64_t>(second) % static_cast<int64_t>(m_buckets.size());
-
-  if (index < 0)
-    index += m_buckets.size();
-
-  return static_cast<size_t>(index);
+  return static_cast<size_t>(second) % m_buckets.size();
 }
 
 void
@@ -48,7 +52,7 @@ Rate::advance_to(timer_type now) const {
     return;
   }
 
-  const auto elapsed = static_cast<int64_t>(now) - m_last_second;
+  const auto elapsed = now - m_last_second;
 
   if (elapsed == 0)
     return;
@@ -60,8 +64,8 @@ Rate::advance_to(timer_type now) const {
     return;
   }
 
-  for (auto second = static_cast<int64_t>(m_last_second) + 1; second <= now; ++second) {
-    auto& bucket = m_buckets[bucket_index(static_cast<timer_type>(second))];
+  for (timer_type offset = 1; offset <= elapsed; ++offset) {
+    auto& bucket = m_buckets[bucket_index(m_last_second + offset)];
     m_current -= bucket;
     bucket = 0;
   }
@@ -76,14 +80,14 @@ Rate::advance_to(timer_type now) const {
 
 Rate::rate_type
 Rate::rate() const {
-  const auto now = this_thread::cached_seconds().count();
+  const auto now = static_cast<timer_type>(this_thread::cached_seconds().count());
   advance_to(now);
 
   if (m_current == 0)
     return 0;
 
-  const auto active_seconds = static_cast<int64_t>(now) - m_start + 1;
-  const auto divisor = std::max<int64_t>(1, std::min<int64_t>(m_span, active_seconds));
+  const auto active_seconds = static_cast<uint64_t>(now - m_start) + 1;
+  const auto divisor = std::max<uint64_t>(m_min_active_seconds, std::min<uint64_t>(m_span, active_seconds));
 
   return m_current / divisor;
 }
@@ -92,18 +96,14 @@ void
 Rate::set_span(timer_type span) {
   m_span = std::max(timer_type{1}, span);
   m_startup_span = std::min(m_startup_span, m_span);
+  m_min_active_seconds = std::min(m_min_active_seconds, m_span);
   m_buckets.assign(m_span, 0);
   clear_rate();
 }
 
 void
-Rate::set_startup_span(timer_type span) {
-  m_startup_span = std::max(timer_type{1}, std::min(span, m_span));
-}
-
-void
 Rate::insert(rate_type bytes) {
-  const auto now = this_thread::cached_seconds().count();
+  const auto now = static_cast<timer_type>(this_thread::cached_seconds().count());
   advance_to(now);
 
   if (m_current > (rate_type{1} << 40) || bytes > (rate_type{1} << 28))
@@ -115,7 +115,7 @@ Rate::insert(rate_type bytes) {
   // A long pause starts a fresh active period so idle time and old samples
   // cannot dilute the rate after activity resumes.
   if (m_has_last_insert &&
-      static_cast<int64_t>(now) - m_last_insert >= m_startup_span) {
+      now - m_last_insert >= m_startup_span) {
     clear_rate();
     advance_to(now);
   }

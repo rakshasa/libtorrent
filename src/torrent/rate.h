@@ -2,6 +2,7 @@
 #define LIBTORRENT_UTILS_RATE_H
 
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 #include <torrent/common.h>
 
@@ -9,13 +10,15 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Rate {
 public:
-  using timer_type = int32_t;
+  using timer_type = uint32_t;
   using rate_type  = uint64_t;
   using total_type = uint64_t;
 
   Rate(timer_type span);
+  Rate(timer_type span, timer_type startup_span);
+  Rate(timer_type span, timer_type startup_span, timer_type min_active_seconds);
 
-  // The divisor grows from 1 second after the first insert, up to span().
+  // The divisor grows from min_active_seconds after the first insert, up to span().
   // Inserts separated by startup_span() or more seconds restart that count;
   // shorter pauses remain in the active period.
   // Bytes per second.
@@ -31,7 +34,6 @@ public:
 
   // Pauses this long reset the active period; shorter pauses count toward its divisor.
   timer_type          startup_span() const                    { return m_startup_span; }
-  void                set_startup_span(timer_type s);
 
   void                insert(rate_type bytes);
   void                reset_rate();
@@ -43,6 +45,7 @@ private:
 
   timer_type          m_span;
   timer_type          m_startup_span;
+  timer_type          m_min_active_seconds;
   mutable std::vector<rate_type> m_buckets;
   mutable rate_type   m_current{0};
   mutable timer_type  m_last_second{0};
