@@ -10,25 +10,29 @@
 namespace torrent {
 
 Rate::Rate(timer_type span) :
-  Rate(span, 3, 3) {
+  Rate(span, 3, 3, span / 3) {
 }
 
 Rate::Rate(timer_type span, timer_type startup_span) :
-  Rate(span, startup_span, 3) {
+  Rate(span, startup_span, 3, span / 3) {
 }
 
-Rate::Rate(timer_type span, timer_type startup_span, timer_type min_active_seconds) :
+Rate::Rate(timer_type span, timer_type startup_span, timer_type min_active_seconds, timer_type idle_timeout) :
   m_span(span),
   m_startup_span(startup_span),
   m_min_active_seconds(min_active_seconds),
+  m_idle_timeout(idle_timeout),
+
   m_buckets(m_span, 0) {
 
   assert(m_span > 0);
   assert(m_startup_span > 0);
   assert(m_min_active_seconds > 0);
+  assert(m_idle_timeout > 0);
 
   assert(m_startup_span <= m_span);
   assert(m_min_active_seconds <= m_span);
+  assert(m_idle_timeout <= m_span);
 }
 
 void
@@ -52,7 +56,7 @@ Rate::advance_to(timer_type now) const {
     return;
   }
 
-  if (now < m_last_second) {
+  if (now < m_last_second || now - m_last_second > m_idle_timeout) {
     clear_rate();
     m_last_second = now;
     return;

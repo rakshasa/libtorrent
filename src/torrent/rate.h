@@ -16,7 +16,7 @@ public:
 
   Rate(timer_type span);
   Rate(timer_type span, timer_type startup_span);
-  Rate(timer_type span, timer_type startup_span, timer_type min_active_seconds);
+  Rate(timer_type span, timer_type startup_span, timer_type min_active_seconds, timer_type idle_timeout);
 
   // The divisor grows from min_active_seconds after the first insert, up to span().
   // Inserts separated by startup_span() or more seconds restart that count;
@@ -44,6 +44,7 @@ private:
   timer_type          m_span;
   timer_type          m_startup_span;
   timer_type          m_min_active_seconds;
+  timer_type          m_idle_timeout;
 
   mutable std::vector<rate_type> m_buckets;
 

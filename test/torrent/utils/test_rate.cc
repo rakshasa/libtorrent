@@ -9,7 +9,7 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_rate, "torrent/utils");
 void
 test_rate::test_startup_and_filling_window() {
   m_main_thread->test_set_cached_time(0s);
-  torrent::Rate rate(4, 3, 3);
+  torrent::Rate rate(4, 3, 3, 4);
 
   rate.insert(100);
   CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{33}, rate.rate());
@@ -45,39 +45,42 @@ test_rate::test_rate_decays_after_span() {
 void
 test_rate::test_restart_after_idle() {
   m_main_thread->test_set_cached_time(0s);
-  torrent::Rate rate(30, 3, 3);
+  torrent::Rate rate(30, 3, 3, 10);
 
   rate.insert(1200);
   m_main_thread->test_add_cached_time(1s);
   rate.insert(1200);
 
-  m_main_thread->test_add_cached_time(15s);
+  m_main_thread->test_add_cached_time(9s);
   CPPUNIT_ASSERT(rate.rate() < 1200);
 
   rate.insert(1200);
   CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{400}, rate.rate());
+
+  m_main_thread->test_add_cached_time(11s);
+  CPPUNIT_ASSERT(rate.rate() == 0);
 }
 
 void
 test_rate::test_zero_bytes_do_not_prevent_idle_restart() {
   m_main_thread->test_set_cached_time(0s);
-  torrent::Rate rate(30, 3, 3);
+  torrent::Rate rate(30, 3, 3, 10);
 
   rate.insert(1200);
-  m_main_thread->test_add_cached_time(1s);
+  m_main_thread->test_add_cached_time(9s);
   rate.insert(0);
-  m_main_thread->test_add_cached_time(1s);
+  m_main_thread->test_add_cached_time(9s);
   rate.insert(0);
-  m_main_thread->test_add_cached_time(1s);
+  m_main_thread->test_add_cached_time(9s);
   rate.insert(1200);
 
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{400}, rate.rate());
+  CPPUNIT_ASSERT(rate.rate() == 400);
 }
 
 void
 test_rate::test_zero_bytes_do_not_discard_samples() {
   m_main_thread->test_set_cached_time(0s);
-  torrent::Rate rate(30, 3, 3);
+  torrent::Rate rate(30, 3, 3, 10);
 
   rate.insert(1200);
   m_main_thread->test_add_cached_time(4s);
@@ -89,7 +92,7 @@ test_rate::test_zero_bytes_do_not_discard_samples() {
 void
 test_rate::test_clock_rollback_resets_rate() {
   m_main_thread->test_set_cached_time(10s);
-  torrent::Rate rate(30, 3, 3);
+  torrent::Rate rate(30, 3, 3, 10);
 
   rate.insert(1200);
   m_main_thread->test_set_cached_time(9s);
@@ -102,12 +105,12 @@ test_rate::test_clock_rollback_resets_rate() {
 void
 test_rate::test_startup_span() {
   m_main_thread->test_set_cached_time(0s);
-  torrent::Rate rate(30, 5, 6);
+  torrent::Rate rate(30, 5, 6, 10);
 
   CPPUNIT_ASSERT_EQUAL(torrent::Rate::timer_type{5}, rate.startup_span());
   rate.insert(600);
   CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{100}, rate.rate());
 
-  torrent::Rate clamped_rate(30, 30, 30);
+  torrent::Rate clamped_rate(30, 30, 30, 30);
   CPPUNIT_ASSERT_EQUAL(torrent::Rate::timer_type{30}, clamped_rate.startup_span());
 }
