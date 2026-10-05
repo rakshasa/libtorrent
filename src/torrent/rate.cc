@@ -23,9 +23,9 @@ Rate::Rate(timer_type span, timer_type startup_span, timer_type min_active_secon
   m_min_active_seconds(min_active_seconds),
   m_buckets(m_span, 0) {
 
-  assert(span > 0);
-  assert(startup_span > 0);
-  assert(min_active_seconds > 0);
+  assert(m_span > 0);
+  assert(m_startup_span > 0);
+  assert(m_min_active_seconds > 0);
 
   assert(m_startup_span <= m_span);
   assert(m_min_active_seconds <= m_span);
@@ -133,6 +133,7 @@ Rate::insert(rate_type bytes) {
     advance_to(now);
   }
 
+  // TODO: Consider using m_start==0 instead of m_has_start.
   if (!m_has_start) {
     m_start     = now;
     m_has_start = true;

@@ -131,6 +131,6 @@ test_rate::test_startup_span() {
   rate.insert(600);
   CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{100}, rate.rate());
 
-  torrent::Rate clamped_rate(30, 60, 60);
+  torrent::Rate clamped_rate(30, 30, 30);
   CPPUNIT_ASSERT_EQUAL(torrent::Rate::timer_type{30}, clamped_rate.startup_span());
 }
