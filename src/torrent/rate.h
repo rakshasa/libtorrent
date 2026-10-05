@@ -24,13 +24,11 @@ public:
   // Bytes per second.
   rate_type           rate() const;
 
-  total_type          total() const                           { return m_total; }
-  void                set_total(total_type bytes)             { m_total = bytes; }
+  total_type          total() const;
+  void                set_total(total_type bytes);
 
-  timer_type          span() const                            { return m_span; }
-  void                set_span(timer_type s);
-
-  timer_type          startup_span() const                    { return m_startup_span; }
+  timer_type          span() const;
+  timer_type          startup_span() const;
 
   void                insert(rate_type bytes);
   void                reset_rate();
@@ -52,14 +50,16 @@ private:
   mutable rate_type   m_current{};
   total_type          m_total{};
 
+  mutable timer_type  m_start{};
   mutable timer_type  m_last_second{};
   mutable timer_type  m_last_insert{};
-  mutable timer_type  m_start{};
-
-  mutable bool        m_has_last_second{};
-  mutable bool        m_has_last_insert{};
-  mutable bool        m_has_start{};
 };
+
+inline Rate::total_type Rate::total() const                         { return m_total; }
+inline void             Rate::set_total(total_type bytes)           { m_total = bytes; }
+inline Rate::timer_type Rate::span() const                          { return m_span; }
+inline Rate::timer_type Rate::startup_span() const                  { return m_startup_span; }
+inline uint32_t         Rate::bucket_index(timer_type second) const { return second % m_buckets.size(); }
 
 } // namespace torrent
 

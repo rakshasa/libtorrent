@@ -100,29 +100,6 @@ test_rate::test_clock_rollback_resets_rate() {
 }
 
 void
-test_rate::test_set_span_and_reset() {
-  m_main_thread->test_set_cached_time(0s);
-  torrent::Rate rate(5);
-
-  rate.insert(100);
-  rate.set_span(2);
-
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::timer_type{2}, rate.span());
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{0}, rate.rate());
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::total_type{100}, rate.total());
-
-  rate.insert(200);
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{100}, rate.rate());
-
-  rate.reset_rate();
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{0}, rate.rate());
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::total_type{300}, rate.total());
-
-  rate.insert(300);
-  CPPUNIT_ASSERT_EQUAL(torrent::Rate::rate_type{150}, rate.rate());
-}
-
-void
 test_rate::test_startup_span() {
   m_main_thread->test_set_cached_time(0s);
   torrent::Rate rate(30, 5, 6);

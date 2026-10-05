@@ -31,34 +31,30 @@ Rate::Rate(timer_type span, timer_type startup_span, timer_type min_active_secon
   assert(m_min_active_seconds <= m_span);
 }
 
-uint32_t
-Rate::bucket_index(timer_type second) const {
-  return second % m_buckets.size();
-}
-
 void
 Rate::clear_rate() const {
   if (m_current != 0)
     std::fill(m_buckets.begin(), m_buckets.end(), 0);
 
-  m_current         = 0;
-  m_has_last_second = false;
-  m_has_last_insert = false;
-  m_has_start       = false;
+  m_current     = 0;
+  m_start       = 0;
+  m_last_second = 0;
+  m_last_insert = 0;
 }
 
 void
 Rate::advance_to(timer_type now) const {
-  if (!m_has_last_second) {
-    m_last_second     = now;
-    m_has_last_second = true;
+  if (now == 0)
+    throw internal_error("Rate::advance_to(now) called with now==0.");
+
+  if (m_last_second == 0) {
+    m_last_second = now;
     return;
   }
 
   if (now < m_last_second) {
     clear_rate();
-    m_last_second     = now;
-    m_has_last_second = true;
+    m_last_second = now;
     return;
   }
 
@@ -69,13 +65,12 @@ Rate::advance_to(timer_type now) const {
 
   if (elapsed >= m_span) {
     clear_rate();
-    m_last_second     = now;
-    m_has_last_second = true;
     return;
   }
 
   for (timer_type offset = 1; offset <= elapsed; ++offset) {
     auto& bucket = m_buckets[bucket_index(m_last_second + offset)];
+
     m_current -= bucket;
     bucket = 0;
   }
@@ -83,13 +78,14 @@ Rate::advance_to(timer_type now) const {
   m_last_second = now;
 
   if (m_current == 0) {
-    m_has_last_insert = false;
-    m_has_start       = false;
+    m_start       = 0;
+    m_last_insert = 0;
   }
 }
 
 Rate::rate_type
 Rate::rate() const {
+  // We don't care about overflow as it is far in the future.
   timer_type now = this_thread::cached_seconds().count();
 
   advance_to(now);
@@ -106,38 +102,26 @@ Rate::rate() const {
 }
 
 void
-Rate::set_span(timer_type span) {
-  m_span = std::max(timer_type{1}, span);
-  m_startup_span = std::min(m_startup_span, m_span);
-  m_min_active_seconds = std::min(m_min_active_seconds, m_span);
-  m_buckets.assign(m_span, 0);
-  clear_rate();
-}
-
-void
 Rate::insert(rate_type bytes) {
   timer_type now = this_thread::cached_seconds().count();
 
   advance_to(now);
 
-  if (m_current > (rate_type{1} << 40) || bytes > (rate_type{1} << 28))
-    throw internal_error("Rate::insert(bytes) received out-of-bounds values..");
-
   if (bytes == 0)
     return;
 
+  if (m_current > (rate_type{1} << 40) || bytes > (rate_type{1} << 28))
+    throw internal_error("Rate::insert(bytes) received out-of-bounds values..");
+
   // A long pause starts a fresh active period so idle time and old samples cannot dilute the rate
   // after activity resumes.
-  if (m_has_last_insert && now - m_last_insert >= m_startup_span) {
+  if (m_last_insert != 0 && now - m_last_insert >= m_startup_span) {
     clear_rate();
     advance_to(now);
   }
 
-  // TODO: Consider using m_start==0 instead of m_has_start.
-  if (!m_has_start) {
-    m_start     = now;
-    m_has_start = true;
-  }
+  if (m_start == 0)
+    m_start = now;
 
   auto& bucket = m_buckets[bucket_index(now)];
 
@@ -145,8 +129,7 @@ Rate::insert(rate_type bytes) {
   m_current += bytes;
   m_total   += bytes;
 
-  m_last_insert     = now;
-  m_has_last_insert = true;
+  m_last_insert = now;
 }
 
 void

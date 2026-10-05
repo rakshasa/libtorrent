@@ -9,7 +9,6 @@ class test_rate : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_zero_bytes_do_not_prevent_idle_restart);
   CPPUNIT_TEST(test_zero_bytes_do_not_discard_samples);
   CPPUNIT_TEST(test_clock_rollback_resets_rate);
-  CPPUNIT_TEST(test_set_span_and_reset);
   CPPUNIT_TEST(test_startup_span);
 
   CPPUNIT_TEST_SUITE_END();
@@ -21,6 +20,5 @@ public:
   void test_zero_bytes_do_not_prevent_idle_restart();
   void test_zero_bytes_do_not_discard_samples();
   void test_clock_rollback_resets_rate();
-  void test_set_span_and_reset();
   void test_startup_span();
 };
