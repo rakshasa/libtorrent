@@ -127,6 +127,7 @@ libtorrent_torrent_la_SOURCES = \
 	utils/ranges.h \
 	utils/resume.cc \
 	utils/resume.h \
+	utils/scope.h \
 	utils/string_manip.cc \
 	utils/string_manip.h \
 	utils/unordered_vector.h \
