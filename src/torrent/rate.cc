@@ -61,10 +61,8 @@ Rate::advance_to(timer_type now) const {
   }
 
   if (now < m_last_second) {
-    // TODO: While testing ensure we catch any cases where this happens.
-    throw internal_error("Rate::advance_to(now) called with now < m_last_second.");
-    // clear_rate();
-    // return;
+    clear_rate();
+    return;
   }
 
   if (m_last_insert != 0 && now - m_last_insert > m_idle_timeout) {
