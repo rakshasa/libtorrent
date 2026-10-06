@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include "torrent/exceptions.h"
+#include "torrent/utils/scope.h"
 
 namespace torrent {
 
@@ -40,10 +41,10 @@ Rate::clear_rate() const {
   if (m_current != 0)
     std::fill(m_buckets.begin(), m_buckets.end(), 0);
 
-  m_current     = 0;
-  m_start       = 0;
-  m_last_second = 0;
-  m_last_insert = 0;
+  m_current      = 0;
+  m_start_second = 0;
+  m_last_second  = 0;
+  m_last_insert  = 0;
 }
 
 void
@@ -51,14 +52,23 @@ Rate::advance_to(timer_type now) const {
   if (now == 0)
     throw internal_error("Rate::advance_to(now) called with now==0.");
 
+  utils::scope_exit guard([this, now]() { m_last_second = now; });
+
   if (m_last_second == 0) {
-    m_last_second = now;
+    assert(m_current == 0);
+    assert(m_start_second == 0);
     return;
   }
 
-  if (now < m_last_second || now - m_last_second > m_idle_timeout) {
+  if (now < m_last_second) {
+    // TODO: While testing ensure we catch any cases where this happens.
+    throw internal_error("Rate::advance_to(now) called with now < m_last_second.");
+    // clear_rate();
+    // return;
+  }
+
+  if (m_last_insert != 0 && now - m_last_insert > m_idle_timeout) {
     clear_rate();
-    m_last_second = now;
     return;
   }
 
@@ -79,11 +89,9 @@ Rate::advance_to(timer_type now) const {
     bucket = 0;
   }
 
-  m_last_second = now;
-
   if (m_current == 0) {
-    m_start       = 0;
-    m_last_insert = 0;
+    m_start_second = 0;
+    m_last_insert  = 0;
   }
 }
 
@@ -97,9 +105,9 @@ Rate::rate() const {
   if (m_current == 0)
     return 0;
 
-  assert(now >= m_start);
+  assert(now >= m_start_second);
 
-  auto active_seconds = (now - m_start) + 1;
+  auto active_seconds = (now - m_start_second) + 1;
   auto divisor        = std::max(m_min_active_seconds, std::min(m_span, active_seconds));
 
   return m_current / divisor;
@@ -119,13 +127,13 @@ Rate::insert(rate_type bytes) {
 
   // A long pause starts a fresh active period so idle time and old samples cannot dilute the rate
   // after activity resumes.
-  if (m_last_insert != 0 && now - m_last_insert >= m_startup_span) {
+  if (m_last_insert != 0 && now - m_last_insert > m_startup_span) {
     clear_rate();
     advance_to(now);
   }
 
-  if (m_start == 0)
-    m_start = now;
+  if (m_start_second == 0)
+    m_start_second = now;
 
   auto& bucket = m_buckets[bucket_index(now)];
 
