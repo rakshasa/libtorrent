@@ -51,9 +51,9 @@ private:
   mutable rate_type   m_current{};
   total_type          m_total{};
 
-  mutable timer_type  m_start_second{};
-  mutable timer_type  m_last_second{};
+  mutable timer_type  m_start_insert{};
   mutable timer_type  m_last_insert{};
+  mutable timer_type  m_last_query{};
 };
 
 inline Rate::total_type Rate::total() const                         { return m_total; }

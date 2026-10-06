@@ -42,9 +42,9 @@ Rate::clear_rate() const {
     std::fill(m_buckets.begin(), m_buckets.end(), 0);
 
   m_current      = 0;
-  m_start_second = 0;
-  m_last_second  = 0;
+  m_start_insert = 0;
   m_last_insert  = 0;
+  m_last_query   = 0;
 }
 
 void
@@ -52,15 +52,15 @@ Rate::advance_to(timer_type now) const {
   if (now == 0)
     throw internal_error("Rate::advance_to(now) called with now==0.");
 
-  utils::scope_exit guard([this, now]() { m_last_second = now; });
+  utils::scope_exit guard([this, now]() { m_last_query = now; });
 
-  if (m_last_second == 0) {
+  if (m_last_query == 0) {
     assert(m_current == 0);
-    assert(m_start_second == 0);
+    assert(m_start_insert == 0);
     return;
   }
 
-  if (now < m_last_second) {
+  if (now < m_last_query) {
     clear_rate();
     return;
   }
@@ -70,7 +70,7 @@ Rate::advance_to(timer_type now) const {
     return;
   }
 
-  const auto elapsed = now - m_last_second;
+  const auto elapsed = now - m_last_query;
 
   if (elapsed == 0)
     return;
@@ -81,14 +81,14 @@ Rate::advance_to(timer_type now) const {
   }
 
   for (timer_type offset = 1; offset <= elapsed; ++offset) {
-    auto& bucket = m_buckets[bucket_index(m_last_second + offset)];
+    auto& bucket = m_buckets[bucket_index(m_last_query + offset)];
 
     m_current -= bucket;
     bucket = 0;
   }
 
   if (m_current == 0) {
-    m_start_second = 0;
+    m_start_insert = 0;
     m_last_insert  = 0;
   }
 }
@@ -103,9 +103,9 @@ Rate::rate() const {
   if (m_current == 0)
     return 0;
 
-  assert(now >= m_start_second);
+  assert(now >= m_start_insert);
 
-  auto active_seconds = (now - m_start_second) + 1;
+  auto active_seconds = (now - m_start_insert) + 1;
   auto divisor        = std::max(m_min_active_seconds, std::min(m_span, active_seconds));
 
   return m_current / divisor;
@@ -130,8 +130,8 @@ Rate::insert(rate_type bytes) {
     advance_to(now);
   }
 
-  if (m_start_second == 0)
-    m_start_second = now;
+  if (m_start_insert == 0)
+    m_start_insert = now;
 
   auto& bucket = m_buckets[bucket_index(now)];
 
