@@ -382,6 +382,7 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
   if (request_list()->queued_empty())
     m_down_stall = 0;
 
+  request_list()->set_peer_request_queue(m_extensions->peer_request_queue());
   uint32_t pipeSize = request_list()->calculate_pipe_size(m_peer_chunks.download_throttle()->rate()->rate());
 
   // Don't start requesting if we can't do it in large enough chunks.

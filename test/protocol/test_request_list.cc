@@ -137,6 +137,28 @@ TestRequestList::test_basic() {
   CPPUNIT_ASSERT(request_list->transfer() == NULL);
 }
 
+// A peer queues a limited number of requests, told as "reqq" in its extension handshake, and ignores the rest. The
+// pipe never passes that, or 500 from a peer that sent none.
+void
+TestRequestList::test_pipe_size_limit() {
+  SETUP_ALL(basic);
+
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10) == 12);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 2400) == 498);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 500);
+
+  request_list->set_peer_request_queue(255);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 255);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10) == 12);
+
+  request_list->set_peer_request_queue(2048);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 2048);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 2400) == 498);
+
+  request_list->set_peer_request_queue(0);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000) == 500);
+}
+
 void
 TestRequestList::test_single_request() {
   SETUP_ALL(basic);

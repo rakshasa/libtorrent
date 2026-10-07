@@ -80,6 +80,10 @@ public:
   uint32_t             pipe_size() const;
   uint32_t             calculate_pipe_size(uint32_t rate);
 
+  // The pipe never passes the peer's "reqq" from its extension handshake, or max_pipe_size when it gave none (0).
+  static constexpr uint32_t max_pipe_size = 500;
+  void                 set_peer_request_queue(uint32_t v) { m_peer_request_queue = v; }
+
   Delegator*           delegator()                       { return m_delegator; }
   void                 set_delegator(Delegator* d)       { m_delegator = d; }
 
@@ -98,6 +102,7 @@ private:
   void                 delay_process_unordered();
 
   Delegator*           m_delegator{};
+  uint32_t             m_peer_request_queue{0};
   PeerChunks*          m_peer_chunks{};
 
   BlockTransfer*       m_transfer{};

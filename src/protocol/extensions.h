@@ -94,6 +94,9 @@ public:
 
   bool                is_default() const               { return m_flags & flag_default; }
 
+  // The number of requests the peer said it queues ("reqq" in its extension handshake), 0 when it said nothing.
+  uint32_t            peer_request_queue() const       { return m_peer_request_queue; }
+
   // Initial PEX message after peer enables PEX needs to send full list
   // of peers instead of the delta list, so keep track of that.
   bool                is_initial_handshake() const     { return m_flags & flag_initial_handshake; }
@@ -129,6 +132,7 @@ private:
   // Set HANDSHAKE as enabled and supported. Those bits should not be
   // touched.
   int                 m_flags{flag_local_enabled_base | flag_remote_supported_base | flag_initial_handshake};
+  uint32_t            m_peer_request_queue{0};
   PeerInfo*           m_peerInfo{};
   DownloadMain*       m_download{};
   PeerConnectionBase* m_connection{};
