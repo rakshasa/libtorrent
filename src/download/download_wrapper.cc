@@ -21,8 +21,8 @@
 #include "utils/functional.h"
 #include "utils/sha1.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_info(LOG_TORRENT_INFO, this->info(), "download", log_fmt, __VA_ARGS__);
+#define LT_LOG_DEBUG(log_fmt, ...)                                     \
+  lt_log_print_hash_only(LOG_TORRENT_DEBUG, this->info()->hash(), "download : " log_fmt, __VA_ARGS__);
 #define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                             \
   lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->info(), "storage_errors", log_fmt, __VA_ARGS__);
 
@@ -294,7 +294,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
 void
 DownloadWrapper::receive_update_priorities() {
-  LT_LOG_THIS("update priorities: chunks_selected:%" PRIu32 " wanted_chunks:%" PRIu32,
+  LT_LOG_DEBUG("update priorities : chunks_selected:%" PRIu32 " wanted_chunks:%" PRIu32,
               m_main->chunk_selector()->size(), data()->wanted_chunks());
 
   data()->mutable_high_priority()->clear();

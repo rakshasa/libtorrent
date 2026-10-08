@@ -28,13 +28,6 @@ enum {
   LOG_STORAGE_INFO,
   LOG_STORAGE_DEBUG,
 
-  LOG_TORRENT_CRITICAL,
-  LOG_TORRENT_ERROR,
-  LOG_TORRENT_WARN,
-  LOG_TORRENT_NOTICE,
-  LOG_TORRENT_INFO,
-  LOG_TORRENT_DEBUG,
-
   LOG_NON_CASCADING,
 
   LOG_CONNECTION,
@@ -85,6 +78,9 @@ enum {
   LOG_SYSTEM_POLL,
   LOG_SYSTEM_THREAD,
 
+  LOG_TORRENT_DEBUG,
+  LOG_TORRENT_EVENTS,
+
   LOG_TRACKER_DUMP,
   LOG_TRACKER_EVENTS,
   LOG_TRACKER_REQUESTS,
@@ -100,9 +96,13 @@ enum {
   { if (torrent::log_groups[log_group].valid())                         \
       torrent::log_groups[log_group].internal_print(NULL, NULL, NULL, 0, __VA_ARGS__); }
 
+#define lt_log_print_hash_only(log_group, log_hash, ...)                \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_hash, NULL, NULL, 0, __VA_ARGS__); }
+
 #define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
   { if (torrent::log_groups[log_group].valid())                         \
-    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__); }
 
 #define lt_log_print_info(log_group, log_info, log_subsystem, ...)      \
   { if (torrent::log_groups[log_group].valid())                         \

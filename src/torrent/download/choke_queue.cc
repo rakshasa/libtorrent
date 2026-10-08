@@ -12,9 +12,8 @@
 #include "torrent/peer/choke_status.h"
 #include "torrent/utils/log.h"
 
-// TODO: Add a different logging category.
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(LOG_TORRENT_INFO, "choke_queue", log_fmt, __VA_ARGS__);
+#define LT_LOG_DEBUG(log_fmt, ...)                          \
+  lt_log_print(LOG_TORRENT_DEBUG, "choke_queue : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -161,10 +160,8 @@ choke_queue::balance() {
   if (!m_slotCanUnchoke)
     return;
 
-  LT_LOG_THIS("balancing queue: heuristics:%i currently_unchoked:%" PRIu32 " max_unchoked:%" PRIu32,
-              m_heuristics,
-              m_currently_unchoked,
-              m_maxUnchoked);
+  LT_LOG_DEBUG("balancing : heuristics:%i currently_unchoked:%" PRIu32 " max_unchoked:%" PRIu32,
+              m_heuristics, m_currently_unchoked, m_maxUnchoked);
 
   // Return if no balancing is needed. Don't return if is_unlimited()
   // as we might have just changed the value and have interested that
@@ -215,7 +212,7 @@ choke_queue::balance() {
   if (result != 0)
     m_slotUnchoke(result);
 
-  LT_LOG_THIS("balanced queue: adjust:%i can_unchoke:%i queued:%zu unchoked:%zu result:%i",
+  LT_LOG_DEBUG("balanced : adjust:%i can_unchoke:%i queued:%zu unchoked:%zu result:%i",
                adjust, can_unchoke, queued.size(), unchoked.size(), result);
 }
 
@@ -263,7 +260,7 @@ choke_queue::cycle(uint32_t quota) {
   quota = std::min(quota, m_maxUnchoked);
   quota = quota - std::min(quota, gs.now_unchoked);
 
-  uint32_t adjust = (unchoked.size() < quota) ? (quota - unchoked.size()) : 0; 
+  uint32_t adjust = (unchoked.size() < quota) ? (quota - unchoked.size()) : 0;
   adjust = std::max(adjust, alternate);
   adjust = std::min(adjust, quota);
 
@@ -468,7 +465,7 @@ choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator 
 
       if (weights[itr] == 0 || target[itr].first >= s)
         continue;
-      
+
       uint32_t u = std::min(s - target[itr].first, base * weights[itr]);
 
       unchoke -= u;
@@ -557,7 +554,7 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
 
     if ((itr - 1)->first > order_size)
       throw internal_error("choke_queue::adjust_choke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
-    
+
     (itr - 1)->first += std::min(skipped, order_remaining);
     skipped          -= std::min(skipped, order_remaining);
 
@@ -592,7 +589,7 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
 
       lt_log_print(LOG_INSTRUMENTATION_CHOKE,
                    "%p %i %s %p %X %llu %llu",
-                   this, 
+                   this,
                    0, //lf->last_update(),
                    (const char*)"unchoke" + 2*is_choke,
                    itr_adjust->connection,
