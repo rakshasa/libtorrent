@@ -120,13 +120,6 @@ constexpr const char* option_list_log_group[] = {
   "info",
   "debug",
 
-  "storage_critical",
-  "storage_error",
-  "storage_warn",
-  "storage_notice",
-  "storage_info",
-  "storage_debug",
-
   "__non_cascading__",
 
   "connection",
@@ -171,7 +164,9 @@ constexpr const char* option_list_log_group[] = {
   "rpc_dump",
 
   "session_events",
-  "storage",
+  "storage_debug",
+  "storage_events",
+  "storage_errors",
 
   "system",
   "system_poll",

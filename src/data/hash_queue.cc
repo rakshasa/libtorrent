@@ -15,8 +15,8 @@
 #include "torrent/utils/log.h"
 #include "torrent/utils/string_manip.h"
 
-#define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
-  lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
+#define LT_LOG_DEBUG(data, log_fmt, ...)                                 \
+  lt_log_print_hash_only(LOG_STORAGE_DEBUG, data->hash(), "hash_queue : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -46,7 +46,7 @@ struct HashQueueWillneed {
 // the next work cycle gets stuff done.
 void
 HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d) {
-  LT_LOG_DATA(id, DEBUG, "Adding index:%" PRIu32 " to queue.", handle.index());
+  LT_LOG_DEBUG(id, "add to queue : index:%" PRIu32 ".", handle.index());
 
   if (!handle.is_loaded())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
@@ -76,7 +76,7 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
     HashChunk *hash_chunk = itr.get_chunk();
 
-    LT_LOG_DATA(id, DEBUG, "Removing index:%" PRIu32 " from queue.", hash_chunk->handle().index());
+    LT_LOG_DEBUG(id, "remove from queue : index:%" PRIu32 ".", hash_chunk->handle().index());
 
     bool result = ThreadDisk::thread_disk()->hash_check_queue()->remove(hash_chunk);
 
@@ -150,7 +150,7 @@ HashQueue::work() {
     if (itr == end())
       throw internal_error("Could not find done chunk's node.");
 
-    LT_LOG_DATA(itr->id(), DEBUG, "Passing index:%" PRIu32 " to owner: %s.",
+    LT_LOG_DEBUG(itr->id(), "pass to owner : index:%" PRIu32 " hash:%s.",
                 hash_chunk->handle().index(), utils::transform_to_hex_str(hash_value).c_str());
 
     HashQueueNode::slot_done_type slotDone = itr->slot_done();

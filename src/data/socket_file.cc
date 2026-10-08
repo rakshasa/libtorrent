@@ -13,7 +13,7 @@
 #include "torrent/utils/log.h"
 
 #define LT_LOG_ERROR(log_fmt, ...)                                      \
-  lt_log_print(LOG_STORAGE, "socket_file->%i: " log_fmt, m_fd, __VA_ARGS__);
+  lt_log_print(LOG_STORAGE_ERRORS, "socket_file : fd:%i " log_fmt, m_fd, __VA_ARGS__);
 
 namespace torrent {
 
