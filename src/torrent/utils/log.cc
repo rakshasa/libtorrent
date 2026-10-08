@@ -152,15 +152,22 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
   if (subsystem != NULL) {
     if (hash != NULL) {
       first = utils::transform_to_hex(*hash, first, first + 40);
-      first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
+      first += std::max(0, snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem));
     } else {
-      first += snprintf(first, 4096 - (first - buffer), "%s: ", subsystem);
+      first += std::max(0, snprintf(first, 4096 - (first - buffer), "%s: ", subsystem));
     }
+  } else if (hash != NULL) {
+    first = utils::transform_to_hex(*hash, first, first + 40);
+    *(first++) = ' ';
+    *(first++) = ':';
+    *(first++) = ' ';
   }
 
   va_start(ap, fmt);
-  int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);
+
+  int count = std::max(0, vsnprintf(first, 4096 - (first - buffer), fmt, ap));
   first += std::min<unsigned int>(count, buffer_size - (first - buffer) - 1);
+
   va_end(ap);
 
   if (count <= 0)
@@ -169,12 +176,13 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
   auto lock = std::scoped_lock(log_mutex);
 
   std::for_each(m_first, m_last, [this, &buffer, first](const auto& elem) {
-    return elem(buffer, std::distance(buffer, first), std::distance(log_groups.begin(), this));
-  });
+      return elem(buffer, std::distance(buffer, first), std::distance(log_groups.begin(), this));
+    });
+
   if (dump_data != NULL) {
     std::for_each(m_first, m_last, [dump_data, dump_size](const auto& log) {
-      return log(static_cast<const char*>(dump_data), dump_size, -1);
-    });
+        return log(static_cast<const char*>(dump_data), dump_size, -1);
+      });
   }
 }
 
@@ -201,12 +209,9 @@ log_initialize() {
   auto lock = std::scoped_lock(log_mutex);
 
   LOG_CASCADE(LOG_CRITICAL);
-
   LOG_CASCADE(LOG_STORAGE_CRITICAL);
-  LOG_CASCADE(LOG_TORRENT_CRITICAL);
 
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_STORAGE_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
 
   LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_BIND);
   LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_FD);

@@ -127,13 +127,6 @@ constexpr const char* option_list_log_group[] = {
   "storage_info",
   "storage_debug",
 
-  "torrent_critical",
-  "torrent_error",
-  "torrent_warn",
-  "torrent_notice",
-  "torrent_info",
-  "torrent_debug",
-
   "__non_cascading__",
 
   "connection",
@@ -183,6 +176,9 @@ constexpr const char* option_list_log_group[] = {
   "system",
   "system_poll",
   "system_thread",
+
+  "torrent_debug",
+  "torrent_events",
 
   "tracker_dump",
   "tracker_events",

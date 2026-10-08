@@ -25,8 +25,8 @@
 #include "object.h"
 #include "throttle.h"
 
-#define LT_LOG_THIS(log_level, log_fmt, ...)                         \
-  lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
+#define LT_LOG_EVENTS(log_fmt, ...)                                     \
+  lt_log_print_hash_only(LOG_TORRENT_EVENTS, m_ptr->info()->hash(), "download : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -38,7 +38,7 @@ Download::open(int flags) {
   if (m_ptr->info()->is_open())
     return;
 
-  LT_LOG_THIS(INFO, "Opening torrent: flags:%0x.", flags);
+  LT_LOG_EVENTS("opening : flags:%0x.", flags);
 
   // Currently always open with no_create, as start will make sure
   // they are created. Need to fix this.
@@ -70,7 +70,8 @@ Download::close(int flags) {
   if (m_ptr->info()->is_active())
     stop(0);
 
-  LT_LOG_THIS(INFO, "Closing torrent: flags:%0x.", flags);
+  LT_LOG_EVENTS("closing : flags:%0x.", flags);
+
   m_ptr->close();
 }
 
@@ -90,7 +91,7 @@ Download::start(int flags) {
   if (info->is_active())
     return;
 
-  LT_LOG_THIS(INFO, "Starting torrent: flags:%0x.", flags);
+  LT_LOG_EVENTS("starting : flags:%0x.", flags);
 
   m_ptr->data()->verify_wanted_chunks("Download::start(...)");
 
@@ -126,7 +127,7 @@ Download::stop(int flags) {
   if (!m_ptr->info()->is_active())
     return;
 
-  LT_LOG_THIS(INFO, "Stopping torrent: flags:%0x.", flags);
+  LT_LOG_EVENTS("stopping : flags:%0x.", flags);
 
   m_ptr->main()->stop();
 
@@ -157,7 +158,7 @@ Download::hash_check(bool try_quick) {
 
   Bitfield* bitfield = m_ptr->data()->mutable_completed_bitfield();
 
-  LT_LOG_THIS(INFO, "Checking hash: allocated:%i try_quick:%i.", !bitfield->empty(), (int)try_quick);
+  LT_LOG_EVENTS("checking hash : allocated:%i try_quick:%i.", !bitfield->empty(), (int)try_quick);
 
   if (bitfield->empty()) {
     // The bitfield still hasn't been allocated, so no resume data was
@@ -187,7 +188,7 @@ Download::hash_stop() {
   if (!m_ptr->hash_checker()->is_checking())
     return;
 
-  LT_LOG_THIS(INFO, "Hashing stopped.", 0);
+  LT_LOG_EVENTS("hashing stopped", 0);
 
   m_ptr->hash_checker()->hashing_ranges().erase(0, m_ptr->hash_checker()->position());
   m_ptr->hash_queue()->remove(m_ptr->data());

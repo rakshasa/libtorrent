@@ -16,10 +16,11 @@
 #include "choke_queue.h"
 #include "resource_manager.h"
 
-#define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_subsystem(LOG_TORRENT_INFO, "resource_manager", log_fmt, __VA_ARGS__);
-#define LT_LOG_ITR(log_fmt, ...)                                        \
-  lt_log_print_info(LOG_TORRENT_INFO, itr->download()->info(), "resource_manager", log_fmt, __VA_ARGS__);
+#define LT_LOG_DEBUG(log_fmt, ...)                                       \
+  lt_log_print(LOG_TORRENT_DEBUG, "resource_manager : " log_fmt, __VA_ARGS__);
+
+#define LT_LOG_DEBUG_ITR(log_fmt, ...)                                  \
+  lt_log_print_hash_only(LOG_TORRENT_DEBUG, itr->download()->info()->hash(), "resource_manager : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -191,7 +192,7 @@ ResourceManager::group_index_of(const std::string& name) {
 
 void
 ResourceManager::set_priority(iterator itr, uint16_t pri) {
-  LT_LOG_ITR("set priority: %" PRIu16, 0);
+  LT_LOG_DEBUG_ITR("set priority : %" PRIu16, 0);
 
   itr->set_priority(pri);
 }
@@ -251,7 +252,7 @@ ResourceManager::set_max_download_unchoked(unsigned int m) {
 // possibly multiple calls of this function.
 void
 ResourceManager::receive_upload_unchoke(int num) {
-  LT_LOG_THIS("adjusting upload unchoked slots; current:%u adjusted:%i", m_currentlyUploadUnchoked, num);
+  LT_LOG_DEBUG("adjusting upload unchoked : current:%u adjusted:%i", m_currentlyUploadUnchoked, num);
 
   if (static_cast<int>(m_currentlyUploadUnchoked) + num < 0)
     throw internal_error("ResourceManager::receive_upload_unchoke(...) received an invalid value.");
@@ -261,7 +262,7 @@ ResourceManager::receive_upload_unchoke(int num) {
 
 void
 ResourceManager::receive_download_unchoke(int num) {
-  LT_LOG_THIS("adjusting download unchoked slots; current:%u adjusted:%i", m_currentlyDownloadUnchoked, num);
+  LT_LOG_DEBUG("adjusting download unchoked : current:%u adjusted:%i", m_currentlyDownloadUnchoked, num);
 
   if (static_cast<int>(m_currentlyDownloadUnchoked) + num < 0)
     throw internal_error("ResourceManager::receive_download_unchoke(...) received an invalid value.");
@@ -355,11 +356,11 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
   if (is_up) {
     std::sort(choke_groups.begin(), choke_groups.end(), [](auto lhs, auto rhs) { return lhs->up_requested() < rhs->up_requested(); });
 
-    LT_LOG_THIS("balancing upload unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
+    LT_LOG_DEBUG("balancing upload unchoked : current_unchoked:%u change:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
   } else {
     std::sort(choke_groups.begin(), choke_groups.end(), [](auto lhs, auto rhs) { return lhs->down_requested() < rhs->down_requested(); });
 
-    LT_LOG_THIS("balancing download unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
+    LT_LOG_DEBUG("balancing download unchoked : current_unchoked:%u change:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
   }
 
   for (const auto& group : choke_groups) {
