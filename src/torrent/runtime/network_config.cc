@@ -10,8 +10,8 @@
 
 // TODO: Add runtime category and add it to important/complete log outputs.
 
-#define LT_LOG_NOTICE(log_fmt, ...)                                     \
-  lt_log_print_subsystem(LOG_NOTICE, "runtime::network_config", log_fmt, __VA_ARGS__);
+#define LT_LOG_EVENT(log_fmt, ...)                                     \
+  lt_log_print(LOG_EVENTS, "runtime::network_config : " log_fmt, __VA_ARGS__);
 
 namespace torrent::runtime {
 
@@ -688,7 +688,7 @@ NetworkConfig::set_generic_address_unsafe(const char* category, c_sa_shared_ptr&
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " address with a non-zero port.");
 
-  LT_LOG_NOTICE("%s address : %s", category, sa_pretty_str(sa).c_str());
+  LT_LOG_EVENT("%s address : %s", category, sa_pretty_str(sa).c_str());
 
   switch (sa->sa_family) {
   case AF_UNSPEC:
@@ -718,7 +718,7 @@ NetworkConfig::set_generic_inet_address_unsafe(const char* category, c_sa_shared
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " inet address with a non-zero port.");
 
-  LT_LOG_NOTICE("%s inet address : %s", category, sa_pretty_str(sa).c_str());
+  LT_LOG_EVENT("%s inet address : %s", category, sa_pretty_str(sa).c_str());
 
   inet_address = sa_copy(sa);
 }
@@ -731,7 +731,7 @@ NetworkConfig::set_generic_inet6_address_unsafe(const char* category, c_sa_share
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " inet6 address with a non-zero port.");
 
-  LT_LOG_NOTICE("%s inet6 address : %s", category, sa_pretty_str(sa).c_str());
+  LT_LOG_EVENT("%s inet6 address : %s", category, sa_pretty_str(sa).c_str());
 
   inet6_address = sa_copy(sa);
 }

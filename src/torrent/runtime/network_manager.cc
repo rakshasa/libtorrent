@@ -15,8 +15,8 @@
 
 // TODO: Add runtime category and add it to important/complete log outputs.
 
-#define LT_LOG_NOTICE(log_fmt, ...)                                     \
-  lt_log_print_subsystem(LOG_NOTICE, "runtime::network_manager", log_fmt, __VA_ARGS__);
+#define LT_LOG_ERROR(log_fmt, ...)                                     \
+  lt_log_print(LOG_ERRORS, "runtime::network_manager : " log_fmt, __VA_ARGS__);
 
 namespace torrent::runtime {
 
@@ -135,7 +135,7 @@ NetworkManager::dht_restart() {
     runtime::network_manager()->dht_controller()->start();
 
   } catch (const base_error& e) {
-    LT_LOG_NOTICE("Could not restart DHT server: %" PRIu16 " : %s", dht_port(), e.what());
+    LT_LOG_ERROR("Could not restart DHT server: %" PRIu16 " : %s", dht_port(), e.what());
     return;
   }
 }
@@ -267,7 +267,7 @@ NetworkManager::listen_restart_unsafe() {
     listen_open_unsafe(m_listen_port, m_listen_port);
 
   } catch (const base_error& e) {
-    LT_LOG_NOTICE("Could not restart listen socket: %" PRIu16 " : %s", m_listen_port, e.what());
+    LT_LOG_ERROR("Could not restart listen socket: %" PRIu16 " : %s", m_listen_port, e.what());
     return;
   }
 }

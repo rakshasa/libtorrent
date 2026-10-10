@@ -60,8 +60,6 @@ static log_cache_list  log_cache;
 static log_child_list  log_children;
 static std::mutex      log_mutex;
 
-static const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
-
 // Removing logs always triggers a check if we got any un-used
 // log_output objects.
 
@@ -186,29 +184,11 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
   }
 }
 
-#define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
 #define LOG_LINK(parent, child) log_children.emplace_back(parent, child)
-
-#define LOG_CHILDREN_CASCADE(parent, subgroup)                          \
-  log_children.emplace_back(parent + LOG_ERROR,    subgroup + LOG_CRITICAL); \
-  log_children.emplace_back(parent + LOG_WARN,     subgroup + LOG_ERROR); \
-  log_children.emplace_back(parent + LOG_NOTICE,   subgroup + LOG_WARN); \
-  log_children.emplace_back(parent + LOG_INFO,     subgroup + LOG_NOTICE); \
-  log_children.emplace_back(parent + LOG_DEBUG,    subgroup + LOG_INFO);
-
-#define LOG_CHILDREN_SUBGROUP(parent, subgroup)                         \
-  log_children.emplace_back(parent + LOG_CRITICAL, subgroup + LOG_CRITICAL); \
-  log_children.emplace_back(parent + LOG_ERROR,    subgroup + LOG_ERROR); \
-  log_children.emplace_back(parent + LOG_WARN,     subgroup + LOG_WARN);  \
-  log_children.emplace_back(parent + LOG_NOTICE,   subgroup + LOG_NOTICE); \
-  log_children.emplace_back(parent + LOG_INFO,     subgroup + LOG_INFO);  \
-  log_children.emplace_back(parent + LOG_DEBUG,    subgroup + LOG_DEBUG);
 
 void
 log_initialize() {
   auto lock = std::scoped_lock(log_mutex);
-
-  LOG_CASCADE(LOG_CRITICAL);
 
   LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_BIND);
   LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_FD);
@@ -346,10 +326,8 @@ log_file_write(const std::unique_ptr<std::ostream>& outfile, const char* data, s
   // Add group name, data, etc as flags.
 
   // Normal groups are nul-terminated strings.
-  if (group >= LOG_NON_CASCADING) {
+  if (group >= 0) {
     *outfile << this_thread::cached_seconds().count() << ' ' << data << '\n';
-  } else if (group >= 0) {
-    *outfile << this_thread::cached_seconds().count() << ' ' << log_level_char[group % 6] << ' ' << data << '\n';
   } else if (group == -1) {
     *outfile << "---DUMP---" << length << "---" << '\n';
 
@@ -368,10 +346,8 @@ log_gz_file_write(const std::shared_ptr<log_gz_output>& outfile, const char* dat
 
   // Normal groups are nul-terminated strings.
   if (group >= 0) {
-    int buffer_length = snprintf(buffer, 64,
-                                 (group >= LOG_NON_CASCADING) ? ("%" PRIi64 " ") : ("%" PRIi64 " %c "),
-                                 static_cast<int64_t>(this_thread::cached_seconds().count()),
-                                 log_level_char[group % 6]);
+    int buffer_length = snprintf(buffer, 64, "%" PRIi64 " ",
+                                 static_cast<int64_t>(this_thread::cached_seconds().count()));
 
     if (buffer_length > 0)
       gzwrite(outfile->gz_file.get(), buffer, buffer_length);
