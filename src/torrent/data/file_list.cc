@@ -22,8 +22,12 @@
 #include "torrent/utils/file_stat.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG_FL(log_level, log_fmt, ...)                              \
-  lt_log_print_data(LOG_STORAGE_##log_level, (&m_data), "file_list", log_fmt, __VA_ARGS__);
+#define LT_LOG_DEBUG(log_fmt, ...)                                      \
+  lt_log_print_hash_only(LOG_STORAGE_DEBUG, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
+#define LT_LOG_EVENTS(log_fmt, ...)                                     \
+  lt_log_print_hash_only(LOG_STORAGE_EVENTS, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
+#define LT_LOG_ERRORS(log_fmt, ...)                                     \
+  lt_log_print_hash_only(LOG_STORAGE_ERRORS, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -382,7 +386,7 @@ void
 FileList::open(bool hashing, int flags) {
   using path_set = std::set<const char*, file_list_cstr_less>;
 
-  LT_LOG_FL(INFO, "Opening.", 0);
+  LT_LOG_EVENTS("open", 0);
 
   if (m_root_dir.empty())
     throw internal_error("FileList::open() m_root_dir.empty().", data()->hash());
@@ -459,9 +463,9 @@ FileList::open(bool hashing, int flags) {
     manager->file_manager()->close_files(*this);
 
     if (current_file == nullptr) {
-      LT_LOG_FL(ERROR, "Failed to prepare file list: %s", e.what());
+      LT_LOG_ERRORS("failed to prepare file list : %s", e.what());
     } else {
-      LT_LOG_FL(ERROR, "Failed to prepare file '%s': %s", current_file->path()->as_string().c_str(), e.what());
+      LT_LOG_ERRORS("failed to prepare file : path:%s error:%s", current_file->path()->as_string().c_str(), e.what());
     }
 
     // Set to false here in case we tried to open the FileList for the
@@ -494,7 +498,7 @@ FileList::close() {
   if (!is_open())
     return;
 
-  LT_LOG_FL(INFO, "Closing.", 0);
+  LT_LOG_EVENTS("close", 0);
 
   for (auto& entry : *this)
     entry->unset_flags_protected(File::flag_active);
@@ -512,7 +516,7 @@ FileList::close_all_files() {
   if (!is_open())
     return;
 
-  LT_LOG_FL(INFO, "Closing all files.", 0);
+  LT_LOG_EVENTS("close all files", 0);
 
   manager->file_manager()->close_files(*this);
 }
@@ -683,7 +687,7 @@ FileList::mark_completed(uint32_t index) {
   if (bitfield()->size_set() >= bitfield()->size_bits())
     throw internal_error("FileList::mark_completed(...) bitfield()->size_set() >= bitfield()->size_bits().", data()->hash());
 
-  LT_LOG_FL(DEBUG, "Done chunk: index:%" PRIu32 ".", index);
+  LT_LOG_DEBUG("done chunk : index:%" PRIu32 ".", index);
 
   m_data.mutable_completed_bitfield()->set(index);
   inc_completed(begin(), index);
@@ -744,7 +748,7 @@ FileList::update_completed() {
 // Used for metadata downloads.
 void
 FileList::reset_filesize(int64_t size) {
-  LT_LOG_FL(INFO, "Resetting torrent size: size:%" PRIi64 ".", size);
+  LT_LOG_EVENTS("reset torrent size : size:%" PRIi64 ".", size);
 
   close();
   m_chunk_size = size;

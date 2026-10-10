@@ -10,8 +10,12 @@
 
 #include "hash_torrent.h"
 
-#define LT_LOG_THIS(log_level, log_fmt, ...)                            \
-  lt_log_print_data(LOG_STORAGE_##log_level, m_chunk_list->data(), "hash_torrent", log_fmt, __VA_ARGS__);
+#define LT_LOG_DEBUG(log_fmt, ...)                                      \
+  lt_log_print_hash_only(LOG_STORAGE_DEBUG, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
+#define LT_LOG_EVENTS(log_fmt, ...)                                     \
+  lt_log_print_hash_only(LOG_STORAGE_EVENTS, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
+#define LT_LOG_ERRORS(log_fmt, ...)                                     \
+  lt_log_print_hash_only(LOG_STORAGE_ERRORS, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -22,7 +26,7 @@ HashTorrent::HashTorrent(ChunkList* c) :
 
 bool
 HashTorrent::start(bool try_quick) {
-  LT_LOG_THIS(INFO, "start : position:%u size:%zu quick:%u.", m_position, m_chunk_list->size(), try_quick);
+  LT_LOG_EVENTS("start : position:%u size:%zu quick:%u.", m_position, m_chunk_list->size(), try_quick);
 
   if (m_position == m_chunk_list->size())
     return true;
@@ -39,7 +43,7 @@ HashTorrent::start(bool try_quick) {
 
 void
 HashTorrent::clear() {
-  LT_LOG_THIS(INFO, "clear", 0);
+  LT_LOG_EVENTS("clear", 0);
 
   m_outstanding = -1;
   m_position = 0;
@@ -62,7 +66,7 @@ HashTorrent::is_checked() const {
 // to be delayed.
 void
 HashTorrent::confirm_checked() {
-  LT_LOG_THIS(INFO, "confirmed checked", 0);
+  LT_LOG_EVENTS("confirmed checked", 0);
 
   if (m_outstanding != 0)
     throw internal_error("HashTorrent::confirm_checked() m_outstanding != 0.");
@@ -72,7 +76,7 @@ HashTorrent::confirm_checked() {
 
 void
 HashTorrent::receive_chunkdone(uint32_t index) {
-  LT_LOG_THIS(DEBUG, "received chunk done: index:%" PRIu32 " outstanding:%i.", index, m_outstanding);
+  LT_LOG_DEBUG("received chunk done : index:%" PRIu32 " outstanding:%i.", index, m_outstanding);
 
   if (m_outstanding <= 0)
     throw internal_error("HashTorrent::receive_chunkdone() m_outstanding <= 0.");
@@ -92,7 +96,7 @@ HashTorrent::receive_chunkdone(uint32_t index) {
 // restart.
 void
 HashTorrent::receive_chunk_cleared(uint32_t index) {
-  LT_LOG_THIS(DEBUG, "received chunk cleared: index:%" PRIu32 " outstanding:%i.", index, m_outstanding);
+  LT_LOG_DEBUG("received chunk cleared : index:%" PRIu32 " outstanding:%i.", index, m_outstanding);
 
   if (m_outstanding <= 0)
     throw internal_error("HashTorrent::receive_chunk_cleared() m_outstanding < 0.");
@@ -106,7 +110,7 @@ HashTorrent::receive_chunk_cleared(uint32_t index) {
 
 void
 HashTorrent::queue(bool quick) {
-  LT_LOG_THIS(INFO, "queuing : position:%u outstanding:%i quick:%u", m_position, m_outstanding, quick);
+  LT_LOG_EVENTS("queue : position:%u outstanding:%i quick:%u", m_position, m_outstanding, quick);
 
   if (!is_checking())
     throw internal_error("HashTorrent::queue() called but it's not running.");
@@ -140,12 +144,12 @@ HashTorrent::queue(bool quick) {
         throw internal_error("HashTorrent::queue() quick hashing but m_outstanding != 0.");
 
       if (handle.is_valid()) {
-        LT_LOG_THIS(DEBUG, "quick : skip valid handle : position:%u", m_position);
+        LT_LOG_DEBUG("quick : skip valid handle : position:%u", m_position);
         return m_chunk_list->release(&handle, ChunkList::release_dont_log);
       }
 
       if (handle.error_number() != 0 && handle.error_number() != ENOENT) {
-        LT_LOG_THIS(DEBUG, "quick : skip invalid handle with non-ENOENT error : position:%u errno:%s",
+        LT_LOG_DEBUG("quick : skip invalid handle with non-ENOENT error : position:%u errno:%s",
                     m_position, system::errno_enum(handle.error_number()));
         return;
       }
@@ -158,7 +162,7 @@ HashTorrent::queue(bool quick) {
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
     if (handle.error_number() == ENOMEM) {
-      LT_LOG_THIS(INFO, "ENOMEM during hash, retrying: position:%u outstanding:%i", m_position, m_outstanding);
+      LT_LOG_ERRORS("ENOMEM during hash, retrying : position:%u outstanding:%i", m_position, m_outstanding);
 
       if (m_outstanding == 0)
         this_thread::scheduler()->update_wait_for(&m_delay_retry, std::chrono::milliseconds(100));
@@ -185,7 +189,7 @@ HashTorrent::queue(bool quick) {
       m_errno = handle.error_number();
       m_error_message = "Hash check I/O error at chunk " + std::to_string(error_pos) + ": " + std::strerror(handle.error_number());
 
-      LT_LOG_THIS(INFO, "completed with error: position:%u errno:%s", m_position, system::errno_enum(handle.error_number()));
+      LT_LOG_ERRORS("completed with error : position:%u errno:%s", m_position, system::errno_enum(handle.error_number()));
 
       this_thread::scheduler()->update_wait_for(&m_delay_checked, 0s);
       return;
@@ -207,7 +211,7 @@ HashTorrent::queue(bool quick) {
   }
 
   if (m_outstanding == 0) {
-    LT_LOG_THIS(INFO, "completed : position:%u", m_position);
+    LT_LOG_EVENTS("completed : position:%u", m_position);
 
     // Update the scheduled item just to make sure that if hashing is
     // started again during the delay it won't cause an exception.

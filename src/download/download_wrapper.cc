@@ -24,7 +24,7 @@
 #define LT_LOG_DEBUG(log_fmt, ...)                                     \
   lt_log_print_hash_only(LOG_TORRENT_DEBUG, this->info()->hash(), "download : " log_fmt, __VA_ARGS__);
 #define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                             \
-  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->info(), "storage_errors", log_fmt, __VA_ARGS__);
+  lt_log_print_hash_only(LOG_PROTOCOL_STORAGE_ERRORS, this->info()->hash(), "storage_errors : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
