@@ -140,21 +140,46 @@ log_group::internal_print(const std::string& message) {
 }
 
 void
-log_group::internal_print(const HashString* hash, const char* subsystem, const void* dump_data, size_t dump_size, const char* fmt, ...) {
+log_group::internal_print(const HashString* hash, const char* fmt, ...) {
   va_list ap;
   const unsigned int buffer_size = 4096;
 
   char buffer[buffer_size];
   char* first = buffer;
 
-  if (subsystem != NULL) {
-    if (hash != NULL) {
-      first = utils::transform_to_hex(*hash, first, first + 40);
-      first += std::max(0, snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem));
-    } else {
-      first += std::max(0, snprintf(first, 4096 - (first - buffer), "%s: ", subsystem));
-    }
-  } else if (hash != NULL) {
+  if (hash != NULL) {
+    first = utils::transform_to_hex(*hash, first, first + 40);
+    *(first++) = ' ';
+    *(first++) = ':';
+    *(first++) = ' ';
+  }
+
+  va_start(ap, fmt);
+
+  int count = std::max(0, vsnprintf(first, 4096 - (first - buffer), fmt, ap));
+  first += std::min<unsigned int>(count, buffer_size - (first - buffer) - 1);
+
+  va_end(ap);
+
+  if (count <= 0)
+    return;
+
+  auto lock = std::scoped_lock(log_mutex);
+
+  std::for_each(m_first, m_last, [this, &buffer, first](const auto& elem) {
+      return elem(buffer, std::distance(buffer, first), std::distance(log_groups.begin(), this));
+    });
+}
+
+void
+log_group::internal_dump(const HashString* hash, const void* dump_data, size_t dump_size, const char* fmt, ...) {
+  va_list ap;
+  const unsigned int buffer_size = 4096;
+
+  char buffer[buffer_size];
+  char* first = buffer;
+
+  if (hash != NULL) {
     first = utils::transform_to_hex(*hash, first, first + 40);
     *(first++) = ' ';
     *(first++) = ':';

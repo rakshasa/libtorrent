@@ -16,7 +16,7 @@
 #include "torrent/utils/string_manip.h"
 
 #define LT_LOG_DEBUG(data, log_fmt, ...)                                 \
-  lt_log_print_hash_only(LOG_STORAGE_DEBUG, data->hash(), "hash_queue : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_STORAGE_DEBUG, data->hash(), "hash_queue : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

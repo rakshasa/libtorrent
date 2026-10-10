@@ -11,11 +11,11 @@
 #include "hash_torrent.h"
 
 #define LT_LOG_DEBUG(log_fmt, ...)                                      \
-  lt_log_print_hash_only(LOG_STORAGE_DEBUG, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_STORAGE_DEBUG, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
-  lt_log_print_hash_only(LOG_STORAGE_EVENTS, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_STORAGE_EVENTS, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
 #define LT_LOG_ERRORS(log_fmt, ...)                                     \
-  lt_log_print_hash_only(LOG_STORAGE_ERRORS, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_STORAGE_ERRORS, m_chunk_list->data()->hash(), "hash_torrent : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

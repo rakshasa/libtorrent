@@ -7,6 +7,7 @@ class test_log : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_output_open);
 
   CPPUNIT_TEST(test_print);
+  CPPUNIT_TEST(test_dump);
   CPPUNIT_TEST(test_print_long_line);
   CPPUNIT_TEST(test_children);
   CPPUNIT_TEST(test_file_output);
@@ -21,6 +22,7 @@ public:
   void test_output_open();
 
   void test_print();
+  void test_dump();
   void test_print_long_line();
   void test_children();
   void test_file_output();

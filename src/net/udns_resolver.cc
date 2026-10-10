@@ -19,11 +19,11 @@
 #include "torrent/system/types.h"
 
 #define LT_LOG(log_fmt, ...)                                \
-  lt_log_print_subsystem(LOG_NET_DNS, "dns-resolver", log_fmt, __VA_ARGS__);
+  lt_log_print(LOG_NET_DNS, "dns-resolver : " log_fmt, __VA_ARGS__);
 #define LT_LOG_QUERY(log_fmt, ...)                                  \
-  lt_log_print(LOG_NET_DNS, "%016p->dns-resolver : " log_fmt, query->requester, __VA_ARGS__);
+  lt_log_print(LOG_NET_DNS, "%016p : dns-resolver : " log_fmt, query->requester, __VA_ARGS__);
 #define LT_LOG_REQUESTER(log_fmt, ...)                                  \
-  lt_log_print(LOG_NET_DNS, "%016p->dns-resolver : " log_fmt, requester, __VA_ARGS__);
+  lt_log_print(LOG_NET_DNS, "%016p : dns-resolver : " log_fmt, requester, __VA_ARGS__);
 
 namespace torrent::net {
 

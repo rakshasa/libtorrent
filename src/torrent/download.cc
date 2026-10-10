@@ -26,7 +26,7 @@
 #include "throttle.h"
 
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
-  lt_log_print_hash_only(LOG_TORRENT_EVENTS, m_ptr->info()->hash(), "download : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_TORRENT_EVENTS, m_ptr->info()->hash(), "download : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

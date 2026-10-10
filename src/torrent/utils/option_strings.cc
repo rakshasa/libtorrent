@@ -113,8 +113,6 @@ constexpr const char* option_list_handshake_connection[] = {
 };
 
 constexpr const char* option_list_log_group[] = {
-  "__non_cascading__",
-
   "errors",
   "events",
   "debug_trace",
