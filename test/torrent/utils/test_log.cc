@@ -117,6 +117,24 @@ test_log::test_print() {
   LTUNIT_ASSERT_OUTPUT(0, 0x1|0x2, "test_multiple", "test_multiple");
 }
 
+void
+test_log::test_dump() {
+  std::vector<std::pair<int, std::string>> records;
+  torrent::log_open_output("test_dump", [&records](const char* data, size_t size, int group) {
+    records.emplace_back(group, std::string(data, size));
+  });
+  torrent::log_add_group_output(0, "test_dump");
+
+  const char dump_data[] = { 'a', '\0', 'b' };
+  lt_log_print_dump(0, dump_data, sizeof(dump_data), "dump %s", "record");
+
+  CPPUNIT_ASSERT(records.size() == 2);
+  CPPUNIT_ASSERT(records[0].first == 0);
+  CPPUNIT_ASSERT(records[0].second == "dump record");
+  CPPUNIT_ASSERT(records[1].first == -1);
+  CPPUNIT_ASSERT(records[1].second == std::string(dump_data, sizeof(dump_data)));
+}
+
 // The prefix written before the message leaves less than the full
 // buffer for vsnprintf, so the returned count must be clamped against
 // what is left rather than against the buffer size.
