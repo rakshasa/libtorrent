@@ -1,13 +1,17 @@
 #ifndef LIBTORRENT_TORRENT_UTILS_LINKED_UNORDERED_SET_H
 #define LIBTORRENT_TORRENT_UTILS_LINKED_UNORDERED_SET_H
 
-#include <unordered_set>
-#include <list>
-#include <optional>
-#include <string>
+#include <cstddef>
+#include <unordered_map>
 #include <utility>
 
 namespace torrent::utils {
+
+// Insertion-ordered set with O(1) insert_back, pop_front and erase.
+//
+// The ordering links are stored directly in the unordered_map's mapped value, so each element is a
+// single allocation. Pointers to unordered_map elements remain valid across rehashing, which is
+// what makes this safe.
 
 template <typename Key>
 class linked_unordered_set {
@@ -26,28 +30,39 @@ public:
   bool                erase(const Key& key);
 
 private:
+  struct node_type;
+
+  using map_type   = std::unordered_map<Key, node_type>;
+  using value_type = typename map_type::value_type;
+
+  // Acts as the list node; the key lives in the map's value_type::first.
+  struct node_type {
+    value_type* prev{};
+    value_type* next{};
+  };
+
+  void                unlink(value_type* entry);
   void                try_rebalance_after_erase();
 
-  // TODO: Optimize this by storing the list node pointers in the unorderd_map.
-
-  using list_type = std::list<Key>;
-  using map_type  = std::unordered_map<Key, typename list_type::iterator>;
-
-  list_type           m_order_list;
   map_type            m_lookup_map;
+
+  value_type*         m_head{};
+  value_type*         m_tail{};
 
   unsigned int        m_under_threshold_count{};
 };
 
 template <typename Key> inline bool       linked_unordered_set<Key>::empty() const { return m_lookup_map.empty(); }
 template <typename Key> inline size_t     linked_unordered_set<Key>::size() const  { return m_lookup_map.size(); }
-template <typename Key> inline const Key& linked_unordered_set<Key>::front() const { return m_order_list.front(); }
+template <typename Key> inline const Key& linked_unordered_set<Key>::front() const { return m_head->first; }
 
 template <typename Key>
 inline void
 linked_unordered_set<Key>::clear() {
-  m_order_list.clear();
   m_lookup_map.clear();
+
+  m_head = nullptr;
+  m_tail = nullptr;
 
   m_under_threshold_count = 0;
 }
@@ -55,13 +70,22 @@ linked_unordered_set<Key>::clear() {
 template <typename Key>
 inline bool
 linked_unordered_set<Key>::insert_back(const Key& key) {
-  auto [itr, inserted] = m_lookup_map.try_emplace(key, m_order_list.end());
+  auto [itr, inserted] = m_lookup_map.try_emplace(key);
 
   if (!inserted)
     return false;
 
-  m_order_list.push_back(key);
-  itr->second = std::prev(m_order_list.end());
+  value_type* entry = &*itr;
+
+  entry->second.prev = m_tail;
+  entry->second.next = nullptr;
+
+  if (m_tail != nullptr)
+    m_tail->second.next = entry;
+  else
+    m_head = entry;
+
+  m_tail = entry;
 
   return true;
 }
@@ -69,9 +93,9 @@ linked_unordered_set<Key>::insert_back(const Key& key) {
 template <typename Key>
 inline Key
 linked_unordered_set<Key>::pop_front() {
-  auto front_key = std::move(m_order_list.front());
+  Key front_key = m_head->first;
 
-  m_order_list.pop_front();
+  unlink(m_head);
   m_lookup_map.erase(front_key);
 
   try_rebalance_after_erase();
@@ -82,17 +106,31 @@ linked_unordered_set<Key>::pop_front() {
 template <typename Key>
 inline bool
 linked_unordered_set<Key>::erase(const Key& key) {
-  auto set_itr = m_lookup_map.find(key);
+  auto itr = m_lookup_map.find(key);
 
-  if (set_itr == m_lookup_map.end())
+  if (itr == m_lookup_map.end())
     return false;
 
-  m_order_list.erase(set_itr->second);
-  m_lookup_map.erase(set_itr);
+  unlink(&*itr);
+  m_lookup_map.erase(itr);
 
   try_rebalance_after_erase();
 
   return true;
+}
+
+template <typename Key>
+inline void
+linked_unordered_set<Key>::unlink(value_type* entry) {
+  if (entry->second.prev != nullptr)
+    entry->second.prev->second.next = entry->second.next;
+  else
+    m_head = entry->second.next;
+
+  if (entry->second.next != nullptr)
+    entry->second.next->second.prev = entry->second.prev;
+  else
+    m_tail = entry->second.prev;
 }
 
 // Rebalance the underlying set if we have been under a certain threshold for a number of operations.
