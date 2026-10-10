@@ -34,6 +34,7 @@ private:
     value_type* next{};
   };
 
+  void                link_back(value_type* entry);
   void                unlink(value_type* entry);
 
   void                try_rebalance_after_erase();
@@ -69,17 +70,7 @@ linked_unordered_set<Key>::insert_back(const Key& key) {
   if (!inserted)
     return false;
 
-  value_type* entry = &*itr;
-
-  entry->second.prev = m_tail;
-  entry->second.next = nullptr;
-
-  if (m_tail != nullptr)
-    m_tail->second.next = entry;
-  else
-    m_head = entry;
-
-  m_tail = entry;
+  link_back(&*itr);
 
   return true;
 }
@@ -111,6 +102,20 @@ linked_unordered_set<Key>::erase(const Key& key) {
   try_rebalance_after_erase();
 
   return true;
+}
+
+template <typename Key>
+inline void
+linked_unordered_set<Key>::link_back(value_type* entry) {
+  entry->second.prev = m_tail;
+  entry->second.next = nullptr;
+
+  if (m_tail != nullptr)
+    m_tail->second.next = entry;
+  else
+    m_head = entry;
+
+  m_tail = entry;
 }
 
 template <typename Key>
