@@ -324,18 +324,23 @@ RequestList::calculate_pipe_size(uint32_t rate) {
   // Change into KB.
   rate /= 1024;
 
+  uint32_t pipe;
+
   if (!m_delegator->get_aggressive()) {
     if (rate < 20)
-      return rate + 2;
+      pipe = rate + 2;
     else
-      return rate / 5 + 18;
+      pipe = rate / 5 + 18;
 
   } else {
     if (rate < 10)
-      return rate / 5 + 1;
+      pipe = rate / 5 + 1;
     else
-      return rate / 10 + 2;
+      pipe = rate / 10 + 2;
   }
+
+  // Never more than the peer queues: its "reqq", or max_pipe_size when it did not send one.
+  return std::min(pipe, m_peer_request_queue != 0 ? m_peer_request_queue : max_pipe_size);
 }
 
 } // namespace torrent
