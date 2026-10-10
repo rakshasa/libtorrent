@@ -81,16 +81,35 @@ AddressList::parse_address_compact_ipv6(const std::string& s) {
             std::back_inserter(*this));
 }
 
+// A DHT get_peers reply's "values": bencoded strings, 6 bytes for an IPv4 peer (BEP 5) and 18 for an IPv6 peer
+// (BEP 32). The list comes from the network: every length is checked against what is left, a string of another
+// length is skipped, and a malformed prefix ends the parse.
 void
 AddressList::parse_address_bencode(raw_list s) {
-  if (sizeof(const SocketAddressCompact) != 6)
+  if (sizeof(const SocketAddressCompact) != 6 || sizeof(const SocketAddressCompact6) != 18)
     throw internal_error("AddressList::parse_address_bencode(...) bad struct size.");
 
-  for (auto itr = s.begin(); itr + 2 + sizeof(SocketAddressCompact) <= s.end(); itr += sizeof(SocketAddressCompact)) {
-    if (*itr++ != '6' || *itr++ != ':')
+  auto itr = s.begin();
+  auto last = s.end();
+
+  while (itr != last) {
+    size_t length = 0;
+    unsigned int digits = 0;
+
+    while (itr != last && *itr >= '0' && *itr <= '9' && digits < 4) {
+      length = length * 10 + (*itr++ - '0');
+      digits++;
+    }
+
+    if (digits == 0 || itr == last || *itr++ != ':' || static_cast<size_t>(last - itr) < length)
       break;
 
-    insert(end(), *reinterpret_cast<const SocketAddressCompact*>(itr));
+    if (length == sizeof(SocketAddressCompact))
+      insert(end(), *reinterpret_cast<const SocketAddressCompact*>(itr));
+    else if (length == sizeof(SocketAddressCompact6))
+      insert(end(), *reinterpret_cast<const SocketAddressCompact6*>(itr));
+
+    itr += length;
   }
 }
 

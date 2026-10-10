@@ -20,12 +20,16 @@ namespace torrent::dht {
 
 class DhtAnnounce : public DhtSearch {
 public:
-  DhtAnnounce(DhtServer* server, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker);
+  // A primary announce reports progress, the announcing state and success or failure to the tracker; a
+  // secondary one (the other address family's DHT, BEP 32) delivers peers only, so one family's empty table
+  // never fails a tracker the other family serves.
+  DhtAnnounce(DhtServer* server, const HashString& infoHash, std::weak_ptr<TrackerDht> tracker, bool primary = true);
   ~DhtAnnounce() override;
 
   bool                 is_announce() const override      { return true; }
 
   const auto&          tracker() const                   { return m_tracker; }
+  bool                 is_primary() const                { return m_primary; }
 
   // Start announce and return final set of nodes in get_contact() calls.
   // This resets DhtSearch's completed() function, which now
@@ -37,6 +41,7 @@ public:
 
 private:
   std::weak_ptr<TrackerDht> m_tracker;
+  bool                      m_primary;
 };
 
 } // namespace torrent::dht

@@ -60,6 +60,8 @@ LibTorrent_Test_Common = \
 LibTorrent_Test_Protocol_SOURCES = $(LibTorrent_Test_Common) \
 	protocol/test_extensions.cc \
 	protocol/test_extensions.h \
+	protocol/test_pex_unroutable.cc \
+	protocol/test_pex_unroutable.h \
 	../src/data/socket_file.cc \
 	../src/utils/fd_close_queue.cc
 
@@ -164,10 +166,14 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\
 	dht/test_dht_bucket.cc \
 	dht/test_dht_bucket.h \
+	dht/test_dht_ipv6.cc \
+	dht/test_dht_ipv6.h \
 	\
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
 	\
+	protocol/test_pex_added6.cc \
+	protocol/test_pex_added6.h \
 	protocol/test_protocol_buffer.cc \
 	protocol/test_protocol_buffer.h \
 	protocol/test_request_list.cc \

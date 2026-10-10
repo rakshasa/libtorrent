@@ -16,15 +16,16 @@
 #include "utils/sha1.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_hash(torrent::LOG_DHT_ROUTER, this->id(), "dht_router", log_fmt, __VA_ARGS__);
+  lt_log_print_hash(torrent::LOG_DHT_ROUTER, this->id(), this->log_name(), log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
 HashString DhtRouter::zero_id;
 
-DhtRouter::DhtRouter(tracker::DhtController* controller, const Object& cache)
-  : DhtNode(zero_id, sa_make_inet_any().get()), // actual ID is set later
+DhtRouter::DhtRouter(tracker::DhtController* controller, const Object& cache, int family)
+  : DhtNode(zero_id, (family == AF_INET6 ? sa_make_inet6_any() : sa_make_inet_any()).get()), // actual ID is set later
     m_controller(controller),
+    m_family(family),
     m_server(this),
     m_curToken(random()),
     m_prevToken(random()),
@@ -61,8 +62,11 @@ DhtRouter::DhtRouter(tracker::DhtController* controller, const Object& cache)
 
   m_routingTable.emplace(bucket()->id_range_end(), bucket());
 
-  if (cache.has_key("nodes")) {
-    const Object::map_type& nodes = cache.get_key_map("nodes");
+  const char* nodes_key    = m_family == AF_INET6 ? "nodes6" : "nodes";
+  const char* contacts_key = m_family == AF_INET6 && cache.has_key_list("contacts6") ? "contacts6" : "contacts";
+
+  if (cache.has_key_map(nodes_key)) {
+    const Object::map_type& nodes = cache.get_key_map(nodes_key);
 
     LT_LOG_THIS("adding nodes : size:%zu", nodes.size());
 
@@ -70,15 +74,23 @@ DhtRouter::DhtRouter(tracker::DhtController* controller, const Object& cache)
       if (id.length() != HashString::size_data)
         throw bencode_error("Loading cache: Invalid node hash.");
 
-      add_node_to_bucket(m_nodes.add_node(new DhtNode(id, node)));
+      auto new_node = new DhtNode(id, node);
+
+      // a node of the other family is never this router's (an IPv4 entry under "nodes6" or the reverse)
+      if (new_node->address()->sa_family != m_family) {
+        delete new_node;
+        continue;
+      }
+
+      add_node_to_bucket(m_nodes.add_node(new_node));
     }
   }
 
   if (m_nodes.size() < num_bootstrap_complete) {
     m_contacts.emplace();
 
-    if (cache.has_key("contacts")) {
-      for (const auto& contact : cache.get_key_list("contacts")) {
+    if (cache.has_key_list(contacts_key)) {
+      for (const auto& contact : cache.get_key_list(contacts_key)) {
         const Object::list_type& list = contact.as_list();
 
         if (list.size() != 2)
@@ -113,7 +125,7 @@ DhtRouter::start(int port) {
 
   m_server.start(port);
 
-  m_controller->set_nodes_populated(check_nodes_populated());
+  m_controller->set_nodes_populated(m_family, check_nodes_populated());
 
   // Set timeout slot and schedule it to be called immediately for initial bootstrapping if
   // necessary.
@@ -137,8 +149,8 @@ DhtRouter::stop() {
 
 // Start a DHT get_peers and announce_peer request.
 void
-DhtRouter::announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker) {
-  m_server.announce(*find_bucket(info_hash)->second, info_hash, tracker);
+DhtRouter::announce(const HashString& info_hash, std::weak_ptr<TrackerDht> tracker, bool primary) {
+  m_server.announce(*find_bucket(info_hash)->second, info_hash, tracker, primary);
 }
 
 // Cancel any running requests from the given tracker.
@@ -235,8 +247,8 @@ DhtRouter::contact(const sockaddr* sa, int port) {
   if (sa_tmp->sa_family != AF_INET && sa_tmp->sa_family != AF_INET6)
     throw input_error("DhtRouter::contact() called with non-inet/inet6 address.");
 
-  // Currently only IPv4 is supported.
-  if (sa_tmp->sa_family != AF_INET)
+  // Each family's router contacts only nodes of its family.
+  if (sa_tmp->sa_family != m_family)
     return;
 
   if (sap_is_any(sa_tmp)) {
@@ -340,7 +352,7 @@ DhtRouter::store_cache(Object* container) const {
   container->insert_key("self_id", str());
 
   // Insert all nodes.
-  Object& nodes = container->insert_key("nodes", Object::create_map());
+  Object& nodes = container->insert_key(m_family == AF_INET6 ? "nodes6" : "nodes", Object::create_map());
   for (const auto& [id, node] : m_nodes) {
     if (!node->is_bad())
       node->store_cache(&nodes.insert_key(id->str(), Object::create_map()));
@@ -348,7 +360,7 @@ DhtRouter::store_cache(Object* container) const {
 
   // Insert contacts, if we have any.
   if (m_contacts.has_value()) {
-    Object& contacts = container->insert_key("contacts", Object::create_list());
+    Object& contacts = container->insert_key(m_family == AF_INET6 ? "contacts6" : "contacts", Object::create_list());
 
     for (const auto& m_contact : *m_contacts) {
       Object::list_type& list = contacts.insert_back(Object::create_list()).as_list();
@@ -395,11 +407,11 @@ DhtRouter::get_statistics() const {
 
 void
 DhtRouter::receive_timeout_bootstrap() {
-  // If we're still bootstrapping, restart the process every 60 seconds until
+  // If we're still bootstrapping, restart the process every timeout_bootstrap_retry seconds until
   // we have enough nodes in our routing table. After we have 32 nodes, we switch
   // to a less aggressive non-bootstrap mode of collecting nodes that contact us
   // and through doing normal torrent announces.
-  m_controller->set_nodes_populated(check_nodes_populated());
+  m_controller->set_nodes_populated(m_family, check_nodes_populated());
 
   if (!check_nodes_populated()) {
     if (!m_contacts.has_value())
@@ -408,7 +420,7 @@ DhtRouter::receive_timeout_bootstrap() {
     if (!m_nodes.empty() || !m_contacts->empty())
       bootstrap();
 
-    // Retry in 60 seconds.
+    // Retry in timeout_bootstrap_retry seconds.
     this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, std::chrono::seconds(timeout_bootstrap_retry));
 
     m_numRefresh = 1;  // still bootstrapping
@@ -481,7 +493,7 @@ DhtRouter::receive_timeout() {
 
   evict_stale_trackers();
 
-  m_controller->set_nodes_populated(check_nodes_populated());
+  m_controller->set_nodes_populated(m_family, check_nodes_populated());
 
   m_server.update();
 
@@ -533,15 +545,21 @@ DhtRouter::evict_stale_trackers() {
 
 char*
 DhtRouter::generate_token(const sockaddr* sa, int token, char buffer[20]) {
-  if (!sa_is_inet(sa))
-    throw internal_error("DhtRouter::generate_token called with non-inet address.");
-
-  uint32_t key = reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr;
-
   Sha1 sha;
   sha.init();
   sha.update(&token, sizeof(token));
-  sha.update(&key, 4);
+
+  if (sa_is_inet(sa)) {
+    uint32_t key = reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr;
+    sha.update(&key, 4);
+
+  } else if (sa_is_inet6(sa)) {
+    sha.update(&reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr, 16);
+
+  } else {
+    throw internal_error("DhtRouter::generate_token called with non-inet address.");
+  }
+
   sha.final_c(buffer);
 
   return buffer;
@@ -663,7 +681,7 @@ DhtRouter::bootstrap() {
         contact(sa.get(), port);
     };
 
-    this_thread::resolver()->resolve_specific(m_resolver_callback_id, m_contacts->back().first, AF_INET, f);
+    this_thread::resolver()->resolve_specific(m_resolver_callback_id, m_contacts->back().first, m_family, f);
 
     m_contacts->pop_back();
   }
