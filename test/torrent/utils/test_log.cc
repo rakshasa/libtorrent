@@ -134,7 +134,7 @@ test_log::test_print_long_line() {
   output_mask = 0;
   output_length = 0;
 
-  lt_log_print_hash(0, hash, "subsystem", "%s", message.c_str());
+  lt_log_print_hash(0, hash, "subsystem : %s", message.c_str());
 
   CPPUNIT_ASSERT(output_mask == 0x1);
   CPPUNIT_ASSERT(output_length < 4096);

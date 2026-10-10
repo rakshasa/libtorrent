@@ -23,11 +23,11 @@
 #include "torrent/utils/log.h"
 
 #define LT_LOG_DEBUG(log_fmt, ...)                                      \
-  lt_log_print_hash_only(LOG_STORAGE_DEBUG, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_STORAGE_DEBUG, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
-  lt_log_print_hash_only(LOG_STORAGE_EVENTS, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_STORAGE_EVENTS, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
 #define LT_LOG_ERRORS(log_fmt, ...)                                     \
-  lt_log_print_hash_only(LOG_STORAGE_ERRORS, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_STORAGE_ERRORS, m_data.hash(), "file_list : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

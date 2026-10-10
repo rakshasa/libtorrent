@@ -15,10 +15,10 @@
 #include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
-#define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print_subsystem(LOG_NET_DNS, "dns-buffer", log_fmt, __VA_ARGS__);
+#define LT_LOG(log_fmt, ...)                                        \
+  lt_log_print(LOG_NET_DNS, "dns-buffer : " log_fmt, __VA_ARGS__);
 #define LT_LOG_REQUESTER(log_fmt, ...)                                  \
-  lt_log_print(LOG_NET_DNS, "%016p->dns-buffer : " log_fmt, requester, __VA_ARGS__);
+  lt_log_print(LOG_NET_DNS, "%016p : dns-buffer : " log_fmt, requester, __VA_ARGS__);
 
 namespace torrent::net {
 

@@ -20,16 +20,16 @@
 #include "tracker/tracker_list.h"
 
 #define LT_LOG_LOAD(log_fmt, ...)                                       \
-  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", log_fmt, __VA_ARGS__);
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load : " log_fmt, __VA_ARGS__);
 #define LT_LOG_LOAD_INVALID(log_fmt, ...)                               \
-  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", "invalid resume data: " log_fmt, __VA_ARGS__);
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load : invalid resume data: " log_fmt, __VA_ARGS__);
 #define LT_LOG_LOAD_FILE(log_fmt, ...)                                  \
-  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", "file[%u]: " log_fmt, \
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load : file[%u]: " log_fmt, \
                     file_index, __VA_ARGS__);
 #define LT_LOG_SAVE(log_fmt, ...)                                       \
-  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save", log_fmt, __VA_ARGS__);
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save : " log_fmt, __VA_ARGS__);
 #define LT_LOG_SAVE_FILE(log_fmt, ...)                                  \
-  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save", "file[%u]: " log_fmt, \
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save : file[%u]: " log_fmt, \
                     file_index, __VA_ARGS__);
 
 namespace torrent {

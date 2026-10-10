@@ -14,9 +14,9 @@
 #include "torrent/utils/log.h"
 
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
-  lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list", log_fmt, __VA_ARGS__);
+  lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list : " log_fmt, __VA_ARGS__);
 #define LT_LOG_ADDRESS(log_fmt, ...)                                    \
-  lt_log_print_info(LOG_PEER_LIST_ADDRESS, m_info, "peer_list", log_fmt, __VA_ARGS__);
+  lt_log_print_info(LOG_PEER_LIST_ADDRESS, m_info, "peer_list : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

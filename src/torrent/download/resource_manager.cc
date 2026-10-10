@@ -20,7 +20,7 @@
   lt_log_print(LOG_TORRENT_DEBUG, "resource_manager : " log_fmt, __VA_ARGS__);
 
 #define LT_LOG_DEBUG_ITR(log_fmt, ...)                                  \
-  lt_log_print_hash_only(LOG_TORRENT_DEBUG, itr->download()->info()->hash(), "resource_manager : " log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_TORRENT_DEBUG, itr->download()->info()->hash(), "resource_manager : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

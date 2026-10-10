@@ -14,8 +14,6 @@
 namespace torrent {
 
 enum {
-  LOG_NON_CASCADING,
-
   LOG_ERRORS,
   LOG_EVENTS,
   LOG_DEBUG_TRACE,
@@ -86,39 +84,31 @@ enum {
 
 #define lt_log_print(log_group, ...)                                    \
   { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(NULL, NULL, NULL, 0, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_print(NULL, __VA_ARGS__); }
 
-#define lt_log_print_hash_only(log_group, log_hash, ...)                \
+#define lt_log_print_hash(log_group, log_hash, ...)                     \
   { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(&log_hash, NULL, NULL, 0, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_print(&log_hash, __VA_ARGS__); }
 
-#define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
+#define lt_log_print_info(log_group, log_info, ...)                     \
   { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_print(&log_info->hash(), __VA_ARGS__); }
 
-#define lt_log_print_info(log_group, log_info, log_subsystem, ...)      \
+#define lt_log_print_data(log_group, log_data, ...)                     \
   { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, NULL, 0, __VA_ARGS__); }
-
-#define lt_log_print_data(log_group, log_data, log_subsystem, ...)      \
-  { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(&log_data->hash(), log_subsystem, NULL, 0, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_print(&log_data->hash(), __VA_ARGS__); }
 
 #define lt_log_print_dump(log_group, log_dump_data, log_dump_size, ...) \
   { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(NULL, NULL, log_dump_data, log_dump_size, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_dump(NULL, log_dump_data, log_dump_size, __VA_ARGS__); }
 
-#define lt_log_print_hash_dump(log_group, log_dump_data, log_dump_size, log_hash, log_subsystem, ...) \
+#define lt_log_print_hash_dump(log_group, log_dump_data, log_dump_size, log_hash, ...) \
   { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_dump(&log_hash, log_dump_data, log_dump_size, __VA_ARGS__); }
 
-#define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, log_subsystem, ...) \
+#define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, ...) \
   { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); }
-
-#define lt_log_print_subsystem(log_group, log_subsystem, ...)           \
-  { if (torrent::log_groups[log_group].valid())                         \
-      torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__); }
+      torrent::log_groups[log_group].internal_dump(&log_info->hash(), log_dump_data, log_dump_size, __VA_ARGS__); }
 
 using log_slot = std::function<void(const char*, size_t, int)>;
 
@@ -143,9 +133,8 @@ public:
   //
 
   void                internal_print(const std::string& message);
-  void                internal_print(const HashString* hash, const char* subsystem,
-                                     const void* dump_data, size_t dump_size,
-                                     const char* fmt, ...);
+  void                internal_print(const HashString* hash, const char* fmt, ...);
+  void                internal_dump(const HashString* hash, const void* dump_data, size_t dump_size, const char* fmt, ...);
 
   const outputs_type& outputs() const                    { return m_outputs; }
   const outputs_type& cached_outputs() const             { return m_cached_outputs; }

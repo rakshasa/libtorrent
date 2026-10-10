@@ -8,7 +8,7 @@
 #include "net/address_list.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
-  lt_log_print_hash(torrent::LOG_DHT_NODE, this->id(), "dht_node", log_fmt, __VA_ARGS__);
+  lt_log_print_hash(LOG_DHT_NODE, this->id(), "dht_node : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

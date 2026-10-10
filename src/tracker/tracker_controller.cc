@@ -9,7 +9,7 @@
 #include "tracker/tracker_list.h"
 
 #define LT_LOG_TRACKER_EVENTS(log_fmt, ...)                              \
-  lt_log_print_info(LOG_TRACKER_EVENTS, m_tracker_list->info(), "tracker_controller", log_fmt, __VA_ARGS__);
+  lt_log_print_info(LOG_TRACKER_EVENTS, m_tracker_list->info(), "tracker_controller : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
