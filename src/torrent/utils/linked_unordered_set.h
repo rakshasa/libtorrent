@@ -10,6 +10,9 @@ namespace torrent::utils {
 template <typename Key>
 class linked_unordered_set {
 public:
+  linked_unordered_set() = default;
+  ~linked_unordered_set() = default;
+
   bool                empty() const;
   size_t              size() const;
 
