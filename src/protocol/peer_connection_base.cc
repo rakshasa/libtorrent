@@ -384,7 +384,7 @@ PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
 
   write_insert_poll_safe();
 
-  m_peer_chunks.cancel_queue()->push_back(transfer->piece());
+  m_peer_chunks.cancel_queue()->insert_back(transfer->piece());
 }
 
 void
@@ -824,15 +824,12 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
     return;
   }
 
-  auto itr = std::find(upload_queue->begin(), upload_queue->end(), p);
-
-  if (itr != upload_queue->end()) {
+  if (!upload_queue->insert_back(p)) {
     LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
     return;
   }
 
-  upload_queue->push_back(p);
   write_insert_poll_safe();
 
   LT_LOG_PIECE_EVENTS("(up)   request_added    %" PRIu32 " %" PRIu32 " %" PRIu32,
@@ -841,13 +838,7 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
 
 void
 PeerConnectionBase::read_cancel_piece(const Piece& p) {
-  auto itr = std::find(m_peer_chunks.upload_queue()->begin(),
-                       m_peer_chunks.upload_queue()->end(),
-                       p);
-
-  if (itr != m_peer_chunks.upload_queue()->end()) {
-    m_peer_chunks.upload_queue()->erase(itr);
-
+  if (m_peer_chunks.upload_queue()->erase(p)) {
     LT_LOG_PIECE_EVENTS("(up)   cancel_requested %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
   } else {
@@ -858,8 +849,7 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
 
 void
 PeerConnectionBase::write_prepare_piece() {
-  m_up_piece = m_peer_chunks.upload_queue()->front();
-  m_peer_chunks.upload_queue()->pop_front();
+  m_up_piece = m_peer_chunks.upload_queue()->pop_front();
 
   // Move these checks somewhere else?
   if (!m_download->file_list()->is_valid_piece(m_up_piece) ||
