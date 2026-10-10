@@ -144,7 +144,7 @@ linked_unordered_set<Key>::try_rebalance_after_erase() {
     return;
 
   if (m_lookup_map.size() == 0) {
-    m_lookup_map = map_type{};
+    m_lookup_map            = map_type{};
     m_under_threshold_count = 0;
     return;
   }
