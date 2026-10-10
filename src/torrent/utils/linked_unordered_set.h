@@ -7,12 +7,6 @@
 
 namespace torrent::utils {
 
-// Insertion-ordered set with O(1) insert_back, pop_front and erase.
-//
-// The ordering links are stored directly in the unordered_map's mapped value, so each element is a
-// single allocation. Pointers to unordered_map elements remain valid across rehashing, which is
-// what makes this safe.
-
 template <typename Key>
 class linked_unordered_set {
 public:
@@ -35,13 +29,13 @@ private:
   using map_type   = std::unordered_map<Key, node_type>;
   using value_type = typename map_type::value_type;
 
-  // Acts as the list node; the key lives in the map's value_type::first.
   struct node_type {
     value_type* prev{};
     value_type* next{};
   };
 
   void                unlink(value_type* entry);
+
   void                try_rebalance_after_erase();
 
   map_type            m_lookup_map;
