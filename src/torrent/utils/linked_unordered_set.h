@@ -24,6 +24,9 @@ public:
   bool                erase(const Key& key);
 
 private:
+  linked_unordered_set(const linked_unordered_set&) = delete;
+  linked_unordered_set& operator=(const linked_unordered_set&) = delete;
+
   struct node_type;
 
   using map_type   = std::unordered_map<Key, node_type>;
@@ -141,7 +144,7 @@ linked_unordered_set<Key>::try_rebalance_after_erase() {
     return;
 
   if (m_lookup_map.size() == 0) {
-    m_lookup_map.clear();
+    m_lookup_map = map_type{};
     m_under_threshold_count = 0;
     return;
   }
@@ -157,6 +160,7 @@ linked_unordered_set<Key>::try_rebalance_after_erase() {
     return;
 
   m_lookup_map.reserve(m_lookup_map.size() * 2);
+  m_under_threshold_count = 0;
 }
 
 } // namespace torrent::utils
