@@ -27,7 +27,9 @@ test_option_strings::test_entries() {
   TEST_ENTRY(OPTION_ENCRYPTION_STREAM, "stream_prefer",  torrent::ENCRYPTION_MODE_PREFER);
   TEST_ENTRY(OPTION_ENCRYPTION_STREAM, "stream_require", torrent::ENCRYPTION_MODE_REQUIRE);
 
-  TEST_ENTRY(OPTION_LOG_GROUP, "critical", torrent::LOG_CRITICAL);
+  TEST_ENTRY(OPTION_LOG_GROUP, "errors", torrent::LOG_ERRORS);
+  TEST_ENTRY(OPTION_LOG_GROUP, "events", torrent::LOG_EVENTS);
+  TEST_ENTRY(OPTION_LOG_GROUP, "debug_trace", torrent::LOG_DEBUG_TRACE);
   TEST_ENTRY(OPTION_LOG_GROUP, "storage_debug", torrent::LOG_STORAGE_DEBUG);
   TEST_ENTRY(OPTION_LOG_GROUP, "storage_events", torrent::LOG_STORAGE_EVENTS);
   TEST_ENTRY(OPTION_LOG_GROUP, "storage_errors", torrent::LOG_STORAGE_ERRORS);

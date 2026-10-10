@@ -7,7 +7,7 @@
 #include "torrent/utils/log.h"
 
 // #define LT_LOG_NOTICE(log_fmt, ...)                                     \
-//   lt_log_print_subsystem(LOG_NOTICE, "net::network_config", log_fmt, __VA_ARGS__);
+//   lt_log_print(LOG_EVENTS, "net::network_config : " log_fmt, __VA_ARGS__);
 
 namespace torrent::net {
 
