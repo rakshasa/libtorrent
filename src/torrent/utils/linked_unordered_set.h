@@ -8,6 +8,14 @@
 namespace torrent::utils {
 
 template <typename Key>
+struct linked_list_node {
+  using value_type = std::pair<const Key, linked_list_node>;
+
+  value_type* prev{};
+  value_type* next{};
+};
+
+template <typename Key>
 class linked_unordered_set {
 public:
   linked_unordered_set() = default;
@@ -30,15 +38,9 @@ private:
   linked_unordered_set(const linked_unordered_set&) = delete;
   linked_unordered_set& operator=(const linked_unordered_set&) = delete;
 
-  struct node_type;
-
+  using node_type  = linked_list_node<Key>;
   using map_type   = std::unordered_map<Key, node_type>;
   using value_type = typename map_type::value_type;
-
-  struct node_type {
-    value_type* prev{};
-    value_type* next{};
-  };
 
   void                link_back(value_type* entry);
   void                unlink(value_type* entry);
