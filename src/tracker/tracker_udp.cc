@@ -17,7 +17,7 @@
 
 #define LT_LOG_DUMP(log_dump_data, log_dump_size, log_fmt, ...)         \
   lt_log_print_hash_dump(LOG_TRACKER_DUMP, log_dump_data, log_dump_size, info().info_hash, \
-                         "%p : tracker_udp :" log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
+                         "%p : tracker_udp : " log_fmt, static_cast<TrackerWorker*>(this), __VA_ARGS__);
 
 namespace torrent::tracker {
 
