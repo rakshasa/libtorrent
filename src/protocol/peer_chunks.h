@@ -8,6 +8,7 @@
 #include "torrent/data/piece.h"
 #include "torrent/rate.h"
 #include "torrent/system/scheduler.h"
+#include "torrent/utils/linked_unordered_set.h"
 #include "utils/partial_queue.h"
 
 namespace torrent {
@@ -16,7 +17,7 @@ class PeerInfo;
 
 class PeerChunks {
 public:
-  using piece_list_type = std::list<Piece>;
+  using piece_list_type = torrent::utils::linked_unordered_set<Piece>;
 
   bool                is_seeder() const             { return m_bitfield.is_all_set(); }
 

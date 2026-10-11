@@ -497,6 +497,7 @@ PeerConnection<type>::fill_write_buffer() {
     if (m_up_choke.choked()) {
       m_up->throttle()->erase(m_peer_chunks.upload_throttle());
       up_chunk_release();
+
       m_peer_chunks.upload_queue()->clear();
 
       if (m_encrypt_buffer != nullptr) {
@@ -553,10 +554,8 @@ PeerConnection<type>::fill_write_buffer() {
   if (type == Download::CONNECTION_INITIAL_SEED && m_up->can_write_have())
     offer_chunk();
 
-  while (type == Download::CONNECTION_LEECH && !m_peer_chunks.cancel_queue()->empty() && m_up->can_write_cancel()) {
-    m_up->write_cancel(m_peer_chunks.cancel_queue()->front());
-    m_peer_chunks.cancel_queue()->pop_front();
-  }
+  while (type == Download::CONNECTION_LEECH && !m_peer_chunks.cancel_queue()->empty() && m_up->can_write_cancel())
+    m_up->write_cancel(m_peer_chunks.cancel_queue()->pop_front());
 
   if (m_send_pex_mask && m_up->can_write_extension() &&
       send_pex_message()) {
@@ -727,6 +726,7 @@ PeerConnection<Download::CONNECTION_INITIAL_SEED>::offer_chunk() {
   // get another one to offer if not enough other peers are interested even
   // if the peer would otherwise still be blocked.
   uint32_t bytesLeft = m_data.bytesLeft;
+
   if (!m_peer_chunks.upload_queue()->empty() && m_peer_chunks.upload_queue()->front().index() == m_data.lastIndex)
     bytesLeft -= m_peer_chunks.upload_queue()->front().length();
 

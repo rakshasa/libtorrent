@@ -116,6 +116,7 @@ libtorrent_torrent_la_SOURCES = \
 	utils/directory_events.h \
 	utils/extents.h \
 	utils/file_stat.h \
+	utils/linked_unordered_set.h \
 	utils/log.cc \
 	utils/log.h \
 	utils/log_buffer.cc \
