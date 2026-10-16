@@ -47,6 +47,9 @@ public:
   // Maximum number of upload requests accepted from one peer.
   static constexpr size_t max_request_queue_size = 2048;
 
+  // Default request queue size for a peer that does not send "reqq" in the handshake.
+  static constexpr uint32_t default_peer_request_queue_size = 500;
+
   static size_t       metadata_piece_length(size_t piece, size_t metadata_size);
 
   ProtocolExtension();
@@ -94,6 +97,9 @@ public:
 
   bool                is_default() const               { return m_flags & flag_default; }
 
+  // The size of a peer's request queue: "reqq" from the handshake, or the default value if none was sent.
+  uint32_t            peer_request_queue() const       { return m_peer_request_queue; }
+
   // Initial PEX message after peer enables PEX needs to send full list
   // of peers instead of the delta list, so keep track of that.
   bool                is_initial_handshake() const     { return m_flags & flag_initial_handshake; }
@@ -129,6 +135,7 @@ private:
   // Set HANDSHAKE as enabled and supported. Those bits should not be
   // touched.
   int                 m_flags{flag_local_enabled_base | flag_remote_supported_base | flag_initial_handshake};
+  uint32_t            m_peer_request_queue{default_peer_request_queue_size};
   PeerInfo*           m_peerInfo{};
   DownloadMain*       m_download{};
   PeerConnectionBase* m_connection{};

@@ -3,6 +3,7 @@
 #include "test/protocol/test_request_list.h"
 
 #include "download/delegator.h"
+#include "protocol/extensions.h"
 #include "protocol/peer_chunks.h"
 #include "protocol/request_list.h"
 #include "test/helpers/network.h"
@@ -131,10 +132,35 @@ TestRequestList::test_basic() {
 
   VERIFY_QUEUE_SIZES(0, 0, 0, 0);
 
-  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 0) == 2);
-  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10) == 12);
+  const uint32_t none = torrent::ProtocolExtension::default_peer_request_queue_size;
+
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 0, none) == 2);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10, none) == 12);
 
   CPPUNIT_ASSERT(request_list->transfer() == NULL);
+}
+
+// A peer queues a limited number of requests, advertised as "reqq" in the handshake.
+// The pipe should never grow beyond that (or the default, for a peer that sent none)
+void
+TestRequestList::test_pipe_size_limit() {
+  SETUP_ALL(basic);
+
+  const uint32_t none = torrent::ProtocolExtension::default_peer_request_queue_size;
+
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10, none) == 12);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 2400, none) == 498);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000, none) == 500);
+
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000, 255) == 255);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10, 255) == 12);
+
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000, 2048) == 2048);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 2400, 2048) == 498);
+
+  // Our own 2048 limit on requests from the peer does not cap requests to it.
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000, 5000) == 5000);
+  CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 2400, 5000) == 498);
 }
 
 void
