@@ -4,6 +4,7 @@ class TestRequestList : public test_fixture {
   CPPUNIT_TEST_SUITE(TestRequestList);
 
   CPPUNIT_TEST(test_basic);
+  CPPUNIT_TEST(test_pipe_size_limit);
   CPPUNIT_TEST(test_single_request);
   CPPUNIT_TEST(test_single_canceled);
 
@@ -16,6 +17,7 @@ class TestRequestList : public test_fixture {
 
 public:
   void test_basic();
+  void test_pipe_size_limit();
 
   void test_single_request();
   void test_single_canceled();

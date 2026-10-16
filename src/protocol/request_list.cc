@@ -320,22 +320,26 @@ RequestList::is_interested_in_active() const {
 }
 
 uint32_t
-RequestList::calculate_pipe_size(uint32_t rate) {
+RequestList::calculate_pipe_size(uint32_t rate, uint32_t max_size) {
   // Change into KB.
   rate /= 1024;
 
+  uint32_t size;
+
   if (!m_delegator->get_aggressive()) {
     if (rate < 20)
-      return rate + 2;
+      size = rate + 2;
     else
-      return rate / 5 + 18;
+      size = rate / 5 + 18;
 
   } else {
     if (rate < 10)
-      return rate / 5 + 1;
+      size = rate / 5 + 1;
     else
-      return rate / 10 + 2;
+      size = rate / 10 + 2;
   }
+
+  return std::min(size, max_size);
 }
 
 } // namespace torrent

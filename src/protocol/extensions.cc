@@ -4,6 +4,7 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <limits>
 
 #include "manager.h"
 #include "download/download_main.h"
@@ -313,6 +314,13 @@ ProtocolExtension::parse_handshake() {
 
   if (message[key_metadataSize].is_value())
     m_download->set_metadata_size(message[key_metadataSize].as_value());
+
+  if (message[key_reqq].is_value()) {
+    int64_t reqq = message[key_reqq].as_value();
+
+    if (reqq > 0)
+      m_peer_request_queue = std::min<int64_t>(reqq, std::numeric_limits<uint32_t>::max());
+  }
 
   m_flags &= ~flag_initial_handshake;
 
