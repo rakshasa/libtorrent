@@ -14,6 +14,7 @@
 #include "torrent/net/fd.h"
 #include "torrent/system/event.h"
 #include "torrent/system/thread.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/chrono.h"
 #include "torrent/utils/log.h"
 
