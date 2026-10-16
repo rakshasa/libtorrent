@@ -39,13 +39,6 @@ const instrumentation_enum request_list_constants::instrumentation_total[bucket_
   INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_TOTAL
 };
 
-// Make inline...
-template <>
-void
-request_list_constants::destroy<BlockTransfer*>(BlockTransfer*& obj) {
-  Block::release(obj);
-}
-
 // TODO: Add a to-be-cancelled list, timer, and use that to avoid
 // cancelling pieces on CHOKE->UNCHOKE weirdness in some clients.
 //

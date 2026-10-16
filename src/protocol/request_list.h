@@ -5,9 +5,7 @@
 #include <optional>
 #include <vector>
 
-#include "torrent/data/block_transfer.h"
 #include "torrent/system/scheduler.h"
-#include "utils/instrumentation.h"
 #include "utils/queue_buckets.h"
 
 namespace torrent {
@@ -15,21 +13,9 @@ namespace torrent {
 class PeerChunks;
 class Delegator;
 
-struct request_list_constants {
-  static constexpr int bucket_count = 4;
-
-  static const torrent::instrumentation_enum instrumentation_added[bucket_count];
-  static const torrent::instrumentation_enum instrumentation_moved[bucket_count];
-  static const torrent::instrumentation_enum instrumentation_removed[bucket_count];
-  static const torrent::instrumentation_enum instrumentation_total[bucket_count];
-
-  template <typename Type>
-  static void destroy(Type& obj);
-};
-
 class RequestList {
 public:
-  using queues_type = torrent::queue_buckets<BlockTransfer*, request_list_constants>;
+  using queues_type = torrent::queue_buckets;
 
   static constexpr int bucket_queued    = 0;
   static constexpr int bucket_unordered = 1;

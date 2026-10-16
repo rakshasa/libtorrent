@@ -146,6 +146,8 @@ libtorrent_other_la_SOURCES = \
 	protocol/peer_factory.cc \
 	protocol/peer_factory.h \
 	protocol/protocol_base.h \
+	protocol/queue_buckets.cc \
+	protocol/queue_buckets.h \
 	protocol/request_list.cc \
 	protocol/request_list.h \
 	\
@@ -176,8 +178,7 @@ libtorrent_other_la_SOURCES = \
 	utils/partial_queue.h \
 	utils/rc4.h \
 	utils/sha1.h \
-	utils/thread_internal.h \
-	utils/queue_buckets.h
+	utils/thread_internal.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir)
 
