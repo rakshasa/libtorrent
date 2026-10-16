@@ -5,6 +5,7 @@
 #include "torrent/system/poll.h"
 
 #include <cassert>
+#include <fstream>
 #include <unistd.h>
 #include <sys/epoll.h>
 
@@ -153,10 +154,28 @@ PollInternal::modify(system::Event* event, unsigned short op, uint32_t mask, uin
 
 std::unique_ptr<Poll>
 Poll::create() {
-  auto socket_open_max = sysconf(_SC_OPEN_MAX);
+  auto socket_open_max = []() {
+      auto sysconf_result = ::sysconf(_SC_OPEN_MAX);
+      auto sysconf_errno  = errno;
 
-  if (socket_open_max == -1)
-    throw internal_error("Poll::create() : sysconf(_SC_OPEN_MAX) failed : " + std::string(std::strerror(errno)));
+      if (sysconf_result != -1 && sysconf_result < INT_MAX / 2)
+        return static_cast<unsigned int>(sysconf_result);
+
+      std::ifstream file("/proc/sys/fs/file-max");
+      unsigned long global_max;
+
+      file >> global_max;
+
+      if (file.fail()) {
+        auto msg = "Poll::create() : sysconf(_SC_OPEN_MAX) and /proc/sys/fs/file-max failed : " +
+          system::errno_enum_str(sysconf_errno) + " : " + system::errno_enum_str(errno);
+
+        LT_LOG("%s", msg.c_str());
+        throw internal_error(msg);
+      }
+
+      return std::min<unsigned int>(global_max, 16384u);
+    }();
 
   int fd = fd_open_epoll(socket_open_max);
 
