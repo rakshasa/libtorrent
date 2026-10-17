@@ -5,12 +5,8 @@
 #include <optional>
 #include <vector>
 
-<<<<<<< Updated upstream
-=======
-//#include "torrent/data/block_transfer.h"
->>>>>>> Stashed changes
+#include "protocol/queue_buckets.h"
 #include "torrent/system/scheduler.h"
-#include "utils/queue_buckets.h"
 
 namespace torrent {
 
@@ -19,11 +15,7 @@ class Delegator;
 
 class RequestList {
 public:
-<<<<<<< Updated upstream
-  using queues_type = torrent::queue_buckets;
-=======
-  using queues_type = torrent::queue_buckets<request_list_constants>;
->>>>>>> Stashed changes
+  using queues_type = QueueBuckets;
 
   static constexpr int bucket_queued    = 0;
   static constexpr int bucket_unordered = 1;
