@@ -189,7 +189,16 @@ download_list(DList& dlist) {
 // Make sure you check that it's valid.
 Download
 download_find(const std::string& infohash) {
-  return *manager->download_manager()->find(infohash);
+  // DownloadManager::find() reads a full hash from the string.
+  if (infohash.size() != HashString::size_data)
+    return Download();
+
+  auto itr = manager->download_manager()->find(infohash);
+
+  if (itr == manager->download_manager()->end())
+    return Download();
+
+  return Download(*itr);
 }
 
 uint32_t

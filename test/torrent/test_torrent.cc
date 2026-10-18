@@ -23,6 +23,16 @@ create_magnet(const std::string& uri) {
   return object;
 }
 
+// Removes the download when the scope ends, so a failed assertion does not leave it registered.
+struct scoped_download {
+  ~scoped_download() {
+    if (download.is_valid())
+      torrent::download_remove(download);
+  }
+
+  torrent::Download download;
+};
+
 } // namespace
 
 void
@@ -83,4 +93,30 @@ test_torrent::test_download_add_zero_info_hash() {
     CPPUNIT_ASSERT_MESSAGE(uri, download.info()->hash().str() == hash);
     torrent::download_remove(download);
   }
+}
+
+void
+test_torrent::test_download_find_unknown_hash() {
+  auto hash = std::string(20, '\x33');
+
+  scoped_download added{torrent::download_add(create_magnet("magnet:?xt=urn:btih:" + std::string(40, '3')), 0)};
+  CPPUNIT_ASSERT(torrent::download_find(hash).ptr() == added.download.ptr());
+
+  torrent::download_remove(added.download);
+  added.download = torrent::Download();
+
+  CPPUNIT_ASSERT(!torrent::download_find(hash).is_valid());
+  CPPUNIT_ASSERT(!torrent::download_find(std::string(20, '\x44')).is_valid());
+}
+
+void
+test_torrent::test_download_find_wrong_size() {
+  scoped_download added{torrent::download_add(create_magnet("magnet:?xt=urn:btih:" + std::string(38, '3') + "00"), 0)};
+
+  // The terminating null of a 19 byte string would complete this hash.
+  CPPUNIT_ASSERT(!torrent::download_find(std::string(19, '\x33')).is_valid());
+  CPPUNIT_ASSERT(!torrent::download_find(std::string(38, '3') + "00").is_valid());
+  CPPUNIT_ASSERT(!torrent::download_find("").is_valid());
+  // A longer string that starts with the registered hash.
+  CPPUNIT_ASSERT(!torrent::download_find(std::string(19, '\x33') + std::string(1, '\0') + "x").is_valid());
 }
