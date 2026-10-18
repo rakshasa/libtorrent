@@ -113,6 +113,8 @@ LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/object_test.h \
 	torrent/object_test_utils.cc \
 	torrent/object_test_utils.h \
+	torrent/test_string_utf8.cc \
+	torrent/test_string_utf8.h \
 	torrent/object_static_map_test.cc \
 	torrent/object_static_map_test.h \
 	torrent/object_stream_test.cc \

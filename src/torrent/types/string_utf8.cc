@@ -12,8 +12,9 @@ string_utf8::reset(const std::string& str) {
   m_hex.clear();
   m_base64.clear();
 
-  m_str     = str;
-  m_is_utf8 = utils::is_valid_utf8(str);
+  m_str          = str;
+  m_is_utf8_text = utils::is_valid_utf8_text(str);
+  m_is_utf8      = m_is_utf8_text || utils::is_valid_utf8(str);
 }
 
 Object
@@ -88,6 +89,30 @@ string_utf8::object_utf8_or_as_binary() const {
 
     return obj;
   }
+
+  return Object(m_str);
+}
+
+Object
+string_utf8::object_utf8_text_or_hex() const {
+  if (!m_is_utf8_text)
+    return object_hex_as_binary();
+
+  return Object(m_str);
+}
+
+Object
+string_utf8::object_utf8_text_or_base64() const {
+  if (!m_is_utf8_text)
+    return object_base64_as_binary();
+
+  return Object(m_str);
+}
+
+Object
+string_utf8::object_utf8_text_or_as_binary() const {
+  if (!m_is_utf8_text)
+    return object_as_binary();
 
   return Object(m_str);
 }
