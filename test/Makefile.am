@@ -115,6 +115,8 @@ LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/object_static_map_test.h \
 	torrent/object_stream_test.cc \
 	torrent/object_stream_test.h \
+	torrent/test_torrent.cc \
+	torrent/test_torrent.h \
 	torrent/test_tracker_controller.cc \
 	torrent/test_tracker_controller.h \
 	torrent/test_tracker_controller_features.cc \

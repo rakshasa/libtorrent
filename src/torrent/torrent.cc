@@ -140,6 +140,10 @@ download_add(Object* object, uint32_t tracker_key) {
   else
     infoHash = object_sha1(&object->get_key("info"));
 
+  // tracker::Manager::add_controller() treats a zero hash as an internal error.
+  if (infoHash == std::string(HashString::size_data, '\0'))
+    throw input_error("Info hash is zero.");
+
   if (manager->download_manager()->find(infoHash) != manager->download_manager()->end())
     throw input_error("Info hash already used by another torrent.");
 
