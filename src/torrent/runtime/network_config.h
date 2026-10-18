@@ -28,6 +28,7 @@ public:
   static constexpr int iptos_reliability = IPTOS_RELIABILITY;
 
   NetworkConfig();
+  ~NetworkConfig();
 
   // TODO: Move helper functions in rtorrent manager here.
 
