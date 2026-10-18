@@ -31,6 +31,13 @@ NetworkConfig::NetworkConfig() {
   m_delay_changed.slot() = [this]() { force_notify_changes(); };
 }
 
+// Only touch the scheduler when a setter left a notification pending, as the runtime may be
+// destroyed on a thread without one.
+NetworkConfig::~NetworkConfig() {
+  if (m_delay_changed.is_scheduled())
+    this_thread::scheduler()->erase(&m_delay_changed);
+}
+
 bool
 NetworkConfig::is_block_udp() const {
   auto guard = lock_guard();
