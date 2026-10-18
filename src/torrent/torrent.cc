@@ -93,6 +93,11 @@ cleanup() {
   if (manager == nullptr)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
+  // ~DownloadWrapper() unregisters from the tracker and disk threads destroyed below, so first
+  // remove the downloads the client left behind, the same way download_remove() does.
+  while (!manager->download_manager()->empty())
+    manager->cleanup_download(*manager->download_manager()->rbegin());
+
   // Might need to wait for the threads to finish?
   runtime::network_manager()->cleanup();
 

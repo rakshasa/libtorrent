@@ -2,10 +2,15 @@
 
 #include "test_torrent.h"
 
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
 #include <memory>
 #include <utility>
 #include <sys/resource.h>
+#include <unistd.h>
 
+#include "torrent/data/file_list.h"
 #include "torrent/download.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
@@ -15,6 +20,17 @@
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_torrent, "torrent");
 
 namespace {
+
+torrent::Object*
+create_metafile(const std::string& name, int64_t length) {
+  auto object = new torrent::Object(torrent::Object::create_map());
+  auto& info = object->insert_key("info", torrent::Object::create_map());
+  info.insert_key("name", name);
+  info.insert_key("length", length);
+  info.insert_key("piece length", int64_t{16384});
+  info.insert_key("pieces", std::string(20, '\x01'));
+  return object;
+}
 
 torrent::Object*
 create_magnet(const std::string& uri) {
@@ -56,6 +72,35 @@ test_torrent::tearDown() {
   torrent::cleanup();
 
   test_fixture::tearDown();
+}
+
+void
+test_torrent::test_cleanup_removes_downloads() {
+  char root_dir[] = "/tmp/libtorrent_test_torrent_XXXXXX";
+  CPPUNIT_ASSERT(::mkdtemp(root_dir) != nullptr);
+
+  const std::string data_path = std::string(root_dir) + "/data";
+  std::ofstream(data_path) << "data";
+
+  torrent::download_add(create_magnet("magnet:?xt=urn:btih:" + std::string(40, '1')), 0);
+  torrent::download_add(create_metafile("closed", 1), 0);
+
+  // An open download whose chunk is queued for hashing on the disk thread.
+  auto download = torrent::download_add(create_metafile("data", 4), 0);
+  download.file_list()->set_root_dir(root_dir);
+  download.open();
+  download.hash_check(false);
+  CPPUNIT_ASSERT(torrent::main_thread::hash_queue_size() == 1);
+
+  // The downloads are still registered, so cleanup() has to remove them itself.
+  CPPUNIT_ASSERT_NO_THROW(torrent::cleanup());
+
+  std::remove(data_path.c_str());
+  ::rmdir(root_dir);
+
+  // Bring the library up again for tearDown().
+  torrent::initialize_main_thread();
+  torrent::initialize();
 }
 
 void
