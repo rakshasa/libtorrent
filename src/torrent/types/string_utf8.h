@@ -16,6 +16,7 @@ public:
   bool               empty() const;
 
   bool               is_utf8() const;
+  bool               is_utf8_text() const;
 
   const std::string& str() const;
   const char*        c_str() const;
@@ -36,6 +37,11 @@ public:
   Object             object_utf8_or_base64() const;
   Object             object_utf8_or_as_binary() const;
 
+  // Also mark strings with control characters other than tab and line feed as binary
+  Object             object_utf8_text_or_hex() const;
+  Object             object_utf8_text_or_base64() const;
+  Object             object_utf8_text_or_as_binary() const;
+
   void               reset(const std::string& str);
 
 private:
@@ -43,6 +49,7 @@ private:
   void               reset_base64() const;
 
   bool               m_is_utf8{true};
+  bool               m_is_utf8_text{true};
 
   std::string         m_str;
 
@@ -50,10 +57,11 @@ private:
   mutable std::string m_base64;
 };
 
-inline bool               string_utf8::empty() const   { return m_str.empty(); }
-inline bool               string_utf8::is_utf8() const { return m_is_utf8; }
-inline const std::string& string_utf8::str() const     { return m_str; }
-inline const char*        string_utf8::c_str() const   { return m_str.c_str(); }
+inline bool               string_utf8::empty() const        { return m_str.empty(); }
+inline bool               string_utf8::is_utf8() const      { return m_is_utf8; }
+inline bool               string_utf8::is_utf8_text() const { return m_is_utf8_text; }
+inline const std::string& string_utf8::str() const          { return m_str; }
+inline const char*        string_utf8::c_str() const        { return m_str.c_str(); }
 
 inline string_utf8
 string_utf8::from_string(const std::string& str) {

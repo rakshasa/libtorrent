@@ -10,14 +10,21 @@
 
 namespace torrent::utils {
 
+namespace {
+
+template <bool text>
 bool
-is_valid_utf8(const std::string& str) {
+validate_utf8(const std::string& str) {
   auto itr       = str.begin();
   const auto end = str.end();
 
   while (itr != end) {
     int  num{};
     auto byte = static_cast<unsigned char>(*itr);
+
+    // Carriage return counts as a control character, as XML parsers turn it into a line feed.
+    if (text && byte < 0x20 && byte != '\t' && byte != '\n')
+      return false;
 
     // Verify leading byte.
     if ((byte & 0x80) == 0x00)
@@ -46,6 +53,18 @@ is_valid_utf8(const std::string& str) {
   }
 
   return true;
+}
+
+} // namespace
+
+bool
+is_valid_utf8(const std::string& str) {
+  return validate_utf8<false>(str);
+}
+
+bool
+is_valid_utf8_text(const std::string& str) {
+  return validate_utf8<true>(str);
 }
 
 std::string_view
