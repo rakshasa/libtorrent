@@ -14,6 +14,13 @@
 
 namespace torrent::net {
 
+// Not closed on removal, where a late send_signal() could write to a reused descriptor.
+EventFd::~EventFd() {
+  // Can be 0-2 if stdio was closed, which fd_close() refuses.
+  if (is_open())
+    ::close(file_descriptor());
+}
+
 void
 EventFd::add_to_poll() {
   errno = 0;
