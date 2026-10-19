@@ -10,6 +10,7 @@ namespace torrent::net {
 class EventFd : public system::Event {
 public:
   EventFd() = default;
+  ~EventFd() override;
 
   const char*         type_name() const override { return "eventfd"; }
 
