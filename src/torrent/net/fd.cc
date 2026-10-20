@@ -138,7 +138,7 @@ fd_open(fd_flags flags) {
     fd = fd__socket(PF_INET6, domain, protocol);
   }
 
-  if (fd == -1 && !(flags & fd_flag_v6only)) {
+  if (fd == -1 && !(flags & (fd_flag_v6 | fd_flag_v6only))) {
     LT_LOG_FLAG("fd_open opening ipv4 socket");
     fd = fd__socket(PF_INET, domain, protocol);
   }
@@ -180,6 +180,8 @@ fd_open_family(fd_flags flags, int family) {
 
   if (family == AF_INET)
     flags |= fd_flag_v4;
+  else
+    flags |= fd_flag_v6;
 
   return fd_open(flags);
 }

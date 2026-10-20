@@ -16,7 +16,8 @@ enum fd_flags : int {
   fd_flag_v4            = 0x80, // renamed
   fd_flag_v4only        = 0x80,
   fd_flag_v6only        = 0x100,
-  fd_flag_all           = 0x1ff,
+  fd_flag_v6            = 0x200,
+  fd_flag_all           = 0x3ff,
 };
 
 constexpr bool  fd_valid_flags(fd_flags flags);
@@ -87,6 +88,7 @@ fd_valid_flags(fd_flags flags) {
     ((flags & fd_flag_stream) || (flags & fd_flag_datagram)) &&
     !((flags & fd_flag_stream) && (flags & fd_flag_datagram)) &&
     !((flags & fd_flag_v4only) && (flags & fd_flag_v6only)) &&
+    !((flags & fd_flag_v4) && (flags & fd_flag_v6)) &&
     !(flags & ~(fd_flag_all));
 }
 
