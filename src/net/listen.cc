@@ -10,6 +10,7 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/poll.h"
+#include "torrent/system/scheduler.h"
 #include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
@@ -87,6 +88,35 @@ listen_open_range(Listen::open_options options, const sockaddr* bind_address, co
   fd_close(datagram_fd);
 
   return std::make_tuple(-1, 0);
+}
+
+// Linux passes errors already pending on the new connection to accept(), and a firewall rule
+// refusing it gives EPERM: the connection is gone, the listening socket is fine.
+bool
+accept_error_is_connection(int error) {
+  switch (error) {
+  case ECONNABORTED:
+  case EPERM:
+  case EPROTO:
+  case ENOPROTOOPT:
+  case EOPNOTSUPP:
+  case ENETDOWN:
+  case ENETUNREACH:
+  case EHOSTDOWN:
+  case EHOSTUNREACH:
+#ifdef ENONET
+  case ENONET:
+#endif
+    return true;
+  default:
+    return false;
+  }
+}
+
+// Out of file descriptors or memory: the connection stays queued and the socket stays readable.
+bool
+accept_error_is_resource(int error) {
+  return error == EMFILE || error == ENFILE || error == ENOBUFS || error == ENOMEM;
 }
 
 }
@@ -206,6 +236,10 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
   return true;
 }
 
+Listen::Listen() {
+  m_resume_accept.slot() = [this] { resume_accept(); };
+}
+
 void
 Listen::open_done(int fd, uint16_t port, int backlog) {
   set_file_descriptor(fd);
@@ -222,6 +256,9 @@ Listen::open_done(int fd, uint16_t port, int backlog) {
 void Listen::close() {
   if (!is_open())
     return;
+
+  if (m_resume_accept.is_scheduled())
+    this_thread::scheduler()->erase(&m_resume_accept);
 
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
@@ -251,8 +288,14 @@ Listen::event_read() {
         return;
 
       // Force a new event_read() call just to be sure we don't enter an infinite loop.
-      if (errno == ECONNABORTED)
+      if (accept_error_is_connection(errno))
         return;
+
+      // Stop reading the socket for a while, else the queued connection makes it readable again at once.
+      if (accept_error_is_resource(errno)) {
+        pause_accept(errno);
+        return;
+      }
 
       throw resource_error("Listener port accept() failed: " + system::errno_enum_str(errno));
     }
@@ -288,6 +331,23 @@ Listen::event_read() {
     if (!result)
       return;
   }
+}
+
+void
+Listen::pause_accept(int error) {
+  lt_log_print(LOG_ERRORS, "listen: accept() failed on port %" PRIu16 " : %s : not accepting connections for a second",
+               m_port, system::errno_enum_str(error).c_str());
+
+  this_thread::poll()->remove_read(this);
+  this_thread::scheduler()->update_wait_for(&m_resume_accept, 1s);
+}
+
+void
+Listen::resume_accept() {
+  if (!is_open())
+    return;
+
+  this_thread::poll()->insert_read(this);
 }
 
 void
