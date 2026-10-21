@@ -5,7 +5,7 @@ on: pull_request
 jobs:
 
   clang-tidy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
 
     steps:
     - name: Update Packages
@@ -42,7 +42,7 @@ jobs:
         mkdir clang-tidy-result
     - name: Analyze
       run: |
-        git diff -U0 "$(git merge-base HEAD "upstream/${{ github.event.pull_request.base.ref }}")" | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml
+        git diff -U0 "$(git merge-base HEAD "upstream/${{ github.event.pull_request.base.ref }}")" | clang-tidy-diff-21.py -p1 -path build -export-fixes clang-tidy-result/fixes.yml "-extra-arg=-include/${PWD}/config.h" "-extra-arg=-I${PWD}/test"
     - name: Save PR metadata
       run: |
         echo "${{ github.event.number }}" > clang-tidy-result/pr-id.txt
