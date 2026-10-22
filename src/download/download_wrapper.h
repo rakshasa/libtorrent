@@ -1,8 +1,12 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
+#include <algorithm>
+#include <utility>
+
 #include "data/chunk_handle.h"
 #include "download_main.h"
+#include "torrent/data/download_data.h"
 
 namespace torrent {
 
@@ -23,6 +27,8 @@ public:
   ~DownloadWrapper();
   DownloadWrapper(const DownloadWrapper&) = delete;
   DownloadWrapper& operator=(const DownloadWrapper&) = delete;
+
+  static constexpr uint64_t max_seek_window = uint64_t{1} << 30;
 
   DownloadInfo*       info()                                  { return m_main->info(); }
   download_data*      data()                                  { return m_main->file_list()->mutable_data(); }
@@ -68,6 +74,19 @@ public:
 
   void                receive_update_priorities();
 
+  // Streaming window: [first, first + size) is downloaded before anything else, capped at
+  // max_seek_window bytes. A size of 0 clears the window. It persists until then, across
+  // stop/start and hash checks, and is not saved in the session.
+  void                seek(uint32_t first, uint32_t size);
+
+  // The window [first, last) clamped to the torrent's chunks and to max_seek_window bytes.
+  static std::pair<uint32_t, uint32_t> seek_window(uint32_t first, uint32_t size, uint32_t size_chunks, uint32_t chunk_size);
+
+  // Adds the chunks of [first, last) that are already wanted to high, so the window never
+  // overrides PRIORITY_OFF.
+  static void         promote_seek_window(download_data::priority_ranges* high, const download_data::priority_ranges& normal,
+                                          uint32_t first, uint32_t last);
+
 private:
   void                finished_download();
 
@@ -78,8 +97,26 @@ private:
 
   std::string         m_hash;
 
+  uint32_t            m_seek_first{0};
+  uint32_t            m_seek_last{0};
+
   int                 m_connectionType{0};
 };
+
+inline std::pair<uint32_t, uint32_t>
+DownloadWrapper::seek_window(uint32_t first, uint32_t size, uint32_t size_chunks, uint32_t chunk_size) {
+  uint64_t max_chunks = std::max<uint64_t>(max_seek_window / std::max<uint32_t>(chunk_size, 1), 1);
+
+  first = std::min(first, size_chunks);
+  return {first, first + static_cast<uint32_t>(std::min<uint64_t>({size, max_chunks, size_chunks - first}))};
+}
+
+inline void
+DownloadWrapper::promote_seek_window(download_data::priority_ranges* high, const download_data::priority_ranges& normal,
+                                     uint32_t first, uint32_t last) {
+  for (auto itr = normal.find(first); itr != normal.end() && itr->first < last; ++itr)
+    high->insert(std::max(first, itr->first), std::min(last, itr->second));
+}
 
 } // namespace torrent
 

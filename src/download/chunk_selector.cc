@@ -135,6 +135,14 @@ ChunkSelector::using_index(uint32_t index) {
 }
 
 void
+ChunkSelector::seek(uint32_t index) {
+  if (!empty()) {
+    m_position = index;
+    advance_position();
+  }
+}
+
+void
 ChunkSelector::not_using_index(uint32_t index) {
   if (index >= size())
     throw internal_error("ChunkSelector::deselect_index(...) index out of range.");
