@@ -2,6 +2,8 @@
 
 #include "listen.h"
 
+#include <utility>
+
 #include "manager.h"
 #include "protocol/handshake.h"
 #include "torrent/exceptions.h"
@@ -174,38 +176,38 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
   if (bind_inet6_address->sa_family != AF_INET6)
     throw input_error("Listening ipv6 socket must be inet6 address type");
 
-  int      inet_fd{},   inet6_fd{};
+  int      inet_fd{-1}, inet6_fd{-1};
   uint16_t inet_port{}, inet6_port{};
 
-  while (true) {
-    if (options.first_port > options.last_port) {
-      LT_LOG("Unable to find suitable dual ipv4+6 listen ports in the given range", 0);
-      return false;
-    }
-
-    std::tie(inet_fd, inet_port) = listen_open_range(options, bind_inet_address, bind_inet_device_name);
-
-    if (inet_fd == -1) {
-      LT_LOG("Unable to find a suitable ipv4 listen port : options.last_port error : %s", system::errno_enum(errno));
-      return false;
-    }
-
-    auto inet6_options = options;
-    inet6_options.first_port = inet_port;
-    inet6_options.last_port = inet_port;
-
-    std::tie(inet6_fd, inet6_port) = listen_open_range(inet6_options, bind_inet6_address, bind_inet6_device_name);
-
-    if (inet6_fd != -1)
-      break;
-
-    fd_close(inet_fd);
-    options.first_port = inet_port + 1;
-
-    LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : options.last_port error : %s", inet_port, system::errno_enum(errno));
-  }
-
   try {
+    while (true) {
+      if (options.first_port > options.last_port) {
+        LT_LOG("Unable to find suitable dual ipv4+6 listen ports in the given range", 0);
+        return false;
+      }
+
+      std::tie(inet_fd, inet_port) = listen_open_range(options, bind_inet_address, bind_inet_device_name);
+
+      if (inet_fd == -1) {
+        LT_LOG("Unable to find a suitable ipv4 listen port : options.last_port error : %s", system::errno_enum(errno));
+        return false;
+      }
+
+      auto inet6_options = options;
+      inet6_options.first_port = inet_port;
+      inet6_options.last_port = inet_port;
+
+      std::tie(inet6_fd, inet6_port) = listen_open_range(inet6_options, bind_inet6_address, bind_inet6_device_name);
+
+      if (inet6_fd != -1)
+        break;
+
+      fd_close(std::exchange(inet_fd, -1));
+      options.first_port = inet_port + 1;
+
+      LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : options.last_port error : %s", inet_port, system::errno_enum(errno));
+    }
+
     auto error_fn = [](std::string msg) {
         LT_LOG("%s : %s", msg.c_str(), system::errno_enum(errno));
         throw resource_error(msg + ": " + std::string(strerror(errno)));
@@ -222,10 +224,17 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
       error_fn("Could not listen on ipv6 socket");
 
   } catch (...) {
-    if (inet_fd != -1)
-      fd_close(inet_fd);
+    for (int fd : {inet_fd, inet6_fd}) {
+      if (fd == -1)
+        continue;
 
-    fd_close(inet6_fd);
+      try {
+        fd_close(fd);
+      } catch (...) {
+        // Preserve the original failure and still close the other socket.
+      }
+    }
+
     throw;
   }
 
