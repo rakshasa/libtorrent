@@ -23,6 +23,11 @@ class PeerChunks;
 
 class ChunkSelector {
 public:
+  struct find_result {
+    uint32_t index;
+    bool     high;
+  };
+
   static constexpr auto invalid_chunk = ~uint32_t{0};
 
   ChunkSelector(download_data* data) : m_data(data) {}
@@ -45,7 +50,7 @@ public:
   // find.
   void                update_priorities();
 
-  uint32_t            find(PeerChunks* pc, bool highPriority);
+  find_result         find(PeerChunks* pc);
 
   // Call this to set the index as being downloaded, finished etc,
   // thus ignored. Propably should find a better name for this.
@@ -67,6 +72,8 @@ private:
   inline bool         search_linear_range(const Bitfield* bf, utils::PartialQueue* pq, uint32_t first, uint32_t last);
   inline bool         search_linear_byte(utils::PartialQueue* pq, uint32_t index, Bitfield::value_type wanted);
 
+  uint64_t            remaining_size_estimate(const download_data::priority_ranges* ranges) const;
+
 //   inline uint32_t     search_rarest(const Bitfield* bf, priority_ranges* ranges, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_range(const Bitfield* bf, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_byte(uint8_t wanted);
@@ -80,6 +87,7 @@ private:
   utils::PartialQueue m_sharedQueue;
 
   uint32_t            m_position;
+  int64_t             m_highSelectionBalance{0};
 };
 
 } // namespace torrent

@@ -15,6 +15,7 @@ namespace torrent {
 void
 ChunkSelector::initialize(ChunkStatistics* cs) {
   m_position = invalid_chunk;
+  m_highSelectionBalance = 0;
   m_statistics = cs;
 
   Bitfield* completed = m_data->mutable_completed_bitfield();
@@ -39,6 +40,8 @@ ChunkSelector::cleanup() {
 // modified.
 void
 ChunkSelector::update_priorities() {
+  m_highSelectionBalance = 0;
+
   if (empty())
     return;
 
@@ -50,11 +53,11 @@ ChunkSelector::update_priorities() {
   advance_position();
 }
 
-uint32_t
-ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
+ChunkSelector::find_result
+ChunkSelector::find(PeerChunks* pc) {
   // This needs to be re-enabled.
   if (m_position == invalid_chunk)
-    return invalid_chunk;
+    return {invalid_chunk, false};
 
   // When we're a seeder, 'm_sharedQueue' is used. Since the peer's
   // bitfield is guaranteed to be filled we can use the same code as
@@ -80,7 +83,13 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
       if (!m_data->untouched_bitfield()->get(pos))
         continue;
 
-      return pos;
+      bool high = m_data->high_priority()->has(pos);
+
+      if (!high && !m_data->normal_priority()->has(pos))
+        continue;
+
+      m_highSelectionBalance += high ? 1 : -3;
+      return {pos, high};
     }
 
   } else {
@@ -91,23 +100,22 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
 
   queue->clear();
 
-  (search_linear(pc->bitfield(), queue, m_data->high_priority(), m_position, size()) &&
-   search_linear(pc->bitfield(), queue, m_data->high_priority(), 0, m_position));
+  bool high = m_highSelectionBalance < 3;
+  auto search_priority = [&](const download_data::priority_ranges* ranges) {
+    if (search_linear(pc->bitfield(), queue, ranges, m_position, size()))
+      search_linear(pc->bitfield(), queue, ranges, 0, m_position);
+  };
 
-  if (queue->prepare_pop()) {
-    // Set that the peer has high priority pieces cached.
+  search_priority(high ? m_data->high_priority() : m_data->normal_priority());
 
-  } else {
-    // Set that the peer has normal priority pieces cached.
-
-    // Urgh...
+  if (!queue->prepare_pop()) {
     queue->clear();
 
-    (search_linear(pc->bitfield(), queue, m_data->normal_priority(), m_position, size()) &&
-     search_linear(pc->bitfield(), queue, m_data->normal_priority(), 0, m_position));
+    high = !high;
+    search_priority(high ? m_data->high_priority() : m_data->normal_priority());
 
     if (!queue->prepare_pop())
-      return invalid_chunk;
+      return {invalid_chunk, false};
   }
 
   uint32_t pos = queue->pop();
@@ -115,7 +123,9 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   if (!m_data->untouched_bitfield()->get(pos))
     throw internal_error("ChunkSelector::find(...) bad index.");
 
-  return pos;
+  m_highSelectionBalance += high ? 1 : -3;
+
+  return {pos, high};
 }
 
 void
@@ -185,6 +195,16 @@ ChunkSelector::search_linear(const Bitfield* bf, utils::PartialQueue* pq, const 
   }
 
   return true;
+}
+
+uint64_t
+ChunkSelector::remaining_size_estimate(const download_data::priority_ranges* ranges) const {
+  uint64_t result = 0;
+
+  for (const auto& range : *ranges)
+    result += range.second - range.first;
+
+  return result;
 }
 
 // Could propably add another argument for max seen or something, this
