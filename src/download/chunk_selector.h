@@ -52,6 +52,11 @@ public:
   void                using_index(uint32_t index);
   void                not_using_index(uint32_t index);
 
+  // Moves the cursor to index, then to the next wanted chunk (high priority first, wrapping).
+  // find() still re-randomizes it about once every 64 picks: a seek window comes first
+  // because it is high priority, not because of the cursor.
+  void                seek(uint32_t index);
+
   // The caller must ensure that the chunk index is valid and has not
   // been set already.
   //

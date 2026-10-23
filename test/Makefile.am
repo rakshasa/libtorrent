@@ -173,6 +173,9 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	dht/test_dht_bucket.cc \
 	dht/test_dht_bucket.h \
 	\
+	download/test_download_wrapper.cc \
+	download/test_download_wrapper.h \
+	\
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
 	\

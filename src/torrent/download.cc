@@ -567,6 +567,11 @@ Download::update_priorities() {
 }
 
 void
+Download::seek(uint32_t first, uint32_t size) {
+  m_ptr->seek(first, size);
+}
+
+void
 Download::add_peer(const sockaddr* sa, int port) {
   if (m_ptr->info()->is_private())
     return;

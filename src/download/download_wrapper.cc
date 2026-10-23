@@ -2,6 +2,8 @@
 
 #include "download/download_wrapper.h"
 
+#include <tuple>
+
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
@@ -293,6 +295,17 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 }
 
 void
+DownloadWrapper::seek(uint32_t first, uint32_t size) {
+  std::tie(m_seek_first, m_seek_last) = seek_window(first, size, m_main->file_list()->size_chunks(), m_main->file_list()->chunk_size());
+
+  // Also clears the peers' cached picks, through update_interested().
+  receive_update_priorities();
+
+  if (m_seek_first != m_seek_last)
+    m_main->chunk_selector()->seek(m_seek_first);
+}
+
+void
 DownloadWrapper::receive_update_priorities() {
   LT_LOG_DEBUG("update priorities : chunks_selected:%" PRIu32 " wanted_chunks:%" PRIu32,
               m_main->chunk_selector()->size(), data()->wanted_chunks());
@@ -326,6 +339,8 @@ DownloadWrapper::receive_update_priorities() {
       break;
     }
   }
+
+  promote_seek_window(data()->mutable_high_priority(), *data()->normal_priority(), m_seek_first, m_seek_last);
 
   bool was_partial = data()->wanted_chunks() != 0;
   data()->update_wanted_chunks();

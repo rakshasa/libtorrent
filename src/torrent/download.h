@@ -160,6 +160,12 @@ public:
   // all the peer bitfields to see if we are still interested.
   void                update_priorities();
 
+  // Downloads the wanted chunks of [first, first + size) before anything else, for streaming.
+  // first is a chunk index and size a chunk count, capped at 1 GiB of chunks (at least one);
+  // size 0 clears. The window persists until cleared, across stop/start and hash checks, and
+  // is not saved in the session.
+  void                seek(uint32_t first, uint32_t size);
+
   void                add_peer(const sockaddr* addr, int port);
 
   DownloadWrapper*    ptr() { return m_ptr; }
