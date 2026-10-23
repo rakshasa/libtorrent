@@ -37,7 +37,6 @@ libtorrent_torrent_la_SOURCES = \
 \
 	net/address_info.cc \
 	net/address_info.h \
-	net/connection_state.h \
 	net/fd.cc \
 	net/fd.h \
 	net/http_get.cc \
@@ -189,7 +188,6 @@ libtorrent_torrent_download_include_HEADERS = \
 libtorrent_torrent_net_includedir = $(includedir)/torrent/net
 libtorrent_torrent_net_include_HEADERS = \
 	net/address_info.h \
-	net/connection_state.h \
 	net/fd.h \
 	net/http_get.h \
 	net/http_stack.h \
