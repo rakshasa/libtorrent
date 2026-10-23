@@ -2,6 +2,8 @@
 
 #include "listen.h"
 
+#include <utility>
+
 #include "manager.h"
 #include "protocol/handshake.h"
 #include "torrent/exceptions.h"
@@ -12,6 +14,7 @@
 #include "torrent/system/poll.h"
 #include "torrent/system/scheduler.h"
 #include "torrent/system/types.h"
+#include "torrent/utils/functional.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                    \
@@ -174,8 +177,15 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
   if (bind_inet6_address->sa_family != AF_INET6)
     throw input_error("Listening ipv6 socket must be inet6 address type");
 
-  int      inet_fd{},   inet6_fd{};
+  int      inet_fd{-1}, inet6_fd{-1};
   uint16_t inet_port{}, inet6_port{};
+
+  // Every exit before a socket is handed over closes it, including the ipv4
+  // socket left open when the ipv6 open throws.
+  utils::scope_guard close_pending([&]() {
+    fd_close_and_clear(inet_fd);
+    fd_close_and_clear(inet6_fd);
+  });
 
   while (true) {
     if (options.first_port > options.last_port) {
@@ -199,40 +209,31 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
     if (inet6_fd != -1)
       break;
 
-    fd_close(inet_fd);
+    fd_close_and_clear(inet_fd);
     options.first_port = inet_port + 1;
 
     LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : options.last_port error : %s", inet_port, system::errno_enum(errno));
   }
 
-  try {
-    auto error_fn = [](std::string msg) {
-        LT_LOG("%s : %s", msg.c_str(), system::errno_enum(errno));
-        throw resource_error(msg + ": " + std::string(strerror(errno)));
-      };
+  auto error_fn = [](std::string msg) {
+      LT_LOG("%s : %s", msg.c_str(), system::errno_enum(errno));
+      throw resource_error(msg + ": " + std::string(strerror(errno)));
+    };
 
 
-    if (inet_port != inet6_port)
-      throw internal_error("Listen::open_both(): ipv4 and ipv6 ports do not match.");
+  if (inet_port != inet6_port)
+    throw internal_error("Listen::open_both(): ipv4 and ipv6 ports do not match.");
 
-    if (!fd_listen(inet_fd, options.backlog))
-      error_fn("Could not listen on ipv4 socket");
+  if (!fd_listen(inet_fd, options.backlog))
+    error_fn("Could not listen on ipv4 socket");
 
-    if (!fd_listen(inet6_fd, options.backlog))
-      error_fn("Could not listen on ipv6 socket");
-
-  } catch (...) {
-    if (inet_fd != -1)
-      fd_close(inet_fd);
-
-    fd_close(inet6_fd);
-    throw;
-  }
+  if (!fd_listen(inet6_fd, options.backlog))
+    error_fn("Could not listen on ipv6 socket");
 
   if (inet_fd != -1)
-    listen_inet->open_done(inet_fd, inet_port, options.backlog);
+    listen_inet->open_done(std::exchange(inet_fd, -1), inet_port, options.backlog);
 
-  listen_inet6->open_done(inet6_fd, inet_port, options.backlog);
+  listen_inet6->open_done(std::exchange(inet6_fd, -1), inet_port, options.backlog);
   return true;
 }
 
