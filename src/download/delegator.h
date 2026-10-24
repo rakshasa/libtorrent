@@ -20,7 +20,7 @@ class PeerInfo;
 
 class Delegator {
 public:
-  using slot_peer_chunk = std::function<utils::PartialQueue::mapped_type(PeerChunks*, bool)>;
+  using slot_peer_chunk = std::function<uint32_t(PeerChunks*, bool)>;
   using slot_size       = std::function<uint32_t(uint32_t)>;
 
   static constexpr unsigned int block_size = 1 << 14;
@@ -38,7 +38,7 @@ public:
 
 private:
   static void        delegate_from_blocklist(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, BlockList* c, PeerInfo* peerInfo);
-  void               delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc, bool highPriority);
+  void               delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc, bool high_priority);
 
   TransferList       m_transfers;
 

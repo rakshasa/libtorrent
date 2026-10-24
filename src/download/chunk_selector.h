@@ -45,7 +45,7 @@ public:
   // find.
   void                update_priorities();
 
-  utils::PartialQueue::mapped_type find(PeerChunks* pc, bool highPriority);
+  uint32_t            find(PeerChunks* pc, bool highPriority);
 
   // Call this to set the index as being downloaded, finished etc,
   // thus ignored. Propably should find a better name for this.

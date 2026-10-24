@@ -116,11 +116,11 @@ struct RequestListGuard {
 // Basic tests:
 //
 
-static torrent::utils::PartialQueue::mapped_type
-basic_find_peer_chunk([[maybe_unused]] torrent::PeerChunks* peerChunk, bool highPriority) {
+static uint32_t
+basic_find_peer_chunk([[maybe_unused]] torrent::PeerChunks* peerChunk, [[maybe_unused]] bool highPriority) {
   static int next_index = 0;
 
-  return {static_cast<uint32_t>(next_index++), highPriority};
+  return static_cast<uint32_t>(next_index++);
 }
 
 void

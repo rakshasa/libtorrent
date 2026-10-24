@@ -50,11 +50,11 @@ ChunkSelector::update_priorities() {
   advance_position();
 }
 
-utils::PartialQueue::mapped_type
+uint32_t
 ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   // This needs to be re-enabled.
   if (m_position == invalid_chunk)
-    return {invalid_chunk, false};
+    return invalid_chunk;
 
   // When we're a seeder, 'm_sharedQueue' is used. Since the peer's
   // bitfield is guaranteed to be filled we can use the same code as
@@ -80,7 +80,7 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
       if (!m_data->untouched_bitfield()->get(entry.index))
         continue;
 
-      return entry;
+      return entry.index;
     }
 
   } else {
@@ -107,7 +107,7 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
      search_linear(pc->bitfield(), queue, m_data->normal_priority(), false, 0, m_position));
 
     if (!queue->prepare_pop())
-      return {invalid_chunk, false};
+      return invalid_chunk;
   }
 
   auto entry = queue->pop();
@@ -115,7 +115,7 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   if (!m_data->untouched_bitfield()->get(entry.index))
     throw internal_error("ChunkSelector::find(...) bad index.");
 
-  return entry;
+  return entry.index;
 }
 
 void
@@ -162,12 +162,14 @@ ChunkSelector::received_have_chunk(PeerChunks* pc, uint32_t index) {
   if (!m_data->untouched_bitfield()->get(index))
     return false;
 
+  bool has_high = m_data->high_priority()->has(index);
+
   // Also check if the peer only has high-priority chunks.
-  if (!m_data->high_priority()->has(index) && !m_data->normal_priority()->has(index))
+  if (!has_high && !m_data->normal_priority()->has(index))
     return false;
 
   if (pc->download_cache()->is_enabled())
-    pc->download_cache()->insert(m_statistics->rarity(index), index, m_data->high_priority()->has(index));
+    pc->download_cache()->insert(m_statistics->rarity(index), index, has_high);
 
   return true;
 }
