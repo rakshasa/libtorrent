@@ -150,7 +150,12 @@ LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
 	data/test_hash_queue.cc \
 	data/test_hash_queue.h
 
+# Listen pulls in the same convenience-library cycle as the protocol tests above.
 LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common) \
+	../src/data/socket_file.cc \
+	../src/utils/fd_close_queue.cc \
+	net/test_listen.cc \
+	net/test_listen.h \
 	net/test_event_fd.cc \
 	net/test_event_fd.h \
 	net/test_udns_stdrr.cc \
