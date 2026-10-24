@@ -2,7 +2,7 @@
 
 #include "torrent/object_static_map.h"
 
-#include "utils/functional.h"
+#include "torrent/utils/functional.h"
 
 namespace torrent {
 
@@ -13,7 +13,7 @@ find_key_match(const static_map_mapping_type* first, const static_map_mapping_ty
   const static_map_mapping_type* itr = first;
 
   while (itr != last) {
-    unsigned int base = ::utils::count_base(key_first, key_last, itr->key, itr->key + torrent::static_map_mapping_type::max_key_size);
+    unsigned int base = utils::count_base(key_first, key_last, itr->key, itr->key + torrent::static_map_mapping_type::max_key_size);
 
     if (key_first[base] != '\0') {
       // Return not found here if we know the entry won't come after

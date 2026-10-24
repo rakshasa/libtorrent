@@ -14,7 +14,7 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
-#include "utils/functional.h"
+#include "torrent/utils/functional.h"
 
 // When a peer is connected it should be removed from the list of
 // available peers.
@@ -76,7 +76,7 @@ ConnectionList::insert(PeerInfo* peerInfo, int fd, Bitfield* bitfield, Encryptio
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
 
-  ::utils::slot_list_call(m_signalConnected, peerConnection);
+  utils::slot_list_call(m_signalConnected, peerConnection);
 
   return peerConnection;
 }
@@ -104,7 +104,7 @@ ConnectionList::erase(iterator pos, int flags) {
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
 
-  ::utils::slot_list_call(m_signalDisconnected, peerConnection);
+  utils::slot_list_call(m_signalDisconnected, peerConnection);
 
   // Before of after the signal?
   peerConnection->cleanup();

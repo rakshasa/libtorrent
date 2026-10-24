@@ -15,6 +15,7 @@ namespace torrent {
 void
 ChunkSelector::initialize(ChunkStatistics* cs) {
   m_position = invalid_chunk;
+  m_high_selection_balance = 0;
   m_statistics = cs;
 
   Bitfield* completed = m_data->mutable_completed_bitfield();
@@ -25,8 +26,8 @@ ChunkSelector::initialize(ChunkStatistics* cs) {
   std::transform(completed->begin(), completed->end(), untouched->begin(), [](const Bitfield::value_type& v) { return ~v; });
   untouched->update();
 
-  m_sharedQueue.enable(32);
-  m_sharedQueue.clear();
+  m_shared_queue.enable(32);
+  m_shared_queue.clear();
 }
 
 void
@@ -39,10 +40,12 @@ ChunkSelector::cleanup() {
 // modified.
 void
 ChunkSelector::update_priorities() {
+  m_high_selection_balance = 0;
+
   if (empty())
     return;
 
-  m_sharedQueue.clear();
+  m_shared_queue.clear();
 
   if (m_position == invalid_chunk)
     m_position = random() % size();
@@ -50,18 +53,18 @@ ChunkSelector::update_priorities() {
   advance_position();
 }
 
-uint32_t
-ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
+ChunkSelector::find_result
+ChunkSelector::find(PeerChunks* pc) {
   // This needs to be re-enabled.
   if (m_position == invalid_chunk)
-    return invalid_chunk;
+    return {invalid_chunk, false};
 
   // When we're a seeder, 'm_sharedQueue' is used. Since the peer's
   // bitfield is guaranteed to be filled we can use the same code as
   // for non-seeders. This generalization does incur a slight
   // performance hit as it compares against a bitfield we know has all
   // set.
-  auto* queue = pc->is_seeder() ? &m_sharedQueue : pc->download_cache();
+  auto* queue = pc->is_seeder() ? &m_shared_queue : pc->download_cache();
 
   // Randomize position on average every 16 chunks to prevent
   // inefficient distribution with a slow seed and fast peers
@@ -80,34 +83,37 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
       if (!m_data->untouched_bitfield()->get(entry.index))
         continue;
 
-      return entry.index;
+      m_high_selection_balance += entry.high_priority ? 1 : -3;
+      return {entry.index, entry.high_priority};
     }
 
   } else {
-    // Only non-seeders can reach this branch as m_sharedQueue is
+    // Only non-seeders can reach this branch as m_shared_queue is
     // always enabled.
     queue->enable(8);
   }
 
   queue->clear();
 
-  (search_linear(pc->bitfield(), queue, m_data->high_priority(), true, m_position, size()) &&
-   search_linear(pc->bitfield(), queue, m_data->high_priority(), true, 0, m_position));
+  auto search_priority = [&](bool high) {
+    const auto* ranges = high ? m_data->high_priority() : m_data->normal_priority();
 
-  if (queue->prepare_pop()) {
-    // Set that the peer has high priority pieces cached.
+    if (search_linear(pc->bitfield(), queue, ranges, high, m_position, size()))
+      search_linear(pc->bitfield(), queue, ranges, high, 0, m_position);
+  };
 
-  } else {
-    // Set that the peer has normal priority pieces cached.
+  bool try_high = m_high_selection_balance < 3;
 
-    // Urgh...
+  search_priority(try_high);
+
+  if (!queue->prepare_pop()) {
     queue->clear();
 
-    (search_linear(pc->bitfield(), queue, m_data->normal_priority(), false, m_position, size()) &&
-     search_linear(pc->bitfield(), queue, m_data->normal_priority(), false, 0, m_position));
+    try_high = !try_high;
+    search_priority(try_high);
 
     if (!queue->prepare_pop())
-      return invalid_chunk;
+      return {invalid_chunk, false};
   }
 
   auto entry = queue->pop();
@@ -115,7 +121,9 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   if (!m_data->untouched_bitfield()->get(entry.index))
     throw internal_error("ChunkSelector::find(...) bad index.");
 
-  return entry.index;
+  m_high_selection_balance += entry.high_priority ? 1 : -3;
+
+  return {entry.index, entry.high_priority};
 }
 
 void

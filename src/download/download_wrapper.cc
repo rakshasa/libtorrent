@@ -18,7 +18,7 @@
 #include "torrent/utils/log.h"
 #include "tracker/thread_tracker.h"
 #include "tracker/tracker_list.h"
-#include "utils/functional.h"
+#include "torrent/utils/functional.h"
 #include "utils/sha1.h"
 
 #define LT_LOG_DEBUG(log_fmt, ...)                                     \
@@ -238,13 +238,13 @@ DownloadWrapper::receive_tracker_success(AddressList* l) {
   m_main->receive_connect_peers();
   m_main->receive_tracker_success();
 
-  ::utils::slot_list_call(info()->signal_tracker_success());
+  utils::slot_list_call(info()->signal_tracker_success());
   return inserted;
 }
 
 void
 DownloadWrapper::receive_tracker_failed(const std::string& msg) {
-  ::utils::slot_list_call(info()->signal_tracker_failed(), msg);
+  utils::slot_list_call(info()->signal_tracker_failed(), msg);
 }
 
 void

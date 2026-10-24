@@ -1,11 +1,27 @@
-#ifndef LIBTORRENT_UTILS_FUNCTIONAL_H
-#define LIBTORRENT_UTILS_FUNCTIONAL_H
+#ifndef LIBTORRENT_TORRENT_UTILS_FUNCTIONAL_H
+#define LIBTORRENT_TORRENT_UTILS_FUNCTIONAL_H
 
-#include <iterator>
-#include <tuple>
-#include <utility>
+#include <functional>
 
-namespace utils {
+namespace torrent::utils {
+
+//
+// Scope Guard:
+//
+
+// Create a class that calls a std::function when returning or exiting a scope.
+class scope_guard {
+public:
+  scope_guard(std::function<void()> on_exit_scope) : m_on_exit_scope(on_exit_scope) {}
+  ~scope_guard() { m_on_exit_scope(); }
+
+private:
+  std::function<void()> m_on_exit_scope;
+};
+
+//
+// Slot List Caller:
+//
 
 // Container must be a list as the entries may be removed during the call.
 template <typename Container, typename... Args>
@@ -28,7 +44,7 @@ slot_list_call(const Container& slot_list, Args&&... args) {
 }
 
 //
-// Count the number of elements from the start of the containers to the first inequal element.
+// Count the number of elements from the start of the containers to the first inequal element:
 //
 
 template <typename _Value>
@@ -74,3 +90,4 @@ make_base(_InputIter __first, _InputIter __last, _Ftor __ftor) {
 } // namespace utils
 
 #endif
+

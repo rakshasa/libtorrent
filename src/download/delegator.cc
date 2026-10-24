@@ -42,10 +42,7 @@ Delegator::delegate(PeerChunks* peerChunks, std::optional<uint32_t> affinity, ui
         delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
     }
 
-    // Create new high priority pieces.
-    delegate_new_chunks(new_transfers, maxPieces, peerChunks, true);
-    // Create new normal priority pieces.
-    delegate_new_chunks(new_transfers, maxPieces, peerChunks, false);
+    delegate_new_chunks(new_transfers, maxPieces, peerChunks);
   }
 
   if (new_transfers.size() >= maxPieces)
@@ -60,8 +57,8 @@ Delegator::delegate(PeerChunks* peerChunks, std::optional<uint32_t> affinity, ui
       delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
   }
 
-  // Create new high priority pieces.
-  delegate_new_chunks(new_transfers, maxPieces, peerChunks, true);
+  // Create new pieces.
+  delegate_new_chunks(new_transfers, maxPieces, peerChunks);
 
   // Find existing normal priority pieces.
   for (BlockList* itr : m_transfers) {
@@ -71,9 +68,6 @@ Delegator::delegate(PeerChunks* peerChunks, std::optional<uint32_t> affinity, ui
     if (itr->priority() == PRIORITY_NORMAL && peerChunks->bitfield()->get(itr->index()))
       delegate_from_blocklist(new_transfers, maxPieces, itr, peerInfo);
   }
-
-  // Create new normal priority pieces.
-  delegate_new_chunks(new_transfers, maxPieces, peerChunks, false);
 
   if (!m_aggressive)
     return new_transfers;
@@ -108,19 +102,19 @@ Delegator::delegate(PeerChunks* peerChunks, std::optional<uint32_t> affinity, ui
 }
 
 void
-Delegator::delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc, bool high_priority) {
+Delegator::delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc) {
   // Find new chunks and if successful, add all possible pieces into `transfers`
   while (transfers.size() < maxPieces) {
-    auto index = m_slot_chunk_find(pc, high_priority);
+    auto pick = m_slot_chunk_find(pc);
 
-    if (index == ~uint32_t{0})
+    if (pick.index == ChunkSelector::invalid_chunk)
       return;
 
-    auto itr = m_transfers.insert(Piece(index, 0, m_slot_chunk_size(index)), block_size);
+    auto itr = m_transfers.insert(Piece(pick.index, 0, m_slot_chunk_size(pick.index)), block_size);
 
     (*itr)->set_by_seeder(pc->is_seeder());
 
-    if (high_priority)
+    if (pick.high)
       (*itr)->set_priority(PRIORITY_HIGH);
     else
       (*itr)->set_priority(PRIORITY_NORMAL);
