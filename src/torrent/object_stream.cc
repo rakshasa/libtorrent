@@ -12,7 +12,7 @@
 
 #include "torrent/object.h"
 #include "torrent/object_static_map.h"
-#include "utils/functional.h"
+#include "torrent/utils/functional.h"
 #include "utils/sha1.h"
 
 namespace torrent {
@@ -793,8 +793,8 @@ static_map_write_bencode_c_values(object_write_data_t* output,
 
     // Compare the keys to see if they are part of the same
     // dictionaries/lists.
-    unsigned int base_size = ::utils::count_base(first_key->key, first_key->key + stack_itr->next_key,
-                                                 prev_key, prev_key + stack_itr->next_key);
+    unsigned int base_size = utils::count_base(first_key->key, first_key->key + stack_itr->next_key,
+                                               prev_key, prev_key + stack_itr->next_key);
 
     while (base_size < stack_itr->next_key) {
       object_write_bencode_c_char(output, 'e');

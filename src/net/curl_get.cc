@@ -16,7 +16,7 @@
 #include "torrent/system/thread.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/uri_parser.h"
-#include "utils/functional.h"
+#include "torrent/utils/functional.h"
 
 #define LT_LOG(log_fmt, ...) \
   lt_log_print(LOG_NET_HTTP, "%p->http_get : " log_fmt, this, __VA_ARGS__)
