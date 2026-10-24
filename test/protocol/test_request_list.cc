@@ -2,7 +2,6 @@
 
 #include "test/protocol/test_request_list.h"
 
-#include "data/block_list.h"
 #include "download/delegator.h"
 #include "protocol/extensions.h"
 #include "protocol/peer_chunks.h"
@@ -10,6 +9,7 @@
 #include "test/helpers/network.h"
 #include "test/helpers/test_main_thread.h"
 #include "torrent/exceptions.h"
+#include "torrent/data/block_list.h"
 #include "torrent/peer/peer_info.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestRequestList);

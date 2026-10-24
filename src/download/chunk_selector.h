@@ -35,11 +35,6 @@ public:
   bool                empty() const                 { return size() == 0; }
   uint32_t            size() const                  { return m_data->untouched_bitfield()->size_bits(); }
 
-  //  const Bitfield*     bitfield()                    { return m_data->untouched_bitfield(); }
-
-  // priority_ranges*    high_priority()               { return &m_highPriority; }
-  // priority_ranges*    normal_priority()             { return &m_normalPriority; }
-
   // Initialize doesn't update the priority cache, so it is as if it
   // has empty priority ranges.
   void                initialize(ChunkStatistics* cs);
@@ -72,8 +67,6 @@ private:
   inline bool         search_linear_range(const Bitfield* bf, utils::PartialQueue* pq, uint32_t first, uint32_t last);
   inline bool         search_linear_byte(utils::PartialQueue* pq, uint32_t index, Bitfield::value_type wanted);
 
-  uint64_t            remaining_size_estimate(const download_data::priority_ranges* ranges) const;
-
 //   inline uint32_t     search_rarest(const Bitfield* bf, priority_ranges* ranges, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_range(const Bitfield* bf, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_byte(uint8_t wanted);
@@ -84,10 +77,10 @@ private:
 
   ChunkStatistics*    m_statistics;
 
-  utils::PartialQueue m_sharedQueue;
+  utils::PartialQueue m_shared_queue;
 
   uint32_t            m_position;
-  int64_t             m_highSelectionBalance{0};
+  int64_t             m_high_selection_balance{};
 };
 
 } // namespace torrent
