@@ -111,7 +111,7 @@ void
 Delegator::delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc, bool high_priority) {
   // Find new chunks and if successful, add all possible pieces into `transfers`
   while (transfers.size() < maxPieces) {
-    auto index = m_slot_chunk_find(pc, high_priority);
+    auto [index, chunk_high_priority] = m_slot_chunk_find(pc, high_priority);
 
     if (index == ~uint32_t{0})
       return;
@@ -120,7 +120,7 @@ Delegator::delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t 
 
     (*itr)->set_by_seeder(pc->is_seeder());
 
-    if (high_priority)
+    if (chunk_high_priority)
       (*itr)->set_priority(PRIORITY_HIGH);
     else
       (*itr)->set_priority(PRIORITY_NORMAL);

@@ -50,11 +50,11 @@ ChunkSelector::update_priorities() {
   advance_position();
 }
 
-uint32_t
+std::pair<uint32_t, bool>
 ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   // This needs to be re-enabled.
   if (m_position == invalid_chunk)
-    return invalid_chunk;
+    return {invalid_chunk, false};
 
   // When we're a seeder, 'm_sharedQueue' is used. Since the peer's
   // bitfield is guaranteed to be filled we can use the same code as
@@ -80,7 +80,7 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
       if (!m_data->untouched_bitfield()->get(entry.index))
         continue;
 
-      return entry.index;
+      return {entry.index, entry.high_priority};
     }
 
   } else {
@@ -107,7 +107,7 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
      search_linear(pc->bitfield(), queue, m_data->normal_priority(), false, 0, m_position));
 
     if (!queue->prepare_pop())
-      return invalid_chunk;
+      return {invalid_chunk, false};
   }
 
   auto entry = queue->pop();
@@ -115,7 +115,7 @@ ChunkSelector::find(PeerChunks* pc, [[maybe_unused]] bool highPriority) {
   if (!m_data->untouched_bitfield()->get(entry.index))
     throw internal_error("ChunkSelector::find(...) bad index.");
 
-  return entry.index;
+  return {entry.index, entry.high_priority};
 }
 
 void

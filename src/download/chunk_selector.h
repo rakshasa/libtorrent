@@ -2,6 +2,7 @@
 #define LIBTORRENT_DOWNLOAD_CHUNK_SELECTOR_H
 
 #include <cinttypes>
+#include <utility>
 
 #include "torrent/bitfield.h"
 #include "torrent/data/download_data.h"
@@ -45,7 +46,7 @@ public:
   // find.
   void                update_priorities();
 
-  uint32_t            find(PeerChunks* pc, bool highPriority);
+  std::pair<uint32_t, bool> find(PeerChunks* pc, bool highPriority);
 
   // Call this to set the index as being downloaded, finished etc,
   // thus ignored. Propably should find a better name for this.
