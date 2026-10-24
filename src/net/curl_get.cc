@@ -337,7 +337,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
 
   } catch (const torrent::input_error& e) {
     m_prepare_canceled = true;
-    ::utils::slot_list_call(m_signal_failed, e.what());
+    utils::slot_list_call(m_signal_failed, e.what());
     return false;
   }
 }
@@ -459,7 +459,7 @@ CurlGet::trigger_done() {
 
   LT_LOG("signal done : size:%" PRIi64 " slots:%zu", size_download_unsafe(), m_signal_done.size());
 
-  ::utils::slot_list_call(m_signal_done);
+  utils::slot_list_call(m_signal_done);
 }
 
 void
@@ -474,7 +474,7 @@ CurlGet::trigger_failed(const std::string& message) {
   LT_LOG("signal failed : %s", message.c_str());
 
   // If this is changed, verify RESOLVE_NONE handling is correct.
-  ::utils::slot_list_call(m_signal_failed, message);
+  utils::slot_list_call(m_signal_failed, message);
 }
 
 void
@@ -491,7 +491,7 @@ CurlGet::trigger_cleared_request() {
 
   LT_LOG("signal force cleared", 0);
 
-  ::utils::slot_list_call(m_signal_failed, "Request force cleared.");
+  utils::slot_list_call(m_signal_failed, "Request force cleared.");
 }
 
 size_t
