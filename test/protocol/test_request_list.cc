@@ -8,6 +8,7 @@
 #include "protocol/request_list.h"
 #include "test/helpers/network.h"
 #include "test/helpers/test_main_thread.h"
+#include "torrent/data/block_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/peer/peer_info.h"
 
@@ -50,7 +51,7 @@ struct RequestListGuard {
 
 #define SETUP_DELEGATOR(fpc_prefix)                                     \
   auto delegator = std::make_unique<torrent::Delegator>();              \
-  delegator->slot_chunk_find() = std::bind(&fpc_prefix ## _find_peer_chunk, std::placeholders::_1, std::placeholders::_2); \
+  delegator->slot_chunk_find() = std::bind(&fpc_prefix ## _find_peer_chunk, std::placeholders::_1); \
   delegator->slot_chunk_size() = std::bind(&chunk_index_size, std::placeholders::_1); \
   delegator->transfer_list()->slot_canceled()  = std::bind(&transfer_list_void); \
   delegator->transfer_list()->slot_queued()    = std::bind(&transfer_list_void); \
@@ -116,11 +117,11 @@ struct RequestListGuard {
 // Basic tests:
 //
 
-static uint32_t
-basic_find_peer_chunk([[maybe_unused]] torrent::PeerChunks* peerChunk, [[maybe_unused]] bool highPriority) {
+static torrent::ChunkSelector::find_result
+basic_find_peer_chunk([[maybe_unused]] torrent::PeerChunks* peerChunk) {
   static int next_index = 0;
 
-  return static_cast<uint32_t>(next_index++);
+  return {static_cast<uint32_t>(next_index++), true};
 }
 
 void
@@ -161,6 +162,24 @@ TestRequestList::test_pipe_size_limit() {
   // Our own 2048 limit on requests from the peer does not cap requests to it.
   CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 100000, 5000) == 5000);
   CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 2400, 5000) == 498);
+}
+
+void
+TestRequestList::test_selected_priority() {
+  SETUP_ALL(basic);
+
+  delegator->slot_chunk_find() = [](torrent::PeerChunks*) {
+    return torrent::ChunkSelector::find_result{0, false};
+  };
+
+  auto pieces = request_list->delegate(1);
+  CPPUNIT_ASSERT(pieces.size() == 1);
+
+  auto itr = delegator->transfer_list()->find(0);
+  CPPUNIT_ASSERT(itr != delegator->transfer_list()->end());
+  CPPUNIT_ASSERT((*itr)->priority() == torrent::PRIORITY_NORMAL);
+
+  CLEAR_TRANSFERS();
 }
 
 void
