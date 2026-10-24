@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "torrent/data/transfer_list.h"
+#include "utils/partial_queue.h"
 
 namespace torrent {
 
@@ -37,7 +38,7 @@ public:
 
 private:
   static void        delegate_from_blocklist(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, BlockList* c, PeerInfo* peerInfo);
-  void               delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc, bool highPriority);
+  void               delegate_new_chunks(std::vector<BlockTransfer*> &transfers, uint32_t maxPieces, PeerChunks* pc, bool high_priority);
 
   TransferList       m_transfers;
 
