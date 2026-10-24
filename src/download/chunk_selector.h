@@ -23,17 +23,17 @@ class PeerChunks;
 
 class ChunkSelector {
 public:
+  struct find_result {
+    uint32_t index;
+    bool     high;
+  };
+
   static constexpr auto invalid_chunk = ~uint32_t{0};
 
   ChunkSelector(download_data* data) : m_data(data) {}
 
   bool                empty() const                 { return size() == 0; }
   uint32_t            size() const                  { return m_data->untouched_bitfield()->size_bits(); }
-
-  //  const Bitfield*     bitfield()                    { return m_data->untouched_bitfield(); }
-
-  // priority_ranges*    high_priority()               { return &m_highPriority; }
-  // priority_ranges*    normal_priority()             { return &m_normalPriority; }
 
   // Initialize doesn't update the priority cache, so it is as if it
   // has empty priority ranges.
@@ -45,7 +45,7 @@ public:
   // find.
   void                update_priorities();
 
-  uint32_t            find(PeerChunks* pc, bool highPriority);
+  find_result         find(PeerChunks* pc);
 
   // Call this to set the index as being downloaded, finished etc,
   // thus ignored. Propably should find a better name for this.
@@ -77,9 +77,10 @@ private:
 
   ChunkStatistics*    m_statistics;
 
-  utils::PartialQueue m_sharedQueue;
+  utils::PartialQueue m_shared_queue;
 
   uint32_t            m_position;
+  int64_t             m_high_selection_balance{};
 };
 
 } // namespace torrent
