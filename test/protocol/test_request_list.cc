@@ -11,6 +11,7 @@
 #include "torrent/data/block_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/utils/functional.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestRequestList);
 
@@ -168,6 +169,10 @@ void
 TestRequestList::test_selected_priority() {
   SETUP_ALL(basic);
 
+  auto scope_guard = torrent::utils::scope_guard([&]() {
+      CLEAR_TRANSFERS();
+    });
+
   delegator->slot_chunk_find() = [](torrent::PeerChunks*) {
     return torrent::ChunkSelector::find_result{0, false};
   };
@@ -179,7 +184,7 @@ TestRequestList::test_selected_priority() {
   CPPUNIT_ASSERT(itr != delegator->transfer_list()->end());
   CPPUNIT_ASSERT((*itr)->priority() == torrent::PRIORITY_NORMAL);
 
-  CLEAR_TRANSFERS();
+  request_list->clear();
 }
 
 void
