@@ -45,7 +45,7 @@ public:
   // find.
   void                update_priorities();
 
-  uint32_t            find(PeerChunks* pc, bool highPriority);
+  utils::PartialQueue::mapped_type find(PeerChunks* pc, bool highPriority);
 
   // Call this to set the index as being downloaded, finished etc,
   // thus ignored. Propably should find a better name for this.
@@ -63,9 +63,9 @@ public:
   bool                received_have_chunk(PeerChunks* pc, uint32_t index);
 
 private:
-  bool                search_linear(const Bitfield* bf, utils::PartialQueue* pq, const download_data::priority_ranges* ranges, uint32_t first, uint32_t last);
-  inline bool         search_linear_range(const Bitfield* bf, utils::PartialQueue* pq, uint32_t first, uint32_t last);
-  inline bool         search_linear_byte(utils::PartialQueue* pq, uint32_t index, Bitfield::value_type wanted);
+  bool                search_linear(const Bitfield* bf, utils::PartialQueue* pq, const download_data::priority_ranges* ranges, bool high_priority, uint32_t first, uint32_t last);
+  inline bool         search_linear_range(const Bitfield* bf, utils::PartialQueue* pq, bool high_priority, uint32_t first, uint32_t last);
+  inline bool         search_linear_byte(utils::PartialQueue* pq, bool high_priority, uint32_t index, Bitfield::value_type wanted);
 
 //   inline uint32_t     search_rarest(const Bitfield* bf, priority_ranges* ranges, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_range(const Bitfield* bf, uint32_t first, uint32_t last);

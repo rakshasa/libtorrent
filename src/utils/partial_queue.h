@@ -18,7 +18,11 @@ namespace torrent::utils {
 class PartialQueue {
 public:
   typedef uint8_t                         key_type;
-  typedef uint32_t                        mapped_type;
+  struct mapped_type {
+    uint32_t index;
+    bool     high_priority;
+  };
+
   typedef uint16_t                        size_type;
   typedef std::pair<size_type, size_type> size_pair_type;
 
@@ -52,7 +56,7 @@ public:
   // so it is guaranteed to reach max_size at some point. This will
   // ensure that the user needs to refill with new data at regular
   // intervals.
-  bool                insert(key_type key, mapped_type value);
+  bool                insert(key_type key, uint32_t index, bool high_priority);
 
   // Only call this when pop'ing as it moves the index.
   bool                prepare_pop();
@@ -103,7 +107,7 @@ PartialQueue::clear() {
 }
 
 inline bool
-PartialQueue::insert(key_type key, mapped_type value) {
+PartialQueue::insert(key_type key, uint32_t index, bool high_priority) {
   if (key >= m_ceiling)
     return false;
 
@@ -121,7 +125,7 @@ PartialQueue::insert(key_type key, mapped_type value) {
     throw std::logic_error("PartialQueue::insert(...) layer already full.");
     //return false;
 
-  m_data.get()[m_max_layer_size * idx + m_layers[idx].second] = value;
+  m_data.get()[m_max_layer_size * idx + m_layers[idx].second] = {index, high_priority};
   m_layers[idx].second++;
 
   if (is_layer_full(idx))
