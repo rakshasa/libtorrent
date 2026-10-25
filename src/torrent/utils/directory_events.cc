@@ -45,31 +45,28 @@ check_flags_conflict(int lhs, int rhs) {
 
 } // namespace
 
-directory_events::directory_events() {
-  reset_file_descriptor();
-}
-
 bool
 directory_events::open() {
   if (is_open())
     return true;
 
+#ifdef USE_INOTIFY
   errno = 0;
 
-#ifdef USE_INOTIFY
   set_file_descriptor(fd_open_inotify());
 
-  if (is_open() && !fd_set_nonblock(file_descriptor())) {
-    fd_close(file_descriptor());
-    reset_file_descriptor();
+  if (!is_open())
+    return false;
+
+  if (!fd_set_nonblock(file_descriptor())) {
+    fd_close_and_clear(file_descriptor_ref());
+    return false;
   }
 
 #else
   errno = ENODEV;
+  return false;
 #endif
-
-  if (!is_open())
-    return false;
 
   this_thread::poll()->open(this);
   this_thread::poll()->insert_read(this);
@@ -85,8 +82,7 @@ directory_events::close() {
   this_thread::poll()->remove_read(this);
   this_thread::poll()->close(this);
 
-  ::close(file_descriptor());
-  reset_file_descriptor();
+  fd_close_and_clear(file_descriptor_ref());
   m_wd_list.clear();
 }
 

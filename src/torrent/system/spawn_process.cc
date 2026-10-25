@@ -71,8 +71,8 @@ add_redirects(posix_spawn_file_actions_t* actions, int log_fd, bool use_pipe) {
 } // namespace anonymous
 
 SpawnProcess::~SpawnProcess() {
-  fd_close_and_clear(m_parent_fd);
-  fd_close_and_clear(m_child_fd);
+  fd_close_and_clear_if_open(m_parent_fd);
+  fd_close_and_clear_if_open(m_child_fd);
 }
 
 int
@@ -117,7 +117,7 @@ SpawnProcess::execute(const char* path, char* const argv[]) {
   if (spawn_status != 0)
     throw torrent::input_error("ExecFile::execute() posix_spawn failed: " + system::errno_enum_str(spawn_status));
 
-  fd_close_and_clear(m_child_fd);
+  fd_close_and_clear_if_open(m_child_fd);
 
   // TODO: Write to log.
   if (m_background)
@@ -147,7 +147,7 @@ SpawnProcess::capture_child_output() {
     result.append(buffer, length);
   }
 
-  fd_close_and_clear(m_parent_fd);
+  fd_close_and_clear_if_open(m_parent_fd);
   return result;
 }
 

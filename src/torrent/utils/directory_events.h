@@ -25,8 +25,6 @@ public:
   static constexpr int flag_on_updated = 0x3;
   static constexpr int flag_on_ready   = 0x4;
 
-  directory_events();
-
   const char*         type_name() const override { return "directory_events"; }
 
   bool                open();

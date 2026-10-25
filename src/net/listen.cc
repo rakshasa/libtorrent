@@ -183,8 +183,8 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
   // Every exit before a socket is handed over closes it, including the ipv4
   // socket left open when the ipv6 open throws.
   utils::scope_guard close_pending([&]() {
-    fd_close_and_clear(inet_fd);
-    fd_close_and_clear(inet6_fd);
+    fd_close_and_clear_if_open(inet_fd);
+    fd_close_and_clear_if_open(inet6_fd);
   });
 
   while (true) {
@@ -258,14 +258,12 @@ void Listen::close() {
   if (!is_open())
     return;
 
-  if (m_resume_accept.is_scheduled())
-    this_thread::scheduler()->erase(&m_resume_accept);
+  this_thread::scheduler()->erase(&m_resume_accept);
 
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
 
-      fd_close(file_descriptor());
-      reset_file_descriptor();
+      fd_close_and_clear(file_descriptor_ref());
     });
 
   m_port = 0;

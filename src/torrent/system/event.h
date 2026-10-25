@@ -45,6 +45,7 @@ protected:
   friend class PollInternal;
   friend class runtime::SocketManager;
 
+  int&                file_descriptor_ref();
   void                reset_file_descriptor();
 
   void                set_file_descriptor(int fd);
@@ -73,6 +74,7 @@ inline bool Event::is_open() const             { return file_descriptor() != -1;
 inline bool Event::is_polling() const          { return m_poll_event != nullptr; }
 
 inline int  Event::file_descriptor() const     { return m_fileDesc; }
+inline int& Event::file_descriptor_ref()       { return m_fileDesc; }
 
 inline void Event::reset_file_descriptor()     { m_fileDesc = -1; }
 inline void Event::set_file_descriptor(int fd) { m_fileDesc = fd; }
