@@ -222,7 +222,7 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
   fileList->set_multi_file(false);
 
   Path path;
-  path.push_back_component(sanitize_file_name(b.get_key_string("name"), "dict-key \"name\""));
+  path.push_back_component(m_download->info()->name_sanitized());
 
   *fileList->front()->mutable_path() = path;
   fileList->update_paths(fileList->begin(), fileList->end());
