@@ -164,8 +164,7 @@ PeerConnectionBase::cleanup() {
   runtime::socket_manager()->close_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
 
-      fd_close(file_descriptor());
-      reset_file_descriptor();
+      fd_close_and_clear(file_descriptor_ref());
     });
 
   m_up->throttle()->erase(m_peer_chunks.upload_throttle());

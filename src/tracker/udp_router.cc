@@ -120,9 +120,7 @@ UdpRouter::close() {
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
 
-      fd_close(file_descriptor());
-
-      reset_file_descriptor();
+      fd_close_and_clear(file_descriptor_ref());
       set_socket_address(sa_make_unspec());
     });
 

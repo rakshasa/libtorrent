@@ -337,6 +337,12 @@ fd_close(int fd) {
 
 void
 fd_close_and_clear(int& fd) {
+  fd_close(fd);
+  fd = -1;
+}
+
+void
+fd_close_and_clear_if_open(int& fd) {
   if (fd == -1)
     return;
 
