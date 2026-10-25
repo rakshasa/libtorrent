@@ -10,12 +10,16 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
+#include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/download.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
+#include "torrent/path.h"
+#include "torrent/runtime/client_config.h"
 #include "torrent/torrent.h"
+#include "torrent/utils/functional.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_torrent, "torrent");
 
@@ -164,4 +168,51 @@ test_torrent::test_download_find_wrong_size() {
   CPPUNIT_ASSERT(!torrent::download_find("").is_valid());
   // A longer string that starts with the registered hash.
   CPPUNIT_ASSERT(!torrent::download_find(std::string(19, '\x33') + std::string(1, '\0') + "x").is_valid());
+}
+
+void
+test_torrent::test_single_file_name_utf8() {
+  auto config = torrent::runtime::client_config();
+  const bool previous_utf8 = config->file_name_allow_legacy_utf8();
+  const bool previous_sanitized = config->torrent_name_use_sanitized();
+  const auto previous_replace = config->file_name_replace_slash();
+  auto restore = torrent::utils::scope_guard([=]() {
+      config->set_file_name_allow_legacy_utf8(previous_utf8);
+      config->set_torrent_name_use_sanitized(previous_sanitized);
+      config->set_file_name_replace_slash(previous_replace);
+    });
+
+  const std::string legacy = "episode-\xF1\xE5\xF0\xE8\xFF.mkv";
+  const std::string utf8 = "episode-\xD1\x81\xD0\xB5\xD1\x80\xD0\xB8\xD1\x8F.mkv";
+  struct name_case {
+    std::string name;
+    std::string alias;
+    std::string raw_path;
+    std::string alias_path;
+  };
+  const name_case cases[] = {
+    { legacy, utf8, legacy, utf8 },
+    { "raw/episode.mkv", "utf8/episode.mkv", "raw_episode.mkv", "utf8_episode.mkv" },
+    { "raw/episode.mkv", "", "raw_episode.mkv", "raw_episode.mkv" },
+  };
+
+  config->set_file_name_replace_slash("_");
+  for (bool allow_utf8 : {false, true}) {
+    config->set_file_name_allow_legacy_utf8(allow_utf8);
+    for (bool use_sanitized : {false, true}) {
+      config->set_torrent_name_use_sanitized(use_sanitized);
+      for (const auto& entry : cases) {
+        std::unique_ptr<torrent::Object> object(create_metafile(entry.name, 1));
+        if (!entry.alias.empty())
+          object->get_key("info").insert_key("name.utf-8", entry.alias);
+        scoped_download added{torrent::download_add(object.get(), 0)};
+        object.release();
+
+        const auto path = added.download.file_list()->front()->path();
+        const auto& expected = allow_utf8 && !entry.alias.empty() ? entry.alias_path : entry.raw_path;
+        CPPUNIT_ASSERT(path->size() == 1);
+        CPPUNIT_ASSERT_EQUAL(expected, path->front().str());
+      }
+    }
+  }
 }
