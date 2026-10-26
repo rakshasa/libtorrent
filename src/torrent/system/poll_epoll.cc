@@ -5,6 +5,7 @@
 #include "torrent/system/poll.h"
 
 #include <cassert>
+#include <climits>
 #include <fstream>
 #include <unistd.h>
 #include <sys/epoll.h>
