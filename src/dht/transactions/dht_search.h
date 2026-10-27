@@ -48,7 +48,7 @@ public:
   // max_contacts: Number of closest potential contact nodes to keep.
   // max_announce: Number of closest nodes we actually announce to.
   static constexpr unsigned int max_contacts = 18;
-  static constexpr unsigned int max_announce = 3;
+  static constexpr unsigned int max_announce = 8;
 
   DhtSearch(DhtServer* server, const HashString& target);
   virtual ~DhtSearch();

@@ -1,7 +1,11 @@
 #ifndef LIBTORRENT_DHT_TRANSACTIONS_DHT_ANNOUNCE_H
 #define LIBTORRENT_DHT_TRANSACTIONS_DHT_ANNOUNCE_H
 
+#include <map>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "dht/transactions/dht_search.h"
 #include "torrent/common.h"
@@ -27,16 +31,20 @@ public:
 
   const auto&          tracker() const                   { return m_tracker; }
 
-  // Start announce and return final set of nodes in get_contact() calls.
-  // This resets DhtSearch's completed() function, which now
-  // counts announces instead.
-  const_accessor       start_announce();
+  using announce_target = std::pair<const DhtNode*, raw_string>;
+
+  // Return the closest good nodes, with the tokens they returned during the walk, to announce to.
+  std::vector<announce_target> start_announce();
+
+  void                 set_token(const HashString& id, raw_string token);
 
   void                 receive_peers(raw_list peers);
   void                 update_status();
 
 private:
   std::weak_ptr<TrackerDht> m_tracker;
+
+  std::map<HashString, std::string> m_tokens;
 };
 
 } // namespace torrent::dht

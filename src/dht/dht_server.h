@@ -117,6 +117,7 @@ private:
   void                process_error(const sockaddr* sa, const DhtMessage& error);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, raw_string nodes);
+  void                add_search_contacts(DhtTransactionSearch* t, raw_string nodes);
   void                parse_get_peers_reply(DhtTransactionGetPeers* t, const DhtMessage& res);
 
   void                find_node_next(DhtTransactionSearch* t);
