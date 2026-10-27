@@ -1348,6 +1348,10 @@ int dns_cancel(struct dns_ctx *ctx, struct dns_query *q) {
     return (ctx->dnsc_qstatus = DNS_E_BADQUERY);
   qlist_remove(&ctx->dnsc_qactive, q);
   --ctx->dnsc_nactive;
+#ifndef NDEBUG
+  q->dnsq_ctx = NULL;
+#endif
+  free(q);
   dns_request_utm(ctx, 0);
   return 0;
 }

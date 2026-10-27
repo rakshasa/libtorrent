@@ -1,5 +1,5 @@
 ---
-Checks: '-*,misc-include-cleaner'
+Checks: '-*,readability-identifier-naming,misc-include-cleaner'
 FormatStyle: 'file'
 CheckOptions:
   - key: misc-include-cleaner.MissingIncludes

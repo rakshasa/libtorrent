@@ -4,6 +4,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   Ubuntu:
     runs-on: ubuntu-24.04
@@ -199,28 +202,22 @@ jobs:
 #            make check
 
   Alpine:
+    name: Alpine (x86_64)
     needs: Ubuntu
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # platform: ['x86_64', 'x86']
-        platform: ['x86_64'] # Disabled x86 to reduce GitHub resource usage
-    defaults:
-      run:
-        shell: alpine.sh {0}
     steps:
       - uses: actions/checkout@v4
-      - uses: jirutka/setup-alpine@v1
-        with:
-          branch: edge
-          arch: ${{matrix.platform}}
-          packages: >
-            build-base automake autoconf cppunit-dev curl-dev libtool linux-headers openssl-dev pkgconf zlib-dev
       - name: Compile and Test
         run: |
-          autoreconf -fiv
-          ./configure
-          grep LT_SMP_CACHE_BYTES config.h
-          make
-          make check
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            --workdir /workspace \
+            alpine:edge \
+            sh -exc '
+              apk add --no-cache build-base automake autoconf cppunit-dev curl-dev libtool linux-headers openssl-dev pkgconf zlib-dev
+              autoreconf -fiv
+              ./configure
+              grep LT_SMP_CACHE_BYTES config.h
+              make
+              make check
+            '
