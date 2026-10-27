@@ -1318,6 +1318,10 @@ void *dns_resolve(struct dns_ctx *ctx, struct dns_query *q) {
     if (n > 0)
       dns_ioevent(ctx, now);
   }
+#ifndef NDEBUG
+  q->dnsq_ctx = NULL;
+#endif
+  free(q);
 
   return d.dnsrd_result;
 }
