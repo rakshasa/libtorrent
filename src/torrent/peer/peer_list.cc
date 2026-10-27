@@ -417,4 +417,19 @@ PeerList::insert_pex_list(const raw_string& pex_list) {
   return insert_available(&l);
 }
 
+uint32_t
+PeerList::insert_pex_list6(const raw_string& pex_list) {
+  if (pex_list.empty())
+    return 0;
+
+  AddressList l;
+
+  l.parse_address_compact_ipv6(pex_list);
+  l.sort_and_unique();
+
+  LT_LOG_EVENTS("inserting pex6 list: %zu peers", l.size());
+
+  return insert_available(&l);
+}
+
 } // namespace torrent

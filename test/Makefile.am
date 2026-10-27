@@ -60,6 +60,8 @@ LibTorrent_Test_Common = \
 LibTorrent_Test_Protocol_SOURCES = $(LibTorrent_Test_Common) \
 	protocol/test_extensions.cc \
 	protocol/test_extensions.h \
+	protocol/test_pex_added6.cc \
+	protocol/test_pex_added6.h \
 	../src/data/socket_file.cc \
 	../src/utils/fd_close_queue.cc
 
