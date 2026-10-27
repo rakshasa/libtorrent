@@ -21,12 +21,18 @@ public:
 
   void                parse_address_compact(raw_string s);
   void                parse_address_compact(const std::string& s);
+  void                parse_address_compact_ipv6(raw_string s);
   void                parse_address_compact_ipv6(const std::string& s);
 };
 
 inline void
 AddressList::parse_address_compact(const std::string& s) {
   return parse_address_compact(raw_string(s.data(), s.size()));
+}
+
+inline void
+AddressList::parse_address_compact_ipv6(const std::string& s) {
+  return parse_address_compact_ipv6(raw_string(s.data(), s.size()));
 }
 
 // Move somewhere else.

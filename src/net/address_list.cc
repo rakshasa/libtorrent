@@ -72,12 +72,12 @@ AddressList::parse_address_compact(raw_string s) {
 }
 
 void
-AddressList::parse_address_compact_ipv6(const std::string& s) {
+AddressList::parse_address_compact_ipv6(raw_string s) {
   if (sizeof(const SocketAddressCompact6) != 18)
     throw internal_error("ConnectionList::AddressList::parse_address_compact_ipv6(...) bad struct size.");
 
-  std::copy(reinterpret_cast<const SocketAddressCompact6*>(s.c_str()),
-            reinterpret_cast<const SocketAddressCompact6*>(s.c_str() + s.size() - s.size() % sizeof(SocketAddressCompact6)),
+  std::copy(reinterpret_cast<const SocketAddressCompact6*>(s.data()),
+            reinterpret_cast<const SocketAddressCompact6*>(s.data() + s.size() - s.size() % sizeof(SocketAddressCompact6)),
             std::back_inserter(*this));
 }
 
