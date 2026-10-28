@@ -3,6 +3,7 @@
 #include "test_listen.h"
 
 #include <fcntl.h>
+#include <sys/resource.h>
 #include <unistd.h>
 
 #include "helpers/mock_function.h"
@@ -10,6 +11,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/utils/functional.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_listen, "net");
 
@@ -67,13 +69,18 @@ expect_open(int fd, int family, int type) {
 
 void
 expect_range(listeners& pair, int fd, bool ipv6, bool bound = true) {
+  bool check_dht = pair.options.check_dht;
   expect_open(fd, ipv6 ? PF_INET6 : PF_INET, SOCK_STREAM);
-  expect_open(fd + 1, ipv6 ? PF_INET6 : PF_INET, SOCK_DGRAM);
+  if (check_dht)
+    expect_open(fd + 1, ipv6 ? PF_INET6 : PF_INET, SOCK_DGRAM);
   const sockaddr* address = ipv6 ? pair.address6.get() : pair.address.get();
   mock_expect(&fd__bind, bound ? 0 : -1, fd, address, socklen_t(sa_length(address)));
+  if (bound && check_dht)
+    mock_expect(&fd__bind, 0, fd + 1, address, socklen_t(sa_length(address)));
   if (!bound)
     pair.expect_close(fd);
-  pair.expect_close(fd + 1);
+  if (check_dht)
+    pair.expect_close(fd + 1);
 }
 }
 
@@ -90,6 +97,7 @@ test_listen::test_second_stream_failure() {
 void
 test_listen::test_second_datagram_failure() {
   listeners pair;
+  pair.options.check_dht = true;
   expect_range(pair, 100, false);
   expect_open(102, PF_INET6, SOCK_STREAM);
   mock_expect(&torrent::fd__socket, -1, int(PF_INET6), int(SOCK_DGRAM), int(IPPROTO_UDP));
@@ -150,6 +158,39 @@ test_listen::test_range_exhausted() {
 }
 
 void
+test_listen::test_dht_port_unavailable() {
+  listeners pair;
+  pair.options.check_dht  = true;
+  const sockaddr* address = pair.address.get();
+  expect_open(100, PF_INET, SOCK_STREAM);
+  expect_open(101, PF_INET, SOCK_DGRAM);
+  mock_expect(&torrent::fd__bind, 0, 100, address, socklen_t(sa_length(address)));
+  mock_expect(&torrent::fd__bind, -1, 101, address, socklen_t(sa_length(address)));
+  expect_open(102, PF_INET, SOCK_STREAM);
+  expect_open(103, PF_INET, SOCK_DGRAM);
+  for (int fd : { 100, 101, 102, 103 })
+    pair.expect_close(fd);
+  CPPUNIT_ASSERT(!pair.open());
+  pair.assert_closed();
+}
+
+void
+test_listen::test_device_failure() {
+  for (bool check_dht : { false, true }) {
+    listeners pair;
+    pair.options.check_dht = check_dht;
+    expect_open(100, PF_INET, SOCK_STREAM);
+    if (check_dht)
+      expect_open(101, PF_INET, SOCK_DGRAM);
+    pair.expect_close(100);
+    if (check_dht)
+      pair.expect_close(101);
+    CPPUNIT_ASSERT_THROW(Listen::open_single({ &pair.inet, pair.address.get(), "lo" }, pair.options), torrent::resource_error);
+    pair.assert_closed();
+  }
+}
+
+void
 test_listen::test_invalid_address() {
   listeners pair;
   pair.address6 = sa_make_unix("");
@@ -181,4 +222,39 @@ test_listen::test_open_success() {
   pair.inet.close();
   pair.inet6.close();
   pair.assert_closed();
+}
+
+void
+test_listen::test_reopen_at_descriptor_limit() {
+  listeners pair;
+  mock_redirect_defaults();
+  mock_redirect(torrent::fd__listen, std::function<int(int, int)>([](int fd, int backlog) { return ::listen(fd, backlog); }));
+  pair.options.last_port += 100;
+  CPPUNIT_ASSERT(pair.open());
+
+  // A listen restart closes both listeners and reopens them on the same port. At the descriptor
+  // limit only the descriptors the close released are available.
+  pair.options.first_port = pair.options.last_port = pair.inet.port();
+
+  rlimit saved{};
+  CPPUNIT_ASSERT(getrlimit(RLIMIT_NOFILE, &saved) == 0);
+
+  int lowest_free = ::open("/dev/null", O_RDONLY);
+  CPPUNIT_ASSERT(lowest_free != -1);
+  ::close(lowest_free);
+
+  rlimit limited   = saved;
+  limited.rlim_cur = lowest_free;
+
+  torrent::utils::scope_guard restore([&saved]() { setrlimit(RLIMIT_NOFILE, &saved); });
+  CPPUNIT_ASSERT(setrlimit(RLIMIT_NOFILE, &limited) == 0);
+
+  pair.inet.close();
+  pair.inet6.close();
+
+  CPPUNIT_ASSERT(pair.open());
+  CPPUNIT_ASSERT(pair.inet.is_open());
+  CPPUNIT_ASSERT(pair.inet6.is_open());
+  pair.inet.close();
+  pair.inet6.close();
 }
