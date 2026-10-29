@@ -1,6 +1,9 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
+#include <utility>
+#include <vector>
+
 #include "data/chunk_handle.h"
 #include "download_main.h"
 
@@ -23,6 +26,9 @@ public:
   ~DownloadWrapper();
   DownloadWrapper(const DownloadWrapper&) = delete;
   DownloadWrapper& operator=(const DownloadWrapper&) = delete;
+
+  // Hard cap on the size of a priority window, in bytes. A window is at least one chunk.
+  static constexpr uint64_t max_priority_window = uint64_t{1} << 30;
 
   DownloadInfo*       info()                                  { return m_main->info(); }
   download_data*      data()                                  { return m_main->file_list()->mutable_data(); }
@@ -68,6 +74,15 @@ public:
 
   void                receive_update_priorities();
 
+  // See Download::set_priority_window().
+  void                set_priority_window(uint32_t first, uint32_t size);
+
+  // Validates a window against the file list and returns it as [first, last), clamped to the
+  // torrent's chunks.
+  static std::pair<uint32_t, uint32_t> priority_window_range(const FileList* file_list, uint32_t first, uint32_t size);
+  static void         promote_priority_window(download_data::priority_ranges* high, download_data::priority_ranges* normal, uint32_t first, uint32_t last);
+  static bool         has_high_priority_file(const FileList* file_list);
+
 private:
   void                finished_download();
 
@@ -77,6 +92,9 @@ private:
   HashQueue*                    m_hash_queue;
 
   std::string         m_hash;
+
+  uint32_t            m_window_first{0};
+  uint32_t            m_window_last{0};
 
   int                 m_connectionType{0};
 };
