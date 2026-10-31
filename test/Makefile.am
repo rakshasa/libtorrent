@@ -17,9 +17,7 @@ CPPUNIT_CFLAGS += -DLT_CPPUNIT_TESTING
 
 # LibTorrent_Test_LDADD = ../src/libtorrent.la
 LibTorrent_Test_LDADD = \
-	../src/libtorrent.la \
-	../src/libtorrent_other.la \
-	../src/torrent/libtorrent_torrent.la
+	../src/.libs/libtorrent.a
 
 LibTorrent_Test_Torrent_Net_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_Runtime_LDADD = $(LibTorrent_Test_LDADD)
