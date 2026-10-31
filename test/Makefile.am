@@ -175,12 +175,19 @@ LibTorrent_Test_Tracker_SOURCES = $(LibTorrent_Test_Common) \
 	tracker/test_tracker_http.cc \
 	tracker/test_tracker_http.h
 
+# DownloadWrapper, used by the download tests, pulls in the same convenience-library cycle.
 LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
+	../src/data/socket_file.cc \
 	\
 	dht/test_dht_announce_walk.cc \
 	dht/test_dht_announce_walk.h \
 	dht/test_dht_bucket.cc \
 	dht/test_dht_bucket.h \
+	\
+	download/test_chunk_selector.cc \
+	download/test_chunk_selector.h \
+	download/test_download_wrapper.cc \
+	download/test_download_wrapper.h \
 	\
 	rak/ranges_test.cc \
 	rak/ranges_test.h \

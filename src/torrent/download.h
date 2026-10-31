@@ -160,6 +160,17 @@ public:
   // all the peer bitfields to see if we are still interested.
   void                update_priorities();
 
+  // Makes chunks [first, first + size) high priority, for streaming; size 0 clears. Throws
+  // input_error unless the metadata is known, every file has normal priority, 'first' is a
+  // chunk of the torrent and the window is at most 1 GiB (or one chunk). The window persists
+  // until cleared, across stop/start and hash checks, and is not saved in the session. It is
+  // cleared if a file's priority changes from normal, and prioritize_first/last are ignored
+  // while it is set, so the window is the only high priority range.
+  //
+  // While it is set, high and normal priority chunks are picked from 1:5 when nothing is
+  // completed to 1:1 once 80% of the torrent is, in 20% steps, instead of 3:1.
+  void                set_priority_window(uint32_t first, uint32_t size);
+
   void                add_peer(const sockaddr* addr, int port);
 
   DownloadWrapper*    ptr() { return m_ptr; }

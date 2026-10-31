@@ -2,6 +2,9 @@
 
 #include "download/download_wrapper.h"
 
+#include <algorithm>
+#include <tuple>
+
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
@@ -293,6 +296,47 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 }
 
 void
+DownloadWrapper::set_priority_window(uint32_t first, uint32_t size) {
+  if (size != 0 && info()->is_meta_download())
+    throw input_error("Priority window requires the torrent metadata.");
+
+  std::tie(m_window_first, m_window_last) = priority_window_range(file_list(), first, size);
+
+  auto* selector = m_main->chunk_selector();
+  selector->set_window_ratio(m_window_first != m_window_last);
+
+  // Also clears the peers' cached picks, through update_interested().
+  receive_update_priorities();
+
+  if (selector->has_window_ratio())
+    selector->set_position(m_window_first);
+}
+
+std::pair<uint32_t, uint32_t>
+DownloadWrapper::priority_window_range(const FileList* file_list, uint32_t first, uint32_t size) {
+  if (size == 0)
+    return {0, 0};
+
+  if (!has_only_normal_priority(file_list))
+    throw input_error("Priority window requires every file to have normal priority.");
+
+  if (first >= file_list->size_chunks())
+    throw input_error("Priority window starts outside the torrent.");
+
+  uint32_t last = first + std::min(size, file_list->size_chunks() - first);
+
+  if (last - first > std::max<uint64_t>(max_priority_window / file_list->chunk_size(), 1))
+    throw input_error("Priority window is larger than the maximum size.");
+
+  return {first, last};
+}
+
+bool
+DownloadWrapper::has_only_normal_priority(const FileList* file_list) {
+  return std::all_of(file_list->begin(), file_list->end(), [](const auto& file) { return file->priority() == PRIORITY_NORMAL; });
+}
+
+void
 DownloadWrapper::receive_update_priorities() {
   LT_LOG_DEBUG("update priorities : chunks_selected:%" PRIu32 " wanted_chunks:%" PRIu32,
               m_main->chunk_selector()->size(), data()->wanted_chunks());
@@ -300,18 +344,28 @@ DownloadWrapper::receive_update_priorities() {
   data()->mutable_high_priority()->clear();
   data()->mutable_normal_priority()->clear();
 
+  if (m_window_first != m_window_last && !has_only_normal_priority(file_list())) {
+    LT_LOG_DEBUG("priority window cleared, a file no longer has normal priority", 0);
+
+    m_window_first = m_window_last = 0;
+    m_main->chunk_selector()->set_window_ratio(false);
+  }
+
+  // While a priority window is set, it is the only high priority range.
+  bool has_window = m_window_first != m_window_last;
+
   for (auto& file : *m_main->file_list()) {
     switch (file->priority()) {
     case PRIORITY_NORMAL:
     {
       File::range_type range = file->range();
 
-      if (file->has_flags(File::flag_prioritize_first) && range.first != range.second) {
+      if (file->has_flags(File::flag_prioritize_first) && !has_window && range.first != range.second) {
         data()->mutable_high_priority()->insert(range.first, range.first + 1);
         range.first++;
       }
 
-      if (file->has_flags(File::flag_prioritize_last) && range.first != range.second) {
+      if (file->has_flags(File::flag_prioritize_last) && !has_window && range.first != range.second) {
         data()->mutable_high_priority()->insert(range.second - 1, range.second);
         range.second--;
       }
@@ -325,6 +379,11 @@ DownloadWrapper::receive_update_priorities() {
     default:
       break;
     }
+  }
+
+  if (has_window) {
+    data()->mutable_high_priority()->insert(m_window_first, m_window_last);
+    data()->mutable_normal_priority()->erase(m_window_first, m_window_last);
   }
 
   bool was_partial = data()->wanted_chunks() != 0;
