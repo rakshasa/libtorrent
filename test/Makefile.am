@@ -177,6 +177,8 @@ LibTorrent_Test_Tracker_SOURCES = $(LibTorrent_Test_Common) \
 
 LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\
+	dht/test_dht_announce_walk.cc \
+	dht/test_dht_announce_walk.h \
 	dht/test_dht_bucket.cc \
 	dht/test_dht_bucket.h \
 	\

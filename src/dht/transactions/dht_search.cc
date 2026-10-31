@@ -76,7 +76,7 @@ DhtSearch::trim(bool is_final) {
   // We keep:
   // - the max_contacts=18 closest good or unknown nodes and all nodes closer
   //   than them (to see if further searches find closer ones)
-  // - for announces, also the 3 closest good nodes (i.e. nodes that have
+  // - for announces, also the 8 closest good nodes (i.e. nodes that have
   //   replied) to have at least that many for the actual announce
   // - any node that currently has transactions pending
   //
