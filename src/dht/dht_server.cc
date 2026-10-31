@@ -219,7 +219,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::
   auto n = announce->get_contact();
 
   while (n != announce->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(announce, n)), packet_prio_high);
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(announce, n)), packet_prio_high);
     n = announce->get_contact();
   }
 
@@ -471,8 +471,14 @@ void
 DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, raw_string nodes) {
   transaction->complete(true);
 
+  add_search_contacts(transaction, nodes);
+  find_node_next(transaction);
+}
+
+void
+DhtServer::add_search_contacts(DhtTransactionSearch* transaction, raw_string nodes) {
   if (sizeof(const compact_node_info) != 26)
-    throw internal_error("DhtServer::parse_find_node_reply(...) bad struct size.");
+    throw internal_error("DhtServer::add_search_contacts(...) bad struct size.");
 
   node_info_list list;
   std::copy(reinterpret_cast<const compact_node_info*>(nodes.data()),
@@ -483,8 +489,6 @@ DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, raw_string n
     if (node.id() != m_router->id())
       transaction->search()->add_contact(node.id(), sa_make_inet_n(node._addr.addr, node._addr.port).get());
   }
-
-  find_node_next(transaction);
 }
 
 void
@@ -499,19 +503,17 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const DhtM
   if (response[key_r_values].is_raw_list())
     announce->receive_peers(response[key_r_values].as_raw_list());
 
-  // Restrict the length of tokens. We echo them back in announce_peer, and the
-  // query has to fit in a single packet.
-  if (response[key_r_token].is_raw_string() && response[key_r_token].as_raw_string().size() > 64)
-    throw dht_error(dht_error_protocol, "Token length too long");
+  // Restrict the length of tokens. We echo them back in announce_peer, and the query has to fit in
+  // a single packet.
+  //
+  // A reply with a longer token still carries nodes for the walk.
+  if (response[key_r_token].is_raw_string() && response[key_r_token].as_raw_string().size() <= 64)
+    announce->set_token(transaction->id(), response[key_r_token].as_raw_string());
 
-  if (response[key_r_token].is_raw_string())
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionAnnouncePeer(transaction->id(),
-                                                                                   transaction->address(),
-                                                                                   announce->target(),
-                                                                                   response[key_r_token].as_raw_string())),
-                    packet_prio_low);
+  if (response[key_r_nodes].is_raw_string())
+    add_search_contacts(transaction, response[key_r_nodes].as_raw_string());
 
-  announce->update_status();
+  find_node_next(transaction);
 }
 
 void
@@ -524,7 +526,11 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   auto node = transaction->search()->get_contact();
 
   while (node != transaction->search()->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(transaction->search(), node)), priority);
+    if (transaction->search()->is_announce())
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(transaction->search(), node)), priority);
+    else
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(transaction->search(), node)), priority);
+
     node = transaction->search()->get_contact();
   }
 
@@ -537,10 +543,9 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
     throw internal_error("DhtServer::find_node_next dynamic_cast to DhtAnnounce failed.");
 
   if (announce->complete()) {
-    // We have found the 8 closest nodes to the info hash. Retrieve peers
-    // from them and announce to them.
-    for (node = announce->start_announce(); node != announce->end(); ++node)
-      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(transaction->search(), node)), packet_prio_high);
+    // We have found the 8 closest nodes to the info hash, announce to them.
+    for (const auto& [node, token] : announce->start_announce())
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionAnnouncePeer(node->id(), node->address(), announce->target(), token)), packet_prio_high);
   }
 
   announce->update_status();
@@ -711,14 +716,14 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
   if (!quick && m_networkUp && transaction->packet() == NULL && transaction->id() != torrent::DhtRouter::zero_id)
     m_router->node_inactive(transaction->id(), transaction->address());
 
-  if (transaction->type() == DhtTransaction::DHT_FIND_NODE) {
+  if (transaction->type() == DhtTransaction::DHT_FIND_NODE || transaction->type() == DhtTransaction::DHT_GET_PEERS) {
     if (quick)
-      transaction->as_find_node()->set_stalled();
+      transaction->as_search()->set_stalled();
     else
-      transaction->as_find_node()->complete(false);
+      transaction->as_search()->complete(false);
 
     try {
-      find_node_next(transaction->as_find_node());
+      find_node_next(transaction->as_search());
 
     } catch (const std::exception&) {
       if (!quick) {

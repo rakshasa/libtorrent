@@ -212,7 +212,7 @@ public:
 class DhtTransactionGetPeers : public DhtTransactionSearch {
 public:
   DhtTransactionGetPeers(std::shared_ptr<dht::DhtSearch> search, dht::DhtSearch::const_accessor& node)
-    : DhtTransactionSearch(-1, 30, std::move(search), node) { }
+    : DhtTransactionSearch(4, 30, std::move(search), node) { }
 
   transaction_type           type() const override;
 };
