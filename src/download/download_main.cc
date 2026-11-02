@@ -2,7 +2,9 @@
 
 #include "download/download_main.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cinttypes>
 #include <cstring>
 
 #include "manager.h"
@@ -23,6 +25,7 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download_info.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
@@ -317,6 +320,88 @@ DownloadMain::receive_connect_peers() {
     if (connection_list()->find(&sa.sa) == connection_list()->end())
       m_slot_start_handshake(&sa.sa, this);
   }
+}
+
+bool
+StallWatch::update(uint64_t total) {
+  if (!m_primed || total < m_last_total) {
+    m_primed     = true;
+    m_last_total = total;
+    m_starved    = 0;
+    return false;
+  }
+
+  uint64_t got  = total - m_last_total;
+  uint64_t best = 0;
+
+  for (auto v : m_history)
+    best = std::max(best, v);
+
+  m_last_total       = total;
+  m_history[m_pos]   = got;
+  m_pos              = (m_pos + 1) % history_size;
+
+  if (got < floor_bytes || got * 10 < best)
+    m_starved++;
+  else
+    m_starved = 0;
+
+  return stalled();
+}
+
+void
+DownloadMain::drop_idle_peers(bool two_minute_pass) {
+  if (!info()->is_active() || info()->is_meta_download() || file_list()->is_done()) {
+    m_stall_watch.reset();
+    return;
+  }
+
+  bool stalled = m_stall_watch.update(info()->down_rate()->total());
+
+  // Every connection's clock moves on every tick, so a peer's idle time is right when the count reaches min later.
+  auto now   = this_thread::cached_seconds();
+  auto limit = stalled ? idle_peer_timeout_stalled : idle_peer_timeout;
+
+  if (!stalled && !two_minute_pass) {
+    for (auto& peer : *connection_list())
+      peer->m_ptr()->update_idle_time(now);
+
+    return;
+  }
+
+  uint32_t idle = 0;
+
+  for (auto& peer : *connection_list())
+    if (peer->m_ptr()->update_idle_time(now) >= limit)
+      idle++;
+
+  if (idle == 0 || connection_list()->size() < connection_list()->min_size())
+    return;
+
+  auto     before   = connection_list()->size();
+  uint32_t incoming = 0;
+
+  for (auto itr = connection_list()->begin(); itr != connection_list()->end();) {
+    auto pcb = (*itr)->m_ptr();
+
+    if (pcb->idle_time() < limit) {
+      itr++;
+      continue;
+    }
+
+    lt_log_print_info(LOG_PEER_LIST_EVENTS, info(), "peer_list : dropped idle peer : %s : incoming:%i",
+                      sa_pretty_str(pcb->peer_info()->socket_address()).c_str(), static_cast<int>(pcb->peer_info()->is_incoming()));
+
+    incoming += pcb->peer_info()->is_incoming() ? 1 : 0;
+    itr = connection_list()->erase(itr, ConnectionList::disconnect_idle);
+  }
+
+  auto after = connection_list()->size();
+
+  lt_log_print_info(LOG_TORRENT_EVENTS, info(), "download : dropped %zu idle peers (%" PRIu32 " incoming) : idle %llds%s : connections %zu -> %zu : min:%zu available:%zu",
+                    static_cast<size_t>(before - after), incoming, static_cast<long long>(limit.count()), stalled ? ", stalled" : "",
+                    static_cast<size_t>(before), static_cast<size_t>(after),
+                    static_cast<size_t>(connection_list()->min_size()), static_cast<size_t>(peer_list()->available_list()->size()));
 }
 
 void

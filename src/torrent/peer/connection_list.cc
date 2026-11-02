@@ -110,7 +110,8 @@ ConnectionList::erase(iterator pos, int flags) {
   peerConnection->cleanup();
   peerConnection->mutable_peer_info()->set_connection(NULL);
 
-  m_download->peer_list()->disconnected(peerConnection->mutable_peer_info(), PeerList::disconnect_set_time);
+  m_download->peer_list()->disconnected(peerConnection->mutable_peer_info(),
+                                        PeerList::disconnect_set_time | ((flags & disconnect_idle) ? PeerList::disconnect_idle : 0));
 
   // Delete after the signal to ensure the address of 'v' doesn't get
   // allocated for a different PCB in the signal.

@@ -281,6 +281,8 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
         itr++;
   }
 
+  m_main->drop_idle_peers(ticks % 4 == 0);
+
   auto have_queue = m_main->have_queue();
 
   have_queue->erase(std::find_if(have_queue->rbegin(),

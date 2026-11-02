@@ -263,6 +263,18 @@ PeerList::connected(const sockaddr* sa, int flags) {
   } else if (!range.first->second->is_connected()) {
     // Use an old entry.
     peer_info = range.first->second.get();
+
+    if (peer_info->is_idle_dropped()) {
+      auto since = static_cast<uint32_t>(this_thread::cached_seconds().count()) - peer_info->last_connection();
+
+      if (since < idle_refuse_seconds) {
+        LT_LOG_EVENTS("connecting peer rejected: dropped as idle %" PRIu32 " s ago : %s", since, sa_pretty_str(sa).c_str());
+        return nullptr;
+      }
+
+      peer_info->unset_flags(PeerInfo::flag_idle_dropped);
+    }
+
     peer_info->set_port(port);
 
   } else {
@@ -358,6 +370,11 @@ PeerList::disconnected(iterator itr, int flags) {
 
   if (flags & disconnect_set_time)
     itr->second->set_last_connection(this_thread::cached_seconds().count());
+
+  if (flags & disconnect_idle) {
+    itr->second->set_last_connection(this_thread::cached_seconds().count());
+    itr->second->set_flags(PeerInfo::flag_idle_dropped);
+  }
 
   if (flags & disconnect_available && itr->second->listen_port() != 0)
     m_available_list->insert_unique(itr->second->socket_address());
