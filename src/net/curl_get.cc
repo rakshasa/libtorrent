@@ -258,6 +258,7 @@ CurlGet::prepare_start_unsafe(CurlStack* stack) {
   m_handle           = curl_easy_init();
   m_stack            = stack;
   m_retrying_resolve = false;
+  m_size_received    = 0;
 
   if (m_handle == nullptr)
     throw torrent::internal_error("Call to curl_easy_init() failed.");
@@ -496,10 +497,17 @@ CurlGet::trigger_cleared_request() {
 
 size_t
 CurlGet::receive_write(const char* data, size_t size, size_t nmemb, CurlGet* handle) {
-  if (handle->m_stream->write(data, size * nmemb).fail())
+  size_t length = size * nmemb;
+
+  handle->m_size_received += length;
+
+  if (handle->m_max_file_size != 0 && handle->m_size_received > handle->m_max_file_size)
     return 0;
 
-  return size * nmemb;
+  if (handle->m_stream->write(data, length).fail())
+    return 0;
+
+  return length;
 }
 
 bool
