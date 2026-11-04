@@ -247,6 +247,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/extents.h \
 	utils/file_stat.h \
 	utils/functional.h \
+	utils/linked_unordered_set.h \
 	utils/log.h \
 	utils/log_buffer.h \
 	utils/option_strings.h \
