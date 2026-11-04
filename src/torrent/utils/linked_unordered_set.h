@@ -2,6 +2,8 @@
 #define LIBTORRENT_TORRENT_UTILS_LINKED_UNORDERED_SET_H
 
 #include <cstddef>
+#include <functional>
+#include <iterator>
 #include <unordered_map>
 #include <utility>
 
@@ -16,34 +18,49 @@ struct linked_list_node {
 };
 
 template <typename Key>
+class linked_list_iterator;
+
+template <typename Key, typename Hash = std::hash<Key>, typename KeyEqual = std::equal_to<Key>>
 class linked_unordered_set {
 public:
+  using iterator       = linked_list_iterator<Key>;
+  using const_iterator = linked_list_iterator<Key>;
+
   linked_unordered_set() = default;
   ~linked_unordered_set() = default;
 
   bool                empty() const;
   size_t              size() const;
 
+  const_iterator      begin() const;
+  const_iterator      end() const;
+
   const Key&          front() const;
+  const Key&          back() const;
+
+  template <typename K>
+  const_iterator      find(const K& key) const;
 
   void                clear();
 
   bool                insert_back(const Key& key);
 
   Key                 pop_front();
+  Key                 pop_back();
 
   bool                erase(const Key& key);
+  const_iterator      erase(const_iterator pos);
 
 private:
   linked_unordered_set(const linked_unordered_set&) = delete;
   linked_unordered_set& operator=(const linked_unordered_set&) = delete;
 
   using node_type  = linked_list_node<Key>;
-  using map_type   = std::unordered_map<Key, node_type>;
+  using map_type   = std::unordered_map<Key, node_type, Hash, KeyEqual>;
   using value_type = typename map_type::value_type;
 
   void                link_back(value_type* entry);
-  void                unlink(value_type* entry);
+  void                unlink(const value_type* entry);
 
   void                try_rebalance_after_erase();
 
@@ -55,13 +72,68 @@ private:
   unsigned int        m_under_threshold_count{};
 };
 
-template <typename Key> inline bool       linked_unordered_set<Key>::empty() const { return m_lookup_map.empty(); }
-template <typename Key> inline size_t     linked_unordered_set<Key>::size() const  { return m_lookup_map.size(); }
-template <typename Key> inline const Key& linked_unordered_set<Key>::front() const { return m_head->first; }
-
 template <typename Key>
+class linked_list_iterator {
+public:
+  using iterator_category = std::forward_iterator_tag;
+  using value_type        = Key;
+  using difference_type   = std::ptrdiff_t;
+  using pointer           = const Key*;
+  using reference         = const Key&;
+
+  linked_list_iterator() = default;
+
+  reference             operator*() const;
+  pointer               operator->() const;
+
+  linked_list_iterator& operator++();
+  linked_list_iterator  operator++(int);
+
+  bool                  operator==(const linked_list_iterator&) const = default;
+
+private:
+  template <typename, typename, typename>
+  friend class linked_unordered_set;
+
+  using entry_type = typename linked_list_node<Key>::value_type;
+
+  explicit linked_list_iterator(const entry_type* entry);
+
+  const entry_type* m_entry{};
+};
+
+template <typename Key, typename Hash, typename KeyEqual> inline bool       linked_unordered_set<Key, Hash, KeyEqual>::empty() const { return m_lookup_map.empty(); }
+template <typename Key, typename Hash, typename KeyEqual> inline size_t     linked_unordered_set<Key, Hash, KeyEqual>::size() const  { return m_lookup_map.size(); }
+template <typename Key, typename Hash, typename KeyEqual> inline const Key& linked_unordered_set<Key, Hash, KeyEqual>::front() const { return m_head->first; }
+template <typename Key, typename Hash, typename KeyEqual> inline const Key& linked_unordered_set<Key, Hash, KeyEqual>::back() const  { return m_tail->first; }
+
+template <typename Key, typename Hash, typename KeyEqual>
+inline typename linked_unordered_set<Key, Hash, KeyEqual>::const_iterator
+linked_unordered_set<Key, Hash, KeyEqual>::begin() const {
+  return const_iterator(m_head);
+}
+
+template <typename Key, typename Hash, typename KeyEqual>
+inline typename linked_unordered_set<Key, Hash, KeyEqual>::const_iterator
+linked_unordered_set<Key, Hash, KeyEqual>::end() const {
+  return const_iterator();
+}
+
+template <typename Key, typename Hash, typename KeyEqual>
+template <typename K>
+inline typename linked_unordered_set<Key, Hash, KeyEqual>::const_iterator
+linked_unordered_set<Key, Hash, KeyEqual>::find(const K& key) const {
+  auto itr = m_lookup_map.find(key);
+
+  if (itr == m_lookup_map.end())
+    return end();
+
+  return const_iterator(&*itr);
+}
+
+template <typename Key, typename Hash, typename KeyEqual>
 inline void
-linked_unordered_set<Key>::clear() {
+linked_unordered_set<Key, Hash, KeyEqual>::clear() {
   m_lookup_map.clear();
 
   m_head = nullptr;
@@ -70,9 +142,9 @@ linked_unordered_set<Key>::clear() {
   m_under_threshold_count = 0;
 }
 
-template <typename Key>
+template <typename Key, typename Hash, typename KeyEqual>
 inline bool
-linked_unordered_set<Key>::insert_back(const Key& key) {
+linked_unordered_set<Key, Hash, KeyEqual>::insert_back(const Key& key) {
   auto [itr, inserted] = m_lookup_map.try_emplace(key);
 
   if (!inserted)
@@ -83,9 +155,9 @@ linked_unordered_set<Key>::insert_back(const Key& key) {
   return true;
 }
 
-template <typename Key>
+template <typename Key, typename Hash, typename KeyEqual>
 inline Key
-linked_unordered_set<Key>::pop_front() {
+linked_unordered_set<Key, Hash, KeyEqual>::pop_front() {
   Key front_key = m_head->first;
 
   unlink(m_head);
@@ -96,9 +168,22 @@ linked_unordered_set<Key>::pop_front() {
   return front_key;
 }
 
-template <typename Key>
+template <typename Key, typename Hash, typename KeyEqual>
+inline Key
+linked_unordered_set<Key, Hash, KeyEqual>::pop_back() {
+  Key back_key = m_tail->first;
+
+  unlink(m_tail);
+  m_lookup_map.erase(back_key);
+
+  try_rebalance_after_erase();
+
+  return back_key;
+}
+
+template <typename Key, typename Hash, typename KeyEqual>
 inline bool
-linked_unordered_set<Key>::erase(const Key& key) {
+linked_unordered_set<Key, Hash, KeyEqual>::erase(const Key& key) {
   auto itr = m_lookup_map.find(key);
 
   if (itr == m_lookup_map.end())
@@ -112,9 +197,22 @@ linked_unordered_set<Key>::erase(const Key& key) {
   return true;
 }
 
-template <typename Key>
+template <typename Key, typename Hash, typename KeyEqual>
+inline typename linked_unordered_set<Key, Hash, KeyEqual>::const_iterator
+linked_unordered_set<Key, Hash, KeyEqual>::erase(const_iterator pos) {
+  auto next = const_iterator(pos.m_entry->second.next);
+
+  unlink(pos.m_entry);
+  m_lookup_map.erase(m_lookup_map.find(pos.m_entry->first));
+
+  try_rebalance_after_erase();
+
+  return next;
+}
+
+template <typename Key, typename Hash, typename KeyEqual>
 inline void
-linked_unordered_set<Key>::link_back(value_type* entry) {
+linked_unordered_set<Key, Hash, KeyEqual>::link_back(value_type* entry) {
   entry->second.prev = m_tail;
   entry->second.next = nullptr;
 
@@ -126,9 +224,9 @@ linked_unordered_set<Key>::link_back(value_type* entry) {
   m_tail = entry;
 }
 
-template <typename Key>
+template <typename Key, typename Hash, typename KeyEqual>
 inline void
-linked_unordered_set<Key>::unlink(value_type* entry) {
+linked_unordered_set<Key, Hash, KeyEqual>::unlink(const value_type* entry) {
   if (entry->second.prev != nullptr)
     entry->second.prev->second.next = entry->second.next;
   else
@@ -141,9 +239,9 @@ linked_unordered_set<Key>::unlink(value_type* entry) {
 }
 
 // Rebalance the underlying set if we have been under a certain threshold for a number of operations.
-template <typename Key>
+template <typename Key, typename Hash, typename KeyEqual>
 inline void
-linked_unordered_set<Key>::try_rebalance_after_erase() {
+linked_unordered_set<Key, Hash, KeyEqual>::try_rebalance_after_erase() {
   // Bucket sizes are primes, but 32 is a good threshold to start rebalancing at.
   if (m_lookup_map.bucket_count() < 32)
     return;
@@ -166,6 +264,37 @@ linked_unordered_set<Key>::try_rebalance_after_erase() {
 
   m_lookup_map.reserve(m_lookup_map.size() * 2);
   m_under_threshold_count = 0;
+}
+
+template <typename Key>
+inline linked_list_iterator<Key>::linked_list_iterator(const entry_type* entry) :
+    m_entry(entry) {}
+
+template <typename Key>
+inline const Key&
+linked_list_iterator<Key>::operator*() const {
+  return m_entry->first;
+}
+
+template <typename Key>
+inline const Key*
+linked_list_iterator<Key>::operator->() const {
+  return &m_entry->first;
+}
+
+template <typename Key>
+inline linked_list_iterator<Key>&
+linked_list_iterator<Key>::operator++() {
+  m_entry = m_entry->second.next;
+  return *this;
+}
+
+template <typename Key>
+inline linked_list_iterator<Key>
+linked_list_iterator<Key>::operator++(int) {
+  auto itr = *this;
+  ++*this;
+  return itr;
 }
 
 } // namespace torrent::utils

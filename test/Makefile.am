@@ -87,6 +87,8 @@ LibTorrent_Test_Torrent_Runtime_SOURCES = $(LibTorrent_Test_Common) \
 LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_extents.cc \
 	torrent/utils/test_extents.h \
+	torrent/utils/test_linked_unordered_set.cc \
+	torrent/utils/test_linked_unordered_set.h \
 	torrent/utils/test_log.cc \
 	torrent/utils/test_log.h \
 	torrent/utils/test_log_buffer.cc \
