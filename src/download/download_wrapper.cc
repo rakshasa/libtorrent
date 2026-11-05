@@ -294,6 +294,11 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
 void
 DownloadWrapper::receive_update_priorities() {
+  if (m_main->chunk_selector()->empty()) {
+    LT_LOG_DEBUG("update priorities : chunk_selector is empty, skipping", 0);
+    return;
+  }
+
   LT_LOG_DEBUG("update priorities : chunks_selected:%" PRIu32 " wanted_chunks:%" PRIu32,
               m_main->chunk_selector()->size(), data()->wanted_chunks());
 
