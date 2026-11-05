@@ -74,7 +74,7 @@ Thread::start_thread() {
 void
 Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
-  m_poll->do_interrupt();
+  m_poll->do_shutdown_interrupt();
 
   pthread_join(m_thread, nullptr);
 
