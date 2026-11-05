@@ -8,6 +8,8 @@ class test_thread_base : public test_fixture {
 
   CPPUNIT_TEST(test_interrupt);
   CPPUNIT_TEST(test_stop);
+  CPPUNIT_TEST(test_stop_during_callback);
+  CPPUNIT_TEST(test_stop_while_polling);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -18,4 +20,6 @@ public:
   void test_interrupt();
   void test_interrupt_legacy();
   void test_stop();
+  void test_stop_during_callback();
+  void test_stop_while_polling();
 };

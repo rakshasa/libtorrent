@@ -136,3 +136,66 @@ test_thread_base::test_stop() {
     CPPUNIT_FAIL(std::string("Caught internal error: ") + e.what());
   }
 }
+
+void
+test_thread_base::test_stop_during_callback() {
+  auto thread = test_thread::create();
+
+  try {
+    torrent::RuntimeManager::initialize();
+
+    thread->set_test_flag(test_thread::test_flag_long_timeout);
+
+    thread->init_thread();
+    thread->start_thread();
+
+    std::atomic<bool> in_callback{};
+
+    thread->callback([&]() {
+        in_callback = true;
+        wait_for_true(std::bind(&test_thread::has_do_shutdown, thread.get()));
+      });
+
+    CPPUNIT_ASSERT(wait_for_true([&]() { return in_callback.load(); }));
+
+    auto stop_started = std::chrono::steady_clock::now();
+    thread->stop_thread_wait();
+    CPPUNIT_ASSERT(std::chrono::steady_clock::now() - stop_started < 1s);
+
+    torrent::RuntimeManager::destroy();
+
+  } catch (const torrent::internal_error& e) {
+    if (thread && thread->is_active())
+      thread->stop_thread_wait();
+
+    CPPUNIT_FAIL(std::string("Caught internal error: ") + e.what());
+  }
+}
+
+void
+test_thread_base::test_stop_while_polling() {
+  auto thread = test_thread::create();
+
+  try {
+    torrent::RuntimeManager::initialize();
+
+    thread->set_test_flag(test_thread::test_flag_long_timeout);
+
+    thread->init_thread();
+    thread->start_thread();
+
+    std::this_thread::sleep_for(100ms);
+
+    auto stop_started = std::chrono::steady_clock::now();
+    thread->stop_thread_wait();
+    CPPUNIT_ASSERT(std::chrono::steady_clock::now() - stop_started < 1s);
+
+    torrent::RuntimeManager::destroy();
+
+  } catch (const torrent::internal_error& e) {
+    if (thread && thread->is_active())
+      thread->stop_thread_wait();
+
+    CPPUNIT_FAIL(std::string("Caught internal error: ") + e.what());
+  }
+}
