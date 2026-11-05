@@ -56,6 +56,19 @@ public:
   bool                is_down_queued() const          { return m_down_choke.queued(); }
   bool                is_down_local_unchoked() const  { return m_down_choke.unchoked(); }
   bool                is_down_remote_unchoked() const { return m_down_unchoked; }
+  bool                is_down_interest_withheld() const { return m_down_interest_withheld; }
+
+  // The peer choked us. A download choke that took its slot back told it we were not interested, so as not to hold
+  // its upload slot (receive_download_choke); without its upload slot that is final: an unchoke from a peer we are
+  // not interested in is ignored, and only a HAVE for a piece we want, which a seed never sends, makes it interesting
+  // again. So say we are interested again, unless the download is done. Returns whether INTERESTED is to be sent.
+  bool                restore_down_interest(bool download_done);
+
+  // A slot taken back by the download slot rotation (choke_queue::rotate_entry) keeps the torrent interested: the
+  // peer waits for a slot again as every queued peer does, and nothing tells it to choke us. Undoes what
+  // receive_download_choke withheld; the slot was held for choke_queue::rotate_grace at least, so no INTERESTED of
+  // ours is still unsent.
+  void                keep_down_interest();
   bool                is_down_interested() const      { return m_down_interested; }
 
   void                set_upload_snubbed(bool v);
@@ -174,6 +187,7 @@ protected:
 
   bool                m_down_interested{};
   bool                m_down_unchoked{};
+  bool                m_down_interest_withheld{};  // NOT_INTERESTED sent by a download choke, not by the pieces
 
   bool                m_send_choked{};
   bool                m_send_interested{};

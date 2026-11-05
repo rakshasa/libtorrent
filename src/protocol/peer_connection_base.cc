@@ -276,6 +276,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
       // again.
 
       m_send_interested = m_down_interested;
+      m_down_interest_withheld = m_down_interested;
       m_down_interested = false;
 
     } else {
@@ -290,6 +291,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
 
   } else {
     m_tryRequest = true;
+    m_down_interest_withheld = false;
 
     if (!m_down_interested) {
       // We were marked as not interested by the cycling choke and
@@ -389,6 +391,31 @@ PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
 void
 PeerConnectionBase::event_error() {
   m_download->connection_list()->erase(this, 0);
+}
+
+bool
+PeerConnectionBase::restore_down_interest(bool download_done) {
+  if (!m_down_interest_withheld)
+    return false;
+
+  m_down_interest_withheld = false;
+
+  if (download_done || m_down_interested)
+    return false;
+
+  m_send_interested = true;
+  m_down_interested = true;
+  return true;
+}
+
+void
+PeerConnectionBase::keep_down_interest() {
+  if (!m_down_interest_withheld)
+    return;
+
+  m_down_interest_withheld = false;
+  m_down_interested = true;
+  m_send_interested = false;
 }
 
 bool

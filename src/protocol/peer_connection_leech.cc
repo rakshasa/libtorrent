@@ -192,6 +192,9 @@ PeerConnection<type>::read_message() {
     // manager?
     m_down_unchoked = false;
 
+    if (restore_down_interest(m_download->file_list()->is_done()))
+      write_insert_poll_safe();
+
     down_chunk_release();
 
     request_list()->choked();
