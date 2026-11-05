@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_TORRENT_DOWNLOAD_CHOKE_QUEUE_H
 #define LIBTORRENT_TORRENT_DOWNLOAD_CHOKE_QUEUE_H
 
+#include <chrono>
 #include <cinttypes>
 #include <functional>
 #include <list>
@@ -85,6 +86,14 @@ public:
   void                balance_entry(group_entry* entry);
   int                 cycle(uint32_t quota);
 
+  // On each cycle() a torrent whose download slots are all held while peers wait for one gives the slots of its
+  // slowest holders to them (rotate_entry): rotate_count() of its slots, never a slot held for less than rotate_grace
+  // (a rate is measured over 30 s). The torrent stays interested in those peers (PeerConnectionBase::keep_down_interest).
+  static constexpr std::chrono::seconds rotate_grace{25};
+
+  // max_alternate()'s rule: 2 of 15, 4 of 25, 5 of 50, 10 of 100.
+  static uint32_t     rotate_count(uint32_t slots);
+
   // Assume interested state is already updated for the PCB and that
   // this gets called once every time the status changes.
   void                set_queued(PeerConnectionBase* pc, choke_status* base);
@@ -115,7 +124,8 @@ private:
   choke_queue& operator=(const choke_queue&) = delete;
 
   group_stats         prepare_weights(group_stats gs);
-  group_stats         retrieve_connections(group_stats gs, container_type* queued, container_type* unchoked);
+  group_stats         retrieve_connections(group_stats gs, container_type* queued, container_type* unchoked, bool rotate);
+  uint32_t            rotate_entry(group_entry* entry);
   void                rebuild_containers(container_type* queued, container_type* unchoked);
 
   inline uint32_t     max_alternate() const;
