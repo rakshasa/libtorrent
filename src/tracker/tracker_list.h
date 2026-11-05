@@ -62,7 +62,7 @@ public:
   void                clear_stats();
 
   iterator            insert(const tracker::Tracker& tracker);
-  void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
+  bool                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   // TODO: Move these to controller / tracker.
 

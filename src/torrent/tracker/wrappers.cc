@@ -4,6 +4,7 @@
 
 #include <utility>
 
+#include "torrent/exceptions.h"
 #include "tracker/tracker_list.h"
 #include "tracker/tracker_controller.h"
 
@@ -86,7 +87,8 @@ TrackerControllerWrapper::at(uint32_t index) const {
 
 void
 TrackerControllerWrapper::add_extra_tracker(uint32_t group, const std::string& url) {
-  m_ptr->tracker_list()->insert_url(group, url, true);
+  if (!m_ptr->tracker_list()->insert_url(group, url, true))
+    throw input_error("could find matching tracker protocol (url:" + url + ")");
 }
 
 uint32_t
