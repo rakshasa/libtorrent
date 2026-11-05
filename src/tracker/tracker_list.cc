@@ -265,7 +265,7 @@ TrackerList::insert(const tracker::Tracker& tracker) {
 }
 
 // TODO: Use proper flags for insert options.
-void
+bool
 TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
   int flags = tracker::TrackerState::flag_enabled;
 
@@ -301,13 +301,11 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
   } else {
     LT_LOG("could find matching tracker protocol : url:%s", url.c_str());
 
-    if (extra_tracker)
-      throw torrent::input_error("could find matching tracker protocol (url:" + url + ")");
-
-    return;
+    return false;
   }
 
   insert(tracker::Tracker(std::move(worker)));
+  return true;
 }
 
 TrackerList::iterator
