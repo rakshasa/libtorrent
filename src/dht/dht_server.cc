@@ -183,6 +183,11 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
   if (m_transactions.size() >= max_transactions)
     return;
 
+  // The transaction map is keyed by 32-bit IPv4 address. Skip IPv6 nodes
+  // instead of throwing (DhtTransaction::key() cannot encode them).
+  if (!sa_is_inet(sa))
+    return;
+
   // No point pinging a node that we're already contacting otherwise.
   auto itr = m_transactions.lower_bound(DhtTransaction::key(sa, 0));
 
@@ -664,6 +669,11 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
 
 int
 DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority) {
+  // The transaction map is keyed by 32-bit IPv4 address. Skip IPv6 nodes
+  // instead of throwing (DhtTransaction::key() cannot encode them).
+  if (!sa_is_inet(transaction->address()))
+    return -1;
+
   // Try random transaction ID. This is to make it less likely that we reuse
   // a transaction ID from an earlier transaction which timed out and we forgot
   // about it, so that if the node replies after the timeout it's less likely
