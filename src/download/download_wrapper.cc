@@ -333,10 +333,10 @@ DownloadWrapper::receive_update_priorities() {
     data()->update_wanted_chunks();
 
     m_main->chunk_selector()->update_priorities();
-  }
 
-  for (const auto& peer : *m_main->connection_list()) {
-    peer->m_ptr()->update_interested();
+    for (const auto& peer : *m_main->connection_list()) {
+      peer->m_ptr()->update_interested();
+    }
   }
 
   // The 'partially_done/restarted' signal only gets triggered when a
