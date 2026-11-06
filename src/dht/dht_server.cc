@@ -183,8 +183,6 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
   if (m_transactions.size() >= max_transactions)
     return;
 
-  // The transaction map is keyed by 32-bit IPv4 address. Skip IPv6 nodes
-  // instead of throwing (DhtTransaction::key() cannot encode them).
   if (!sa_is_inet(sa))
     return;
 
@@ -669,8 +667,6 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
 
 int
 DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority) {
-  // The transaction map is keyed by 32-bit IPv4 address. Skip IPv6 nodes
-  // instead of throwing (DhtTransaction::key() cannot encode them).
   if (!sa_is_inet(transaction->address()))
     return -1;
 
