@@ -62,14 +62,15 @@ private:
   void                link_back(value_type* entry);
   void                unlink(const value_type* entry);
 
-  void                try_rebalance_after_erase();
+  void                rebalance_before_insert();
+  void                rebalance_after_erase();
 
   map_type            m_lookup_map;
 
   value_type*         m_head{};
   value_type*         m_tail{};
 
-  unsigned int        m_under_threshold_count{};
+  size_t              m_max_size{};
 };
 
 template <typename Key>
@@ -139,12 +140,14 @@ linked_unordered_set<Key, Hash, KeyEqual>::clear() {
   m_head = nullptr;
   m_tail = nullptr;
 
-  m_under_threshold_count = 0;
+  rebalance_after_erase();
 }
 
 template <typename Key, typename Hash, typename KeyEqual>
 inline bool
 linked_unordered_set<Key, Hash, KeyEqual>::insert_back(const Key& key) {
+  rebalance_before_insert();
+
   auto [itr, inserted] = m_lookup_map.try_emplace(key);
 
   if (!inserted)
@@ -163,7 +166,7 @@ linked_unordered_set<Key, Hash, KeyEqual>::pop_front() {
   unlink(m_head);
   m_lookup_map.erase(front_key);
 
-  try_rebalance_after_erase();
+  rebalance_after_erase();
 
   return front_key;
 }
@@ -176,7 +179,7 @@ linked_unordered_set<Key, Hash, KeyEqual>::pop_back() {
   unlink(m_tail);
   m_lookup_map.erase(back_key);
 
-  try_rebalance_after_erase();
+  rebalance_after_erase();
 
   return back_key;
 }
@@ -192,7 +195,7 @@ linked_unordered_set<Key, Hash, KeyEqual>::erase(const Key& key) {
   unlink(&*itr);
   m_lookup_map.erase(itr);
 
-  try_rebalance_after_erase();
+  rebalance_after_erase();
 
   return true;
 }
@@ -205,7 +208,7 @@ linked_unordered_set<Key, Hash, KeyEqual>::erase(const_iterator pos) {
   unlink(pos.m_entry);
   m_lookup_map.erase(m_lookup_map.find(pos.m_entry->first));
 
-  try_rebalance_after_erase();
+  rebalance_after_erase();
 
   return next;
 }
@@ -238,32 +241,31 @@ linked_unordered_set<Key, Hash, KeyEqual>::unlink(const value_type* entry) {
     m_tail = entry->second.prev;
 }
 
-// Rebalance the underlying set if we have been under a certain threshold for a number of operations.
 template <typename Key, typename Hash, typename KeyEqual>
 inline void
-linked_unordered_set<Key, Hash, KeyEqual>::try_rebalance_after_erase() {
-  // Bucket sizes are primes, but 32 is a good threshold to start rebalancing at.
-  if (m_lookup_map.bucket_count() < 32)
-    return;
+linked_unordered_set<Key, Hash, KeyEqual>::rebalance_before_insert() {
+  if (m_lookup_map.size() != 0) {
+    if (m_lookup_map.size() > m_max_size)
+      m_max_size = m_lookup_map.size();
 
-  if (m_lookup_map.size() == 0) {
-    m_lookup_map            = map_type{};
-    m_under_threshold_count = 0;
     return;
   }
 
-  if (m_lookup_map.size() > m_lookup_map.bucket_count() / 4) {
-    m_under_threshold_count = 0;
-    return;
-  }
-
-  m_under_threshold_count++;
-
-  if (m_under_threshold_count < m_lookup_map.bucket_count() / 6)
+  if (m_max_size == 0)
     return;
 
-  m_lookup_map.reserve(m_lookup_map.size() * 2);
-  m_under_threshold_count = 0;
+  m_lookup_map.reserve(m_max_size);
+  m_max_size = 0;
+}
+
+template <typename Key, typename Hash, typename KeyEqual>
+inline void
+linked_unordered_set<Key, Hash, KeyEqual>::rebalance_after_erase() {
+  if (!m_lookup_map.empty())
+    return;
+
+  map_type empty_map(0, m_lookup_map.hash_function(), m_lookup_map.key_eq());
+  m_lookup_map.swap(empty_map);
 }
 
 template <typename Key>
