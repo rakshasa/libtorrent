@@ -273,28 +273,42 @@ choke_queue::rotate_entry(group_entry* entry) {
     count++;
   }
 
-  // Never slotted first, then out longest, the slots just taken back last. Equal waits are found from a random place
-  // in the queue, as the optimistic unchokes pick, so a peer that came late is not tried last.
-  auto older = [](auto& a, auto& b) {
+  if (count == 0)
+    return 0;
+
+  // The count peers that have waited longest, oldest first: never slotted, then out longest, the slots just taken back
+  // last. The list starts with the peers at a random place in the queue, as the optimistic unchokes pick, and the rest
+  // replace its newest only if older, so among equal waits a peer that came late is not tried last.
+  auto older = [](const auto& a, const auto& b) {
     return a.connection->down_choke()->time_last_choke() < b.connection->down_choke()->time_last_choke();
   };
 
-  for (uint32_t i = 0; i < count; i++) {
-    auto first = entry->queued()->begin();
-    auto start = first + ::random() % entry->queued()->size();
-    auto itr   = std::min_element(start, entry->queued()->end(), older);
-    auto wrap  = std::min_element(first, start, older);
+  auto&          queued = *entry->queued();
+  size_t         start  = ::random() % queued.size();
 
-    if (wrap != start && older(*wrap, *itr))
-      itr = wrap;
+  container_type oldest;
+  oldest.reserve(count);
 
-    m_slotConnection(itr->connection, false);
+  for (size_t i = 0; i < queued.size(); i++) {
+    auto& peer = queued[(start + i) % queued.size()];
+
+    if (oldest.size() == count) {
+      if (!older(peer, oldest.back()))
+        continue;
+
+      oldest.pop_back();
+    }
+
+    oldest.insert(std::upper_bound(oldest.begin(), oldest.end(), peer, older), peer);
   }
 
-  if (count != 0)
-    lt_log_print_info(LOG_TORRENT_EVENTS, entry->unchoked()->back().connection->download()->info(),
-                      "download : rotated %" PRIu32 " of %" PRIu32 " download slots : fastest out %" PRIu64 " B/s : queued:%zu",
-                      count, entry->max_slots(), fastest_out, entry->queued()->size());
+  // An unchoke moves its peer out of the queue, so the list holds copies.
+  for (auto& peer : oldest)
+    m_slotConnection(peer.connection, false);
+
+  lt_log_print_info(LOG_TORRENT_EVENTS, entry->unchoked()->back().connection->download()->info(),
+                    "download : rotated %" PRIu32 " of %" PRIu32 " download slots : fastest out %" PRIu64 " B/s : queued:%zu",
+                    count, entry->max_slots(), fastest_out, entry->queued()->size());
 
   return count;
 }
