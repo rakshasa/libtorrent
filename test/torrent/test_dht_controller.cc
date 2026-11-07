@@ -3,6 +3,8 @@
 #include "test_dht_controller.h"
 
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "torrent/hash_string.h"
 #include "torrent/net/socket_address.h"
@@ -19,6 +21,17 @@ namespace {
 
 constexpr uint16_t     dht_port = 43821;
 constexpr unsigned int bootstrap_complete_nodes = 32;
+
+bool
+supports_ipv6_sockets() {
+  int fd = socket(AF_INET6, SOCK_DGRAM, 0);
+
+  if (fd < 0)
+    return false;
+
+  close(fd);
+  return true;
+}
 
 torrent::Object
 create_dht_cache(unsigned int node_count) {
@@ -146,6 +159,9 @@ test_dht_controller::test_add_peer_stores_compact_port_in_network_order() {
 
 void
 test_dht_controller::test_inet6_router_starts_beside_inet() {
+  if (!supports_ipv6_sockets())
+    return;
+
   auto dht = torrent::runtime::network_manager()->dht_controller();
 
   dht->initialize(create_dht_cache(0));
@@ -161,6 +177,9 @@ test_dht_controller::test_inet6_router_starts_beside_inet() {
 
 void
 test_dht_controller::test_inet6_peer_node_goes_to_the_inet6_router() {
+  if (!supports_ipv6_sockets())
+    return;
+
   auto dht = torrent::runtime::network_manager()->dht_controller();
 
   dht->initialize(create_dht_cache(0));
@@ -180,6 +199,9 @@ test_dht_controller::test_inet6_peer_node_goes_to_the_inet6_router() {
 
 void
 test_dht_controller::test_inet6_peer_node_while_inet_is_populated() {
+  if (!supports_ipv6_sockets())
+    return;
+
   auto dht = torrent::runtime::network_manager()->dht_controller();
 
   // the IPv4 table is full enough, the IPv6 one is empty: a PORT message from an IPv6 peer still counts
@@ -200,6 +222,9 @@ test_dht_controller::test_inet6_peer_node_while_inet_is_populated() {
 
 void
 test_dht_controller::test_inet6_blocked_keeps_inet6_router_stopped() {
+  if (!supports_ipv6_sockets())
+    return;
+
   auto dht = torrent::runtime::network_manager()->dht_controller();
 
   torrent::runtime::network_config()->set_block_ipv6(true);
