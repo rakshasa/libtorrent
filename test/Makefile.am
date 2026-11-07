@@ -58,6 +58,8 @@ LibTorrent_Test_Common = \
 # circular references (other <-> torrent) that a single link pass cannot
 # close, so the leaf units the pass would miss are provided directly.
 LibTorrent_Test_Protocol_SOURCES = $(LibTorrent_Test_Common) \
+	protocol/test_download_slot_rotation.cc \
+	protocol/test_download_slot_rotation.h \
 	protocol/test_extensions.cc \
 	protocol/test_extensions.h \
 	protocol/test_pex_added6.cc \
