@@ -7,6 +7,10 @@ class test_download_slot_rotation : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_cycle_rotates_full_torrent);
   CPPUNIT_TEST(test_cycle_limited_by_the_queue);
   CPPUNIT_TEST(test_cycle_spares_the_newcomer);
+  CPPUNIT_TEST(test_cycle_picks_the_oldest);
+  CPPUNIT_TEST(test_cycle_never_picks_back_the_slots_it_took);
+  CPPUNIT_TEST(test_cycle_equal_waits_start_at_a_random_place);
+  CPPUNIT_TEST(test_cycle_all_holders_in_grace);
   CPPUNIT_TEST(test_free_slot_is_left_to_the_cycle);
   CPPUNIT_TEST(test_unlimited_is_left_alone);
   CPPUNIT_TEST(test_nothing_waiting);
@@ -23,6 +27,10 @@ public:
   void test_cycle_rotates_full_torrent();
   void test_cycle_limited_by_the_queue();
   void test_cycle_spares_the_newcomer();
+  void test_cycle_picks_the_oldest();
+  void test_cycle_never_picks_back_the_slots_it_took();
+  void test_cycle_equal_waits_start_at_a_random_place();
+  void test_cycle_all_holders_in_grace();
   void test_free_slot_is_left_to_the_cycle();
   void test_unlimited_is_left_alone();
   void test_nothing_waiting();
