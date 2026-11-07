@@ -58,6 +58,7 @@ public:
   static constexpr int disconnect_quick     = (1 << 1);
   static constexpr int disconnect_unwanted  = (1 << 2);
   static constexpr int disconnect_delayed   = (1 << 3);
+  static constexpr int disconnect_idle      = (1 << 4);
 
   ConnectionList(DownloadMain* download);
   ~ConnectionList() = default;
