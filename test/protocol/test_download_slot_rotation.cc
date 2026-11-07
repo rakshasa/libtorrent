@@ -3,7 +3,9 @@
 #include "test/protocol/test_download_slot_rotation.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "protocol/peer_connection_base.h"
@@ -215,6 +217,110 @@ test_download_slot_rotation::test_cycle_spares_the_newcomer() {
   t.queue.cycle(~uint32_t());
 
   CPPUNIT_ASSERT(t.holds(w) && t.holds(b) && !t.holds(a));
+}
+
+void
+test_download_slot_rotation::test_cycle_picks_the_oldest() {
+  m_main_thread->test_set_cached_time(10000s);
+
+  // Wherever the random place falls, the same four, oldest first. The queue holds the waits out of order.
+  for (unsigned int seed = 1; seed <= 64; seed++) {
+    ::srandom(seed);
+
+    rig t(30);  // rotate_count(30) == 4
+
+    for (uint32_t i = 0; i < 30; i++)
+      t.holder(64 * 1024 * (i + 1), 120s);
+
+    std::vector<slot_connection*> waiting;
+
+    for (uint32_t i = 0; i < 40; i++)
+      waiting.push_back(t.waiting(std::chrono::seconds{1000 + (i * 7) % 40}));
+
+    auto never = t.waiting(0s);
+
+    t.queue.cycle(~uint32_t());
+
+    CPPUNIT_ASSERT(t.unchoked.size() == 4);
+    CPPUNIT_ASSERT(t.unchoked[0] == never);
+
+    // (i * 7) % 40 is 0, 1 and 2 at i = 0, 23 and 6.
+    CPPUNIT_ASSERT(t.unchoked[1] == waiting[0]);
+    CPPUNIT_ASSERT(t.unchoked[2] == waiting[23]);
+    CPPUNIT_ASSERT(t.unchoked[3] == waiting[6]);
+  }
+}
+
+void
+test_download_slot_rotation::test_cycle_never_picks_back_the_slots_it_took() {
+  m_main_thread->test_set_cached_time(10000s);
+
+  // Two wait, two go out: wherever the list starts, even on the two just taken out, the two that waited get the slots.
+  for (unsigned int seed = 1; seed <= 64; seed++) {
+    ::srandom(seed);
+
+    rig t(9);  // rotate_count(9) == 2
+
+    for (uint32_t i = 0; i < 9; i++)
+      t.holder(64 * 1024 * (i + 1), 120s);
+
+    auto a = t.waiting(9000s);
+    auto b = t.waiting(0s);
+
+    t.queue.cycle(~uint32_t());
+
+    CPPUNIT_ASSERT(t.unchoked.size() == 2);
+    CPPUNIT_ASSERT(t.unchoked[0] == b && t.unchoked[1] == a);
+    CPPUNIT_ASSERT(t.entry.unchoked()->size() == 9 && t.entry.queued()->size() == 2);
+  }
+}
+
+void
+test_download_slot_rotation::test_cycle_equal_waits_start_at_a_random_place() {
+  m_main_thread->test_set_cached_time(10000s);
+
+  // All never had a slot: over the seeds each is picked at some time, the last to come too.
+  std::set<size_t> picked;
+
+  for (unsigned int seed = 1; seed <= 256; seed++) {
+    ::srandom(seed);
+
+    rig t(2);  // rotate_count(2) == 1
+
+    t.holder(1000, 120s);
+    t.holder(10, 120s);
+
+    std::vector<torrent::PeerConnectionBase*> waiting;
+
+    for (uint32_t i = 0; i < 8; i++)
+      waiting.push_back(t.waiting(0s));
+
+    t.queue.cycle(~uint32_t());
+
+    CPPUNIT_ASSERT(t.unchoked.size() == 1);
+
+    auto itr = std::find(waiting.begin(), waiting.end(), t.unchoked[0]);
+
+    CPPUNIT_ASSERT(itr != waiting.end());
+    picked.insert(std::distance(waiting.begin(), itr));
+  }
+
+  CPPUNIT_ASSERT(picked.size() == 8);
+}
+
+void
+test_download_slot_rotation::test_cycle_all_holders_in_grace() {
+  m_main_thread->test_set_cached_time(10000s);
+
+  rig t(2);
+
+  t.holder(1000, 5s);
+  t.holder(10, 20s);
+  t.waiting(0s);
+
+  t.queue.cycle(~uint32_t());
+
+  CPPUNIT_ASSERT(t.choked.empty() && t.unchoked.empty());
 }
 
 void
