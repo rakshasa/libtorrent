@@ -196,7 +196,9 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	protocol/test_protocol_buffer.cc \
 	protocol/test_protocol_buffer.h \
 	protocol/test_request_list.cc \
-	protocol/test_request_list.h
+	protocol/test_request_list.h \
+	../src/data/socket_file.cc \
+	../src/utils/fd_close_queue.cc
 
 LibTorrent_Test_Protocol_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Protocol_LDFLAGS = $(CPPUNIT_LIBS)
