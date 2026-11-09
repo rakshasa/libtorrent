@@ -541,29 +541,33 @@ DhtServer::add_search_contacts(DhtTransactionSearch* transaction, const DhtMessa
         if (*node_id == m_router->id())
           continue;
 
-        auto sin6 = sin6_make();
-        std::memcpy(&sin6->sin6_addr, itr + 20, 16);
-        std::memcpy(&sin6->sin6_port, itr + 36, 2);
+        auto sin6 = sin6_make_n(itr + 20, *reinterpret_cast<const uint16_t*>(itr + 36));
 
         // a v4-mapped entry is an IPv4 node in disguise: not this table's
-        if (sin6_is_v4mapped(sin6.get()) || sin6_is_any(sin6.get()))
+        if (sin6_is_v4mapped(sin6.get()) || sin6_is_any(sin6.get()) || sin6->sin6_port == 0)
           continue;
 
         transaction->search()->add_contact(*node_id, sa_from_in6(std::move(sin6)).get());
       }
     }
 
-  } else if (response[key_r_nodes].is_raw_string()) {
-    raw_string nodes = response[key_r_nodes].as_raw_string();
+  } else {
+    if (response[key_r_nodes].is_raw_string()) {
+      raw_string nodes = response[key_r_nodes].as_raw_string();
 
-    node_info_list list;
-    std::copy(reinterpret_cast<const compact_node_info*>(nodes.data()),
-              reinterpret_cast<const compact_node_info*>(nodes.data() + nodes.size() - nodes.size() % sizeof(compact_node_info)),
-              std::back_inserter(list));
+      for (auto itr = nodes.data(); itr + 26 <= nodes.data() + nodes.size(); itr += 26) {
+        const HashString* node_id = HashString::cast_from(itr);
 
-    for (auto& node : list) {
-      if (node.id() != m_router->id())
-        transaction->search()->add_contact(node.id(), sa_make_inet_n(node._addr.addr, node._addr.port).get());
+        if (*node_id == m_router->id())
+          continue;
+
+        auto sin = sin_make_n(*reinterpret_cast<const uint32_t*>(itr + 20), *reinterpret_cast<const uint16_t*>(itr + 24));
+
+        if (sin_is_any(sin.get()) || sin->sin_port == 0)
+          continue;
+
+        transaction->search()->add_contact(*node_id, sa_from_in(std::move(sin)).get());
+      }
     }
   }
 }
