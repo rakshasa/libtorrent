@@ -102,26 +102,19 @@ limited_vector<_Tp, _Compare>::move_as_vector() {
   return std::move(static_cast<base_type&>(*this));
 }
 
-// A helper function to add values from a range to a limited_vector, using insert_sorted or insert_bounded as appropriate.
-// it uses two different for loops and is in the style of <algorithm> functions.
-
 template <typename _Tp, typename _Compare, typename _InputIt>
 void
 copy_limited(_InputIt first, _InputIt last, limited_vector<_Tp, _Compare>& vec) {
-  if (std::distance(first, last) <= vec.limit()) {
-    for (; first != last; ++first)
-      vec.insert_sorted(*first);
+  if (vec.size() > vec.limit())
+    vec.resize(vec.limit());
 
-    return;
-  }
+  auto middle = first + std::min<size_t>(vec.limit() - vec.size(), std::distance(first, last));
 
-  auto middle = first + vec.limit();
+  std::copy(first, middle, std::back_inserter(vec));
+  std::sort(first, middle, vec.m_compare);
 
-  for (; first != middle; ++first)
-    vec.insert_sorted(*first);
-
-  for (; first != last; ++first)
-    vec.insert_bounded(*first);
+  for (; middle != last; ++middle)
+    vec.insert_bounded(*middle);
 }
 
 } // namespace torrent::utils
