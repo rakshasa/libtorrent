@@ -123,6 +123,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   this_thread::poll()->insert_write(this);
 
   m_time_last_read = this_thread::cached_time();
+  m_idle_seen = this_thread::cached_seconds();
 
   m_download->chunk_statistics()->received_connect(&m_peer_chunks);
 
@@ -188,6 +189,31 @@ PeerConnectionBase::set_peer_exchange(bool state) {
     m_send_pex_mask = PEX_DISABLE | (m_send_pex_mask & ~PEX_ENABLE);
     m_extensions->unset_local_enabled(ProtocolExtension::UT_PEX);
   }
+}
+
+std::chrono::seconds
+PeerConnectionBase::update_idle_time(std::chrono::seconds now) {
+  auto elapsed = now - m_idle_seen;
+  auto down    = m_peer_chunks.download_throttle()->rate()->total();
+  auto up      = m_peer_chunks.upload_throttle()->rate()->total();
+
+  m_idle_seen = now;
+
+  if (!m_down_interested || down != m_idle_down || up != m_idle_up || m_idle_unchoked) {
+    m_idle_down     = down;
+    m_idle_up       = up;
+    m_idle_unchoked = false;
+    m_idle_time     = std::chrono::seconds{};
+    return m_idle_time;
+  }
+
+  // The wait is ours: it unchoked us while our download slots are taken, or it wants our pieces while our upload
+  // slots are.
+  if ((m_down_unchoked && !m_down_choke.unchoked()) || m_up_choke.queued())
+    return m_idle_time;
+
+  m_idle_time += elapsed;
+  return m_idle_time;
 }
 
 void

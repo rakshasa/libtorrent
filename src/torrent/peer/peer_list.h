@@ -48,6 +48,11 @@ public:
   static constexpr int disconnect_quick        = (1 << 1);
   static constexpr int disconnect_unwanted     = (1 << 2);
   static constexpr int disconnect_set_time     = (1 << 3);
+  static constexpr int disconnect_idle         = (1 << 4);
+
+  // A peer a download dropped as idle (DownloadMain::drop_idle_peers) is refused, incoming and outgoing, for this
+  // long after the drop, so it cannot take the freed slot straight back.
+  static constexpr uint32_t idle_refuse_seconds = 30 * 60;
 
   static constexpr int cull_old                = (1 << 0);
   static constexpr int cull_keep_interesting   = (1 << 1);
