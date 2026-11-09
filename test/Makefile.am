@@ -76,7 +76,9 @@ LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_fd.cc \
 	torrent/net/test_fd.h \
 	torrent/net/test_socket_address.cc \
-	torrent/net/test_socket_address.h
+	torrent/net/test_socket_address.h \
+	torrent/net/test_socket_address_key.cc \
+	torrent/net/test_socket_address_key.h
 
 LibTorrent_Test_Torrent_Runtime_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/runtime/test_network_config.cc \
