@@ -42,6 +42,8 @@ public:
 
   base_type           move_as_vector();
 
+  void                reduce_to_limit();
+
 private:
   const size_type     m_limit;
   _Compare            m_compare;
@@ -102,11 +104,17 @@ limited_vector<_Tp, _Compare>::move_as_vector() {
   return std::move(static_cast<base_type&>(*this));
 }
 
+template <typename _Tp, typename _Compare>
+void
+limited_vector<_Tp, _Compare>::reduce_to_limit() {
+  if (base_type::size() > m_limit)
+    base_type::resize(m_limit);
+}
+
 template <typename _Tp, typename _Compare, typename _InputIt>
 void
 copy_limited(_InputIt first, _InputIt last, limited_vector<_Tp, _Compare>& vec) {
-  if (vec.size() > vec.limit())
-    vec.resize(vec.limit());
+  vec.reduce_to_limit();
 
   auto middle = first + std::min<size_t>(vec.limit() - vec.size(), std::distance(first, last));
 
