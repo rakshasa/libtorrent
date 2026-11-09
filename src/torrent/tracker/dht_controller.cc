@@ -31,7 +31,7 @@ DhtController::is_valid() {
 bool
 DhtController::is_active() {
   auto lock = std::lock_guard(m_lock);
-  return m_router && m_router->is_active();
+  return (m_router && m_router->is_active()) || (m_router6 && m_router6->is_active());
 }
 
 bool
@@ -90,6 +90,9 @@ DhtController::start() {
 
   if (m_router == nullptr)
     throw internal_error("DhtController::start() called without initializing first.");
+
+  if (m_router->is_active() || (m_router6 && m_router6->is_active()))
+    return true;
 
   auto port = runtime::network_config()->override_dht_port();
 
