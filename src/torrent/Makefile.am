@@ -129,7 +129,7 @@ libtorrent_torrent_la_SOURCES = \
 	utils/resume.cc \
 	utils/resume.h \
 	utils/scope.h \
-	utils/sorted_vector.h \
+	utils/limited_vector.h \
 	utils/string_manip.cc \
 	utils/string_manip.h \
 	utils/unordered_vector.h \
@@ -255,7 +255,7 @@ libtorrent_torrent_utils_include_HEADERS = \
 	utils/random.h \
 	utils/ranges.h \
 	utils/resume.h \
-	utils/sorted_vector.h \
+	utils/limited_vector.h \
 	utils/string_manip.h \
 	utils/unordered_vector.h \
 	utils/uri_parser.h
