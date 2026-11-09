@@ -689,8 +689,8 @@ NetworkConfig::generic_address_or_any_and_null(const c_sa_shared_ptr& inet_addre
 
 void
 NetworkConfig::set_generic_address_unsafe(const char* category, c_sa_shared_ptr& inet_address, c_sa_shared_ptr& inet6_address, const sockaddr* sa) {
-  if (sa->sa_family != AF_INET && sa->sa_family != AF_UNSPEC)
-    throw input_error("Tried to set a " + std::string(category) + " address that is not an unspec/inet address.");
+  if (sa->sa_family != AF_INET && sa->sa_family != AF_INET6 && sa->sa_family != AF_UNSPEC)
+    throw input_error("Tried to set a " + std::string(category) + " address that is not an unspec/inet/inet6 address.");
 
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " address with a non-zero port.");
