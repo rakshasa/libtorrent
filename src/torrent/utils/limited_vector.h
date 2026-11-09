@@ -8,64 +8,121 @@
 
 namespace torrent::utils {
 
-// The caller must provide a nonzero limit, use insert_sorted only while below
-// the limit, and use insert_bounded only when the vector is full and sorted.
+// The caller must provide a nonzero limit, use insert_sorted only while below the limit, and use
+// insert_bounded only when the vector is full and sorted.
+
 template <typename _Tp, typename _Compare = std::greater<_Tp>>
 class limited_vector : private std::vector<_Tp> {
 public:
-  typedef std::vector<_Tp> Base;
+  typedef std::vector<_Tp> base_type;
 
-  typedef typename Base::value_type value_type;
-  typedef typename Base::const_reference const_reference;
-  typedef typename Base::size_type size_type;
-  typedef typename Base::const_iterator const_iterator;
-  typedef typename Base::const_reverse_iterator const_reverse_iterator;
+  typedef typename base_type::value_type value_type;
+  typedef typename base_type::const_reference const_reference;
+  typedef typename base_type::size_type size_type;
+  typedef typename base_type::const_iterator const_iterator;
+  typedef typename base_type::const_reverse_iterator const_reverse_iterator;
 
-  explicit limited_vector(size_type limit, _Compare compare = _Compare{})
-    : m_limit(limit), m_compare(std::move(compare)) {}
+  using base_type::clear;
+  using base_type::empty;
+  using base_type::size;
+  using base_type::front;
+  using base_type::back;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
+  using base_type::operator[];
 
-  using Base::clear;
-  using Base::empty;
-  using Base::size;
-  using Base::reserve;
-  using Base::front;
-  using Base::back;
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
-  using Base::operator[];
+  explicit limited_vector(size_type limit, _Compare compare = _Compare{});
 
-  size_type limit() const { return m_limit; }
+  size_type           limit() const;
 
-  const_iterator insert_sorted(value_type value) {
-    auto position = Base::end();
+  const_iterator      insert_sorted(value_type value);
+  bool                insert_bounded(value_type value);
 
-    while (position != Base::begin() && m_compare(value, *std::prev(position)))
-      --position;
-
-    return Base::insert(position, std::move(value));
-  }
-
-  bool insert_bounded(value_type value) {
-    auto position = std::prev(Base::end());
-
-    if (!m_compare(value, *position))
-      return false;
-
-    while (position != Base::begin() && m_compare(value, *std::prev(position))) {
-      *position = std::move(*std::prev(position));
-      --position;
-    }
-
-    *position = std::move(value);
-    return true;
-  }
+  base_type           move_as_vector();
 
 private:
-  const size_type m_limit;
-  _Compare m_compare;
+  const size_type     m_limit;
+  _Compare            m_compare;
 };
+
+template <typename _Tp, typename _Compare, typename _InputIt>
+void copy_limited(_InputIt first, _InputIt last, limited_vector<_Tp, _Compare>& vec);
+
+//
+// Implementation:
+//
+
+template <typename _Tp, typename _Compare>
+limited_vector<_Tp, _Compare>::limited_vector(size_type limit, _Compare compare)
+  : m_limit(limit),
+    m_compare(std::move(compare)) {
+
+  base_type::reserve(limit);
+}
+
+template <typename _Tp, typename _Compare>
+inline typename limited_vector<_Tp, _Compare>::size_type
+limited_vector<_Tp, _Compare>::limit() const {
+  return m_limit;
+}
+
+template <typename _Tp, typename _Compare>
+inline typename limited_vector<_Tp, _Compare>::const_iterator
+limited_vector<_Tp, _Compare>::insert_sorted(value_type value) {
+  auto position = base_type::end();
+
+  while (position != base_type::begin() && m_compare(value, *std::prev(position)))
+    --position;
+
+  return base_type::insert(position, std::move(value));
+}
+
+template <typename _Tp, typename _Compare>
+bool
+limited_vector<_Tp, _Compare>::insert_bounded(value_type value) {
+  auto position = std::prev(base_type::end());
+
+  if (!m_compare(value, *position))
+    return false;
+
+  while (position != base_type::begin() && m_compare(value, *std::prev(position))) {
+    *position = std::move(*std::prev(position));
+    --position;
+  }
+
+  *position = std::move(value);
+  return true;
+}
+
+template <typename _Tp, typename _Compare>
+typename limited_vector<_Tp, _Compare>::base_type
+limited_vector<_Tp, _Compare>::move_as_vector() {
+  return std::move(static_cast<base_type&>(*this));
+}
+
+// A helper function to add values from a range to a limited_vector, using insert_sorted or insert_bounded as appropriate.
+// it uses two different for loops and is in the style of <algorithm> functions.
+
+template <typename _Tp, typename _Compare, typename _InputIt>
+void
+copy_limited(_InputIt first, _InputIt last, limited_vector<_Tp, _Compare>& vec) {
+  if (std::distance(first, last) <= vec.limit()) {
+    for (; first != last; ++first)
+      vec.insert_sorted(*first);
+
+    return;
+  }
+
+  auto middle = first + vec.limit();
+
+  for (; first != middle; ++first)
+    vec.insert_sorted(*first);
+
+  for (; first != last; ++first)
+    vec.insert_bounded(*first);
+}
 
 } // namespace torrent::utils
 
