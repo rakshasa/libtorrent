@@ -40,7 +40,12 @@ public:
   const_iterator      insert_sorted(value_type value);
   bool                insert_bounded(value_type value);
 
+  template <typename _InputIt>
+  void                insert_sorted(_InputIt first, _InputIt last);
+
   base_type           move_as_vector();
+
+  void                reduce_to_limit();
 
 private:
   const size_type     m_limit;
@@ -97,31 +102,40 @@ limited_vector<_Tp, _Compare>::insert_bounded(value_type value) {
 }
 
 template <typename _Tp, typename _Compare>
+template <typename _InputIt>
+void
+limited_vector<_Tp, _Compare>::insert_sorted(_InputIt first, _InputIt last) {
+  if (first == last)
+    return;
+
+  base_type::insert(base_type::end(), first, last);
+  std::sort(base_type::begin(), base_type::end(), m_compare);
+}
+
+template <typename _Tp, typename _Compare>
 typename limited_vector<_Tp, _Compare>::base_type
 limited_vector<_Tp, _Compare>::move_as_vector() {
   return std::move(static_cast<base_type&>(*this));
 }
 
-// A helper function to add values from a range to a limited_vector, using insert_sorted or insert_bounded as appropriate.
-// it uses two different for loops and is in the style of <algorithm> functions.
+template <typename _Tp, typename _Compare>
+void
+limited_vector<_Tp, _Compare>::reduce_to_limit() {
+  if (base_type::size() > m_limit)
+    base_type::resize(m_limit);
+}
 
 template <typename _Tp, typename _Compare, typename _InputIt>
 void
 copy_limited(_InputIt first, _InputIt last, limited_vector<_Tp, _Compare>& vec) {
-  if (std::distance(first, last) <= vec.limit()) {
-    for (; first != last; ++first)
-      vec.insert_sorted(*first);
+  vec.reduce_to_limit();
 
-    return;
-  }
+  auto middle = first + std::min<size_t>(vec.limit() - vec.size(), std::distance(first, last));
 
-  auto middle = first + vec.limit();
+  vec.insert_sorted(first, middle);
 
-  for (; first != middle; ++first)
-    vec.insert_sorted(*first);
-
-  for (; first != last; ++first)
-    vec.insert_bounded(*first);
+  for (; middle != last; ++middle)
+    vec.insert_bounded(*middle);
 }
 
 } // namespace torrent::utils
