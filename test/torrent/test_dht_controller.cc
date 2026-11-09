@@ -176,6 +176,50 @@ test_dht_controller::test_inet6_router_starts_beside_inet() {
 }
 
 void
+test_dht_controller::test_inet6_only_start_and_restart() {
+  if (!supports_ipv6_sockets())
+    return;
+
+  auto dht = torrent::runtime::network_manager()->dht_controller();
+  auto config = torrent::runtime::network_config();
+
+  config->set_block_ipv4(true);
+  dht->initialize(create_dht_cache(0));
+  CPPUNIT_ASSERT(dht->start());
+  CPPUNIT_ASSERT(dht->is_active());
+  CPPUNIT_ASSERT(dht->get_statistics().active6);
+  CPPUNIT_ASSERT_EQUAL(dht_port, dht->port());
+  CPPUNIT_ASSERT(dht->start());
+  CPPUNIT_ASSERT(dht->get_statistics().active6);
+
+  dht->stop();
+  CPPUNIT_ASSERT(!dht->is_active());
+  CPPUNIT_ASSERT_EQUAL(uint16_t{0}, dht->port());
+  CPPUNIT_ASSERT(dht->start());
+  CPPUNIT_ASSERT(dht->is_active());
+  CPPUNIT_ASSERT(dht->get_statistics().active6);
+
+  dht->stop();
+  config->set_block_ipv4(false);
+}
+
+void
+test_dht_controller::test_repeated_start() {
+  auto dht = torrent::runtime::network_manager()->dht_controller();
+
+  dht->initialize(create_dht_cache(0));
+  CPPUNIT_ASSERT(dht->start());
+  auto before = dht->get_statistics();
+  CPPUNIT_ASSERT(dht->start());
+  auto after = dht->get_statistics();
+
+  CPPUNIT_ASSERT(dht->is_active());
+  CPPUNIT_ASSERT_EQUAL(dht_port, dht->port());
+  CPPUNIT_ASSERT_EQUAL(before.cycle, after.cycle);
+  CPPUNIT_ASSERT_EQUAL(before.active6, after.active6);
+}
+
+void
 test_dht_controller::test_inet6_peer_node_goes_to_the_inet6_router() {
   if (!supports_ipv6_sockets())
     return;
