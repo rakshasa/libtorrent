@@ -40,6 +40,9 @@ public:
   const_iterator      insert_sorted(value_type value);
   bool                insert_bounded(value_type value);
 
+  template <typename _InputIt>
+  void                insert_sorted(_InputIt first, _InputIt last);
+
   base_type           move_as_vector();
 
   void                reduce_to_limit();
@@ -99,6 +102,17 @@ limited_vector<_Tp, _Compare>::insert_bounded(value_type value) {
 }
 
 template <typename _Tp, typename _Compare>
+template <typename _InputIt>
+void
+limited_vector<_Tp, _Compare>::insert_sorted(_InputIt first, _InputIt last) {
+  if (first == last)
+    return;
+
+  base_type::insert(base_type::end(), first, last);
+  std::sort(base_type::begin(), base_type::end(), m_compare);
+}
+
+template <typename _Tp, typename _Compare>
 typename limited_vector<_Tp, _Compare>::base_type
 limited_vector<_Tp, _Compare>::move_as_vector() {
   return std::move(static_cast<base_type&>(*this));
@@ -118,8 +132,7 @@ copy_limited(_InputIt first, _InputIt last, limited_vector<_Tp, _Compare>& vec) 
 
   auto middle = first + std::min<size_t>(vec.limit() - vec.size(), std::distance(first, last));
 
-  std::copy(first, middle, std::back_inserter(vec));
-  std::sort(first, middle, vec.m_compare);
+  vec.insert_sorted(first, middle);
 
   for (; middle != last; ++middle)
     vec.insert_bounded(*middle);
