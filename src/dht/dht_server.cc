@@ -197,7 +197,7 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
   if (m_transactions.size() >= max_transactions)
     return;
 
-  if (!sa_is_inet(sa))
+  if (!sa_is_inet(sa) && !sa_is_inet6(sa))
     return;
 
   // No point pinging a node that we're already contacting otherwise.
@@ -751,7 +751,7 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
 
 int
 DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority) {
-  if (!sa_is_inet(transaction->address()))
+  if (!sa_is_inet(transaction->address()) && !sa_is_inet6(transaction->address()))
     return -1;
 
   // Try random transaction ID. This is to make it less likely that we reuse
