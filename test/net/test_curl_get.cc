@@ -49,3 +49,32 @@ test_curl_get::test_slots_do_not_retain_stream() {
 
   CPPUNIT_ASSERT(weak_stream.expired());
 }
+
+// A CurlGet that nobody configured must still refuse an unbounded response body.
+void
+test_curl_get::test_max_file_size_has_default() {
+  auto curl_get = std::make_shared<torrent::net::CurlGet>("http://127.0.0.1:1/announce",
+                                                          std::make_shared<std::stringstream>());
+
+  CPPUNIT_ASSERT(curl_get->max_file_size() != 0);
+}
+
+// CURLOPT_MAXFILESIZE only caps the bytes on the wire, so a compressed body can decode into an
+// unbounded stream. The write callback must cap the decoded bytes itself.
+void
+test_curl_get::test_write_aborts_past_max_file_size() {
+  auto stream   = std::make_shared<std::stringstream>();
+  auto curl_get = std::make_shared<torrent::net::CurlGet>("http://127.0.0.1:1/announce", stream);
+
+  curl_get->set_max_file_size(64);
+
+  const std::string chunk(32, 'a');
+
+  CPPUNIT_ASSERT_EQUAL(chunk.size(), torrent::net::CurlGet::receive_write(chunk.data(), 1, chunk.size(), curl_get.get()));
+  CPPUNIT_ASSERT_EQUAL(chunk.size(), torrent::net::CurlGet::receive_write(chunk.data(), 1, chunk.size(), curl_get.get()));
+
+  // A short write is what tells libcurl to abort the transfer.
+  CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(0), torrent::net::CurlGet::receive_write(chunk.data(), 1, chunk.size(), curl_get.get()));
+
+  CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(64), stream->str().size());
+}
