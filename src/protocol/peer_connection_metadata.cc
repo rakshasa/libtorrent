@@ -40,16 +40,16 @@ PeerConnectionMetadata::receive_keepalive() {
 
   // There's no point in adding ourselves to the write poll if the
   // buffer is full, as that will already have been taken care of.
-  if (m_up->get_state() == ProtocolWrite::IDLE &&
-      m_up->can_write_keepalive()) {
+  if (m_up.protocol->get_state() == ProtocolWrite::IDLE &&
+      m_up.protocol->can_write_keepalive()) {
 
     write_insert_poll_safe();
 
-    ProtocolBuffer<512>::iterator old_end = m_up->buffer()->end();
-    m_up->write_keepalive();
+    ProtocolBuffer<512>::iterator old_end = m_up.protocol->buffer()->end();
+    m_up.protocol->write_keepalive();
 
     if (is_encrypted())
-      m_encryption.encrypt(old_end, m_up->buffer()->end() - old_end);
+      m_encryption.encrypt(old_end, m_up.protocol->buffer()->end() - old_end);
   }
 
   return true;
@@ -60,7 +60,7 @@ PeerConnectionMetadata::receive_keepalive() {
 // shouldn't happen very often compared to full reads.
 inline bool
 PeerConnectionMetadata::read_message() {
-  ProtocolBuffer<512>* buf = m_down->buffer();
+  ProtocolBuffer<512>* buf = m_down.protocol->buffer();
 
   if (buf->remaining() < 4)
     return false;
@@ -73,7 +73,7 @@ PeerConnectionMetadata::read_message() {
 
   if (length == 0) {
     // Keepalive message.
-    m_down->set_last_command(ProtocolBase::KEEP_ALIVE);
+    m_down.protocol->set_last_command(ProtocolBase::KEEP_ALIVE);
 
     return true;
 
@@ -85,7 +85,7 @@ PeerConnectionMetadata::read_message() {
     throw communication_error("PeerConnection::read_message() got an invalid message length.");
   }
 
-  m_down->set_last_command(static_cast<ProtocolBase::Protocol>(buf->peek_8()));
+  m_down.protocol->set_last_command(static_cast<ProtocolBase::Protocol>(buf->peek_8()));
 
   // Ignore most messages, they aren't relevant for a metadata download.
   switch (buf->read_8()) {
@@ -96,40 +96,40 @@ PeerConnectionMetadata::read_message() {
     return true;
 
   case ProtocolBase::HAVE:
-    if (!m_down->can_read_have_body())
+    if (!m_down.protocol->can_read_have_body())
       break;
 
     buf->read_32();
     return true;
 
   case ProtocolBase::REQUEST:
-    if (!m_down->can_read_request_body())
+    if (!m_down.protocol->can_read_request_body())
       break;
 
-    m_down->read_request();
+    m_down.protocol->read_request();
     return true;
 
   case ProtocolBase::PIECE:
     throw communication_error("Received a piece but the connection is strictly for meta data.");
 
   case ProtocolBase::CANCEL:
-    if (!m_down->can_read_cancel_body())
+    if (!m_down.protocol->can_read_cancel_body())
       break;
 
-    m_down->read_request();
+    m_down.protocol->read_request();
     return true;
 
   case ProtocolBase::PORT:
-    if (!m_down->can_read_port_body())
+    if (!m_down.protocol->can_read_port_body())
       break;
 
-    runtime::dht_add_peer_node(m_peerInfo->socket_address(), m_down->buffer()->read_16());
+    runtime::dht_add_peer_node(m_peerInfo->socket_address(), m_down.protocol->buffer()->read_16());
     return true;
 
   case ProtocolBase::EXTENSION_PROTOCOL:
     LT_LOG_METADATA_EVENTS("protocol extension message", 0);
 
-    if (!m_down->can_read_extension_body())
+    if (!m_down.protocol->can_read_extension_body())
       break;
 
     if (m_extensions->is_default()) {
@@ -138,9 +138,9 @@ PeerConnectionMetadata::read_message() {
     }
 
     {
-      int extension = m_down->buffer()->read_8();
+      int extension = m_down.protocol->buffer()->read_8();
       m_extensions->read_start(extension, length - 2, (extension == ProtocolExtension::UT_PEX) && !m_download->want_pex_msg());
-      m_down->set_state(ProtocolRead::READ_EXTENSION);
+      m_down.protocol->set_state(ProtocolRead::READ_EXTENSION);
     }
 
     if (!down_extension())
@@ -152,7 +152,7 @@ PeerConnectionMetadata::read_message() {
     if (!m_extensions->is_remote_supported(ProtocolExtension::UT_METADATA))
       throw close_connection();
 
-    m_down->set_state(ProtocolRead::IDLE);
+    m_down.protocol->set_state(ProtocolRead::IDLE);
     m_tryRequest = true;
     write_insert_poll_safe();
 
@@ -161,7 +161,7 @@ PeerConnectionMetadata::read_message() {
   case ProtocolBase::BITFIELD:
     // Discard the bitfield sent by the peer.
     m_skipLength = length - 1;
-    m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+    m_down.protocol->set_state(ProtocolRead::READ_SKIP_PIECE);
     return false;
 
   default:
@@ -189,26 +189,26 @@ PeerConnectionMetadata::event_read() {
     // (socket may still have data).
 
     do {
-      switch (m_down->get_state()) {
+      switch (m_down.protocol->get_state()) {
       case ProtocolRead::IDLE:
-        if (m_down->buffer()->size_end() < ProtocolRead::buffer_size) {
-          unsigned int length = read_stream_throws(m_down->buffer()->end(), ProtocolRead::buffer_size - m_down->buffer()->size_end());
-          m_down->throttle()->node_used_unthrottled(length);
+        if (m_down.protocol->buffer()->size_end() < ProtocolRead::buffer_size) {
+          unsigned int length = read_stream_throws(m_down.protocol->buffer()->end(), ProtocolRead::buffer_size - m_down.protocol->buffer()->size_end());
+          m_down.protocol->throttle()->node_used_unthrottled(length);
 
           if (is_encrypted())
-            m_encryption.decrypt(m_down->buffer()->end(), length);
+            m_encryption.decrypt(m_down.protocol->buffer()->end(), length);
 
-          m_down->buffer()->move_end(length);
+          m_down.protocol->buffer()->move_end(length);
         }
 
         while (read_message())
           ; // Do nothing.
 
-        if (m_down->buffer()->size_end() == ProtocolRead::buffer_size) {
-          m_down->buffer()->move_unused();
+        if (m_down.protocol->buffer()->size_end() == ProtocolRead::buffer_size) {
+          m_down.protocol->buffer()->move_unused();
           break;
         } else {
-          m_down->buffer()->move_unused();
+          m_down.protocol->buffer()->move_unused();
           return;
         }
 
@@ -222,7 +222,7 @@ PeerConnectionMetadata::event_read() {
 
         LT_LOG_METADATA_EVENTS("reading extension message", 0);
 
-        m_down->set_state(ProtocolRead::IDLE);
+        m_down.protocol->set_state(ProtocolRead::IDLE);
         m_tryRequest = true;
         write_insert_poll_safe();
         break;
@@ -233,7 +233,7 @@ PeerConnectionMetadata::event_read() {
         if (!read_skip_bitfield())
           return;
 
-        m_down->set_state(ProtocolRead::IDLE);
+        m_down.protocol->set_state(ProtocolRead::IDLE);
         break;
 
       default:
@@ -260,7 +260,7 @@ PeerConnectionMetadata::event_read() {
 
   } catch (const base_error& e) {
     std::stringstream s;
-    s << "Connection read fd(" << file_descriptor() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
+    s << "Connection read fd(" << file_descriptor() << ',' << m_down.protocol->get_state() << ',' << m_down.protocol->last_command() << ") \"" << e.what() << '"';
 
     throw internal_error(s.str());
   }
@@ -268,22 +268,22 @@ PeerConnectionMetadata::event_read() {
 
 inline void
 PeerConnectionMetadata::fill_write_buffer() {
-  ProtocolBuffer<512>::iterator old_end = m_up->buffer()->end();
+  ProtocolBuffer<512>::iterator old_end = m_up.protocol->buffer()->end();
 
   if (m_tryRequest)
     m_tryRequest = try_request_metadata_pieces();
 
-  if (m_send_pex_mask && m_up->can_write_extension() &&
+  if (m_send_pex_mask && m_up.protocol->can_write_extension() &&
       send_pex_message()) {
     // Don't do anything else if send_pex_message() succeeded.
 
-  } else if (m_extensions->has_pending_message() && m_up->can_write_extension() &&
+  } else if (m_extensions->has_pending_message() && m_up.protocol->can_write_extension() &&
              send_ext_message()) {
     // Same.
   }
 
   if (is_encrypted())
-    m_encryption.encrypt(old_end, m_up->buffer()->end() - old_end);
+    m_encryption.encrypt(old_end, m_up.protocol->buffer()->end() - old_end);
 }
 
 void
@@ -292,39 +292,39 @@ PeerConnectionMetadata::event_write() {
 
     do {
 
-      switch (m_up->get_state()) {
+      switch (m_up.protocol->get_state()) {
       case ProtocolWrite::IDLE:
 
         fill_write_buffer();
 
-        if (m_up->buffer()->remaining() == 0) {
+        if (m_up.protocol->buffer()->remaining() == 0) {
           this_thread::poll()->remove_write(this);
           return;
         }
 
-        m_up->set_state(ProtocolWrite::MSG);
+        m_up.protocol->set_state(ProtocolWrite::MSG);
 
 	[[fallthrough]];
       case ProtocolWrite::MSG:
-        if (!m_up->buffer()->consume(m_up->throttle()->node_used_unthrottled(write_stream_throws(m_up->buffer()->position(),
-                                                                                                 m_up->buffer()->remaining()))))
+        if (!m_up.protocol->buffer()->consume(m_up.protocol->throttle()->node_used_unthrottled(write_stream_throws(m_up.protocol->buffer()->position(),
+                                                                                                 m_up.protocol->buffer()->remaining()))))
           return;
 
-        m_up->buffer()->reset();
+        m_up.protocol->buffer()->reset();
 
-        if (m_up->last_command() != ProtocolBase::EXTENSION_PROTOCOL) {
-          m_up->set_state(ProtocolWrite::IDLE);
+        if (m_up.protocol->last_command() != ProtocolBase::EXTENSION_PROTOCOL) {
+          m_up.protocol->set_state(ProtocolWrite::IDLE);
           break;
         }
 
-        m_up->set_state(ProtocolWrite::WRITE_EXTENSION);
+        m_up.protocol->set_state(ProtocolWrite::WRITE_EXTENSION);
 
 	[[fallthrough]];
       case ProtocolWrite::WRITE_EXTENSION:
         if (!up_extension())
           return;
 
-        m_up->set_state(ProtocolWrite::IDLE);
+        m_up.protocol->set_state(ProtocolWrite::IDLE);
         break;
 
       default:
@@ -348,7 +348,7 @@ PeerConnectionMetadata::event_write() {
 
   } catch (const base_error& e) {
     std::stringstream s;
-    s << "Connection write fd(" << file_descriptor() << ',' << m_up->get_state() << ',' << m_up->last_command() << ") \"" << e.what() << '"';
+    s << "Connection write fd(" << file_descriptor() << ',' << m_up.protocol->get_state() << ',' << m_up.protocol->last_command() << ") \"" << e.what() << '"';
 
     throw internal_error(s.str());
   }
@@ -356,9 +356,9 @@ PeerConnectionMetadata::event_write() {
 
 bool
 PeerConnectionMetadata::read_skip_bitfield() {
-  if (m_down->buffer()->remaining()) {
-    uint32_t length = std::min(m_skipLength, static_cast<uint32_t>(m_down->buffer()->remaining()));
-    m_down->buffer()->consume(length);
+  if (m_down.protocol->buffer()->remaining()) {
+    uint32_t length = std::min(m_skipLength, static_cast<uint32_t>(m_down.protocol->buffer()->remaining()));
+    m_down.protocol->buffer()->consume(length);
     m_skipLength -= length;
   }
 
@@ -380,7 +380,7 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
     return false;
 
   if (request_list()->queued_empty())
-    m_down_state.stall = 0;
+    m_down.stall = 0;
 
   uint32_t pipeSize = request_list()->calculate_pipe_size(m_peer_chunks.download_throttle()->rate()->rate(), m_extensions->peer_request_queue());
 
@@ -389,8 +389,8 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
     return false;
 
   // DEBUG:
-//   if (!request_list()->queued_size() < pipeSize || !m_up->can_write_extension() ||
-  if (!m_up->can_write_extension() || m_extensions->has_pending_message())
+//   if (!request_list()->queued_size() < pipeSize || !m_up.protocol->can_write_extension() ||
+  if (!m_up.protocol->can_write_extension() || m_extensions->has_pending_message())
     return false;
 
   std::vector<const Piece*> pieces = request_list()->delegate(1);
