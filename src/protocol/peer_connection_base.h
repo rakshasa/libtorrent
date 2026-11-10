@@ -6,6 +6,7 @@
 #include "net/socket_stream.h"
 #include "protocol/encryption_info.h"
 #include "protocol/peer_chunks.h"
+#include "protocol/peer_connection_state.h"
 #include "protocol/protocol_base.h"
 #include "protocol/request_list.h"
 #include "torrent/system/poll.h"
@@ -49,14 +50,14 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  bool                is_up_choked() const            { return m_up_choke.choked(); }
-  bool                is_up_interested() const        { return m_up_choke.queued(); }
-  bool                is_up_snubbed() const           { return m_up_choke.snubbed(); }
+  bool                is_up_choked() const            { return m_up_state.choke.choked(); }
+  bool                is_up_interested() const        { return m_up_state.choke.queued(); }
+  bool                is_up_snubbed() const           { return m_up_state.choke.snubbed(); }
 
-  bool                is_down_queued() const          { return m_down_choke.queued(); }
-  bool                is_down_local_unchoked() const  { return m_down_choke.unchoked(); }
-  bool                is_down_remote_unchoked() const { return m_down_unchoked; }
-  bool                is_down_interest_withheld() const { return m_down_interest_withheld; }
+  bool                is_down_queued() const          { return m_down_state.choke.queued(); }
+  bool                is_down_local_unchoked() const  { return m_down_state.choke.unchoked(); }
+  bool                is_down_remote_unchoked() const { return m_down_state.unchoked; }
+  bool                is_down_interest_withheld() const { return m_down_state.interest_withheld; }
 
   // The peer choked us. A download choke that took its slot back told it we were not interested, so as not to hold
   // its upload slot (receive_download_choke); without its upload slot that is final: an unchoke from a peer we are
@@ -69,7 +70,7 @@ public:
   // receive_download_choke withheld; the slot was held for choke_queue::rotate_grace at least, so no INTERESTED of
   // ours is still unsent.
   void                keep_down_interest();
-  bool                is_down_interested() const      { return m_down_interested; }
+  bool                is_down_interested() const      { return m_down_state.interested; }
 
   void                set_upload_snubbed(bool v);
 
@@ -84,8 +85,8 @@ public:
   PeerChunks*         peer_chunks()                   { return &m_peer_chunks; }
   const PeerChunks*   c_peer_chunks() const           { return &m_peer_chunks; }
 
-  choke_status*       up_choke()                      { return &m_up_choke; }
-  choke_status*       down_choke()                    { return &m_down_choke; }
+  choke_status*       up_choke()                      { return &m_up_state.choke; }
+  choke_status*       down_choke()                    { return &m_down_state.choke; }
 
   DownloadMain*       download()                      { return m_download; }
   RequestList*        request_list()                  { return &m_request_list; }
@@ -166,28 +167,8 @@ protected:
   PeerChunks          m_peer_chunks;
 
   RequestList         m_request_list;
-  ChunkHandle         m_down_chunk;
-  uint32_t            m_down_stall{};
-
-  Piece               m_up_piece;
-  ChunkHandle         m_up_chunk;
-
-  // The interested state no longer follows the spec's wording as it
-  // has been swapped.
-  //
-  // Thus the same ProtocolBase object now groups the same choke and
-  // interested states togheter, thus for m_up 'interested' means the
-  // remote peer wants upload and 'choke' means we've choked upload to
-  // that peer.
-  //
-  // In the downlod object, 'queued' now means the same as the spec's
-  // 'unchoked', while 'unchoked' means we start requesting pieces.
-  choke_status        m_up_choke;
-  choke_status        m_down_choke;
-
-  bool                m_down_interested{};
-  bool                m_down_unchoked{};
-  bool                m_down_interest_withheld{};  // NOT_INTERESTED sent by a download choke, not by the pieces
+  protocol::StateUp   m_up_state;
+  protocol::StateDown m_down_state;
 
   bool                m_send_choked{};
   bool                m_send_interested{};

@@ -66,19 +66,19 @@ PeerConnection<type>::update_interested() {
 
   m_peer_chunks.download_cache()->clear();
 
-  if (m_down_interested)
+  if (m_down_state.interested)
     return;
 
   // Consider just setting to interested without checking the
   // bitfield. The status might change by the time we get unchoked
   // anyway.
 
-  m_send_interested = !m_down_interested;
-  m_down_interested = true;
+  m_send_interested = !m_down_state.interested;
+  m_down_state.interested = true;
 
   // Hmm... does this belong here, or should we insert ourselves into
   // the queue when we receive the unchoke?
-//   m_download->choke_group()->down_queue()->set_queued(this, &m_down_choke);
+//   m_download->choke_group()->down_queue()->set_queued(this, &m_down_state.choke);
 }
 
 template<Download::ConnectionType type>
@@ -109,9 +109,9 @@ PeerConnection<type>::receive_keepalive() {
   // Stall pieces when more than one receive_keepalive() has been
   // called while a single piece is downloading.
   //
-  // m_down_stall is decremented for every successfull download, so it
+  // m_down_state.stall is decremented for every successfull download, so it
   // should stay at zero or one when downloading at an acceptable
-  // speed. Thus only when m_down_stall >= 2 is the download actually
+  // speed. Thus only when m_down_state.stall >= 2 is the download actually
   // stalling.
   //
   // If more than 6 ticks have gone by, assume the peer forgot about
@@ -126,9 +126,9 @@ PeerConnection<type>::receive_keepalive() {
   // if (request_list()->empty())
   //   return true;
 
-  if (m_down_stall >= 2)
+  if (m_down_state.stall >= 2)
     request_list()->stall_prolonged();
-  else if (m_down_stall++ != 0)
+  else if (m_down_state.stall++ != 0)
     request_list()->stall_initial();
 
   return true;
@@ -190,7 +190,7 @@ PeerConnection<type>::read_message() {
 
     // Which needs to be done before, and which after calling choke
     // manager?
-    m_down_unchoked = false;
+    m_down_state.unchoked = false;
 
     if (restore_down_interest(m_download->file_list()->is_done()))
       write_insert_poll_safe();
@@ -198,7 +198,7 @@ PeerConnection<type>::read_message() {
     down_chunk_release();
 
     request_list()->choked();
-    m_download->choke_group()->down_queue()->set_not_queued(this, &m_down_choke);
+    m_download->choke_group()->down_queue()->set_not_queued(this, &m_down_state.choke);
     m_down->throttle()->erase(m_peer_chunks.download_throttle());
 
     return true;
@@ -207,26 +207,26 @@ PeerConnection<type>::read_message() {
     if (type != Download::CONNECTION_LEECH)
       return true;
 
-    m_down_unchoked = true;
+    m_down_state.unchoked = true;
 
     // Some peers unchoke us even though we're not interested, so we
     // need to ensure it doesn't get added to the queue.
-    if (!m_down_interested)
+    if (!m_down_state.interested)
       return true;
 
     request_list()->unchoked();
-    m_download->choke_group()->down_queue()->set_queued(this, &m_down_choke);
+    m_download->choke_group()->down_queue()->set_queued(this, &m_down_state.choke);
     return true;
 
   case ProtocolBase::INTERESTED:
     if (type == Download::CONNECTION_LEECH && m_peer_chunks.bitfield()->is_all_set())
       return true;
 
-    m_download->choke_group()->up_queue()->set_queued(this, &m_up_choke);
+    m_download->choke_group()->up_queue()->set_queued(this, &m_up_state.choke);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_download->choke_group()->up_queue()->set_not_queued(this, &m_up_choke);
+    m_download->choke_group()->up_queue()->set_not_queued(this, &m_up_state.choke);
     return true;
 
   case ProtocolBase::HAVE:
@@ -240,7 +240,7 @@ PeerConnection<type>::read_message() {
     if (!m_down->can_read_request_body())
       break;
 
-    if (!m_up_choke.choked()) {
+    if (!m_up_state.choke.choked()) {
       write_insert_poll_safe();
       read_request_piece(m_down->read_request());
 
@@ -495,9 +495,9 @@ PeerConnection<type>::fill_write_buffer() {
   // No need to use delayed choke ever.
   if (m_send_choked && m_up->can_write_choke()) {
     m_send_choked = false;
-    m_up->write_choke(m_up_choke.choked());
+    m_up->write_choke(m_up_state.choke.choked());
 
-    if (m_up_choke.choked()) {
+    if (m_up_state.choke.choked()) {
       m_up->throttle()->erase(m_peer_chunks.upload_throttle());
       up_chunk_release();
 
@@ -520,7 +520,7 @@ PeerConnection<type>::fill_write_buffer() {
   // request has been received while uninterested. The problem arises
   // as they send unchoke before receiving interested.
   if (type == Download::CONNECTION_LEECH && m_send_interested && m_up->can_write_interested()) {
-    m_up->write_interested(m_down_interested);
+    m_up->write_interested(m_down_state.interested);
     m_send_interested = false;
   }
 
@@ -530,9 +530,9 @@ PeerConnection<type>::fill_write_buffer() {
 
         !request_list()->is_interested_in_active()) {
       m_send_interested = true;
-      m_down_interested = false;
+      m_down_state.interested = false;
 
-      m_download->choke_group()->down_queue()->set_not_queued(this, &m_down_choke);
+      m_download->choke_group()->down_queue()->set_not_queued(this, &m_down_state.choke);
     }
   }
 
@@ -568,7 +568,7 @@ PeerConnection<type>::fill_write_buffer() {
              send_ext_message()) {
     // Same.
 
-  } else if (!m_up_choke.choked() &&
+  } else if (!m_up_state.choke.choked() &&
              !m_peer_chunks.upload_queue()->empty() &&
              m_up->can_write_piece() &&
              (type != Download::CONNECTION_INITIAL_SEED || should_upload())) {
@@ -687,7 +687,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
         (type != Download::CONNECTION_INITIAL_SEED && m_download->file_list()->is_done()))
       throw close_connection();
 
-    m_download->choke_group()->up_queue()->set_not_queued(this, &m_up_choke);
+    m_download->choke_group()->up_queue()->set_not_queued(this, &m_up_state.choke);
   }
 
   if (type != Download::CONNECTION_LEECH || m_download->file_list()->is_done())
@@ -703,14 +703,14 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   } else {
 
     if (m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
-      m_send_interested = !m_down_interested;
-      m_down_interested = true;
+      m_send_interested = !m_down_state.interested;
+      m_down_state.interested = true;
 
       // Ensure we get inserted into the choke manager queue in case
       // the peer keeps us unchoked even though we've said we're not
       // interested.
-      if (m_down_unchoked)
-        m_download->choke_group()->down_queue()->set_queued(this, &m_down_choke);
+      if (m_down_state.unchoked)
+        m_download->choke_group()->down_queue()->set_queued(this, &m_down_state.choke);
 
       // Is it enough to insert into write here? Make the interested
       // check branch to include insert_write, even when not sending
@@ -755,8 +755,8 @@ PeerConnection<Download::CONNECTION_INITIAL_SEED>::should_upload() {
   // If queue ends up empty, choke peer to let it know that it
   // shouldn't wait for the cancelled pieces to be sent.
   if (m_peer_chunks.upload_queue()->empty()) {
-    m_download->choke_group()->up_queue()->set_not_queued(this, &m_up_choke);
-    m_download->choke_group()->up_queue()->set_queued(this, &m_up_choke);
+    m_download->choke_group()->up_queue()->set_not_queued(this, &m_up_state.choke);
+    m_download->choke_group()->up_queue()->set_queued(this, &m_up_state.choke);
 
   // If we're sending the chunk we last offered, adjust bytes left in it.
   } else if (m_peer_chunks.upload_queue()->front().index() == m_data.lastIndex) {

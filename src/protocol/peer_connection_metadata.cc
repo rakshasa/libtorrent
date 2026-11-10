@@ -380,7 +380,7 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
     return false;
 
   if (request_list()->queued_empty())
-    m_down_stall = 0;
+    m_down_state.stall = 0;
 
   uint32_t pipeSize = request_list()->calculate_pipe_size(m_peer_chunks.download_throttle()->rate()->rate(), m_extensions->peer_request_queue());
 
