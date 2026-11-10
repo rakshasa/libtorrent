@@ -13,6 +13,7 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/choke_status.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/limited_vector.h"
 
 #define LT_LOG_DEBUG(log_fmt, ...)                          \
   lt_log_print(LOG_TORRENT_DEBUG, "choke_queue : " log_fmt, __VA_ARGS__);
@@ -276,34 +277,28 @@ choke_queue::rotate_entry(group_entry* entry) {
   if (count == 0)
     return 0;
 
-  // The count peers that have waited longest, oldest first: never slotted, then out longest, the slots just taken back
-  // last. The list starts with the peers at a random place in the queue, as the optimistic unchokes pick, and the rest
-  // replace its newest only if older, so among equal waits a peer that came late is not tried last.
-  auto older = [](const auto& a, const auto& b) {
-    return a.connection->down_choke()->time_last_choke() < b.connection->down_choke()->time_last_choke();
+  // The count peers that have waited longest, oldest first: never slotted, then out longest, the
+  // slots just taken back last.
+  //
+  // The list starts with the peers at a random place in the queue, as the optimistic unchokes pick,
+  // and the rest replace its newest only if older, so among equal waits a peer that came late is
+  // not tried last.
+  struct peer_compare {
+    bool operator()(const choke_queue::value_type& a, const choke_queue::value_type& b) const {
+      return a.connection->down_choke()->time_last_choke() < b.connection->down_choke()->time_last_choke();
+    }
   };
 
-  auto&          queued = *entry->queued();
-  size_t         start  = ::random() % queued.size();
+  utils::limited_vector<weighted_connection, peer_compare> oldest_peers(count);
 
-  container_type oldest;
-  oldest.reserve(count);
+  auto&  queued = *entry->queued();
+  size_t start  = ::random() % queued.size();
 
-  for (size_t i = 0; i < queued.size(); i++) {
-    auto& peer = queued[(start + i) % queued.size()];
-
-    if (oldest.size() == count) {
-      if (!older(peer, oldest.back()))
-        continue;
-
-      oldest.pop_back();
-    }
-
-    oldest.insert(std::upper_bound(oldest.begin(), oldest.end(), peer, older), peer);
-  }
+  utils::copy_limited(queued.begin() + start, queued.end(), oldest_peers);
+  utils::copy_limited(queued.begin(), queued.begin() + start, oldest_peers);
 
   // An unchoke moves its peer out of the queue, so the list holds copies.
-  for (auto& peer : oldest)
+  for (auto& peer : oldest_peers)
     m_slotConnection(peer.connection, false);
 
   lt_log_print_info(LOG_TORRENT_EVENTS, entry->unchoked()->back().connection->download()->info(),
