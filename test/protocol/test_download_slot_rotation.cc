@@ -30,21 +30,21 @@ public:
   void received(uint32_t bytes) { m_peer_chunks.download_throttle()->rate()->insert(bytes); }
 
   // What receive_download_choke(true) leaves when the peer still unchokes us: NOT_INTERESTED on its way.
-  void withheld()               { m_down_interested = false; m_send_interested = true; m_down_interest_withheld = true; }
-  void interested(bool v)       { m_down_interested = v; m_send_interested = false; m_down_interest_withheld = false; }
+  void withheld()               { m_down.interested = false; m_send_interested = true; m_down.interest_withheld = true; }
+  void interested(bool v)       { m_down.interested = v; m_send_interested = false; m_down.interest_withheld = false; }
 
-  bool is_interested() const    { return m_down_interested; }
+  bool is_interested() const    { return m_down.interested; }
   bool sends_interested() const { return m_send_interested; }
 
   // What the rig's slot does for a slot taken back from a peer that still unchokes us, as receive_download_choke does.
   void choked_by_queue() {
-    if (!m_down_unchoked)
+    if (!m_down.unchoked)
       return;
-    m_send_interested        = m_down_interested;
-    m_down_interest_withheld = m_down_interested;
-    m_down_interested        = false;
+    m_send_interested = m_down.interested;
+    m_down.interest_withheld = m_down.interested;
+    m_down.interested = false;
   }
-  void remote_unchoked()        { m_down_unchoked = true; m_down_interested = true; }
+  void remote_unchoked()        { m_down.unchoked = true; m_down.interested = true; }
 };
 
 // The entry's list moves are for choke_queue and PeerConnectionBase; the test's slot does what
