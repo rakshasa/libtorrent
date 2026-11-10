@@ -2,8 +2,10 @@
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_STATE_H
 
 #include <cstdint>
+#include <memory>
 
 #include "data/chunk_handle.h"
+#include "protocol/protocol_base.h"
 #include "torrent/data/piece.h"
 #include "torrent/peer/choke_status.h"
 
@@ -18,16 +20,23 @@ namespace torrent::protocol {
 // For the down state, 'queued' now means the same as the spec's 'unchoked',
 // while 'unchoked' means we start requesting pieces.
 
+using ProtocolRead  = ProtocolBase;
+using ProtocolWrite = ProtocolBase;
+
 struct StateBase {
   choke_status choke;
   ChunkHandle  chunk;
 };
 
 struct StateUp : StateBase {
+  std::unique_ptr<ProtocolWrite> protocol{std::make_unique<ProtocolWrite>()};
+
   Piece piece;
 };
 
 struct StateDown : StateBase {
+  std::unique_ptr<ProtocolRead> protocol{std::make_unique<ProtocolRead>()};
+
   uint32_t stall{};
 
   bool interested{};

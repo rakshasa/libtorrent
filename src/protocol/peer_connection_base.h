@@ -27,8 +27,8 @@ class DownloadMain;
 
 class PeerConnectionBase : public Peer, public SocketStream {
 public:
-  using ProtocolRead  = ProtocolBase;
-  using ProtocolWrite = ProtocolBase;
+  using ProtocolRead  = protocol::ProtocolRead;
+  using ProtocolWrite = protocol::ProtocolWrite;
 
 #if USE_EXTRA_DEBUG == 666
   // For testing, use a really small buffer.
@@ -50,14 +50,14 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  bool                is_up_choked() const            { return m_up_state.choke.choked(); }
-  bool                is_up_interested() const        { return m_up_state.choke.queued(); }
-  bool                is_up_snubbed() const           { return m_up_state.choke.snubbed(); }
+  bool                is_up_choked() const            { return m_up.choke.choked(); }
+  bool                is_up_interested() const        { return m_up.choke.queued(); }
+  bool                is_up_snubbed() const           { return m_up.choke.snubbed(); }
 
-  bool                is_down_queued() const          { return m_down_state.choke.queued(); }
-  bool                is_down_local_unchoked() const  { return m_down_state.choke.unchoked(); }
-  bool                is_down_remote_unchoked() const { return m_down_state.unchoked; }
-  bool                is_down_interest_withheld() const { return m_down_state.interest_withheld; }
+  bool                is_down_queued() const          { return m_down.choke.queued(); }
+  bool                is_down_local_unchoked() const  { return m_down.choke.unchoked(); }
+  bool                is_down_remote_unchoked() const { return m_down.unchoked; }
+  bool                is_down_interest_withheld() const { return m_down.interest_withheld; }
 
   // The peer choked us. A download choke that took its slot back told it we were not interested, so as not to hold
   // its upload slot (receive_download_choke); without its upload slot that is final: an unchoke from a peer we are
@@ -70,7 +70,7 @@ public:
   // receive_download_choke withheld; the slot was held for choke_queue::rotate_grace at least, so no INTERESTED of
   // ours is still unsent.
   void                keep_down_interest();
-  bool                is_down_interested() const      { return m_down_state.interested; }
+  bool                is_down_interested() const      { return m_down.interested; }
 
   void                set_upload_snubbed(bool v);
 
@@ -85,8 +85,8 @@ public:
   PeerChunks*         peer_chunks()                   { return &m_peer_chunks; }
   const PeerChunks*   c_peer_chunks() const           { return &m_peer_chunks; }
 
-  choke_status*       up_choke()                      { return &m_up_state.choke; }
-  choke_status*       down_choke()                    { return &m_down_state.choke; }
+  choke_status*       up_choke()                      { return &m_up.choke; }
+  choke_status*       down_choke()                    { return &m_down.choke; }
 
   DownloadMain*       download()                      { return m_download; }
   RequestList*        request_list()                  { return &m_request_list; }
@@ -161,14 +161,11 @@ protected:
 
   DownloadMain*       m_download{};
 
-  ProtocolRead*       m_down;
-  ProtocolWrite*      m_up;
-
   PeerChunks          m_peer_chunks;
 
   RequestList         m_request_list;
-  protocol::StateUp   m_up_state;
-  protocol::StateDown m_down_state;
+  protocol::StateUp   m_up;
+  protocol::StateDown m_down;
 
   bool                m_send_choked{};
   bool                m_send_interested{};
@@ -191,13 +188,13 @@ protected:
 
 inline void
 PeerConnectionBase::push_unread(const void* data, uint32_t size) {
-  std::memcpy(m_down->buffer()->end(), data, size);
-  m_down->buffer()->move_end(size);
+  std::memcpy(m_down.protocol->buffer()->end(), data, size);
+  m_down.protocol->buffer()->move_end(size);
 }
 
 inline void
 PeerConnectionBase::read_insert_poll_safe() {
-  if (m_down->get_state() != ProtocolRead::IDLE)
+  if (m_down.protocol->get_state() != ProtocolRead::IDLE)
     return;
 
   this_thread::poll()->insert_read(this);
@@ -205,7 +202,7 @@ PeerConnectionBase::read_insert_poll_safe() {
 
 inline void
 PeerConnectionBase::write_insert_poll_safe() {
-  if (m_up->get_state() != ProtocolWrite::IDLE)
+  if (m_up.protocol->get_state() != ProtocolWrite::IDLE)
     return;
 
   this_thread::poll()->insert_write(this);
