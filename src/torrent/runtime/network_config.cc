@@ -163,7 +163,19 @@ NetworkConfig::bind_address_for_udp_connect(int family) const {
   if (m_block_udp)
     return {nullptr, ""};
 
-  return bind_address_for_connect_unsafe(family);
+  auto [address, device_name] = bind_address_for_connect_unsafe(family);
+
+  if (address != nullptr && address->sa_family != family) {
+    if (sa_is_v4mapped(address.get()))
+      return {sa_convert(address.get()), device_name};
+
+    if (sa_is_any(address.get()))
+      return {inet_any_value, device_name};
+
+    return {nullptr, ""};
+  }
+
+  return {address, device_name};
 }
 
 c_sa_shared_ptr
