@@ -38,6 +38,23 @@ test_network_config::test_set_bind_inet6_address() {
 
   nc->set_bind_address("");
   CPPUNIT_ASSERT(torrent::sa_is_unspec(nc->bind_inet6_address().get()));
+
+  nc->set_bind_inet_address("192.0.2.2");
+  nc->set_bind_inet6_address("2001:db8::1");
+  auto bind_inet_address  = nc->bind_inet_address();
+  auto bind_inet6_address = nc->bind_inet6_address();
+
+  CPPUNIT_ASSERT_THROW(nc->set_bind_address("::ffff:192.0.2.1"), torrent::input_error);
+  CPPUNIT_ASSERT(torrent::sa_equal(bind_inet_address.get(), nc->bind_inet_address().get()));
+  CPPUNIT_ASSERT(torrent::sa_equal(bind_inet6_address.get(), nc->bind_inet6_address().get()));
+
+  CPPUNIT_ASSERT_THROW(nc->set_bind_inet6_address("::ffff:192.0.2.1"), torrent::input_error);
+  CPPUNIT_ASSERT(torrent::sa_equal(bind_inet_address.get(), nc->bind_inet_address().get()));
+  CPPUNIT_ASSERT(torrent::sa_equal(bind_inet6_address.get(), nc->bind_inet6_address().get()));
+
+  nc->set_bind_inet6_address("");
+  CPPUNIT_ASSERT(torrent::sa_is_unspec(nc->bind_inet6_address().get()));
+  CPPUNIT_ASSERT(torrent::sa_equal(bind_inet_address.get(), nc->bind_inet_address().get()));
 }
 
 void
@@ -46,4 +63,21 @@ test_network_config::test_set_local_inet6_address() {
 
   CPPUNIT_ASSERT_NO_THROW(nc->set_local_address("2001:db8::1"));
   CPPUNIT_ASSERT(torrent::sa_is_inet6(nc->local_inet6_address().get()));
+
+  nc->set_local_inet_address("192.0.2.2");
+  nc->set_local_inet6_address("2001:db8::1");
+  auto local_inet_address  = nc->local_inet_address();
+  auto local_inet6_address = nc->local_inet6_address();
+
+  CPPUNIT_ASSERT_THROW(nc->set_local_address("::ffff:192.0.2.1"), torrent::input_error);
+  CPPUNIT_ASSERT(torrent::sa_equal(local_inet_address.get(), nc->local_inet_address().get()));
+  CPPUNIT_ASSERT(torrent::sa_equal(local_inet6_address.get(), nc->local_inet6_address().get()));
+
+  CPPUNIT_ASSERT_THROW(nc->set_local_inet6_address("::ffff:192.0.2.1"), torrent::input_error);
+  CPPUNIT_ASSERT(torrent::sa_equal(local_inet_address.get(), nc->local_inet_address().get()));
+  CPPUNIT_ASSERT(torrent::sa_equal(local_inet6_address.get(), nc->local_inet6_address().get()));
+
+  nc->set_local_inet6_address("");
+  CPPUNIT_ASSERT(torrent::sa_is_unspec(nc->local_inet6_address().get()));
+  CPPUNIT_ASSERT(torrent::sa_equal(local_inet_address.get(), nc->local_inet_address().get()));
 }
