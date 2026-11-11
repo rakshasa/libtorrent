@@ -707,11 +707,8 @@ NetworkConfig::set_generic_address_unsafe(const char* category, c_sa_shared_ptr&
     inet6_address = sa_make_unspec();
     break;
   case AF_INET6:
-    if (sa_is_v4mapped(sa)) {
-      inet_address = sa_from_v4mapped(sa);
-      inet6_address = sa_make_unspec();
-      break;
-    }
+    if (sa_is_v4mapped(sa))
+      throw input_error("Tried to set a " + std::string(category) + " address that is an 4in6 address.");
 
     inet_address = sa_make_unspec();
     inet6_address = sa_copy(sa);
