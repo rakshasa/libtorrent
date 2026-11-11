@@ -3,6 +3,7 @@
 #include "test_network_config.h"
 
 #include "runtime_manager.h"
+#include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/system/scheduler.h"
