@@ -133,7 +133,7 @@ ChunkSelector::window_ratio(uint32_t completed_chunks, uint32_t size_chunks) {
 
   auto step = static_cast<uint32_t>(uint64_t{completed_chunks} * 5 / size_chunks);
 
-  return {5 - std::min<uint32_t>(step, 4), 1};
+  return {1, 5 - std::min<uint32_t>(step, 4)};
 }
 
 ChunkSelector::priority_ratio

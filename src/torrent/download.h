@@ -167,7 +167,7 @@ public:
   // checks, and is not saved in the session. It is cleared if a file becomes high priority.
   // prioritize_first/last keep working, so a file's first and last chunks stay high priority.
   //
-  // While it is set, high and normal priority chunks are picked from 5:1 (high:normal) when
+  // While it is set, high and normal priority chunks are picked from 1:5 (high:normal) when
   // nothing is completed to 1:1 once 80% of the torrent is, in 20% steps, instead of 3:1.
   void                set_priority_window(uint32_t first, uint32_t size);
 

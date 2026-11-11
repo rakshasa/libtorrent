@@ -41,8 +41,8 @@ public:
 
   static constexpr priority_ratio default_ratio{3, 1};
 
-  // The ratio used while a priority window is set, from 5:1 (high:normal) when nothing is
-  // completed down to 1:1 once 80% of the torrent is, in 20% steps.
+  // The ratio used while a priority window is set, from 1:5 (high:normal) when nothing is
+  // completed up to 1:1 once 80% of the torrent is, in 20% steps, so the swarm comes first.
   static priority_ratio window_ratio(uint32_t completed_chunks, uint32_t size_chunks);
 
   ChunkSelector(download_data* data) : m_data(data) {}

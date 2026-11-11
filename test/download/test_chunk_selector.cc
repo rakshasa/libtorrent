@@ -116,13 +116,13 @@ test_chunk_selector::test_window_ratio() {
   using torrent::ChunkSelector;
 
   // Completed chunks over the whole torrent, in 20% steps.
-  CPPUNIT_ASSERT(ChunkSelector::window_ratio(0, 100) == make_ratio(5, 1));
-  CPPUNIT_ASSERT(ChunkSelector::window_ratio(19, 100) == make_ratio(5, 1));
-  CPPUNIT_ASSERT(ChunkSelector::window_ratio(20, 100) == make_ratio(4, 1));
-  CPPUNIT_ASSERT(ChunkSelector::window_ratio(39, 100) == make_ratio(4, 1));
-  CPPUNIT_ASSERT(ChunkSelector::window_ratio(40, 100) == make_ratio(3, 1));
-  CPPUNIT_ASSERT(ChunkSelector::window_ratio(60, 100) == make_ratio(2, 1));
-  CPPUNIT_ASSERT(ChunkSelector::window_ratio(79, 100) == make_ratio(2, 1));
+  CPPUNIT_ASSERT(ChunkSelector::window_ratio(0, 100) == make_ratio(1, 5));
+  CPPUNIT_ASSERT(ChunkSelector::window_ratio(19, 100) == make_ratio(1, 5));
+  CPPUNIT_ASSERT(ChunkSelector::window_ratio(20, 100) == make_ratio(1, 4));
+  CPPUNIT_ASSERT(ChunkSelector::window_ratio(39, 100) == make_ratio(1, 4));
+  CPPUNIT_ASSERT(ChunkSelector::window_ratio(40, 100) == make_ratio(1, 3));
+  CPPUNIT_ASSERT(ChunkSelector::window_ratio(60, 100) == make_ratio(1, 2));
+  CPPUNIT_ASSERT(ChunkSelector::window_ratio(79, 100) == make_ratio(1, 2));
   CPPUNIT_ASSERT(ChunkSelector::window_ratio(80, 100) == make_ratio(1, 1));
   CPPUNIT_ASSERT(ChunkSelector::window_ratio(100, 100) == make_ratio(1, 1));
 
@@ -139,7 +139,7 @@ test_chunk_selector::test_window_ratio_picks() {
     uint32_t completed = size_chunks / 5 * step;
     auto     ratio     = torrent::ChunkSelector::window_ratio(completed, size_chunks);
 
-    CPPUNIT_ASSERT(ratio == make_ratio(5 - step, 1));
+    CPPUNIT_ASSERT(ratio == make_ratio(1, 5 - step));
     assert_ratio(pick_chunks(true, window_last, completed), ratio);
   }
 }
