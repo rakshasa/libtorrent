@@ -22,7 +22,7 @@ TrackerState::failed_time_next() const {
 
   auto shift = std::min(m_counters.failed_counter - 1, uint32_t(6));
 
-  return m_counters.failed_time_last + std::max((5 << shift) * 1s, min_min_interval);
+  return m_counters.failed_time_last + std::min((5 << shift) * 1s, min_min_interval);
 }
 
 std::chrono::seconds
