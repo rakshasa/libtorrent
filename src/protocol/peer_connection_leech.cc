@@ -66,15 +66,15 @@ PeerConnection<type>::update_interested() {
 
   m_peer_chunks.download_cache()->clear();
 
-  if (m_down.interested)
+  if (m_down.is_interested_in_remote_peer())
     return;
 
   // Consider just setting to interested without checking the
   // bitfield. The status might change by the time we get unchoked
   // anyway.
 
-  m_send_interested = !m_down.interested;
-  m_down.interested = true;
+  m_send_interested = true;
+  m_down.mark_interested_in_remote_peer();
 
   // Hmm... does this belong here, or should we insert ourselves into
   // the queue when we receive the unchoke?
@@ -190,7 +190,7 @@ PeerConnection<type>::read_message() {
 
     // Which needs to be done before, and which after calling choke
     // manager?
-    m_down.unchoked = false;
+    m_down.mark_choked_by_remote_peer();
 
     if (restore_down_interest(m_download->file_list()->is_done()))
       write_insert_poll_safe();
@@ -207,11 +207,11 @@ PeerConnection<type>::read_message() {
     if (type != Download::CONNECTION_LEECH)
       return true;
 
-    m_down.unchoked = true;
+    m_down.mark_unchoked_by_remote_peer();
 
     // Some peers unchoke us even though we're not interested, so we
     // need to ensure it doesn't get added to the queue.
-    if (!m_down.interested)
+    if (!m_down.is_interested_in_remote_peer())
       return true;
 
     request_list()->unchoked();
@@ -520,7 +520,7 @@ PeerConnection<type>::fill_write_buffer() {
   // request has been received while uninterested. The problem arises
   // as they send unchoke before receiving interested.
   if (type == Download::CONNECTION_LEECH && m_send_interested && m_up.protocol->can_write_interested()) {
-    m_up.protocol->write_interested(m_down.interested);
+    m_up.protocol->write_interested(m_down.is_interested_in_remote_peer());
     m_send_interested = false;
   }
 
@@ -530,7 +530,7 @@ PeerConnection<type>::fill_write_buffer() {
 
         !request_list()->is_interested_in_active()) {
       m_send_interested = true;
-      m_down.interested = false;
+      m_down.mark_not_interested_in_remote_peer();
 
       m_download->choke_group()->down_queue()->set_not_queued(this, &m_down.choke);
     }
@@ -703,13 +703,13 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   } else {
 
     if (m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
-      m_send_interested = !m_down.interested;
-      m_down.interested = true;
+      m_send_interested = !m_down.is_interested_in_remote_peer();
+      m_down.mark_interested_in_remote_peer();
 
       // Ensure we get inserted into the choke manager queue in case
       // the peer keeps us unchoked even though we've said we're not
       // interested.
-      if (m_down.unchoked)
+      if (m_down.is_unchoked_by_remote_peer())
         m_download->choke_group()->down_queue()->set_queued(this, &m_down.choke);
 
       // Is it enough to insert into write here? Make the interested

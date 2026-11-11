@@ -39,11 +39,28 @@ struct StateDown : StateBase {
 
   uint32_t stall{};
 
-  bool interested{};
-  bool unchoked{};
+  bool is_interested_in_remote_peer() const { return m_interested; }
+  void mark_interested_in_remote_peer() { m_interested = true; }
+  void mark_not_interested_in_remote_peer() { m_interested = false; }
+
+  bool is_unchoked_by_remote_peer() const { return m_unchoked_by_remote_peer; }
+  void mark_unchoked_by_remote_peer() { m_unchoked_by_remote_peer = true; }
+  void mark_choked_by_remote_peer() { m_unchoked_by_remote_peer = false; }
+
+  bool is_interest_withheld_from_remote_peer() const { return m_interest_withheld; }
+  bool withhold_interest_from_remote_peer() {
+    m_interest_withheld = m_interested;
+    m_interested = false;
+    return m_interest_withheld;
+  }
+  void clear_interest_withheld_from_remote_peer() { m_interest_withheld = false; }
+
+private:
+  bool m_interested{};
+  bool m_unchoked_by_remote_peer{};
 
   // NOT_INTERESTED sent by a download choke, not by the pieces.
-  bool interest_withheld{};
+  bool m_interest_withheld{};
 };
 
 } // namespace torrent::protocol
