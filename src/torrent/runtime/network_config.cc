@@ -389,7 +389,7 @@ void
 NetworkConfig::set_local_address(const std::string& addr) {
   auto sa = sa_lookup_address(addr, AF_UNSPEC);
 
-  if (sa_is_any(sa.get()))
+  if (sa_is_any(sa.get()) && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set local address to an any address.");
 
   auto guard = lock_guard();
@@ -400,7 +400,7 @@ void
 NetworkConfig::set_local_inet_address(const std::string& addr) {
   auto sa = sa_lookup_address(addr, AF_INET);
 
-  if (sa_is_any(sa.get()))
+  if (sa_is_any(sa.get()) && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set local inet address to an any address.");
 
   auto guard = lock_guard();
@@ -411,7 +411,7 @@ void
 NetworkConfig::set_local_inet6_address(const std::string& addr) {
   auto sa = sa_lookup_address(addr, AF_INET6);
 
-  if (sa_is_any(sa.get()))
+  if (sa_is_any(sa.get()) && sa->sa_family != AF_UNSPEC)
     throw input_error("Tried to set local inet6 address to an any address.");
 
   auto guard = lock_guard();
