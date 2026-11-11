@@ -707,6 +707,12 @@ NetworkConfig::set_generic_address_unsafe(const char* category, c_sa_shared_ptr&
     inet6_address = sa_make_unspec();
     break;
   case AF_INET6:
+    if (sa_is_v4mapped(sa)) {
+      inet_address = sa_from_v4mapped(sa);
+      inet6_address = sa_make_unspec();
+      break;
+    }
+
     inet_address = sa_make_unspec();
     inet6_address = sa_copy(sa);
     break;
@@ -738,6 +744,9 @@ NetworkConfig::set_generic_inet6_address_unsafe(const char* category, c_sa_share
   if (sa_port(sa) != 0)
     throw input_error("Tried to set a " + std::string(category) + " inet6 address with a non-zero port.");
 
+  if (sa_is_v4mapped(sa))
+    throw input_error("Tried to set a " + std::string(category) + " inet6 address that is an 4in6 address.");
+
   LT_LOG_EVENT("%s inet6 address : %s", category, sa_pretty_str(sa).c_str());
 
   inet6_address = sa_copy(sa);
@@ -756,12 +765,8 @@ NetworkConfig::bind_address_for_connect_unsafe(int family) const {
     if (m_bind_inet_address->sa_family != AF_UNSPEC)
       return {m_bind_inet_address, m_bind_inet_device_name};
 
-    if (m_bind_inet6_address->sa_family != AF_UNSPEC) {
-      if (m_block_ipv4in6)
-        return {nullptr, ""};
-
-      return {m_bind_inet6_address, m_bind_inet6_device_name};
-    }
+    if (m_bind_inet6_address->sa_family != AF_UNSPEC)
+      return {nullptr, ""};
 
     return {inet_any_value, m_bind_inet_device_name};
 
