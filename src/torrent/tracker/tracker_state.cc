@@ -15,14 +15,14 @@ TrackerState::success_time_next() const {
 std::chrono::seconds
 TrackerState::failed_time_next() const {
   if (m_counters.failed_counter == 0)
-    return std::min(m_min_interval, min_min_interval);
+    return std::max(m_min_interval, min_min_interval);
 
   if (m_min_interval > min_min_interval)
     return m_counters.failed_time_last + m_min_interval;
 
   auto shift = std::min(m_counters.failed_counter - 1, uint32_t(6));
 
-  return m_counters.failed_time_last + std::min((5 << shift) * 1s, min_min_interval);
+  return m_counters.failed_time_last + std::max((5 << shift) * 1s, min_min_interval);
 }
 
 std::chrono::seconds
