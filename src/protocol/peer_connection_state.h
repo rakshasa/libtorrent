@@ -20,18 +20,17 @@ namespace torrent::protocol {
 // For the down state, 'queued' now means the same as the spec's 'unchoked',
 // while 'unchoked' means we start requesting pieces.
 
-using ProtocolRead  = ProtocolBase;
-using ProtocolWrite = ProtocolBase;
-
 struct StateBase {
+  using protocol_ptr = std::unique_ptr<ProtocolBase>;
+
   choke_status        choke;
   ChunkHandle         chunk;
+
+  protocol_ptr        protocol{std::make_unique<ProtocolBase>()};
 };
 
 struct StateUp : StateBase {
   Piece               piece;
-
-  std::unique_ptr<ProtocolWrite> protocol{std::make_unique<ProtocolWrite>()};
 };
 
 struct StateDown : StateBase {
@@ -50,14 +49,12 @@ struct StateDown : StateBase {
 
   uint32_t            stall{};
 
-  std::unique_ptr<ProtocolRead> protocol{std::make_unique<ProtocolRead>()};
-
 private:
-  bool m_interested{};
-  bool m_unchoked{};
+  bool                m_interested{};
+  bool                m_unchoked{};
 
   // NOT_INTERESTED sent by a download choke, not by the pieces.
-  bool m_interest_withheld{};
+  bool                m_interest_withheld{};
 };
 
 bool StateDown::is_interested() const        { return m_interested; }
