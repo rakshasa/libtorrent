@@ -127,7 +127,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   m_peer_chunks.download_cache()->clear();
 
   if (!m_download->file_list()->is_done()) {
-    m_send_interested = true;
+    m_up.schedule_interest();
     m_down.mark_interested();
   }
 }
@@ -177,10 +177,10 @@ PeerConnectionBase::set_peer_exchange(bool state) {
     return;
 
   if (state) {
-    m_send_pex_mask = PEX_ENABLE | (m_send_pex_mask & ~PEX_DISABLE);
+    m_up.schedule_pex_enable();
     m_extensions->set_local_enabled(ProtocolExtension::UT_PEX);
   } else {
-    m_send_pex_mask = PEX_DISABLE | (m_send_pex_mask & ~PEX_ENABLE);
+    m_up.schedule_pex_disable();
     m_extensions->unset_local_enabled(ProtocolExtension::UT_PEX);
   }
 }
@@ -195,12 +195,12 @@ PeerConnectionBase::set_upload_snubbed(bool v) {
 
 bool
 PeerConnectionBase::receive_upload_choke(bool choke) {
-  if (choke == m_up.choke.choked())
+  if (choke == m_up.is_choked())
     throw internal_error("PeerConnectionBase::receive_upload_choke(...) already set to the same state.");
 
   write_insert_poll_safe();
 
-  m_send_choked = true;
+  m_up.schedule_choke();
   m_up.choke.set_unchoked(!choke);
   m_up.choke.set_time_last_choke(this_thread::cached_time());
 
@@ -270,7 +270,10 @@ PeerConnectionBase::receive_download_choke(bool choke) {
       // ChokeManager::cycle(...) can attempt to get us unchoked
       // again.
 
-      m_send_interested = m_down.withhold_interest();
+      if (m_down.withhold_interest())
+        m_up.schedule_interest();
+      else
+        m_up.clear_pending_interest();
 
     } else {
       // Remove from queue so that an unchoke from the remote peer
@@ -297,7 +300,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
       // out of the queue. So if the peer unchokes us at a later time,
       // we skip the queue and unchoke immediately.
 
-      m_send_interested = true;
+      m_up.schedule_interest();
       m_down.mark_interested();
     }
   }
@@ -396,7 +399,7 @@ PeerConnectionBase::restore_down_interest(bool download_done) {
   if (download_done || m_down.is_interested())
     return false;
 
-  m_send_interested = true;
+  m_up.schedule_interest();
   m_down.mark_interested();
   return true;
 }
@@ -408,7 +411,7 @@ PeerConnectionBase::keep_down_interest() {
 
   m_down.clear_interest_withheld();
   m_down.mark_interested();
-  m_send_interested = false;
+  m_up.clear_pending_interest();
 }
 
 bool
@@ -835,7 +838,7 @@ void
 PeerConnectionBase::read_request_piece(const Piece& p) {
   auto* upload_queue = m_peer_chunks.upload_queue();
 
-  if (m_up.choke.choked() ||
+  if (m_up.is_choked() ||
       upload_queue->size() >= ProtocolExtension::max_request_queue_size ||
       p.length() > (1 << 17)) {
     LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
@@ -961,28 +964,28 @@ PeerConnectionBase::try_request_pieces() {
   return success;
 }
 
-// Send one peer exchange message according to bits set in m_send_pex_mask.
+// Send one pending peer exchange message.
 // We can only send one message at a time, because the derived class
 // needs to flush the buffer and call up_extension before the next one.
 bool
 PeerConnectionBase::send_pex_message() {
   if (!m_extensions->is_remote_supported(ProtocolExtension::UT_PEX)) {
-    m_send_pex_mask = 0;
+    m_up.clear_pending_pex();
     return false;
   }
 
   // Message to tell peer to stop/start doing PEX is small so send it first.
-  if (m_send_pex_mask & (PEX_ENABLE | PEX_DISABLE)) {
+  if (m_up.has_pending_pex_toggle()) {
     write_prepare_extension(ProtocolExtension::HANDSHAKE,
-                            ProtocolExtension::generate_toggle_message(ProtocolExtension::UT_PEX, (m_send_pex_mask & PEX_ENABLE) != 0));
+                            ProtocolExtension::generate_toggle_message(ProtocolExtension::UT_PEX, m_up.has_pending_pex_enable()));
 
-    m_send_pex_mask &= ~(PEX_ENABLE | PEX_DISABLE);
+    m_up.clear_pending_pex_toggle();
 
-  } else if (m_send_pex_mask & PEX_DO && m_extensions->id(ProtocolExtension::UT_PEX)) {
+  } else if (m_up.has_pending_pex_exchange() && m_extensions->id(ProtocolExtension::UT_PEX)) {
     const DataBuffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
     m_extensions->clear_initial_pex();
 
-    m_send_pex_mask &= ~PEX_DO;
+    m_up.clear_pending_pex_exchange();
 
     if (pexMessage.empty())
       return false;
@@ -990,7 +993,7 @@ PeerConnectionBase::send_pex_message() {
     write_prepare_extension(ProtocolExtension::UT_PEX, pexMessage);
 
   } else {
-    m_send_pex_mask = 0;
+    m_up.clear_pending_pex();
   }
 
   return true;

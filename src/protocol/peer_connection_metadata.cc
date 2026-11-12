@@ -273,7 +273,7 @@ PeerConnectionMetadata::fill_write_buffer() {
   if (m_tryRequest)
     m_tryRequest = try_request_metadata_pieces();
 
-  if (m_send_pex_mask && m_up.protocol->can_write_extension() &&
+  if (m_up.has_pending_pex() && m_up.protocol->can_write_extension() &&
       send_pex_message()) {
     // Don't do anything else if send_pex_message() succeeded.
 
