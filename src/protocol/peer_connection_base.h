@@ -27,8 +27,8 @@ class DownloadMain;
 
 class PeerConnectionBase : public Peer, public SocketStream {
 public:
-  using ProtocolRead  = protocol::ProtocolRead;
-  using ProtocolWrite = protocol::ProtocolWrite;
+  using ProtocolRead  = ProtocolBase;
+  using ProtocolWrite = ProtocolBase;
 
 #if USE_EXTRA_DEBUG == 666
   // For testing, use a really small buffer.
