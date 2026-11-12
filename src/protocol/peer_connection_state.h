@@ -36,17 +36,17 @@ struct StateUp : StateBase {
 
 struct StateDown : StateBase {
   bool                is_interested() const;
-  bool                is_unchoked() const;
   bool                is_interest_withheld() const;
+  bool                is_unchoked() const;
 
   void                mark_interested();
   void                mark_not_interested();
 
-  void                mark_unchoked();
-  void                mark_choked();
-
   bool                withhold_interest();
   void                clear_interest_withheld();
+
+  void                mark_unchoked();
+  void                mark_choked();
 
   uint32_t            stall{};
 
@@ -61,15 +61,15 @@ private:
 };
 
 bool StateDown::is_interested() const        { return m_interested; }
+bool StateDown::is_interest_withheld() const { return m_interest_withheld; }
+bool StateDown::is_unchoked() const          { return m_unchoked; }
+
 void StateDown::mark_interested()            { m_interested = true; }
 void StateDown::mark_not_interested()        { m_interested = false; }
+void StateDown::clear_interest_withheld()    { m_interest_withheld = false; }
 
-bool StateDown::is_unchoked() const          { return m_unchoked; }
 void StateDown::mark_unchoked()              { m_unchoked = true; }
 void StateDown::mark_choked()                { m_unchoked = false; }
-
-bool StateDown::is_interest_withheld() const { return m_interest_withheld; }
-void StateDown::clear_interest_withheld()    { m_interest_withheld = false; }
 
 bool StateDown::withhold_interest() {
   m_interest_withheld = m_interested;
