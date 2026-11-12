@@ -45,20 +45,12 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  const protocol::StateUp&   up() const               { return m_up; }
-  const protocol::StateDown& down() const             { return m_down; }
+  const auto&         up() const               { return m_up; }
+  const auto&         down() const             { return m_down; }
 
-  // The peer choked us. A download choke that took its slot back told it we were not interested, so as not to hold
-  // its upload slot (receive_download_choke); without its upload slot that is final: an unchoke from a peer we are
-  // not interested in is ignored, and only a HAVE for a piece we want, which a seed never sends, makes it interesting
-  // again. So say we are interested again, unless the download is done. Returns whether INTERESTED is to be sent.
   bool                restore_down_interest(bool download_done);
-
-  // A slot taken back by the download slot rotation (choke_queue::rotate_entry) keeps the torrent interested: the
-  // peer waits for a slot again as every queued peer does, and nothing tells it to choke us. Undoes what
-  // receive_download_choke withheld; the slot was held for choke_queue::rotate_grace at least, so no INTERESTED of
-  // ours is still unsent.
   void                keep_down_interest();
+
   void                set_upload_snubbed(bool v);
 
   bool                is_seeder() const               { return m_peer_chunks.is_seeder(); }
