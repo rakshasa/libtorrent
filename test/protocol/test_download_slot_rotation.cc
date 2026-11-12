@@ -31,7 +31,7 @@ public:
 
   // What receive_download_choke(true) leaves when the peer still unchokes us: NOT_INTERESTED on its way.
   void initalize_withhold_state() {
-    m_send_interested = true;
+    m_up.schedule_interest();
     m_down.mark_interested();
     m_down.withhold_interest();
   }
@@ -42,24 +42,25 @@ public:
     else
       m_down.mark_not_interested();
 
-    m_send_interested = false;
+    m_up.clear_pending_interest();
     m_down.clear_interest_withheld();
   }
 
   bool is_interested() const    { return m_down.is_interested(); }
-  bool sends_interested() const { return m_send_interested; }
+  bool sends_interested() const { return m_up.has_pending_interest(); }
 
   // What the rig's slot does for a slot taken back from a peer that still unchokes us, as receive_download_choke does.
   void choked_by_queue() {
     if (!m_down.is_unchoked())
       return;
 
-    m_send_interested = m_down.is_interested();
-
-    if (m_down.is_interested())
+    if (m_down.is_interested()) {
+      m_up.schedule_interest();
       m_down.withhold_interest();
-    else
+    } else {
+      m_up.clear_pending_interest();
       m_down.clear_interest_withheld();
+    }
   }
   void remote_unchoked()        { m_down.mark_unchoked(); m_down.mark_interested(); }
 };

@@ -38,9 +38,9 @@ public:
 #endif
 
   // Bitmasks for peer exchange messages to send.
-  static constexpr int PEX_DO      = (1 << 0);
-  static constexpr int PEX_ENABLE  = (1 << 1);
-  static constexpr int PEX_DISABLE = (1 << 2);
+  static constexpr int PEX_DO      = protocol::StateUp::PEX_DO;
+  static constexpr int PEX_ENABLE  = protocol::StateUp::PEX_ENABLE;
+  static constexpr int PEX_DISABLE = protocol::StateUp::PEX_DISABLE;
 
   PeerConnectionBase();
   ~PeerConnectionBase() override;
@@ -50,9 +50,9 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  bool                is_up_choked() const            { return m_up.choke.choked(); }
-  bool                is_up_interested() const        { return m_up.choke.queued(); }
-  bool                is_up_snubbed() const           { return m_up.choke.snubbed(); }
+  bool                is_up_choked() const            { return m_up.is_choked(); }
+  bool                is_up_interested() const        { return m_up.is_interested(); }
+  bool                is_up_snubbed() const           { return m_up.is_snubbed(); }
 
   bool                is_down_queued() const          { return m_down.choke.queued(); }
   bool                is_down_local_unchoked() const  { return m_down.choke.unchoked(); }
@@ -95,7 +95,7 @@ public:
   ProtocolExtension*  extensions()                    { return m_extensions; }
   DataBuffer*         extension_message()             { return &m_extension_message; }
 
-  void                do_peer_exchange()              { m_send_pex_mask |= PEX_DO; }
+  void                do_peer_exchange()              { m_up.schedule_pex_exchange(); }
   void                set_peer_exchange(bool state);
 
   // These must be implemented by the child class.
@@ -167,11 +167,7 @@ protected:
   protocol::StateUp   m_up;
   protocol::StateDown m_down;
 
-  bool                m_send_choked{};
-  bool                m_send_interested{};
   bool                m_tryRequest{};
-
-  int                 m_send_pex_mask{};
 
   std::chrono::microseconds m_time_last_read{};
 

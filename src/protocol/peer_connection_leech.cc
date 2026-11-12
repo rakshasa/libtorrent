@@ -73,7 +73,7 @@ PeerConnection<type>::update_interested() {
   // bitfield. The status might change by the time we get unchoked
   // anyway.
 
-  m_send_interested = true;
+  m_up.schedule_interest();
   m_down.mark_interested();
 
   // Hmm... does this belong here, or should we insert ourselves into
@@ -240,7 +240,7 @@ PeerConnection<type>::read_message() {
     if (!m_down.protocol->can_read_request_body())
       break;
 
-    if (!m_up.choke.choked()) {
+    if (!m_up.is_choked()) {
       write_insert_poll_safe();
       read_request_piece(m_down.protocol->read_request());
 
@@ -493,11 +493,11 @@ PeerConnection<type>::fill_write_buffer() {
   ProtocolBuffer<512>::iterator old_end = m_up.protocol->buffer()->end();
 
   // No need to use delayed choke ever.
-  if (m_send_choked && m_up.protocol->can_write_choke()) {
-    m_send_choked = false;
-    m_up.protocol->write_choke(m_up.choke.choked());
+  if (m_up.has_pending_choke() && m_up.protocol->can_write_choke()) {
+    m_up.clear_pending_choke();
+    m_up.protocol->write_choke(m_up.is_choked());
 
-    if (m_up.choke.choked()) {
+    if (m_up.is_choked()) {
       m_up.protocol->throttle()->erase(m_peer_chunks.upload_throttle());
       up_chunk_release();
 
@@ -519,9 +519,9 @@ PeerConnection<type>::fill_write_buffer() {
   // e.g. BitTornado 0.7.14 and uTorrent 0.3.0, disconnect if a
   // request has been received while uninterested. The problem arises
   // as they send unchoke before receiving interested.
-  if (type == Download::CONNECTION_LEECH && m_send_interested && m_up.protocol->can_write_interested()) {
+  if (type == Download::CONNECTION_LEECH && m_up.has_pending_interest() && m_up.protocol->can_write_interested()) {
     m_up.protocol->write_interested(m_down.is_interested());
-    m_send_interested = false;
+    m_up.clear_pending_interest();
   }
 
   if (type == Download::CONNECTION_LEECH && m_tryRequest) {
@@ -529,7 +529,7 @@ PeerConnection<type>::fill_write_buffer() {
         !(m_tryRequest = try_request_pieces()) &&
 
         !request_list()->is_interested_in_active()) {
-      m_send_interested = true;
+      m_up.schedule_interest();
       m_down.mark_not_interested();
 
       m_download->choke_group()->down_queue()->set_not_queued(this, &m_down.choke);
@@ -560,7 +560,7 @@ PeerConnection<type>::fill_write_buffer() {
   while (type == Download::CONNECTION_LEECH && !m_peer_chunks.cancel_queue()->empty() && m_up.protocol->can_write_cancel())
     m_up.protocol->write_cancel(m_peer_chunks.cancel_queue()->pop_front());
 
-  if (m_send_pex_mask && m_up.protocol->can_write_extension() &&
+  if (m_up.has_pending_pex() && m_up.protocol->can_write_extension() &&
       send_pex_message()) {
     // Don't do anything else if send_pex_message() succeeded.
 
@@ -568,7 +568,7 @@ PeerConnection<type>::fill_write_buffer() {
              send_ext_message()) {
     // Same.
 
-  } else if (!m_up.choke.choked() &&
+  } else if (!m_up.is_choked() &&
              !m_peer_chunks.upload_queue()->empty() &&
              m_up.protocol->can_write_piece() &&
              (type != Download::CONNECTION_INITIAL_SEED || should_upload())) {
@@ -703,7 +703,10 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   } else {
 
     if (m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
-      m_send_interested = !m_down.is_interested();
+      if (!m_down.is_interested())
+        m_up.schedule_interest();
+      else
+        m_up.clear_pending_interest();
       m_down.mark_interested();
 
       // Ensure we get inserted into the choke manager queue in case
