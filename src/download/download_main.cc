@@ -353,8 +353,7 @@ DownloadMain::do_peer_exchange() {
 
   // Check whether we should tell the peers to stop/start sending PEX
   // messages.
-  enum class PexToggle { none, enable, disable };
-  PexToggle togglePex = PexToggle::none;
+  int togglePex = 0;
 
   if (!m_info->is_pex_active() &&
       m_connectionList->size() < m_connectionList->min_size() / 2 &&
@@ -363,12 +362,12 @@ DownloadMain::do_peer_exchange() {
 
     // Only enable PEX if we don't have max_size_pex set to zero.
     if (m_info->size_pex() < m_info->max_size_pex())
-      togglePex = PexToggle::enable;
+      togglePex = protocol::StateUp::PEX_ENABLE;
 
   } else if (m_info->is_pex_active() &&
              m_connectionList->size() >= m_connectionList->min_size()) {
 //              m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
-    togglePex = PexToggle::disable;
+    togglePex = protocol::StateUp::PEX_DISABLE;
     m_info->unset_flags(DownloadInfo::flag_pex_active);
   }
 
@@ -401,16 +400,16 @@ DownloadMain::do_peer_exchange() {
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;
 
-    if (togglePex == PexToggle::enable) {
+    if (togglePex == protocol::StateUp::PEX_ENABLE) {
       pcb->set_peer_exchange(true);
 
       if (m_info->size_pex() >= m_info->max_size_pex())
-        togglePex = PexToggle::none;
+        togglePex = 0;
 
     } else if (!pcb->extensions()->is_local_enabled(ProtocolExtension::UT_PEX)) {
       continue;
 
-    } else if (togglePex == PexToggle::disable) {
+    } else if (togglePex == protocol::StateUp::PEX_DISABLE) {
       pcb->set_peer_exchange(false);
 
       continue;
