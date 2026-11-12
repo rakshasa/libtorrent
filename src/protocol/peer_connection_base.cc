@@ -128,7 +128,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
 
   if (!m_download->file_list()->is_done()) {
     m_send_interested = true;
-    m_down.mark_interested_in_remote_peer();
+    m_down.mark_interested();
   }
 }
 
@@ -264,13 +264,13 @@ PeerConnectionBase::receive_download_choke(bool choke) {
     // Send uninterested if unchoked, but only _after_ receiving our
     // chunks?
 
-    if (m_down.is_unchoked_by_remote_peer()) {
+    if (m_down.is_unchoked()) {
       // Tell the peer we're no longer interested to avoid
       // disconnects. We keep the connection in the queue so that
       // ChokeManager::cycle(...) can attempt to get us unchoked
       // again.
 
-      m_send_interested = m_down.withhold_interest_from_remote_peer();
+      m_send_interested = m_down.withhold_interest();
 
     } else {
       // Remove from queue so that an unchoke from the remote peer
@@ -284,9 +284,9 @@ PeerConnectionBase::receive_download_choke(bool choke) {
 
   } else {
     m_tryRequest = true;
-    m_down.clear_interest_withheld_from_remote_peer();
+    m_down.clear_interest_withheld();
 
-    if (!m_down.is_interested_in_remote_peer()) {
+    if (!m_down.is_interested()) {
       // We were marked as not interested by the cycling choke and
       // kept in the queue, thus the peer should have some pieces of
       // interest.
@@ -298,7 +298,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
       // we skip the queue and unchoke immediately.
 
       m_send_interested = true;
-      m_down.mark_interested_in_remote_peer();
+      m_down.mark_interested();
     }
   }
 
@@ -388,26 +388,26 @@ PeerConnectionBase::event_error() {
 
 bool
 PeerConnectionBase::restore_down_interest(bool download_done) {
-  if (!m_down.is_interest_withheld_from_remote_peer())
+  if (!m_down.is_interest_withheld())
     return false;
 
-  m_down.clear_interest_withheld_from_remote_peer();
+  m_down.clear_interest_withheld();
 
-  if (download_done || m_down.is_interested_in_remote_peer())
+  if (download_done || m_down.is_interested())
     return false;
 
   m_send_interested = true;
-  m_down.mark_interested_in_remote_peer();
+  m_down.mark_interested();
   return true;
 }
 
 void
 PeerConnectionBase::keep_down_interest() {
-  if (!m_down.is_interest_withheld_from_remote_peer())
+  if (!m_down.is_interest_withheld())
     return;
 
-  m_down.clear_interest_withheld_from_remote_peer();
-  m_down.mark_interested_in_remote_peer();
+  m_down.clear_interest_withheld();
+  m_down.mark_interested();
   m_send_interested = false;
 }
 
@@ -908,7 +908,7 @@ PeerConnectionBase::write_prepare_extension(int type, const DataBuffer& message)
 // from high stall counts when we are doing decent speeds.
 bool
 PeerConnectionBase::should_request() {
-  if (m_down.choke.choked() || !m_down.is_interested_in_remote_peer() || !m_down.is_unchoked_by_remote_peer())
+  if (m_down.choke.choked() || !m_down.is_interested() || !m_down.is_unchoked())
     // || m_down.protocol->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
