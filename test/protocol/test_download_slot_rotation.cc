@@ -30,7 +30,12 @@ public:
   void received(uint32_t bytes) { m_peer_chunks.download_throttle()->rate()->insert(bytes); }
 
   // What receive_download_choke(true) leaves when the peer still unchokes us: NOT_INTERESTED on its way.
-  void withheld()               { m_down.mark_not_interested(); m_send_interested = true; m_down.withhold_interest(); }
+  void initalize_withhold_state() {
+    m_send_interested = true;
+    m_down.mark_interested();
+    m_down.withhold_interest();
+  }
+
   void interested(bool v)       {
     if (v)
       m_down.mark_interested();
@@ -55,8 +60,6 @@ public:
       m_down.withhold_interest();
     else
       m_down.clear_interest_withheld();
-
-    m_down.mark_not_interested();
   }
   void remote_unchoked()        { m_down.mark_unchoked(); m_down.mark_interested(); }
 };
@@ -402,7 +405,7 @@ test_download_slot_rotation::test_balance_does_not_rotate() {
 void
 test_download_slot_rotation::test_interest_restored_after_remote_choke() {
   slot_connection c;
-  c.withheld();
+  c.initalize_withhold_state();
 
   CPPUNIT_ASSERT(c.is_down_interest_withheld());
   CPPUNIT_ASSERT(c.restore_down_interest(false));
@@ -416,7 +419,7 @@ test_download_slot_rotation::test_interest_restored_after_remote_choke() {
 void
 test_download_slot_rotation::test_interest_not_restored_when_done() {
   slot_connection c;
-  c.withheld();
+  c.initalize_withhold_state();
 
   CPPUNIT_ASSERT(!c.restore_down_interest(true));
   CPPUNIT_ASSERT(!c.is_interested());
@@ -426,7 +429,7 @@ test_download_slot_rotation::test_interest_not_restored_when_done() {
 void
 test_download_slot_rotation::test_interest_kept_after_rotation() {
   slot_connection c;
-  c.withheld();
+  c.initalize_withhold_state();
   c.keep_down_interest();
 
   CPPUNIT_ASSERT(c.is_interested() && !c.sends_interested() && !c.is_down_interest_withheld());
