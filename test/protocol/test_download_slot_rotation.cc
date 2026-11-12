@@ -56,6 +56,8 @@ public:
     m_down.withhold_interest_and_schedule();
   }
   void remote_unchoked()        { m_down.mark_unchoked(); m_down.mark_interested(); }
+
+  auto& down_test() { return m_down; }
 };
 
 // The entry's list moves are for choke_queue and PeerConnectionBase; the test's slot does what
@@ -402,12 +404,12 @@ test_download_slot_rotation::test_interest_restored_after_remote_choke() {
   c.initalize_withhold_state();
 
   CPPUNIT_ASSERT(c.down().is_interest_withheld());
-  CPPUNIT_ASSERT(c.restore_down_interest(false));
+  CPPUNIT_ASSERT(c.down_test().restore_interest(false));
   CPPUNIT_ASSERT(c.is_interested() && c.sends_interested());
   CPPUNIT_ASSERT(!c.down().is_interest_withheld());
 
   // Once only: another choke later finds nothing withheld.
-  CPPUNIT_ASSERT(!c.restore_down_interest(false));
+  CPPUNIT_ASSERT(!c.down_test().restore_interest(false));
 }
 
 void
@@ -415,7 +417,7 @@ test_download_slot_rotation::test_interest_not_restored_when_done() {
   slot_connection c;
   c.initalize_withhold_state();
 
-  CPPUNIT_ASSERT(!c.restore_down_interest(true));
+  CPPUNIT_ASSERT(!c.down_test().restore_interest(true));
   CPPUNIT_ASSERT(!c.is_interested());
   CPPUNIT_ASSERT(!c.down().is_interest_withheld());
 }
@@ -424,14 +426,14 @@ void
 test_download_slot_rotation::test_interest_kept_after_rotation() {
   slot_connection c;
   c.initalize_withhold_state();
-  c.keep_down_interest();
+  c.down_test().keep_interest();
 
   CPPUNIT_ASSERT(c.is_interested() && !c.sends_interested() && !c.down().is_interest_withheld());
 
   // A peer we are not interested in for its pieces stays so.
   slot_connection d;
   d.interested(false);
-  d.keep_down_interest();
+  d.down_test().keep_interest();
 
   CPPUNIT_ASSERT(!d.is_interested() && !d.sends_interested());
 }
@@ -441,7 +443,7 @@ test_download_slot_rotation::test_interest_untouched_when_not_withheld() {
   slot_connection c;
   c.interested(false);  // not interested because it has nothing we want
 
-  CPPUNIT_ASSERT(!c.restore_down_interest(false));
+  CPPUNIT_ASSERT(!c.down_test().restore_interest(false));
   CPPUNIT_ASSERT(!c.is_interested() && !c.sends_interested());
 }
 

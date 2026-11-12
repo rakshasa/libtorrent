@@ -270,7 +270,7 @@ choke_queue::rotate_entry(group_entry* entry) {
     fastest_out = std::max(fastest_out, pcb->peer_chunks()->download_throttle()->rate()->rate());
 
     m_slotConnection(pcb, true);
-    pcb->keep_down_interest();
+    pcb->down_mutable().keep_interest();
     count++;
   }
 

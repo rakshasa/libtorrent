@@ -45,11 +45,8 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  const auto&         up() const               { return m_up; }
-  const auto&         down() const             { return m_down; }
-
-  bool                restore_down_interest(bool download_done);
-  void                keep_down_interest();
+  const auto&         up() const                      { return m_up; }
+  const auto&         down() const                    { return m_down; }
 
   void                set_upload_snubbed(bool v);
 
@@ -87,8 +84,6 @@ public:
 
   void                event_error() override;
 
-  void                push_unread(const void* data, uint32_t size);
-
   void                cancel_transfer(BlockTransfer* transfer);
 
   // Insert into the poll unless we're blocking for throttling etc.
@@ -101,7 +96,12 @@ public:
   bool                should_connection_unchoke(choke_queue* cq) const;
 
 protected:
+  friend class choke_queue;
+  friend class HandshakeManager;
+
   static constexpr uint32_t extension_must_encrypt = ~uint32_t();
+
+  auto&               down_mutable();
 
   void                load_up_chunk();
 
@@ -161,11 +161,7 @@ protected:
   bool                m_incore_continous{};
 };
 
-inline void
-PeerConnectionBase::push_unread(const void* data, uint32_t size) {
-  std::memcpy(m_down.protocol->buffer()->end(), data, size);
-  m_down.protocol->buffer()->move_end(size);
-}
+inline auto& PeerConnectionBase::down_mutable() { return m_down; }
 
 inline void
 PeerConnectionBase::read_insert_poll_safe() {

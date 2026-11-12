@@ -2,6 +2,7 @@
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_STATE_H
 
 #include <cstdint>
+#include <cstring>
 #include <memory>
 
 #include "data/chunk_handle.h"
@@ -46,9 +47,11 @@ struct StateUp : StateBase {
   bool                has_pending_pex_toggle() const;
   bool                has_pending_pex_enable() const;
   bool                has_pending_pex_exchange() const;
+
   void                schedule_pex_exchange();
   void                schedule_pex_enable();
   void                schedule_pex_disable();
+
   void                clear_pending_pex_toggle();
   void                clear_pending_pex_exchange();
   void                clear_pending_pex();
@@ -61,11 +64,15 @@ private:
 };
 
 struct StateDown : StateBase {
+
   bool                is_interested() const;
   bool                is_interest_withheld() const;
   bool                is_unchoked() const;
   bool                is_local_unchoked() const;
   bool                is_queued() const;
+
+  bool                restore_interest(bool download_done);
+  void                keep_interest();
 
   void                mark_interested();
   void                mark_not_interested();
@@ -81,6 +88,8 @@ struct StateDown : StateBase {
 
   void                mark_choked();
   void                mark_unchoked();
+
+  void                push_unread(const void* data, uint32_t size) const;
 
   uint32_t            stall{};
 
@@ -128,6 +137,35 @@ inline void StateDown::clear_pending_interest()           { m_send_interested = 
 
 inline void StateDown::mark_choked()                      { m_unchoked = false; }
 inline void StateDown::mark_unchoked()                    { m_unchoked = true; }
+
+// Restore withheld interest unless the download is complete.
+inline bool StateDown::restore_interest(bool download_done) {
+  if (!is_interest_withheld())
+    return false;
+
+  clear_interest_withheld();
+
+  if (download_done || is_interested())
+    return false;
+
+  mark_interested_and_schedule();
+  return true;
+}
+
+// Keep interest while a rotated download slot is unavailable.
+inline void StateDown::keep_interest() {
+  if (!is_interest_withheld())
+    return;
+
+  clear_interest_withheld();
+  mark_interested();
+  clear_pending_interest();
+}
+
+inline void StateDown::push_unread(const void* data, uint32_t size) const {
+  std::memcpy(protocol->buffer()->end(), data, size);
+  protocol->buffer()->move_end(size);
+}
 
 inline void StateDown::mark_interested_and_schedule_if_changed() {
   m_send_interested = !m_interested;

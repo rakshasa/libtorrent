@@ -191,7 +191,7 @@ PeerConnection<type>::read_message() {
     // manager?
     m_down.mark_choked();
 
-    if (restore_down_interest(m_download->file_list()->is_done()))
+    if (m_down.restore_interest(m_download->file_list()->is_done()))
       write_insert_poll_safe();
 
     down_chunk_release();
