@@ -143,7 +143,7 @@ UdpRouter::updated_network_config(int family) {
     return;
   }
 
-  if (bind_address->sa_family != family)
+  if (bind_address->sa_family != family && bind_address->sa_family != AF_UNSPEC)
     throw internal_error("UdpRouter::updated_network_config() got bind address with wrong family.");
 
   if (sa_equal(bind_address.get(), socket_address()) && device_name == socket_device_name())
