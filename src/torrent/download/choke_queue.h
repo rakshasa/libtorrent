@@ -88,7 +88,7 @@ public:
 
   // On each cycle() a torrent whose download slots are all held while peers wait for one gives the slots of its
   // slowest holders to them (rotate_entry): rotate_count() of its slots, never a slot held for less than rotate_grace
-  // (a rate is measured over 30 s). The torrent stays interested in those peers (PeerConnectionBase::keep_down_interest).
+  // (a rate is measured over 30 s). The torrent stays interested while a slot is rotated.
   static constexpr std::chrono::seconds rotate_grace{25};
 
   // max_alternate()'s rule: 2 of 15, 4 of 25, 5 of 50, 10 of 100.
