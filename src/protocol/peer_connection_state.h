@@ -20,31 +20,59 @@ namespace torrent::protocol {
 // For the down state, 'queued' now means the same as the spec's 'unchoked',
 // while 'unchoked' means we start requesting pieces.
 
-using ProtocolRead  = ProtocolBase;
-using ProtocolWrite = ProtocolBase;
-
 struct StateBase {
-  choke_status choke;
-  ChunkHandle  chunk;
+  using protocol_ptr = std::unique_ptr<ProtocolBase>;
+
+  choke_status        choke;
+  ChunkHandle         chunk;
+
+  protocol_ptr        protocol{std::make_unique<ProtocolBase>()};
 };
 
 struct StateUp : StateBase {
-  std::unique_ptr<ProtocolWrite> protocol{std::make_unique<ProtocolWrite>()};
-
-  Piece piece;
+  Piece               piece;
 };
 
 struct StateDown : StateBase {
-  std::unique_ptr<ProtocolRead> protocol{std::make_unique<ProtocolRead>()};
+  bool                is_interested() const;
+  bool                is_interest_withheld() const;
+  bool                is_unchoked() const;
 
-  uint32_t stall{};
+  void                mark_interested();
+  void                mark_not_interested();
 
-  bool interested{};
-  bool unchoked{};
+  bool                withhold_interest();
+  void                clear_interest_withheld();
+
+  void                mark_choked();
+  void                mark_unchoked();
+
+  uint32_t            stall{};
+
+private:
+  bool                m_interested{};
+  bool                m_unchoked{};
 
   // NOT_INTERESTED sent by a download choke, not by the pieces.
-  bool interest_withheld{};
+  bool                m_interest_withheld{};
 };
+
+inline bool StateDown::is_interested() const        { return m_interested; }
+inline bool StateDown::is_interest_withheld() const { return m_interest_withheld; }
+inline bool StateDown::is_unchoked() const          { return m_unchoked; }
+
+inline void StateDown::mark_interested()            { m_interested = true; }
+inline void StateDown::mark_not_interested()        { m_interested = false; }
+inline void StateDown::clear_interest_withheld()    { m_interest_withheld = false; }
+
+inline void StateDown::mark_choked()                { m_unchoked = false; }
+inline void StateDown::mark_unchoked()              { m_unchoked = true; }
+
+inline bool StateDown::withhold_interest() {
+  m_interest_withheld = m_interested;
+  m_interested        = false;
+  return m_interest_withheld;
+}
 
 } // namespace torrent::protocol
 

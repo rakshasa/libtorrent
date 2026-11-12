@@ -27,8 +27,8 @@ class DownloadMain;
 
 class PeerConnectionBase : public Peer, public SocketStream {
 public:
-  using ProtocolRead  = protocol::ProtocolRead;
-  using ProtocolWrite = protocol::ProtocolWrite;
+  using ProtocolRead  = ProtocolBase;
+  using ProtocolWrite = ProtocolBase;
 
 #if USE_EXTRA_DEBUG == 666
   // For testing, use a really small buffer.
@@ -56,8 +56,8 @@ public:
 
   bool                is_down_queued() const          { return m_down.choke.queued(); }
   bool                is_down_local_unchoked() const  { return m_down.choke.unchoked(); }
-  bool                is_down_remote_unchoked() const { return m_down.unchoked; }
-  bool                is_down_interest_withheld() const { return m_down.interest_withheld; }
+  bool                is_down_remote_unchoked() const { return m_down.is_unchoked(); }
+  bool                is_down_interest_withheld() const { return m_down.is_interest_withheld(); }
 
   // The peer choked us. A download choke that took its slot back told it we were not interested, so as not to hold
   // its upload slot (receive_download_choke); without its upload slot that is final: an unchoke from a peer we are
@@ -70,7 +70,7 @@ public:
   // receive_download_choke withheld; the slot was held for choke_queue::rotate_grace at least, so no INTERESTED of
   // ours is still unsent.
   void                keep_down_interest();
-  bool                is_down_interested() const      { return m_down.interested; }
+  bool                is_down_interested() const      { return m_down.is_interested(); }
 
   void                set_upload_snubbed(bool v);
 
