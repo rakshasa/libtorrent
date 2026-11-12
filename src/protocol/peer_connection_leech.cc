@@ -73,8 +73,7 @@ PeerConnection<type>::update_interested() {
   // bitfield. The status might change by the time we get unchoked
   // anyway.
 
-  m_up.schedule_interest();
-  m_down.mark_interested();
+  m_down.mark_interested_and_schedule();
 
   // Hmm... does this belong here, or should we insert ourselves into
   // the queue when we receive the unchoke?
@@ -519,9 +518,9 @@ PeerConnection<type>::fill_write_buffer() {
   // e.g. BitTornado 0.7.14 and uTorrent 0.3.0, disconnect if a
   // request has been received while uninterested. The problem arises
   // as they send unchoke before receiving interested.
-  if (type == Download::CONNECTION_LEECH && m_up.has_pending_interest() && m_up.protocol->can_write_interested()) {
+  if (type == Download::CONNECTION_LEECH && m_down.has_pending_interest() && m_up.protocol->can_write_interested()) {
     m_up.protocol->write_interested(m_down.is_interested());
-    m_up.clear_pending_interest();
+    m_down.clear_pending_interest();
   }
 
   if (type == Download::CONNECTION_LEECH && m_tryRequest) {
@@ -529,8 +528,7 @@ PeerConnection<type>::fill_write_buffer() {
         !(m_tryRequest = try_request_pieces()) &&
 
         !request_list()->is_interested_in_active()) {
-      m_up.schedule_interest();
-      m_down.mark_not_interested();
+      m_down.mark_not_interested_and_schedule();
 
       m_download->choke_group()->down_queue()->set_not_queued(this, &m_down.choke);
     }
@@ -693,7 +691,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   if (type != Download::CONNECTION_LEECH || m_download->file_list()->is_done())
     return;
 
-  if (is_down_interested()) {
+  if (m_down.is_interested()) {
 
     if (!m_tryRequest && m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
       m_tryRequest = true;
@@ -703,11 +701,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   } else {
 
     if (m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
-      if (!m_down.is_interested())
-        m_up.schedule_interest();
-      else
-        m_up.clear_pending_interest();
-      m_down.mark_interested();
+      m_down.mark_interested_and_schedule_if_changed();
 
       // Ensure we get inserted into the choke manager queue in case
       // the peer keeps us unchoked even though we've said we're not

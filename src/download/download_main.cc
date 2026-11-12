@@ -360,14 +360,14 @@ DownloadMain::do_peer_exchange() {
       m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
     m_info->set_flags(DownloadInfo::flag_pex_active);
 
-    // Only set PEX_ENABLE if we don't have max_size_pex set to zero.
+    // Only enable PEX if we don't have max_size_pex set to zero.
     if (m_info->size_pex() < m_info->max_size_pex())
-      togglePex = PeerConnectionBase::PEX_ENABLE;
+      togglePex = protocol::StateUp::PEX_ENABLE;
 
   } else if (m_info->is_pex_active() &&
              m_connectionList->size() >= m_connectionList->min_size()) {
 //              m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
-    togglePex = PeerConnectionBase::PEX_DISABLE;
+    togglePex = protocol::StateUp::PEX_DISABLE;
     m_info->unset_flags(DownloadInfo::flag_pex_active);
   }
 
@@ -400,7 +400,7 @@ DownloadMain::do_peer_exchange() {
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;
 
-    if (togglePex == PeerConnectionBase::PEX_ENABLE) {
+    if (togglePex == protocol::StateUp::PEX_ENABLE) {
       pcb->set_peer_exchange(true);
 
       if (m_info->size_pex() >= m_info->max_size_pex())
@@ -409,7 +409,7 @@ DownloadMain::do_peer_exchange() {
     } else if (!pcb->extensions()->is_local_enabled(ProtocolExtension::UT_PEX)) {
       continue;
 
-    } else if (togglePex == PeerConnectionBase::PEX_DISABLE) {
+    } else if (togglePex == protocol::StateUp::PEX_DISABLE) {
       pcb->set_peer_exchange(false);
 
       continue;

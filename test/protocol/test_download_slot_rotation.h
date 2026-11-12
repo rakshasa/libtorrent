@@ -19,6 +19,7 @@ class test_download_slot_rotation : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_interest_not_restored_when_done);
   CPPUNIT_TEST(test_interest_kept_after_rotation);
   CPPUNIT_TEST(test_interest_untouched_when_not_withheld);
+  CPPUNIT_TEST(test_interest_notification_transitions);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -39,4 +40,5 @@ public:
   void test_interest_not_restored_when_done();
   void test_interest_kept_after_rotation();
   void test_interest_untouched_when_not_withheld();
+  void test_interest_notification_transitions();
 };
