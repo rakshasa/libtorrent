@@ -31,9 +31,8 @@ public:
 
   // What receive_download_choke(true) leaves when the peer still unchokes us: NOT_INTERESTED on its way.
   void initalize_withhold_state() {
-    m_up.schedule_interest();
     m_down.mark_interested();
-    m_down.withhold_interest();
+    m_down.withhold_interest_and_schedule();
   }
 
   void interested(bool v)       {
@@ -42,25 +41,19 @@ public:
     else
       m_down.mark_not_interested();
 
-    m_up.clear_pending_interest();
+    m_down.clear_pending_interest();
     m_down.clear_interest_withheld();
   }
 
   bool is_interested() const    { return m_down.is_interested(); }
-  bool sends_interested() const { return m_up.has_pending_interest(); }
+  bool sends_interested() const { return m_down.has_pending_interest(); }
 
   // What the rig's slot does for a slot taken back from a peer that still unchokes us, as receive_download_choke does.
   void choked_by_queue() {
     if (!m_down.is_unchoked())
       return;
 
-    if (m_down.is_interested()) {
-      m_up.schedule_interest();
-      m_down.withhold_interest();
-    } else {
-      m_up.clear_pending_interest();
-      m_down.clear_interest_withheld();
-    }
+    m_down.withhold_interest_and_schedule();
   }
   void remote_unchoked()        { m_down.mark_unchoked(); m_down.mark_interested(); }
 };
@@ -193,7 +186,7 @@ test_download_slot_rotation::test_cycle_rotates_full_torrent() {
   CPPUNIT_ASSERT(t.choked[0] == silent);                     // the slots went back first
 
   // Still interested in the two: they wait in the queue, no NOT_INTERESTED goes out.
-  CPPUNIT_ASSERT(silent->is_interested() && !silent->sends_interested() && !silent->is_down_interest_withheld());
+  CPPUNIT_ASSERT(silent->is_interested() && !silent->sends_interested() && !silent->down().is_interest_withheld());
   CPPUNIT_ASSERT(holders[0]->is_interested() && !holders[0]->sends_interested());
 }
 
@@ -408,10 +401,10 @@ test_download_slot_rotation::test_interest_restored_after_remote_choke() {
   slot_connection c;
   c.initalize_withhold_state();
 
-  CPPUNIT_ASSERT(c.is_down_interest_withheld());
+  CPPUNIT_ASSERT(c.down().is_interest_withheld());
   CPPUNIT_ASSERT(c.restore_down_interest(false));
   CPPUNIT_ASSERT(c.is_interested() && c.sends_interested());
-  CPPUNIT_ASSERT(!c.is_down_interest_withheld());
+  CPPUNIT_ASSERT(!c.down().is_interest_withheld());
 
   // Once only: another choke later finds nothing withheld.
   CPPUNIT_ASSERT(!c.restore_down_interest(false));
@@ -424,7 +417,7 @@ test_download_slot_rotation::test_interest_not_restored_when_done() {
 
   CPPUNIT_ASSERT(!c.restore_down_interest(true));
   CPPUNIT_ASSERT(!c.is_interested());
-  CPPUNIT_ASSERT(!c.is_down_interest_withheld());
+  CPPUNIT_ASSERT(!c.down().is_interest_withheld());
 }
 
 void
@@ -433,7 +426,7 @@ test_download_slot_rotation::test_interest_kept_after_rotation() {
   c.initalize_withhold_state();
   c.keep_down_interest();
 
-  CPPUNIT_ASSERT(c.is_interested() && !c.sends_interested() && !c.is_down_interest_withheld());
+  CPPUNIT_ASSERT(c.is_interested() && !c.sends_interested() && !c.down().is_interest_withheld());
 
   // A peer we are not interested in for its pieces stays so.
   slot_connection d;
@@ -450,4 +443,25 @@ test_download_slot_rotation::test_interest_untouched_when_not_withheld() {
 
   CPPUNIT_ASSERT(!c.restore_down_interest(false));
   CPPUNIT_ASSERT(!c.is_interested() && !c.sends_interested());
+}
+
+void
+test_download_slot_rotation::test_interest_notification_transitions() {
+  torrent::protocol::StateDown state;
+
+  state.mark_interested_and_schedule_if_changed();
+  CPPUNIT_ASSERT(state.is_interested() && state.has_pending_interest());
+
+  state.mark_interested_and_schedule_if_changed();
+  CPPUNIT_ASSERT(state.is_interested() && !state.has_pending_interest());
+
+  state.mark_interested_and_schedule();
+  state.withhold_interest_and_schedule();
+  CPPUNIT_ASSERT(!state.is_interested() && state.is_interest_withheld() && state.has_pending_interest());
+
+  state.withhold_interest_and_schedule();
+  CPPUNIT_ASSERT(!state.is_interested() && !state.is_interest_withheld() && !state.has_pending_interest());
+
+  state.mark_not_interested_and_schedule();
+  CPPUNIT_ASSERT(!state.is_interested() && state.has_pending_interest());
 }

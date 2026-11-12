@@ -702,7 +702,7 @@ calculate_upload_choke(choke_queue::iterator first, choke_queue::iterator last) 
 static void
 calculate_upload_unchoke(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
-    if (first->connection->is_down_local_unchoked()) {
+    if (first->connection->down().is_local_unchoked()) {
       uint32_t downloadRate = first->connection->peer_chunks()->download_throttle()->rate()->rate() / 16;
 
       // If the peer transmits at less than 1KB, we should consider it
@@ -780,8 +780,8 @@ calculate_choke_upload_leech_experimental(choke_queue::iterator first, choke_que
 static void
 calculate_unchoke_upload_leech_experimental(choke_queue::iterator first, choke_queue::iterator last) {
   while (first != last) {
-    // Consider checking for is_down_remote_unchoked().
-    if (first->connection->is_down_local_unchoked()) {
+    // Consider checking for down().is_unchoked().
+    if (first->connection->down().is_local_unchoked()) {
       int multiplier = 1 + 3 * first->connection->peer_info()->is_preferred();
 
       uint32_t download_rate = first->connection->peer_chunks()->download_throttle()->rate()->rate() / 64;

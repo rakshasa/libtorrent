@@ -127,8 +127,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   m_peer_chunks.download_cache()->clear();
 
   if (!m_download->file_list()->is_done()) {
-    m_up.schedule_interest();
-    m_down.mark_interested();
+    m_down.mark_interested_and_schedule();
   }
 }
 
@@ -270,10 +269,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
       // ChokeManager::cycle(...) can attempt to get us unchoked
       // again.
 
-      if (m_down.withhold_interest())
-        m_up.schedule_interest();
-      else
-        m_up.clear_pending_interest();
+      m_down.withhold_interest_and_schedule();
 
     } else {
       // Remove from queue so that an unchoke from the remote peer
@@ -300,8 +296,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
       // out of the queue. So if the peer unchokes us at a later time,
       // we skip the queue and unchoke immediately.
 
-      m_up.schedule_interest();
-      m_down.mark_interested();
+      m_down.mark_interested_and_schedule();
     }
   }
 
@@ -399,8 +394,7 @@ PeerConnectionBase::restore_down_interest(bool download_done) {
   if (download_done || m_down.is_interested())
     return false;
 
-  m_up.schedule_interest();
-  m_down.mark_interested();
+  m_down.mark_interested_and_schedule();
   return true;
 }
 
@@ -411,7 +405,7 @@ PeerConnectionBase::keep_down_interest() {
 
   m_down.clear_interest_withheld();
   m_down.mark_interested();
-  m_up.clear_pending_interest();
+  m_down.clear_pending_interest();
 }
 
 bool

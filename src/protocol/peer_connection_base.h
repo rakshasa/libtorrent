@@ -37,11 +37,6 @@ public:
   using EncryptBuffer = ProtocolBuffer<16384>;
 #endif
 
-  // Bitmasks for peer exchange messages to send.
-  static constexpr int PEX_DO      = protocol::StateUp::PEX_DO;
-  static constexpr int PEX_ENABLE  = protocol::StateUp::PEX_ENABLE;
-  static constexpr int PEX_DISABLE = protocol::StateUp::PEX_DISABLE;
-
   PeerConnectionBase();
   ~PeerConnectionBase() override;
 
@@ -50,14 +45,8 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  bool                is_up_choked() const            { return m_up.is_choked(); }
-  bool                is_up_interested() const        { return m_up.is_interested(); }
-  bool                is_up_snubbed() const           { return m_up.is_snubbed(); }
-
-  bool                is_down_queued() const          { return m_down.choke.queued(); }
-  bool                is_down_local_unchoked() const  { return m_down.choke.unchoked(); }
-  bool                is_down_remote_unchoked() const { return m_down.is_unchoked(); }
-  bool                is_down_interest_withheld() const { return m_down.is_interest_withheld(); }
+  const protocol::StateUp&   up() const               { return m_up; }
+  const protocol::StateDown& down() const             { return m_down; }
 
   // The peer choked us. A download choke that took its slot back told it we were not interested, so as not to hold
   // its upload slot (receive_download_choke); without its upload slot that is final: an unchoke from a peer we are
@@ -70,8 +59,6 @@ public:
   // receive_download_choke withheld; the slot was held for choke_queue::rotate_grace at least, so no INTERESTED of
   // ours is still unsent.
   void                keep_down_interest();
-  bool                is_down_interested() const      { return m_down.is_interested(); }
-
   void                set_upload_snubbed(bool v);
 
   bool                is_seeder() const               { return m_peer_chunks.is_seeder(); }

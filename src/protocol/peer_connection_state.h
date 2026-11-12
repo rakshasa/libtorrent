@@ -42,10 +42,6 @@ struct StateUp : StateBase {
   void                schedule_choke();
   void                clear_pending_choke();
 
-  bool                has_pending_interest() const;
-  void                schedule_interest();
-  void                clear_pending_interest();
-
   bool                has_pending_pex() const;
   bool                has_pending_pex_toggle() const;
   bool                has_pending_pex_enable() const;
@@ -61,7 +57,6 @@ struct StateUp : StateBase {
 
 private:
   bool                m_send_choked{};
-  bool                m_send_interested{};
   int                 m_send_pex_mask{};
 };
 
@@ -72,10 +67,6 @@ inline bool StateUp::is_snubbed() const               { return choke.snubbed(); 
 inline bool StateUp::has_pending_choke() const        { return m_send_choked; }
 inline void StateUp::schedule_choke()                 { m_send_choked = true; }
 inline void StateUp::clear_pending_choke()            { m_send_choked = false; }
-
-inline bool StateUp::has_pending_interest() const     { return m_send_interested; }
-inline void StateUp::schedule_interest()              { m_send_interested = true; }
-inline void StateUp::clear_pending_interest()         { m_send_interested = false; }
 
 inline bool StateUp::has_pending_pex() const          { return m_send_pex_mask != 0; }
 inline bool StateUp::has_pending_pex_toggle() const   { return m_send_pex_mask & (PEX_ENABLE | PEX_DISABLE); }
@@ -92,12 +83,20 @@ struct StateDown : StateBase {
   bool                is_interested() const;
   bool                is_interest_withheld() const;
   bool                is_unchoked() const;
+  bool                is_local_unchoked() const;
+  bool                is_queued() const;
 
   void                mark_interested();
   void                mark_not_interested();
+  void                mark_interested_and_schedule();
+  void                mark_not_interested_and_schedule();
+  void                mark_interested_and_schedule_if_changed();
 
-  bool                withhold_interest();
+  void                withhold_interest_and_schedule();
   void                clear_interest_withheld();
+
+  bool                has_pending_interest() const;
+  void                clear_pending_interest();
 
   void                mark_choked();
   void                mark_unchoked();
@@ -107,6 +106,7 @@ struct StateDown : StateBase {
 private:
   bool                m_interested{};
   bool                m_unchoked{};
+  bool                m_send_interested{};
 
   // NOT_INTERESTED sent by a download choke, not by the pieces.
   bool                m_interest_withheld{};
@@ -115,18 +115,25 @@ private:
 inline bool StateDown::is_interested() const        { return m_interested; }
 inline bool StateDown::is_interest_withheld() const { return m_interest_withheld; }
 inline bool StateDown::is_unchoked() const          { return m_unchoked; }
+inline bool StateDown::is_local_unchoked() const    { return choke.unchoked(); }
+inline bool StateDown::is_queued() const            { return choke.queued(); }
 
 inline void StateDown::mark_interested()            { m_interested = true; }
 inline void StateDown::mark_not_interested()        { m_interested = false; }
+inline void StateDown::mark_interested_and_schedule() { m_interested = true; m_send_interested = true; }
+inline void StateDown::mark_not_interested_and_schedule() { m_interested = false; m_send_interested = true; }
+inline void StateDown::mark_interested_and_schedule_if_changed() { m_send_interested = !m_interested; m_interested = true; }
 inline void StateDown::clear_interest_withheld()    { m_interest_withheld = false; }
+inline bool StateDown::has_pending_interest() const { return m_send_interested; }
+inline void StateDown::clear_pending_interest()     { m_send_interested = false; }
 
 inline void StateDown::mark_choked()                { m_unchoked = false; }
 inline void StateDown::mark_unchoked()              { m_unchoked = true; }
 
-inline bool StateDown::withhold_interest() {
+inline void StateDown::withhold_interest_and_schedule() {
   m_interest_withheld = m_interested;
+  m_send_interested   = m_interested;
   m_interested        = false;
-  return m_interest_withheld;
 }
 
 } // namespace torrent::protocol
