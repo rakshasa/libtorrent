@@ -460,10 +460,15 @@ PeerConnection<type>::event_read() {
   // Exception handlers:
 
   } catch (const close_connection&) {
-    m_download->connection_list()->erase(this, 0);
+    // The peer closed the connection (or reset it): its address can be dialled again.
+    m_download->connection_list()->erase(this, ConnectionList::disconnect_available);
 
   } catch (const blocked_connection&) {
     m_download->connection_list()->erase(this, 0);
+
+  } catch (const connection_error& e) {
+    LT_LOG_NETWORK_ERRORS("network read error: %s : %s", sa_pretty_str(m_peerInfo->socket_address()).c_str(), e.what());
+    m_download->connection_list()->erase(this, ConnectionList::disconnect_available);
 
   } catch (const network_error& e) {
     LT_LOG_NETWORK_ERRORS("network read error: %s : %s", sa_pretty_str(m_peerInfo->socket_address()).c_str(), e.what());
@@ -642,10 +647,15 @@ PeerConnection<type>::event_write() {
     } while (true);
 
   } catch (const close_connection&) {
-    m_download->connection_list()->erase(this, 0);
+    // The peer closed the connection (or reset it): its address can be dialled again.
+    m_download->connection_list()->erase(this, ConnectionList::disconnect_available);
 
   } catch (const blocked_connection&) {
     m_download->connection_list()->erase(this, 0);
+
+  } catch (const connection_error& e) {
+    LT_LOG_NETWORK_ERRORS("network write error: %s : %s", sa_pretty_str(m_peerInfo->socket_address()).c_str(), e.what());
+    m_download->connection_list()->erase(this, ConnectionList::disconnect_available);
 
   } catch (const network_error& e) {
     LT_LOG_NETWORK_ERRORS("network write error: %s : %s", sa_pretty_str(m_peerInfo->socket_address()).c_str(), e.what());

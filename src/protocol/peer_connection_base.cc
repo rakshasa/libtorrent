@@ -381,7 +381,8 @@ PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
 
 void
 PeerConnectionBase::event_error() {
-  m_download->connection_list()->erase(this, 0);
+  // The socket failed (a reset, an unreachable host): the peer's address can be dialled again.
+  m_download->connection_list()->erase(this, ConnectionList::disconnect_available);
 }
 
 bool
