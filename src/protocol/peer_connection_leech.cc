@@ -139,16 +139,15 @@ PeerConnection<type>::receive_keepalive() {
 template<Download::ConnectionType type>
 inline bool
 PeerConnection<type>::read_message() {
-  ProtocolBuffer<512>* buf = m_down.protocol->buffer();
+  auto* buf = m_down.protocol->buffer();
 
   if (buf->remaining() < 4)
     return false;
 
   // Remember the start of the message so we may reset it if we don't
   // have the whole message.
-  ProtocolBuffer<512>::iterator beginning = buf->position();
-
-  uint32_t length = buf->read_32();
+  auto beginning = buf->position();
+  auto length    = buf->read_32();
 
   if (length == 0) {
     // Keepalive message.
@@ -366,10 +365,13 @@ PeerConnection<type>::event_read() {
           if (type != Download::CONNECTION_LEECH)
             return ProtocolRead::buffer_size;
 
-          if (m_down.protocol->buffer()->remaining() == 0 && request_list()->pipe_size() != 0)
+          if (m_peer_chunks.is_seeder())
             return ProtocolRead::sizeof_piece;
 
-          return ProtocolRead::buffer_size;
+          if (m_down.protocol->buffer()->remaining() == 0 && request_list()->pipe_size() != 0)
+            return uint32_t{128};
+
+          return uint32_t{512};
         }();
 
         if (m_down.protocol->buffer()->size_end() < target) {
@@ -385,6 +387,7 @@ PeerConnection<type>::event_read() {
             m_encryption.decrypt(m_down.protocol->buffer()->end(), length);
 
           m_down.protocol->buffer()->move_end(length);
+
         } else {
           // At fill target with no room left but still an incomplete message
           // (corrupt length / hostile peer). Without this, remaining > 0 would

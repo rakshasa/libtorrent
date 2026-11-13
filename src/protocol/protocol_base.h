@@ -11,10 +11,10 @@ class ThrottleList;
 
 class ProtocolBase {
 public:
-  using Buffer    = ProtocolBuffer<512>;
-  using size_type = uint32_t;
+  static constexpr uint32_t buffer_size = 2048;
 
-  static constexpr size_type buffer_size = 512;
+  using size_type = uint32_t;
+  using Buffer    = ProtocolBuffer<buffer_size>;
 
   enum Protocol {
     CHOKE = 0,
