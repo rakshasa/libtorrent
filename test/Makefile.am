@@ -66,6 +66,8 @@ LibTorrent_Test_Protocol_SOURCES = $(LibTorrent_Test_Common) \
 	protocol/test_pex_added6.h \
 	protocol/test_pex_unroutable.cc \
 	protocol/test_pex_unroutable.h \
+	protocol/test_peer_redial.cc \
+	protocol/test_peer_redial.h \
 	../src/data/socket_file.cc \
 	../src/utils/fd_close_queue.cc
 

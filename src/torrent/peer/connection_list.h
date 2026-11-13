@@ -70,6 +70,12 @@ public:
   void                erase(PeerInfo* peerInfo, int flags);
 
   void                erase_remaining(iterator pos, int flags);
+
+  // Whether erase() puts a closed connection's peer back on the download's list to dial (PeerList::queue_redial
+  // then checks the peer itself): a close libtorrent did not choose (disconnect_available: the peer closed the
+  // connection, the socket failed or the peer went silent), while the download still downloads, and only a peer we
+  // dialled or one that sent us piece data. Pure: the tests drive it.
+  static bool         redial_wanted(int flags, bool downloading, bool incoming, uint64_t received);
   void                erase_seeders();
 
   iterator            find(const char* id);

@@ -61,6 +61,10 @@ public:
   uint32_t            last_handshake() const                { return m_lastHandshake; }
   void                set_last_handshake(uint32_t tvsec)    { m_lastHandshake = tvsec; }
 
+  // When PeerList last put the peer back on the list to dial after a connection closed (0: never).
+  uint32_t            last_redial() const                   { return m_lastRedial; }
+  void                set_last_redial(uint32_t tvsec)       { m_lastRedial = tvsec; }
+
   bool                supports_dht() const                  { return m_options[7] & 0x01; }
   bool                supports_extensions() const           { return m_options[5] & 0x10; }
 
@@ -104,6 +108,7 @@ private:
   uint32_t            m_transferCounter{0};
   uint32_t            m_lastConnection{0};
   uint32_t            m_lastHandshake{0};
+  uint32_t            m_lastRedial{0};
 
   uint16_t            m_listenPort{0};
 

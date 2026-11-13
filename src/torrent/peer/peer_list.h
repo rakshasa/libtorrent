@@ -49,6 +49,12 @@ public:
   static constexpr int disconnect_unwanted     = (1 << 2);
   static constexpr int disconnect_set_time     = (1 << 3);
 
+  // disconnect_available puts the peer's address, on its listen port, back on the list to dial (ConnectionList::erase
+  // asks for it only when a connection that worked closed while the download downloads). Not for a peer that sent
+  // a bad piece or is banned, an unwanted one, nor one without a listen port, and at most once every redial_interval
+  // seconds for a peer.
+  static constexpr uint32_t redial_interval    = 300;
+
   static constexpr int cull_old                = (1 << 0);
   static constexpr int cull_keep_interesting   = (1 << 1);
 
@@ -90,6 +96,8 @@ protected:
 private:
   PeerList(const PeerList&) = delete;
   PeerList& operator=(const PeerList&) = delete;
+
+  void                queue_redial(PeerInfo* peer_info) LIBTORRENT_NO_EXPORT;
 
   static ipv4_table   m_ipv4_table;
 
