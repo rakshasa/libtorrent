@@ -8,6 +8,7 @@
 #include "net/address_list.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "torrent/data/file_list.h"
 #include "torrent/download_info.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
@@ -95,6 +96,11 @@ ConnectionList::erase(iterator pos, int flags) {
 
   PeerConnectionBase* peerConnection = (*pos)->m_ptr();
 
+  auto info        = m_download->info();
+  bool downloading = info->is_active() && !info->is_meta_download() && !m_download->file_list()->is_done();
+  bool redial      = redial_wanted(flags, downloading, peerConnection->peer_info()->is_incoming(),
+                                   peerConnection->c_peer_chunks()->download_throttle()->rate()->total());
+
   // The connection must be erased from the list before the signal is
   // emited otherwise some listeners might do stuff with the
   // assumption that the connection will remain in the list.
@@ -110,12 +116,21 @@ ConnectionList::erase(iterator pos, int flags) {
   peerConnection->cleanup();
   peerConnection->mutable_peer_info()->set_connection(NULL);
 
-  m_download->peer_list()->disconnected(peerConnection->mutable_peer_info(), PeerList::disconnect_set_time);
+  m_download->peer_list()->disconnected(peerConnection->mutable_peer_info(),
+                                        PeerList::disconnect_set_time | (redial ? PeerList::disconnect_available : 0));
 
   // Delete after the signal to ensure the address of 'v' doesn't get
   // allocated for a different PCB in the signal.
   delete peerConnection;
   return pos;
+}
+
+bool
+ConnectionList::redial_wanted(int flags, bool downloading, bool incoming, uint64_t received) {
+  if (!(flags & disconnect_available) || (flags & disconnect_unwanted))
+    return false;
+
+  return downloading && (!incoming || received != 0);
 }
 
 void
