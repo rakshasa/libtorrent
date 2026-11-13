@@ -282,7 +282,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
     }
 
   } else {
-    m_tryRequest = true;
+    m_down.try_request = true;
     m_down.clear_interest_withheld();
 
     if (!m_down.is_interested()) {
@@ -429,6 +429,8 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
 void
 PeerConnectionBase::down_chunk_finished() {
+  m_down.try_request = true;
+
   if (!request_list()->transfer()->is_finished())
     throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
 

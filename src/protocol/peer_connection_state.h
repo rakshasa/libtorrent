@@ -91,6 +91,7 @@ struct StateDown : StateBase {
 
   void                push_unread(const void* data, uint32_t size) const;
 
+  bool                try_request{};
   uint32_t            stall{};
 
 private:
