@@ -103,7 +103,7 @@ PeerConnection<type>::receive_keepalive() {
   if (type != Download::CONNECTION_LEECH)
     return true;
 
-  m_tryRequest = true;
+  m_down.try_request = true;
 
   // Stall pieces when more than one receive_keepalive() has been
   // called while a single piece is downloading.
@@ -263,7 +263,6 @@ PeerConnection<type>::read_message() {
 
       // We don't want this chunk.
       if (down_chunk_skip_from_buffer()) {
-        m_tryRequest = true;
         down_chunk_finished();
         return true;
 
@@ -276,7 +275,6 @@ PeerConnection<type>::read_message() {
     } else {
 
       if (down_chunk_from_buffer()) {
-        m_tryRequest = true;
         down_chunk_finished();
         return true;
 
@@ -422,7 +420,6 @@ PeerConnection<type>::event_read() {
         if (!down_chunk())
           return;
 
-        m_tryRequest = true;
         m_down.protocol->set_state(ProtocolRead::IDLE);
         down_chunk_finished();
         break;
@@ -439,7 +436,6 @@ PeerConnection<type>::event_read() {
         if (!down_chunk_skip())
           return;
 
-        m_tryRequest = true;
         m_down.protocol->set_state(ProtocolRead::IDLE);
         down_chunk_finished();
         break;
@@ -489,7 +485,7 @@ PeerConnection<type>::event_read() {
 template<Download::ConnectionType type>
 inline void
 PeerConnection<type>::fill_write_buffer() {
-  ProtocolBuffer<512>::iterator old_end = m_up.protocol->buffer()->end();
+  auto old_end = m_up.protocol->buffer()->end();
 
   // No need to use delayed choke ever.
   if (m_up.has_pending_choke() && m_up.protocol->can_write_choke()) {
@@ -514,49 +510,52 @@ PeerConnection<type>::fill_write_buffer() {
     }
   }
 
-  // Send the interested state before any requests as some clients,
-  // e.g. BitTornado 0.7.14 and uTorrent 0.3.0, disconnect if a
-  // request has been received while uninterested. The problem arises
-  // as they send unchoke before receiving interested.
-  if (type == Download::CONNECTION_LEECH && m_down.has_pending_interest() && m_up.protocol->can_write_interested()) {
-    m_up.protocol->write_interested(m_down.is_interested());
-    m_down.clear_pending_interest();
-  }
-
-  if (type == Download::CONNECTION_LEECH && m_tryRequest) {
-    if (!(m_tryRequest = !should_request()) &&
-        !(m_tryRequest = try_request_pieces()) &&
-
-        !request_list()->is_interested_in_active()) {
-      m_down.mark_not_interested_and_schedule();
-
-      m_download->choke_group()->down_queue()->set_not_queued(this, &m_down.choke);
+  if (type == Download::CONNECTION_LEECH) {
+    // Send the interested state before any requests as some clients,
+    // e.g. BitTornado 0.7.14 and uTorrent 0.3.0, disconnect if a
+    // request has been received while uninterested. The problem arises
+    // as they send unchoke before receiving interested.
+    if (m_down.has_pending_interest() && m_up.protocol->can_write_interested()) {
+      m_up.protocol->write_interested(m_down.is_interested());
+      m_down.clear_pending_interest();
     }
+
+    if (m_down.try_request) {
+      if (!(m_down.try_request = !should_request()) &&
+          !(m_down.try_request = try_request_pieces()) &&
+
+          !request_list()->is_interested_in_active()) {
+        m_down.mark_not_interested_and_schedule();
+
+        m_download->choke_group()->down_queue()->set_not_queued(this, &m_down.choke);
+      }
+    }
+
+    auto* haveQueue = m_download->have_queue();
+
+    if (!haveQueue->empty() &&
+        m_peer_chunks.have_timer() <= haveQueue->front().first &&
+        m_up.protocol->can_write_have()) {
+
+      auto last = std::find_if(haveQueue->begin(), haveQueue->end(), [this](auto v) {
+        return m_peer_chunks.have_timer() > v.first;
+      });
+
+      do {
+        m_up.protocol->write_have((--last)->second);
+      } while (last != haveQueue->begin() && m_up.protocol->can_write_have());
+
+      m_peer_chunks.set_have_timer(last->first + 1us);
+    }
+
+    while (!m_peer_chunks.cancel_queue()->empty() && m_up.protocol->can_write_cancel())
+      m_up.protocol->write_cancel(m_peer_chunks.cancel_queue()->pop_front());
   }
 
-  DownloadMain::have_queue_type* haveQueue = m_download->have_queue();
-
-  if (type == Download::CONNECTION_LEECH &&
-      !haveQueue->empty() &&
-      m_peer_chunks.have_timer() <= haveQueue->front().first &&
-      m_up.protocol->can_write_have()) {
-
-    auto last = std::find_if(haveQueue->begin(), haveQueue->end(), [this](auto v) {
-      return m_peer_chunks.have_timer() > v.first;
-    });
-
-    do {
-      m_up.protocol->write_have((--last)->second);
-    } while (last != haveQueue->begin() && m_up.protocol->can_write_have());
-
-    m_peer_chunks.set_have_timer(last->first + 1us);
+  if (type == Download::CONNECTION_INITIAL_SEED) {
+    if (m_up.protocol->can_write_have())
+      offer_chunk();
   }
-
-  if (type == Download::CONNECTION_INITIAL_SEED && m_up.protocol->can_write_have())
-    offer_chunk();
-
-  while (type == Download::CONNECTION_LEECH && !m_peer_chunks.cancel_queue()->empty() && m_up.protocol->can_write_cancel())
-    m_up.protocol->write_cancel(m_peer_chunks.cancel_queue()->pop_front());
 
   if (m_up.has_pending_pex() && m_up.protocol->can_write_extension() &&
       send_pex_message()) {
@@ -693,8 +692,8 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
 
   if (m_down.is_interested()) {
 
-    if (!m_tryRequest && m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
-      m_tryRequest = true;
+    if (!m_down.try_request && m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
+      m_down.try_request = true;
       write_insert_poll_safe();
     }
 
@@ -712,7 +711,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
       // Is it enough to insert into write here? Make the interested
       // check branch to include insert_write, even when not sending
       // interested.
-      m_tryRequest = true;
+      m_down.try_request = true;
       write_insert_poll_safe();
     }
   }

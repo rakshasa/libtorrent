@@ -146,8 +146,6 @@ protected:
   protocol::StateUp   m_up;
   protocol::StateDown m_down;
 
-  bool                m_tryRequest{};
-
   std::chrono::microseconds m_time_last_read{};
 
   DataBuffer          m_extension_message;
