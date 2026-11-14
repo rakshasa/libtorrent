@@ -106,8 +106,8 @@ private:
   void                start_write();
 
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_response(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_error(const sockaddr* sa, const DhtMessage& error);
+  void                process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& req);
+  void                process_error(DhtTransaction::key_type key);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, const DhtMessage& res);
   void                add_search_contacts(DhtTransactionSearch* t, const DhtMessage& res);
@@ -130,11 +130,11 @@ private:
 
   // This returns the iterator after the given one or end()
   transaction_itr     failed_transaction(transaction_itr itr, bool quick);
+  transaction_itr     erase_transaction(transaction_itr itr);
 
   void                clear_transactions();
 
   void                process_queue(packet_queue& queue);
-  void                process_datagram(const char* buffer, int length, const sockaddr* sa);
   void                event_write();
   void                receive_timeout();
 

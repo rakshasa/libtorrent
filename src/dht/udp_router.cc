@@ -2,11 +2,14 @@
 
 #include "dht/udp_router.h"
 
+#include <cstdio>
 #include <cstring>
 
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/object_static_map.h"
+#include "torrent/object_stream.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/poll.h"
@@ -17,8 +20,10 @@
 
 namespace torrent::dht {
 
-UdpRouter::UdpRouter(process_func process, write_func read_done, write_func write)
-  : m_process(std::move(process)), m_read_done(std::move(read_done)), m_write(std::move(write)) {
+UdpRouter::UdpRouter(const HashString& id, query_func query, error_func error, inactive_func inactive,
+                     write_func read_done, write_func write)
+  : m_id(id), m_query(std::move(query)), m_error(std::move(error)), m_inactive(std::move(inactive)),
+    m_read_done(std::move(read_done)), m_write(std::move(write)) {
 }
 
 UdpRouter::~UdpRouter() {
@@ -114,6 +119,25 @@ UdpRouter::close() {
 }
 
 void
+UdpRouter::connect(key_type key, const sockaddr* address, connection_params params) {
+  if (address == nullptr || !DhtTransaction::key_match(key, address))
+    throw internal_error("dht::UdpRouter::connect() called with an invalid address.");
+
+  if (!params.process || !params.failure)
+    throw internal_error("dht::UdpRouter::connect() called without connection callbacks.");
+
+  if (!m_connections.emplace(key, connection_info{sa_copy(address), std::move(params.process),
+                                                    std::move(params.failure)}).second)
+    throw internal_error("dht::UdpRouter::connect() called with an existing transaction key.");
+}
+
+void
+UdpRouter::disconnect(key_type key) {
+  if (m_connections.erase(key) != 1)
+    throw internal_error("dht::UdpRouter::disconnect() called with an invalid transaction key.");
+}
+
+void
 UdpRouter::start_write() {
   this_thread::poll()->insert_write(this);
 }
@@ -121,6 +145,109 @@ UdpRouter::start_write() {
 void
 UdpRouter::stop_write() {
   this_thread::poll()->remove_write(this);
+}
+
+void
+UdpRouter::process_datagram(const char* buffer, int length, const sockaddr* sa) {
+  int type = '?';
+  DhtMessage message;
+  raw_string nodeIdStr;
+  const HashString* nodeId = NULL;
+
+  try {
+    // If it's not a valid bencode dictionary at all, it's probably not a DHT
+    // packet at all, so we don't throw an error to prevent bounce loops.
+    try {
+      static_map_read_bencode(buffer, buffer + length, message);
+    } catch (const bencode_error&) {
+      return;
+    }
+
+    if (!message[key_t].is_raw_string())
+      throw DhtError(dht_error_protocol, "No transaction ID");
+
+    // Restrict the length of Transaction IDs. We echo them in our replies.
+    if (message[key_t].as_raw_string().size() > 20)
+      throw DhtError(dht_error_protocol, "Transaction ID length too long");
+
+    if (!message[key_y].is_raw_string())
+      throw DhtError(dht_error_protocol, "No message type");
+
+    if (message[key_y].as_raw_string().size() != 1)
+      throw DhtError(dht_error_bad_method, "Unsupported message type");
+
+    type = message[key_y].as_raw_string().data()[0];
+
+    // Queries and replies have node ID in different dictionaries.
+    if (type == 'r' || type == 'q') {
+      if (!message[type == 'q' ? key_a_id : key_r_id].is_raw_string())
+        throw DhtError(dht_error_protocol, "Invalid `id' value");
+
+      nodeIdStr = message[type == 'q' ? key_a_id : key_r_id].as_raw_string();
+
+      if (nodeIdStr.size() < HashString::size_data)
+        throw DhtError(dht_error_protocol, "`id' value too short");
+
+      nodeId = HashString::cast_from(nodeIdStr.data());
+    }
+
+    // Sanity check the returned transaction ID.
+    if ((type == 'r' || type == 'e') &&
+        (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() != 1))
+      throw DhtError(dht_error_protocol, "Invalid transaction ID type/length.");
+
+    // Stupid broken implementations.
+    if (nodeId != NULL && *nodeId == m_id)
+      throw DhtError(dht_error_protocol, "Send your own ID, not mine");
+
+    switch (type) {
+      case 'q':
+        m_query(*nodeId, sa, message);
+        break;
+
+      case 'r':
+      case 'e': {
+        auto id = static_cast<unsigned char>(message[key_t].as_raw_string().data()[0]);
+        auto key = DhtTransaction::key(sa, id);
+        auto itr = m_connections.find(key);
+
+        if (itr == m_connections.end() || !sa_equal_addr(sa, itr->second.address.get()))
+          break;
+
+        if (type == 'r') {
+          auto process = itr->second.process;
+          process(key, *nodeId, sa, message);
+        } else {
+          auto failure = itr->second.failure;
+          failure(key, sa, message);
+        }
+        break;
+      }
+
+      default:
+        throw DhtError(dht_error_bad_method, "Unknown message type.");
+    }
+
+  // If node was querying us, reply with error packet, otherwise mark the node as "query failed",
+  // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
+  // to other nodes.
+  } catch (const bencode_error& e) {
+    if ((type == 'r' || type == 'e') && nodeId != NULL) {
+      m_inactive(*nodeId, sa);
+    } else {
+      snprintf(message.data_end, message.data + torrent::DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
+      message.data[torrent::DhtMessage::data_size - 1] = '\0';
+      m_error(message, sa, dht_error_protocol, message.data_end);
+    }
+
+  } catch (const DhtError& e) {
+    if ((type == 'r' || type == 'e') && nodeId != NULL)
+      m_inactive(*nodeId, sa);
+    else
+      m_error(message, sa, e.code(), e.what());
+
+  } catch (const network_error&) {
+  }
 }
 
 void
@@ -140,7 +267,7 @@ UdpRouter::event_read() {
     }
 
     if (sa->sa_family == socket_address()->sa_family)
-      m_process(buffer, read, sa);
+      process_datagram(buffer, read, sa);
   }
 
   m_read_done();
