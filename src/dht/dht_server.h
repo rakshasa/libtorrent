@@ -7,7 +7,7 @@
 #include <set>
 
 #include "dht/dht_transaction.h"
-#include "net/socket_datagram.h"
+#include "dht/udp_router.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
 #include "torrent/system/scheduler.h"
@@ -27,14 +27,12 @@ class TrackerDht;
 
 // UDP server that handles the DHT node communications.
 
-class DhtServer : public SocketDatagram {
+class DhtServer {
 public:
   DhtServer(DhtRouter* self);
-  ~DhtServer() override;
+  ~DhtServer();
 
-  const char*         type_name() const override         { return "dht"; }
-
-  bool                is_active() const                  { return is_open(); }
+  bool                is_active() const                  { return m_udp_router.is_open(); }
 
   void                start(int port);
   void                stop();
@@ -66,10 +64,6 @@ public:
   void                check_search_completed(std::shared_ptr<dht::DhtSearch> search);
   void                check_search_trimming(std::shared_ptr<dht::DhtSearch> search);
 
-  void                event_read() override;
-  void                event_write() override;
-  void                event_error() override;
-
 private:
   // DHT error codes.
   static constexpr int dht_error_generic    = 201;
@@ -77,8 +71,6 @@ private:
   static constexpr int dht_error_protocol   = 203;
   static constexpr int dht_error_bad_method = 204;
 
-  // Bound work and state created from a single readable socket event.
-  static constexpr unsigned int max_read_datagrams = 64;
   static constexpr size_t       max_reply_packets  = 1024;
   static constexpr size_t       max_transactions   = 1024;
 
@@ -114,8 +106,8 @@ private:
   void                start_write();
 
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_response(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_error(const sockaddr* sa, const DhtMessage& error);
+  void                process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& req);
+  void                process_error(DhtTransaction::key_type key);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, const DhtMessage& res);
   void                add_search_contacts(DhtTransactionSearch* t, const DhtMessage& res);
@@ -138,13 +130,16 @@ private:
 
   // This returns the iterator after the given one or end()
   transaction_itr     failed_transaction(transaction_itr itr, bool quick);
+  transaction_itr     erase_transaction(transaction_itr itr);
 
   void                clear_transactions();
 
   void                process_queue(packet_queue& queue);
+  void                event_write();
   void                receive_timeout();
 
   DhtRouter*          m_router{};
+  dht::UdpRouter      m_udp_router;
 
   search_set          m_searches;
 

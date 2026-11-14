@@ -64,6 +64,8 @@ libtorrent_other_la_SOURCES = \
 	dht/transactions/dht_announce.h \
 	dht/transactions/dht_search.cc \
 	dht/transactions/dht_search.h \
+	dht/udp_router.cc \
+	dht/udp_router.h \
 	\
 	download/available_list.cc \
 	download/available_list.h \

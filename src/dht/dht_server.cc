@@ -3,8 +3,6 @@
 #include "dht/dht_server.h"
 
 #include <algorithm>
-#include <cstdio>
-#include <cstring>
 
 #include "manager.h"
 #include "dht/dht_bucket.h"
@@ -15,35 +13,13 @@
 #include "torrent/object.h"
 #include "torrent/object_static_map.h"
 #include "torrent/object_stream.h"
-#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
-#include "torrent/runtime/socket_manager.h"
-#include "torrent/system/poll.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print(LOG_DHT_SERVER, "dht_server : " log_fmt, __VA_ARGS__);
-
-namespace {
-
-// Error in DHT protocol, avoids std::string ctor from communication_error
-class dht_error : public torrent::network_error {
-public:
-  dht_error(int code, const char* message) :
-      m_message(message), m_code(code) {}
-
-  int         code() const noexcept { return m_code; }
-  const char* what() const noexcept override { return m_message; }
-
-private:
-  const char* m_message;
-  int         m_code;
-};
-
-} // namespace
 
 namespace torrent {
 
@@ -75,7 +51,12 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 };
 
 DhtServer::DhtServer(DhtRouter* router)
-  : m_router(router) {
+  : m_router(router),
+    m_udp_router(router->id(),
+                 [this](const HashString& id, const sockaddr* sa, const DhtMessage& message) { process_query(id, sa, message); },
+                 [this](const DhtMessage& message, const sockaddr* sa, int code, const char* text) { create_error(message, sa, code, text); },
+                 [this](const HashString& id, const sockaddr* sa) { m_router->node_inactive(id, sa); },
+                 [this] { start_write(); }, [this] { event_write(); }) {
 
   reset_statistics();
 
@@ -88,76 +69,8 @@ DhtServer::~DhtServer() {
 
 void
 DhtServer::start(int port) {
-  auto [inet_address, inet_device, inet6_address, inet6_device] = runtime::network_config()->bind_udp_addresses_or_null();
-
-  // The IPv6 server (BEP 32) binds the inet6 address, or any, v6-only; a null address means IPv6 (or UDP) is
-  // blocked in the network config.
-  bool is_inet6 = m_router->family() == AF_INET6;
-  auto family_address = is_inet6 ? inet6_address : inet_address;
-  auto family_device  = is_inet6 ? inet6_device : inet_device;
-
-  if (family_address == nullptr)
-    throw resource_error(is_inet6 ? "no valid inet6 bind address for DHT server" : "no valid bind address for DHT server");
-
-  sa_unique_ptr bind_address;
-  std::string   bind_device;
-
-  switch (family_address->sa_family) {
-  case AF_INET:
-  case AF_INET6:
-    if (family_address->sa_family != m_router->family())
-      throw resource_error("invalid address family for DHT server");
-
-    bind_address = sa_copy(family_address.get());
-    bind_device  = family_device;
-    break;
-  case AF_UNSPEC:
-    bind_address = is_inet6 ? sa_make_inet6_any() : sa_make_inet_any();
-    bind_device  = family_device;
-    break;
-  default:
-    throw resource_error("invalid address family for DHT server");
-  }
-
-  m_router->set_address(bind_address.get());
-
-  sap_set_port(bind_address, port);
-
-  LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
-
-  fd_flags open_flags = fd_flag_datagram | fd_flag_nonblock | fd_flag_reuse_address;
-
-  if (bind_address->sa_family == AF_INET)
-    open_flags |= fd_flag_v4;
-  else
-    open_flags |= fd_flag_v6only;
-
-  int fd = fd_open(open_flags);
-
-  if (fd == -1) {
-    LT_LOG_THIS("could not open datagram socket : %s", std::strerror(errno));
-    throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
-  }
-
-  if (!bind_device.empty() && !fd_bind_to_device(fd, bind_device.c_str(), bind_address->sa_family)) {
-    LT_LOG_THIS("could not bind datagram socket to device : %s : %s", bind_device.c_str(), std::strerror(errno));
-    fd_close(fd);
-    throw resource_error("could not bind datagram socket to device : " + bind_device + " : " + std::string(strerror(errno)));
-  }
-
-  if (!fd_bind(fd, bind_address.get())) {
-    LT_LOG_THIS("could not bind datagram socket : %s", std::strerror(errno));
-    fd_close(fd);
-    throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
-  }
-
-  set_file_descriptor(fd);
-
-  // TODO: This throws internal_error on failure.
-  runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
-      this_thread::poll()->open(this);
-      this_thread::poll()->insert_read(this);
-    });
+  m_udp_router.open(m_router->family(), port);
+  m_router->set_address(m_udp_router.socket_address());
 }
 
 void
@@ -173,11 +86,7 @@ DhtServer::stop() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  runtime::socket_manager()->close_event_or_throw(this, [this]() {
-      this_thread::poll()->remove_and_close(this);
-
-      fd_close_and_clear(file_descriptor_ref());
-    });
+  m_udp_router.close();
 
   m_networkUp = false;
 }
@@ -265,8 +174,7 @@ DhtServer::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht
       bool tracker_match = !tracker.owner_before(announce->tracker()) && !announce->tracker().owner_before(tracker);
 
       if (announce->target() == info_hash && (tracker.expired() || tracker_match)) {
-        drop_packet(itr->second->packet().get());
-        m_transactions.erase(itr++);
+        itr = erase_transaction(itr);
         continue;
       }
     }
@@ -337,7 +245,7 @@ DhtServer::process_query(const HashString& id, const sockaddr* sa, const DhtMess
     create_announce_peer_response(msg, sa, reply);
 
   else if (query != raw_string::from_c_str("ping"))
-    throw dht_error(dht_error_bad_method, "Unknown query type.");
+    throw dht::DhtError(dht_error_bad_method, "Unknown query type.");
 
   m_router->node_queried(id, sa);
   create_response(msg, sa, reply);
@@ -348,14 +256,14 @@ DhtServer::create_find_node_response(const DhtMessage& req, DhtMessage& reply) {
   raw_string target = req[key_a_target].as_raw_string();
 
   if (target.size() < HashString::size_data)
-    throw dht_error(dht_error_protocol, "target string too short");
+    throw dht::DhtError(dht_error_protocol, "target string too short");
 
   auto nodes_key = m_router->family() == AF_INET6 ? key_r_nodes6 : key_r_nodes;
 
   reply[nodes_key] = m_router->get_closest_nodes(*HashString::cast_from(target.data()));
 
   if (reply[nodes_key].as_raw_string().empty())
-    throw dht_error(dht_error_generic, "No nodes");
+    throw dht::DhtError(dht_error_generic, "No nodes");
 }
 
 void
@@ -366,7 +274,7 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const sockaddr* sa, 
   raw_string info_hash_str = req[key_a_infoHash].as_raw_string();
 
   if (info_hash_str.size() < HashString::size_data)
-    throw dht_error(dht_error_protocol, "info hash too short");
+    throw dht::DhtError(dht_error_protocol, "info hash too short");
 
   const HashString* info_hash = HashString::cast_from(info_hash_str.data());
 
@@ -377,7 +285,7 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const sockaddr* sa, 
     raw_string nodes = m_router->get_closest_nodes(*info_hash);
 
     if (nodes.empty())
-      throw dht_error(dht_error_generic, "No peers nor nodes");
+      throw dht::DhtError(dht_error_generic, "No peers nor nodes");
 
     reply[m_router->family() == AF_INET6 ? key_r_nodes6 : key_r_nodes] = nodes;
 
@@ -394,24 +302,24 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
   raw_string info_hash = req[key_a_infoHash].as_raw_string();
 
   if (info_hash.size() < HashString::size_data)
-    throw dht_error(dht_error_protocol, "info hash too short");
+    throw dht::DhtError(dht_error_protocol, "info hash too short");
 
   if (!m_router->token_valid(req[key_a_token].as_raw_string(), sa))
-    throw dht_error(dht_error_protocol, "Token invalid.");
+    throw dht::DhtError(dht_error_protocol, "Token invalid.");
 
   if (!req[key_a_port].is_value())
-    throw dht_error(dht_error_protocol, "Port missing.");
+    throw dht::DhtError(dht_error_protocol, "Port missing.");
 
   auto port = req[key_a_port].as_value();
 
   if (port <= 0 || port > 65535)
-    throw dht_error(dht_error_protocol, "Port invalid.");
+    throw dht::DhtError(dht_error_protocol, "Port invalid.");
 
   if (sa_is_inet(sa)) {
     DhtTracker* tracker = m_router->get_tracker(*HashString::cast_from(info_hash.data()), true);
 
     if (tracker == NULL)
-      throw dht_error(dht_error_generic, "Tracking too many info hashes");
+      throw dht::DhtError(dht_error_generic, "Tracking too many info hashes");
 
     tracker->add_peer(reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr, port);
 
@@ -419,7 +327,7 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
     DhtTracker* tracker = m_router->get_tracker(*HashString::cast_from(info_hash.data()), true);
 
     if (tracker == NULL)
-      throw dht_error(dht_error_generic, "Tracking too many info hashes");
+      throw dht::DhtError(dht_error_generic, "Tracking too many info hashes");
 
     tracker->add_peer6(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr, port);
 
@@ -429,17 +337,10 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
 }
 
 void
-DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtMessage& response) {
-  int  transactionId = static_cast<unsigned char>(response[key_t].as_raw_string().data()[0]);
-  auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
-
-  // Response to a transaction we don't have in our table. At this point it's
-  // impossible to tell whether it used to be a valid transaction but timed out
-  // the node did not return the ID we sent it, or it returned it with a
-  // different address than we sent it o. Best we can do is ignore the reply,
-  // since the protocol doesn't call for returning errors in responses.
+DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& response) {
+  auto itr = m_transactions.find(key);
   if (itr == m_transactions.end())
-    return;
+    throw internal_error("DhtServer::process_response called with an invalid transaction key.");
 
   m_repliesReceived++;
   m_networkUp = true;
@@ -449,16 +350,13 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
     auto& transaction = itr->second;
 
 #ifdef USE_EXTRA_DEBUG
+    int transactionId = static_cast<unsigned char>(response[key_t].as_raw_string().data()[0]);
     if (DhtTransaction::key(sa, transactionId) != transaction->key(transactionId))
       throw internal_error("DhtServer::process_response key mismatch.");
 #endif
 
-    // If we contact a node but its ID is not the one we expect, ignore the reply
-    // to prevent interference from rogue nodes. An IPv6 key folds the address, so the address is checked too.
+    // If we contact a node but its ID is not the one we expect, ignore the reply.
     if ((id != transaction->id() && transaction->id() != torrent::DhtRouter::zero_id))
-      return;
-
-    if (!sa_equal_addr(transaction->address(), sa))
       return;
 
     switch (transaction->type()) {
@@ -487,24 +385,21 @@ DhtServer::process_response(const HashString& id, const sockaddr* sa, const DhtM
     m_router->node_replied(id, sa);
 
   } catch (const std::exception&) {
-    drop_packet(itr->second->packet().get());
-    m_transactions.erase(itr);
+    erase_transaction(itr);
 
     m_errorsCaught++;
     throw;
   }
 
-  drop_packet(itr->second->packet().get());
-  m_transactions.erase(itr);
+  erase_transaction(itr);
 }
 
 void
-DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
-  int  transactionId = static_cast<unsigned char>(error[key_t].as_raw_string().data()[0]);
-  auto itr = m_transactions.find(DhtTransaction::key(sa, transactionId));
+DhtServer::process_error(DhtTransaction::key_type key) {
+  auto itr = m_transactions.find(key);
 
   if (itr == m_transactions.end())
-    return;
+    throw internal_error("DhtServer::process_error called with an invalid transaction key.");
 
   m_repliesReceived++;
   m_errorsReceived++;
@@ -514,8 +409,7 @@ DhtServer::process_error(const sockaddr* sa, const DhtMessage& error) {
   // If it consistently returns errors for valid queries it's probably broken.  But a
   // few error messages are acceptable. So we do nothing and pretend the query never happened.
 
-  drop_packet(itr->second->packet().get());
-  m_transactions.erase(itr);
+  erase_transaction(itr);
 }
 
 void
@@ -666,7 +560,7 @@ DhtServer::drop_packet(const DhtTransactionPacket* packet) {
                    m_lowQueue.end());
 
   if (m_highQueue.empty() && m_lowQueue.empty())
-    this_thread::poll()->remove_write(this);
+    m_udp_router.stop_write();
 }
 
 void
@@ -785,6 +679,18 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
   // We know where to insert it, so pass that as hint.
   insertItr = m_transactions.insert(insertItr, std::make_pair(transaction->key(id), transaction));
 
+  try {
+    m_udp_router.connect(insertItr->first, transaction->address(), {
+      [this](DhtTransaction::key_type key, const HashString& node_id, const sockaddr* sa, const DhtMessage& message) {
+        process_response(key, node_id, sa, message);
+      },
+      [this](DhtTransaction::key_type key, const sockaddr*, const DhtMessage&) { process_error(key); }
+    });
+  } catch (const std::exception&) {
+    m_transactions.erase(insertItr);
+    throw;
+  }
+
   create_query(insertItr, id, transaction->address(), priority);
   start_write();
 
@@ -817,8 +723,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
     } catch (const std::exception&) {
       if (!quick) {
-        drop_packet(transaction->packet().get());
-        m_transactions.erase(itr);
+        erase_transaction(itr);
       }
 
       throw;
@@ -829,135 +734,20 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
   if (quick)
     return ++itr;
 
-  drop_packet(transaction->packet().get());
+  return erase_transaction(itr);
+}
 
-  m_transactions.erase(itr++);
-  return itr;
+DhtServer::transaction_itr
+DhtServer::erase_transaction(transaction_itr itr) {
+  m_udp_router.disconnect(itr->first);
+  drop_packet(itr->second->packet().get());
+  return m_transactions.erase(itr);
 }
 
 void
 DhtServer::clear_transactions() {
-  for (auto& transaction : m_transactions)
-    drop_packet(transaction.second->packet().get());
-
-  m_transactions.clear();
-}
-
-void
-DhtServer::event_read() {
-  for (unsigned int count = 0; count < max_read_datagrams; ++count) {
-    Object request;
-    int type = '?';
-    DhtMessage message;
-    raw_string nodeIdStr;
-    const HashString* nodeId = NULL;
-    char buffer[2048];
-
-    sockaddr_in6 sa_raw{};
-    sockaddr* sa = reinterpret_cast<sockaddr*>(&sa_raw);
-
-    try {
-      int32_t read = read_datagram_sa(buffer, sizeof(buffer), sa, sizeof(sa_raw));
-
-      if (read < 0)
-        break;
-
-      // The IPv4 server takes mapped-IPv4 addresses as IPv4; the IPv6 server (a v6-only socket) takes real IPv6
-      // only. Each family's traffic belongs to its own router.
-      if (sa_is_v4mapped(sa)) {
-        auto sa_unmapped = sin_from_v4mapped_in6(&sa_raw);
-        *reinterpret_cast<sockaddr_in*>(&sa_raw) = *sa_unmapped.get();
-      }
-
-      if (sa->sa_family != m_router->family())
-        continue;
-
-      // If it's not a valid bencode dictionary at all, it's probably not a DHT
-      // packet at all, so we don't throw an error to prevent bounce loops.
-      try {
-        static_map_read_bencode(buffer, buffer + read, message);
-      } catch (const bencode_error&) {
-        continue;
-      }
-
-      if (!message[key_t].is_raw_string())
-        throw dht_error(dht_error_protocol, "No transaction ID");
-
-      // Restrict the length of Transaction IDs. We echo them in our replies.
-      if(message[key_t].as_raw_string().size() > 20) {
-		  throw dht_error(dht_error_protocol, "Transaction ID length too long");
-      }
-
-      if (!message[key_y].is_raw_string())
-        throw dht_error(dht_error_protocol, "No message type");
-
-      if (message[key_y].as_raw_string().size() != 1)
-        throw dht_error(dht_error_bad_method, "Unsupported message type");
-
-      type = message[key_y].as_raw_string().data()[0];
-
-      // Queries and replies have node ID in different dictionaries.
-      if (type == 'r' || type == 'q') {
-        if (!message[type == 'q' ? key_a_id : key_r_id].is_raw_string())
-          throw dht_error(dht_error_protocol, "Invalid `id' value");
-
-        nodeIdStr = message[type == 'q' ? key_a_id : key_r_id].as_raw_string();
-
-        if (nodeIdStr.size() < HashString::size_data)
-          throw dht_error(dht_error_protocol, "`id' value too short");
-
-        nodeId = HashString::cast_from(nodeIdStr.data());
-      }
-
-      // Sanity check the returned transaction ID.
-      if ((type == 'r' || type == 'e') &&
-          (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() != 1))
-        throw dht_error(dht_error_protocol, "Invalid transaction ID type/length.");
-
-      // Stupid broken implementations.
-      if (nodeId != NULL && *nodeId == m_router->id())
-        throw dht_error(dht_error_protocol, "Send your own ID, not mine");
-
-      switch (type) {
-        case 'q':
-          process_query(*nodeId, sa, message);
-          break;
-
-        case 'r':
-          process_response(*nodeId, sa, message);
-          break;
-
-        case 'e':
-          process_error(sa, message);
-          break;
-
-        default:
-          throw dht_error(dht_error_bad_method, "Unknown message type.");
-      }
-
-    // If node was querying us, reply with error packet, otherwise mark the node as "query failed",
-    // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
-    // to other nodes.
-    } catch (const bencode_error& e) {
-      if ((type == 'r' || type == 'e') && nodeId != NULL) {
-        m_router->node_inactive(*nodeId, sa);
-      } else {
-        snprintf(message.data_end, message.data + torrent::DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
-        message.data[torrent::DhtMessage::data_size - 1] = '\0';
-        create_error(message, sa, dht_error_protocol, message.data_end);
-      }
-
-    } catch (const dht_error& e) {
-      if ((type == 'r' || type == 'e') && nodeId != NULL)
-        m_router->node_inactive(*nodeId, sa);
-      else
-        create_error(message, sa, e.code(), e.what());
-
-    } catch (const network_error&) {
-    }
-  }
-
-  start_write();
+  while (!m_transactions.empty())
+    erase_transaction(m_transactions.begin());
 }
 
 void
@@ -980,7 +770,7 @@ DhtServer::process_queue(packet_queue& queue) {
     queue.pop_front();
 
     try {
-      int written = write_datagram_sa(packet->c_str(), packet->length(), packet->address());
+      int written = m_udp_router.write_datagram_sa(packet->c_str(), packet->length(), packet->address());
 
       if (written == -1)
         throw network_error();
@@ -1018,17 +808,13 @@ DhtServer::event_write() {
   process_queue(m_lowQueue);
 
   if (m_highQueue.empty() && m_lowQueue.empty())
-    this_thread::poll()->remove_write(this);
-}
-
-void
-DhtServer::event_error() {
+    m_udp_router.stop_write();
 }
 
 void
 DhtServer::start_write() {
   if (!m_highQueue.empty() || !m_lowQueue.empty())
-    this_thread::poll()->insert_write(this);
+    m_udp_router.start_write();
 
   if (!m_task_timeout.is_scheduled() && !m_transactions.empty())
     this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 5s);

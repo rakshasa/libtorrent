@@ -19,6 +19,7 @@
 #include "dht/dht_bucket.h"
 #include "dht/dht_router.h"
 #include "dht/transactions/dht_search.h"
+#include "dht/udp_router.h"
 #include "torrent/hash_string.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
@@ -56,11 +57,12 @@ struct Query {
   std::string method;
   std::string target;
   std::string token;
+  std::string transaction_id;
 };
 
 class FakeNode {
 public:
-  explicit FakeNode(uint8_t distance)
+  explicit FakeNode(uint8_t distance, uint32_t address = INADDR_LOOPBACK)
     : m_id(node_id_at(distance)),
       m_token("tk" + std::to_string(distance)) {
 
@@ -68,7 +70,7 @@ public:
 
     sockaddr_in sa{};
     sa.sin_family      = AF_INET;
-    sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sa.sin_addr.s_addr = htonl(address);
 
     if (m_fd == -1 || ::fcntl(m_fd, F_SETFL, O_NONBLOCK) != 0 ||
         ::bind(m_fd, reinterpret_cast<sockaddr*>(&sa), sizeof(sa)) != 0)
@@ -88,6 +90,34 @@ public:
   uint16_t                   port() const  { return m_port; }
   const std::string&         token() const { return m_token; }
   void                       set_token(std::string token) { m_token = std::move(token); }
+
+  ssize_t send_to_server(const std::string& data) const {
+    return send_to_port(data, dht_port);
+  }
+
+  ssize_t send_to_port(const std::string& data, uint16_t port) const {
+    sockaddr_in server{};
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    server.sin_port = htons(port);
+    return ::sendto(m_fd, data.data(), data.size(), 0, reinterpret_cast<sockaddr*>(&server), sizeof(server));
+  }
+
+  ssize_t receive(char* data, size_t size) const {
+    return ::recv(m_fd, data, size, 0);
+  }
+
+  ssize_t reply_to_query(const Query& query) const {
+    auto reply = torrent::Object::create_map();
+    auto& result = reply.insert_key("r", torrent::Object::create_map());
+    result.insert_key("id", m_id.str());
+    result.insert_key("nodes", std::string());
+    reply.insert_key("t", query.transaction_id);
+    reply.insert_key("y", std::string("r"));
+    std::ostringstream stream;
+    torrent::object_write_bencode(&stream, &reply);
+    return send_to_server(stream.str());
+  }
 
   std::string compact() const {
     std::string node(m_id.data(), torrent::HashString::size_data);
@@ -151,6 +181,7 @@ FakeNode::service() {
 
     Query query;
     query.method = message.get_key_string("q");
+    query.transaction_id = message.get_key_string("t");
 
     if (args.has_key_string("info_hash"))
       query.target = args.get_key_string("info_hash");
@@ -213,6 +244,8 @@ public:
   ~Walk() { m_router->stop(); }
 
   void announce() { m_router->announce(walk_target(), std::weak_ptr<torrent::TrackerDht>()); }
+  void cancel() { m_router->cancel_announce(walk_target(), std::weak_ptr<torrent::TrackerDht>()); }
+  unsigned int replies_received() const { return m_router->get_statistics().replies_received; }
 
   // Run the router's socket and the fake nodes until `done` holds or `limit` passes.
   static bool pump(const std::vector<FakeNode*>& fakes, const std::function<bool()>& done, std::chrono::milliseconds limit) {
@@ -389,4 +422,158 @@ TestDhtAnnounceWalk::test_oversized_token_keeps_walking() {
   CPPUNIT_ASSERT_EQUAL(1u, near.count("get_peers"));
   CPPUNIT_ASSERT_EQUAL(1u, near.count("announce_peer"));
   CPPUNIT_ASSERT_EQUAL(0u, far.count("announce_peer"));
+}
+
+void
+TestDhtAnnounceWalk::test_incoming_ping_after_invalid_datagram() {
+  FakeNode node(1);
+  Walk walk({});
+
+  auto ping = torrent::Object::create_map();
+  ping.insert_key("a", torrent::Object::create_map()).insert_key("id", node.id().str());
+  ping.insert_key("q", std::string("ping"));
+  ping.insert_key("t", std::string("xy"));
+  ping.insert_key("y", std::string("q"));
+
+  std::ostringstream stream;
+  torrent::object_write_bencode(&stream, &ping);
+  auto data = stream.str();
+
+  CPPUNIT_ASSERT_EQUAL(ssize_t{7}, node.send_to_server("invalid"));
+  CPPUNIT_ASSERT_EQUAL(static_cast<ssize_t>(data.size()), node.send_to_server(data));
+
+  char buffer[2048];
+  torrent::Object reply;
+  CPPUNIT_ASSERT(Walk::pump({}, [&] {
+    auto size = node.receive(buffer, sizeof(buffer));
+    if (size < 0)
+      return false;
+
+    torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+    CPPUNIT_ASSERT(reply.get_key_string("y") != "e");
+    return reply.get_key_string("y") == "r";
+  }, std::chrono::milliseconds(1000)));
+
+  CPPUNIT_ASSERT_EQUAL(std::string("r"), reply.get_key_string("y"));
+  CPPUNIT_ASSERT_EQUAL(std::string("xy"), reply.get_key_string("t"));
+}
+
+void
+TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
+  FakeNode node(1);
+  FakeNode other(2, 0x7f000002);
+  torrent::HashString self_id;
+  self_id.clear(0x55);
+
+  unsigned int responses = 0;
+  unsigned int errors = 0;
+  torrent::dht::UdpRouter router(self_id,
+    [](const torrent::HashString&, const sockaddr*, const torrent::DhtMessage&) {},
+    [](const torrent::DhtMessage&, const sockaddr*, int, const char*) {},
+    [](const torrent::HashString&, const sockaddr*) {},
+    [] {}, [] {});
+
+  router.open(AF_INET, 0);
+  sockaddr_in server{};
+  socklen_t server_length = sizeof(server);
+  CPPUNIT_ASSERT_EQUAL(0, ::getsockname(router.file_descriptor(), reinterpret_cast<sockaddr*>(&server), &server_length));
+
+  sockaddr_in peer{};
+  peer.sin_family = AF_INET;
+  peer.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  peer.sin_port = htons(node.port());
+  auto address = reinterpret_cast<const sockaddr*>(&peer);
+  auto key = torrent::DhtTransaction::key(address, 7);
+
+  auto send = [&](const FakeNode& sender, char type, char transaction_id) {
+    auto packet = torrent::Object::create_map();
+    if (type == 'r')
+      packet.insert_key("r", torrent::Object::create_map()).insert_key("id", node.id().str());
+    packet.insert_key("t", std::string(1, transaction_id));
+    packet.insert_key("y", std::string(1, type));
+    std::ostringstream stream;
+    torrent::object_write_bencode(&stream, &packet);
+    auto data = stream.str();
+    CPPUNIT_ASSERT_EQUAL(static_cast<ssize_t>(data.size()), sender.send_to_port(data, ntohs(server.sin_port)));
+    static_cast<torrent::system::Event&>(router).event_read();
+  };
+
+  auto failure = [&](torrent::dht::UdpRouter::key_type received_key, const sockaddr*, const torrent::DhtMessage&) {
+    CPPUNIT_ASSERT_EQUAL(key, received_key);
+    ++errors;
+    router.disconnect(received_key);
+  };
+
+  router.connect(key, address, {
+    [&](torrent::dht::UdpRouter::key_type received_key, const torrent::HashString& id, const sockaddr*, const torrent::DhtMessage&) {
+      CPPUNIT_ASSERT_EQUAL(key, received_key);
+      CPPUNIT_ASSERT(id == node.id());
+      ++responses;
+      router.disconnect(received_key);
+      router.connect(received_key, address, {
+        [](torrent::dht::UdpRouter::key_type, const torrent::HashString&, const sockaddr*, const torrent::DhtMessage&) {},
+        failure
+      });
+    },
+    failure
+  });
+
+  auto second_key = torrent::DhtTransaction::key(address, 8);
+  unsigned int second_responses = 0;
+  router.connect(second_key, address, {
+    [&](torrent::dht::UdpRouter::key_type received_key, const torrent::HashString&, const sockaddr*, const torrent::DhtMessage&) {
+      CPPUNIT_ASSERT_EQUAL(second_key, received_key);
+      ++second_responses;
+      router.disconnect(received_key);
+    },
+    failure
+  });
+
+  send(node, 'r', 9);
+  send(other, 'r', 7);
+  CPPUNIT_ASSERT_EQUAL(0u, responses);
+  CPPUNIT_ASSERT_EQUAL(0u, second_responses);
+  send(node, 'r', 8);
+  CPPUNIT_ASSERT_EQUAL(1u, second_responses);
+  CPPUNIT_ASSERT_EQUAL(0u, responses);
+  send(node, 'r', 7);
+  CPPUNIT_ASSERT_EQUAL(1u, responses);
+  send(node, 'e', 7);
+  CPPUNIT_ASSERT_EQUAL(1u, errors);
+  send(node, 'e', 7);
+  CPPUNIT_ASSERT_EQUAL(1u, errors);
+
+  router.close();
+}
+
+void
+TestDhtAnnounceWalk::test_late_reply_after_cancel() {
+  FakeNode node(1);
+  node.silent = true;
+  Walk walk({&node});
+  walk.announce();
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return !node.queries.empty(); }, std::chrono::milliseconds(1000)));
+
+  walk.cancel();
+  CPPUNIT_ASSERT(node.reply_to_query(node.queries.front()) > 0);
+  Walk::pump({}, [] { return false; }, std::chrono::milliseconds(100));
+  CPPUNIT_ASSERT_EQUAL(0u, walk.replies_received());
+}
+
+void
+TestDhtAnnounceWalk::test_late_reply_after_timeout() {
+  FakeNode node(1);
+  node.silent = true;
+  Walk walk({&node});
+  walk.announce();
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return !node.queries.empty(); }, std::chrono::milliseconds(1000)));
+
+  m_main_thread->test_add_cached_time(std::chrono::seconds(40));
+  m_main_thread->test_process_events_without_cached_time();
+  m_main_thread->test_add_cached_time(std::chrono::seconds(6));
+  m_main_thread->test_process_events_without_cached_time();
+
+  CPPUNIT_ASSERT(node.reply_to_query(node.queries.front()) > 0);
+  Walk::pump({}, [] { return false; }, std::chrono::milliseconds(100));
+  CPPUNIT_ASSERT_EQUAL(0u, walk.replies_received());
 }
