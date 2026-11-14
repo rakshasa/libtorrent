@@ -52,6 +52,9 @@ public:
   void stop_write();
 
 private:
+  UdpRouter(const UdpRouter&) = delete;
+  UdpRouter& operator=(const UdpRouter&) = delete;
+
   static constexpr unsigned int max_read_datagrams = 64;
   static constexpr int dht_error_protocol = 203;
   static constexpr int dht_error_bad_method = 204;
@@ -76,9 +79,9 @@ private:
   write_func m_read_done;
   write_func m_write;
   connection_map m_connections;
-  system::Thread* m_thread{};
+  system::Thread*       m_thread{};
 };
 
 } // namespace torrent::dht
 
-#endif
+#endif // LIBTORRENT_DHT_UDP_ROUTER_H

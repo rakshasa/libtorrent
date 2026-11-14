@@ -109,6 +109,9 @@ UdpRouter::open(int family, int port) {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
     });
+
+  LT_LOG_THIS("opened udp router : family:%s bind_address:%s",
+              system::sa_family_enum(family), sa_pretty_str(socket_address()).c_str());
 }
 
 void
@@ -121,7 +124,10 @@ UdpRouter::close() {
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
       fd_close_and_clear(file_descriptor_ref());
+      set_socket_address(sa_make_unspec());
     });
+
+  LT_LOG_THIS("closed udp router", 0);
 }
 
 void
@@ -283,6 +289,9 @@ UdpRouter::event_read() {
       throw internal_error("dht::UdpRouter::event_read() failed to read datagram: " + system::errno_enum_str(errno));
     }
 
+    if (read == 0)
+      continue;
+
     if (sa_is_v4mapped(sa)) {
       auto sa_unmapped = sin_from_v4mapped_in6(&sa_raw);
       *reinterpret_cast<sockaddr_in*>(&sa_raw) = *sa_unmapped.get();
@@ -302,6 +311,8 @@ UdpRouter::event_write() {
 
 void
 UdpRouter::event_error() {
+  LT_LOG_THIS("socket error event triggered", 0);
+  throw internal_error("dht::UdpRouter::event_error() triggered");
 }
 
 } // namespace torrent::dht
