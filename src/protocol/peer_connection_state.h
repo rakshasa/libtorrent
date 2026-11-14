@@ -91,10 +91,15 @@ struct StateDown : StateBase {
 
   void                push_unread(const void* data, uint32_t size) const;
 
-  bool                try_request{};
+  bool                has_pending_request() const;
+  void                schedule_request();
+  void                clear_pending_request();
+  void                set_pending_request(bool pending);
+
   uint32_t            stall{};
 
 private:
+  bool                m_request_pending{};
   bool                m_interested{};
   bool                m_unchoked{};
   bool                m_send_interested{};
@@ -138,6 +143,10 @@ inline void StateDown::clear_pending_interest()           { m_send_interested = 
 
 inline void StateDown::mark_choked()                      { m_unchoked = false; }
 inline void StateDown::mark_unchoked()                    { m_unchoked = true; }
+inline bool StateDown::has_pending_request() const        { return m_request_pending; }
+inline void StateDown::schedule_request()                 { m_request_pending = true; }
+inline void StateDown::clear_pending_request()            { m_request_pending = false; }
+inline void StateDown::set_pending_request(bool pending)  { m_request_pending = pending; }
 
 // Restore withheld interest unless the download is complete.
 inline bool StateDown::restore_interest(bool download_done) {
