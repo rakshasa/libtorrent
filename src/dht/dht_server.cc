@@ -614,8 +614,6 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
 
   transaction->set_packet(packet);
   add_packet(packet, priority);
-
-  m_queriesSent++;
 }
 
 void
@@ -680,18 +678,38 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
   insertItr = m_transactions.insert(insertItr, std::make_pair(transaction->key(id), transaction));
 
   try {
+    create_query(insertItr, id, transaction->address(), priority);
+    auto packet = transaction->packet();
     m_udp_router.connect(insertItr->first, transaction->address(), {
+      [packet](DhtTransaction::key_type, dht::UdpRouter::buffer_type& buffer) {
+        if (packet->length() > buffer.reserved())
+          throw internal_error("DhtServer query exceeds UDP router buffer.");
+        buffer.write_len(packet->c_str(), packet->length());
+      },
       [this](DhtTransaction::key_type key, const HashString& node_id, const sockaddr* sa, const DhtMessage& message) {
         process_response(key, node_id, sa, message);
       },
-      [this](DhtTransaction::key_type key, const sockaddr*, const DhtMessage&) { process_error(key); }
+      [this](DhtTransaction::key_type key, const sockaddr*, const DhtMessage&) { process_error(key); },
+      [this](DhtTransaction::key_type key, int, int) {
+        auto itr = m_transactions.find(key);
+        if (itr == m_transactions.end())
+          throw internal_error("DhtServer router failed an unknown transaction.");
+        failed_transaction(itr, false, true);
+      },
+      [this](DhtTransaction::key_type key) {
+        auto itr = m_transactions.find(key);
+        if (itr == m_transactions.end())
+          throw internal_error("DhtServer router sent an unknown transaction.");
+        m_queriesSent++;
+        itr->second->reset_packet();
+      }
     });
   } catch (const std::exception&) {
+    drop_packet(transaction->packet().get());
     m_transactions.erase(insertItr);
     throw;
   }
 
-  create_query(insertItr, id, transaction->address(), priority);
   start_write();
 
   return id;
@@ -700,7 +718,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
 // Transaction received no reply and timed out. Mark node as bad and remove
 // transaction (except if it was only the quick timeout).
 DhtServer::transaction_itr
-DhtServer::failed_transaction(transaction_itr itr, bool quick) {
+DhtServer::failed_transaction(transaction_itr itr, bool quick, bool router_disconnected) {
   auto transaction = itr->second;
 
   // If it was a known node, remember that it didn't reply, unless the transaction
@@ -723,7 +741,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
     } catch (const std::exception&) {
       if (!quick) {
-        erase_transaction(itr);
+        erase_transaction(itr, router_disconnected);
       }
 
       throw;
@@ -734,12 +752,13 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
   if (quick)
     return ++itr;
 
-  return erase_transaction(itr);
+  return erase_transaction(itr, router_disconnected);
 }
 
 DhtServer::transaction_itr
-DhtServer::erase_transaction(transaction_itr itr) {
-  m_udp_router.disconnect(itr->first);
+DhtServer::erase_transaction(transaction_itr itr, bool router_disconnected) {
+  if (!router_disconnected)
+    m_udp_router.disconnect(itr->first);
   drop_packet(itr->second->packet().get());
   return m_transactions.erase(itr);
 }
@@ -769,32 +788,17 @@ DhtServer::process_queue(packet_queue& queue) {
 
     queue.pop_front();
 
-    try {
-      int written = m_udp_router.write_datagram_sa(packet->c_str(), packet->length(), packet->address());
-
-      if (written == -1)
-        throw network_error();
-
-      if (static_cast<unsigned int>(written) != packet->length())
-        throw network_error();
-
-    } catch (const network_error&) {
-      // Couldn't write packet, maybe something wrong with node address or routing, so mark node as bad.
-      if (packet->has_transaction()) {
-        auto itr = m_transactions.find(transactionKey);
-        if (itr == m_transactions.end())
-          throw internal_error("DhtServer::process_queue could not find transaction.");
-
-        failed_transaction(itr, false);
-      }
+    if (packet->has_transaction()) {
+      m_udp_router.send(transactionKey);
+      continue;
     }
 
-    if (packet->has_transaction()) {
-      // here transaction can be already deleted by failed_transaction.
-      auto itr = m_transactions.find(transactionKey);
+    int written = m_udp_router.write_datagram_sa(packet->c_str(), packet->length(), packet->address());
 
-      if (itr != m_transactions.end())
-        itr->second->reset_packet();
+    if (written == -1) {
+      LT_LOG_THIS("could not write reply datagram : errno:%d", errno);
+    } else if (static_cast<unsigned int>(written) != packet->length()) {
+      LT_LOG_THIS("could not write reply datagram : only %d of %zu bytes written", written, packet->length());
     }
   }
 }
@@ -816,7 +820,8 @@ DhtServer::start_write() {
   if (!m_highQueue.empty() || !m_lowQueue.empty())
     m_udp_router.start_write();
 
-  if (!m_task_timeout.is_scheduled() && !m_transactions.empty())
+  if (!m_task_timeout.is_scheduled() &&
+      std::any_of(m_transactions.begin(), m_transactions.end(), [](const auto& entry) { return entry.second->has_quick_timeout(); }))
     this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 5s);
 }
 
@@ -827,9 +832,6 @@ DhtServer::receive_timeout() {
   while (itr != m_transactions.end()) {
     if (itr->second->has_quick_timeout() && itr->second->quick_timeout() < this_thread::cached_seconds().count()) {
       itr = failed_transaction(itr, true);
-
-    } else if (itr->second->timeout() < this_thread::cached_seconds().count()) {
-      itr = failed_transaction(itr, false);
 
     } else {
       ++itr;

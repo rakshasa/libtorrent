@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <functional>
+#include <list>
 #include <random>
 #include <unordered_map>
 
@@ -71,7 +72,7 @@ private:
 
   using connection_map     = std::unordered_map<uint32_t, connection_info>;
   using write_queue_type   = std::deque<std::pair<uint32_t, connection_info*>>;
-  using timeout_queue_type = std::deque<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
+  using timeout_queue_type = std::list<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
 
   // TODO: Add itr to self in connection_map.
 

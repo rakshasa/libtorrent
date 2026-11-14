@@ -438,6 +438,7 @@ UdpRouter::do_write(uint32_t id, connection_info* info) {
 
   buffer_type buffer;
 
+  buffer.reset();
   info->prepare(id, buffer);
 
   if (buffer.size_end() == 0)
@@ -478,12 +479,16 @@ UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
-  if (m_timeout_queue.empty())
-    this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
+  auto pos = m_timeout_queue.end();
+  while (pos != m_timeout_queue.begin() && std::get<1>(*std::prev(pos)) > timeout_time)
+    --pos;
 
-  m_timeout_queue.emplace_back(id, timeout_time, info);
+  bool first = pos == m_timeout_queue.begin();
+  auto itr = m_timeout_queue.emplace(pos, id, timeout_time, info);
+  info->timeout_ptr = &std::get<2>(*itr);
 
-  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
+  if (first)
+    this_thread::scheduler()->update_wait_until(&m_task_timeout, timeout_time);
 }
 
 void

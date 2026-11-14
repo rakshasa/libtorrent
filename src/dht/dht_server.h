@@ -129,8 +129,8 @@ private:
   int                 add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority);
 
   // This returns the iterator after the given one or end()
-  transaction_itr     failed_transaction(transaction_itr itr, bool quick);
-  transaction_itr     erase_transaction(transaction_itr itr);
+  transaction_itr     failed_transaction(transaction_itr itr, bool quick, bool router_disconnected = false);
+  transaction_itr     erase_transaction(transaction_itr itr, bool router_disconnected = false);
 
   void                clear_transactions();
 

@@ -11,6 +11,9 @@ class TestDhtAnnounceWalk : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST(test_oversized_token_keeps_walking);
   CPPUNIT_TEST(test_incoming_ping_after_invalid_datagram);
   CPPUNIT_TEST(test_udp_router_keyed_dispatch);
+  CPPUNIT_TEST(test_retry_and_reply);
+  CPPUNIT_TEST(test_retry_deadline_order);
+  CPPUNIT_TEST(test_tracker_retry_deadline_order);
   CPPUNIT_TEST(test_late_reply_after_cancel);
   CPPUNIT_TEST(test_late_reply_after_timeout);
 
@@ -27,6 +30,9 @@ public:
   void test_oversized_token_keeps_walking();
   void test_incoming_ping_after_invalid_datagram();
   void test_udp_router_keyed_dispatch();
+  void test_retry_and_reply();
+  void test_retry_deadline_order();
+  void test_tracker_retry_deadline_order();
   void test_late_reply_after_cancel();
   void test_late_reply_after_timeout();
 };

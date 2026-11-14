@@ -3,9 +3,10 @@
 
 #include <deque>
 #include <functional>
-#include <random>
+#include <list>
 #include <unordered_map>
 
+#include "dht/dht_transaction.h"
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
 #include "torrent/system/scheduler.h"
@@ -14,64 +15,55 @@ namespace torrent::dht {
 
 class UdpRouter : public SocketDatagram {
 public:
-  using buffer_type      = ProtocolBuffer<512>;
+  using key_type         = DhtTransaction::key_type;
+  using buffer_type      = ProtocolBuffer<2048>;
 
-  using prepare_func     = std::function<void(uint32_t, buffer_type&)>;
-  using process_func     = std::function<bool(uint32_t, buffer_type&)>;
-  using failure_func     = std::function<void(uint32_t, int, int)>;
-  using connected_func   = std::function<void(uint32_t)>;
-  using packet_sent_func = std::function<void(uint32_t)>;
+  using prepare_func     = std::function<void(key_type, buffer_type&)>;
+  using process_func     = std::function<void(key_type, const HashString&, const sockaddr*, const DhtMessage&)>;
+  using error_reply_func = std::function<void(key_type, const sockaddr*, const DhtMessage&)>;
+  using failure_func     = std::function<void(key_type, int, int)>;
+  using packet_sent_func = std::function<void(key_type)>;
+  using query_func       = std::function<void(const HashString&, const sockaddr*, const DhtMessage&)>;
+  using error_func       = std::function<void(const DhtMessage&, const sockaddr*, int, const char*)>;
+  using inactive_func    = std::function<void(const HashString&, const sockaddr*)>;
+  using write_func       = std::function<void()>;
 
   struct connection_params {
     prepare_func        prepare;
     process_func        process;
+    error_reply_func    error_reply;
     failure_func        failure;
-
-    connected_func      connected;
     packet_sent_func    packet_sent;
   };
 
-  UdpRouter();
-  ~UdpRouter();
+  UdpRouter(const HashString& id, query_func query, error_func error, inactive_func inactive,
+            write_func read_done, write_func write);
+  ~UdpRouter() override;
 
   const char*         type_name() const override { return "dht_udp_router"; }
 
-  // TODO: Listen to network_config updates and reopen if necessary.
-  // TODO: Add callback subscription for network_config updates.
-
-  void                open(int family);
+  void                open(int family, int port);
   void                close();
 
-  void                updated_network_config(int family);
-
-  // TODO: Add option for single-try.
-
-  // These may call prepare_fn with the new id before returning, except for when hostname lookup is
-  // required.
-  //
-  // When process_fn is called, return false to disconnect and true to do nothing. (E.g. unknown
-  // packet or transferred connection)
-
-  void                connect(c_sa_shared_ptr address, connection_params params);
-  void                connect(const std::string hostname, uint16_t port, connection_params params);
-
-  void                transfer(uint32_t id, connection_params params);
-
-  void                disconnect(uint32_t id);
-
-  using random_engine = std::independent_bits_engine<std::mt19937, 32, uint32_t>;
+  void                connect(key_type id, const sockaddr* address, connection_params params);
+  void                send(key_type id);
+  void                disconnect(key_type id);
+  void                start_write();
+  void                stop_write();
 
 private:
   UdpRouter(const UdpRouter&) = delete;
   UdpRouter& operator=(const UdpRouter&) = delete;
 
   static constexpr unsigned int max_read_datagrams = 64;
+  static constexpr int dht_error_protocol = 203;
+  static constexpr int dht_error_bad_method = 204;
 
   struct connection_info;
 
-  using connection_map     = std::unordered_map<uint32_t, connection_info>;
-  using write_queue_type   = std::deque<std::pair<uint32_t, connection_info*>>;
-  using timeout_queue_type = std::deque<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
+  using connection_map     = std::unordered_map<key_type, connection_info>;
+  using write_queue_type   = std::deque<std::pair<key_type, connection_info*>>;
+  using timeout_queue_type = std::list<std::tuple<key_type, std::chrono::seconds, connection_info*>>;
 
   // TODO: Add itr to self in connection_map.
 
@@ -80,6 +72,7 @@ private:
 
     prepare_func         prepare{};
     process_func         process{};
+    error_reply_func     error_reply{};
     failure_func         failure{};
 
     // Do not change the connection in this callback.
@@ -91,23 +84,19 @@ private:
     connection_info**    timeout_ptr{};
   };
 
-  connection_map::iterator connect_unsafe(c_sa_shared_ptr address, connection_params params);
   void                     disconnect_unsafe(connection_map::iterator itr);
   void                     disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err);
 
   int                 router_family() const;
 
-  void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
-
-  bool                try_write_with_queues(uint32_t id, connection_info* info);
-  [[nodiscard]] int   try_write(uint32_t id, connection_info* info);
-  [[nodiscard]] int   do_write(uint32_t id, connection_info* info);
+  bool                try_write_with_queues(key_type id, connection_info* info);
+  [[nodiscard]] int   try_write(key_type id, connection_info* info);
+  [[nodiscard]] int   do_write(key_type id, connection_info* info);
 
   void                clear_timeout(connection_info* info);
-  void                queue_timeout(uint32_t id, connection_info* info);
-  void                queue_write(uint32_t id, connection_info* info);
-
-  uint32_t            peek_transaction_id(buffer_type& buffer) const;
+  void                queue_timeout(key_type id, connection_info* info);
+  void                queue_write(key_type id, connection_info* info);
+  void                process_datagram(buffer_type& buffer, const sockaddr* sa);
 
   void                receive_timeout();
 
@@ -117,19 +106,35 @@ private:
 
   // TODO: Change Thread/Scheduler callbacks to use deque, and create callback handles.
 
-  system::Thread*       m_thread;
-  random_engine         m_random_engine;
+  system::Thread*       m_thread{};
+  const HashString&     m_id;
+  query_func            m_query;
+  error_func            m_error;
+  inactive_func         m_inactive;
+  write_func            m_read_done;
+  write_func            m_write;
+  bool                  m_external_write{};
 
   connection_map        m_connections;
   write_queue_type      m_write_queue;
   timeout_queue_type    m_timeout_queue;
 
   system::SchedulerEntry m_task_timeout;
-
-  system::callback_id   m_resolver_callback_id;
 };
 
 inline int UdpRouter::router_family() const { return socket_address()->sa_family; }
+
+class DhtError : public network_error {
+public:
+  DhtError(int code, const char* message) : m_message(message), m_code(code) {}
+
+  int         code() const noexcept { return m_code; }
+  const char* what() const noexcept override { return m_message; }
+
+private:
+  const char* m_message;
+  int m_code;
+};
 
 } // namespace torrent::dht
 
