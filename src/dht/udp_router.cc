@@ -2,6 +2,7 @@
 
 #include "dht/udp_router.h"
 
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 
@@ -13,6 +14,7 @@
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/poll.h"
+#include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
@@ -37,6 +39,8 @@ UdpRouter::open(int family, int port) {
 
   if (family != AF_INET && family != AF_INET6)
     throw internal_error("dht::UdpRouter::open() called with unsupported family.");
+
+  m_thread = this_thread::thread();
 
   auto [inet_address, inet_device, inet6_address, inet6_device] = runtime::network_config()->bind_udp_addresses_or_null();
   bool is_inet6 = family == AF_INET6;
@@ -112,7 +116,9 @@ UdpRouter::close() {
   if (!is_open())
     return;
 
-  runtime::socket_manager()->close_event_or_throw(this, [this]() {
+  assert(m_thread == this_thread::thread());
+
+  runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
       fd_close_and_clear(file_descriptor_ref());
     });
@@ -120,6 +126,8 @@ UdpRouter::close() {
 
 void
 UdpRouter::connect(key_type key, const sockaddr* address, connection_params params) {
+  assert(m_thread == this_thread::thread());
+
   if (address == nullptr || !DhtTransaction::key_match(key, address))
     throw internal_error("dht::UdpRouter::connect() called with an invalid address.");
 
@@ -133,17 +141,23 @@ UdpRouter::connect(key_type key, const sockaddr* address, connection_params para
 
 void
 UdpRouter::disconnect(key_type key) {
+  assert(m_thread == this_thread::thread());
+
   if (m_connections.erase(key) != 1)
     throw internal_error("dht::UdpRouter::disconnect() called with an invalid transaction key.");
 }
 
 void
 UdpRouter::start_write() {
+  assert(m_thread == this_thread::thread());
+
   this_thread::poll()->insert_write(this);
 }
 
 void
 UdpRouter::stop_write() {
+  assert(m_thread == this_thread::thread());
+
   this_thread::poll()->remove_write(this);
 }
 
@@ -258,8 +272,16 @@ UdpRouter::event_read() {
     sockaddr* sa = reinterpret_cast<sockaddr*>(&sa_raw);
     int32_t read = read_datagram_sa(buffer, sizeof(buffer), sa, sizeof(sa_raw));
 
-    if (read < 0)
-      break;
+    if (read == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK)
+        break;
+
+      if (errno == EINTR)
+        continue;
+
+      LT_LOG_THIS("failed to read datagram : errno:%s", system::errno_enum_str(errno).c_str());
+      throw internal_error("dht::UdpRouter::event_read() failed to read datagram: " + system::errno_enum_str(errno));
+    }
 
     if (sa_is_v4mapped(sa)) {
       auto sa_unmapped = sin_from_v4mapped_in6(&sa_raw);

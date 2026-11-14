@@ -552,7 +552,7 @@ UdpRouter::receive_timeout() {
 
 void
 UdpRouter::event_read() {
-  while (true) {
+  for (unsigned int count = 0; count < max_read_datagrams; ++count) {
     sa_inet_union from_sa;
 
     m_buffer.reset();

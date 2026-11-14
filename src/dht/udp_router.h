@@ -7,6 +7,7 @@
 #include "dht/dht_transaction.h"
 #include "net/socket_datagram.h"
 #include "torrent/exceptions.h"
+#include "torrent/system/common.h"
 
 namespace torrent::dht {
 
@@ -75,6 +76,7 @@ private:
   write_func m_read_done;
   write_func m_write;
   connection_map m_connections;
+  system::Thread* m_thread{};
 };
 
 } // namespace torrent::dht

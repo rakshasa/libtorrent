@@ -68,6 +68,8 @@ private:
   UdpRouter(const UdpRouter&) = delete;
   UdpRouter& operator=(const UdpRouter&) = delete;
 
+  static constexpr unsigned int max_read_datagrams = 64;
+
   struct connection_info;
 
   using connection_map     = std::unordered_map<uint32_t, connection_info>;
