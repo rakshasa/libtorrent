@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <cstring>
 
 #include "manager.h"
 #include "dht/dht_bucket.h"
@@ -15,12 +14,8 @@
 #include "torrent/object.h"
 #include "torrent/object_static_map.h"
 #include "torrent/object_stream.h"
-#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/runtime/network_config.h"
 #include "torrent/runtime/runtime.h"
-#include "torrent/runtime/socket_manager.h"
-#include "torrent/system/poll.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
@@ -75,7 +70,9 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 };
 
 DhtServer::DhtServer(DhtRouter* router)
-  : m_router(router) {
+  : m_router(router),
+    m_udp_router([this](const char* buffer, int length, const sockaddr* sa) { process_datagram(buffer, length, sa); },
+                 [this] { start_write(); }, [this] { event_write(); }) {
 
   reset_statistics();
 
@@ -88,76 +85,8 @@ DhtServer::~DhtServer() {
 
 void
 DhtServer::start(int port) {
-  auto [inet_address, inet_device, inet6_address, inet6_device] = runtime::network_config()->bind_udp_addresses_or_null();
-
-  // The IPv6 server (BEP 32) binds the inet6 address, or any, v6-only; a null address means IPv6 (or UDP) is
-  // blocked in the network config.
-  bool is_inet6 = m_router->family() == AF_INET6;
-  auto family_address = is_inet6 ? inet6_address : inet_address;
-  auto family_device  = is_inet6 ? inet6_device : inet_device;
-
-  if (family_address == nullptr)
-    throw resource_error(is_inet6 ? "no valid inet6 bind address for DHT server" : "no valid bind address for DHT server");
-
-  sa_unique_ptr bind_address;
-  std::string   bind_device;
-
-  switch (family_address->sa_family) {
-  case AF_INET:
-  case AF_INET6:
-    if (family_address->sa_family != m_router->family())
-      throw resource_error("invalid address family for DHT server");
-
-    bind_address = sa_copy(family_address.get());
-    bind_device  = family_device;
-    break;
-  case AF_UNSPEC:
-    bind_address = is_inet6 ? sa_make_inet6_any() : sa_make_inet_any();
-    bind_device  = family_device;
-    break;
-  default:
-    throw resource_error("invalid address family for DHT server");
-  }
-
-  m_router->set_address(bind_address.get());
-
-  sap_set_port(bind_address, port);
-
-  LT_LOG_THIS("starting server : %s", sap_pretty_str(bind_address).c_str());
-
-  fd_flags open_flags = fd_flag_datagram | fd_flag_nonblock | fd_flag_reuse_address;
-
-  if (bind_address->sa_family == AF_INET)
-    open_flags |= fd_flag_v4;
-  else
-    open_flags |= fd_flag_v6only;
-
-  int fd = fd_open(open_flags);
-
-  if (fd == -1) {
-    LT_LOG_THIS("could not open datagram socket : %s", std::strerror(errno));
-    throw resource_error("could not open datagram socket : " + std::string(strerror(errno)));
-  }
-
-  if (!bind_device.empty() && !fd_bind_to_device(fd, bind_device.c_str(), bind_address->sa_family)) {
-    LT_LOG_THIS("could not bind datagram socket to device : %s : %s", bind_device.c_str(), std::strerror(errno));
-    fd_close(fd);
-    throw resource_error("could not bind datagram socket to device : " + bind_device + " : " + std::string(strerror(errno)));
-  }
-
-  if (!fd_bind(fd, bind_address.get())) {
-    LT_LOG_THIS("could not bind datagram socket : %s", std::strerror(errno));
-    fd_close(fd);
-    throw resource_error("could not bind datagram socket : " + std::string(strerror(errno)));
-  }
-
-  set_file_descriptor(fd);
-
-  // TODO: This throws internal_error on failure.
-  runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
-      this_thread::poll()->open(this);
-      this_thread::poll()->insert_read(this);
-    });
+  m_udp_router.open(m_router->family(), port);
+  m_router->set_address(m_udp_router.socket_address());
 }
 
 void
@@ -173,11 +102,7 @@ DhtServer::stop() {
 
   this_thread::scheduler()->erase(&m_task_timeout);
 
-  runtime::socket_manager()->close_event_or_throw(this, [this]() {
-      this_thread::poll()->remove_and_close(this);
-
-      fd_close_and_clear(file_descriptor_ref());
-    });
+  m_udp_router.close();
 
   m_networkUp = false;
 }
@@ -666,7 +591,7 @@ DhtServer::drop_packet(const DhtTransactionPacket* packet) {
                    m_lowQueue.end());
 
   if (m_highQueue.empty() && m_lowQueue.empty())
-    this_thread::poll()->remove_write(this);
+    m_udp_router.stop_write();
 }
 
 void
@@ -844,120 +769,95 @@ DhtServer::clear_transactions() {
 }
 
 void
-DhtServer::event_read() {
-  for (unsigned int count = 0; count < max_read_datagrams; ++count) {
-    Object request;
-    int type = '?';
-    DhtMessage message;
-    raw_string nodeIdStr;
-    const HashString* nodeId = NULL;
-    char buffer[2048];
+DhtServer::process_datagram(const char* buffer, int length, const sockaddr* sa) {
+  int type = '?';
+  DhtMessage message;
+  raw_string nodeIdStr;
+  const HashString* nodeId = NULL;
 
-    sockaddr_in6 sa_raw{};
-    sockaddr* sa = reinterpret_cast<sockaddr*>(&sa_raw);
-
+  try {
+    // If it's not a valid bencode dictionary at all, it's probably not a DHT
+    // packet at all, so we don't throw an error to prevent bounce loops.
     try {
-      int32_t read = read_datagram_sa(buffer, sizeof(buffer), sa, sizeof(sa_raw));
+      static_map_read_bencode(buffer, buffer + length, message);
+    } catch (const bencode_error&) {
+      return;
+    }
 
-      if (read < 0)
+    if (!message[key_t].is_raw_string())
+      throw dht_error(dht_error_protocol, "No transaction ID");
+
+    // Restrict the length of Transaction IDs. We echo them in our replies.
+    if (message[key_t].as_raw_string().size() > 20)
+      throw dht_error(dht_error_protocol, "Transaction ID length too long");
+
+    if (!message[key_y].is_raw_string())
+      throw dht_error(dht_error_protocol, "No message type");
+
+    if (message[key_y].as_raw_string().size() != 1)
+      throw dht_error(dht_error_bad_method, "Unsupported message type");
+
+    type = message[key_y].as_raw_string().data()[0];
+
+    // Queries and replies have node ID in different dictionaries.
+    if (type == 'r' || type == 'q') {
+      if (!message[type == 'q' ? key_a_id : key_r_id].is_raw_string())
+        throw dht_error(dht_error_protocol, "Invalid `id' value");
+
+      nodeIdStr = message[type == 'q' ? key_a_id : key_r_id].as_raw_string();
+
+      if (nodeIdStr.size() < HashString::size_data)
+        throw dht_error(dht_error_protocol, "`id' value too short");
+
+      nodeId = HashString::cast_from(nodeIdStr.data());
+    }
+
+    // Sanity check the returned transaction ID.
+    if ((type == 'r' || type == 'e') &&
+        (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() != 1))
+      throw dht_error(dht_error_protocol, "Invalid transaction ID type/length.");
+
+    // Stupid broken implementations.
+    if (nodeId != NULL && *nodeId == m_router->id())
+      throw dht_error(dht_error_protocol, "Send your own ID, not mine");
+
+    switch (type) {
+      case 'q':
+        process_query(*nodeId, sa, message);
         break;
 
-      // The IPv4 server takes mapped-IPv4 addresses as IPv4; the IPv6 server (a v6-only socket) takes real IPv6
-      // only. Each family's traffic belongs to its own router.
-      if (sa_is_v4mapped(sa)) {
-        auto sa_unmapped = sin_from_v4mapped_in6(&sa_raw);
-        *reinterpret_cast<sockaddr_in*>(&sa_raw) = *sa_unmapped.get();
-      }
+      case 'r':
+        process_response(*nodeId, sa, message);
+        break;
 
-      if (sa->sa_family != m_router->family())
-        continue;
+      case 'e':
+        process_error(sa, message);
+        break;
 
-      // If it's not a valid bencode dictionary at all, it's probably not a DHT
-      // packet at all, so we don't throw an error to prevent bounce loops.
-      try {
-        static_map_read_bencode(buffer, buffer + read, message);
-      } catch (const bencode_error&) {
-        continue;
-      }
-
-      if (!message[key_t].is_raw_string())
-        throw dht_error(dht_error_protocol, "No transaction ID");
-
-      // Restrict the length of Transaction IDs. We echo them in our replies.
-      if(message[key_t].as_raw_string().size() > 20) {
-		  throw dht_error(dht_error_protocol, "Transaction ID length too long");
-      }
-
-      if (!message[key_y].is_raw_string())
-        throw dht_error(dht_error_protocol, "No message type");
-
-      if (message[key_y].as_raw_string().size() != 1)
-        throw dht_error(dht_error_bad_method, "Unsupported message type");
-
-      type = message[key_y].as_raw_string().data()[0];
-
-      // Queries and replies have node ID in different dictionaries.
-      if (type == 'r' || type == 'q') {
-        if (!message[type == 'q' ? key_a_id : key_r_id].is_raw_string())
-          throw dht_error(dht_error_protocol, "Invalid `id' value");
-
-        nodeIdStr = message[type == 'q' ? key_a_id : key_r_id].as_raw_string();
-
-        if (nodeIdStr.size() < HashString::size_data)
-          throw dht_error(dht_error_protocol, "`id' value too short");
-
-        nodeId = HashString::cast_from(nodeIdStr.data());
-      }
-
-      // Sanity check the returned transaction ID.
-      if ((type == 'r' || type == 'e') &&
-          (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() != 1))
-        throw dht_error(dht_error_protocol, "Invalid transaction ID type/length.");
-
-      // Stupid broken implementations.
-      if (nodeId != NULL && *nodeId == m_router->id())
-        throw dht_error(dht_error_protocol, "Send your own ID, not mine");
-
-      switch (type) {
-        case 'q':
-          process_query(*nodeId, sa, message);
-          break;
-
-        case 'r':
-          process_response(*nodeId, sa, message);
-          break;
-
-        case 'e':
-          process_error(sa, message);
-          break;
-
-        default:
-          throw dht_error(dht_error_bad_method, "Unknown message type.");
-      }
-
-    // If node was querying us, reply with error packet, otherwise mark the node as "query failed",
-    // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
-    // to other nodes.
-    } catch (const bencode_error& e) {
-      if ((type == 'r' || type == 'e') && nodeId != NULL) {
-        m_router->node_inactive(*nodeId, sa);
-      } else {
-        snprintf(message.data_end, message.data + torrent::DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
-        message.data[torrent::DhtMessage::data_size - 1] = '\0';
-        create_error(message, sa, dht_error_protocol, message.data_end);
-      }
-
-    } catch (const dht_error& e) {
-      if ((type == 'r' || type == 'e') && nodeId != NULL)
-        m_router->node_inactive(*nodeId, sa);
-      else
-        create_error(message, sa, e.code(), e.what());
-
-    } catch (const network_error&) {
+      default:
+        throw dht_error(dht_error_bad_method, "Unknown message type.");
     }
-  }
 
-  start_write();
+  // If node was querying us, reply with error packet, otherwise mark the node as "query failed",
+  // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
+  // to other nodes.
+  } catch (const bencode_error& e) {
+    if ((type == 'r' || type == 'e') && nodeId != NULL) {
+      m_router->node_inactive(*nodeId, sa);
+    } else {
+      snprintf(message.data_end, message.data + torrent::DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
+      message.data[torrent::DhtMessage::data_size - 1] = '\0';
+      create_error(message, sa, dht_error_protocol, message.data_end);
+    }
+
+  } catch (const dht_error& e) {
+    if ((type == 'r' || type == 'e') && nodeId != NULL)
+      m_router->node_inactive(*nodeId, sa);
+    else
+      create_error(message, sa, e.code(), e.what());
+
+  } catch (const network_error&) {
+  }
 }
 
 void
@@ -980,7 +880,7 @@ DhtServer::process_queue(packet_queue& queue) {
     queue.pop_front();
 
     try {
-      int written = write_datagram_sa(packet->c_str(), packet->length(), packet->address());
+      int written = m_udp_router.write_datagram_sa(packet->c_str(), packet->length(), packet->address());
 
       if (written == -1)
         throw network_error();
@@ -1018,17 +918,13 @@ DhtServer::event_write() {
   process_queue(m_lowQueue);
 
   if (m_highQueue.empty() && m_lowQueue.empty())
-    this_thread::poll()->remove_write(this);
-}
-
-void
-DhtServer::event_error() {
+    m_udp_router.stop_write();
 }
 
 void
 DhtServer::start_write() {
   if (!m_highQueue.empty() || !m_lowQueue.empty())
-    this_thread::poll()->insert_write(this);
+    m_udp_router.start_write();
 
   if (!m_task_timeout.is_scheduled() && !m_transactions.empty())
     this_thread::scheduler()->wait_for_ceil_seconds(&m_task_timeout, 5s);

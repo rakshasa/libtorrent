@@ -89,6 +89,18 @@ public:
   const std::string&         token() const { return m_token; }
   void                       set_token(std::string token) { m_token = std::move(token); }
 
+  ssize_t send_to_server(const std::string& data) const {
+    sockaddr_in server{};
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    server.sin_port = htons(dht_port);
+    return ::sendto(m_fd, data.data(), data.size(), 0, reinterpret_cast<sockaddr*>(&server), sizeof(server));
+  }
+
+  ssize_t receive(char* data, size_t size) const {
+    return ::recv(m_fd, data, size, 0);
+  }
+
   std::string compact() const {
     std::string node(m_id.data(), torrent::HashString::size_data);
     uint32_t    addr = htonl(INADDR_LOOPBACK);
@@ -389,4 +401,38 @@ TestDhtAnnounceWalk::test_oversized_token_keeps_walking() {
   CPPUNIT_ASSERT_EQUAL(1u, near.count("get_peers"));
   CPPUNIT_ASSERT_EQUAL(1u, near.count("announce_peer"));
   CPPUNIT_ASSERT_EQUAL(0u, far.count("announce_peer"));
+}
+
+void
+TestDhtAnnounceWalk::test_incoming_ping_after_invalid_datagram() {
+  FakeNode node(1);
+  Walk walk({});
+
+  auto ping = torrent::Object::create_map();
+  ping.insert_key("a", torrent::Object::create_map()).insert_key("id", node.id().str());
+  ping.insert_key("q", std::string("ping"));
+  ping.insert_key("t", std::string("xy"));
+  ping.insert_key("y", std::string("q"));
+
+  std::ostringstream stream;
+  torrent::object_write_bencode(&stream, &ping);
+  auto data = stream.str();
+
+  CPPUNIT_ASSERT_EQUAL(ssize_t{7}, node.send_to_server("invalid"));
+  CPPUNIT_ASSERT_EQUAL(static_cast<ssize_t>(data.size()), node.send_to_server(data));
+
+  char buffer[2048];
+  torrent::Object reply;
+  CPPUNIT_ASSERT(Walk::pump({}, [&] {
+    auto size = node.receive(buffer, sizeof(buffer));
+    if (size < 0)
+      return false;
+
+    torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+    CPPUNIT_ASSERT(reply.get_key_string("y") != "e");
+    return reply.get_key_string("y") == "r";
+  }, std::chrono::milliseconds(1000)));
+
+  CPPUNIT_ASSERT_EQUAL(std::string("r"), reply.get_key_string("y"));
+  CPPUNIT_ASSERT_EQUAL(std::string("xy"), reply.get_key_string("t"));
 }

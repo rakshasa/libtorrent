@@ -9,6 +9,7 @@ class TestDhtAnnounceWalk : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST(test_no_second_get_peers_round);
   CPPUNIT_TEST(test_walk_continues_after_quick_timeout);
   CPPUNIT_TEST(test_oversized_token_keeps_walking);
+  CPPUNIT_TEST(test_incoming_ping_after_invalid_datagram);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -21,4 +22,5 @@ public:
   void test_no_second_get_peers_round();
   void test_walk_continues_after_quick_timeout();
   void test_oversized_token_keeps_walking();
+  void test_incoming_ping_after_invalid_datagram();
 };
