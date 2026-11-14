@@ -1,12 +1,9 @@
 #ifndef LIBTORRENT_TRACKER_UDP_ROUTER_H
 #define LIBTORRENT_TRACKER_UDP_ROUTER_H
 
-#include <chrono>
 #include <deque>
 #include <functional>
-#include <memory>
 #include <random>
-#include <tuple>
 #include <unordered_map>
 
 #include "net/protocol_buffer.h"
@@ -37,7 +34,7 @@ public:
   UdpRouter();
   ~UdpRouter();
 
-  const char*         type_name() const override { return "udp_router"; }
+  const char*         type_name() const override { return "tracker_udp_router"; }
 
   // TODO: Listen to network_config updates and reopen if necessary.
   // TODO: Add callback subscription for network_config updates.
@@ -129,8 +126,6 @@ private:
 
   system::SchedulerEntry m_task_timeout;
 
-  buffer_type           m_buffer;
-
   system::callback_id   m_resolver_callback_id;
 };
 
@@ -138,4 +133,4 @@ inline int UdpRouter::router_family() const { return socket_address()->sa_family
 
 } // namespace torrent::tracker
 
-#endif // LIBTORRENT_TRACKER_UDP_ROUTER_H
+#endif

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "udp_router.h"
+#include "tracker/udp_router.h"
 
 #include <cassert>
 #include <iterator>
@@ -436,15 +436,15 @@ int
 UdpRouter::do_write(uint32_t id, connection_info* info) {
   assert(info->address != nullptr);
 
-  m_buffer.reset();
+  buffer_type buffer;
 
-  info->prepare(id, m_buffer);
+  info->prepare(id, buffer);
 
-  if (m_buffer.size_end() == 0)
+  if (buffer.size_end() == 0)
     throw internal_error("UdpRouter::do_write() prepare function did not write any data.");
 
   auto address       = info->address.get();
-  auto bytes_written = write_datagram_sa(m_buffer.begin(), m_buffer.size_end(), address);
+  auto bytes_written = write_datagram_sa(buffer.begin(), buffer.size_end(), address);
 
   if (bytes_written == -1) {
     if (errno == 0)
@@ -453,8 +453,8 @@ UdpRouter::do_write(uint32_t id, connection_info* info) {
     return errno;
   }
 
-  if (bytes_written != m_buffer.size_end()) {
-    LT_LOG("failed to write datagram : address:%s : only %d of %d bytes written", sa_pretty_str(address).c_str(), bytes_written, m_buffer.size_end());
+  if (bytes_written != buffer.size_end()) {
+    LT_LOG("failed to write datagram : address:%s : only %d of %d bytes written", sa_pretty_str(address).c_str(), bytes_written, buffer.size_end());
     throw internal_error("UdpRouter::try_write() did not write entire datagram.");
   }
 
@@ -554,10 +554,11 @@ void
 UdpRouter::event_read() {
   for (unsigned int count = 0; count < max_read_datagrams; ++count) {
     sa_inet_union from_sa;
+    buffer_type   buffer;
 
-    m_buffer.reset();
+    buffer.reset();
 
-    auto bytes_read = read_datagram_sa(m_buffer.begin(), m_buffer.reserved(), &from_sa.sa, sizeof(from_sa));
+    auto bytes_read = read_datagram_sa(buffer.begin(), buffer.reserved(), &from_sa.sa, sizeof(from_sa));
 
     if (bytes_read == -1) {
       if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -573,9 +574,9 @@ UdpRouter::event_read() {
     if (bytes_read == 0)
       continue;
 
-    m_buffer.set_end(bytes_read);
+    buffer.set_end(bytes_read);
 
-    uint32_t transaction_id = peek_transaction_id(m_buffer);
+    uint32_t transaction_id = peek_transaction_id(buffer);
 
     if (transaction_id == 0) {
       // LT_LOG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
@@ -598,7 +599,7 @@ UdpRouter::event_read() {
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
 
-    if (!itr->second.process(transaction_id, m_buffer))
+    if (!itr->second.process(transaction_id, buffer))
       disconnect_unsafe(itr);
   }
 }
