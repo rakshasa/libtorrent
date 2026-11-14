@@ -41,6 +41,7 @@ private:
 
   void                offer_chunk();
   bool                should_upload();
+  void                request_pieces_if_pending();
 
   inline void         fill_write_buffer();
 

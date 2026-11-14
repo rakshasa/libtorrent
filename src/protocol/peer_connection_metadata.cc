@@ -36,7 +36,7 @@ PeerConnectionMetadata::receive_keepalive() {
   if (this_thread::cached_time() - m_time_last_read > 240s)
     return false;
 
-  m_down.try_request = true;
+  m_down.schedule_request();
 
   // There's no point in adding ourselves to the write poll if the
   // buffer is full, as that will already have been taken care of.
@@ -153,7 +153,7 @@ PeerConnectionMetadata::read_message() {
       throw close_connection();
 
     m_down.protocol->set_state(ProtocolRead::IDLE);
-    m_down.try_request = true;
+    m_down.schedule_request();
     write_insert_poll_safe();
 
     return true;
@@ -223,7 +223,7 @@ PeerConnectionMetadata::event_read() {
         LT_LOG_METADATA_EVENTS("reading extension message", 0);
 
         m_down.protocol->set_state(ProtocolRead::IDLE);
-        m_down.try_request = true;
+        m_down.schedule_request();
         write_insert_poll_safe();
         break;
 
@@ -270,17 +270,10 @@ inline void
 PeerConnectionMetadata::fill_write_buffer() {
   ProtocolBuffer<512>::iterator old_end = m_up.protocol->buffer()->end();
 
-  if (m_down.try_request)
-    m_down.try_request = try_request_metadata_pieces();
+  if (m_down.has_pending_request())
+    m_down.set_pending_request(try_request_metadata_pieces());
 
-  if (m_up.has_pending_pex() && m_up.protocol->can_write_extension() &&
-      send_pex_message()) {
-    // Don't do anything else if send_pex_message() succeeded.
-
-  } else if (m_extensions->has_pending_message() && m_up.protocol->can_write_extension() &&
-             send_ext_message()) {
-    // Same.
-  }
+  send_pending_extension();
 
   if (is_encrypted())
     m_encryption.encrypt(old_end, m_up.protocol->buffer()->end() - old_end);
@@ -419,7 +412,7 @@ PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data,
     // Length is not set in a reject message.
     length = ProtocolExtension::metadata_piece_length(piece, m_download->file_list()->size_bytes());
 
-    m_down.try_request = false;
+    m_down.clear_pending_request();
     read_cancel_piece(Piece(0, piece << ProtocolExtension::metadata_piece_shift, length));
 
     LT_LOG_METADATA_EVENTS("rejected metadata piece", 0);

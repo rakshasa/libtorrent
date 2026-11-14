@@ -103,7 +103,7 @@ PeerConnection<type>::receive_keepalive() {
   if (type != Download::CONNECTION_LEECH)
     return true;
 
-  m_down.try_request = true;
+  m_down.schedule_request();
 
   // Stall pieces when more than one receive_keepalive() has been
   // called while a single piece is downloading.
@@ -483,6 +483,22 @@ PeerConnection<type>::event_read() {
 }
 
 template<Download::ConnectionType type>
+void
+PeerConnection<type>::request_pieces_if_pending() {
+  if (!m_down.has_pending_request() || !should_request())
+    return;
+
+  m_down.clear_pending_request();
+  bool requested = try_request_pieces();
+  m_down.set_pending_request(requested);
+
+  if (!requested && !request_list()->is_interested_in_active()) {
+    m_down.mark_not_interested_and_schedule();
+    m_download->choke_group()->down_queue()->set_not_queued(this, &m_down.choke);
+  }
+}
+
+template<Download::ConnectionType type>
 inline void
 PeerConnection<type>::fill_write_buffer() {
   auto old_end = m_up.protocol->buffer()->end();
@@ -520,16 +536,7 @@ PeerConnection<type>::fill_write_buffer() {
       m_down.clear_pending_interest();
     }
 
-    if (m_down.try_request) {
-      if (!(m_down.try_request = !should_request()) &&
-          !(m_down.try_request = try_request_pieces()) &&
-
-          !request_list()->is_interested_in_active()) {
-        m_down.mark_not_interested_and_schedule();
-
-        m_download->choke_group()->down_queue()->set_not_queued(this, &m_down.choke);
-      }
-    }
+    request_pieces_if_pending();
 
     auto* haveQueue = m_download->have_queue();
 
@@ -557,18 +564,11 @@ PeerConnection<type>::fill_write_buffer() {
       offer_chunk();
   }
 
-  if (m_up.has_pending_pex() && m_up.protocol->can_write_extension() &&
-      send_pex_message()) {
-    // Don't do anything else if send_pex_message() succeeded.
-
-  } else if (m_extensions->has_pending_message() && m_up.protocol->can_write_extension() &&
-             send_ext_message()) {
-    // Same.
-
-  } else if (!m_up.is_choked() &&
-             !m_peer_chunks.upload_queue()->empty() &&
-             m_up.protocol->can_write_piece() &&
-             (type != Download::CONNECTION_INITIAL_SEED || should_upload())) {
+  if (!send_pending_extension() &&
+      !m_up.is_choked() &&
+      !m_peer_chunks.upload_queue()->empty() &&
+      m_up.protocol->can_write_piece() &&
+      (type != Download::CONNECTION_INITIAL_SEED || should_upload())) {
     write_prepare_piece();
   }
 
@@ -690,31 +690,22 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   if (type != Download::CONNECTION_LEECH || m_download->file_list()->is_done())
     return;
 
-  if (m_down.is_interested()) {
+  if (m_down.is_interested() && m_down.has_pending_request())
+    return;
 
-    if (!m_down.try_request && m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
-      m_down.try_request = true;
-      write_insert_poll_safe();
-    }
+  if (!m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index))
+    return;
 
-  } else {
+  if (!m_down.is_interested()) {
+    m_down.mark_interested_and_schedule_if_changed();
 
-    if (m_download->chunk_selector()->received_have_chunk(&m_peer_chunks, index)) {
-      m_down.mark_interested_and_schedule_if_changed();
-
-      // Ensure we get inserted into the choke manager queue in case
-      // the peer keeps us unchoked even though we've said we're not
-      // interested.
-      if (m_down.is_unchoked())
-        m_download->choke_group()->down_queue()->set_queued(this, &m_down.choke);
-
-      // Is it enough to insert into write here? Make the interested
-      // check branch to include insert_write, even when not sending
-      // interested.
-      m_down.try_request = true;
-      write_insert_poll_safe();
-    }
+    // Keep an unchoked peer in the choke manager queue.
+    if (m_down.is_unchoked())
+      m_download->choke_group()->down_queue()->set_queued(this, &m_down.choke);
   }
+
+  m_down.schedule_request();
+  write_insert_poll_safe();
 }
 
 template<>

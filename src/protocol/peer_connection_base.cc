@@ -145,8 +145,8 @@ PeerConnectionBase::cleanup() {
   up_chunk_release();
   down_chunk_release();
 
-  m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - m_up.choke.unchoked());
-  m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - m_down.choke.unchoked());
+  m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - !m_up.is_choked());
+  m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - m_down.is_local_unchoked());
 
   m_download->choke_group()->up_queue()->disconnected(this, &m_up.choke);
   m_download->choke_group()->down_queue()->disconnected(this, &m_down.choke);
@@ -225,7 +225,7 @@ PeerConnectionBase::receive_upload_choke(bool choke) {
 
 bool
 PeerConnectionBase::receive_download_choke(bool choke) {
-  if (choke == m_down.choke.choked())
+  if (choke != m_down.is_local_unchoked())
     throw internal_error("PeerConnectionBase::receive_download_choke(...) already set to the same state.");
 
   write_insert_poll_safe();
@@ -282,7 +282,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
     }
 
   } else {
-    m_down.try_request = true;
+    m_down.schedule_request();
     m_down.clear_interest_withheld();
 
     if (!m_down.is_interested()) {
@@ -429,7 +429,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
 void
 PeerConnectionBase::down_chunk_finished() {
-  m_down.try_request = true;
+  m_down.schedule_request();
 
   if (!request_list()->transfer()->is_finished())
     throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
@@ -466,7 +466,7 @@ PeerConnectionBase::down_chunk_finished() {
 
   // If we were choked by choke_manager but still had queued pieces,
   // then we might still be in the throttle.
-  if (m_down.choke.choked() && request_list()->queued_empty())
+  if (!m_down.is_local_unchoked() && request_list()->queued_empty())
     m_down.protocol->throttle()->erase(m_peer_chunks.download_throttle());
 
   write_insert_poll_safe();
@@ -883,7 +883,7 @@ PeerConnectionBase::write_prepare_extension(int type, const DataBuffer& message)
 // from high stall counts when we are doing decent speeds.
 bool
 PeerConnectionBase::should_request() {
-  if (m_down.choke.choked() || !m_down.is_interested() || !m_down.is_unchoked())
+  if (!m_down.is_local_unchoked() || !m_down.is_interested() || !m_down.is_unchoked())
     // || m_down.protocol->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
@@ -971,9 +971,17 @@ PeerConnectionBase::send_pex_message() {
   return true;
 }
 
-// Extension protocol needs to send a reply.
 bool
-PeerConnectionBase::send_ext_message() {
+PeerConnectionBase::send_pending_extension() {
+  if (!m_up.protocol->can_write_extension())
+    return false;
+
+  if (m_up.has_pending_pex() && send_pex_message())
+    return true;
+
+  if (!m_extensions->has_pending_message())
+    return false;
+
   write_prepare_extension(m_extensions->pending_message_type(), m_extensions->pending_message_data());
   m_extensions->clear_pending_message();
   return true;
