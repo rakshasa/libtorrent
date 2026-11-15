@@ -93,6 +93,53 @@ test_string_utf8::test_multibyte() {
 }
 
 void
+test_string_utf8::test_range_edges() {
+  check_strings({"\xc2\x80",
+                 "\xdf\xbf",
+                 "\xe0\xa0\x80",
+                 "\xed\x9f\xbf",
+                 "\xee\x80\x80",
+                 "\xef\xb7\x90",
+                 "\xf0\x90\x80\x80",
+                 "\xf0\x9f\xbf\xbe",
+                 "\xf4\x8f\xbf\xbf"},
+                true, true);
+}
+
+void
+test_string_utf8::test_overlong() {
+  check_strings({"\xc0\x80",
+                 "\xc1\xbf",
+                 "\xe0\x80\x80",
+                 "\xe0\x9f\xbf",
+                 "\xf0\x80\x80\x80",
+                 "\xf0\x8f\xbf\xbf"},
+                false, false);
+}
+
+void
+test_string_utf8::test_surrogates() {
+  check_strings({"\xed\xa0\x80",
+                 "\xed\xbf\xbf"},
+                false, false);
+}
+
+void
+test_string_utf8::test_above_unicode_range() {
+  check_strings({"\xf4\x90\x80\x80",
+                 "\xf5\x80\x80\x80",
+                 "\xf7\xbf\xbf\xbf"},
+                false, false);
+}
+
+void
+test_string_utf8::test_fffe_and_ffff() {
+  check_strings({"\xef\xbf\xbe",
+                 "\xef\xbf\xbf"},
+                true, false);
+}
+
+void
 test_string_utf8::test_tab_and_line_feed() {
   check_strings({"\t", "\n", "line\tone\nline\ttwo\n"}, true, true);
 }
@@ -132,6 +179,7 @@ test_string_utf8::test_invalid_utf8() {
                  "\xc3(",
                  "\xc3\xa9\xc3",
                  "\xf8\x88\x80\x80\x80",
+                 "\xf8\x90\x80\x80",
                  "\xff",
                  "\x01\xc3"},
                 false, false);
