@@ -15,7 +15,7 @@ namespace torrent::tracker {
 
 class UdpRouter : public SocketDatagram {
 public:
-  using buffer_type      = ProtocolBuffer<512>;
+  using buffer_type      = ProtocolBuffer<2048>;
 
   using prepare_func     = std::function<void(uint32_t, buffer_type&)>;
   using process_func     = std::function<bool(uint32_t, buffer_type&)>;

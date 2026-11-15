@@ -3,42 +3,56 @@
 #include "dht/udp_router.h"
 
 #include <cassert>
-#include <cstdio>
-#include <cstring>
 #include <iterator>
+#include <netdb.h>
 
 #include "torrent/net/fd.h"
+#include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/object_static_map.h"
-#include "torrent/object_stream.h"
 #include "torrent/runtime/network_config.h"
 #include "torrent/runtime/socket_manager.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/system/poll.h"
 #include "torrent/system/types.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
-  lt_log_print(LOG_DHT_SERVER, "udp-router : " log_fmt, __VA_ARGS__);
+  lt_log_print(LOG_DHT_ROUTER, "udp-router : " log_fmt, __VA_ARGS__);
+  // lt_log_print_subsystem(LOG_DHT_REQUESTS, "udp_router", "%p : " log_fmt, static_cast<DhtWorker*>(this), __VA_ARGS__);
 
 // TODO: Add m_connections::iterator to info so we don't need to look them up. We should be able to
 // replace unordered_map with map then to reduce memory usage after initial startup dht rush.
 
 namespace torrent::dht {
 
-UdpRouter::UdpRouter(const HashString& id, query_func query, error_func error, inactive_func inactive,
-                     write_func read_done, write_func write)
-  : m_id(id), m_query(std::move(query)), m_error(std::move(error)), m_inactive(std::move(inactive)),
-    m_read_done(std::move(read_done)), m_write(std::move(write)) {
+namespace {
+
+UdpRouter::random_engine
+create_random_engine() {
+  std::random_device rd;
+  std::seed_seq      seed{rd(), rd(), rd(), rd(), rd(), rd(), rd(), rd()};
+
+  UdpRouter::random_engine engine;
+  engine.seed(seed);
+
+  return engine;
+}
+
+} // namespace
+
+UdpRouter::UdpRouter()
+  : m_random_engine(create_random_engine()),
+    m_resolver_callback_id(system::make_callback_id()) {
 
   m_task_timeout.slot() = [this] { receive_timeout(); };
 }
 
 UdpRouter::~UdpRouter() {
-  close();
+  // this_thread::resolver()->cancel(m_resolver_callback_id);
 }
 
 void
-UdpRouter::open(int family, int port) {
+UdpRouter::open(int family) {
   if (is_open())
     throw internal_error("UdpRouter::open() called but router is already open.");
 
@@ -47,50 +61,39 @@ UdpRouter::open(int family, int port) {
 
   m_thread = this_thread::thread();
 
-  auto [inet_address, inet_device, inet6_address, inet6_device] = runtime::network_config()->bind_udp_addresses_or_null();
-  auto family_address = family == AF_INET6 ? inet6_address : inet_address;
-  auto device_name = family == AF_INET6 ? inet6_device : inet_device;
+  auto [bind_address, device_name] = runtime::network_config()->bind_address_for_udp_connect(family);
 
-  if (family_address == nullptr)
-    throw resource_error("no valid bind address for DHT server");
+  if (bind_address == nullptr) {
+    LT_LOG("could not open udp router : blocked or invalid bind address : family:%s", system::sa_family_enum(family));
+    return;
+  }
 
-  if (family_address->sa_family != family && family_address->sa_family != AF_UNSPEC)
-    throw resource_error("invalid address family for DHT server");
+  if (bind_address->sa_family != family)
+    throw internal_error("UdpRouter::open() bind address family does not match requested family.");
 
-  auto bind_address = family_address->sa_family == AF_UNSPEC
-    ? (family == AF_INET6 ? sa_make_inet6_any() : sa_make_inet_any())
-    : sa_copy(family_address.get());
-  auto node_address = sa_copy(bind_address.get());
-  sap_set_port(bind_address, port);
-
-  auto flags = fd_flag_datagram | fd_flag_nonblock | fd_flag_reuse_address |
-    (family == AF_INET6 ? fd_flag_v6only : fd_flag_v4);
-  int fd = fd_open(flags);
+  int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, family);
 
   if (fd == -1) {
-    int err = errno;
-    LT_LOG("opening router failed : open failed : family:%s errno:%s", system::sa_family_enum(family), system::errno_enum_str(err).c_str());
-    throw resource_error("could not open datagram socket : " + std::string(strerror(err)));
+    LT_LOG("opening router failed : open failed : family:%s errno:%s", system::sa_family_enum(family), system::errno_enum_str(errno).c_str());
+    return;
   }
 
   if (!device_name.empty() && !fd_bind_to_device(fd, device_name.c_str(), family)) {
-    int err = errno;
     LT_LOG("opening router failed : bind to device failed : family:%s device:%s errno:%s",
-           system::sa_family_enum(family), device_name.c_str(), system::errno_enum_str(err).c_str());
+           system::sa_family_enum(family), device_name.c_str(), system::errno_enum_str(errno).c_str());
     fd_close(fd);
-    throw resource_error("could not bind datagram socket to device : " + std::string(strerror(err)));
+    return;
   }
 
   if (!fd_bind(fd, bind_address.get())) {
-    int err = errno;
     LT_LOG("opening router failed : bind failed : family:%s bind_address:%s errno:%s",
-           system::sa_family_enum(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(err).c_str());
+           system::sa_family_enum(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(errno).c_str());
     fd_close(fd);
-    throw resource_error("could not bind datagram socket : " + std::string(strerror(err)));
+    return;
   }
 
   set_file_descriptor(fd);
-  set_socket_address(std::move(node_address));
+  set_socket_address(sa_copy(bind_address.get()));
   set_socket_device_name(device_name);
 
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
@@ -109,10 +112,10 @@ UdpRouter::close() {
   assert(m_thread == this_thread::thread());
 
   this_thread::scheduler()->erase(&m_task_timeout);
-  m_connections.clear();
-  m_write_queue.clear();
-  m_timeout_queue.clear();
-  m_external_write = false;
+
+  // Check if we're running in unittests.
+  if (this_thread::resolver() != nullptr && net_thread::thread() != nullptr)
+    this_thread::resolver()->cancel(m_resolver_callback_id);
 
   runtime::socket_manager()->unregister_event_or_throw(this, [this]() {
       this_thread::poll()->remove_and_close(this);
@@ -129,44 +132,99 @@ UdpRouter::close() {
 }
 
 void
-UdpRouter::connect(key_type id, const sockaddr* address, connection_params params) {
+UdpRouter::updated_network_config(int family) {
   assert(m_thread == this_thread::thread());
 
-  if (!is_open() || address == nullptr || address->sa_family != router_family() ||
-      !DhtTransaction::key_match(id, address) || sa_port(address) == 0)
-    throw internal_error("UdpRouter::connect() called with invalid address.");
+  auto [bind_address, device_name] = runtime::network_config()->bind_address_for_udp_connect(family);
 
-  if (!params.prepare || !params.process || !params.error_reply || !params.failure)
-    throw internal_error("UdpRouter::connect() called without connection callbacks.");
+  if (bind_address == nullptr) {
+    LT_LOG("closing udp router due to invalid or blocked bind address : family:%s", system::sa_family_enum(family));
+    close();
+    return;
+  }
 
-  auto address_copy = sa_copy(address);
-  auto [itr, inserted] = m_connections.try_emplace(id, connection_info{});
+  if (bind_address->sa_family != family && bind_address->sa_family != AF_UNSPEC)
+    throw internal_error("UdpRouter::updated_network_config() got bind address with wrong family.");
 
-  if (!inserted)
-    throw internal_error("UdpRouter::connect() called with existing connection ID.");
+  if (sa_equal(bind_address.get(), socket_address()) && device_name == socket_device_name())
+    return;
 
-  itr->second.address     = std::move(address_copy);
-  itr->second.prepare     = std::move(params.prepare);
-  itr->second.process     = std::move(params.process);
-  itr->second.error_reply = std::move(params.error_reply);
-  itr->second.failure     = std::move(params.failure);
-  itr->second.packet_sent = std::move(params.packet_sent);
+  LT_LOG("udp router bind address changed : old:%s new:%s", sa_pretty_str(socket_address()).c_str(), sa_pretty_str(bind_address.get()).c_str());
+
+  close();
+  open(family);
 }
 
 void
-UdpRouter::send(key_type id) {
+UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
+  if (!is_open())
+    return;
+
+  assert(m_thread == this_thread::thread());
+  assert(address != nullptr);
+
+  if (address != nullptr && address->sa_family != router_family())
+    throw internal_error("UdpRouter::connect() called with unsupported address family.");
+
+  if (sa_port(address.get()) == 0)
+    throw internal_error("UdpRouter::connect() called with address with port 0.");
+
+  auto itr = connect_unsafe(std::move(address), params);
+
+  try_write_with_queues(itr->first, &itr->second);
+}
+
+void
+UdpRouter::connect(const std::string hostname, uint16_t port, connection_params params) {
+  if (!is_open())
+    return;
+
+  assert(m_thread == this_thread::thread());
+  assert(!hostname.empty());
+  assert(port != 0);
+
+  auto [sa, sa_compatible] = sa_lookup_numeric(hostname, router_family());
+
+  if (!sa_compatible)
+    return;
+
+  if (sa != nullptr) {
+    sap_set_port(sa, port);
+    connect(std::move(sa), params);
+    return;
+  }
+
+  auto itr = connect_unsafe(nullptr, params);
+
+  auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
+      resolved_hostname(id, port, sin, err, sin6, err6);
+    };
+
+  this_thread::resolver()->resolve_both(m_resolver_callback_id, hostname, router_family(), std::move(fn));
+}
+
+void
+UdpRouter::transfer(uint32_t id, connection_params params) {
   assert(m_thread == this_thread::thread());
 
   auto itr = m_connections.find(id);
 
-  if (itr == m_connections.end() || itr->second.retry_count != 0 || itr->second.queue_ptr != nullptr)
-    throw internal_error("UdpRouter::send() called with invalid connection ID.");
+  if (itr == m_connections.end())
+    throw internal_error("UdpRouter::transfer_connection() called with invalid connection ID.");
 
-  try_write_with_queues(id, &itr->second);
+  if (itr->second.address == nullptr)
+    throw internal_error("UdpRouter::transfer_connection() called but connection does not have an address.");
+
+  auto new_itr = connect_unsafe(std::move(itr->second.address), params);
+
+  // connect_unsafe inserts into m_connections, which invalidates iterators when it rehashes.
+  disconnect_unsafe(m_connections.find(id));
+
+  try_write_with_queues(new_itr->first, &new_itr->second);
 }
 
 void
-UdpRouter::disconnect(key_type id) {
+UdpRouter::disconnect(uint32_t id) {
   assert(m_thread == this_thread::thread());
 
   auto itr = m_connections.find(id);
@@ -174,22 +232,53 @@ UdpRouter::disconnect(key_type id) {
   if (itr == m_connections.end())
     throw internal_error("UdpRouter::disconnect() called with invalid connection ID.");
 
+  if (itr->second.address == nullptr) {
+    assert(itr->second.queue_ptr   == nullptr);
+    assert(itr->second.timeout_ptr == nullptr);
+
+    // Indicate to resolved_hostname() that the connection has been disconnected.
+    itr->second.prepare = nullptr;
+    itr->second.process = nullptr;
+    itr->second.failure = nullptr;
+    return;
+  }
+
   disconnect_unsafe(itr);
 }
 
-void
-UdpRouter::start_write() {
-  assert(m_thread == this_thread::thread());
-  m_external_write = true;
-  this_thread::poll()->insert_write(this);
-}
+UdpRouter::connection_map::iterator
+UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
+  assert(is_open());
+  assert(address == nullptr || address->sa_family == router_family());
+  assert(params.prepare);
+  assert(params.process);
+  assert(params.failure);
+  assert(params.connected);
 
-void
-UdpRouter::stop_write() {
-  assert(m_thread == this_thread::thread());
-  m_external_write = false;
-  if (m_write_queue.empty())
-    this_thread::poll()->remove_write(this);
+  connection_map::iterator itr;
+
+  while (true) {
+    uint32_t id = m_random_engine();
+
+    if (id == 0)
+      continue;
+
+    auto [new_itr, inserted] = m_connections.try_emplace(id, connection_info{});
+
+    if (inserted) {
+      itr = new_itr;
+      break;
+    }
+  }
+
+  itr->second.address     = std::move(address);
+  itr->second.prepare     = std::move(params.prepare);
+  itr->second.process     = std::move(params.process);
+  itr->second.failure     = std::move(params.failure);
+  itr->second.packet_sent = std::move(params.packet_sent);
+
+  params.connected(itr->first);
+  return itr;
 }
 
 void
@@ -217,8 +306,65 @@ UdpRouter::disconnect_failure_unsafe(connection_map::iterator itr, int errno_err
   failure_fn(id, errno_err, gai_err);
 }
 
+void
+UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
+  auto itr = m_connections.find(id);
+
+  if (itr == m_connections.end()) {
+    LT_LOG("received hostname for unknown connection : id:%" PRIx32, id);
+    return;
+  }
+
+  if (itr->second.address != nullptr)
+    throw internal_error("UdpRouter::resolved_hostname() called but connection already has an address.");
+
+  if (itr->second.failure == nullptr) {
+    disconnect_unsafe(itr);
+    return;
+  }
+
+  auto error_fn = [this, id, itr](int err) {
+      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err));
+      disconnect_failure_unsafe(itr, 0, err);
+    };
+
+  sa_unique_ptr sa;
+
+  switch (router_family()) {
+  case AF_INET:
+    if (sin == nullptr && err == 0)
+      throw internal_error("UdpRouter::resolved_hostname() sin == nullptr but err == 0");
+
+    if (err != 0)
+      return error_fn(err);
+
+    sa = sa_copy_in(sin.get());
+    break;
+
+  case AF_INET6:
+    if (sin6 == nullptr && err6 == 0)
+      throw internal_error("UdpRouter::resolved_hostname() sin6 == nullptr but err6 == 0");
+
+    if (err6 != 0)
+      return error_fn(err6);
+
+    sa = sa_copy_in6(sin6.get());
+    break;
+
+  default:
+    throw internal_error("UdpRouter::resolved_hostname() called but router socket address has unsupported family.");
+  };
+
+  sap_set_port(sa, port);
+
+  itr->second.address = std::move(sa);
+
+  try_write_with_queues(id, &itr->second);
+}
+
+
 bool
-UdpRouter::try_write_with_queues(key_type id, connection_info* info) {
+UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
   clear_timeout(info);
 
   int err = try_write(id, info);
@@ -239,7 +385,7 @@ UdpRouter::try_write_with_queues(key_type id, connection_info* info) {
 // Returns EAGAIN for all temporary errors.
 
 int
-UdpRouter::try_write(key_type id, connection_info* info) {
+UdpRouter::try_write(uint32_t id, connection_info* info) {
   if (!is_open())
     throw internal_error("UdpRouter::try_write() called but router is not open.");
 
@@ -287,7 +433,7 @@ UdpRouter::try_write(key_type id, connection_info* info) {
 }
 
 int
-UdpRouter::do_write(key_type id, connection_info* info) {
+UdpRouter::do_write(uint32_t id, connection_info* info) {
   assert(info->address != nullptr);
 
   buffer_type buffer;
@@ -326,7 +472,7 @@ UdpRouter::clear_timeout(connection_info* info) {
 }
 
 void
-UdpRouter::queue_timeout(key_type id, connection_info* info) {
+UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
@@ -346,7 +492,7 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
 }
 
 void
-UdpRouter::queue_write(key_type id, connection_info* info) {
+UdpRouter::queue_write(uint32_t id, connection_info* info) {
   if (info->queue_ptr != nullptr)
     throw internal_error("UdpRouter::queue_write() called for connection that is already queued for writing.");
 
@@ -356,6 +502,19 @@ UdpRouter::queue_write(key_type id, connection_info* info) {
   m_write_queue.emplace_back(id, info);
 
   info->queue_ptr = &m_write_queue.back().second;
+}
+
+uint32_t
+UdpRouter::peek_transaction_id(buffer_type& buffer) const {
+  if (buffer.size_end() < 8)
+    return 0;
+
+  buffer.read_32();
+
+  uint32_t transaction_id = buffer.read_32();
+
+  buffer.reset_position();
+  return transaction_id;
 }
 
 void
@@ -397,89 +556,6 @@ UdpRouter::receive_timeout() {
 }
 
 void
-UdpRouter::process_datagram(buffer_type& buffer, const sockaddr* sa) {
-  int type = '?';
-  DhtMessage message;
-  const HashString* node_id = nullptr;
-
-  try {
-    try {
-      auto data = reinterpret_cast<const char*>(buffer.begin());
-      static_map_read_bencode(data, data + buffer.size_end(), message);
-    } catch (const bencode_error&) {
-      return;
-    }
-
-    if (!message[key_t].is_raw_string())
-      throw DhtError(dht_error_protocol, "No transaction ID");
-
-    if (message[key_t].as_raw_string().size() > 20)
-      throw DhtError(dht_error_protocol, "Transaction ID length too long");
-
-    if (!message[key_y].is_raw_string())
-      throw DhtError(dht_error_protocol, "No message type");
-
-    if (message[key_y].as_raw_string().size() != 1)
-      throw DhtError(dht_error_bad_method, "Unsupported message type");
-
-    type = message[key_y].as_raw_string().data()[0];
-
-    if (type == 'r' || type == 'q') {
-      auto& id = message[type == 'q' ? key_a_id : key_r_id];
-
-      if (!id.is_raw_string())
-        throw DhtError(dht_error_protocol, "Invalid `id' value");
-
-      auto id_string = id.as_raw_string();
-      if (id_string.size() < HashString::size_data)
-        throw DhtError(dht_error_protocol, "`id' value too short");
-
-      node_id = HashString::cast_from(id_string.data());
-    }
-
-    if ((type == 'r' || type == 'e') && message[key_t].as_raw_string().size() != 1)
-      throw DhtError(dht_error_protocol, "Invalid transaction ID type/length.");
-
-    if (node_id != nullptr && *node_id == m_id)
-      throw DhtError(dht_error_protocol, "Send your own ID, not mine");
-
-    if (type == 'q') {
-      m_query(*node_id, sa, message);
-    } else if (type == 'r' || type == 'e') {
-      auto id = static_cast<unsigned char>(message[key_t].as_raw_string().data()[0]);
-      auto key = DhtTransaction::key(sa, id);
-      auto itr = m_connections.find(key);
-
-      if (itr == m_connections.end() || !sa_equal_addr(sa, itr->second.address.get()))
-        return;
-
-      if (type == 'r') {
-        auto process = itr->second.process;
-        process(key, *node_id, sa, message);
-      } else {
-        auto error_reply = itr->second.error_reply;
-        error_reply(key, sa, message);
-      }
-    } else {
-      throw DhtError(dht_error_bad_method, "Unknown message type.");
-    }
-  } catch (const bencode_error& e) {
-    if ((type == 'r' || type == 'e') && node_id != nullptr) {
-      m_inactive(*node_id, sa);
-    } else {
-      snprintf(message.data_end, message.data + DhtMessage::data_size - message.data_end, "Malformed packet: %s", e.what());
-      m_error(message, sa, dht_error_protocol, message.data_end);
-    }
-  } catch (const DhtError& e) {
-    if ((type == 'r' || type == 'e') && node_id != nullptr)
-      m_inactive(*node_id, sa);
-    else
-      m_error(message, sa, e.code(), e.what());
-  } catch (const network_error&) {
-  }
-}
-
-void
 UdpRouter::event_read() {
   for (unsigned int count = 0; count < max_read_datagrams; ++count) {
     sa_inet_union from_sa;
@@ -505,23 +581,36 @@ UdpRouter::event_read() {
 
     buffer.set_end(bytes_read);
 
-    if (sa_is_v4mapped(&from_sa.sa)) {
-      auto unmapped = sin_from_v4mapped_in6(&from_sa.inet6);
-      from_sa.inet = *unmapped;
+    uint32_t transaction_id = peek_transaction_id(buffer);
+
+    if (transaction_id == 0) {
+      // LT_LOG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
+      continue;
     }
 
-    if (from_sa.sa.sa_family == router_family())
-      process_datagram(buffer, &from_sa.sa);
-  }
+    // It's quicker to do transaction-id lookup and then verify the address.
+    auto itr = m_connections.find(transaction_id);
 
-  m_read_done();
+    if (itr == m_connections.end()) {
+      // LT_LOG("received datagram with unknown transaction ID : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
+      continue;
+    }
+
+    // While the id is random, the dht can still send brute-force it so check that we're did not
+    // disconnect before hostname resolved.
+    if (itr->second.address == nullptr)
+      continue;
+
+    if (!sa_equal(&from_sa.sa, itr->second.address.get()))
+      continue;
+
+    if (!itr->second.process(transaction_id, buffer))
+      disconnect_unsafe(itr);
+  }
 }
 
 void
 UdpRouter::event_write() {
-  if (m_external_write)
-    m_write();
-
   while (!m_write_queue.empty()) {
     auto [id, info] = m_write_queue.front();
 
@@ -551,7 +640,7 @@ UdpRouter::event_write() {
     queue_timeout(id, info);
   }
 
-  if (m_write_queue.empty() && !m_external_write)
+  if (m_write_queue.empty())
     this_thread::poll()->remove_write(this);
 }
 
