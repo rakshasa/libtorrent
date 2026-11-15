@@ -122,6 +122,9 @@ curl_socket_t
 CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sockaddr *address) {
   assert(this_thread::thread() == stack->thread());
 
+  LT_LOG_DEBUG("open_socket() : purpose:%i socktype:%i family:%i protocol:%i",
+               int{purpose}, int{address->socktype}, int{address->family}, int{address->protocol});
+
   if (!stack->is_running()) {
     LT_LOG_DEBUG("open_socket() : curl stack not running, aborting", 0);
     return CURL_SOCKET_BAD;
@@ -138,13 +141,11 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
   socket->m_self_ptr = socket_ptr;
 
   auto open_func = [socket, address]() {
-      int socktype = address->socktype;
-
 #ifdef SOCK_CLOEXEC
-      socktype |= SOCK_CLOEXEC;
+      int fd = fd_socket(address->family, address->socktype | SOCK_CLOEXEC, address->protocol);
+#else
+      int fd = fd_socket(address->family, address->socktype, address->protocol);
 #endif
-
-      int fd = ::socket(address->family, socktype, address->protocol);
 
       if (fd == -1) {
         LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));
@@ -156,7 +157,12 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
       return fd;
     };
 
-  runtime::socket_manager()->open_event_or_throw(socket, runtime::category_http, open_func);
+  runtime::socket_manager()->open_event_or_cleanup(socket, runtime::category_http, open_func, {});
+
+  if (!socket->is_open()) {
+    LT_LOG_DEBUG("open_socket() : error creating socket: %s", system::errno_enum(errno));
+    return CURL_SOCKET_BAD;
+  }
 
   this_thread::poll()->open(socket);
 

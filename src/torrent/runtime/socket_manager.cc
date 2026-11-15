@@ -410,32 +410,17 @@ SocketManager::open_event_or_cleanup(system::Event* event, category_t category, 
   auto fd              = event->file_descriptor();
   auto [itr, inserted] = m_socket_map.try_emplace(fd, SocketInfo{fd, event, this_thread::thread()});
 
-  if (inserted) {
-    LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket", this_thread::thread()->name(), event->type_name(), fd);
-
-    account_new_socket_unsafe(itr, category);
-    return true;
-  }
-
-  if (!handle_reused_socket(itr)) {
-    LT_LOG("open_event_or_cleanup() : %s:%s:%i : failed to reuse existing file descriptor : %s:%s",
+  if (!inserted) {
+    LT_LOG("open_event_or_cleanup() : %s:%s:%i : collision with existing file descriptor : %s:%s",
            this_thread::thread()->name(), event->type_name(), fd,
            itr->second.thread->name(), itr->second.event->type_name());
 
-    cleanup(true);
-    return false;
+    throw internal_error("SocketManager::open_event_or_cleanup(): reuse of existing file descriptor not supported yet.");
   }
 
-  LT_LOG("open_event_or_cleanup() : %s:%s:%i : reused existing file descriptor : %s:%s",
-         this_thread::thread()->name(), event->type_name(), fd,
-         itr->second.thread->name(), itr->second.event->type_name());
+  LT_LOG("open_event_or_cleanup() : %s:%s:%i : opened socket", this_thread::thread()->name(), event->type_name(), fd);
 
-  throw internal_error("SocketManager::open_event_or_cleanup(): reuse of existing file descriptor not supported yet.");
-
-  account_remove_socket_unsafe(itr);
-  itr->second = SocketInfo{fd, event, this_thread::thread()};
   account_new_socket_unsafe(itr, category);
-
   return true;
 }
 
@@ -716,21 +701,6 @@ SocketManager::mark_stream_event_inactive(system::Event* event, std::function<vo
          this_thread::thread()->name(), event->type_name(), fd);
 
   return true;
-}
-
-// TODO: Finish implementation of reuse logic. (not as needed now that we check)
-
-bool
-SocketManager::handle_reused_socket(socket_map::iterator itr) {
-  if (!(itr->second.flags & flag_inactive))
-    return false;
-
-  // TODO: Add event to a closed list, which will be checked when mark_event_active is called.
-  //
-  // TODO: Until the, just disallow reuse.
-  return false;
-
-  // return true;
 }
 
 } // namespace torrent::runtime

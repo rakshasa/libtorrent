@@ -88,20 +88,7 @@ public:
 
   bool                can_open_socket(category_t category);
 
-  // TODO: Rename / change _or_throw to be more specific about what we throw, as it currently calls
-  // internal errors. DHT server should probably throw resource_error instead? Or retry. (this
-  // however hides errors for normal users)
-  //
-  // TODO: Finish implementation of reuse logic.
-
-  // To avoid reuse race conditions, these calls must also add the Event to read/write polling.
-
-  // Throw internal_error on conflicts, as the caller isn't expecting conflicts.
   void                open_event_or_throw(system::Event* event, category_t category, std::function<void ()> func);
-
-  // Try to reuse existing socket, if that fails call cleanup.
-  //
-  // This is used for listen accept and other cases where the caller doesn't mind ignoring failures.
   bool                open_event_or_cleanup(system::Event* event, category_t category, std::function<void ()> func, std::function<void (bool)> cleanup);
 
   void                close_event_or_throw(system::Event* event, std::function<void ()> func);
@@ -148,22 +135,23 @@ private:
 
   bool                can_open_socket_unsafe(category_t category);
 
-  bool                handle_reused_socket(socket_map::iterator itr);
+  category_list       m_category_managed_size{};
+  category_list       m_category_max_size{};
+
+  category_list       m_category_min_alloc{};
+  category_list       m_category_max_alloc{};
+
+  align_cacheline
 
   std::atomic<uint32_t> m_managed_size{};
   std::atomic<uint32_t> m_unmanaged_size{};
   std::atomic<uint32_t> m_max_size{};
 
-  category_list         m_category_managed_size{};
-  category_list         m_category_max_size{};
+  align_cacheline
 
-  category_list         m_category_min_alloc{};
-  category_list         m_category_max_alloc{};
-
-  align_cacheline std::mutex m_mutex;
+  std::mutex          m_mutex;
 
   subscriber_list     m_change_subscribers;
-
   socket_map          m_socket_map;
 };
 
