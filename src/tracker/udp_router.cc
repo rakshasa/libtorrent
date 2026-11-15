@@ -498,16 +498,12 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
-  auto pos = m_timeout_queue.end();
-  while (pos != m_timeout_queue.begin() && std::get<1>(*std::prev(pos)) > timeout_time)
-    --pos;
+  if (m_timeout_queue.empty())
+    this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
 
-  bool first = pos == m_timeout_queue.begin();
-  auto itr = m_timeout_queue.emplace(pos, id, timeout_time, info);
-  info->timeout_ptr = &std::get<2>(*itr);
+  m_timeout_queue.emplace_back(id, timeout_time, info);
 
-  if (first)
-    this_thread::scheduler()->update_wait_until(&m_task_timeout, timeout_time);
+  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
 }
 
 void
@@ -523,7 +519,7 @@ UdpRouter::queue_write(key_type id, connection_info* info) {
   info->queue_ptr = &m_write_queue.back().second;
 }
 
-key_type
+UdpRouter::key_type
 UdpRouter::peek_transaction_id(buffer_type& buffer) const {
   if (buffer.size_end() < 8)
     return 0;

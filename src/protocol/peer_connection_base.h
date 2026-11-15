@@ -136,7 +136,7 @@ protected:
   bool                try_request_pieces();
 
   bool                send_pex_message();
-  bool                send_ext_message();
+  bool                send_pending_extension();
 
   DownloadMain*       m_download{};
 
