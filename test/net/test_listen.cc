@@ -155,6 +155,16 @@ test_listen::test_range_exhausted() {
     CPPUNIT_ASSERT(!pair.open());
     pair.assert_closed();
   }
+
+  listeners pair;
+  pair.options.first_port = pair.options.last_port = 65535;
+  sa_set_port(pair.address.get(), 65535);
+  sa_set_port(pair.address6.get(), 65535);
+  expect_range(pair, 100, false);
+  expect_range(pair, 102, true, false);
+  pair.expect_close(100, 0);
+  CPPUNIT_ASSERT(!pair.open());
+  pair.assert_closed();
 }
 
 void
