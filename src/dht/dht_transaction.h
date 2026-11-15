@@ -90,6 +90,8 @@ public:
   const auto*         address() const           { return m_socket_address.get(); }
   auto*               address()                 { return m_socket_address.get(); }
 
+  auto&               address_ptr()             { return m_socket_address; }
+
   const char*         c_str() const             { return m_data.get(); }
   size_t              length() const            { return m_length; }
 
@@ -104,7 +106,7 @@ private:
 
   void                build_buffer(const DhtMessage& data);
 
-  sa_unique_ptr           m_socket_address;
+  sa_shared_ptr           m_socket_address;
   std::unique_ptr<char[]> m_data;
   size_t                  m_length{};
   int                     m_id{};
@@ -138,6 +140,7 @@ public:
 
   const HashString&   id()                      { return m_id; }
   const auto*         address()                 { return m_socket_address.get(); }
+  auto&               address_ptr()             { return m_socket_address; }
 
   int                 timeout() const           { return m_timeout; }
   int                 quick_timeout() const     { return m_quickTimeout; }
@@ -165,7 +168,7 @@ private:
   DhtTransaction(const DhtTransaction&) = delete;
   DhtTransaction& operator=(const DhtTransaction&) = delete;
 
-  sa_unique_ptr          m_socket_address;
+  sa_shared_ptr          m_socket_address;
   int                    m_timeout;
   int                    m_quickTimeout;
 

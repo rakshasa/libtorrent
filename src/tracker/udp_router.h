@@ -61,6 +61,7 @@ public:
   void                transfer(key_type id, connection_params params);
 
   void                disconnect(key_type id);
+  void                try_disconnect(key_type id);
 
 private:
   UdpRouter(const UdpRouter&) = delete;
@@ -94,6 +95,7 @@ private:
 
   connection_map::iterator connect_unsafe(c_sa_shared_ptr address, connection_params params);
   void                     disconnect_unsafe(connection_map::iterator itr);
+  void                     disconnect_and_clear_unsafe(connection_map::iterator itr);
   void                     disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err);
 
   int                 router_family() const;

@@ -81,10 +81,8 @@ private:
     HashString&          id()            { return *HashString::cast_from(_id); }
   };
 
-  using packet_queue   = std::deque<std::shared_ptr<DhtTransactionPacket>>;
   using node_info_list = std::list<compact_node_info>;
-
-  using search_set      = std::set<std::shared_ptr<dht::DhtSearch>>;
+  using search_set     = std::set<std::shared_ptr<dht::DhtSearch>>;
 
   // Pending transactions.
   using transaction_map = std::map<DhtTransaction::key_type, std::shared_ptr<DhtTransaction>>;
@@ -103,8 +101,6 @@ private:
   static constexpr int packet_prio_low   = 1;  // For (relatively) unimportant queries we send.
   static constexpr int packet_prio_reply = 0;  // For replies to peer queries.
 
-  void                start_write();
-
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
   void                process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& req);
   void                process_error(DhtTransaction::key_type key);
@@ -114,9 +110,6 @@ private:
   void                parse_get_peers_reply(DhtTransactionGetPeers* t, const DhtMessage& res);
 
   void                find_node_next(DhtTransactionSearch* t);
-
-  void                add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority);
-  void                drop_packet(const DhtTransactionPacket* packet);
 
   void                create_query(transaction_itr itr, int tID, const sockaddr* sa, int priority);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
@@ -134,20 +127,12 @@ private:
 
   void                clear_transactions();
 
-  void                process_queue(packet_queue& queue);
-  void                event_write();
-  void                receive_timeout();
-
   DhtRouter*          m_router{};
   dht::UdpRouter      m_udp_router;
 
   search_set          m_searches;
 
-  packet_queue        m_highQueue;
-  packet_queue        m_lowQueue;
   transaction_map     m_transactions;
-
-  system::SchedulerEntry m_task_timeout;
 
   unsigned int        m_queriesReceived{};
   unsigned int        m_queriesSent{};
@@ -155,7 +140,7 @@ private:
   unsigned int        m_errorsReceived{};
   unsigned int        m_errorsCaught{};
 
-  bool                m_networkUp{false};
+  bool                m_network_up{false};
 };
 
 } // namespace torrent

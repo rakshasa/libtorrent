@@ -232,18 +232,19 @@ UdpRouter::disconnect(key_type id) {
   if (itr == m_connections.end())
     throw internal_error("UdpRouter::disconnect() called with invalid connection ID.");
 
-  if (itr->second.address == nullptr) {
-    assert(itr->second.queue_ptr   == nullptr);
-    assert(itr->second.timeout_ptr == nullptr);
+  disconnect_and_clear_unsafe(itr);
+}
 
-    // Indicate to resolved_hostname() that the connection has been disconnected.
-    itr->second.prepare = nullptr;
-    itr->second.process = nullptr;
-    itr->second.failure = nullptr;
+void
+UdpRouter::try_disconnect(key_type id) {
+  assert(m_thread == this_thread::thread());
+
+  auto itr = m_connections.find(id);
+
+  if (itr == m_connections.end())
     return;
-  }
 
-  disconnect_unsafe(itr);
+  disconnect_and_clear_unsafe(itr);
 }
 
 UdpRouter::connection_map::iterator
@@ -304,6 +305,24 @@ UdpRouter::disconnect_failure_unsafe(connection_map::iterator itr, int errno_err
   disconnect_unsafe(itr);
 
   failure_fn(id, errno_err, gai_err);
+}
+
+void
+UdpRouter::disconnect_and_clear_unsafe(connection_map::iterator itr) {
+  assert(itr != m_connections.end());
+
+  if (itr->second.address == nullptr) {
+    assert(itr->second.queue_ptr   == nullptr);
+    assert(itr->second.timeout_ptr == nullptr);
+
+    // Indicate to resolved_hostname() that the connection has been disconnected.
+    itr->second.prepare = nullptr;
+    itr->second.process = nullptr;
+    itr->second.failure = nullptr;
+    return;
+  }
+
+  disconnect_unsafe(itr);
 }
 
 void

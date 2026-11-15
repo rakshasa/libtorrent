@@ -42,7 +42,7 @@ public:
   // TODO: Listen to network_config updates and reopen if necessary.
   // TODO: Add callback subscription for network_config updates.
 
-  void                open(int family);
+  void                open(int family, uint16_t port);
   void                close();
 
   void                updated_network_config(int family);
@@ -55,12 +55,10 @@ public:
   // When process_fn is called, return false to disconnect and true to do nothing. (E.g. unknown
   // packet or transferred connection)
 
-  void                connect(c_sa_shared_ptr address, connection_params params);
-  void                connect(const std::string hostname, uint16_t port, connection_params params);
-
-  void                transfer(key_type id, connection_params params);
+  void                connect(key_type id, c_sa_shared_ptr address, connection_params params);
 
   void                disconnect(key_type id);
+  void                try_disconnect(key_type id);
 
 private:
   UdpRouter(const UdpRouter&) = delete;
@@ -94,6 +92,7 @@ private:
 
   connection_map::iterator connect_unsafe(c_sa_shared_ptr address, connection_params params);
   void                     disconnect_unsafe(connection_map::iterator itr);
+  void                     disconnect_and_clear_unsafe(connection_map::iterator itr);
   void                     disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err);
 
   int                 router_family() const;
@@ -131,6 +130,18 @@ private:
 };
 
 inline int UdpRouter::router_family() const { return socket_address()->sa_family; }
+
+class dht_error : public network_error {
+public:
+  dht_error(int code, const char* message) : m_message(message), m_code(code) {}
+
+  int                 code() const noexcept          { return m_code; }
+  const char*         what() const noexcept override { return m_message; }
+
+private:
+  const char*         m_message;
+  int                 m_code;
+};
 
 } // namespace torrent::dht
 
