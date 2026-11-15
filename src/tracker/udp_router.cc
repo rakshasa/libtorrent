@@ -204,7 +204,7 @@ UdpRouter::connect(const std::string hostname, uint16_t port, connection_params 
 }
 
 void
-UdpRouter::transfer(uint32_t id, connection_params params) {
+UdpRouter::transfer(key_type id, connection_params params) {
   assert(m_thread == this_thread::thread());
 
   auto itr = m_connections.find(id);
@@ -224,7 +224,7 @@ UdpRouter::transfer(uint32_t id, connection_params params) {
 }
 
 void
-UdpRouter::disconnect(uint32_t id) {
+UdpRouter::disconnect(key_type id) {
   assert(m_thread == this_thread::thread());
 
   auto itr = m_connections.find(id);
@@ -258,7 +258,7 @@ UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
   connection_map::iterator itr;
 
   while (true) {
-    uint32_t id = m_random_engine();
+    key_type id = m_random_engine();
 
     if (id == 0)
       continue;
@@ -307,7 +307,7 @@ UdpRouter::disconnect_failure_unsafe(connection_map::iterator itr, int errno_err
 }
 
 void
-UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
+UdpRouter::resolved_hostname(key_type id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
   auto itr = m_connections.find(id);
 
   if (itr == m_connections.end()) {
@@ -364,7 +364,7 @@ UdpRouter::resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, 
 
 
 bool
-UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
+UdpRouter::try_write_with_queues(key_type id, connection_info* info) {
   clear_timeout(info);
 
   int err = try_write(id, info);
@@ -385,7 +385,7 @@ UdpRouter::try_write_with_queues(uint32_t id, connection_info* info) {
 // Returns EAGAIN for all temporary errors.
 
 int
-UdpRouter::try_write(uint32_t id, connection_info* info) {
+UdpRouter::try_write(key_type id, connection_info* info) {
   if (!is_open())
     throw internal_error("UdpRouter::try_write() called but router is not open.");
 
@@ -433,7 +433,7 @@ UdpRouter::try_write(uint32_t id, connection_info* info) {
 }
 
 int
-UdpRouter::do_write(uint32_t id, connection_info* info) {
+UdpRouter::do_write(key_type id, connection_info* info) {
   assert(info->address != nullptr);
 
   buffer_type buffer;
@@ -472,7 +472,7 @@ UdpRouter::clear_timeout(connection_info* info) {
 }
 
 void
-UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
+UdpRouter::queue_timeout(key_type id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
@@ -492,7 +492,7 @@ UdpRouter::queue_timeout(uint32_t id, connection_info* info) {
 }
 
 void
-UdpRouter::queue_write(uint32_t id, connection_info* info) {
+UdpRouter::queue_write(key_type id, connection_info* info) {
   if (info->queue_ptr != nullptr)
     throw internal_error("UdpRouter::queue_write() called for connection that is already queued for writing.");
 
@@ -504,14 +504,14 @@ UdpRouter::queue_write(uint32_t id, connection_info* info) {
   info->queue_ptr = &m_write_queue.back().second;
 }
 
-uint32_t
+key_type
 UdpRouter::peek_transaction_id(buffer_type& buffer) const {
   if (buffer.size_end() < 8)
     return 0;
 
   buffer.read_32();
 
-  uint32_t transaction_id = buffer.read_32();
+  key_type transaction_id = buffer.read_32();
 
   buffer.reset_position();
   return transaction_id;
@@ -581,7 +581,7 @@ UdpRouter::event_read() {
 
     buffer.set_end(bytes_read);
 
-    uint32_t transaction_id = peek_transaction_id(buffer);
+    key_type transaction_id = peek_transaction_id(buffer);
 
     if (transaction_id == 0) {
       // LT_LOG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());

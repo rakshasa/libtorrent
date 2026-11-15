@@ -15,13 +15,15 @@ namespace torrent::dht {
 
 class UdpRouter : public SocketDatagram {
 public:
+  using key_type         = uint64_t;
   using buffer_type      = ProtocolBuffer<2048>;
+  using random_engine    = std::independent_bits_engine<std::mt19937, 64, key_type>;
 
-  using prepare_func     = std::function<void(uint32_t, buffer_type&)>;
-  using process_func     = std::function<bool(uint32_t, buffer_type&)>;
-  using failure_func     = std::function<void(uint32_t, int, int)>;
-  using connected_func   = std::function<void(uint32_t)>;
-  using packet_sent_func = std::function<void(uint32_t)>;
+  using prepare_func     = std::function<void(key_type, buffer_type&)>;
+  using process_func     = std::function<bool(key_type, buffer_type&)>;
+  using failure_func     = std::function<void(key_type, int, int)>;
+  using connected_func   = std::function<void(key_type)>;
+  using packet_sent_func = std::function<void(key_type)>;
 
   struct connection_params {
     prepare_func        prepare;
@@ -56,11 +58,9 @@ public:
   void                connect(c_sa_shared_ptr address, connection_params params);
   void                connect(const std::string hostname, uint16_t port, connection_params params);
 
-  void                transfer(uint32_t id, connection_params params);
+  void                transfer(key_type id, connection_params params);
 
-  void                disconnect(uint32_t id);
-
-  using random_engine = std::independent_bits_engine<std::mt19937, 32, uint32_t>;
+  void                disconnect(key_type id);
 
 private:
   UdpRouter(const UdpRouter&) = delete;
@@ -70,9 +70,9 @@ private:
 
   struct connection_info;
 
-  using connection_map     = std::unordered_map<uint32_t, connection_info>;
-  using write_queue_type   = std::deque<std::pair<uint32_t, connection_info*>>;
-  using timeout_queue_type = std::list<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
+  using connection_map     = std::unordered_map<key_type, connection_info>;
+  using write_queue_type   = std::deque<std::pair<key_type, connection_info*>>;
+  using timeout_queue_type = std::list<std::tuple<key_type, std::chrono::seconds, connection_info*>>;
 
   // TODO: Add itr to self in connection_map.
 
@@ -98,17 +98,17 @@ private:
 
   int                 router_family() const;
 
-  void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
+  void                resolved_hostname(key_type id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 
-  bool                try_write_with_queues(uint32_t id, connection_info* info);
-  [[nodiscard]] int   try_write(uint32_t id, connection_info* info);
-  [[nodiscard]] int   do_write(uint32_t id, connection_info* info);
+  bool                try_write_with_queues(key_type id, connection_info* info);
+  [[nodiscard]] int   try_write(key_type id, connection_info* info);
+  [[nodiscard]] int   do_write(key_type id, connection_info* info);
 
   void                clear_timeout(connection_info* info);
-  void                queue_timeout(uint32_t id, connection_info* info);
-  void                queue_write(uint32_t id, connection_info* info);
+  void                queue_timeout(key_type id, connection_info* info);
+  void                queue_write(key_type id, connection_info* info);
 
-  uint32_t            peek_transaction_id(buffer_type& buffer) const;
+  key_type            peek_transaction_id(buffer_type& buffer) const;
 
   void                receive_timeout();
 
