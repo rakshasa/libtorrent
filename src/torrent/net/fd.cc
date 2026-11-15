@@ -351,6 +351,19 @@ fd_close_and_clear_if_open(int& fd) {
 }
 
 int
+fd_socket(int domain, int type, int protocol) {
+  int fd = fd__socket(domain, type, protocol);
+
+  if (fd == -1) {
+    LT_LOG_FD_ERROR("fd_socket() failed");
+    return -1;
+  }
+
+  LT_LOG_FD("fd_socket() succeeded");
+  return fd;
+}
+
+int
 fd_accept(int fd) {
   int connection_fd = fd__accept(fd, nullptr, nullptr);
 

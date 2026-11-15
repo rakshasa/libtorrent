@@ -1,12 +1,10 @@
 #ifndef LIBTORRENT_TRACKER_UDP_ROUTER_H
 #define LIBTORRENT_TRACKER_UDP_ROUTER_H
 
-#include <chrono>
 #include <deque>
 #include <functional>
-#include <memory>
+#include <list>
 #include <random>
-#include <tuple>
 #include <unordered_map>
 
 #include "net/protocol_buffer.h"
@@ -17,13 +15,15 @@ namespace torrent::tracker {
 
 class UdpRouter : public SocketDatagram {
 public:
-  using buffer_type      = ProtocolBuffer<512>;
+  using key_type         = uint32_t;
+  using buffer_type      = ProtocolBuffer<2048>;
+  using random_engine = std::independent_bits_engine<std::mt19937, 32, key_type>;
 
-  using prepare_func     = std::function<void(uint32_t, buffer_type&)>;
-  using process_func     = std::function<bool(uint32_t, buffer_type&)>;
-  using failure_func     = std::function<void(uint32_t, int, int)>;
-  using connected_func   = std::function<void(uint32_t)>;
-  using packet_sent_func = std::function<void(uint32_t)>;
+  using prepare_func     = std::function<void(key_type, buffer_type&)>;
+  using process_func     = std::function<bool(key_type, buffer_type&)>;
+  using failure_func     = std::function<void(key_type, int, int)>;
+  using connected_func   = std::function<void(key_type)>;
+  using packet_sent_func = std::function<void(key_type)>;
 
   struct connection_params {
     prepare_func        prepare;
@@ -37,7 +37,7 @@ public:
   UdpRouter();
   ~UdpRouter();
 
-  const char*         type_name() const override { return "udp_router"; }
+  const char*         type_name() const override { return "tracker_udp_router"; }
 
   // TODO: Listen to network_config updates and reopen if necessary.
   // TODO: Add callback subscription for network_config updates.
@@ -58,21 +58,22 @@ public:
   void                connect(c_sa_shared_ptr address, connection_params params);
   void                connect(const std::string hostname, uint16_t port, connection_params params);
 
-  void                transfer(uint32_t id, connection_params params);
+  void                transfer(key_type id, connection_params params);
 
-  void                disconnect(uint32_t id);
-
-  using random_engine = std::independent_bits_engine<std::mt19937, 32, uint32_t>;
+  void                disconnect(key_type id);
+  void                try_disconnect(key_type id);
 
 private:
   UdpRouter(const UdpRouter&) = delete;
   UdpRouter& operator=(const UdpRouter&) = delete;
 
+  static constexpr unsigned int max_read_datagrams = 64;
+
   struct connection_info;
 
-  using connection_map     = std::unordered_map<uint32_t, connection_info>;
-  using write_queue_type   = std::deque<std::pair<uint32_t, connection_info*>>;
-  using timeout_queue_type = std::deque<std::tuple<uint32_t, std::chrono::seconds, connection_info*>>;
+  using connection_map     = std::unordered_map<key_type, connection_info>;
+  using write_queue_type   = std::deque<std::pair<key_type, connection_info*>>;
+  using timeout_queue_type = std::list<std::tuple<key_type, std::chrono::seconds, connection_info*>>;
 
   // TODO: Add itr to self in connection_map.
 
@@ -94,21 +95,22 @@ private:
 
   connection_map::iterator connect_unsafe(c_sa_shared_ptr address, connection_params params);
   void                     disconnect_unsafe(connection_map::iterator itr);
+  void                     disconnect_and_clear_unsafe(connection_map::iterator itr);
   void                     disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err);
 
   int                 router_family() const;
 
-  void                resolved_hostname(uint32_t id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
+  void                resolved_hostname(key_type id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 
-  bool                try_write_with_queues(uint32_t id, connection_info* info);
-  [[nodiscard]] int   try_write(uint32_t id, connection_info* info);
-  [[nodiscard]] int   do_write(uint32_t id, connection_info* info);
+  bool                try_write_with_queues(key_type id, connection_info* info);
+  [[nodiscard]] int   try_write(key_type id, connection_info* info);
+  [[nodiscard]] int   do_write(key_type id, connection_info* info);
 
   void                clear_timeout(connection_info* info);
-  void                queue_timeout(uint32_t id, connection_info* info);
-  void                queue_write(uint32_t id, connection_info* info);
+  void                queue_timeout(key_type id, connection_info* info);
+  void                queue_write(key_type id, connection_info* info);
 
-  uint32_t            peek_transaction_id(buffer_type& buffer) const;
+  key_type            peek_transaction_id(buffer_type& buffer) const;
 
   void                receive_timeout();
 
@@ -127,8 +129,6 @@ private:
 
   system::SchedulerEntry m_task_timeout;
 
-  buffer_type           m_buffer;
-
   system::callback_id   m_resolver_callback_id;
 };
 
@@ -136,4 +136,4 @@ inline int UdpRouter::router_family() const { return socket_address()->sa_family
 
 } // namespace torrent::tracker
 
-#endif // LIBTORRENT_TRACKER_UDP_ROUTER_H
+#endif

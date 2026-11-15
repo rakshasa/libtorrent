@@ -192,10 +192,10 @@ TrackerUdp::connect_family(int family) {
     throw internal_error("TrackerUdp::connect_family() called but transaction id is not 0.");
 
   auto params = tracker::UdpRouter::connection_params{
-    [this, family](uint32_t id, auto& buffer)               { prepare_connect(family, id, buffer); },
-    [this, family](uint32_t id, auto& buffer)               { return process_connect(family, id, buffer); },
-    [this, family](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
-    [this, family](uint32_t id)                             { state_for_family(family).transaction_id = id; },
+    [this, family](auto id, auto& buffer)               { prepare_connect(family, id, buffer); },
+    [this, family](auto id, auto& buffer)               { return process_connect(family, id, buffer); },
+    [this, family](auto id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
+    [this, family](auto id)                             { state_for_family(family).transaction_id = id; },
     nullptr,
   };
 
@@ -259,11 +259,11 @@ TrackerUdp::process_connect(int family, uint32_t id, buffer_type& buffer) {
     return handle_parse_error(family, id, "connection id is 0");
 
   auto params = tracker::UdpRouter::connection_params{
-    [this, family](uint32_t id, auto& buffer)               { prepare_announce(family, id, buffer); },
-    [this, family](uint32_t id, auto& buffer)               { return process_announce(family, id, buffer); },
-    [this, family](uint32_t id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
-    [this, family](uint32_t id)                             { state_for_family(family).transaction_id = id; },
-    [this, family](uint32_t id)                             { process_announce_packet_sent(family, id); },
+    [this, family](auto id, auto& buffer)               { prepare_announce(family, id, buffer); },
+    [this, family](auto id, auto& buffer)               { return process_announce(family, id, buffer); },
+    [this, family](auto id, int errno_err, int gai_err) { handle_udp_error(family, id, errno_err, gai_err); },
+    [this, family](auto id)                             { state_for_family(family).transaction_id = id; },
+    [this, family](auto id)                             { process_announce_packet_sent(family, id); },
   };
 
   router_for_family(family)->transfer(id, params);

@@ -36,6 +36,8 @@ void            fd_close(int fd) LIBTORRENT_EXPORT;
 void            fd_close_and_clear(int& fd) LIBTORRENT_EXPORT;
 void            fd_close_and_clear_if_open(int& fd) LIBTORRENT_EXPORT;
 
+int             fd_socket(int domain, int type, int protocol) LIBTORRENT_EXPORT;
+
 int             fd_accept(int fd) LIBTORRENT_EXPORT;
 fd_sap_tuple    fd_sap_accept(int fd) LIBTORRENT_EXPORT;
 
