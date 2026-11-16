@@ -613,34 +613,38 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
   // unused one. Since normally only one or two transactions will be active per
   // node, a collision is extremely unlikely, and a linear search for the first
   // open one is the most efficient.
-  unsigned int rnd = static_cast<uint8_t>(random());
-  unsigned int id = rnd;
 
-  auto insertItr = m_transactions.lower_bound(transaction->key(rnd));
 
-  // If key matches, keep trying successive IDs.
-  while (insertItr != m_transactions.end() && insertItr->first == transaction->key(id)) {
-    ++insertItr;
+  // TODO: DHT support 16bit transaction IDs, but we only use 8 bits here. Fix this.
+  unsigned int start_id = static_cast<uint8_t>(random());
+  unsigned int id       = start_id;
+
+  uint64_t key_id{};
+  auto     lower_bound = m_transactions.end();
+
+  while (true) {
+    key_id      = DhtTransaction::key(transaction->address(), id);
+    lower_bound = m_transactions.lower_bound(key_id);
+
+    if (lower_bound == m_transactions.end() || lower_bound->first != key_id)
+      break;
+
     id = static_cast<uint8_t>(id + 1);
 
     // Give up after trying all possible IDs. This should never happen.
-    if (id == rnd)
+    if (id == start_id)
       return -1;
-
-    // Transaction ID wrapped around, reset iterator.
-    if (id == 0)
-      insertItr = m_transactions.lower_bound(transaction->key(id));
-  }
+  };
 
   // We know where to insert it, so pass that as hint.
-  insertItr = m_transactions.insert(insertItr, std::make_pair(transaction->key(id), transaction));
+  auto itr = m_transactions.insert(lower_bound, std::make_pair(key_id, transaction));
 
   try {
-    create_query(insertItr, id, transaction->address(), priority);
+    create_query(itr, id, transaction->address(), priority);
 
     auto packet = transaction->packet();
 
-    m_udp_router.connect(insertItr->first, transaction->address_ptr(), {
+    auto params = dht::UdpRouter::connection_params{
       [packet](auto, auto& buffer) {
         if (packet->length() > buffer.reserved())
           throw internal_error("DhtServer query exceeds UDP router buffer.");
@@ -655,10 +659,12 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
       },
       nullptr,
       nullptr,
-      });
+    };
+
+    m_udp_router.connect(itr->first, transaction->address_ptr(), params);
 
   } catch (const std::exception&) {
-    m_transactions.erase(insertItr);
+    m_transactions.erase(itr);
     throw;
   }
 

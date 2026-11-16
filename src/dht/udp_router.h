@@ -22,7 +22,6 @@ public:
   using prepare_func     = std::function<void(key_type, buffer_type&)>;
   using process_func     = std::function<bool(key_type, buffer_type&)>;
   using failure_func     = std::function<void(key_type, int, int)>;
-  using connected_func   = std::function<void(key_type)>;
   using packet_sent_func = std::function<void(key_type)>;
 
   struct connection_params {
@@ -30,7 +29,6 @@ public:
     process_func        process;
     failure_func        failure;
 
-    connected_func      connected;
     packet_sent_func    packet_sent;
   };
 
@@ -90,14 +88,13 @@ private:
     connection_info**    timeout_ptr{};
   };
 
-  connection_map::iterator connect_unsafe(c_sa_shared_ptr address, connection_params params);
+  connection_map::iterator connect_unsafe(key_type id, c_sa_shared_ptr address, connection_params params);
+
   void                     disconnect_unsafe(connection_map::iterator itr);
   void                     disconnect_and_clear_unsafe(connection_map::iterator itr);
   void                     disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err);
 
   int                 router_family() const;
-
-  void                resolved_hostname(key_type id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6);
 
   bool                try_write_with_queues(key_type id, connection_info* info);
   [[nodiscard]] int   try_write(key_type id, connection_info* info);

@@ -52,7 +52,7 @@ UdpRouter::~UdpRouter() {
 }
 
 void
-UdpRouter::open(int family) {
+UdpRouter::open(int family, uint16_t port) {
   if (is_open())
     throw internal_error("UdpRouter::open() called but router is already open.");
 
@@ -61,15 +61,18 @@ UdpRouter::open(int family) {
 
   m_thread = this_thread::thread();
 
-  auto [bind_address, device_name] = runtime::network_config()->bind_address_for_udp_connect(family);
+  auto [addr, device_name] = runtime::network_config()->bind_address_for_udp_connect(family);
 
-  if (bind_address == nullptr) {
+  if (addr == nullptr) {
     LT_LOG("could not open udp router : blocked or invalid bind address : family:%s", system::sa_family_enum(family));
     return;
   }
 
-  if (bind_address->sa_family != family)
+  if (addr->sa_family != family)
     throw internal_error("UdpRouter::open() bind address family does not match requested family.");
+
+  auto bind_address = sa_copy(addr.get());
+  sap_set_port(bind_address, port);
 
   int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, family);
 
@@ -87,21 +90,21 @@ UdpRouter::open(int family) {
 
   if (!fd_bind(fd, bind_address.get())) {
     LT_LOG("opening router failed : bind failed : family:%s bind_address:%s errno:%s",
-           system::sa_family_enum(family), sa_pretty_str(bind_address.get()).c_str(), system::errno_enum_str(errno).c_str());
+           system::sa_family_enum(family), sap_pretty_str(bind_address).c_str(), system::errno_enum_str(errno).c_str());
     fd_close(fd);
     return;
   }
 
+  LT_LOG("opened udp router : family:%s bind_address:%s", system::sa_family_enum(family), sap_pretty_str(bind_address).c_str());
+
   set_file_descriptor(fd);
-  set_socket_address(sa_copy(bind_address.get()));
+  set_socket_address(std::move(bind_address));
   set_socket_device_name(device_name);
 
   runtime::socket_manager()->register_event_or_throw(this, runtime::category_internal, [this]() {
       this_thread::poll()->open(this);
       this_thread::poll()->insert_read(this);
     });
-
-  LT_LOG("opened udp router : family:%s bind_address:%s", system::sa_family_enum(family), sa_pretty_str(bind_address.get()).c_str());
 }
 
 void
@@ -151,12 +154,16 @@ UdpRouter::updated_network_config(int family) {
 
   LT_LOG("udp router bind address changed : old:%s new:%s", sa_pretty_str(socket_address()).c_str(), sa_pretty_str(bind_address.get()).c_str());
 
+  auto port = sa_port(socket_address());
+
   close();
-  open(family);
+
+  if (port != 0)
+    open(family, port);
 }
 
 void
-UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
+UdpRouter::connect(key_type id, c_sa_shared_ptr address, connection_params params) {
   if (!is_open())
     return;
 
@@ -169,63 +176,15 @@ UdpRouter::connect(c_sa_shared_ptr address, connection_params params) {
   if (sa_port(address.get()) == 0)
     throw internal_error("UdpRouter::connect() called with address with port 0.");
 
-  auto itr = connect_unsafe(std::move(address), params);
+  auto itr = connect_unsafe(id, std::move(address), params);
 
   try_write_with_queues(itr->first, &itr->second);
 }
 
 void
-UdpRouter::connect(const std::string hostname, uint16_t port, connection_params params) {
-  if (!is_open())
-    return;
-
-  assert(m_thread == this_thread::thread());
-  assert(!hostname.empty());
-  assert(port != 0);
-
-  auto [sa, sa_compatible] = sa_lookup_numeric(hostname, router_family());
-
-  if (!sa_compatible)
-    return;
-
-  if (sa != nullptr) {
-    sap_set_port(sa, port);
-    connect(std::move(sa), params);
-    return;
-  }
-
-  auto itr = connect_unsafe(nullptr, params);
-
-  auto fn = [this, id = itr->first, port](c_sin_shared_ptr sin, int err, c_sin6_shared_ptr sin6, int err6) {
-      resolved_hostname(id, port, sin, err, sin6, err6);
-    };
-
-  this_thread::resolver()->resolve_both(m_resolver_callback_id, hostname, router_family(), std::move(fn));
-}
-
-void
-UdpRouter::transfer(key_type id, connection_params params) {
-  assert(m_thread == this_thread::thread());
-
-  auto itr = m_connections.find(id);
-
-  if (itr == m_connections.end())
-    throw internal_error("UdpRouter::transfer_connection() called with invalid connection ID.");
-
-  if (itr->second.address == nullptr)
-    throw internal_error("UdpRouter::transfer_connection() called but connection does not have an address.");
-
-  auto new_itr = connect_unsafe(std::move(itr->second.address), params);
-
-  // connect_unsafe inserts into m_connections, which invalidates iterators when it rehashes.
-  disconnect_unsafe(m_connections.find(id));
-
-  try_write_with_queues(new_itr->first, &new_itr->second);
-}
-
-void
 UdpRouter::disconnect(key_type id) {
   assert(m_thread == this_thread::thread());
+  assert(id != 0);
 
   auto itr = m_connections.find(id);
 
@@ -238,6 +197,7 @@ UdpRouter::disconnect(key_type id) {
 void
 UdpRouter::try_disconnect(key_type id) {
   assert(m_thread == this_thread::thread());
+  assert(id != 0);
 
   auto itr = m_connections.find(id);
 
@@ -248,28 +208,21 @@ UdpRouter::try_disconnect(key_type id) {
 }
 
 UdpRouter::connection_map::iterator
-UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
+UdpRouter::connect_unsafe(key_type id, c_sa_shared_ptr address, connection_params params) {
   assert(is_open());
   assert(address == nullptr || address->sa_family == router_family());
   assert(params.prepare);
   assert(params.process);
   assert(params.failure);
-  assert(params.connected);
 
-  connection_map::iterator itr;
+  auto [itr, inserted] = m_connections.try_emplace(id, connection_info{});
 
-  while (true) {
-    key_type id = m_random_engine();
+  if (!inserted) {
+    if (itr->second.address != nullptr)
+      throw internal_error("UdpRouter::connect_unsafe() called with an existing connection ID that is already connected.");
 
-    if (id == 0)
-      continue;
-
-    auto [new_itr, inserted] = m_connections.try_emplace(id, connection_info{});
-
-    if (inserted) {
-      itr = new_itr;
-      break;
-    }
+    if (itr->second.prepare != nullptr || itr->second.process != nullptr || itr->second.failure != nullptr)
+      throw internal_error("UdpRouter::connect_unsafe() called with an existing connection ID that has callbacks set.");
   }
 
   itr->second.address     = std::move(address);
@@ -278,7 +231,6 @@ UdpRouter::connect_unsafe(c_sa_shared_ptr address, connection_params params) {
   itr->second.failure     = std::move(params.failure);
   itr->second.packet_sent = std::move(params.packet_sent);
 
-  params.connected(itr->first);
   return itr;
 }
 
@@ -324,63 +276,6 @@ UdpRouter::disconnect_and_clear_unsafe(connection_map::iterator itr) {
 
   disconnect_unsafe(itr);
 }
-
-void
-UdpRouter::resolved_hostname(key_type id, uint16_t port, c_sin_shared_ptr& sin, int err, c_sin6_shared_ptr& sin6, int err6) {
-  auto itr = m_connections.find(id);
-
-  if (itr == m_connections.end()) {
-    LT_LOG("received hostname for unknown connection : id:%" PRIx32, id);
-    return;
-  }
-
-  if (itr->second.address != nullptr)
-    throw internal_error("UdpRouter::resolved_hostname() called but connection already has an address.");
-
-  if (itr->second.failure == nullptr) {
-    disconnect_unsafe(itr);
-    return;
-  }
-
-  auto error_fn = [this, id, itr](int err) {
-      LT_LOG("failed to resolve hostname : id:%" PRIx32 " error:%s", id, system::gai_enum_error(err));
-      disconnect_failure_unsafe(itr, 0, err);
-    };
-
-  sa_unique_ptr sa;
-
-  switch (router_family()) {
-  case AF_INET:
-    if (sin == nullptr && err == 0)
-      throw internal_error("UdpRouter::resolved_hostname() sin == nullptr but err == 0");
-
-    if (err != 0)
-      return error_fn(err);
-
-    sa = sa_copy_in(sin.get());
-    break;
-
-  case AF_INET6:
-    if (sin6 == nullptr && err6 == 0)
-      throw internal_error("UdpRouter::resolved_hostname() sin6 == nullptr but err6 == 0");
-
-    if (err6 != 0)
-      return error_fn(err6);
-
-    sa = sa_copy_in6(sin6.get());
-    break;
-
-  default:
-    throw internal_error("UdpRouter::resolved_hostname() called but router socket address has unsupported family.");
-  };
-
-  sap_set_port(sa, port);
-
-  itr->second.address = std::move(sa);
-
-  try_write_with_queues(id, &itr->second);
-}
-
 
 bool
 UdpRouter::try_write_with_queues(key_type id, connection_info* info) {
@@ -498,16 +393,12 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
-  auto pos = m_timeout_queue.end();
-  while (pos != m_timeout_queue.begin() && std::get<1>(*std::prev(pos)) > timeout_time)
-    --pos;
+  if (m_timeout_queue.empty())
+    this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
 
-  bool first = pos == m_timeout_queue.begin();
-  auto itr = m_timeout_queue.emplace(pos, id, timeout_time, info);
-  info->timeout_ptr = &std::get<2>(*itr);
+  m_timeout_queue.emplace_back(id, timeout_time, info);
 
-  if (first)
-    this_thread::scheduler()->update_wait_until(&m_task_timeout, timeout_time);
+  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
 }
 
 void
