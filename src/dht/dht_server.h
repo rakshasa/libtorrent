@@ -102,8 +102,9 @@ private:
   static constexpr int packet_prio_reply = 0;  // For replies to peer queries.
 
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_error(DhtTransaction::key_type key);
+  bool                parse_response(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer);
+  bool                process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& req);
+  bool                process_error(DhtTransaction::key_type key);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, const DhtMessage& res);
   void                add_search_contacts(DhtTransactionSearch* t, const DhtMessage& res);
@@ -123,7 +124,8 @@ private:
 
   // This returns the iterator after the given one or end()
   transaction_itr     failed_transaction(transaction_itr itr, bool quick, bool router_disconnected = false);
-  transaction_itr     erase_transaction(transaction_itr itr, bool router_disconnected = false);
+  transaction_itr     erase_transaction(transaction_itr itr);
+  transaction_itr     erase_transaction_skip_disconnect(transaction_itr itr);
 
   void                clear_transactions();
 

@@ -328,7 +328,39 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
   }
 }
 
-void
+bool
+DhtServer::parse_response(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer) {
+  auto itr = m_transactions.find(key);
+  if (itr == m_transactions.end())
+    return false;
+
+  auto transaction = itr->second;
+  DhtMessage response;
+
+  try {
+    auto data = reinterpret_cast<const char*>(buffer.begin());
+    static_map_read_bencode(data, data + buffer.size_end(), response);
+  } catch (const bencode_error&) {
+    return true;
+  }
+
+  if (!response[key_y].is_raw_string() || response[key_y].as_raw_string().size() != 1)
+    return true;
+
+  auto type = response[key_y].as_raw_string().data()[0];
+  if (type == 'e')
+    return process_error(key);
+
+  if (type == 'r' && response[key_r_id].is_raw_string() &&
+      response[key_r_id].as_raw_string().size() >= HashString::size_data) {
+    auto& id = response[key_r_id].as_raw_string();
+    return process_response(key, *HashString::cast_from(id.data()), transaction->address(), response);
+  }
+
+  return true;
+}
+
+bool
 DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& response) {
   auto itr = m_transactions.find(key);
   if (itr == m_transactions.end())
@@ -343,7 +375,7 @@ DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, 
 
     // If we contact a node but its ID is not the one we expect, ignore the reply.
     if ((id != transaction->id() && transaction->id() != torrent::DhtRouter::zero_id))
-      return;
+      return true;
 
     switch (transaction->type()) {
       case DhtTransaction::DHT_FIND_NODE:
@@ -378,9 +410,10 @@ DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, 
   }
 
   erase_transaction(itr);
+  return true;
 }
 
-void
+bool
 DhtServer::process_error(DhtTransaction::key_type key) {
   auto itr = m_transactions.find(key);
 
@@ -396,6 +429,7 @@ DhtServer::process_error(DhtTransaction::key_type key) {
   // few error messages are acceptable. So we do nothing and pretend the query never happened.
 
   erase_transaction(itr);
+  return true;
 }
 
 void
@@ -643,36 +677,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
           throw internal_error("DhtServer query exceeds UDP router buffer.");
         buffer.write_len(packet->c_str(), packet->length());
       },
-      [this](auto key, auto& buffer) {
-        auto itr = m_transactions.find(key);
-        if (itr == m_transactions.end())
-          return false;
-
-        auto transaction = itr->second;
-        DhtMessage response;
-
-        try {
-          auto data = reinterpret_cast<const char*>(buffer.begin());
-          static_map_read_bencode(data, data + buffer.size_end(), response);
-        } catch (const bencode_error&) {
-          return true;
-        }
-
-        if (!response[key_y].is_raw_string() || response[key_y].as_raw_string().size() != 1)
-          return true;
-
-        auto type = response[key_y].as_raw_string().data()[0];
-        if (type == 'e') {
-          process_error(key);
-        } else if (type == 'r' && response[key_r_id].is_raw_string() &&
-                   response[key_r_id].as_raw_string().size() >= HashString::size_data) {
-          auto& id = response[key_r_id].as_raw_string();
-          process_response(key, *HashString::cast_from(id.data()), transaction->address(), response);
-        }
-
-        // Processing a reply may disconnect this connection from DhtServer.
-        return true;
-      },
+      [this](auto key, auto& buffer) { return parse_response(key, buffer); },
       [this](auto key, int, int) {
         auto itr = m_transactions.find(key);
         if (itr != m_transactions.end())
@@ -717,7 +722,10 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick, bool router_disco
 
     } catch (const std::exception&) {
       if (!quick) {
-        erase_transaction(itr, router_disconnected);
+        if (router_disconnected)
+          erase_transaction_skip_disconnect(itr);
+        else
+          erase_transaction(itr);
       }
 
       throw;
@@ -728,14 +736,17 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick, bool router_disco
   if (quick)
     return ++itr;
 
-  return erase_transaction(itr, router_disconnected);
+  return router_disconnected ? erase_transaction_skip_disconnect(itr) : erase_transaction(itr);
 }
 
 DhtServer::transaction_itr
-DhtServer::erase_transaction(transaction_itr itr, bool router_disconnected) {
-  if (!router_disconnected)
-    m_udp_router.disconnect(itr->first);
+DhtServer::erase_transaction(transaction_itr itr) {
+  m_udp_router.disconnect(itr->first);
+  return erase_transaction_skip_disconnect(itr);
+}
 
+DhtServer::transaction_itr
+DhtServer::erase_transaction_skip_disconnect(transaction_itr itr) {
   return m_transactions.erase(itr);
 }
 
