@@ -104,8 +104,6 @@ private:
   void                queue_timeout(key_type id, connection_info* info);
   void                queue_write(key_type id, connection_info* info);
 
-  key_type            peek_transaction_id(buffer_type& buffer) const;
-
   void                receive_timeout();
 
   void                event_read() override;

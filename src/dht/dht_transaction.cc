@@ -61,7 +61,7 @@ DhtTransaction::~DhtTransaction() {
 
 // The upper 32 bits of a key name the node's address: the IPv4 address itself, or a 32-bit FNV-1a fold of the IPv6
 // address (each family's server keeps its own transactions, and a reply is also checked against the full address).
-static uint64_t
+uint64_t
 dht_transaction_addr_key(const sockaddr* sa) {
   if (sa_is_inet(sa))
     return reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr;
@@ -80,6 +80,7 @@ dht_transaction_addr_key(const sockaddr* sa) {
 
 DhtTransaction::key_type
 DhtTransaction::key(const sockaddr* sa, int id) {
+  // TODO: We only have 16bit id, so use the upper 48 bits of the addr_key.
   return (dht_transaction_addr_key(sa) << 32) + id;
 }
 

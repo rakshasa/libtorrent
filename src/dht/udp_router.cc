@@ -6,6 +6,8 @@
 #include <iterator>
 #include <netdb.h>
 
+#include "torrent/object_stream.h"
+#include "torrent/object_static_map.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/resolver.h"
 #include "torrent/net/socket_address.h"
@@ -22,6 +24,26 @@
 
 // TODO: Add m_connections::iterator to info so we don't need to look them up. We should be able to
 // replace unordered_map with map then to reduce memory usage after initial startup dht rush.
+
+namespace torrent {
+
+enum dht_key_keys {
+  key_key_t,
+  key_key_LAST,
+};
+
+struct dht_key_message : public static_map_type<dht_key_keys, key_key_LAST> {
+  using base_type = static_map_type<dht_key_keys, key_key_LAST>;
+};
+
+template <>
+const dht_key_message::key_list_type dht_key_message::base_type::keys = {
+  { key_key_t, "t*S" }
+};
+
+uint64_t dht_transaction_addr_key(const sockaddr* sa);
+
+}
 
 namespace torrent::dht {
 
@@ -415,24 +437,31 @@ UdpRouter::queue_write(key_type id, connection_info* info) {
 }
 
 UdpRouter::key_type
-UdpRouter::peek_transaction_id(buffer_type& buffer) const {
-  auto* data = buffer.begin();
-  auto size = buffer.size_end();
-  buffer.reset_position();
+peek_transaction_id(const sockaddr* sa, UdpRouter::buffer_type& buffer) {
+  dht_key_message message;
 
-  for (size_t i = 0; i + 13 <= size; ++i) {
-    if (data[i] != '1' || data[i + 1] != ':' || data[i + 2] != 't' ||
-        data[i + 3] != '8' || data[i + 4] != ':')
-      continue;
+  auto data = reinterpret_cast<const char*>(buffer.begin());
+  static_map_read_bencode(data, data + buffer.size_end(), message);
 
-    key_type transaction_id = 0;
-    for (size_t j = 0; j < sizeof(transaction_id); ++j)
-      transaction_id = (transaction_id << 8) | data[i + 5 + j];
+  if (!message[key_key_t].is_raw_string())
+    return 0;
 
-    return transaction_id;
+  auto& txid = message[key_key_t].as_raw_string();
+
+  uint64_t transaction_id{};
+
+  switch (txid.size()) {
+  case 1:
+    transaction_id = static_cast<uint64_t>(txid.data()[0]);
+    break;
+  case 2:
+    transaction_id = static_cast<uint64_t>(txid.data()[0]) << 8 | static_cast<uint64_t>(txid.data()[1]);
+    break;
+  default:
+    return 0;
   }
 
-  return 0;
+  return (dht_transaction_addr_key(sa) << 32) + transaction_id;
 }
 
 void
@@ -499,7 +528,7 @@ UdpRouter::event_read() {
 
     buffer.set_end(bytes_read);
 
-    key_type transaction_id = peek_transaction_id(buffer);
+    key_type transaction_id = peek_transaction_id(&from_sa.sa, buffer);
 
     if (transaction_id == 0) {
       // LT_LOG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
