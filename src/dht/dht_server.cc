@@ -106,7 +106,7 @@ DhtServer::ping(const HashString& id, const sockaddr* sa) {
   auto itr = m_transactions.lower_bound(DhtTransaction::key(sa, 0));
 
   if (itr == m_transactions.end() || !DhtTransaction::key_match(itr->first, sa))
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionPing(id, sa)));
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionPing(id, sa)), packet_prio_low);
 }
 
 // Contact nodes in given bucket and ask for their nodes closest to target.
@@ -118,7 +118,7 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
   auto n = search->get_contact();
 
   while (n != search->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(search, n)));
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(search, n)), packet_prio_low);
     n = search->get_contact();
   }
 
@@ -138,7 +138,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::
   auto n = announce->get_contact();
 
   while (n != announce->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(announce, n)));
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(announce, n)), packet_prio_high);
     n = announce->get_contact();
   }
 
@@ -510,9 +510,9 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
 
   while (node != transaction->search()->end()) {
     if (transaction->search()->is_announce())
-      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(transaction->search(), node)));
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionGetPeers(transaction->search(), node)), packet_prio_high);
     else
-      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(transaction->search(), node)));
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(transaction->search(), node)), packet_prio_low);
 
     node = transaction->search()->get_contact();
   }
@@ -528,7 +528,7 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   if (announce->complete()) {
     // We have found the 8 closest nodes to the info hash, announce to them.
     for (const auto& [node, token] : announce->start_announce())
-      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionAnnouncePeer(node->id(), node->address(), announce->target(), token)));
+      add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionAnnouncePeer(node->id(), node->address(), announce->target(), token)), packet_prio_high);
   }
 
   announce->update_status();
@@ -592,7 +592,7 @@ DhtServer::create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage
   reply[key_y] = raw_bencode::from_c_str("1:r");
   reply[key_v] = raw_bencode("4:" PEER_VERSION, 6);
 
-  send_reply(sa, reply);
+  send_reply(sa, reply, packet_prio_reply);
 }
 
 void
@@ -607,11 +607,17 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
   error[key_e_0] = num;
   error[key_e_1] = raw_string::from_c_str(msg);
 
-  send_reply(sa, error);
+  send_reply(sa, error, packet_prio_reply);
 }
 
 void
-DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply) {
+DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply, [[maybe_unused]] int priority) {
+  if (++m_next_reply_id == 0)
+    ++m_next_reply_id;
+
+  [[maybe_unused]] DhtTransaction::key_type reply_id = m_next_reply_id;
+  // TODO: Send through UdpRouter using reply_id and priority, with one-shot delivery
+  // and collision handling for IDs still queued when the counter wraps.
   DhtTransactionPacket packet(sa, reply);
   int written;
 
@@ -627,7 +633,7 @@ DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply) {
 }
 
 int
-DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction) {
+DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_unused]] int priority) {
   if (!is_active()) {
     LT_LOG_THIS("cannot send query : UDP router is closed", 0);
     return -1;
@@ -635,6 +641,11 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction) {
 
   if (!sa_is_inet(transaction->address()) && !sa_is_inet6(transaction->address()))
     return -1;
+
+  const auto address_key = DhtTransaction::key(transaction->address(), 0);
+
+  if (address_key == 0)
+    throw internal_error("DhtServer::add_transaction address hash is zero.");
 
   // Try random transaction ID. This is to make it less likely that we reuse
   // a transaction ID from an earlier transaction which timed out and we forgot
@@ -655,7 +666,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction) {
   auto     lower_bound = m_transactions.end();
 
   while (true) {
-    key_id      = DhtTransaction::key(transaction->address(), id);
+    key_id      = address_key | id;
     lower_bound = m_transactions.lower_bound(key_id);
 
     if (lower_bound == m_transactions.end() || lower_bound->first != key_id)
@@ -696,6 +707,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction) {
       },
     };
 
+    // TODO: Pass priority to UdpRouter when it supports prioritized writes.
     m_udp_router.connect(itr->first, transaction->address_ptr(), params);
 
   } catch (const std::exception&) {

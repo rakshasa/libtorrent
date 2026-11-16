@@ -95,6 +95,10 @@ private:
     "announce_peer",
   };
 
+  static constexpr int packet_prio_high  = 2;
+  static constexpr int packet_prio_low   = 1;
+  static constexpr int packet_prio_reply = 0;
+
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
 
   bool                process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer);
@@ -110,13 +114,13 @@ private:
   void                create_query(transaction_itr itr, int tID);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
-  void                send_reply(const sockaddr* sa, const DhtMessage& reply);
+  void                send_reply(const sockaddr* sa, const DhtMessage& reply, int priority);
 
   void                create_find_node_response(const DhtMessage& arg, DhtMessage& reply);
   void                create_get_peers_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
   void                create_announce_peer_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
 
-  int                 add_transaction(std::shared_ptr<DhtTransaction> transaction);
+  int                 add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority);
 
   // This returns the iterator after the given one or end()
   transaction_itr     failed_transaction(transaction_itr itr, bool quick, bool router_disconnected = false);
@@ -131,6 +135,7 @@ private:
   search_set          m_searches;
 
   transaction_map     m_transactions;
+  uint32_t            m_next_reply_id{};
 
   unsigned int        m_queriesReceived{};
   unsigned int        m_queriesSent{};
