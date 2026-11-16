@@ -102,9 +102,10 @@ private:
   static constexpr int packet_prio_reply = 0;  // For replies to peer queries.
 
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  bool                parse_response(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer);
-  bool                process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  bool                process_error(DhtTransaction::key_type key);
+
+  bool                process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer);
+  bool                process_response(transaction_itr itr, const HashString& id, const DhtMessage& req);
+  bool                process_error(transaction_itr itr);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, const DhtMessage& res);
   void                add_search_contacts(DhtTransactionSearch* t, const DhtMessage& res);

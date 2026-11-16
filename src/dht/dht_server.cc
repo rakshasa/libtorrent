@@ -329,17 +329,18 @@ DhtServer::create_announce_peer_response(const DhtMessage& req, const sockaddr* 
 }
 
 bool
-DhtServer::parse_response(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer) {
+DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer) {
   auto itr = m_transactions.find(key);
+
   if (itr == m_transactions.end())
     return false;
 
-  auto transaction = itr->second;
   DhtMessage response;
 
   try {
     auto data = reinterpret_cast<const char*>(buffer.begin());
     static_map_read_bencode(data, data + buffer.size_end(), response);
+
   } catch (const bencode_error&) {
     return true;
   }
@@ -348,24 +349,21 @@ DhtServer::parse_response(DhtTransaction::key_type key, dht::UdpRouter::buffer_t
     return true;
 
   auto type = response[key_y].as_raw_string().data()[0];
-  if (type == 'e')
-    return process_error(key);
 
-  if (type == 'r' && response[key_r_id].is_raw_string() &&
-      response[key_r_id].as_raw_string().size() >= HashString::size_data) {
+  if (type == 'e')
+    return process_error(itr);
+
+  if (type == 'r' && response[key_r_id].is_raw_string() && response[key_r_id].as_raw_string().size() >= HashString::size_data) {
     auto& id = response[key_r_id].as_raw_string();
-    return process_response(key, *HashString::cast_from(id.data()), transaction->address(), response);
+
+    return process_response(itr, *HashString::cast_from(id.data()), response);
   }
 
   return true;
 }
 
 bool
-DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, const sockaddr* sa, const DhtMessage& response) {
-  auto itr = m_transactions.find(key);
-  if (itr == m_transactions.end())
-    throw internal_error("DhtServer::process_response called with an invalid transaction key.");
-
+DhtServer::process_response(transaction_itr itr, const HashString& id, const DhtMessage& response) {
   m_repliesReceived++;
   m_network_up = true;
 
@@ -400,7 +398,7 @@ DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, 
     }
 
     // Mark node responsive only if all processing was successful, without errors.
-    m_router->node_replied(id, sa);
+    m_router->node_replied(id, itr->second->address());
 
   } catch (const std::exception&) {
     erase_transaction(itr);
@@ -410,16 +408,11 @@ DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, 
   }
 
   erase_transaction(itr);
-  return true;
+  return false;
 }
 
 bool
-DhtServer::process_error(DhtTransaction::key_type key) {
-  auto itr = m_transactions.find(key);
-
-  if (itr == m_transactions.end())
-    throw internal_error("DhtServer::process_error called with an invalid transaction key.");
-
+DhtServer::process_error(transaction_itr itr) {
   m_repliesReceived++;
   m_errorsReceived++;
   m_network_up = true;
@@ -429,7 +422,7 @@ DhtServer::process_error(DhtTransaction::key_type key) {
   // few error messages are acceptable. So we do nothing and pretend the query never happened.
 
   erase_transaction(itr);
-  return true;
+  return false;
 }
 
 void
@@ -677,7 +670,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
           throw internal_error("DhtServer query exceeds UDP router buffer.");
         buffer.write_len(packet->c_str(), packet->length());
       },
-      [this](auto key, auto& buffer) { return parse_response(key, buffer); },
+      [this](auto key, auto& buffer) { return process_known_incoming(key, buffer); },
       [this](auto key, int, int) {
         auto itr = m_transactions.find(key);
         if (itr != m_transactions.end())
