@@ -416,15 +416,23 @@ UdpRouter::queue_write(key_type id, connection_info* info) {
 
 UdpRouter::key_type
 UdpRouter::peek_transaction_id(buffer_type& buffer) const {
-  if (buffer.size_end() < 8)
-    return 0;
-
-  buffer.read_32();
-
-  key_type transaction_id = buffer.read_32();
-
+  auto* data = buffer.begin();
+  auto size = buffer.size_end();
   buffer.reset_position();
-  return transaction_id;
+
+  for (size_t i = 0; i + 13 <= size; ++i) {
+    if (data[i] != '1' || data[i + 1] != ':' || data[i + 2] != 't' ||
+        data[i + 3] != '8' || data[i + 4] != ':')
+      continue;
+
+    key_type transaction_id = 0;
+    for (size_t j = 0; j < sizeof(transaction_id); ++j)
+      transaction_id = (transaction_id << 8) | data[i + 5 + j];
+
+    return transaction_id;
+  }
+
+  return 0;
 }
 
 void

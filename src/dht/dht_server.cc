@@ -53,11 +53,7 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
-  // router->id(),
-  //   [this](const HashString& id, const sockaddr* sa, const DhtMessage& message) { process_query(id, sa, message); },
-  //   [this](const DhtMessage& message, const sockaddr* sa, int code, const char* text) { create_error(message, sa, code, text); },
-  //   [this](const HashString& id, const sockaddr* sa) { m_router->node_inactive(id, sa); },
-  //   [this] { start_write(); }, [this] { event_write(); })
+  // UdpRouter currently has no callback for dispatching unmatched inbound queries.
 
   reset_statistics();
 }
@@ -346,8 +342,8 @@ DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, 
     auto& transaction = itr->second;
 
 #ifdef USE_EXTRA_DEBUG
-    int transactionId = static_cast<unsigned char>(response[key_t].as_raw_string().data()[0]);
-    if (DhtTransaction::key(sa, transactionId) != transaction->key(transactionId))
+    auto transactionId = static_cast<int>(static_cast<uint32_t>(key));
+    if (DhtTransaction::key(sa, transactionId) != key)
       throw internal_error("DhtServer::process_response key mismatch.");
 #endif
 
@@ -528,11 +524,12 @@ DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const soc
 
   DhtMessage query;
 
-  // Transaction ID is a bencode string.
-  query[key_t] = raw_bencode(query.data_end, 3);
-  *query.data_end++ = '1';
+  // The router uses the full transaction key to match replies.
+  query[key_t] = raw_bencode(query.data_end, 10);
+  *query.data_end++ = '8';
   *query.data_end++ = ':';
-  *query.data_end++ = tID;
+  for (int shift = 56; shift >= 0; shift -= 8)
+    *query.data_end++ = static_cast<char>(itr->first >> shift);
 
   auto& transaction = itr->second;
 
@@ -648,20 +645,47 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
     auto packet = transaction->packet();
 
     auto params = dht::UdpRouter::connection_params{
-      // [packet](auto, auto& buffer) {
-      //   if (packet->length() > buffer.reserved())
-      //     throw internal_error("DhtServer query exceeds UDP router buffer.");
-      //   buffer.write_len(packet->c_str(), packet->length());
-      // },
-      // [this](auto id, auto& buffer) {
-      //   return process_queue(id, buffer);
-      // },
-      // [this](auto id, int errno_err, int gai_err) {
-      //   // We don't actually use gai_err, but keeping it for compatibility with other UDP router implementations.
-      //   process_error(id, errno_err, gai_err);
-      // },
-      // nullptr,
-      // nullptr,
+      [packet](auto, auto& buffer) {
+        if (packet->length() > buffer.reserved())
+          throw internal_error("DhtServer query exceeds UDP router buffer.");
+        buffer.write_len(packet->c_str(), packet->length());
+      },
+      [this](auto key, auto& buffer) {
+        auto itr = m_transactions.find(key);
+        if (itr == m_transactions.end())
+          return false;
+
+        auto transaction = itr->second;
+        DhtMessage response;
+
+        try {
+          auto data = reinterpret_cast<const char*>(buffer.begin());
+          static_map_read_bencode(data, data + buffer.size_end(), response);
+        } catch (const bencode_error&) {
+          return true;
+        }
+
+        if (!response[key_y].is_raw_string() || response[key_y].as_raw_string().size() != 1)
+          return true;
+
+        auto type = response[key_y].as_raw_string().data()[0];
+        if (type == 'e') {
+          process_error(key);
+        } else if (type == 'r' && response[key_r_id].is_raw_string() &&
+                   response[key_r_id].as_raw_string().size() >= HashString::size_data) {
+          auto& id = response[key_r_id].as_raw_string();
+          process_response(key, *HashString::cast_from(id.data()), transaction->address(), response);
+        }
+
+        // Processing a reply may disconnect this connection from DhtServer.
+        return true;
+      },
+      [this](auto key, int, int) {
+        auto itr = m_transactions.find(key);
+        if (itr != m_transactions.end())
+          failed_transaction(itr, false, true);
+      },
+      [this](auto) { ++m_queriesSent; },
     };
 
     m_udp_router.connect(itr->first, transaction->address_ptr(), params);
