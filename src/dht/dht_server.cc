@@ -616,6 +616,9 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
 
 
   // TODO: DHT support 16bit transaction IDs, but we only use 8 bits here. Fix this.
+  //
+  // TODO: Don't allow 0 as a transaction ID.
+
   unsigned int start_id = static_cast<uint8_t>(random());
   unsigned int id       = start_id;
 
@@ -645,20 +648,20 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, int prio
     auto packet = transaction->packet();
 
     auto params = dht::UdpRouter::connection_params{
-      [packet](auto, auto& buffer) {
-        if (packet->length() > buffer.reserved())
-          throw internal_error("DhtServer query exceeds UDP router buffer.");
-        buffer.write_len(packet->c_str(), packet->length());
-      },
-      [this](auto id, auto& buffer) {
-        return process_queue(id, buffer);
-      },
-      [this](auto id, int errno_err, int gai_err) {
-        // We don't actually use gai_err, but keeping it for compatibility with other UDP router implementations.
-        process_error(id, errno_err, gai_err);
-      },
-      nullptr,
-      nullptr,
+      // [packet](auto, auto& buffer) {
+      //   if (packet->length() > buffer.reserved())
+      //     throw internal_error("DhtServer query exceeds UDP router buffer.");
+      //   buffer.write_len(packet->c_str(), packet->length());
+      // },
+      // [this](auto id, auto& buffer) {
+      //   return process_queue(id, buffer);
+      // },
+      // [this](auto id, int errno_err, int gai_err) {
+      //   // We don't actually use gai_err, but keeping it for compatibility with other UDP router implementations.
+      //   process_error(id, errno_err, gai_err);
+      // },
+      // nullptr,
+      // nullptr,
     };
 
     m_udp_router.connect(itr->first, transaction->address_ptr(), params);
