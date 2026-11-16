@@ -472,16 +472,9 @@ void
 TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   FakeNode node(1);
   FakeNode other(2, 0x7f000002);
-  torrent::HashString self_id;
-  self_id.clear(0x55);
-
   unsigned int responses = 0;
   unsigned int errors = 0;
-  torrent::dht::UdpRouter router(self_id,
-    [](const torrent::HashString&, const sockaddr*, const torrent::DhtMessage&) {},
-    [](const torrent::DhtMessage&, const sockaddr*, int, const char*) {},
-    [](const torrent::HashString&, const sockaddr*) {},
-    [] {}, [] {});
+  torrent::dht::UdpRouter router;
 
   router.open(AF_INET, 0);
   sockaddr_in server{};
@@ -492,8 +485,8 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   peer.sin_family = AF_INET;
   peer.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
   peer.sin_port = htons(node.port());
-  auto address = reinterpret_cast<const sockaddr*>(&peer);
-  auto key = torrent::DhtTransaction::key(address, 7);
+  torrent::c_sa_shared_ptr address = torrent::sa_copy(reinterpret_cast<const sockaddr*>(&peer));
+  auto key = torrent::DhtTransaction::key(address.get(), 7);
 
   auto send = [&](const FakeNode& sender, char type, char transaction_id) {
     auto packet = torrent::Object::create_map();
@@ -508,41 +501,29 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     static_cast<torrent::system::Event&>(router).event_read();
   };
 
-  auto failure = [&](torrent::dht::UdpRouter::key_type received_key, const sockaddr*, const torrent::DhtMessage&) {
-    CPPUNIT_ASSERT_EQUAL(key, received_key);
-    ++errors;
-    router.disconnect(received_key);
-  };
-
   auto prepare = [](torrent::dht::UdpRouter::key_type, torrent::dht::UdpRouter::buffer_type& buffer) { buffer.write_8('x'); };
   auto timeout = [](torrent::dht::UdpRouter::key_type, int, int) { CPPUNIT_FAIL("Unexpected router timeout"); };
 
   router.connect(key, address, {
     prepare,
-    [&](torrent::dht::UdpRouter::key_type received_key, const torrent::HashString& id, const sockaddr*, const torrent::DhtMessage&) {
+    [&](torrent::dht::UdpRouter::key_type received_key, torrent::dht::UdpRouter::buffer_type&) {
       CPPUNIT_ASSERT_EQUAL(key, received_key);
-      CPPUNIT_ASSERT(id == node.id());
       ++responses;
-      router.disconnect(received_key);
-      router.connect(received_key, address, {
-        prepare,
-        [](torrent::dht::UdpRouter::key_type, const torrent::HashString&, const sockaddr*, const torrent::DhtMessage&) {},
-        failure, timeout, {}
-      });
+      return false;
     },
-    failure, timeout, {}
+    timeout, {}
   });
 
-  auto second_key = torrent::DhtTransaction::key(address, 8);
+  auto second_key = torrent::DhtTransaction::key(address.get(), 8);
   unsigned int second_responses = 0;
   router.connect(second_key, address, {
     prepare,
-    [&](torrent::dht::UdpRouter::key_type received_key, const torrent::HashString&, const sockaddr*, const torrent::DhtMessage&) {
+    [&](torrent::dht::UdpRouter::key_type received_key, torrent::dht::UdpRouter::buffer_type&) {
       CPPUNIT_ASSERT_EQUAL(second_key, received_key);
       ++second_responses;
-      router.disconnect(received_key);
+      return false;
     },
-    failure, timeout, {}
+    timeout, {}
   });
 
   send(node, 'r', 9);
@@ -554,6 +535,15 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   CPPUNIT_ASSERT_EQUAL(0u, responses);
   send(node, 'r', 7);
   CPPUNIT_ASSERT_EQUAL(1u, responses);
+  router.connect(key, address, {
+    prepare,
+    [&](auto received_key, auto&) {
+      CPPUNIT_ASSERT_EQUAL(key, received_key);
+      ++errors;
+      return false;
+    },
+    timeout, {}
+  });
   send(node, 'e', 7);
   CPPUNIT_ASSERT_EQUAL(1u, errors);
   send(node, 'e', 7);
@@ -571,6 +561,9 @@ TestDhtAnnounceWalk::test_retry_and_reply() {
 
   CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("get_peers") == 1; }, std::chrono::milliseconds(1000)));
   auto initial = node.queries.front();
+  CPPUNIT_ASSERT_EQUAL(size_t{1}, initial.transaction_id.size());
+  CPPUNIT_ASSERT(static_cast<unsigned char>(initial.transaction_id[0]) > 0);
+  CPPUNIT_ASSERT(static_cast<unsigned char>(initial.transaction_id[0]) < 128);
   m_main_thread->test_add_cached_time(std::chrono::seconds(16));
   m_main_thread->test_process_events_without_cached_time();
   Walk::pump({&node}, [&] { return node.count("get_peers") >= 2; }, std::chrono::milliseconds(1000));
@@ -589,36 +582,53 @@ TestDhtAnnounceWalk::test_retry_and_reply() {
 }
 
 void
+TestDhtAnnounceWalk::test_error_completes_transaction() {
+  FakeNode node(1);
+  node.silent = true;
+  Walk walk({&node});
+  walk.announce();
+
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("get_peers") == 1; }, std::chrono::milliseconds(1000)));
+  auto error = torrent::Object::create_map();
+  auto& error_list = error.insert_key("e", torrent::Object::create_list()).as_list();
+  error_list.push_back(torrent::Object(int64_t{201}));
+  error_list.push_back(torrent::Object(std::string("error")));
+  error.insert_key("t", node.queries.front().transaction_id);
+  error.insert_key("y", std::string("e"));
+  std::ostringstream stream;
+  torrent::object_write_bencode(&stream, &error);
+  CPPUNIT_ASSERT(node.send_to_server(stream.str()) > 0);
+  CPPUNIT_ASSERT(Walk::pump({}, [&] { return walk.replies_received() == 1; }, std::chrono::milliseconds(1000)));
+
+  m_main_thread->test_add_cached_time(std::chrono::seconds(16));
+  m_main_thread->test_process_events_without_cached_time();
+  Walk::pump({&node}, [] { return false; }, std::chrono::milliseconds(100));
+  CPPUNIT_ASSERT_EQUAL(1u, node.count("get_peers"));
+}
+
+void
 TestDhtAnnounceWalk::test_retry_deadline_order() {
   FakeNode node(1);
-  torrent::HashString self_id;
-  self_id.clear(0x55);
-  torrent::dht::UdpRouter router(self_id,
-    [](const torrent::HashString&, const sockaddr*, const torrent::DhtMessage&) {},
-    [](const torrent::DhtMessage&, const sockaddr*, int, const char*) {},
-    [](const torrent::HashString&, const sockaddr*) {},
-    [] {}, [] {});
+  torrent::dht::UdpRouter router;
   router.open(AF_INET, 0);
 
   sockaddr_in peer{};
   peer.sin_family = AF_INET;
   peer.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
   peer.sin_port = htons(node.port());
-  auto address = reinterpret_cast<const sockaddr*>(&peer);
-  auto first = torrent::DhtTransaction::key(address, 1);
-  auto second = torrent::DhtTransaction::key(address, 2);
+  torrent::c_sa_shared_ptr address = torrent::sa_copy(reinterpret_cast<const sockaddr*>(&peer));
+  auto first = torrent::DhtTransaction::key(address.get(), 1);
+  auto second = torrent::DhtTransaction::key(address.get(), 2);
   unsigned int first_sends = 0;
   unsigned int second_sends = 0;
 
   auto connect = [&](auto key, unsigned int& sends) {
     router.connect(key, address, {
       [](auto, auto& buffer) { buffer.write_8('x'); },
-      [](auto, const auto&, const sockaddr*, const auto&) {},
-      [](auto, const sockaddr*, const auto&) {},
+      [](auto, auto&) { return true; },
       [](auto, int, int) { CPPUNIT_FAIL("Unexpected router timeout"); },
       [&sends](auto) { ++sends; }
     });
-    router.send(key);
   };
 
   connect(first, first_sends);
@@ -630,6 +640,8 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
   m_main_thread->test_add_cached_time(std::chrono::seconds(16));
   m_main_thread->test_process_events_without_cached_time();
 
+  router.disconnect(first);
+  router.disconnect(second);
   router.close();
   router.open(AF_INET, 0);
   m_main_thread->test_add_cached_time(std::chrono::seconds(120));
@@ -640,12 +652,10 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
   int terminal_errno = 0;
   router.connect(first, address, {
     [](auto, auto& buffer) { buffer.write_8('x'); },
-    [](auto, const auto&, const sockaddr*, const auto&) {},
-    [](auto, const sockaddr*, const auto&) {},
+    [](auto, auto&) { return true; },
     [&](auto, int err, int) { ++terminal_errors; terminal_errno = err; },
     [&](auto) { ++terminal_sends; }
   });
-  router.send(first);
   for (auto seconds : {16, 31, 46}) {
     m_main_thread->test_add_cached_time(std::chrono::seconds(seconds));
     m_main_thread->test_process_events_without_cached_time();

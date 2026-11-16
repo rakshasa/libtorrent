@@ -71,7 +71,6 @@ private:
   static constexpr int dht_error_protocol   = 203;
   static constexpr int dht_error_bad_method = 204;
 
-  static constexpr size_t       max_reply_packets  = 1024;
   static constexpr size_t       max_transactions   = 1024;
 
   struct [[gnu::packed]] compact_node_info {
@@ -96,11 +95,6 @@ private:
     "announce_peer",
   };
 
-  // Priorities for the outgoing packets.
-  static constexpr int packet_prio_high  = 2;  // For important queries we send (announces).
-  static constexpr int packet_prio_low   = 1;  // For (relatively) unimportant queries we send.
-  static constexpr int packet_prio_reply = 0;  // For replies to peer queries.
-
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
 
   bool                process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer);
@@ -113,15 +107,16 @@ private:
 
   void                find_node_next(DhtTransactionSearch* t);
 
-  void                create_query(transaction_itr itr, int tID, const sockaddr* sa, int priority);
+  void                create_query(transaction_itr itr, int tID);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
+  void                send_reply(const sockaddr* sa, const DhtMessage& reply);
 
   void                create_find_node_response(const DhtMessage& arg, DhtMessage& reply);
   void                create_get_peers_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
   void                create_announce_peer_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
 
-  int                 add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority);
+  int                 add_transaction(std::shared_ptr<DhtTransaction> transaction);
 
   // This returns the iterator after the given one or end()
   transaction_itr     failed_transaction(transaction_itr itr, bool quick, bool router_disconnected = false);
