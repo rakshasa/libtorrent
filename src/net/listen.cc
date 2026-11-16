@@ -134,8 +134,6 @@ bool
 Listen::open_single(listen_info listen_info, open_options options) {
   auto [listen, bind_address, device_name] = listen_info;
 
-  listen->close();
-
   if (options.first_port == 0 || options.first_port > options.last_port)
     throw input_error("Tried to open listening port with an invalid range");
 
@@ -162,6 +160,7 @@ Listen::open_single(listen_info listen_info, open_options options) {
   if (!fd_listen(listen_fd, options.backlog))
     error_fn("Could not listen on socket");
 
+  listen->close();
   listen->open_done(listen_fd, listen_port, options.backlog);
   return true;
 }
@@ -170,9 +169,6 @@ bool
 Listen::open_both(listen_info listen4, listen_info listen6, open_options options) {
   auto [listen_inet,  bind_inet_address,  bind_inet_device_name]  = listen4;
   auto [listen_inet6, bind_inet6_address, bind_inet6_device_name] = listen6;
-
-  listen_inet->close();
-  listen_inet6->close();
 
   if (options.first_port == 0 || options.first_port > options.last_port)
     throw input_error("Tried to open listening port with an invalid range");
@@ -216,9 +212,12 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
       break;
 
     fd_close_and_clear(inet_fd);
-    options.first_port = inet_port + 1;
-
     LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : options.last_port error : %s", inet_port, system::errno_enum(errno));
+
+    if (inet_port == UINT16_MAX)
+      return false;
+
+    options.first_port = inet_port + 1;
   }
 
   auto error_fn = [](std::string msg) {
@@ -235,6 +234,9 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
 
   if (!fd_listen(inet6_fd, options.backlog))
     error_fn("Could not listen on ipv6 socket");
+
+  listen_inet->close();
+  listen_inet6->close();
 
   if (inet_fd != -1)
     listen_inet->open_done(std::exchange(inet_fd, -1), inet_port, options.backlog);

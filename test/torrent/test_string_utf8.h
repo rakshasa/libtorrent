@@ -5,11 +5,16 @@ class test_string_utf8 : public test_fixture {
 
   CPPUNIT_TEST(test_ascii);
   CPPUNIT_TEST(test_multibyte);
+  CPPUNIT_TEST(test_range_edges);
   CPPUNIT_TEST(test_tab_and_line_feed);
   CPPUNIT_TEST(test_carriage_return);
   CPPUNIT_TEST(test_c0_controls);
   CPPUNIT_TEST(test_c1_controls);
   CPPUNIT_TEST(test_invalid_utf8);
+  CPPUNIT_TEST(test_overlong);
+  CPPUNIT_TEST(test_surrogates);
+  CPPUNIT_TEST(test_above_unicode_range);
+  CPPUNIT_TEST(test_fffe_and_ffff);
   CPPUNIT_TEST(test_is_valid_utf8_text);
 
   CPPUNIT_TEST_SUITE_END();
@@ -17,10 +22,15 @@ class test_string_utf8 : public test_fixture {
 public:
   void test_ascii();
   void test_multibyte();
+  void test_range_edges();
   void test_tab_and_line_feed();
   void test_carriage_return();
   void test_c0_controls();
   void test_c1_controls();
   void test_invalid_utf8();
+  void test_overlong();
+  void test_surrogates();
+  void test_above_unicode_range();
+  void test_fffe_and_ffff();
   void test_is_valid_utf8_text();
 };
