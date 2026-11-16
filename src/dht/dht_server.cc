@@ -341,12 +341,6 @@ DhtServer::process_response(DhtTransaction::key_type key, const HashString& id, 
   try {
     auto& transaction = itr->second;
 
-#ifdef USE_EXTRA_DEBUG
-    auto transactionId = static_cast<int>(static_cast<uint32_t>(key));
-    if (DhtTransaction::key(sa, transactionId) != key)
-      throw internal_error("DhtServer::process_response key mismatch.");
-#endif
-
     // If we contact a node but its ID is not the one we expect, ignore the reply.
     if ((id != transaction->id() && transaction->id() != torrent::DhtRouter::zero_id))
       return;
@@ -518,18 +512,17 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
 }
 
 void
-DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const sockaddr* sa, int priority) {
+DhtServer::create_query(transaction_itr itr, int tID, [[maybe_unused]] const sockaddr* sa, [[maybe_unused]] int priority) {
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
 
   DhtMessage query;
 
-  // The router uses the full transaction key to match replies.
+  // The transaction ID is a single byte, DHT supports 16-bit transaction IDs. Fix this.
   query[key_t] = raw_bencode(query.data_end, 10);
-  *query.data_end++ = '8';
+  *query.data_end++ = '1';
   *query.data_end++ = ':';
-  for (int shift = 56; shift >= 0; shift -= 8)
-    *query.data_end++ = static_cast<char>(itr->first >> shift);
+  *query.data_end++ = tID;
 
   auto& transaction = itr->second;
 
