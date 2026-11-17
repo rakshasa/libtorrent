@@ -37,11 +37,11 @@ public:
   void                start(int port);
   void                stop();
 
-  unsigned int        queries_received() const           { return m_queriesReceived; }
-  unsigned int        queries_sent() const               { return m_queriesSent; }
-  unsigned int        replies_received() const           { return m_repliesReceived; }
-  unsigned int        errors_received() const            { return m_errorsReceived; }
-  unsigned int        errors_caught() const              { return m_errorsCaught; }
+  unsigned int        queries_received() const           { return m_queries_received; }
+  unsigned int        queries_sent() const               { return m_queries_sent; }
+  unsigned int        replies_received() const           { return m_replies_received; }
+  unsigned int        errors_received() const            { return m_errors_received; }
+  unsigned int        errors_caught() const              { return m_errors_caught; }
   void                reset_statistics();
 
   // Contact a node to see if it replies. Set id=0 if unknown.
@@ -102,6 +102,8 @@ private:
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
 
   bool                process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer);
+  void                process_unknown_incoming(DhtTransaction::key_type key, const sockaddr* sa, dht::UdpRouter::buffer_type& buffer);
+
   bool                process_response(transaction_itr itr, const HashString& id, const DhtMessage& req);
   bool                process_error(transaction_itr itr);
 
@@ -114,7 +116,7 @@ private:
   std::shared_ptr<DhtMessage> create_query(transaction_itr itr, int tID);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
-  void                send_reply(const sockaddr* sa, const DhtMessage& reply, int priority);
+  void                send_reply(const sockaddr* sa, DhtMessage& reply, int priority);
 
   void                create_find_node_response(const DhtMessage& arg, DhtMessage& reply);
   void                create_get_peers_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
@@ -137,11 +139,11 @@ private:
   transaction_map     m_transactions;
   uint32_t            m_next_reply_id{};
 
-  unsigned int        m_queriesReceived{};
-  unsigned int        m_queriesSent{};
-  unsigned int        m_repliesReceived{};
-  unsigned int        m_errorsReceived{};
-  unsigned int        m_errorsCaught{};
+  unsigned int        m_queries_received{};
+  unsigned int        m_queries_sent{};
+  unsigned int        m_replies_received{};
+  unsigned int        m_errors_received{};
+  unsigned int        m_errors_caught{};
 
   bool                m_network_up{false};
 };

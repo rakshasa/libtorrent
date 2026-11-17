@@ -55,8 +55,9 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
-  // UdpRouter's unknown callback is not implemented, and it cannot dispatch queries without
-  // a supported transaction ID or those matching an outgoing connection.
+  m_udp_router.set_unknown_callback([this](auto id, auto sa, auto& buffer) {
+    process_unknown_incoming(id, sa, buffer);
+  });
 
   reset_statistics();
 }
@@ -88,11 +89,11 @@ DhtServer::stop() {
 
 void
 DhtServer::reset_statistics() {
-  m_queriesReceived = 0;
-  m_queriesSent = 0;
-  m_repliesReceived = 0;
-  m_errorsReceived = 0;
-  m_errorsCaught = 0;
+  m_queries_received = 0;
+  m_queries_sent     = 0;
+  m_replies_received = 0;
+  m_errors_received  = 0;
+  m_errors_caught    = 0;
 }
 
 // Ping a node whose ID we know.
@@ -222,7 +223,7 @@ DhtServer::check_search_trimming(std::shared_ptr<dht::DhtSearch> search) {
 
 void
 DhtServer::process_query(const HashString& id, const sockaddr* sa, const DhtMessage& msg) {
-  m_queriesReceived++;
+  m_queries_received++;
   m_network_up = true;
 
   raw_string query = msg[key_q].as_raw_string();
@@ -341,9 +342,7 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   DhtMessage response;
 
   try {
-    auto data = reinterpret_cast<const char*>(buffer.begin());
-    static_map_read_bencode(data, data + buffer.size_end(), response);
-
+    static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), response);
   } catch (const bencode_error&) {
     return true;
   }
@@ -365,9 +364,31 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   return true;
 }
 
+void
+DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type key, const sockaddr* sa, dht::UdpRouter::buffer_type& buffer) {
+  DhtMessage message;
+
+  try {
+    static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), message);
+  } catch (const bencode_error&) {
+    return;
+  }
+
+  if (!message[key_y].is_raw_string() || message[key_y].as_raw_string().size() != 1)
+    return;
+
+  auto type = message[key_y].as_raw_string().data()[0];
+
+  if (type == 'q' && message[key_a_id].is_raw_string() && message[key_a_id].as_raw_string().size() >= HashString::size_data) {
+    auto& id = message[key_a_id].as_raw_string();
+
+    process_query(*HashString::cast_from(id.data()), sa, message);
+  }
+}
+
 bool
 DhtServer::process_response(transaction_itr itr, const HashString& id, const DhtMessage& response) {
-  m_repliesReceived++;
+  m_replies_received++;
   m_network_up = true;
 
   // Make sure transaction is erased even if an exception is thrown.
@@ -406,7 +427,7 @@ DhtServer::process_response(transaction_itr itr, const HashString& id, const Dht
   } catch (const std::exception&) {
     erase_transaction(itr);
 
-    m_errorsCaught++;
+    m_errors_caught++;
     throw;
   }
 
@@ -416,8 +437,9 @@ DhtServer::process_response(transaction_itr itr, const HashString& id, const Dht
 
 bool
 DhtServer::process_error(transaction_itr itr) {
-  m_repliesReceived++;
-  m_errorsReceived++;
+  m_replies_received++;
+  m_errors_received++;
+
   m_network_up = true;
 
   // Don't mark node as good (because it replied) or bad (because it returned an error).
@@ -608,12 +630,7 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
 }
 
 void
-DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply, [[maybe_unused]] int priority) {
-  auto message = std::make_shared<DhtMessage>();
-
-  for (int i = 0; i < key_LAST; i++)
-    (*message)[static_cast<dht_keys>(i)] = object_create_normal(reply[static_cast<dht_keys>(i)]);
-
+DhtServer::send_reply(const sockaddr* sa, DhtMessage& reply, [[maybe_unused]] int priority) {
   auto start_id = m_next_reply_id;
 
   do {
@@ -625,18 +642,24 @@ DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply, [[maybe_unuse
 
   } while (m_udp_router.has_connection_id(m_next_reply_id));
 
+  auto message = std::make_shared<dht::UdpRouter::buffer_type>();
+  auto result  = static_map_write_bencode_c(object_write_to_buffer, nullptr,
+                                            object_buffer_t(message->begin_ptr(), message->begin_ptr() + 1452 + 1),
+                                            reply);
+
+  if (result.second - result.first > 1452)
+    throw internal_error("DhtServer::send_reply reply too large for UDP packet.");
+
+  message->set_end_ptr(result.second);
+
   // UdpRouter has no one-shot or prioritized send; replies are retried as connections.
   m_udp_router.connect(m_next_reply_id, sa_copy(sa), dht::UdpRouter::connection_params{
-      [message](auto, auto& buffer) {
-        auto result = static_map_write_bencode_c(object_write_to_buffer, nullptr,
-                                                 object_buffer_t(buffer.begin_ptr(), buffer.begin_ptr() + 1452),
-                                                 *message);
-
-        buffer.set_end_ptr(result.second);
+      [message = std::move(message)](auto, auto& buffer) {
+        buffer.write_range(message->begin(), message->end());
       },
       nullptr,
       [](auto, int, int) {},
-      [this](auto) { m_queriesSent++; }
+      [this](auto) { m_queries_sent++; }
     });
 }
 
@@ -679,12 +702,19 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
   try {
     auto query = create_query(itr, key_id & 0xff);
 
+    auto message = std::make_shared<dht::UdpRouter::buffer_type>();
+    auto result  = static_map_write_bencode_c(object_write_to_buffer, nullptr,
+                                              object_buffer_t(message->begin_ptr(), message->begin_ptr() + 1452 + 1),
+                                              *query);
+
+    if (result.second - result.first > 1452)
+      throw internal_error("DhtServer::send_reply reply too large for UDP packet.");
+
+    message->set_end_ptr(result.second);
+
     auto params = dht::UdpRouter::connection_params{
-      [query](auto, auto& buffer) {
-        auto result = static_map_write_bencode_c(object_write_to_buffer, nullptr,
-                                                 object_buffer_t(buffer.begin_ptr(), buffer.begin_ptr() + 1452),
-                                                 *query);
-        buffer.set_end_ptr(result.second);
+      [message = std::move(message)](auto, auto& buffer) {
+        buffer.write_range(message->begin(), message->end());
       },
       [this](auto key, auto& buffer) {
         return process_known_incoming(key, buffer);
@@ -696,7 +726,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
           failed_transaction(itr, false, true);
       },
       [this](auto key) {
-        ++m_queriesSent;
+        ++m_queries_sent;
 
         auto itr = m_transactions.find(key);
 
