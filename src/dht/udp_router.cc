@@ -549,7 +549,8 @@ UdpRouter::event_read() {
     auto itr = m_connections.find(transaction_id);
 
     if (itr == m_connections.end()) {
-      LT_LOG_DEBUG("received datagram with unknown transaction ID : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
+      LT_LOG_DEBUG("received unknown datagram : id:%" PRIx64 " bytes:%d address:%s",
+                   transaction_id, bytes_read, sa_pretty_str(&from_sa.sa).c_str());
 
       m_unknown_callback(transaction_id, &from_sa.sa, buffer);
       continue;
@@ -563,7 +564,8 @@ UdpRouter::event_read() {
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
 
-    LT_LOG_DEBUG("received datagram : address:%s transaction_id:%" PRIx32 " bytes:%d", sa_pretty_str(&from_sa.sa).c_str(), transaction_id, bytes_read);
+    LT_LOG_DEBUG("received datagram : id:%" PRIx64 " bytes:%d address:%s",
+                 transaction_id, bytes_read, sa_pretty_str(&from_sa.sa).c_str());
 
     if (itr->second.process != nullptr && !itr->second.process(transaction_id, buffer))
       disconnect_unsafe(itr);

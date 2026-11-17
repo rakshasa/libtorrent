@@ -379,10 +379,18 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
 
   auto type = message[key_y].as_raw_string().data()[0];
 
-  if (type == 'q' && message[key_a_id].is_raw_string() && message[key_a_id].as_raw_string().size() >= HashString::size_data) {
-    auto& id = message[key_a_id].as_raw_string();
+  try {
+    if (type == 'q' && message[key_a_id].is_raw_string() && message[key_a_id].as_raw_string().size() >= HashString::size_data) {
+      auto& id = message[key_a_id].as_raw_string();
 
-    process_query(*HashString::cast_from(id.data()), sa, message);
+      process_query(*HashString::cast_from(id.data()), sa, message);
+    }
+
+  } catch (const dht::dht_error& e) {
+    DhtMessage reply;
+
+    create_error(message, sa, e.code(), e.what());
+    send_reply(sa, reply, packet_prio_reply);
   }
 }
 

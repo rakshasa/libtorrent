@@ -37,11 +37,11 @@ public:
   UdpRouter();
   ~UdpRouter();
 
-  void                set_unknown_callback(unknown_func fn);
-
   const char*         type_name() const override { return "dht_udp_router"; }
 
   bool                has_connection_id(key_type id) const;
+
+  void                set_unknown_callback(unknown_func fn);
 
   // TODO: Listen to network_config updates and reopen if necessary.
   // TODO: Add callback subscription for network_config updates.
@@ -132,8 +132,9 @@ private:
   system::callback_id   m_resolver_callback_id;
 };
 
-inline bool UdpRouter::has_connection_id(key_type id) const { return m_connections.find(id) != m_connections.end(); }
-inline int  UdpRouter::router_family() const                { return socket_address()->sa_family; }
+inline bool UdpRouter::has_connection_id(key_type id) const  { return m_connections.find(id) != m_connections.end(); }
+inline void UdpRouter::set_unknown_callback(unknown_func fn) { m_unknown_callback = std::move(fn); }
+inline int  UdpRouter::router_family() const                 { return socket_address()->sa_family; }
 
 class dht_error : public network_error {
 public:
