@@ -55,6 +55,8 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
+  // UdpRouter only dispatches one- or two-byte transaction IDs and does not
+  // distinguish queries from replies when a transaction key matches.
   m_udp_router.set_unknown_callback([this](auto id, auto sa, auto& buffer) {
     process_unknown_incoming(id, sa, buffer);
   });
@@ -374,23 +376,46 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     return;
   }
 
-  if (!message[key_y].is_raw_string() || message[key_y].as_raw_string().size() != 1)
-    return;
-
-  auto type = message[key_y].as_raw_string().data()[0];
-
   try {
-    if (type == 'q' && message[key_a_id].is_raw_string() && message[key_a_id].as_raw_string().size() >= HashString::size_data) {
-      auto& id = message[key_a_id].as_raw_string();
+    if (!message[key_t].is_raw_string())
+      throw dht::dht_error(dht_error_protocol, "No transaction ID");
 
-      process_query(*HashString::cast_from(id.data()), sa, message);
-    }
+    if (message[key_t].as_raw_string().size() > 20)
+      throw dht::dht_error(dht_error_protocol, "Transaction ID length too long");
 
+    if (!message[key_y].is_raw_string())
+      throw dht::dht_error(dht_error_protocol, "No message type");
+
+    if (message[key_y].as_raw_string().size() != 1)
+      throw dht::dht_error(dht_error_bad_method, "Unsupported message type");
+
+    auto type = message[key_y].as_raw_string().data()[0];
+
+    if (type == 'r' || type == 'e')
+      return;
+
+    if (type != 'q')
+      throw dht::dht_error(dht_error_bad_method, "Unknown message type.");
+
+    if (!message[key_a_id].is_raw_string())
+      throw dht::dht_error(dht_error_protocol, "Invalid `id' value");
+
+    auto& id = message[key_a_id].as_raw_string();
+
+    if (id.size() < HashString::size_data)
+      throw dht::dht_error(dht_error_protocol, "`id' value too short");
+
+    if (*HashString::cast_from(id.data()) == m_router->id())
+      throw dht::dht_error(dht_error_protocol, "Send your own ID, not mine");
+
+    process_query(*HashString::cast_from(id.data()), sa, message);
+
+  } catch (const bencode_error& e) {
+    snprintf(message.data_end, message.data + DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
+    message.data[DhtMessage::data_size - 1] = '\0';
+    create_error(message, sa, dht_error_protocol, message.data_end);
   } catch (const dht::dht_error& e) {
-    DhtMessage reply;
-
     create_error(message, sa, e.code(), e.what());
-    send_reply(sa, reply, packet_prio_reply);
   }
 }
 
@@ -431,6 +456,18 @@ DhtServer::process_response(transaction_itr itr, const HashString& id, const Dht
 
     // Mark node responsive only if all processing was successful, without errors.
     m_router->node_replied(id, itr->second->address());
+
+  } catch (const bencode_error&) {
+    m_router->node_inactive(id, itr->second->address());
+    erase_transaction_skip_disconnect(itr);
+    m_errors_caught++;
+    return false;
+
+  } catch (const dht::dht_error&) {
+    m_router->node_inactive(id, itr->second->address());
+    erase_transaction_skip_disconnect(itr);
+    m_errors_caught++;
+    return false;
 
   } catch (const std::exception&) {
     erase_transaction(itr);

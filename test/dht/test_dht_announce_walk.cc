@@ -472,6 +472,116 @@ TestDhtAnnounceWalk::test_incoming_ping_after_invalid_datagram() {
 }
 
 void
+TestDhtAnnounceWalk::test_incoming_get_peers_without_nodes() {
+  FakeNode node(1);
+  Walk walk({});
+
+  auto query = torrent::Object::create_map();
+  auto& args = query.insert_key("a", torrent::Object::create_map());
+  args.insert_key("id", node.id().str());
+  args.insert_key("info_hash", walk_target().str());
+  query.insert_key("q", std::string("get_peers"));
+  query.insert_key("t", std::string("xy"));
+  query.insert_key("y", std::string("q"));
+
+  std::ostringstream stream;
+  torrent::object_write_bencode(&stream, &query);
+  CPPUNIT_ASSERT(node.send_to_server(stream.str()) > 0);
+
+  char buffer[2048];
+  torrent::Object reply;
+  CPPUNIT_ASSERT(Walk::pump({}, [&] {
+    auto size = node.receive(buffer, sizeof(buffer));
+    if (size < 0)
+      return false;
+    torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+    return true;
+  }, std::chrono::milliseconds(1000)));
+
+  CPPUNIT_ASSERT_EQUAL(std::string("e"), reply.get_key_string("y"));
+  CPPUNIT_ASSERT_EQUAL(std::string("xy"), reply.get_key_string("t"));
+  const auto& error = reply.get_key_list("e");
+  CPPUNIT_ASSERT_EQUAL(size_t{2}, error.size());
+  CPPUNIT_ASSERT_EQUAL(int64_t{201}, error.front().as_value());
+  CPPUNIT_ASSERT_EQUAL(std::string("No peers nor nodes"), error.back().as_string());
+
+  Walk::pump({}, [] { return false; }, std::chrono::milliseconds(100));
+  CPPUNIT_ASSERT_EQUAL(ssize_t{-1}, node.receive(buffer, sizeof(buffer)));
+
+  auto ping = torrent::Object::create_map();
+  ping.insert_key("a", torrent::Object::create_map()).insert_key("id", node.id().str());
+  ping.insert_key("q", std::string("ping"));
+  ping.insert_key("t", std::string("xz"));
+  ping.insert_key("y", std::string("q"));
+
+  std::ostringstream ping_stream;
+  torrent::object_write_bencode(&ping_stream, &ping);
+  CPPUNIT_ASSERT(node.send_to_server(ping_stream.str()) > 0);
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return walk.replies_received() == 1; }, std::chrono::milliseconds(1000)));
+
+  CPPUNIT_ASSERT(node.send_to_server(stream.str()) > 0);
+  CPPUNIT_ASSERT(Walk::pump({}, [&] {
+    auto size = node.receive(buffer, sizeof(buffer));
+    if (size < 0)
+      return false;
+    torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+    return reply.has_key_string("y") && reply.get_key_string("y") == "r";
+  }, std::chrono::milliseconds(1000)));
+  CPPUNIT_ASSERT_EQUAL(node.compact(), reply.get_key("r").get_key_string("nodes"));
+  CPPUNIT_ASSERT_EQUAL(size_t{8}, reply.get_key("r").get_key_string("token").size());
+}
+
+void
+TestDhtAnnounceWalk::test_incoming_malformed_query() {
+  FakeNode node(1);
+  Walk walk({});
+
+  auto query = torrent::Object::create_map();
+  query.insert_key("a", torrent::Object::create_map()).insert_key("id", node.id().str());
+  query.insert_key("q", std::string("get_peers"));
+  query.insert_key("t", std::string("xy"));
+  query.insert_key("y", std::string("q"));
+
+  std::ostringstream stream;
+  torrent::object_write_bencode(&stream, &query);
+  CPPUNIT_ASSERT(node.send_to_server(stream.str()) > 0);
+
+  char buffer[2048];
+  torrent::Object reply;
+  CPPUNIT_ASSERT(Walk::pump({}, [&] {
+    auto size = node.receive(buffer, sizeof(buffer));
+    if (size < 0)
+      return false;
+    torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+    return true;
+  }, std::chrono::milliseconds(1000)));
+
+  CPPUNIT_ASSERT_EQUAL(std::string("e"), reply.get_key_string("y"));
+  CPPUNIT_ASSERT_EQUAL(std::string("xy"), reply.get_key_string("t"));
+  const auto& error = reply.get_key_list("e");
+  CPPUNIT_ASSERT_EQUAL(size_t{2}, error.size());
+  CPPUNIT_ASSERT_EQUAL(int64_t{203}, error.front().as_value());
+  CPPUNIT_ASSERT(error.back().as_string().find("Malformed packet: ") == 0);
+
+  query.get_key("a").insert_key("info_hash", std::string("short"));
+  std::ostringstream short_stream;
+  torrent::object_write_bencode(&short_stream, &query);
+  CPPUNIT_ASSERT(node.send_to_server(short_stream.str()) > 0);
+
+  CPPUNIT_ASSERT(Walk::pump({}, [&] {
+    auto size = node.receive(buffer, sizeof(buffer));
+    if (size < 0)
+      return false;
+    torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+    return true;
+  }, std::chrono::milliseconds(1000)));
+
+  CPPUNIT_ASSERT_EQUAL(std::string("e"), reply.get_key_string("y"));
+  CPPUNIT_ASSERT_EQUAL(int64_t{203}, reply.get_key_list("e").front().as_value());
+  CPPUNIT_ASSERT_EQUAL(std::string("info hash too short"), reply.get_key_list("e").back().as_string());
+}
+
+void
 TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   FakeNode node(1);
   FakeNode other(2, 0x7f000002);
