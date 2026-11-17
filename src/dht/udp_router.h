@@ -136,6 +136,7 @@ inline bool UdpRouter::has_connection_id(key_type id) const  { return m_connecti
 inline void UdpRouter::set_unknown_callback(unknown_func fn) { m_unknown_callback = std::move(fn); }
 inline int  UdpRouter::router_family() const                 { return socket_address()->sa_family; }
 
+// TODO: Move to dht_common.h.
 class dht_error : public network_error {
 public:
   dht_error(int code, const char* message) : m_message(message), m_code(code) {}

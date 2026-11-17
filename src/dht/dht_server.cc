@@ -360,7 +360,7 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
     switch (type) {
     case 'r': {
       if (!message[key_r_id].is_raw_string())
-        throw dht::dht_error(dht_error_protocol, "Invalid `id' value");
+        throw dht::dht_error(dht_error_protocol, "Invalid `id' type");
 
       auto& node_id_str = message[key_r_id].as_raw_string();
 
@@ -387,7 +387,9 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   } catch (const dht::dht_error& e) {
     if (node_id != nullptr)
       m_router->node_inactive(*node_id, itr->second->address());
-    else
+
+    // Don't reply to potentially malicious probing packets.
+    if (e.code() == dht_error_generic)
       create_error(message, itr->second->address(), e.code(), e.what());
   }
 
@@ -441,7 +443,8 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     process_query(*HashString::cast_from(id.data()), sa, message);
 
   } catch (const dht::dht_error& e) {
-    create_error(message, sa, e.code(), e.what());
+    if (e.code() == dht_error_generic)
+      create_error(message, sa, e.code(), e.what());
   }
 }
 
@@ -450,14 +453,14 @@ DhtServer::process_response(transaction_itr itr, const HashString& id, const Dht
   m_replies_received++;
   m_network_up = true;
 
+  auto& transaction = itr->second;
+
+  // If we contact a node but its ID is not the one we expect, ignore the reply.
+  if ((id != transaction->id() && transaction->id() != torrent::DhtRouter::zero_id))
+    return true;
+
   // Make sure transaction is erased even if an exception is thrown.
   try {
-    auto& transaction = itr->second;
-
-    // If we contact a node but its ID is not the one we expect, ignore the reply.
-    if ((id != transaction->id() && transaction->id() != torrent::DhtRouter::zero_id))
-      return true;
-
     switch (transaction->type()) {
       case DhtTransaction::DHT_FIND_NODE:
         // the get_peers walk of an announce: the peers a node on the way holds go to the tracker at once
@@ -483,23 +486,12 @@ DhtServer::process_response(transaction_itr itr, const HashString& id, const Dht
     // Mark node responsive only if all processing was successful, without errors.
     m_router->node_replied(id, itr->second->address());
 
-  } catch (const bencode_error&) {
-    m_router->node_inactive(id, itr->second->address());
-    erase_transaction_skip_disconnect(itr);
-    m_errors_caught++;
-    return false;
-
   } catch (const dht::dht_error&) {
     m_router->node_inactive(id, itr->second->address());
     erase_transaction_skip_disconnect(itr);
+
     m_errors_caught++;
     return false;
-
-  } catch (const std::exception&) {
-    erase_transaction(itr);
-
-    m_errors_caught++;
-    throw;
   }
 
   erase_transaction_skip_disconnect(itr);

@@ -67,7 +67,7 @@ public:
 private:
   // DHT error codes.
   static constexpr int dht_error_generic    = 201;
-  static constexpr int dht_error_server     = 202;
+  // static constexpr int dht_error_server     = 202;
   static constexpr int dht_error_protocol   = 203;
   static constexpr int dht_error_bad_method = 204;
 
