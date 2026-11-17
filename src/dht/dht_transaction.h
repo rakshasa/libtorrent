@@ -63,13 +63,17 @@ public:
   using base_type = static_map_type<dht_keys, key_LAST>;
 
   // Must be big enough to hold one of the possible variable-sized reply data.
+  //
   // Currently either:
   // - error message (size doesn't really matter, it'll be truncated at worst)
   // - announce token (8 bytes, needs 20 bytes buffer to build)
+  //
   // Never more than one of the above.
+
   static constexpr size_t data_size = 64;
-  char data[data_size];
-  char* data_end{data};
+
+  char                data[data_size];
+  char*               data_end{data};
 };
 
 // DHT Transaction classes. DhtTransaction and DhtTransactionSearch

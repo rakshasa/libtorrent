@@ -341,26 +341,54 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   if (itr == m_transactions.end())
     return false;
 
-  DhtMessage response;
+  DhtMessage        message;
+  const HashString* node_id{};
 
   try {
-    static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), response);
-  } catch (const bencode_error&) {
+    static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), message);
+  } catch (const bencode_error& e) {
+    create_error(message, itr->second->address(), dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return true;
   }
 
-  if (!response[key_y].is_raw_string() || response[key_y].as_raw_string().size() != 1)
+  if (!message[key_y].is_raw_string() || message[key_y].as_raw_string().size() != 1)
     return true;
 
-  auto type = response[key_y].as_raw_string().data()[0];
+  auto type = message[key_y].as_raw_string().data()[0];
 
-  if (type == 'e')
-    return process_error(itr);
+  try {
+    switch (type) {
+    case 'r': {
+      if (!message[key_r_id].is_raw_string())
+        throw dht::dht_error(dht_error_protocol, "Invalid `id' value");
 
-  if (type == 'r' && response[key_r_id].is_raw_string() && response[key_r_id].as_raw_string().size() >= HashString::size_data) {
-    auto& id = response[key_r_id].as_raw_string();
+      auto& node_id_str = message[key_r_id].as_raw_string();
 
-    return process_response(itr, *HashString::cast_from(id.data()), response);
+      if (node_id_str.size() < HashString::size_data)
+        throw dht::dht_error(dht_error_protocol, "`id' value too short");
+
+      node_id = HashString::cast_from(node_id_str.data());
+
+      if (*node_id == m_router->id())
+        throw dht::dht_error(dht_error_protocol, "Send your own ID, not mine");
+
+      if (message[key_r_id].is_raw_string() && message[key_r_id].as_raw_string().size() >= HashString::size_data) {
+        auto& id = message[key_r_id].as_raw_string();
+
+        return process_response(itr, *HashString::cast_from(id.data()), message);
+      }
+
+      break;
+    }
+    case 'e':
+      return process_error(itr);
+    }
+
+  } catch (const dht::dht_error& e) {
+    if (node_id != nullptr)
+      m_router->node_inactive(*node_id, itr->second->address());
+    else
+      create_error(message, itr->second->address(), e.code(), e.what());
   }
 
   return true;
@@ -372,7 +400,9 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
 
   try {
     static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), message);
-  } catch (const bencode_error&) {
+
+  } catch (const bencode_error& e) {
+    create_error(message, sa, dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return;
   }
 
@@ -392,7 +422,7 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     auto type = message[key_y].as_raw_string().data()[0];
 
     if (type == 'r' || type == 'e')
-      return;
+      return; // ignore replies and errors for unknown transactions
 
     if (type != 'q')
       throw dht::dht_error(dht_error_bad_method, "Unknown message type.");
@@ -410,10 +440,6 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
 
     process_query(*HashString::cast_from(id.data()), sa, message);
 
-  } catch (const bencode_error& e) {
-    snprintf(message.data_end, message.data + DhtMessage::data_size - message.data_end - 1, "Malformed packet: %s", e.what());
-    message.data[DhtMessage::data_size - 1] = '\0';
-    create_error(message, sa, dht_error_protocol, message.data_end);
   } catch (const dht::dht_error& e) {
     create_error(message, sa, e.code(), e.what());
   }

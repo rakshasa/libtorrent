@@ -114,8 +114,11 @@ private:
   void                find_node_next(DhtTransactionSearch* t);
 
   std::shared_ptr<DhtMessage> create_query(transaction_itr itr, int tID);
+
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
+  void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const std::string& msg);
+
   void                send_reply(const sockaddr* sa, DhtMessage& reply, int priority);
 
   void                create_find_node_response(const DhtMessage& arg, DhtMessage& reply);
@@ -147,6 +150,11 @@ private:
 
   bool                m_network_up{false};
 };
+
+inline void
+DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, const std::string& msg) {
+  create_error(req, sa, num, msg.c_str());
+}
 
 } // namespace torrent
 
