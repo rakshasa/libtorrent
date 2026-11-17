@@ -55,7 +55,8 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
-  // UdpRouter currently has no callback for dispatching unmatched inbound queries.
+  // UdpRouter's unknown callback is not implemented, and it cannot dispatch queries without
+  // a supported transaction ID or those matching an outgoing connection.
 
   reset_statistics();
 }
@@ -535,24 +536,21 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
   announce->update_status();
 }
 
-void
+std::shared_ptr<DhtMessage>
 DhtServer::create_query(transaction_itr itr, int tID) {
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
 
-  DhtMessage query;
-
-  query[key_t] = raw_bencode(query.data_end, 3);
-  *query.data_end++ = '1';
-  *query.data_end++ = ':';
-  *query.data_end++ = tID;
+  auto message = std::make_shared<DhtMessage>();
+  auto& query = *message;
 
   auto& transaction = itr->second;
 
+  query[key_t] = std::string(1, tID);
   query[key_q] = raw_string::from_c_str(queries[transaction->type()]);
   query[key_y] = raw_bencode::from_c_str("1:q");
   query[key_v] = raw_bencode("4:" PEER_VERSION, 6);
-  query[key_a_id] = m_router->id_raw_string();
+  query[key_a_id] = m_router->id().str();
 
   switch (transaction->type()) {
     case DhtTransaction::DHT_PING:
@@ -564,26 +562,24 @@ DhtServer::create_query(transaction_itr itr, int tID) {
       // answers with them beside the closer nodes; a find_node walk only asked the last few nodes for peers.
       if (transaction->as_find_node()->search()->is_announce()) {
         query[key_q] = raw_string::from_c_str("get_peers");
-        query[key_a_infoHash] = transaction->as_find_node()->search()->target_raw_string();
+        query[key_a_infoHash] = transaction->as_find_node()->search()->target().str();
       } else {
-        query[key_a_target] = transaction->as_find_node()->search()->target_raw_string();
+        query[key_a_target] = transaction->as_find_node()->search()->target().str();
       }
       break;
 
     case DhtTransaction::DHT_GET_PEERS:
-      query[key_a_infoHash] = transaction->as_get_peers()->search()->target_raw_string();
+      query[key_a_infoHash] = transaction->as_get_peers()->search()->target().str();
       break;
 
     case DhtTransaction::DHT_ANNOUNCE_PEER:
-      query[key_a_infoHash] = transaction->as_announce_peer()->info_hash_raw_string();
-      query[key_a_token]    = transaction->as_announce_peer()->token();
+      query[key_a_infoHash] = transaction->as_announce_peer()->info_hash().str();
+      query[key_a_token]    = transaction->as_announce_peer()->token().as_string();
       query[key_a_port]     = runtime::listen_port();
       break;
   }
 
-  auto packet = std::make_shared<DhtTransactionPacket>(transaction->address(), query, tID, itr->first);
-
-  transaction->set_packet(packet);
+  return message;
 }
 
 void
@@ -613,6 +609,11 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
 
 void
 DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply, [[maybe_unused]] int priority) {
+  auto message = std::make_shared<DhtMessage>();
+
+  for (int i = 0; i < key_LAST; i++)
+    (*message)[static_cast<dht_keys>(i)] = object_create_normal(reply[static_cast<dht_keys>(i)]);
+
   auto start_id = m_next_reply_id;
 
   do {
@@ -624,18 +625,12 @@ DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply, [[maybe_unuse
 
   } while (m_udp_router.has_connection_id(m_next_reply_id));
 
+  // UdpRouter has no one-shot or prioritized send; replies are retried as connections.
   m_udp_router.connect(m_next_reply_id, sa_copy(sa), dht::UdpRouter::connection_params{
-      [reply](auto, auto& buffer) {
+      [message](auto, auto& buffer) {
         auto result = static_map_write_bencode_c(object_write_to_buffer, nullptr,
-                                                 object_buffer_t(buffer.begin_ptr(), buffer.begin_ptr() + buffer.reserved()),
-                                                 reply);
-
-        // Common maximum UDP packet size is 1452 bytes (IPv6).
-        if (result.second - result.first > 1452) {
-          // TODO: Throw internal error instead of logging for now to catch bugs.
-          throw internal_error("DhtServer reply exceeds UDP router buffer.");
-          return;
-        }
+                                                 object_buffer_t(buffer.begin_ptr(), buffer.begin_ptr() + 1452),
+                                                 *message);
 
         buffer.set_end_ptr(result.second);
       },
@@ -682,16 +677,14 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
   auto itr = m_transactions.insert(lower_bound, std::make_pair(key_id, transaction));
 
   try {
-    create_query(itr, key_id & 0xff);
-
-    auto packet = transaction->packet();
+    auto query = create_query(itr, key_id & 0xff);
 
     auto params = dht::UdpRouter::connection_params{
-      [packet](auto, auto& buffer) {
-        if (packet->length() > 1452)
-          throw internal_error("DhtServer query exceeds UDP router buffer.");
-
-        buffer.write_len(packet->c_str(), packet->length());
+      [query](auto, auto& buffer) {
+        auto result = static_map_write_bencode_c(object_write_to_buffer, nullptr,
+                                                 object_buffer_t(buffer.begin_ptr(), buffer.begin_ptr() + 1452),
+                                                 *query);
+        buffer.set_end_ptr(result.second);
       },
       [this](auto key, auto& buffer) {
         return process_known_incoming(key, buffer);
@@ -702,18 +695,17 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
         if (itr != m_transactions.end())
           failed_transaction(itr, false, true);
       },
-      [this](auto) {
+      [this](auto key) {
         ++m_queriesSent;
 
-        // // TODO: Is this right?
-        // auto itr = m_transactions.find(key);
+        auto itr = m_transactions.find(key);
 
-        // if (itr != m_transactions.end())
-        //   itr->second->reset_packet();
+        if (itr != m_transactions.end())
+          itr->second->set_packet_sent();
       },
     };
 
-    // TODO: Pass priority to UdpRouter when it supports prioritized writes.
+    // UdpRouter has no priority or quick-timeout callback for stalled searches.
     m_udp_router.connect(itr->first, transaction->address_ptr(), params);
 
   } catch (const std::exception&) {
@@ -738,11 +730,11 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick, bool router_disco
 
   // If it was a known node, remember that it didn't reply, unless the transaction
   // is only stalled (had quick timeout, but not full timeout).  Also if the
-  // transaction still has an associated packet, the packet never got sent due to
+  // transaction has not been sent, the packet may have been queued due to
   // throttling, so don't blame the remote node for not replying.
   // Finally, if we haven't received anything whatsoever so far, assume the entire
   // network is down and so we can't blame the node either.
-  if (!quick && m_network_up && transaction->packet() == NULL && transaction->id() != torrent::DhtRouter::zero_id)
+  if (!quick && m_network_up && transaction->packet_sent() && transaction->id() != torrent::DhtRouter::zero_id)
     m_router->node_inactive(transaction->id(), transaction->address());
 
   if (transaction->type() == DhtTransaction::DHT_FIND_NODE || transaction->type() == DhtTransaction::DHT_GET_PEERS) {

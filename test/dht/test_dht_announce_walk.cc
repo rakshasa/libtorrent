@@ -61,6 +61,7 @@ struct Query {
   std::string target;
   std::string token;
   std::string transaction_id;
+  std::string packet;
 };
 
 class FakeNode {
@@ -146,6 +147,7 @@ public:
 
   std::string        nodes;    // compact nodes returned by find_node and get_peers
   bool               silent{false};
+  bool               silent_announce{false};
   std::vector<Query> queries;
 
 private:
@@ -185,6 +187,7 @@ FakeNode::service() {
     Query query;
     query.method = message.get_key_string("q");
     query.transaction_id = message.get_key_string("t");
+    query.packet.assign(buffer, size);
 
     if (args.has_key_string("info_hash"))
       query.target = args.get_key_string("info_hash");
@@ -196,7 +199,7 @@ FakeNode::service() {
 
     queries.push_back(query);
 
-    if (silent)
+    if (silent || (silent_announce && query.method == "announce_peer"))
       continue;
 
     auto reply = torrent::Object::create_map();
@@ -572,6 +575,7 @@ TestDhtAnnounceWalk::test_retry_and_reply() {
   auto retry = std::find_if(node.queries.begin() + 1, node.queries.end(), [](const auto& query) { return query.method == "get_peers"; });
   CPPUNIT_ASSERT(retry != node.queries.end());
   CPPUNIT_ASSERT_EQUAL(initial.transaction_id, retry->transaction_id);
+  CPPUNIT_ASSERT_EQUAL(initial.packet, retry->packet);
 
   CPPUNIT_ASSERT(node.reply_to_query(initial) > 0);
   CPPUNIT_ASSERT(Walk::pump({}, [&] { return walk.replies_received() == 1; }, std::chrono::milliseconds(1000)));
@@ -579,6 +583,75 @@ TestDhtAnnounceWalk::test_retry_and_reply() {
   m_main_thread->test_process_events_without_cached_time();
   Walk::pump({&node}, [] { return false; }, std::chrono::milliseconds(100));
   CPPUNIT_ASSERT_EQUAL(2u, node.count("get_peers"));
+}
+
+void
+TestDhtAnnounceWalk::test_announce_retry_preserves_query() {
+  FakeNode node(1);
+  std::string token(64, 'x');
+  token[3] = '\0';
+  node.set_token(token);
+  node.silent_announce = true;
+  Walk walk({&node});
+  walk.announce();
+
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("announce_peer") == 1; }, std::chrono::milliseconds(1000)));
+  auto initial = std::find_if(node.queries.begin(), node.queries.end(), [](const auto& query) { return query.method == "announce_peer"; });
+  CPPUNIT_ASSERT(initial != node.queries.end());
+  auto packet = initial->packet;
+  CPPUNIT_ASSERT_EQUAL(token, initial->token);
+
+  m_main_thread->test_add_cached_time(std::chrono::seconds(16));
+  m_main_thread->test_process_events_without_cached_time();
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("announce_peer") == 2; }, std::chrono::milliseconds(1000)));
+
+  auto retry = std::find_if(node.queries.rbegin(), node.queries.rend(), [](const auto& query) { return query.method == "announce_peer"; });
+  CPPUNIT_ASSERT(retry != node.queries.rend());
+  CPPUNIT_ASSERT_EQUAL(packet, retry->packet);
+  CPPUNIT_ASSERT_EQUAL(token, retry->token);
+}
+
+void
+TestDhtAnnounceWalk::test_sent_transaction_timeout_marks_node_inactive() {
+  FakeNode node(1);
+  node.silent = true;
+
+  torrent::HashString self_id;
+  self_id.clear(0x55);
+  auto cache = torrent::Object::create_map();
+  cache.insert_key("self_id", self_id.str());
+  auto& entry = cache.insert_key("nodes", torrent::Object::create_map()).insert_key(node.id().str(), torrent::Object::create_map());
+  entry.insert_key("i", int64_t{0x7f000001});
+  entry.insert_key("p", int64_t{node.port()});
+  entry.insert_key("t", int64_t{0});
+
+  torrent::DhtRouter router(torrent::runtime::network_manager()->dht_controller(), cache);
+  torrent::DhtServer server(&router);
+  server.start(dht_port);
+  auto address = torrent::sa_make_inet_h(INADDR_LOOPBACK, node.port());
+
+  server.ping(node.id(), address.get());
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return !node.queries.empty(); }, std::chrono::milliseconds(1000)));
+  CPPUNIT_ASSERT(node.reply_to_query(node.queries.front()) > 0);
+  CPPUNIT_ASSERT(Walk::pump({}, [&] { return server.replies_received() == 1; }, std::chrono::milliseconds(1000)));
+
+  auto contact = router.get_node(node.id());
+  CPPUNIT_ASSERT(contact != nullptr);
+
+  for (unsigned int i = 1; i < torrent::DhtNode::max_failed_replies; i++)
+    contact->inactive();
+
+  CPPUNIT_ASSERT(!contact->is_bad());
+  auto count = node.queries.size();
+  server.ping(node.id(), address.get());
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.queries.size() > count; }, std::chrono::milliseconds(1000)));
+
+  for (auto seconds : {16, 31, 46}) {
+    m_main_thread->test_add_cached_time(std::chrono::seconds(seconds));
+    m_main_thread->test_process_events_without_cached_time();
+  }
+
+  CPPUNIT_ASSERT(contact->is_bad());
 }
 
 void
