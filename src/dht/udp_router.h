@@ -19,6 +19,8 @@ public:
   using buffer_type      = ProtocolBuffer<2048>;
   using random_engine    = std::independent_bits_engine<std::mt19937, 64, key_type>;
 
+  using unknown_func     = std::function<void(key_type, sockaddr*, buffer_type&)>;
+
   using prepare_func     = std::function<void(key_type, buffer_type&)>;
   using process_func     = std::function<bool(key_type, buffer_type&)>;
   using failure_func     = std::function<void(key_type, int, int)>;
@@ -35,7 +37,11 @@ public:
   UdpRouter();
   ~UdpRouter();
 
+  void                set_unknown_callback(unknown_func fn);
+
   const char*         type_name() const override { return "dht_udp_router"; }
+
+  bool                has_connection_id(key_type id) const;
 
   // TODO: Listen to network_config updates and reopen if necessary.
   // TODO: Add callback subscription for network_config updates.
@@ -115,6 +121,8 @@ private:
   system::Thread*       m_thread;
   random_engine         m_random_engine;
 
+  unknown_func          m_unknown_callback;
+
   connection_map        m_connections;
   write_queue_type      m_write_queue;
   timeout_queue_type    m_timeout_queue;
@@ -124,7 +132,8 @@ private:
   system::callback_id   m_resolver_callback_id;
 };
 
-inline int UdpRouter::router_family() const { return socket_address()->sa_family; }
+inline bool UdpRouter::has_connection_id(key_type id) const { return m_connections.find(id) != m_connections.end(); }
+inline int  UdpRouter::router_family() const                { return socket_address()->sa_family; }
 
 class dht_error : public network_error {
 public:

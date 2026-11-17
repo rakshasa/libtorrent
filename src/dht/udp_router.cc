@@ -20,7 +20,9 @@
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_DHT_ROUTER, "udp-router : " log_fmt, __VA_ARGS__);
-  // lt_log_print_subsystem(LOG_DHT_REQUESTS, "udp_router", "%p : " log_fmt, static_cast<DhtWorker*>(this), __VA_ARGS__);
+
+#define LT_LOG_DEBUG(log_fmt, ...)                                      \
+  lt_log_print(LOG_DHT_ROUTER, "udp-router : " log_fmt, __VA_ARGS__);
 
 // TODO: Add m_connections::iterator to info so we don't need to look them up. We should be able to
 // replace unordered_map with map then to reduce memory usage after initial startup dht rush.
@@ -64,6 +66,7 @@ create_random_engine() {
 
 UdpRouter::UdpRouter()
   : m_random_engine(create_random_engine()),
+    m_unknown_callback([](auto, auto, auto&) {}),
     m_resolver_callback_id(system::make_callback_id()) {
 
   m_task_timeout.slot() = [this] { receive_timeout(); };
@@ -234,7 +237,7 @@ UdpRouter::connect_unsafe(key_type id, c_sa_shared_ptr address, connection_param
   assert(is_open());
   assert(address == nullptr || address->sa_family == router_family());
   assert(params.prepare);
-  assert(params.process);
+  // assert(params.process);
   assert(params.failure);
 
   auto [itr, inserted] = m_connections.try_emplace(id, connection_info{});
@@ -243,7 +246,7 @@ UdpRouter::connect_unsafe(key_type id, c_sa_shared_ptr address, connection_param
     if (itr->second.address != nullptr)
       throw internal_error("UdpRouter::connect_unsafe() called with an existing connection ID that is already connected.");
 
-    if (itr->second.prepare != nullptr || itr->second.process != nullptr || itr->second.failure != nullptr)
+    if (itr->second.prepare != nullptr || itr->second.failure != nullptr)
       throw internal_error("UdpRouter::connect_unsafe() called with an existing connection ID that has callbacks set.");
   }
 
@@ -378,7 +381,7 @@ UdpRouter::do_write(key_type id, connection_info* info) {
   info->prepare(id, buffer);
 
   if (buffer.size_end() == 0)
-    throw internal_error("UdpRouter::do_write() prepare function did not write any data.");
+    return EINVAL;
 
   auto address       = info->address.get();
   auto bytes_written = write_datagram_sa(buffer.begin(), buffer.size_end(), address);
@@ -394,6 +397,8 @@ UdpRouter::do_write(key_type id, connection_info* info) {
     LT_LOG("failed to write datagram : address:%s : only %d of %d bytes written", sa_pretty_str(address).c_str(), bytes_written, buffer.size_end());
     throw internal_error("UdpRouter::try_write() did not write entire datagram.");
   }
+
+  LT_LOG_DEBUG("wrote datagram : address:%s : %d bytes", sa_pretty_str(address).c_str(), bytes_written);
 
   return 0;
 }
@@ -441,7 +446,12 @@ peek_transaction_id(const sockaddr* sa, UdpRouter::buffer_type& buffer) {
   dht_key_message message;
 
   auto data = reinterpret_cast<const char*>(buffer.begin());
-  static_map_read_bencode(data, data + buffer.size_end(), message);
+
+  try {
+    static_map_read_bencode(data, data + buffer.size_end(), message);
+  } catch (const bencode_error& e) {
+    return 0;
+  }
 
   if (!message[key_key_t].is_raw_string())
     return 0;
@@ -531,7 +541,7 @@ UdpRouter::event_read() {
     key_type transaction_id = peek_transaction_id(&from_sa.sa, buffer);
 
     if (transaction_id == 0) {
-      // LT_LOG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
+      LT_LOG_DEBUG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
       continue;
     }
 
@@ -539,7 +549,9 @@ UdpRouter::event_read() {
     auto itr = m_connections.find(transaction_id);
 
     if (itr == m_connections.end()) {
-      // LT_LOG("received datagram with unknown transaction ID : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
+      LT_LOG_DEBUG("received datagram with unknown transaction ID : address:%s transaction_id:%" PRIx32, sa_pretty_str(&from_sa.sa).c_str(), transaction_id);
+
+      m_unknown_callback(transaction_id, &from_sa.sa, buffer);
       continue;
     }
 
@@ -551,7 +563,9 @@ UdpRouter::event_read() {
     if (!sa_equal(&from_sa.sa, itr->second.address.get()))
       continue;
 
-    if (!itr->second.process(transaction_id, buffer))
+    LT_LOG_DEBUG("received datagram : address:%s transaction_id:%" PRIx32 " bytes:%d", sa_pretty_str(&from_sa.sa).c_str(), transaction_id, bytes_read);
+
+    if (itr->second.process != nullptr && !itr->second.process(transaction_id, buffer))
       disconnect_unsafe(itr);
   }
 }

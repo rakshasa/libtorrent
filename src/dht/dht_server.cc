@@ -16,6 +16,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/runtime.h"
+#include "torrent/utils/algorithm.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
@@ -612,24 +613,36 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
 
 void
 DhtServer::send_reply(const sockaddr* sa, const DhtMessage& reply, [[maybe_unused]] int priority) {
-  if (++m_next_reply_id == 0)
-    ++m_next_reply_id;
-
-  [[maybe_unused]] DhtTransaction::key_type reply_id = m_next_reply_id;
-  // TODO: Send through UdpRouter using reply_id and priority, with one-shot delivery
-  // and collision handling for IDs still queued when the counter wraps.
-  DhtTransactionPacket packet(sa, reply);
-  int written;
+  auto start_id = m_next_reply_id;
 
   do {
-    written = m_udp_router.write_datagram_sa(packet.c_str(), packet.length(), sa);
-  } while (written == -1 && errno == EINTR);
+    if (++m_next_reply_id > 0xffff || m_next_reply_id == 0)
+      m_next_reply_id = 1;
 
-  if (written == -1) {
-    LT_LOG_THIS("failed to send reply : errno:%d", errno);
-  } else if (static_cast<size_t>(written) != packet.length()) {
-    LT_LOG_THIS("failed to send reply : wrote:%d expected:%zu", written, packet.length());
-  }
+    if (m_next_reply_id == start_id)
+      return;
+
+  } while (m_udp_router.has_connection_id(m_next_reply_id));
+
+  m_udp_router.connect(m_next_reply_id, sa_copy(sa), dht::UdpRouter::connection_params{
+      [reply](auto, auto& buffer) {
+        auto result = static_map_write_bencode_c(object_write_to_buffer, nullptr,
+                                                 object_buffer_t(buffer.begin_ptr(), buffer.begin_ptr() + buffer.reserved()),
+                                                 reply);
+
+        // Common maximum UDP packet size is 1452 bytes (IPv6).
+        if (result.second - result.first > 1452) {
+          // TODO: Throw internal error instead of logging for now to catch bugs.
+          throw internal_error("DhtServer reply exceeds UDP router buffer.");
+          return;
+        }
+
+        buffer.set_end_ptr(result.second);
+      },
+      nullptr,
+      [](auto, int, int) {},
+      [this](auto) { m_queriesSent++; }
+    });
 }
 
 int
@@ -657,53 +670,46 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
   // node, a collision is extremely unlikely, and a linear search for the first
   // open one is the most efficient.
 
+  auto [key_id, lower_bound, found] = utils::find_available_key(m_transactions,
+                                                                address_key | (1 + random() % 127),
+                                                                address_key | 1,
+                                                                address_key | 127);
 
-  // The router currently sign-extends transaction ID bytes with the high bit set.
-  unsigned int start_id = 1 + random() % 127;
-  unsigned int id       = start_id;
-
-  uint64_t key_id{};
-  auto     lower_bound = m_transactions.end();
-
-  while (true) {
-    key_id      = address_key | id;
-    lower_bound = m_transactions.lower_bound(key_id);
-
-    if (lower_bound == m_transactions.end() || lower_bound->first != key_id)
-      break;
-
-    id = id == 127 ? 1 : id + 1;
-
-    // Give up after trying all possible IDs. This should never happen.
-    if (id == start_id)
-      return -1;
-  };
+  if (!found)
+    return -1;
 
   // We know where to insert it, so pass that as hint.
   auto itr = m_transactions.insert(lower_bound, std::make_pair(key_id, transaction));
 
   try {
-    create_query(itr, id);
+    create_query(itr, key_id & 0xff);
 
     auto packet = transaction->packet();
 
     auto params = dht::UdpRouter::connection_params{
       [packet](auto, auto& buffer) {
-        if (packet->length() > buffer.reserved())
+        if (packet->length() > 1452)
           throw internal_error("DhtServer query exceeds UDP router buffer.");
+
         buffer.write_len(packet->c_str(), packet->length());
       },
-      [this](auto key, auto& buffer) { return process_known_incoming(key, buffer); },
+      [this](auto key, auto& buffer) {
+        return process_known_incoming(key, buffer);
+      },
       [this](auto key, int, int) {
         auto itr = m_transactions.find(key);
+
         if (itr != m_transactions.end())
           failed_transaction(itr, false, true);
       },
-      [this](auto key) {
+      [this](auto) {
         ++m_queriesSent;
-        auto itr = m_transactions.find(key);
-        if (itr != m_transactions.end())
-          itr->second->reset_packet();
+
+        // // TODO: Is this right?
+        // auto itr = m_transactions.find(key);
+
+        // if (itr != m_transactions.end())
+        //   itr->second->reset_packet();
       },
     };
 
@@ -712,13 +718,16 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
 
   } catch (const std::exception&) {
     m_udp_router.try_disconnect(key_id);
+
     auto current = m_transactions.find(key_id);
+
     if (current != m_transactions.end())
       m_transactions.erase(current);
+
     throw;
   }
 
-  return id;
+  return key_id & 0xff;
 }
 
 // Transaction received no reply and timed out. Mark node as bad and remove
