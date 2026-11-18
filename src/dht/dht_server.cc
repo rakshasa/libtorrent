@@ -23,6 +23,9 @@
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print(LOG_DHT_SERVER, "dht_server : " log_fmt, __VA_ARGS__);
 
+#define LT_LOG_DUMP_THIS(data, size, log_fmt, ...)                      \
+  lt_log_print_dump(LOG_DHT_SERVER, data, size, "dht_server : " log_fmt, __VA_ARGS__);
+
 namespace torrent {
 
 // List of all possible keys we need/support in a DHT message.
@@ -347,6 +350,8 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   try {
     static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), message);
   } catch (const bencode_error& e) {
+    LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed known packet : address:%s error:%s",
+                     sa_pretty_str(itr->second->address()).c_str(), e.what());
     create_error(message, itr->second->address(), dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return true;
   }
@@ -385,6 +390,9 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
     }
 
   } catch (const dht::dht_error& e) {
+    LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected known packet : address:%s error:%s",
+                     sa_pretty_str(itr->second->address()).c_str(), e.what());
+
     if (node_id != nullptr)
       m_router->node_inactive(*node_id, itr->second->address());
 
@@ -404,10 +412,14 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), message);
 
   } catch (const bencode_error& e) {
+    LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed unknown packet : address:%s error:%s",
+                     sa_pretty_str(sa).c_str(), e.what());
     create_error(message, sa, dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return;
   }
 
+  // TODO: The create_*_response functions called by process_query() access message keys that may
+  // be missing and throw bencode_error, which is not caught here and escapes the event loop.
   try {
     if (!message[key_t].is_raw_string())
       throw dht::dht_error(dht_error_protocol, "No transaction ID");
@@ -443,6 +455,9 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     process_query(*HashString::cast_from(id.data()), sa, message);
 
   } catch (const dht::dht_error& e) {
+    LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected unknown packet : address:%s error:%s",
+                     sa_pretty_str(sa).c_str(), e.what());
+
     if (e.code() == dht_error_generic)
       create_error(message, sa, e.code(), e.what());
   }
@@ -692,6 +707,8 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
   send_reply(sa, error, packet_prio_reply);
 }
 
+// TODO: Replies go through UdpRouter::connect() and are retried at 15s/30s as unsolicited
+// duplicates; master sent them once.
 void
 DhtServer::send_reply(const sockaddr* sa, DhtMessage& reply, [[maybe_unused]] int priority) {
   auto start_id = m_next_reply_id;
@@ -796,9 +813,16 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
         if (itr != m_transactions.end())
           itr->second->set_packet_sent();
       },
+      [this](auto key, unsigned int) {
+        auto itr = m_transactions.find(key);
+
+        if (itr != m_transactions.end() && itr->second->has_quick_timeout())
+          failed_transaction(itr, true, false);
+      },
     };
 
-    // UdpRouter has no priority or quick-timeout callback for stalled searches.
+    // UdpRouter has no priority. The first timeout (15s, previously the 4s quick timeout) marks the
+    // search transaction as stalled so the search requests more nodes.
     m_udp_router.connect(itr->first, transaction->address_ptr(), params);
 
   } catch (const std::exception&) {
@@ -817,6 +841,8 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
 
 // Transaction received no reply and timed out. Mark node as bad and remove
 // transaction (except if it was only the quick timeout).
+//
+// quick is set from the UdpRouter timeout callback, i.e. after 15s rather than the 4s of master.
 DhtServer::transaction_itr
 DhtServer::failed_transaction(transaction_itr itr, bool quick, bool router_disconnected) {
   auto transaction = itr->second;

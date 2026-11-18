@@ -21,6 +21,9 @@
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_DHT_ROUTER, "udp-router : " log_fmt, __VA_ARGS__);
 
+#define LT_LOG_DUMP(data, size, log_fmt, ...)                           \
+  lt_log_print_dump(LOG_DHT_ROUTER, data, size, "udp-router : " log_fmt, __VA_ARGS__);
+
 #define LT_LOG_DEBUG(log_fmt, ...)                                      \
   lt_log_print(LOG_DHT_ROUTER, "udp-router : " log_fmt, __VA_ARGS__);
 
@@ -99,6 +102,8 @@ UdpRouter::open(int family, uint16_t port) {
   auto bind_address = sa_copy(addr.get());
   sap_set_port(bind_address, port);
 
+  // TODO: fd_flag_v6only is not set for IPv6, which may conflict with the IPv4 bind on the same port
+  // where IPV6_V6ONLY defaults to off.
   int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, family);
 
   if (fd == -1) {
@@ -255,6 +260,7 @@ UdpRouter::connect_unsafe(key_type id, c_sa_shared_ptr address, connection_param
   itr->second.process     = std::move(params.process);
   itr->second.failure     = std::move(params.failure);
   itr->second.packet_sent = std::move(params.packet_sent);
+  itr->second.timeout     = std::move(params.timeout);
 
   return itr;
 }
@@ -417,6 +423,9 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
+  // TODO: Entries are appended with now + retry_count * 15s, so a later entry can have an earlier
+  // deadline than one in front of it and receive_timeout() stops early. Needs sorted insertion.
+  // TODO: Timeouts queued before close()/open() are not rescheduled on the new timer.
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
@@ -450,11 +459,14 @@ peek_transaction_id(const sockaddr* sa, UdpRouter::buffer_type& buffer) {
   try {
     static_map_read_bencode(data, data + buffer.size_end(), message);
   } catch (const bencode_error& e) {
+    LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "malformed datagram : address:%s error:%s", sa_pretty_str(sa).c_str(), e.what());
     return 0;
   }
 
-  if (!message[key_key_t].is_raw_string())
+  if (!message[key_key_t].is_raw_string()) {
+    LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "datagram without transaction id : address:%s", sa_pretty_str(sa).c_str());
     return 0;
+  }
 
   auto& txid = message[key_key_t].as_raw_string();
 
@@ -468,6 +480,9 @@ peek_transaction_id(const sockaddr* sa, UdpRouter::buffer_type& buffer) {
     transaction_id = static_cast<uint64_t>(txid.data()[0]) << 8 | static_cast<uint64_t>(txid.data()[1]);
     break;
   default:
+    // TODO: Master accepted incoming transaction ids up to 20 bytes; these are dropped here.
+    LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "datagram with unsupported transaction id size : address:%s size:%zu",
+                sa_pretty_str(sa).c_str(), txid.size());
     return 0;
   }
 
@@ -500,6 +515,16 @@ UdpRouter::receive_timeout() {
     if (info->retry_count >= 3) {
       disconnect_failure_unsafe(m_connections.find(id), ETIMEDOUT, 0);
       continue;
+    }
+
+    if (info->timeout != nullptr) {
+      info->timeout(id, info->retry_count);
+
+      // The callback may have disconnected this connection.
+      auto itr = m_connections.find(id);
+
+      if (itr == m_connections.end() || &itr->second != info)
+        continue;
     }
 
     if (info->queue_ptr != nullptr)
@@ -544,6 +569,9 @@ UdpRouter::event_read() {
       LT_LOG_DEBUG("received datagram with invalid transaction ID : address:%s", sa_pretty_str(&from_sa.sa).c_str());
       continue;
     }
+
+    // TODO: A query that matches an outstanding transaction id and address is passed to process()
+    // as a response, and process() may disconnect/connect, invalidating itr for later iterations.
 
     // It's quicker to do transaction-id lookup and then verify the address.
     auto itr = m_connections.find(transaction_id);

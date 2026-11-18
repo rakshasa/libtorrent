@@ -25,6 +25,7 @@ public:
   using process_func     = std::function<bool(key_type, buffer_type&)>;
   using failure_func     = std::function<void(key_type, int, int)>;
   using packet_sent_func = std::function<void(key_type)>;
+  using timeout_func     = std::function<void(key_type, unsigned int)>;
 
   struct connection_params {
     prepare_func        prepare;
@@ -32,6 +33,10 @@ public:
     failure_func        failure;
 
     packet_sent_func    packet_sent;
+
+    // Called on each retry timeout (15s * retry count) before the packet is resent, but not on the
+    // final timeout which calls failure. Do not disconnect other connections from this callback.
+    timeout_func        timeout;
   };
 
   UdpRouter();
@@ -87,6 +92,7 @@ private:
 
     // Do not change the connection in this callback.
     packet_sent_func     packet_sent{};
+    timeout_func         timeout{};
 
     unsigned int         retry_count{};
 

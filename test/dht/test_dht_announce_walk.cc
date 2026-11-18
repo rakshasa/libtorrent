@@ -384,7 +384,7 @@ TestDhtAnnounceWalk::test_no_second_get_peers_round() {
 
 void
 TestDhtAnnounceWalk::test_walk_continues_after_quick_timeout() {
-  // The three closest nodes never answer; the fourth is asked once their quick timeout passes.
+  // The three closest nodes never answer; the fourth is asked once their first 15s timeout passes.
   FakeNode silent1(1), silent2(2), silent3(3), replying(0x40);
   silent1.silent = silent2.silent = silent3.silent = true;
 
@@ -399,7 +399,7 @@ TestDhtAnnounceWalk::test_walk_continues_after_quick_timeout() {
   CPPUNIT_ASSERT_EQUAL(1u, silent3.count("get_peers"));
   CPPUNIT_ASSERT_EQUAL(0u, replying.count("get_peers"));
 
-  m_main_thread->test_add_cached_time(std::chrono::seconds(6));
+  m_main_thread->test_add_cached_time(std::chrono::seconds(16));
   m_main_thread->test_process_events_without_cached_time();
 
   CPPUNIT_ASSERT(Walk::pump(all, [&] { return replying.count("get_peers") == 1; }, std::chrono::milliseconds(1000)));
