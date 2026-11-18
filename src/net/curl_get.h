@@ -11,6 +11,8 @@
 
 #include "torrent/system/thread.h"
 
+class test_curl_get;
+
 namespace torrent::net {
 
 class CurlStack;
@@ -54,6 +56,8 @@ public:
   uint32_t            timeout() const;
   void                set_timeout(uint32_t seconds);
 
+  static constexpr uint32_t default_max_file_size = 16 << 20;
+
   uint32_t            max_file_size() const;
   void                set_max_file_size(uint32_t bytes);
 
@@ -80,6 +84,7 @@ public:
 
 protected:
   friend class CurlStack;
+  friend class ::test_curl_get;
 
   void                close_self(const std::shared_ptr<CurlGet>& curl_get, system::Thread* thread, bool wait);
 
@@ -146,7 +151,8 @@ private:
   std::shared_ptr<std::ostream> m_stream;
 
   uint32_t                      m_timeout{60};
-  uint32_t                      m_max_file_size{};
+  uint32_t                      m_max_file_size{default_max_file_size};
+  uint64_t                      m_size_received{};
   bool                          m_redirect_only_http_https{};
 
   std::condition_variable       m_cond_closed;
