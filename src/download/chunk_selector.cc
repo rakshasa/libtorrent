@@ -83,7 +83,7 @@ ChunkSelector::find(PeerChunks* pc) {
       if (!m_data->untouched_bitfield()->get(entry.index))
         continue;
 
-      m_high_selection_balance += entry.high_priority ? 1 : -3;
+      add_to_balance(entry.high_priority);
       return {entry.index, entry.high_priority};
     }
 
@@ -102,7 +102,7 @@ ChunkSelector::find(PeerChunks* pc) {
       search_linear(pc->bitfield(), queue, ranges, high, 0, m_position);
   };
 
-  bool try_high = m_high_selection_balance < 3;
+  bool try_high = m_high_selection_balance < ratio().high;
 
   search_priority(try_high);
 
@@ -121,9 +121,39 @@ ChunkSelector::find(PeerChunks* pc) {
   if (!m_data->untouched_bitfield()->get(entry.index))
     throw internal_error("ChunkSelector::find(...) bad index.");
 
-  m_high_selection_balance += entry.high_priority ? 1 : -3;
+  add_to_balance(entry.high_priority);
 
   return {entry.index, entry.high_priority};
+}
+
+ChunkSelector::priority_ratio
+ChunkSelector::window_ratio(uint32_t completed_chunks, uint32_t size_chunks) {
+  if (size_chunks == 0)
+    return {1, 1};
+
+  auto step = static_cast<uint32_t>(uint64_t{completed_chunks} * 5 / size_chunks);
+
+  return {1, 5 - std::min<uint32_t>(step, 4)};
+}
+
+ChunkSelector::priority_ratio
+ChunkSelector::ratio() const {
+  if (!m_window_ratio)
+    return default_ratio;
+
+  return window_ratio(m_data->completed_bitfield()->size_set(), m_data->completed_bitfield()->size_bits());
+}
+
+// A high priority pick counts as 'normal' and a normal one as '-high', so find() tries high
+// priority first while the balance is below 'high'.
+void
+ChunkSelector::add_to_balance(bool high_priority) {
+  auto current = ratio();
+
+  if (high_priority)
+    m_high_selection_balance += current.normal;
+  else
+    m_high_selection_balance -= current.high;
 }
 
 void
@@ -140,6 +170,14 @@ ChunkSelector::using_index(uint32_t index) {
   // changes, we need to move m_position to the next one.
   if (index == m_position)
     advance_position();
+}
+
+void
+ChunkSelector::set_position(uint32_t index) {
+  if (!empty()) {
+    m_position = index;
+    advance_position();
+  }
 }
 
 void
