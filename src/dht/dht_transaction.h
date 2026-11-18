@@ -63,52 +63,17 @@ public:
   using base_type = static_map_type<dht_keys, key_LAST>;
 
   // Must be big enough to hold one of the possible variable-sized reply data.
+  //
   // Currently either:
   // - error message (size doesn't really matter, it'll be truncated at worst)
   // - announce token (8 bytes, needs 20 bytes buffer to build)
+  //
   // Never more than one of the above.
-  // And additionally for queries we send:
-  // - transaction ID (3 bytes)
+
   static constexpr size_t data_size = 64;
-  char data[data_size];
-  char* data_end{data};
-};
 
-// Class holding transaction data to be transmitted.
-class DhtTransactionPacket {
-public:
-  // transaction packet
-  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, uint64_t transaction_key);
-  // non-transaction packet
-  DhtTransactionPacket(const sockaddr* s, const DhtMessage& d);
-  ~DhtTransactionPacket() = default;
-
-  bool                has_transaction() const   { return m_id >= -1; }
-  bool                has_failed() const        { return m_id == -1; }
-  void                set_failed()              { m_id = -1; }
-
-  const auto*         address() const           { return m_socket_address.get(); }
-  auto*               address()                 { return m_socket_address.get(); }
-
-  const char*         c_str() const             { return m_data.get(); }
-  size_t              length() const            { return m_length; }
-
-  int                 id() const                { return m_id; }
-  int                 age() const               { return has_transaction() ? 0 : this_thread::cached_seconds().count() + m_id; }
-
-  uint64_t            transaction_key() const   { return m_transaction_key; }
-
-private:
-  DhtTransactionPacket(const DhtTransactionPacket&) = delete;
-  DhtTransactionPacket& operator=(const DhtTransactionPacket&) = delete;
-
-  void                build_buffer(const DhtMessage& data);
-
-  sa_unique_ptr           m_socket_address;
-  std::unique_ptr<char[]> m_data;
-  size_t                  m_length{};
-  int                     m_id{};
-  uint64_t                m_transaction_key{};
+  char                data[data_size];
+  char*               data_end{data};
 };
 
 // DHT Transaction classes. DhtTransaction and DhtTransactionSearch
@@ -138,14 +103,14 @@ public:
 
   const HashString&   id()                      { return m_id; }
   const auto*         address()                 { return m_socket_address.get(); }
+  auto&               address_ptr()             { return m_socket_address; }
 
   int                 timeout() const           { return m_timeout; }
   int                 quick_timeout() const     { return m_quickTimeout; }
   bool                has_quick_timeout() const { return m_hasQuickTimeout; }
 
-  auto&               packet() const                                       { return m_packet; }
-  void                set_packet(std::shared_ptr<DhtTransactionPacket>& p) { m_packet = p; }
-  void                reset_packet()                                       { m_packet.reset(); }
+  bool                packet_sent() const        { return m_packet_sent; }
+  void                set_packet_sent()          { m_packet_sent = true; }
 
   DhtTransactionSearch*       as_search();
   DhtTransactionPing*         as_ping();
@@ -165,11 +130,11 @@ private:
   DhtTransaction(const DhtTransaction&) = delete;
   DhtTransaction& operator=(const DhtTransaction&) = delete;
 
-  sa_unique_ptr          m_socket_address;
+  sa_shared_ptr          m_socket_address;
   int                    m_timeout;
   int                    m_quickTimeout;
 
-  std::shared_ptr<DhtTransactionPacket> m_packet;
+  bool                   m_packet_sent{false};
 };
 
 class DhtTransactionSearch : public DhtTransaction {

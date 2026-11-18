@@ -9,6 +9,18 @@ class TestDhtAnnounceWalk : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST(test_no_second_get_peers_round);
   CPPUNIT_TEST(test_walk_continues_after_quick_timeout);
   CPPUNIT_TEST(test_oversized_token_keeps_walking);
+  CPPUNIT_TEST(test_incoming_ping_after_invalid_datagram);
+  CPPUNIT_TEST(test_incoming_get_peers_without_nodes);
+  CPPUNIT_TEST(test_incoming_malformed_query);
+  CPPUNIT_TEST(test_udp_router_keyed_dispatch);
+  CPPUNIT_TEST(test_retry_and_reply);
+  CPPUNIT_TEST(test_announce_retry_preserves_query);
+  CPPUNIT_TEST(test_sent_transaction_timeout_marks_node_inactive);
+  CPPUNIT_TEST(test_error_completes_transaction);
+  CPPUNIT_TEST(test_retry_deadline_order);
+  CPPUNIT_TEST(test_tracker_retry_deadline_order);
+  CPPUNIT_TEST(test_late_reply_after_cancel);
+  CPPUNIT_TEST(test_late_reply_after_timeout);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -21,4 +33,16 @@ public:
   void test_no_second_get_peers_round();
   void test_walk_continues_after_quick_timeout();
   void test_oversized_token_keeps_walking();
+  void test_incoming_ping_after_invalid_datagram();
+  void test_incoming_get_peers_without_nodes();
+  void test_incoming_malformed_query();
+  void test_udp_router_keyed_dispatch();
+  void test_retry_and_reply();
+  void test_announce_retry_preserves_query();
+  void test_sent_transaction_timeout_marks_node_inactive();
+  void test_error_completes_transaction();
+  void test_retry_deadline_order();
+  void test_tracker_retry_deadline_order();
+  void test_late_reply_after_cancel();
+  void test_late_reply_after_timeout();
 };
