@@ -249,6 +249,15 @@ Thread::interrupt() {
   m_poll->do_interrupt();
 }
 
+void
+Thread::process_interrupt_callbacks() {
+  if (this != m_self || m_callback_processing_id != nullptr)
+    throw internal_error("Thread::process_interrupt_callbacks() called from outside the thread or from within a callback that has an id.");
+
+  if (has_interrupt_callbacks())
+    process_callbacks(true);
+}
+
 void*
 Thread::enter_event_loop(void* thread) {
   auto t = static_cast<Thread*>(thread);
