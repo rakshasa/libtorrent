@@ -102,9 +102,21 @@ UdpRouter::open(int family, uint16_t port) {
   auto bind_address = sa_copy(addr.get());
   sap_set_port(bind_address, port);
 
-  // TODO: fd_flag_v6only is not set for IPv6, which may conflict with the IPv4 bind on the same port
-  // where IPV6_V6ONLY defaults to off.
-  int fd = fd_open_family(fd_flag_datagram | fd_flag_nonblock, family);
+  fd_flags open_flags = fd_flag_datagram | fd_flag_nonblock;
+
+  // TODO; For DHT we require v4-mapped addresses to be disabled, while tracker requests... This
+  // needs to be looked at closer.
+  //
+  // Both dht and tracker should disable v4-mapped addresses when dual-stack is used, while if the
+  // client only has ipv6, it should still be able to connect to ipv4 nodes.
+  //
+  // Yet we separate the DhtServer and UdpTracker code paths for ipv4 and ipv6, so v4-mapped
+  // connections would need to use the ipv6 UdpRouter(s), while the DhtServer/UdpTracker are split
+  // by family.
+  if (family == AF_INET6)
+    open_flags |= fd_flag_v6only;
+
+  int fd = fd_open_family(open_flags, family);
 
   if (fd == -1) {
     LT_LOG("opening router failed : open failed : family:%s errno:%s", system::sa_family_enum(family), system::errno_enum_str(errno).c_str());
@@ -423,16 +435,16 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
   if (info->timeout_ptr != nullptr)
     throw internal_error("UdpRouter::queue_timeout() called for connection that is already queued for timeout.");
 
-  // TODO: Entries are appended with now + retry_count * 15s, so a later entry can have an earlier
-  // deadline than one in front of it and receive_timeout() stops early. Needs sorted insertion.
-  // TODO: Timeouts queued before close()/open() are not rescheduled on the new timer.
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
   if (m_timeout_queue.empty())
     this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
 
-  m_timeout_queue.emplace_back(id, timeout_time, info);
+  auto insert_pos = std::upper_bound(m_timeout_queue.rbegin(), m_timeout_queue.rend(), timeout_time,
+                                     [](auto& t, auto& entry) { return t < std::get<1>(entry); }).base();
+
+  m_timeout_queue.emplace(insert_pos, id, timeout_time, info);
 
   info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
 }
@@ -479,8 +491,14 @@ peek_transaction_id(const sockaddr* sa, UdpRouter::buffer_type& buffer) {
   case 2:
     transaction_id = static_cast<uint64_t>(txid.data()[0]) << 8 | static_cast<uint64_t>(txid.data()[1]);
     break;
+  case 3:
+    transaction_id = static_cast<uint64_t>(txid.data()[0]) << 16 | static_cast<uint64_t>(txid.data()[1]) << 8 | static_cast<uint64_t>(txid.data()[2]);
+    break;
+  case 4:
+    transaction_id = static_cast<uint64_t>(txid.data()[0]) << 24 | static_cast<uint64_t>(txid.data()[1]) << 16 |
+      static_cast<uint64_t>(txid.data()[2]) << 8 | static_cast<uint64_t>(txid.data()[3]);
+    break;
   default:
-    // TODO: Master accepted incoming transaction ids up to 20 bytes; these are dropped here.
     LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "datagram with unsupported transaction id size : address:%s size:%zu",
                 sa_pretty_str(sa).c_str(), txid.size());
     return 0;
@@ -520,7 +538,10 @@ UdpRouter::receive_timeout() {
     if (info->timeout != nullptr) {
       info->timeout(id, info->retry_count);
 
-      // The callback may have disconnected this connection.
+      // XXXX: The callback may have disconnected this connection.
+
+      // TODO: Change this to make the callback return a bool to indicate if the connection is still valid.
+
       auto itr = m_connections.find(id);
 
       if (itr == m_connections.end() || &itr->second != info)

@@ -421,17 +421,11 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
   // TODO: The create_*_response functions called by process_query() access message keys that may
   // be missing and throw bencode_error, which is not caught here and escapes the event loop.
   try {
-    if (!message[key_t].is_raw_string())
-      throw dht::dht_error(dht_error_protocol, "No transaction ID");
+    if (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() > 4)
+      throw dht::dht_error(dht_error_protocol, "No or invalid transaction ID");
 
-    if (message[key_t].as_raw_string().size() > 20)
-      throw dht::dht_error(dht_error_protocol, "Transaction ID length too long");
-
-    if (!message[key_y].is_raw_string())
-      throw dht::dht_error(dht_error_protocol, "No message type");
-
-    if (message[key_y].as_raw_string().size() != 1)
-      throw dht::dht_error(dht_error_bad_method, "Unsupported message type");
+    if (!message[key_y].is_raw_string() || message[key_y].as_raw_string().size() != 1)
+      throw dht::dht_error(dht_error_protocol, "No or invalid message type");
 
     auto type = message[key_y].as_raw_string().data()[0];
 
@@ -739,6 +733,7 @@ DhtServer::send_reply(const sockaddr* sa, DhtMessage& reply, [[maybe_unused]] in
       },
       nullptr,
       [](auto, int, int) {},
+      nullptr,
       [this](auto) { m_queries_sent++; }
     });
 }
@@ -800,10 +795,17 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
         return process_known_incoming(key, buffer);
       },
       [this](auto key, int, int) {
+        // TODO: There's no need for these lookups, we already have a std::map iterator we can capture above.
         auto itr = m_transactions.find(key);
 
         if (itr != m_transactions.end())
           failed_transaction(itr, false, true);
+      },
+      [this](auto key, unsigned int) {
+        auto itr = m_transactions.find(key);
+
+        if (itr != m_transactions.end() && itr->second->has_quick_timeout())
+          failed_transaction(itr, true, false);
       },
       [this](auto key) {
         ++m_queries_sent;
@@ -812,12 +814,6 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
 
         if (itr != m_transactions.end())
           itr->second->set_packet_sent();
-      },
-      [this](auto key, unsigned int) {
-        auto itr = m_transactions.find(key);
-
-        if (itr != m_transactions.end() && itr->second->has_quick_timeout())
-          failed_transaction(itr, true, false);
       },
     };
 

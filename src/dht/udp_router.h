@@ -31,12 +31,9 @@ public:
     prepare_func        prepare;
     process_func        process;
     failure_func        failure;
+    timeout_func        timeout;
 
     packet_sent_func    packet_sent;
-
-    // Called on each retry timeout (15s * retry count) before the packet is resent, but not on the
-    // final timeout which calls failure. Do not disconnect other connections from this callback.
-    timeout_func        timeout;
   };
 
   UdpRouter();
