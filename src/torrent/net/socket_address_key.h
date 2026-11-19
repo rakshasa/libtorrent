@@ -15,7 +15,7 @@
 
 namespace torrent {
 
-class [[gnu::packed]] socket_address_key {
+class socket_address_key {
 public:
   // TODO: Disable default ctor?
 
