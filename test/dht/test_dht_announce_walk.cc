@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -19,6 +20,7 @@
 
 #include "dht/dht_bucket.h"
 #include "dht/dht_router.h"
+#include "dht/dht_transaction.h"
 #include "dht/transactions/dht_search.h"
 #include "dht/udp_router.h"
 #include "torrent/hash_string.h"
@@ -561,7 +563,7 @@ TestDhtAnnounceWalk::test_incoming_malformed_query() {
   const auto& error = reply.get_key_list("e");
   CPPUNIT_ASSERT_EQUAL(size_t{2}, error.size());
   CPPUNIT_ASSERT_EQUAL(int64_t{203}, error.front().as_value());
-  CPPUNIT_ASSERT(error.back().as_string().find("Malformed packet: ") == 0);
+  CPPUNIT_ASSERT(error.back().as_string().find("Malformed query: ") == 0);
 
   query.get_key("a").insert_key("info_hash", std::string("short"));
   std::ostringstream short_stream;
@@ -601,11 +603,11 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   torrent::c_sa_shared_ptr address = torrent::sa_copy(reinterpret_cast<const sockaddr*>(&peer));
   auto key = torrent::DhtTransaction::key(address.get(), 7);
 
-  auto send = [&](const FakeNode& sender, char type, char transaction_id) {
+  auto send = [&](const FakeNode& sender, char type, const std::string& transaction_id) {
     auto packet = torrent::Object::create_map();
     if (type == 'r')
       packet.insert_key("r", torrent::Object::create_map()).insert_key("id", node.id().str());
-    packet.insert_key("t", std::string(1, transaction_id));
+    packet.insert_key("t", transaction_id);
     packet.insert_key("y", std::string(1, type));
     std::ostringstream stream;
     torrent::object_write_bencode(&stream, &packet);
@@ -639,14 +641,14 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     timeout, {}
   });
 
-  send(node, 'r', 9);
-  send(other, 'r', 7);
+  send(node, 'r', std::string(1, 9));
+  send(other, 'r', std::string(1, 7));
   CPPUNIT_ASSERT_EQUAL(0u, responses);
   CPPUNIT_ASSERT_EQUAL(0u, second_responses);
-  send(node, 'r', 8);
+  send(node, 'r', std::string(1, 8));
   CPPUNIT_ASSERT_EQUAL(1u, second_responses);
   CPPUNIT_ASSERT_EQUAL(0u, responses);
-  send(node, 'r', 7);
+  send(node, 'r', std::string(1, 7));
   CPPUNIT_ASSERT_EQUAL(1u, responses);
   router.connect(key, address, {
     prepare,
@@ -657,12 +659,57 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     },
     timeout, {}
   });
-  send(node, 'e', 7);
+  send(node, 'e', std::string(1, 7));
   CPPUNIT_ASSERT_EQUAL(1u, errors);
-  send(node, 'e', 7);
+  send(node, 'e', std::string(1, 7));
   CPPUNIT_ASSERT_EQUAL(1u, errors);
 
+  const std::array<std::string, 4> transaction_ids{
+    std::string("\x80", 1),
+    std::string("\0\x80", 2),
+    std::string("\0\0\x80", 3),
+    std::string("\0\0\0\x80", 4),
+  };
+  std::vector<torrent::DhtTransaction::key_type> multi_byte_responses;
+  auto no_failure = [](auto, int, int) {};
+
+  for (const auto& transaction_id : transaction_ids) {
+    auto transaction_key = torrent::DhtTransaction::key(address.get(), transaction_id.data(), transaction_id.size());
+    router.connect(transaction_key, address, {
+      prepare,
+      [&](auto received_key, auto&) {
+        multi_byte_responses.push_back(received_key);
+        return false;
+      },
+      no_failure, {}
+    });
+  }
+
+  for (const auto& transaction_id : transaction_ids)
+    send(node, 'r', transaction_id);
+
+  auto reentrant_key = torrent::DhtTransaction::key(address.get(), 0x40);
+  unsigned int reentrant_responses = 0;
+  router.connect(reentrant_key, address, {
+    prepare,
+    [&](auto, auto&) {
+      for (uint64_t id = 0x10000; id < 0x10080; ++id)
+        router.connect(id, address, {prepare, nullptr, no_failure, {}});
+
+      ++reentrant_responses;
+      return false;
+    },
+    no_failure, {}
+  });
+  send(node, 'r', std::string(1, 0x40));
+  send(node, 'r', std::string(1, 0x40));
+
   router.close();
+  CPPUNIT_ASSERT_EQUAL(transaction_ids.size(), multi_byte_responses.size());
+  CPPUNIT_ASSERT_EQUAL(1u, reentrant_responses);
+
+  for (size_t i = 0; i < transaction_ids.size(); ++i)
+    CPPUNIT_ASSERT_EQUAL(torrent::DhtTransaction::key(address.get(), transaction_ids[i].data(), transaction_ids[i].size()), multi_byte_responses[i]);
 }
 
 void
@@ -810,6 +857,7 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
       [](auto, auto& buffer) { buffer.write_8('x'); },
       [](auto, auto&) { return true; },
       [](auto, int, int) { CPPUNIT_FAIL("Unexpected router timeout"); },
+      {},
       [&sends](auto) { ++sends; }
     });
   };
@@ -837,6 +885,7 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
     [](auto, auto& buffer) { buffer.write_8('x'); },
     [](auto, auto&) { return true; },
     [&](auto, int err, int) { ++terminal_errors; terminal_errno = err; },
+    {},
     [&](auto) { ++terminal_sends; }
   });
   for (auto seconds : {16, 31, 46}) {

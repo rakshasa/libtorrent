@@ -99,6 +99,7 @@ public:
 
   key_type            key(int id) const         { return key(m_socket_address.get(), id); }
   static key_type     key(const sockaddr* sa, int id);
+  static key_type     key(const sockaddr* sa, const char* id, size_t length);
   static bool         key_match(key_type key, const sockaddr* sa);
 
   const HashString&   id()                      { return m_id; }

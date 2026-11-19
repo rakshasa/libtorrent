@@ -2,10 +2,13 @@
 
 #include "dht/udp_router.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cerrno>
 #include <iterator>
 #include <netdb.h>
 
+#include "dht/dht_transaction.h"
 #include "torrent/object_stream.h"
 #include "torrent/object_static_map.h"
 #include "torrent/net/fd.h"
@@ -169,9 +172,11 @@ UdpRouter::close() {
       set_socket_address(sa_make_unspec());
     });
 
-  // TODO: Do we just let timeout expire connections, or do we send errors?
+  while (!m_connections.empty())
+    disconnect_failure_unsafe(m_connections.begin(), ECANCELED, 0);
 
-  // TODO: Send error to all?
+  m_write_queue.clear();
+  m_timeout_queue.clear();
 
   LT_LOG("closed udp router", 0);
 }
@@ -273,6 +278,9 @@ UdpRouter::connect_unsafe(key_type id, c_sa_shared_ptr address, connection_param
   itr->second.failure     = std::move(params.failure);
   itr->second.packet_sent = std::move(params.packet_sent);
   itr->second.timeout     = std::move(params.timeout);
+  if (++m_next_generation == 0)
+    ++m_next_generation;
+  itr->second.generation = m_next_generation;
 
   return itr;
 }
@@ -438,15 +446,18 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
-  if (m_timeout_queue.empty())
+  auto insert_pos = std::upper_bound(m_timeout_queue.begin(), m_timeout_queue.end(), timeout_time,
+                                     [](auto time, const auto& entry) { return time < std::get<1>(entry); });
+  bool was_empty = m_timeout_queue.empty();
+  bool is_first = insert_pos == m_timeout_queue.begin();
+
+  auto timeout_itr = m_timeout_queue.emplace(insert_pos, id, timeout_time, info);
+  info->timeout_ptr = &std::get<2>(*timeout_itr);
+
+  if (was_empty)
     this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
-
-  auto insert_pos = std::upper_bound(m_timeout_queue.rbegin(), m_timeout_queue.rend(), timeout_time,
-                                     [](auto& t, auto& entry) { return t < std::get<1>(entry); }).base();
-
-  m_timeout_queue.emplace(insert_pos, id, timeout_time, info);
-
-  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
+  else if (is_first)
+    this_thread::scheduler()->update_wait_until(&m_task_timeout, timeout_time);
 }
 
 void
@@ -482,29 +493,13 @@ peek_transaction_id(const sockaddr* sa, UdpRouter::buffer_type& buffer) {
 
   auto& txid = message[key_key_t].as_raw_string();
 
-  uint64_t transaction_id{};
-
-  switch (txid.size()) {
-  case 1:
-    transaction_id = static_cast<uint64_t>(txid.data()[0]);
-    break;
-  case 2:
-    transaction_id = static_cast<uint64_t>(txid.data()[0]) << 8 | static_cast<uint64_t>(txid.data()[1]);
-    break;
-  case 3:
-    transaction_id = static_cast<uint64_t>(txid.data()[0]) << 16 | static_cast<uint64_t>(txid.data()[1]) << 8 | static_cast<uint64_t>(txid.data()[2]);
-    break;
-  case 4:
-    transaction_id = static_cast<uint64_t>(txid.data()[0]) << 24 | static_cast<uint64_t>(txid.data()[1]) << 16 |
-      static_cast<uint64_t>(txid.data()[2]) << 8 | static_cast<uint64_t>(txid.data()[3]);
-    break;
-  default:
+  if (txid.size() == 0 || txid.size() > 4) {
     LT_LOG_DUMP(buffer.begin(), buffer.size_end(), "datagram with unsupported transaction id size : address:%s size:%zu",
                 sa_pretty_str(sa).c_str(), txid.size());
     return 0;
   }
 
-  return (dht_transaction_addr_key(sa) << 32) + transaction_id;
+  return DhtTransaction::key(sa, txid.data(), txid.size());
 }
 
 void
@@ -536,15 +531,12 @@ UdpRouter::receive_timeout() {
     }
 
     if (info->timeout != nullptr) {
+      auto generation = info->generation;
       info->timeout(id, info->retry_count);
-
-      // XXXX: The callback may have disconnected this connection.
-
-      // TODO: Change this to make the callback return a bool to indicate if the connection is still valid.
 
       auto itr = m_connections.find(id);
 
-      if (itr == m_connections.end() || &itr->second != info)
+      if (itr == m_connections.end() || itr->second.generation != generation)
         continue;
     }
 
@@ -591,9 +583,6 @@ UdpRouter::event_read() {
       continue;
     }
 
-    // TODO: A query that matches an outstanding transaction id and address is passed to process()
-    // as a response, and process() may disconnect/connect, invalidating itr for later iterations.
-
     // It's quicker to do transaction-id lookup and then verify the address.
     auto itr = m_connections.find(transaction_id);
 
@@ -616,8 +605,15 @@ UdpRouter::event_read() {
     LT_LOG_DEBUG("received datagram : id:%" PRIx64 " bytes:%d address:%s",
                  transaction_id, bytes_read, sa_pretty_str(&from_sa.sa).c_str());
 
-    if (itr->second.process != nullptr && !itr->second.process(transaction_id, buffer))
-      disconnect_unsafe(itr);
+    auto process = itr->second.process;
+    auto generation = itr->second.generation;
+
+    if (process != nullptr && !process(transaction_id, buffer)) {
+      auto current = m_connections.find(transaction_id);
+
+      if (current != m_connections.end() && current->second.generation == generation)
+        disconnect_unsafe(current);
+    }
   }
 }
 

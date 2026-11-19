@@ -82,6 +82,7 @@ private:
 
   struct connection_info {
     c_sa_shared_ptr      address;
+    uint64_t             generation{};
 
     prepare_func         prepare{};
     process_func         process{};
@@ -123,6 +124,7 @@ private:
 
   system::Thread*       m_thread;
   random_engine         m_random_engine;
+  uint64_t              m_next_generation{};
 
   unknown_func          m_unknown_callback;
 

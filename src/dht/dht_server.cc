@@ -58,8 +58,8 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
-  // UdpRouter only dispatches one- or two-byte transaction IDs and does not
-  // distinguish queries from replies when a transaction key matches.
+  // A query reusing an outstanding transaction ID from the same address reaches that
+  // transaction's callback, which ignores non-response message types.
   m_udp_router.set_unknown_callback([this](auto id, auto sa, auto& buffer) {
     process_unknown_incoming(id, sa, buffer);
   });
@@ -418,10 +418,8 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     return;
   }
 
-  // TODO: The create_*_response functions called by process_query() access message keys that may
-  // be missing and throw bencode_error, which is not caught here and escapes the event loop.
   try {
-    if (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() > 4)
+    if (!message[key_t].is_raw_string() || message[key_t].as_raw_string().size() == 0 || message[key_t].as_raw_string().size() > 4)
       throw dht::dht_error(dht_error_protocol, "No or invalid transaction ID");
 
     if (!message[key_y].is_raw_string() || message[key_y].as_raw_string().size() != 1)
@@ -452,8 +450,12 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected unknown packet : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
 
-    if (e.code() == dht_error_generic)
+    if (e.code() == dht_error_generic || e.code() == dht_error_protocol)
       create_error(message, sa, e.code(), e.what());
+  } catch (const bencode_error& e) {
+    LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected malformed query : address:%s error:%s",
+                     sa_pretty_str(sa).c_str(), e.what());
+    create_error(message, sa, dht_error_protocol, "Malformed query: " + std::string(e.what()));
   }
 }
 
