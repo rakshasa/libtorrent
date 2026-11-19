@@ -12,6 +12,7 @@
 #include "helpers/test_utils.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/system/thread.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_thread_base, "torrent/utils");
@@ -190,6 +191,105 @@ test_thread_base::test_stop_while_polling() {
     thread->stop_thread_wait();
     CPPUNIT_ASSERT(std::chrono::steady_clock::now() - stop_started < 1s);
 
+    torrent::RuntimeManager::destroy();
+
+  } catch (const torrent::internal_error& e) {
+    if (thread && thread->is_active())
+      thread->stop_thread_wait();
+
+    CPPUNIT_FAIL(std::string("Caught internal error: ") + e.what());
+  }
+}
+
+void
+test_thread_base::test_process_interrupt_callbacks() {
+  auto thread = test_thread::create();
+
+  try {
+    torrent::RuntimeManager::initialize();
+
+    thread->set_test_flag(test_thread::test_flag_long_timeout);
+
+    thread->init_thread();
+    thread->start_thread();
+
+    std::atomic<bool> in_callback{};
+    std::atomic<bool> interrupt_queued{};
+    std::atomic<bool> interrupt_ran{};
+    std::atomic<bool> callback_ran{};
+    std::atomic<bool> interrupt_ran_first{};
+    std::atomic<bool> callback_ran_first{};
+
+    thread->callback([&]() {
+        in_callback = true;
+        wait_for_true([&]() { return interrupt_queued.load(); });
+
+        thread->process_interrupt_callbacks();
+
+        interrupt_ran_first = interrupt_ran.load();
+        callback_ran_first  = callback_ran.load();
+      });
+
+    CPPUNIT_ASSERT(wait_for_true([&]() { return in_callback.load(); }));
+
+    thread->callback([&]() { callback_ran = true; });
+    thread->callback_interrupt([&]() { interrupt_ran = true; });
+    interrupt_queued = true;
+
+    CPPUNIT_ASSERT(wait_for_true([&]() { return callback_ran.load(); }));
+
+    CPPUNIT_ASSERT(interrupt_ran_first);
+    CPPUNIT_ASSERT(!callback_ran_first);
+
+    thread->stop_thread_wait();
+    torrent::RuntimeManager::destroy();
+
+  } catch (const torrent::internal_error& e) {
+    if (thread && thread->is_active())
+      thread->stop_thread_wait();
+
+    CPPUNIT_FAIL(std::string("Caught internal error: ") + e.what());
+  }
+}
+
+void
+test_thread_base::test_process_interrupt_callbacks_outside_thread() {
+  auto thread = test_thread::create();
+
+  CPPUNIT_ASSERT_THROW(thread->process_interrupt_callbacks(), torrent::internal_error);
+}
+
+void
+test_thread_base::test_process_interrupt_callbacks_in_callback() {
+  auto thread = test_thread::create();
+
+  try {
+    torrent::RuntimeManager::initialize();
+
+    thread->set_test_flag(test_thread::test_flag_long_timeout);
+
+    thread->init_thread();
+    thread->start_thread();
+
+    auto id = torrent::system::make_callback_id();
+
+    std::atomic<bool> refused{};
+    std::atomic<bool> done{};
+
+    thread->callback(id, [&]() {
+        try {
+          thread->process_interrupt_callbacks();
+        } catch (const torrent::internal_error&) {
+          refused = true;
+        }
+
+        done = true;
+      });
+
+    CPPUNIT_ASSERT(wait_for_true([&]() { return done.load(); }));
+    CPPUNIT_ASSERT(refused);
+
+    thread->stop_thread_wait();
     torrent::RuntimeManager::destroy();
 
   } catch (const torrent::internal_error& e) {
