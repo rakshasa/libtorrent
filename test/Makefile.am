@@ -58,10 +58,16 @@ LibTorrent_Test_Common = \
 # circular references (other <-> torrent) that a single link pass cannot
 # close, so the leaf units the pass would miss are provided directly.
 LibTorrent_Test_Protocol_SOURCES = $(LibTorrent_Test_Common) \
+	protocol/test_download_slot_rotation.cc \
+	protocol/test_download_slot_rotation.h \
 	protocol/test_extensions.cc \
 	protocol/test_extensions.h \
 	protocol/test_pex_added6.cc \
 	protocol/test_pex_added6.h \
+	protocol/test_pex_unroutable.cc \
+	protocol/test_pex_unroutable.h \
+	protocol/test_peer_redial.cc \
+	protocol/test_peer_redial.h \
 	../src/data/socket_file.cc \
 	../src/utils/fd_close_queue.cc
 
@@ -83,6 +89,8 @@ LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 LibTorrent_Test_Torrent_Runtime_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/runtime/test_network_config.cc \
 	torrent/runtime/test_network_config.h \
+	torrent/runtime/test_network_manager.cc \
+	torrent/runtime/test_network_manager.h \
 	torrent/runtime/test_socket_manager.cc \
 	torrent/runtime/test_socket_manager.h
 
@@ -187,14 +195,20 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	dht/test_dht_announce_walk.h \
 	dht/test_dht_bucket.cc \
 	dht/test_dht_bucket.h \
+	dht/test_dht_ipv6.cc \
+	dht/test_dht_ipv6.h \
 	\
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
 	\
+	protocol/test_pex_added6.cc \
+	protocol/test_pex_added6.h \
 	protocol/test_protocol_buffer.cc \
 	protocol/test_protocol_buffer.h \
 	protocol/test_request_list.cc \
-	protocol/test_request_list.h
+	protocol/test_request_list.h \
+	../src/data/socket_file.cc \
+	../src/utils/fd_close_queue.cc
 
 LibTorrent_Test_Protocol_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Protocol_LDFLAGS = $(CPPUNIT_LIBS)

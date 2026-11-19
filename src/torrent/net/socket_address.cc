@@ -243,6 +243,11 @@ sa_make_inet6_any() {
 }
 
 sa_unique_ptr
+sa_make_inet6_n(const char* addr, uint16_t port) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_make_n(addr, port).release()));
+}
+
+sa_unique_ptr
 sa_make_unix(const std::string& pathname) {
   if (!pathname.empty())
     throw internal_error("torrent::sa_make_unix() function not implemented");
@@ -431,6 +436,17 @@ sin6_make_any() {
 
   sa->sin6_family = AF_INET6;
   sa->sin6_addr = in6addr_any;
+
+  return sa;
+}
+
+sin6_unique_ptr
+sin6_make_n(const char* addr, uint16_t port) {
+  sin6_unique_ptr sa(new sockaddr_in6{});
+
+  sa->sin6_family = AF_INET6;
+  std::memcpy(&sa->sin6_addr, addr, sizeof(in6_addr));
+  sa->sin6_port = port;
 
   return sa;
 }

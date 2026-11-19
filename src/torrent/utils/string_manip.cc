@@ -12,6 +12,8 @@ namespace torrent::utils {
 
 namespace {
 
+constexpr uint32_t utf8_min_code[] = {0x00, 0x80, 0x800, 0x10000};
+
 template <bool text>
 bool
 validate_utf8(const std::string& str) {
@@ -38,6 +40,8 @@ validate_utf8(const std::string& str) {
     else
       return false;
 
+    uint32_t code = byte & (0x7F >> num);
+
     ++itr;
 
     // Check continuation bytes.
@@ -48,8 +52,16 @@ validate_utf8(const std::string& str) {
       if ((static_cast<unsigned char>(*itr) & 0xC0) != 0x80)
         return false;
 
+      code = (code << 6) | (static_cast<unsigned char>(*itr) & 0x3F);
+
       ++itr;
     }
+
+    if (code < utf8_min_code[num - 1] || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF))
+      return false;
+
+    if (text && (code == 0xFFFE || code == 0xFFFF))
+      return false;
   }
 
   return true;

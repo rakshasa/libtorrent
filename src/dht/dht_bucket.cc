@@ -154,22 +154,26 @@ DhtBucket::split(const HashString& id) {
   return other;
 }
 
+// A reply carries at most num_nodes nodes, whatever the family's entry size: the count ends the fill, the
+// buffer size only guards it.
 void
 DhtBucket::build_full_cache() {
   DhtBucketChain chain(this);
 
   char* pos = m_fullCache;
+  unsigned int stored = 0;
 
   do {
-    for (auto itr = chain.bucket()->begin(); itr != chain.bucket()->end() && pos < m_fullCache + sizeof(m_fullCache); ++itr) {
+    for (auto itr = chain.bucket()->begin(); itr != chain.bucket()->end() && stored < num_nodes; ++itr) {
       if (!(*itr)->is_bad()) {
         pos = (*itr)->store_compact(pos);
+        stored++;
 
         if (pos > m_fullCache + sizeof(m_fullCache))
           throw internal_error("DhtRouter::store_closest_nodes wrote past buffer end.");
       }
     }
-  } while (pos < m_fullCache + sizeof(m_fullCache) && chain.next() != NULL);
+  } while (stored < num_nodes && chain.next() != NULL);
 
   m_fullCacheLength = pos - m_fullCache;
 }

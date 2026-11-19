@@ -122,7 +122,7 @@ template <typename _Tp, typename _Compare>
 void
 limited_vector<_Tp, _Compare>::reduce_to_limit() {
   if (base_type::size() > m_limit)
-    base_type::resize(m_limit);
+    base_type::erase(base_type::begin() + m_limit, base_type::end());
 }
 
 template <typename _Tp, typename _Compare, typename _InputIt>

@@ -47,6 +47,7 @@ enum dht_keys {
 
   key_r_id,
   key_r_nodes,
+  key_r_nodes6,
   key_r_token,
   key_r_values,
 

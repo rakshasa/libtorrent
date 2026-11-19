@@ -352,18 +352,52 @@ PeerList::disconnected(iterator itr, int flags) {
 
   itr->second->unset_flags(PeerInfo::flag_connected);
 
-  // Replace the socket address port with the listening port so that
-  // future outgoing connections will connect to the right port.
+  // The port the connection came from is no use to a dial; queue_redial() takes the listen port.
   itr->second->set_port(0);
 
   if (flags & disconnect_set_time)
     itr->second->set_last_connection(this_thread::cached_seconds().count());
 
-  if (flags & disconnect_available && itr->second->listen_port() != 0)
-    m_available_list->insert_unique(itr->second->socket_address());
+  if (flags & disconnect_available)
+    queue_redial(itr->second.get());
 
   // Do magic to get rid of unneeded entries.
   return ++itr;
+}
+
+void
+PeerList::queue_redial(PeerInfo* peer_info) {
+  auto now = static_cast<uint32_t>(this_thread::cached_seconds().count());
+
+  if (peer_info->listen_port() == 0 || peer_info->failed_counter() != 0 || peer_info->is_unwanted())
+    return;
+
+  if (peer_info->last_redial() != 0 && now - peer_info->last_redial() < redial_interval) {
+    LT_LOG_EVENTS("disconnected: not dialled again, dialled again %" PRIu32 " s ago : %s",
+                  now - peer_info->last_redial(), sa_pretty_str(peer_info->socket_address()).c_str());
+    return;
+  }
+
+  if (m_available_list->size() >= m_available_list->max_size())
+    return;
+
+  auto sa = sa_copy(peer_info->socket_address());
+  sa_set_port(sa.get(), peer_info->listen_port());
+
+  // Already on the list (a tracker named it before it dialled us) counts as queued: the dial still needs the
+  // handshake time cleared.
+  bool added = m_available_list->insert_unique(sa.get());
+
+  peer_info->set_last_redial(now);
+
+  // A dial within ten minutes of the last handshake would be refused by connect_filter_recent, and the address lost.
+  peer_info->set_last_handshake(0);
+
+  if (added) {
+    LT_LOG_EVENTS("disconnected: back on the list to dial : %s", sa_pretty_str(sa.get()).c_str());
+  } else {
+    LT_LOG_EVENTS("disconnected: already on the list to dial : %s", sa_pretty_str(sa.get()).c_str());
+  }
 }
 
 uint32_t

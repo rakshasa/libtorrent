@@ -22,7 +22,7 @@ public:
 private:
   static constexpr uint64_t magic_connection_id = 0x0000041727101980ll;
 
-  using buffer_type = ProtocolBuffer<512>;
+  using buffer_type = ProtocolBuffer<2048>;
 
   struct family_state {
     uint32_t    transaction_id{};

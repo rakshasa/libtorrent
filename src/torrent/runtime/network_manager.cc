@@ -112,9 +112,18 @@ NetworkManager::set_listen_port(uint16_t port) {
     if (port == m_listen_port)
       return;
 
-    m_listen_port = port;
+    if (is_network_initialized() && !network_config()->is_block_incoming()) {
+      try {
+        if (!listen_open_unsafe(port, port))
+          throw input_error("Could not open listening port : " + std::to_string(port));
+      } catch (const resource_error& e) {
+        throw input_error(e.what());
+      }
+    } else {
+      listen_close_unsafe();
+    }
 
-    listen_restart_unsafe();
+    m_listen_port = port;
 
     client_config()->set_listen_port_range(port, port);
   }
@@ -170,10 +179,8 @@ NetworkManager::dht_add_bootstrap_node(std::string host, int port){
 
 void
 NetworkManager::dht_add_peer_node(const sockaddr* sa, int port) {
-  if (m_dht_controller->is_nodes_populated())
-    return;
-
-  m_dht_controller->add_node(sa, port);
+  // A family whose table is populated skips it, the other family may still need nodes (BEP 32).
+  m_dht_controller->add_peer_node(sa, port);
 }
 
 bool
@@ -184,9 +191,6 @@ NetworkManager::is_listening_unsafe() const {
 bool
 NetworkManager::listen_open_unsafe(uint16_t first, uint16_t last) {
   assert(std::this_thread::get_id() == main_thread::thread_id());
-
-  if (m_listen_inet->is_open() || m_listen_inet6->is_open())
-    throw internal_error("NetworkManager::open_listen(): Tried to open listen socket when one is already open.");
 
   Listen::open_options options = {
     .first_port = first,
