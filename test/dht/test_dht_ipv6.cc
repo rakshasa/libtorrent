@@ -209,7 +209,7 @@ TestDhtIpv6::test_transaction_key_v6() {
   auto key_two = torrent::DhtTransaction::key(two.get(), 7);
 
   CPPUNIT_ASSERT(key_one != key_two);
-  CPPUNIT_ASSERT_EQUAL(uint64_t{7}, key_one & 0xff);
+  CPPUNIT_ASSERT_EQUAL(uint64_t{7}, key_one & 0xffff);
   CPPUNIT_ASSERT(torrent::DhtTransaction::key_match(key_one, one.get()));
   CPPUNIT_ASSERT(!torrent::DhtTransaction::key_match(key_one, two.get()));
 }

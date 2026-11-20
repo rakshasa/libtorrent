@@ -58,8 +58,7 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
 DhtServer::DhtServer(DhtRouter* router)
   : m_router(router) {
 
-  // A query reusing an outstanding transaction ID from the same address reaches that
-  // transaction's callback, which ignores non-response message types.
+  // UDP dispatch is keyed by sender address and transaction ID, not message type.
   m_udp_router.set_unknown_callback([this](auto id, auto sa, auto& buffer) {
     process_unknown_incoming(id, sa, buffer);
   });
@@ -642,7 +641,7 @@ DhtServer::create_query(transaction_itr itr, int tID) {
 
   auto& transaction = itr->second;
 
-  query[key_t] = std::string(1, tID);
+  query[key_t] = std::string{static_cast<char>(tID >> 8), static_cast<char>(tID)};
   query[key_q] = raw_string::from_c_str(queries[transaction->type()]);
   query[key_y] = raw_bencode::from_c_str("1:q");
   query[key_v] = raw_bencode("4:" PEER_VERSION, 6);
@@ -766,9 +765,9 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
   // open one is the most efficient.
 
   auto [key_id, lower_bound, found] = utils::find_available_key(m_transactions,
-                                                                address_key | (1 + random() % 127),
+                                                                address_key | (1 + random() % 0xffff),
                                                                 address_key | 1,
-                                                                address_key | 127);
+                                                                address_key | 0xffff);
 
   if (!found)
     return -1;
@@ -777,7 +776,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
   auto itr = m_transactions.insert(lower_bound, std::make_pair(key_id, transaction));
 
   try {
-    auto query = create_query(itr, key_id & 0xff);
+    auto query = create_query(itr, key_id & 0xffff);
 
     auto message = std::make_shared<dht::UdpRouter::buffer_type>();
     auto result  = static_map_write_bencode_c(object_write_to_buffer, nullptr,
@@ -806,8 +805,13 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
       [this](auto key, unsigned int) {
         auto itr = m_transactions.find(key);
 
-        if (itr != m_transactions.end() && itr->second->has_quick_timeout())
+        if (itr == m_transactions.end())
+          return false;
+
+        if (itr->second->has_quick_timeout())
           failed_transaction(itr, true, false);
+
+        return true;
       },
       [this](auto key) {
         ++m_queries_sent;
@@ -834,7 +838,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
     throw;
   }
 
-  return key_id & 0xff;
+  return key_id & 0xffff;
 }
 
 // Transaction received no reply and timed out. Mark node as bad and remove

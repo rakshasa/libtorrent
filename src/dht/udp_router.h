@@ -25,7 +25,7 @@ public:
   using process_func     = std::function<bool(key_type, buffer_type&)>;
   using failure_func     = std::function<void(key_type, int, int)>;
   using packet_sent_func = std::function<void(key_type)>;
-  using timeout_func     = std::function<void(key_type, unsigned int)>;
+  using timeout_func     = std::function<bool(key_type, unsigned int)>;
 
   struct connection_params {
     prepare_func        prepare;
@@ -82,7 +82,6 @@ private:
 
   struct connection_info {
     c_sa_shared_ptr      address;
-    uint64_t             generation{};
 
     prepare_func         prepare{};
     process_func         process{};
@@ -90,6 +89,7 @@ private:
 
     // Do not change the connection in this callback.
     packet_sent_func     packet_sent{};
+    // Return false to remove the connection instead of retrying.
     timeout_func         timeout{};
 
     unsigned int         retry_count{};
@@ -124,7 +124,6 @@ private:
 
   system::Thread*       m_thread;
   random_engine         m_random_engine;
-  uint64_t              m_next_generation{};
 
   unknown_func          m_unknown_callback;
 

@@ -641,14 +641,14 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     timeout, {}
   });
 
-  send(node, 'r', std::string(1, 9));
-  send(other, 'r', std::string(1, 7));
+  send(node, 'r', std::string("\0\x09", 2));
+  send(other, 'r', std::string("\0\x07", 2));
   CPPUNIT_ASSERT_EQUAL(0u, responses);
   CPPUNIT_ASSERT_EQUAL(0u, second_responses);
-  send(node, 'r', std::string(1, 8));
+  send(node, 'r', std::string("\0\x08", 2));
   CPPUNIT_ASSERT_EQUAL(1u, second_responses);
   CPPUNIT_ASSERT_EQUAL(0u, responses);
-  send(node, 'r', std::string(1, 7));
+  send(node, 'r', std::string("\0\x07", 2));
   CPPUNIT_ASSERT_EQUAL(1u, responses);
   router.connect(key, address, {
     prepare,
@@ -659,16 +659,16 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     },
     timeout, {}
   });
-  send(node, 'e', std::string(1, 7));
+  send(node, 'e', std::string("\0\x07", 2));
   CPPUNIT_ASSERT_EQUAL(1u, errors);
-  send(node, 'e', std::string(1, 7));
+  send(node, 'e', std::string("\0\x07", 2));
   CPPUNIT_ASSERT_EQUAL(1u, errors);
 
   const std::array<std::string, 4> transaction_ids{
     std::string("\x80", 1),
-    std::string("\0\x80", 2),
-    std::string("\0\0\x80", 3),
-    std::string("\0\0\0\x80", 4),
+    std::string("\x01\x00", 2),
+    std::string("\x01\x00\x00", 3),
+    std::string("\x01\x00\x00\x00", 4),
   };
   std::vector<torrent::DhtTransaction::key_type> multi_byte_responses;
   auto no_failure = [](auto, int, int) {};
@@ -701,8 +701,8 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     },
     no_failure, {}
   });
-  send(node, 'r', std::string(1, 0x40));
-  send(node, 'r', std::string(1, 0x40));
+  send(node, 'r', std::string("\0\x40", 2));
+  send(node, 'r', std::string("\0\x40", 2));
 
   router.close();
   CPPUNIT_ASSERT_EQUAL(transaction_ids.size(), multi_byte_responses.size());
@@ -721,9 +721,7 @@ TestDhtAnnounceWalk::test_retry_and_reply() {
 
   CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("get_peers") == 1; }, std::chrono::milliseconds(1000)));
   auto initial = node.queries.front();
-  CPPUNIT_ASSERT_EQUAL(size_t{1}, initial.transaction_id.size());
-  CPPUNIT_ASSERT(static_cast<unsigned char>(initial.transaction_id[0]) > 0);
-  CPPUNIT_ASSERT(static_cast<unsigned char>(initial.transaction_id[0]) < 128);
+  CPPUNIT_ASSERT_EQUAL(size_t{2}, initial.transaction_id.size());
   m_main_thread->test_add_cached_time(std::chrono::seconds(16));
   m_main_thread->test_process_events_without_cached_time();
   Walk::pump({&node}, [&] { return node.count("get_peers") >= 2; }, std::chrono::milliseconds(1000));
@@ -892,6 +890,20 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
     m_main_thread->test_add_cached_time(std::chrono::seconds(seconds));
     m_main_thread->test_process_events_without_cached_time();
   }
+
+  auto remove_on_timeout = torrent::DhtTransaction::key(address.get(), 3);
+  unsigned int removed_sends = 0;
+  router.connect(remove_on_timeout, address, {
+    [](auto, auto& buffer) { buffer.write_8('x'); },
+    [](auto, auto&) { return true; },
+    [](auto, int, int) { CPPUNIT_FAIL("Unexpected router failure"); },
+    [](auto, unsigned int) { return false; },
+    [&](auto) { ++removed_sends; }
+  });
+  m_main_thread->test_add_cached_time(std::chrono::seconds(16));
+  m_main_thread->test_process_events_without_cached_time();
+
+  CPPUNIT_ASSERT(!router.has_connection_id(remove_on_timeout));
   router.close();
   CPPUNIT_ASSERT_EQUAL(2u, first_after_retry);
   CPPUNIT_ASSERT_EQUAL(2u, first_sends);
@@ -899,6 +911,7 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
   CPPUNIT_ASSERT_EQUAL(3u, terminal_sends);
   CPPUNIT_ASSERT_EQUAL(1u, terminal_errors);
   CPPUNIT_ASSERT_EQUAL(ETIMEDOUT, terminal_errno);
+  CPPUNIT_ASSERT_EQUAL(1u, removed_sends);
 }
 
 void

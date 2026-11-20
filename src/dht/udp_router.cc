@@ -49,8 +49,6 @@ const dht_key_message::key_list_type dht_key_message::base_type::keys = {
   { key_key_t, "t*S" }
 };
 
-uint64_t dht_transaction_addr_key(const sockaddr* sa);
-
 }
 
 namespace torrent::dht {
@@ -278,9 +276,6 @@ UdpRouter::connect_unsafe(key_type id, c_sa_shared_ptr address, connection_param
   itr->second.failure     = std::move(params.failure);
   itr->second.packet_sent = std::move(params.packet_sent);
   itr->second.timeout     = std::move(params.timeout);
-  if (++m_next_generation == 0)
-    ++m_next_generation;
-  itr->second.generation = m_next_generation;
 
   return itr;
 }
@@ -531,13 +526,10 @@ UdpRouter::receive_timeout() {
     }
 
     if (info->timeout != nullptr) {
-      auto generation = info->generation;
-      info->timeout(id, info->retry_count);
-
-      auto itr = m_connections.find(id);
-
-      if (itr == m_connections.end() || itr->second.generation != generation)
+      if (!info->timeout(id, info->retry_count)) {
+        m_connections.erase(id);
         continue;
+      }
     }
 
     if (info->queue_ptr != nullptr)
@@ -606,12 +598,11 @@ UdpRouter::event_read() {
                  transaction_id, bytes_read, sa_pretty_str(&from_sa.sa).c_str());
 
     auto process = itr->second.process;
-    auto generation = itr->second.generation;
 
     if (process != nullptr && !process(transaction_id, buffer)) {
       auto current = m_connections.find(transaction_id);
 
-      if (current != m_connections.end() && current->second.generation == generation)
+      if (current != m_connections.end())
         disconnect_unsafe(current);
     }
   }

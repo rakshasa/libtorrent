@@ -26,8 +26,7 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
 
 DhtTransaction::~DhtTransaction() = default;
 
-// The upper 29 bits name the node's address. The next three bits encode the transaction ID length,
-// and the lower 32 bits hold its big-endian value.
+// The upper 32 bits name the node's address, and the lower 32 bits hold its transaction ID.
 uint64_t
 dht_transaction_addr_key(const sockaddr* sa) {
   if (sa_is_inet(sa))
@@ -47,11 +46,11 @@ dht_transaction_addr_key(const sockaddr* sa) {
 
 DhtTransaction::key_type
 DhtTransaction::key(const sockaddr* sa, int id) {
-  if (id < 0 || id > 0xff)
-    throw internal_error("DhtTransaction::key() called with an out-of-range one-byte ID.");
+  if (id < 0 || id > 0xffff)
+    throw internal_error("DhtTransaction::key() called with an out-of-range two-byte ID.");
 
-  auto byte = static_cast<char>(id);
-  return key(sa, &byte, 1);
+  char bytes[] = {static_cast<char>(id >> 8), static_cast<char>(id)};
+  return key(sa, bytes, sizeof(bytes));
 }
 
 DhtTransaction::key_type
@@ -64,14 +63,12 @@ DhtTransaction::key(const sockaddr* sa, const char* id, size_t length) {
   for (size_t i = 0; i < length; ++i)
     value = (value << 8) | static_cast<unsigned char>(id[i]);
 
-  constexpr uint64_t address_mask = (uint64_t{1} << 29) - 1;
-  return ((dht_transaction_addr_key(sa) & address_mask) << 35) | (static_cast<uint64_t>(length) << 32) | value;
+  return (dht_transaction_addr_key(sa) << 32) | value;
 }
 
 bool
 DhtTransaction::key_match(key_type key, const sockaddr* sa) {
-  constexpr uint64_t address_mask = (uint64_t{1} << 29) - 1;
-  return (key >> 35) == (dht_transaction_addr_key(sa) & address_mask);
+  return (key >> 32) == dht_transaction_addr_key(sa);
 }
 
 //
