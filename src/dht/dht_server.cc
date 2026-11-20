@@ -351,7 +351,7 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed known packet : address:%s error:%s",
                      sa_pretty_str(itr->second->address()).c_str(), e.what());
-    create_error(message, itr->second->address(), dht_error_protocol, "Malformed packet: " + std::string(e.what()));
+    // create_error(message, itr->second->address(), dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return true;
   }
 
@@ -413,7 +413,7 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed unknown packet : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
-    create_error(message, sa, dht_error_protocol, "Malformed packet: " + std::string(e.what()));
+    // create_error(message, sa, dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return;
   }
 
@@ -449,12 +449,13 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected unknown packet : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
 
-    if (e.code() == dht_error_generic || e.code() == dht_error_protocol)
+    if (e.code() == dht_error_generic)
       create_error(message, sa, e.code(), e.what());
+
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected malformed query : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
-    create_error(message, sa, dht_error_protocol, "Malformed query: " + std::string(e.what()));
+    // create_error(message, sa, dht_error_protocol, "Malformed query: " + std::string(e.what()));
   }
 }
 
