@@ -968,6 +968,29 @@ TestDhtAnnounceWalk::test_late_reply_after_cancel() {
 }
 
 void
+TestDhtAnnounceWalk::test_cancel_after_quick_timeout() {
+  FakeNode node(1);
+  node.silent = true;
+  Walk walk({&node});
+  walk.announce();
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("get_peers") == 1; }, std::chrono::milliseconds(1000)));
+
+  m_main_thread->test_add_cached_time(std::chrono::seconds(16));
+  m_main_thread->test_process_events_without_cached_time();
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("get_peers") == 2; }, std::chrono::milliseconds(1000)));
+
+  walk.cancel();
+  CPPUNIT_ASSERT(node.reply_to_query(node.queries.front()) > 0);
+  Walk::pump({}, [] { return false; }, std::chrono::milliseconds(100));
+  CPPUNIT_ASSERT_EQUAL(0u, walk.replies_received());
+
+  m_main_thread->test_add_cached_time(std::chrono::seconds(31));
+  m_main_thread->test_process_events_without_cached_time();
+  Walk::pump({&node}, [] { return false; }, std::chrono::milliseconds(100));
+  CPPUNIT_ASSERT_EQUAL(2u, node.count("get_peers"));
+}
+
+void
 TestDhtAnnounceWalk::test_late_reply_after_timeout() {
   FakeNode node(1);
   node.silent = true;

@@ -20,6 +20,7 @@ class TestDhtAnnounceWalk : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST(test_retry_deadline_order);
   CPPUNIT_TEST(test_tracker_retry_deadline_order);
   CPPUNIT_TEST(test_late_reply_after_cancel);
+  CPPUNIT_TEST(test_cancel_after_quick_timeout);
   CPPUNIT_TEST(test_late_reply_after_timeout);
 
   CPPUNIT_TEST_SUITE_END();
@@ -44,5 +45,6 @@ public:
   void test_retry_deadline_order();
   void test_tracker_retry_deadline_order();
   void test_late_reply_after_cancel();
+  void test_cancel_after_quick_timeout();
   void test_late_reply_after_timeout();
 };

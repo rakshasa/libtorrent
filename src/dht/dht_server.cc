@@ -800,10 +800,8 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
         failed_transaction(itr, false, true);
       },
       [this, itr](auto, unsigned int) {
-        if (itr->second->has_quick_timeout()) {
-          failed_transaction(itr, true, true);
-          return false;
-        }
+        if (itr->second->has_quick_timeout())
+          failed_transaction(itr, true, false);
 
         return true;
       },
