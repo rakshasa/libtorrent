@@ -795,31 +795,21 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
       [this](auto key, auto& buffer) {
         return process_known_incoming(key, buffer);
       },
-      [this](auto key, int, int) {
-        // TODO: There's no need for these lookups, we already have a std::map iterator we can capture above.
-        auto itr = m_transactions.find(key);
-
-        if (itr != m_transactions.end())
-          failed_transaction(itr, false, true);
+      [this, itr](auto, int, int) {
+        failed_transaction(itr, false, true);
       },
-      [this](auto key, unsigned int) {
-        auto itr = m_transactions.find(key);
-
-        if (itr == m_transactions.end())
+      [this, itr](auto, unsigned int) {
+        if (itr->second->has_quick_timeout()) {
+          failed_transaction(itr, true, true);
           return false;
-
-        if (itr->second->has_quick_timeout())
-          failed_transaction(itr, true, false);
+        }
 
         return true;
       },
-      [this](auto key) {
+      [this, itr](auto) {
         ++m_queries_sent;
 
-        auto itr = m_transactions.find(key);
-
-        if (itr != m_transactions.end())
-          itr->second->set_packet_sent();
+        itr->second->set_packet_sent();
       },
     };
 
@@ -867,15 +857,8 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick, bool router_disco
     try {
       find_node_next(transaction->as_search());
 
-    } catch (const std::exception&) {
-      if (!quick) {
-        if (router_disconnected)
-          erase_transaction_skip_disconnect(itr);
-        else
-          erase_transaction(itr);
-      }
-
-      throw;
+    } catch (const std::exception& e) {
+      throw internal_error("DhtServer::failed_transaction() find_node_next failed : " + std::string(e.what()));
     }
   }
 

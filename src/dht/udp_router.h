@@ -86,11 +86,10 @@ private:
     prepare_func         prepare{};
     process_func         process{};
     failure_func         failure{};
+    timeout_func         timeout{};
 
     // Do not change the connection in this callback.
     packet_sent_func     packet_sent{};
-    // Return false to remove the connection instead of retrying.
-    timeout_func         timeout{};
 
     unsigned int         retry_count{};
 

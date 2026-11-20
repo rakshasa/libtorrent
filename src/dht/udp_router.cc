@@ -274,8 +274,8 @@ UdpRouter::connect_unsafe(key_type id, c_sa_shared_ptr address, connection_param
   itr->second.prepare     = std::move(params.prepare);
   itr->second.process     = std::move(params.process);
   itr->second.failure     = std::move(params.failure);
-  itr->second.packet_sent = std::move(params.packet_sent);
   itr->second.timeout     = std::move(params.timeout);
+  itr->second.packet_sent = std::move(params.packet_sent);
 
   return itr;
 }
@@ -298,8 +298,9 @@ void
 UdpRouter::disconnect_failure_unsafe(connection_map::iterator itr, int errno_err, int gai_err) {
   assert(itr != m_connections.end());
 
-  auto id = itr->first;
+  auto id         = itr->first;
   auto failure_fn = std::move(itr->second.failure);
+
   disconnect_unsafe(itr);
 
   failure_fn(id, errno_err, gai_err);
@@ -525,11 +526,9 @@ UdpRouter::receive_timeout() {
       continue;
     }
 
-    if (info->timeout != nullptr) {
-      if (!info->timeout(id, info->retry_count)) {
-        m_connections.erase(id);
-        continue;
-      }
+    if (info->timeout != nullptr && !info->timeout(id, info->retry_count)) {
+      m_connections.erase(id);
+      continue;
     }
 
     if (info->queue_ptr != nullptr)
