@@ -27,6 +27,7 @@ public:
 
   void                set_end(size_type v)          { m_end = m_buffer + v; }
   void                set_end_itr(iterator itr)     { m_end = itr; }
+  void                set_end_ptr(char* ptr)        { m_end = reinterpret_cast<iterator>(ptr); }
   difference_type     move_end(difference_type v)   { m_end += v; return v; }
 
   uint8_t             read_8()                      { return *m_position++; }
@@ -64,6 +65,10 @@ public:
   iterator            begin()                       { return m_buffer; }
   iterator            position()                    { return m_position; }
   iterator            end()                         { return m_end; }
+
+  char*               begin_ptr()                   { return reinterpret_cast<char*>(m_buffer); }
+  char*               position_ptr()                { return reinterpret_cast<char*>(m_position); }
+  char*               end_ptr()                     { return reinterpret_cast<char*>(m_end); }
 
   size_type           size_position() const         { return m_position - m_buffer; }
   size_type           size_end() const              { return m_end - m_buffer; }
