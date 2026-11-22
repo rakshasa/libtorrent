@@ -7,6 +7,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/system/callbacks.h"
+#include "torrent/utils/string_manip.h"
 
 namespace torrent {
 
@@ -34,6 +35,13 @@ TrackerWorker::mark_starting_request() {
 void
 TrackerWorker::remove_events() {
   system::cancel_callback_and_wait(m_callback_id, main_thread::thread(), tracker_thread::thread());
+}
+
+std::string
+TrackerWorker::sanitize_message(const std::string& msg) {
+  constexpr size_t max_message_size = 512;
+
+  return utils::sanitize_string(msg).substr(0, max_message_size);
 }
 
 std::string

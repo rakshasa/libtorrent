@@ -193,7 +193,14 @@ TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
 }
 
 bool
-TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_peers) {
+TrackerTest::trigger_no_peer_warning(const std::string& warning_msg) {
+  torrent::AddressList address_list;
+
+  return trigger_success(&address_list, 0, warning_msg);
+}
+
+bool
+TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_peers, const std::string& warning_msg) {
   // C++20 allows notify_all() on atomic variables.
   for (int i = 0; i != 100 && !m_busy; i++)
     std::this_thread::sleep_for(10ms);
@@ -222,6 +229,7 @@ TrackerTest::trigger_success(torrent::AddressList* address_list, uint32_t new_pe
       auto guard = lock_guard();
       state().set_normal_interval(torrent::tracker::TrackerState::default_normal_interval);
       state().set_min_interval(torrent::tracker::TrackerState::default_min_interval);
+      set_warning_message_unsafe(sanitize_message(warning_msg));
     }
 
     if (m_slot_success)
