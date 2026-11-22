@@ -151,6 +151,16 @@ Tracker::tracker_id() const {
   return m_worker->tracker_id_safe();
 }
 
+std::string
+Tracker::error_message() const {
+  return m_worker->error_message_safe();
+}
+
+std::string
+Tracker::warning_message() const {
+  return m_worker->warning_message_safe();
+}
+
 void
 Tracker::enable() {
   {

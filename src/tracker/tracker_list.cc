@@ -14,7 +14,6 @@
 #include "torrent/tracker/tracker.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
-#include "torrent/utils/string_manip.h"
 #include "tracker/thread_tracker.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
@@ -24,17 +23,6 @@
   lt_log_print_hash(LOG_TRACKER_EVENTS, info()->info_hash(), "tracker_list : " log_fmt, __VA_ARGS__);
 
 namespace torrent {
-
-namespace {
-
-constexpr size_t max_failure_message_size = 512;
-
-std::string
-sanitize_failure_message(const std::string& msg) {
-  return utils::sanitize_string(msg).substr(0, max_failure_message_size);
-}
-
-} // namespace
 
 TrackerList::TrackerList() :
   m_state(DownloadInfo::STOPPED),
@@ -431,6 +419,7 @@ TrackerList::receive_success(tracker::Tracker tracker, AddressList* l) {
   {
     auto guard = tracker.get_worker()->lock_guard();
     tracker.get_worker()->state().add_success_request(this_thread::cached_seconds());
+    tracker.get_worker()->set_error_message_unsafe("");
 
     tracker.get_worker()->state().m_latest_sum_peers = l->size();
   }
@@ -451,7 +440,7 @@ void
 TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
   assert(std::this_thread::get_id() == main_thread::thread_id());
 
-  auto sanitized_msg = sanitize_failure_message(msg);
+  auto sanitized_msg = TrackerWorker::sanitize_message(msg);
 
   LT_LOG("received failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), sanitized_msg.c_str());
@@ -464,6 +453,7 @@ TrackerList::receive_failed(tracker::Tracker tracker, const std::string& msg) {
 
     tracker.get_worker()->state().add_failed_request(this_thread::cached_seconds());
     tracker.get_worker()->state().m_latest_new_peers_delta = 0;
+    tracker.get_worker()->set_error_message_unsafe(sanitized_msg);
   }
 
   if (m_slot_failed)
@@ -494,7 +484,7 @@ void
 TrackerList::receive_scrape_failed(tracker::Tracker tracker, const std::string& msg) {
   assert(std::this_thread::get_id() == main_thread::thread_id());
 
-  auto sanitized_msg = sanitize_failure_message(msg);
+  auto sanitized_msg = TrackerWorker::sanitize_message(msg);
 
   LT_LOG("received scrape failure : requester:%p group:%u url:%s msg:'%s'",
          tracker.get_worker(), tracker.group(), tracker.url().c_str(), sanitized_msg.c_str());

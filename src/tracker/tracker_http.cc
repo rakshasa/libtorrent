@@ -432,11 +432,13 @@ TrackerHttp::receive_done() {
         msg.find("not registered") != std::string::npos ||
         msg.find("torrent cannot be found") != std::string::npos) {
 
+      set_warning_message_safe("");
       LT_LOG("tracker warning treated as failure : url:%s : %s", info().url.c_str(), msg.c_str());
       return receive_failed("Tracker warning: " + msg);
     }
 
     LT_LOG("tracker warning : url:%s : %s", info().url.c_str(), msg.c_str());
+    set_warning_message_safe(sanitize_message(msg));
   }
 
   if (state().latest_event() == tracker::TrackerState::EVENT_SCRAPE) {
@@ -444,6 +446,11 @@ TrackerHttp::receive_done() {
     process_scrape(b);
     return;
   }
+
+  // For non-scrapes we clear the warning message if empty.
+  // We don't for scrapes since they will often not have one.
+  if (!b.has_key_string("warning message"))
+    set_warning_message_safe("");
 
   process_success(b);
 
@@ -537,6 +544,8 @@ TrackerHttp::process_failure(const Object& object) {
 
   if (object.has_key_value("downloaded"))
     state().m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
+
+  set_warning_message_unsafe("");
 }
 
 void

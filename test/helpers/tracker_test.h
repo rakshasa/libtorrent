@@ -21,7 +21,8 @@ public:
   int                 requesting_state() const { return m_requesting_state; }
 
   bool                trigger_success(uint32_t new_peers = 0, uint32_t sum_peers = 0);
-  bool                trigger_success(torrent::AddressList* address_list, uint32_t new_peers = 0);
+  bool                trigger_success(torrent::AddressList* address_list, uint32_t new_peers = 0, const std::string& warning_msg = "");
+  bool                trigger_no_peer_warning(const std::string& warning_msg);
   bool                trigger_failure();
   bool                trigger_failure(const std::string& msg);
   bool                trigger_scrape();
