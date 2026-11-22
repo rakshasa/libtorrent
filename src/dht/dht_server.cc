@@ -17,14 +17,17 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/runtime/runtime.h"
 #include "torrent/utils/algorithm.h"
+#include "torrent/utils/string_manip.h"
 #include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
 #define LT_LOG_THIS(log_fmt, ...)                                       \
   lt_log_print(LOG_DHT_SERVER, "dht_server : " log_fmt, __VA_ARGS__);
 
-#define LT_LOG_DUMP_THIS(data, size, log_fmt, ...)                      \
-  lt_log_print_dump(LOG_DHT_SERVER, data, size, "dht_server : " log_fmt, __VA_ARGS__);
+#define LT_LOG_DUMP_THIS(buffer_data, buffer_size, log_fmt, ...) {      \
+    auto hex_str = utils::transform_to_hex_str(buffer_data, buffer_data + buffer_size);  \
+    lt_log_print_dump(LOG_DHT_SERVER, hex_str.data(), hex_str.size(), "dht_server : " log_fmt, __VA_ARGS__); \
+  }
 
 namespace torrent {
 
@@ -348,9 +351,11 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
 
   try {
     static_map_read_bencode(buffer.begin_ptr(), buffer.end_ptr(), message);
+
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed known packet : address:%s error:%s",
                      sa_pretty_str(itr->second->address()).c_str(), e.what());
+
     // create_error(message, itr->second->address(), dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return true;
   }
@@ -801,7 +806,7 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
       },
       [this, itr](auto, unsigned int) {
         if (itr->second->has_quick_timeout()) {
-          failed_transaction(itr, true, true);
+          failed_transaction(itr, false, true);
           return false;
         }
 
@@ -867,13 +872,17 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick, bool router_disco
   if (quick)
     return ++itr;
 
-  return router_disconnected ? erase_transaction_skip_disconnect(itr) : erase_transaction(itr);
+  if (router_disconnected)
+    return erase_transaction_skip_disconnect(itr);
+  else
+    return erase_transaction(itr);
 }
 
 DhtServer::transaction_itr
 DhtServer::erase_transaction(transaction_itr itr) {
   m_udp_router.disconnect(itr->first);
-  return erase_transaction_skip_disconnect(itr);
+
+  return m_transactions.erase(itr);
 }
 
 DhtServer::transaction_itr
