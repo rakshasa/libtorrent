@@ -11,6 +11,10 @@ class test_thread_base : public test_fixture {
   CPPUNIT_TEST(test_stop_during_callback);
   CPPUNIT_TEST(test_stop_while_polling);
 
+  CPPUNIT_TEST(test_process_interrupt_callbacks);
+  CPPUNIT_TEST(test_process_interrupt_callbacks_outside_thread);
+  CPPUNIT_TEST(test_process_interrupt_callbacks_in_callback);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -22,4 +26,8 @@ public:
   void test_stop();
   void test_stop_during_callback();
   void test_stop_while_polling();
+
+  void test_process_interrupt_callbacks();
+  void test_process_interrupt_callbacks_outside_thread();
+  void test_process_interrupt_callbacks_in_callback();
 };
