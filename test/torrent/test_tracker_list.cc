@@ -421,6 +421,97 @@ TestTrackerList::test_failure_message_sanitized() {
 }
 
 void
+TestTrackerList::test_error_message() {
+  TRACKER_LIST_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+
+  auto tracker_0_worker = TrackerTest::test_worker(tracker_0);
+
+  CPPUNIT_ASSERT(tracker_0.error_message().empty());
+  CPPUNIT_ASSERT(tracker_0.warning_message().empty());
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_failure(hostile_tracker_message));
+
+  auto error_msg = tracker_0.error_message();
+  CPPUNIT_ASSERT(error_msg.starts_with("evil"));
+  CPPUNIT_ASSERT(!has_unprintable_bytes(error_msg));
+  CPPUNIT_ASSERT(error_msg.size() <= 512);
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
+  CPPUNIT_ASSERT(tracker_0.error_message().empty());
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_failure("Tracker is down"));
+  CPPUNIT_ASSERT(tracker_0.error_message() == "Tracker is down");
+
+  tracker_list.clear_stats();
+  CPPUNIT_ASSERT(tracker_0.error_message().empty());
+
+  tracker_list.clear();
+  std::this_thread::sleep_for(100ms);
+}
+
+void
+TestTrackerList::test_warning_message() {
+  TRACKER_LIST_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+
+  auto tracker_0_worker = TrackerTest::test_worker(tracker_0);
+
+  tracker_0_worker->set_scrapable();
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_no_peer_warning("Download slot limit reached"));
+
+  CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
+  CPPUNIT_ASSERT(tracker_0.state().failed_counter() == 0);
+  CPPUNIT_ASSERT(tracker_0.error_message().empty());
+  CPPUNIT_ASSERT(tracker_0.warning_message() == "Download slot limit reached");
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
+  CPPUNIT_ASSERT(tracker_0.warning_message().empty());
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_no_peer_warning(hostile_tracker_message));
+
+  auto warning_msg = tracker_0.warning_message();
+  CPPUNIT_ASSERT(warning_msg.starts_with("evil"));
+  CPPUNIT_ASSERT(!has_unprintable_bytes(warning_msg));
+  CPPUNIT_ASSERT(warning_msg.size() <= 512);
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_no_peer_warning("Rate limit exceeded. Please wait."));
+
+  tracker_list.send_scrape(tracker_0);
+  process_main_and_tracker(this);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_scrape());
+  CPPUNIT_ASSERT(scrape_success_counter == 1);
+  CPPUNIT_ASSERT(tracker_0.warning_message() == "Rate limit exceeded. Please wait.");
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_failure("Tracker is down"));
+  CPPUNIT_ASSERT(tracker_0.error_message() == "Tracker is down");
+  CPPUNIT_ASSERT(tracker_0.warning_message() == "Rate limit exceeded. Please wait.");
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_success());
+  CPPUNIT_ASSERT(tracker_0.error_message().empty());
+  CPPUNIT_ASSERT(tracker_0.warning_message().empty());
+
+  tracker_list.send_event(tracker_list.at(0), torrent::tracker::TrackerState::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_worker->trigger_no_peer_warning("Download slot limit reached"));
+
+  tracker_list.clear_stats();
+  CPPUNIT_ASSERT(tracker_0.warning_message().empty());
+
+  tracker_list.clear();
+  std::this_thread::sleep_for(100ms);
+}
+
+void
 TestTrackerList::test_scrape_failure_message_sanitized() {
   TRACKER_LIST_SETUP();
   TRACKER_INSERT(0, tracker_0);

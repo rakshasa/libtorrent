@@ -40,6 +40,9 @@ public:
 
   std::string         tracker_id() const;
 
+  std::string         error_message() const;
+  std::string         warning_message() const;
+
   void                enable();
   void                disable();
 

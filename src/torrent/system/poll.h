@@ -52,6 +52,7 @@ protected:
 
   void                init_thread();
   void                cleanup_thread();
+  void                do_shutdown_interrupt();
 
 private:
   using poll_event_list = std::vector<std::shared_ptr<PollEvent>>;

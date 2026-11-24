@@ -15,7 +15,7 @@ TrackerState::success_time_next() const {
 std::chrono::seconds
 TrackerState::failed_time_next() const {
   if (m_counters.failed_counter == 0)
-    return std::min(m_min_interval, min_min_interval);
+    return std::max(m_min_interval, min_min_interval);
 
   if (m_min_interval > min_min_interval)
     return m_counters.failed_time_last + m_min_interval;

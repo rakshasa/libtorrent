@@ -74,7 +74,7 @@ Thread::start_thread() {
 void
 Thread::stop_thread_wait() {
   m_flags |= flag_do_shutdown;
-  m_poll->do_interrupt();
+  m_poll->do_shutdown_interrupt();
 
   pthread_join(m_thread, nullptr);
 
@@ -247,6 +247,15 @@ Thread::cancel_callback_and_wait(callback_id& id, Thread* other_thread) {
 void
 Thread::interrupt() {
   m_poll->do_interrupt();
+}
+
+void
+Thread::process_interrupt_callbacks() {
+  if (this != m_self || m_callback_processing_id != nullptr)
+    throw internal_error("Thread::process_interrupt_callbacks() called from outside the thread or from within a callback that has an id.");
+
+  if (has_interrupt_callbacks())
+    process_callbacks(true);
 }
 
 void*

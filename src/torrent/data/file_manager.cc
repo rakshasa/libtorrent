@@ -13,6 +13,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/data/file.h"
 #include "torrent/utils/chrono.h"
+#include "torrent/utils/limited_vector.h"
 #include "utils/fd_close_queue.h"
 
 namespace torrent {
@@ -173,28 +174,11 @@ FileManager::get_least_active(unsigned int count) {
   if (count == 0)
     return {};
 
-  std::vector<File*> files;
-  files.reserve(count);
+  utils::limited_vector<File*, compare_file_by_last_touched> files(count);
 
-  for (auto* file : *this) {
-    if (files.size() == count) {
-      if (file->last_touched() >= files.back()->last_touched())
-        continue;
+  utils::copy_limited(begin(), end(), files);
 
-      files.back() = file;
-    } else {
-      files.push_back(file);
-    }
-
-    for (auto itr = std::prev(files.end()); itr != files.begin(); --itr) {
-      if ((*itr)->last_touched() >= (*std::prev(itr))->last_touched())
-        break;
-
-      std::iter_swap(itr, std::prev(itr));
-    }
-  }
-
-  return files;
+  return files.move_as_vector();
 }
 
 void

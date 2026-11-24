@@ -361,22 +361,27 @@ tracker_next_timeout_promiscuous(const tracker::Tracker& tracker) {
   if (tracker.is_requesting_not_scrape() || !tracker.is_usable())
     return ~uint32_t();
 
-  std::chrono::seconds interval{};
+  auto use_interval = 0s;
+  auto min_interval = std::max(tracker_state.min_interval(), tracker_state.min_min_interval);
 
   if (tracker_state.failed_counter() != 0) {
     if (tracker_state.failed_time_last() == 0s)
       throw internal_error("tracker_next_timeout_promiscuous(...) called but tracker_state.failed_counter() != 0 and tracker_state.failed_time_last() == 0.");
 
-    interval = tracker_state.failed_time_next() - tracker_state.failed_time_last();
+    use_interval = tracker_state.failed_time_next() - tracker_state.failed_time_last();
+
+    if (tracker_state.failed_counter() > 6)
+      use_interval = std::max(use_interval, min_interval);
+
+  } else if (tracker_state.success_counter() < 3) {
+    use_interval = std::max(tracker_state.min_interval(), min_interval);
+
   } else {
-    interval = tracker_state.normal_interval();
+    use_interval = std::max(tracker_state.normal_interval(), min_interval);
   }
 
-  auto min_interval = std::max(tracker_state.min_interval(), 300s);
-  auto use_interval = std::min(interval, min_interval);
-
-  auto since_last   = this_thread::cached_seconds() - tracker_state.activity_time_last();
-  auto result       = std::max(use_interval - since_last, 0s);
+  auto since_last = this_thread::cached_seconds() - tracker_state.activity_time_last();
+  auto result     = std::max(use_interval - since_last, 0s);
 
   lt_log_print(LOG_TRACKER_EVENTS, "tracker_next_timeout_promiscuous: min_interval:%" PRId64 " use_interval:%" PRId64 " since_last:%" PRId64 " failed_counter:%d result:%" PRId64,
                (int64_t)min_interval.count(), (int64_t)use_interval.count(), (int64_t)since_last.count(), tracker_state.failed_counter(), (int64_t)result.count());
@@ -544,7 +549,7 @@ TrackerController::receive_success(const tracker::Tracker& tracker, TrackerContr
 }
 
 void
-TrackerController::receive_failure(const tracker::Tracker& tracker, const std::string& msg) {
+TrackerController::receive_failure([[maybe_unused]] const tracker::Tracker& tracker, const std::string& msg) {
   if (!(m_flags & flag_active)) {
     m_slot_failure(msg);
     return;

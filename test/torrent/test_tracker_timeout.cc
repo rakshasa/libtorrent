@@ -186,12 +186,12 @@ TestTrackerTimeout::test_timeout_requesting() {
     // CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 20);
 
     tracker_worker->set_latest_sum_peers(10);
-    CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 600);
+    CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 1800);
 
     tracker_worker->set_latest_sum_peers(10);
     tracker_worker->set_latest_new_peers(10);
     tracker_worker->set_success(torrent::this_thread::cached_seconds().count());
-    CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 600);
+    CPPUNIT_ASSERT(torrent::tracker_next_timeout(tracker, flags) == 1800);
 
     tracker_worker->cleanup();
 

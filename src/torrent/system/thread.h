@@ -69,6 +69,7 @@ public:
   void                cancel_callback_and_wait(callback_id& id, Thread* other_thread);
 
   void                interrupt();
+  void                process_interrupt_callbacks();
 
   // TODO: Move to protected.
   void                event_loop();

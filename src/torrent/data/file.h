@@ -129,6 +129,12 @@ private:
   uint32_t            m_match_depth_next{0};
 };
 
+struct compare_file_by_last_touched {
+  bool operator()(const File* a, const File* b) const {
+    return a->last_touched() < b->last_touched();
+  }
+};
+
 inline bool
 File::is_valid_position(uint64_t p) const {
   return p >= m_offset && p < m_offset + m_size;

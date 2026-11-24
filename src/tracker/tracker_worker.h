@@ -63,11 +63,20 @@ protected:
   auto                lock_guard() const                    { return std::scoped_lock(m_mutex); }
   void                unlock() const                        { m_mutex.unlock(); }
 
+  static std::string  sanitize_message(const std::string& msg);
+
   // Protected members that require locking:
 
   std::string         tracker_id_safe() const;
   void                set_tracker_id_safe(const std::string& id);
   void                set_tracker_id_unsafe(const std::string& id);
+
+  std::string         error_message_safe() const;
+  std::string         warning_message_safe() const;
+  void                set_error_message_unsafe(std::string msg);
+  void                set_error_message_safe(std::string msg);
+  void                set_warning_message_unsafe(std::string msg);
+  void                set_warning_message_safe(std::string msg);
 
   void                mark_starting_request();
 
@@ -106,6 +115,8 @@ private:
 
   tracker::TrackerState m_state{};
   std::string           m_tracker_id;
+  std::string           m_error_message;
+  std::string           m_warning_message;
 
   align_cacheline bool  __force_new_cacheline;
 };
@@ -114,6 +125,8 @@ inline void
 TrackerWorker::lock_and_clear_stats() {
   auto guard = lock_guard();
   m_state.clear_stats();
+  m_error_message.clear();
+  m_warning_message.clear();
 }
 
 inline auto
@@ -143,6 +156,40 @@ TrackerWorker::set_tracker_id_safe(const std::string& id) {
 inline void
 TrackerWorker::set_tracker_id_unsafe(const std::string& id) {
   m_tracker_id = id;
+}
+
+inline std::string
+TrackerWorker::error_message_safe() const {
+  auto guard = lock_guard();
+  return m_error_message;
+}
+
+inline std::string
+TrackerWorker::warning_message_safe() const {
+  auto guard = lock_guard();
+  return m_warning_message;
+}
+
+inline void
+TrackerWorker::set_error_message_unsafe(std::string msg) {
+  m_error_message = std::move(msg);
+}
+
+inline void
+TrackerWorker::set_error_message_safe(std::string msg) {
+  auto guard = lock_guard();
+  m_error_message = std::move(msg);
+}
+
+inline void
+TrackerWorker::set_warning_message_unsafe(std::string msg) {
+  m_warning_message = std::move(msg);
+}
+
+inline void
+TrackerWorker::set_warning_message_safe(std::string msg) {
+  auto guard = lock_guard();
+  m_warning_message = std::move(msg);
 }
 
 inline auto&       TrackerWorker::state()       { return m_state; }

@@ -25,7 +25,7 @@ namespace torrent {
 namespace {
 
 std::tuple<int, int>
-listen_fd_open(const sockaddr* bind_address, const std::string& device_name, bool block_ipv4in6) {
+listen_fd_open(const sockaddr* bind_address, const std::string& device_name, bool block_ipv4in6, bool check_dht) {
   fd_flags open_flags = fd_flag_nonblock | fd_flag_reuse_address;
 
   if (bind_address->sa_family == AF_INET)
@@ -39,18 +39,24 @@ listen_fd_open(const sockaddr* bind_address, const std::string& device_name, boo
   if (stream_fd == -1)
     throw resource_error("Could not open stream socket for listening: " + system::errno_enum_str(errno));
 
-  int datagram_fd = fd_open(fd_flag_datagram | open_flags);
+  // Only the DHT port check uses a datagram socket. Without one, reopening a listener on the same
+  // port needs no more descriptors than closing it released.
+  int datagram_fd{-1};
 
-  if (datagram_fd == -1) {
-    fd_close(stream_fd);
-    throw resource_error("Could not open datagram socket for listening: " + system::errno_enum_str(errno));
+  if (check_dht) {
+    datagram_fd = fd_open(fd_flag_datagram | open_flags);
+
+    if (datagram_fd == -1) {
+      fd_close(stream_fd);
+      throw resource_error("Could not open datagram socket for listening: " + system::errno_enum_str(errno));
+    }
   }
 
   if (!device_name.empty() &&
       (!fd_bind_to_device(stream_fd, device_name.c_str(), bind_address->sa_family) ||
-       !fd_bind_to_device(datagram_fd, device_name.c_str(), bind_address->sa_family))) {
+       (check_dht && !fd_bind_to_device(datagram_fd, device_name.c_str(), bind_address->sa_family)))) {
     fd_close(stream_fd);
-    fd_close(datagram_fd);
+    fd_close_and_clear_if_open(datagram_fd);
     throw resource_error("Could not bind listening sockets to device: " + device_name + " : " + system::errno_enum_str(errno));
   }
 
@@ -61,7 +67,7 @@ std::tuple<int, uint16_t>
 listen_open_range(Listen::open_options options, const sockaddr* bind_address, const std::string& device_name) {
   sa_unique_ptr try_address = sa_copy(bind_address);
 
-  auto [stream_fd, datagram_fd] = listen_fd_open(bind_address, device_name, options.block_ipv4in6);
+  auto [stream_fd, datagram_fd] = listen_fd_open(bind_address, device_name, options.block_ipv4in6, options.check_dht);
 
   uint16_t port = options.first_port;
 
@@ -78,17 +84,17 @@ listen_open_range(Listen::open_options options, const sockaddr* bind_address, co
       fd_close(stream_fd);
       fd_close(datagram_fd);
 
-      std::tie(stream_fd, datagram_fd) = listen_fd_open(bind_address, device_name, options.block_ipv4in6);
+      std::tie(stream_fd, datagram_fd) = listen_fd_open(bind_address, device_name, options.block_ipv4in6, options.check_dht);
       continue;
     }
 
-    fd_close(datagram_fd);
+    fd_close_and_clear_if_open(datagram_fd);
     return std::make_tuple(stream_fd, port);
 
   } while (port++ < options.last_port);
 
   fd_close(stream_fd);
-  fd_close(datagram_fd);
+  fd_close_and_clear_if_open(datagram_fd);
 
   return std::make_tuple(-1, 0);
 }
@@ -128,8 +134,6 @@ bool
 Listen::open_single(listen_info listen_info, open_options options) {
   auto [listen, bind_address, device_name] = listen_info;
 
-  listen->close();
-
   if (options.first_port == 0 || options.first_port > options.last_port)
     throw input_error("Tried to open listening port with an invalid range");
 
@@ -156,6 +160,7 @@ Listen::open_single(listen_info listen_info, open_options options) {
   if (!fd_listen(listen_fd, options.backlog))
     error_fn("Could not listen on socket");
 
+  listen->close();
   listen->open_done(listen_fd, listen_port, options.backlog);
   return true;
 }
@@ -164,9 +169,6 @@ bool
 Listen::open_both(listen_info listen4, listen_info listen6, open_options options) {
   auto [listen_inet,  bind_inet_address,  bind_inet_device_name]  = listen4;
   auto [listen_inet6, bind_inet6_address, bind_inet6_device_name] = listen6;
-
-  listen_inet->close();
-  listen_inet6->close();
 
   if (options.first_port == 0 || options.first_port > options.last_port)
     throw input_error("Tried to open listening port with an invalid range");
@@ -210,9 +212,12 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
       break;
 
     fd_close_and_clear(inet_fd);
-    options.first_port = inet_port + 1;
-
     LT_LOG("Unable to find a suitable ipv6 listen port matching ipv4 port %" PRIu16 " : options.last_port error : %s", inet_port, system::errno_enum(errno));
+
+    if (inet_port == UINT16_MAX)
+      return false;
+
+    options.first_port = inet_port + 1;
   }
 
   auto error_fn = [](std::string msg) {
@@ -229,6 +234,9 @@ Listen::open_both(listen_info listen4, listen_info listen6, open_options options
 
   if (!fd_listen(inet6_fd, options.backlog))
     error_fn("Could not listen on ipv6 socket");
+
+  listen_inet->close();
+  listen_inet6->close();
 
   if (inet_fd != -1)
     listen_inet->open_done(std::exchange(inet_fd, -1), inet_port, options.backlog);

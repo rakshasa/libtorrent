@@ -526,7 +526,7 @@ resume_load_tracker_settings(Download download, const Object& object) {
     if (tracker_list->find_url(map.first) != tracker_list->end())
       continue;
 
-    download.main()->tracker_list()->insert_url(map.second.get_key_value("group"), map.first);
+    download.main()->tracker_list()->insert_url(map.second.get_key_value("group"), map.first, true);
   }
 
   for (auto tracker : *tracker_list) {

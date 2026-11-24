@@ -122,6 +122,9 @@ curl_socket_t
 CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sockaddr *address) {
   assert(this_thread::thread() == stack->thread());
 
+  LT_LOG_DEBUG("open_socket() : purpose:%i socktype:%i family:%i protocol:%i",
+               int{purpose}, int{address->socktype}, int{address->family}, int{address->protocol});
+
   if (!stack->is_running()) {
     LT_LOG_DEBUG("open_socket() : curl stack not running, aborting", 0);
     return CURL_SOCKET_BAD;
@@ -138,13 +141,11 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
   socket->m_self_ptr = socket_ptr;
 
   auto open_func = [socket, address]() {
-      int socktype = address->socktype;
-
 #ifdef SOCK_CLOEXEC
-      socktype |= SOCK_CLOEXEC;
+      int fd = fd_socket(address->family, address->socktype | SOCK_CLOEXEC, address->protocol);
+#else
+      int fd = fd_socket(address->family, address->socktype, address->protocol);
 #endif
-
-      int fd = ::socket(address->family, socktype, address->protocol);
 
       if (fd == -1) {
         LT_LOG_DEBUG("open_socket() : error creating socket: %s", std::strerror(errno));
@@ -156,7 +157,12 @@ CurlSocket::open_socket(CurlStack *stack, curlsocktype purpose, struct curl_sock
       return fd;
     };
 
-  runtime::socket_manager()->open_event_or_throw(socket, runtime::category_http, open_func);
+  runtime::socket_manager()->open_event_or_cleanup(socket, runtime::category_http, open_func, {});
+
+  if (!socket->is_open()) {
+    LT_LOG_DEBUG("open_socket() : error creating socket: %s", system::errno_enum(errno));
+    return CURL_SOCKET_BAD;
+  }
 
   this_thread::poll()->open(socket);
 
@@ -320,7 +326,10 @@ CurlSocket::event_write() {
 
 void
 CurlSocket::event_error() {
-  LT_LOG_DEBUG_THIS("event_error()", 0);
+  int socket_error{};
+  fd_get_socket_error(file_descriptor(), &socket_error);
+
+  LT_LOG_DEBUG_THIS("event_error() : errno:%s", system::errno_enum(socket_error));
 
   auto weak_self = m_self_ptr;
 
@@ -328,9 +337,9 @@ CurlSocket::event_error() {
 
   // This shouldn't happen, or might be a bug / unexpected behavior in libcurl.
   if (!weak_self.expired()) {
-    LT_LOG_DEBUG_THIS("event_error() : self still exists : is_internal:%i", m_curl_internal);
-    throw internal_error("CurlSocket::event_error() self still exists : " +
-                         std::to_string(file_descriptor()) + " : is_internal:" + std::to_string(m_curl_internal));
+    LT_LOG_DEBUG_THIS("event_error() : self still exists : is_internal:%i errno:%s", m_curl_internal, system::errno_enum(socket_error));
+    throw internal_error("CurlSocket::event_error() self still exists : " + std::to_string(file_descriptor()) +
+                         " : is_internal:" + std::to_string(m_curl_internal) + " : errno:" + system::errno_enum_str(socket_error));
   }
 }
 

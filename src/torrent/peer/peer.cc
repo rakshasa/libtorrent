@@ -19,15 +19,15 @@ bool Peer::is_incoming() const             { return peer_info()->is_incoming(); 
 bool Peer::is_encrypted() const            { return c_ptr()->is_encrypted(); }
 bool Peer::is_obfuscated() const           { return c_ptr()->is_obfuscated(); }
 
-bool Peer::is_up_choked() const            { return c_ptr()->is_up_choked(); }
-bool Peer::is_up_interested() const        { return c_ptr()->is_down_interested(); }
+bool Peer::is_up_choked() const            { return c_ptr()->up().is_choked(); }
+bool Peer::is_up_interested() const        { return c_ptr()->down().is_interested(); }
 
-bool Peer::is_down_choked() const          { return !c_ptr()->is_down_remote_unchoked(); }
-bool Peer::is_down_choked_limited() const  { return !c_ptr()->is_down_local_unchoked(); }
-bool Peer::is_down_queued() const          { return c_ptr()->is_down_queued(); }
-bool Peer::is_down_interested() const      { return c_ptr()->is_up_interested(); }
+bool Peer::is_down_choked() const          { return !c_ptr()->down().is_unchoked(); }
+bool Peer::is_down_choked_limited() const  { return !c_ptr()->down().is_local_unchoked(); }
+bool Peer::is_down_queued() const          { return c_ptr()->down().is_queued(); }
+bool Peer::is_down_interested() const      { return c_ptr()->up().is_interested(); }
 
-bool Peer::is_snubbed() const              { return c_ptr()->is_up_snubbed(); }
+bool Peer::is_snubbed() const              { return c_ptr()->up().is_snubbed(); }
 bool Peer::is_banned() const               { return m_peerInfo->failed_counter() >= 64; }
 
 void Peer::set_snubbed(bool v)             { m_ptr()->set_upload_snubbed(v); }

@@ -6,6 +6,7 @@
 #include "net/socket_stream.h"
 #include "protocol/encryption_info.h"
 #include "protocol/peer_chunks.h"
+#include "protocol/peer_connection_state.h"
 #include "protocol/protocol_base.h"
 #include "protocol/request_list.h"
 #include "torrent/system/poll.h"
@@ -36,11 +37,6 @@ public:
   using EncryptBuffer = ProtocolBuffer<16384>;
 #endif
 
-  // Bitmasks for peer exchange messages to send.
-  static constexpr int PEX_DO      = (1 << 0);
-  static constexpr int PEX_ENABLE  = (1 << 1);
-  static constexpr int PEX_DISABLE = (1 << 2);
-
   PeerConnectionBase();
   ~PeerConnectionBase() override;
 
@@ -49,14 +45,8 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, int fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  bool                is_up_choked() const            { return m_up_choke.choked(); }
-  bool                is_up_interested() const        { return m_up_choke.queued(); }
-  bool                is_up_snubbed() const           { return m_up_choke.snubbed(); }
-
-  bool                is_down_queued() const          { return m_down_choke.queued(); }
-  bool                is_down_local_unchoked() const  { return m_down_choke.unchoked(); }
-  bool                is_down_remote_unchoked() const { return m_down_unchoked; }
-  bool                is_down_interested() const      { return m_down_interested; }
+  const auto&         up() const                      { return m_up; }
+  const auto&         down() const                    { return m_down; }
 
   void                set_upload_snubbed(bool v);
 
@@ -71,8 +61,8 @@ public:
   PeerChunks*         peer_chunks()                   { return &m_peer_chunks; }
   const PeerChunks*   c_peer_chunks() const           { return &m_peer_chunks; }
 
-  choke_status*       up_choke()                      { return &m_up_choke; }
-  choke_status*       down_choke()                    { return &m_down_choke; }
+  choke_status*       up_choke()                      { return &m_up.choke; }
+  choke_status*       down_choke()                    { return &m_down.choke; }
 
   DownloadMain*       download()                      { return m_download; }
   RequestList*        request_list()                  { return &m_request_list; }
@@ -81,7 +71,7 @@ public:
   ProtocolExtension*  extensions()                    { return m_extensions; }
   DataBuffer*         extension_message()             { return &m_extension_message; }
 
-  void                do_peer_exchange()              { m_send_pex_mask |= PEX_DO; }
+  void                do_peer_exchange()              { m_up.schedule_pex_exchange(); }
   void                set_peer_exchange(bool state);
 
   // These must be implemented by the child class.
@@ -93,8 +83,6 @@ public:
   bool                receive_download_choke(bool choke);
 
   void                event_error() override;
-
-  void                push_unread(const void* data, uint32_t size);
 
   void                cancel_transfer(BlockTransfer* transfer);
 
@@ -115,7 +103,12 @@ public:
   std::chrono::seconds idle_time() const              { return m_idle_time; }
 
 protected:
+  friend class choke_queue;
+  friend class HandshakeManager;
+
   static constexpr uint32_t extension_must_encrypt = ~uint32_t();
+
+  auto&               down_mutable();
 
   void                load_up_chunk();
 
@@ -150,43 +143,15 @@ protected:
   bool                try_request_pieces();
 
   bool                send_pex_message();
-  bool                send_ext_message();
+  bool                send_pending_extension();
 
   DownloadMain*       m_download{};
-
-  ProtocolRead*       m_down;
-  ProtocolWrite*      m_up;
 
   PeerChunks          m_peer_chunks;
 
   RequestList         m_request_list;
-  ChunkHandle         m_down_chunk;
-  uint32_t            m_down_stall{};
-
-  Piece               m_up_piece;
-  ChunkHandle         m_up_chunk;
-
-  // The interested state no longer follows the spec's wording as it
-  // has been swapped.
-  //
-  // Thus the same ProtocolBase object now groups the same choke and
-  // interested states togheter, thus for m_up 'interested' means the
-  // remote peer wants upload and 'choke' means we've choked upload to
-  // that peer.
-  //
-  // In the downlod object, 'queued' now means the same as the spec's
-  // 'unchoked', while 'unchoked' means we start requesting pieces.
-  choke_status        m_up_choke;
-  choke_status        m_down_choke;
-
-  bool                m_down_interested{};
-  bool                m_down_unchoked{};
-
-  bool                m_send_choked{};
-  bool                m_send_interested{};
-  bool                m_tryRequest{};
-
-  int                 m_send_pex_mask{};
+  protocol::StateUp   m_up;
+  protocol::StateDown m_down;
 
   std::chrono::microseconds m_time_last_read{};
 
@@ -207,15 +172,11 @@ protected:
   bool                m_incore_continous{};
 };
 
-inline void
-PeerConnectionBase::push_unread(const void* data, uint32_t size) {
-  std::memcpy(m_down->buffer()->end(), data, size);
-  m_down->buffer()->move_end(size);
-}
+inline auto& PeerConnectionBase::down_mutable() { return m_down; }
 
 inline void
 PeerConnectionBase::read_insert_poll_safe() {
-  if (m_down->get_state() != ProtocolRead::IDLE)
+  if (m_down.protocol->get_state() != ProtocolRead::IDLE)
     return;
 
   this_thread::poll()->insert_read(this);
@@ -223,7 +184,7 @@ PeerConnectionBase::read_insert_poll_safe() {
 
 inline void
 PeerConnectionBase::write_insert_poll_safe() {
-  if (m_up->get_state() != ProtocolWrite::IDLE)
+  if (m_up.protocol->get_state() != ProtocolWrite::IDLE)
     return;
 
   this_thread::poll()->insert_write(this);

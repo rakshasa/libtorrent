@@ -240,6 +240,14 @@ Poll::do_interrupt() {
   m_internal->m_wake_event.send_signal();
 }
 
+void
+Poll::do_shutdown_interrupt() {
+  if (m_polling_state.fetch_or(flag_interrupted, std::memory_order_release) != flag_polling)
+    return;
+
+  m_internal->m_wake_event.send_signal();
+}
+
 int
 Poll::poll(std::chrono::microseconds timeout) {
   auto previous_state = m_polling_state.fetch_or(flag_polling, std::memory_order_acquire);

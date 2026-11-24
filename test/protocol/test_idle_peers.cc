@@ -29,12 +29,20 @@ public:
   void start(std::chrono::seconds now) { m_idle_seen = now; }
 
   void state(bool interested, bool remote_unchoked, bool local_unchoked) {
-    m_down_interested = interested;
-    m_down_unchoked   = remote_unchoked;
-    m_down_choke.set_unchoked(local_unchoked);
+    if (interested)
+      m_down.mark_interested();
+    else
+      m_down.mark_not_interested();
+
+    if (remote_unchoked)
+      m_down.mark_unchoked();
+    else
+      m_down.mark_choked();
+
+    m_down.choke.set_unchoked(local_unchoked);
   }
 
-  void wants_ours(bool v) { m_up_choke.set_queued(v); }
+  void wants_ours(bool v) { m_up.choke.set_queued(v); }
   void unchoke_received()  { m_idle_unchoked = true; }  // what the UNCHOKE message handler sets
 
   void received(uint32_t bytes) { m_peer_chunks.download_throttle()->rate()->insert(bytes); }

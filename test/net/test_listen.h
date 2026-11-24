@@ -11,8 +11,11 @@ class test_listen : public TestFixtureWithMockAndMainThread {
   CPPUNIT_TEST(test_listen_failure);
   CPPUNIT_TEST(test_retry_failure);
   CPPUNIT_TEST(test_range_exhausted);
+  CPPUNIT_TEST(test_dht_port_unavailable);
+  CPPUNIT_TEST(test_device_failure);
   CPPUNIT_TEST(test_invalid_address);
   CPPUNIT_TEST(test_open_success);
+  CPPUNIT_TEST(test_reopen_at_descriptor_limit);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -22,8 +25,11 @@ public:
   void test_listen_failure();
   void test_retry_failure();
   void test_range_exhausted();
+  void test_dht_port_unavailable();
+  void test_device_failure();
   void test_invalid_address();
   void test_open_success();
+  void test_reopen_at_descriptor_limit();
 };
 
 #endif

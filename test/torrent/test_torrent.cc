@@ -19,7 +19,9 @@
 #include "torrent/path.h"
 #include "torrent/runtime/client_config.h"
 #include "torrent/torrent.h"
+#include "torrent/tracker/tracker.h"
 #include "torrent/utils/functional.h"
+#include "torrent/utils/resume.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_torrent, "torrent");
 
@@ -168,6 +170,50 @@ test_torrent::test_download_find_wrong_size() {
   CPPUNIT_ASSERT(!torrent::download_find("").is_valid());
   // A longer string that starts with the registered hash.
   CPPUNIT_ASSERT(!torrent::download_find(std::string(19, '\x33') + std::string(1, '\0') + "x").is_valid());
+}
+
+void
+test_torrent::test_resume_extra_tracker() {
+  const std::string url = "http://example.com/announce";
+
+  auto              first_save  = torrent::Object::create_map();
+  auto              second_save = torrent::Object::create_map();
+
+  {
+    scoped_download added{torrent::download_add(create_metafile("resume", 1), 0)};
+    added.download.tracker_controller().add_extra_tracker(1, url);
+    torrent::resume_save_tracker_settings(added.download, first_save);
+  }
+
+  {
+    scoped_download added{torrent::download_add(create_metafile("resume", 1), 0)};
+    torrent::resume_load_tracker_settings(added.download, first_save);
+    torrent::resume_save_tracker_settings(added.download, second_save);
+  }
+
+  scoped_download added{torrent::download_add(create_metafile("resume", 1), 0)};
+  torrent::resume_load_tracker_settings(added.download, second_save);
+
+  auto tracker = added.download.tracker_controller().c_find_if([&url](const auto& t) { return t.url() == url; });
+
+  CPPUNIT_ASSERT(tracker.is_valid());
+  CPPUNIT_ASSERT(tracker.is_extra_tracker());
+  CPPUNIT_ASSERT(tracker.group() == 1);
+}
+
+void
+test_torrent::test_resume_extra_tracker_unavailable() {
+  auto  resume = torrent::Object::create_map();
+  auto& entry  = resume.insert_key("trackers", torrent::Object::create_map()).insert_key("dht://", torrent::Object::create_map());
+
+  entry.insert_key("extra_tracker", int64_t{1});
+  entry.insert_key("group", int64_t{0});
+
+  scoped_download added{torrent::download_add(create_metafile("resume", 1), 0)};
+
+  CPPUNIT_ASSERT_THROW(added.download.tracker_controller().add_extra_tracker(0, "dht://"), torrent::input_error);
+  CPPUNIT_ASSERT_NO_THROW(torrent::resume_load_tracker_settings(added.download, resume));
+  CPPUNIT_ASSERT(added.download.tracker_controller().size() == 0);
 }
 
 void

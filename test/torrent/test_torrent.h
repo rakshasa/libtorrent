@@ -6,6 +6,8 @@ class test_torrent : public test_fixture {
   CPPUNIT_TEST(test_download_add_zero_info_hash);
   CPPUNIT_TEST(test_download_find_unknown_hash);
   CPPUNIT_TEST(test_download_find_wrong_size);
+  CPPUNIT_TEST(test_resume_extra_tracker);
+  CPPUNIT_TEST(test_resume_extra_tracker_unavailable);
   CPPUNIT_TEST(test_single_file_name_utf8);
   CPPUNIT_TEST_SUITE_END();
 
@@ -17,5 +19,7 @@ public:
   void test_download_add_zero_info_hash();
   void test_download_find_unknown_hash();
   void test_download_find_wrong_size();
+  void test_resume_extra_tracker();
+  void test_resume_extra_tracker_unavailable();
   void test_single_file_name_utf8();
 };

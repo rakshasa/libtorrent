@@ -330,9 +330,12 @@ DownloadWrapper::receive_update_priorities() {
   }
 
   bool was_partial = data()->wanted_chunks() != 0;
-  data()->update_wanted_chunks();
 
-  m_main->chunk_selector()->update_priorities();
+  if (!m_main->chunk_selector()->empty()) {
+    data()->update_wanted_chunks();
+
+    m_main->chunk_selector()->update_priorities();
+  }
 
   for (const auto& peer : *m_main->connection_list()) {
     peer->m_ptr()->update_interested();
