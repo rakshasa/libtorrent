@@ -2,6 +2,7 @@
 
 #include "test/protocol/test_buffered_messages.h"
 
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -40,7 +41,8 @@ const char keep_alive[4] = {0, 0, 0, 0};
 void
 test_buffered_messages::setUp() {
   TestFixtureWithMainThread::setUp();
-  CPPUNIT_ASSERT(::socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, m_fds) == 0);
+  CPPUNIT_ASSERT(::socketpair(AF_UNIX, SOCK_STREAM, 0, m_fds) == 0);
+  CPPUNIT_ASSERT(::fcntl(m_fds[0], F_SETFL, ::fcntl(m_fds[0], F_GETFL) | O_NONBLOCK) == 0);
 }
 
 void
