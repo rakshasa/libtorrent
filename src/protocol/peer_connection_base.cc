@@ -193,6 +193,13 @@ PeerConnectionBase::update_idle_time(std::chrono::seconds now) {
 
   m_idle_seen = now;
 
+  // The wait is ours: it unchoked us while our download slots are taken, or it wants our pieces while our upload
+  // slots are.
+  bool ours        = (m_down.is_unchoked() && !m_down.is_local_unchoked()) || m_up.is_interested();
+  bool was_waiting = m_idle_was_waiting;
+
+  m_idle_was_waiting = m_down.is_interested() && !ours;
+
   if (!m_down.is_interested() || down != m_idle_down_total || up != m_idle_up_total || m_idle_was_unchoked) {
     m_idle_down_total   = down;
     m_idle_up_total     = up;
@@ -201,12 +208,10 @@ PeerConnectionBase::update_idle_time(std::chrono::seconds now) {
     return m_idle_time;
   }
 
-  // The wait is ours: it unchoked us while our download slots are taken, or it wants our pieces while our upload
-  // slots are.
-  if ((m_down.is_unchoked() && !m_down.is_local_unchoked()) || m_up.is_interested())
-    return m_idle_time;
+  // Two minutes pass between looks, so only time that began with the peer keeping us waiting counts.
+  if (m_idle_was_waiting && was_waiting)
+    m_idle_time += elapsed;
 
-  m_idle_time += elapsed;
   return m_idle_time;
 }
 

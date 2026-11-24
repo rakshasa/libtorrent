@@ -31,7 +31,11 @@ public:
 
   using torrent::PeerConnectionBase::check_idle;
 
-  void start(std::chrono::seconds now) { m_idle_seen = now; }
+  // The last look was at `now`, and it kept us waiting then.
+  void start(std::chrono::seconds now) {
+    m_idle_seen        = now;
+    m_idle_was_waiting = true;
+  }
 
   void state(bool interested, bool remote_unchoked, bool local_unchoked) {
     if (interested)
@@ -167,7 +171,8 @@ test_idle_peers::test_clock_paused_while_our_slots_are_full() {
 
   c.state(true, true, true);  // now we ask it, and it sends nothing
 
-  CPPUNIT_ASSERT(c.update_idle_time(2080s) == 240s);
+  CPPUNIT_ASSERT(c.update_idle_time(2080s) == 120s);  // the wait began after the last look
+  CPPUNIT_ASSERT(c.update_idle_time(2200s) == 240s);
 }
 
 void
@@ -185,7 +190,23 @@ test_idle_peers::test_clock_paused_while_it_wants_our_pieces() {
 
   c.wants_ours(false);
 
-  CPPUNIT_ASSERT(c.update_idle_time(2320s) == 240s);
+  CPPUNIT_ASSERT(c.update_idle_time(2320s) == 120s);
+  CPPUNIT_ASSERT(c.update_idle_time(2440s) == 240s);
+}
+
+void
+test_idle_peers::test_clock_skips_interval_before_wait() {
+  constexpr auto stalled = torrent::DownloadMain::idle_peer_timeout_stalled;
+
+  idle_connection c;
+  c.start(1000s);
+  c.state(false, false, false);
+  CPPUNIT_ASSERT(!c.check_idle(1120s, stalled));
+
+  c.state(true, false, false);  // it got a piece we want just before the look
+  CPPUNIT_ASSERT(!c.check_idle(1240s, stalled));
+  CPPUNIT_ASSERT(c.idle_time() == 0s);
+  CPPUNIT_ASSERT(c.check_idle(1360s, stalled));
 }
 
 void
