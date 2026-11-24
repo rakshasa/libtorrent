@@ -27,6 +27,7 @@ public:
   using PeerConnectionBase::send_pending_extension;
 
   void schedule_pex() { m_up.schedule_pex_enable(); }
+  void schedule_pex_exchange() { m_up.schedule_pex_exchange(); }
   bool has_pending_pex() const { return m_up.has_pending_pex(); }
   auto* buffer() { return m_up.protocol->buffer(); }
   void flush_extension() { m_extension_message.clear(); buffer()->reset(); }
@@ -134,6 +135,30 @@ TestExtensions::test_pending_extension_fallback() {
   CPPUNIT_ASSERT(extensions->request_metadata_piece(&piece));
   connection.schedule_pex();
 
+  CPPUNIT_ASSERT(connection.send_pending_extension());
+  CPPUNIT_ASSERT(!connection.has_pending_pex());
+  CPPUNIT_ASSERT(!extensions->has_pending_message());
+}
+
+void
+TestExtensions::test_pending_extension_pex_off() {
+  extension_connection connection;
+  auto* extensions = connection.extensions();
+  torrent::Piece piece(0, 0, torrent::ProtocolExtension::metadata_piece_size);
+
+  // The peer announced ut_pex with id 0, as rtorrent does while PEX is off for the torrent.
+  extensions->set_remote_supported(torrent::ProtocolExtension::UT_PEX);
+  CPPUNIT_ASSERT_EQUAL(uint8_t{0}, extensions->id(torrent::ProtocolExtension::UT_PEX));
+
+  // Nothing is written for the peer exchange, so the caller may go on to the pieces.
+  connection.schedule_pex_exchange();
+  CPPUNIT_ASSERT(!connection.send_pending_extension());
+  CPPUNIT_ASSERT(!connection.has_pending_pex());
+  CPPUNIT_ASSERT(connection.buffer()->size_end() == 0);
+
+  // A pending extension message goes out in the same call.
+  CPPUNIT_ASSERT(extensions->request_metadata_piece(&piece));
+  connection.schedule_pex_exchange();
   CPPUNIT_ASSERT(connection.send_pending_extension());
   CPPUNIT_ASSERT(!connection.has_pending_pex());
   CPPUNIT_ASSERT(!extensions->has_pending_message());

@@ -966,7 +966,10 @@ PeerConnectionBase::send_pex_message() {
     write_prepare_extension(ProtocolExtension::UT_PEX, pexMessage);
 
   } else {
+    // The peer has ut_pex off (id 0), so nothing was written and the
+    // caller goes on to the pending extension message and the pieces.
     m_up.clear_pending_pex();
+    return false;
   }
 
   return true;

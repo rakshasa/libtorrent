@@ -8,6 +8,7 @@ class TestExtensions : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_pending_pex_transitions);
   CPPUNIT_TEST(test_pending_extension_priority);
   CPPUNIT_TEST(test_pending_extension_fallback);
+  CPPUNIT_TEST(test_pending_extension_pex_off);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -17,4 +18,5 @@ public:
   void test_pending_pex_transitions();
   void test_pending_extension_priority();
   void test_pending_extension_fallback();
+  void test_pending_extension_pex_off();
 };
