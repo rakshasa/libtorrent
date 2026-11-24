@@ -15,10 +15,11 @@ class test_idle_peers : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_plain_disconnect_not_refused);
   CPPUNIT_TEST(test_stall_steady_rate);
   CPPUNIT_TEST(test_stall_nothing_received);
-  CPPUNIT_TEST(test_stall_far_below_best);
+  CPPUNIT_TEST(test_stall_far_below_average);
   CPPUNIT_TEST(test_stall_one_bad_tick);
   CPPUNIT_TEST(test_stall_slow_but_steady);
-  CPPUNIT_TEST(test_stall_forgets_old_best);
+  CPPUNIT_TEST(test_stall_forgets_old_rate);
+  CPPUNIT_TEST(test_stall_fast_tick);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -35,8 +36,9 @@ public:
   void test_plain_disconnect_not_refused();
   void test_stall_steady_rate();
   void test_stall_nothing_received();
-  void test_stall_far_below_best();
+  void test_stall_far_below_average();
   void test_stall_one_bad_tick();
   void test_stall_slow_but_steady();
-  void test_stall_forgets_old_best();
+  void test_stall_forgets_old_rate();
+  void test_stall_fast_tick();
 };

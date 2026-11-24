@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 
 #include "download/download_main.h"
+#include "download/stall_watch.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/download_info.h"
 #include "torrent/peer/peer_info.h"
@@ -240,9 +241,10 @@ constexpr uint64_t tick = 30;
 
 // Feeds `ticks` ticks at `rate` bytes a second; returns whether the last one left the download stalled.
 bool
-feed(torrent::StallWatch& w, uint64_t& total, uint64_t rate, int ticks) {
+feed(TestMainThread* thread, torrent::StallWatch& w, uint64_t& total, uint64_t rate, int ticks) {
   bool stalled = false;
   for (int i = 0; i != ticks; i++) {
+    thread->test_add_cached_time(std::chrono::seconds(tick));
     total += rate * tick;
     stalled = w.update(total);
   }
@@ -257,7 +259,7 @@ test_idle_peers::test_stall_steady_rate() {
   uint64_t total = 0;
 
   w.update(total);
-  CPPUNIT_ASSERT(!feed(w, total, 1024 * KiB, 30));
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 1024 * KiB, 30));
 }
 
 void
@@ -265,21 +267,21 @@ test_idle_peers::test_stall_nothing_received() {
   torrent::StallWatch w;
   uint64_t total = 0;
 
-  w.update(total);                                  // the first look only primes
-  CPPUNIT_ASSERT(!feed(w, total, 0, 1));            // one starved tick is not a stall
-  CPPUNIT_ASSERT(feed(w, total, 0, 1));             // two in a row are
+  w.update(total);                                                // the first look only primes
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 0, 1));     // one starved tick is not a stall
+  CPPUNIT_ASSERT(feed(m_main_thread.get(), w, total, 0, 1));      // two in a row are
 }
 
 void
-test_idle_peers::test_stall_far_below_best() {
+test_idle_peers::test_stall_far_below_average() {
   torrent::StallWatch w;
   uint64_t total = 0;
 
   w.update(total);
-  CPPUNIT_ASSERT(!feed(w, total, 4096 * KiB, 4));
-  CPPUNIT_ASSERT(!feed(w, total, 300 * KiB, 1));    // under a tenth of the best tick, once
-  CPPUNIT_ASSERT(feed(w, total, 300 * KiB, 1));     // and again: stalled though far above the floor
-  CPPUNIT_ASSERT(!feed(w, total, 500 * KiB, 1));    // a tenth or more ends it
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 4096 * KiB, 20));
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 300 * KiB, 1));   // under a tenth of the average, once
+  CPPUNIT_ASSERT(feed(m_main_thread.get(), w, total, 300 * KiB, 1));    // and again: stalled though far above the floor
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 500 * KiB, 1));   // a tenth or more ends it
 }
 
 void
@@ -288,10 +290,10 @@ test_idle_peers::test_stall_one_bad_tick() {
   uint64_t total = 0;
 
   w.update(total);
-  CPPUNIT_ASSERT(!feed(w, total, 1024 * KiB, 3));
-  CPPUNIT_ASSERT(!feed(w, total, 0, 1));
-  CPPUNIT_ASSERT(!feed(w, total, 1024 * KiB, 1));
-  CPPUNIT_ASSERT(!feed(w, total, 0, 1));
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 1024 * KiB, 3));
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 0, 1));
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 1024 * KiB, 1));
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 0, 1));
 }
 
 void
@@ -300,18 +302,29 @@ test_idle_peers::test_stall_slow_but_steady() {
   uint64_t total = 0;
 
   w.update(total);
-  CPPUNIT_ASSERT(!feed(w, total, 3 * KiB, 30));     // above 2 KiB/s and at its own best: never stalled
-  CPPUNIT_ASSERT(feed(w, total, 1 * KiB, 2));       // under 2 KiB/s
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 3 * KiB, 30));    // above 2 KiB/s and at its own average
+  CPPUNIT_ASSERT(feed(m_main_thread.get(), w, total, 1 * KiB, 2));      // under 2 KiB/s
 }
 
 void
-test_idle_peers::test_stall_forgets_old_best() {
+test_idle_peers::test_stall_forgets_old_rate() {
   torrent::StallWatch w;
   uint64_t total = 0;
 
   w.update(total);
-  CPPUNIT_ASSERT(!feed(w, total, 4096 * KiB, 1));
-  CPPUNIT_ASSERT(feed(w, total, 100 * KiB, 2));     // a fortieth of the best tick
-  CPPUNIT_ASSERT(feed(w, total, 100 * KiB, 18));    // the best tick is still among the last 20 looked at
-  CPPUNIT_ASSERT(!feed(w, total, 100 * KiB, 1));    // 20 ticks later it is gone: 100 KiB/s is the download's own rate
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 4096 * KiB, 20));
+  CPPUNIT_ASSERT(feed(m_main_thread.get(), w, total, 100 * KiB, 2));    // a fortieth of the average
+  CPPUNIT_ASSERT(feed(m_main_thread.get(), w, total, 100 * KiB, 10));   // the fast ticks still weigh in the ten minutes
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 100 * KiB, 10));  // gone: 100 KiB/s is the download's own rate
+}
+
+void
+test_idle_peers::test_stall_fast_tick() {
+  torrent::StallWatch w;
+  uint64_t total = 0;
+
+  // 30 GiB in one tick is over Rate::insert()'s bound in bytes, not in KiB.
+  w.update(total);
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 1024 * 1024 * KiB, 2));
+  CPPUNIT_ASSERT(!feed(m_main_thread.get(), w, total, 1024 * 1024 * KiB, 1));
 }

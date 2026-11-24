@@ -13,6 +13,7 @@
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_wrapper.h"
+#include "download/stall_watch.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/initial_seed.h"
@@ -322,33 +323,6 @@ DownloadMain::receive_connect_peers() {
   }
 }
 
-bool
-StallWatch::update(uint64_t total) {
-  if (!m_primed || total < m_last_total) {
-    m_primed     = true;
-    m_last_total = total;
-    m_starved    = 0;
-    return false;
-  }
-
-  uint64_t got  = total - m_last_total;
-  uint64_t best = 0;
-
-  for (auto v : m_history)
-    best = std::max(best, v);
-
-  m_last_total       = total;
-  m_history[m_pos]   = got;
-  m_pos              = (m_pos + 1) % history_size;
-
-  if (got < floor_bytes || got * 10 < best)
-    m_starved++;
-  else
-    m_starved = 0;
-
-  return stalled();
-}
-
 void
 DownloadMain::drop_idle_peers(bool two_minute_pass) {
   if (!info()->is_active() || info()->is_meta_download() || file_list()->is_done()) {
@@ -356,7 +330,10 @@ DownloadMain::drop_idle_peers(bool two_minute_pass) {
     return;
   }
 
-  bool stalled = m_stall_watch.update(info()->down_rate()->total());
+  if (!m_stall_watch)
+    m_stall_watch = std::make_unique<StallWatch>();
+
+  bool stalled = m_stall_watch->update(info()->down_rate()->total());
 
   // Every connection's clock moves on every tick, so a peer's idle time is right when the count reaches min later.
   auto now   = this_thread::cached_seconds();

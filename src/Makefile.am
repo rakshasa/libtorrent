@@ -79,6 +79,8 @@ libtorrent_other_la_SOURCES = \
 	download/download_main.h \
 	download/download_wrapper.cc \
 	download/download_wrapper.h \
+	download/stall_watch.cc \
+	download/stall_watch.h \
 	\
 	net/address_list.cc \
 	net/address_list.h \

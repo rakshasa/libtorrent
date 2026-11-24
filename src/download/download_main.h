@@ -1,8 +1,8 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
-#include <array>
 #include <deque>
+#include <memory>
 #include <utility>
 
 #include "data/chunk_handle.h"
@@ -28,27 +28,7 @@ class HandshakeManager;
 class DownloadInfo;
 class ThrottleList;
 class InitialSeeding;
-
-// A download's own rate, one 30-second tick at a time. A tick is starved when it brought less than a tenth of the
-// best tick of the last ten minutes, or less than 2 KiB/s; the download is stalled after two starved ticks in a row.
-class StallWatch {
-public:
-  static constexpr uint32_t history_size  = 20;
-  static constexpr uint64_t floor_bytes   = 2 * 1024 * 30;
-  static constexpr uint32_t stalled_after = 2;
-
-  // total: the download's whole received count, read once a tick. Returns whether the download is stalled.
-  bool                update(uint64_t total);
-  bool                stalled() const               { return m_starved >= stalled_after; }
-  void                reset()                       { *this = StallWatch{}; }
-
-private:
-  std::array<uint64_t, history_size> m_history{};
-  uint32_t            m_pos{};
-  uint64_t            m_last_total{};
-  bool                m_primed{};
-  uint32_t            m_starved{};
-};
+class StallWatch;
 
 class DownloadMain {
 public:
@@ -150,10 +130,9 @@ public:
 
   auto&               delay_disconnect_peers()    { return m_delay_disconnect_peers; }
 
-  const StallWatch&   stall_watch() const         { return m_stall_watch; }
-
 private:
-  StallWatch          m_stall_watch;
+  // Only while the download is downloading.
+  std::unique_ptr<StallWatch> m_stall_watch;
 
   DownloadInfo*       m_info;
 
