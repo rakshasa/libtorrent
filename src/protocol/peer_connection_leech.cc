@@ -215,7 +215,7 @@ PeerConnection<type>::read_message() {
       return true;
 
     m_down.mark_unchoked();
-    m_idle_unchoked = true;
+    m_idle_was_unchoked = true;
 
     // Some peers unchoke us even though we're not interested, so we
     // need to ensure it doesn't get added to the queue.

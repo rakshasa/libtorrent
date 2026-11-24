@@ -162,9 +162,9 @@ protected:
 
   std::chrono::seconds m_idle_seen{};
   std::chrono::seconds m_idle_time{};
-  uint64_t            m_idle_down{};
-  uint64_t            m_idle_up{};
-  bool                m_idle_unchoked{};   // It unchoked us since the last look.
+  uint64_t            m_idle_down_total{};
+  uint64_t            m_idle_up_total{};
+  bool                m_idle_was_unchoked{};  // It unchoked us since the last look.
   bool                m_closed_as_idle{};
 
   DataBuffer          m_extension_message;

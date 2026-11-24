@@ -48,7 +48,7 @@ public:
   }
 
   void wants_ours(bool v) { m_up.choke.set_queued(v); }
-  void unchoke_received()  { m_idle_unchoked = true; }  // what the UNCHOKE message handler sets
+  void unchoke_received()  { m_idle_was_unchoked = true; }  // what the UNCHOKE message handler sets
 
   void received(uint32_t bytes) { m_peer_chunks.download_throttle()->rate()->insert(bytes); }
   void sent(uint32_t bytes)     { m_peer_chunks.upload_throttle()->rate()->insert(bytes); }

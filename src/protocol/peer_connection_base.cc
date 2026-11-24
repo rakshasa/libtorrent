@@ -193,11 +193,11 @@ PeerConnectionBase::update_idle_time(std::chrono::seconds now) {
 
   m_idle_seen = now;
 
-  if (!m_down.is_interested() || down != m_idle_down || up != m_idle_up || m_idle_unchoked) {
-    m_idle_down     = down;
-    m_idle_up       = up;
-    m_idle_unchoked = false;
-    m_idle_time     = std::chrono::seconds{};
+  if (!m_down.is_interested() || down != m_idle_down_total || up != m_idle_up_total || m_idle_was_unchoked) {
+    m_idle_down_total   = down;
+    m_idle_up_total     = up;
+    m_idle_was_unchoked = false;
+    m_idle_time         = std::chrono::seconds{};
     return m_idle_time;
   }
 
