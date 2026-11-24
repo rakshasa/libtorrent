@@ -105,14 +105,20 @@ public:
   void                receive_connect_peers();
 
   // A download that is not done and holds ConnectionList::min_size() connections or more no longer dials (see
-  // receive_connect_peers). Its connections to peers that kept it waiting are closed so the slots go to peers it can
-  // dial: after idle_peer_timeout on the two-minute pass, after idle_peer_timeout_stalled on any 30-second tick while
-  // the download is stalled (StallWatch). See PeerConnectionBase::update_idle_time and PeerList::idle_refuse_seconds.
+  // receive_connect_peers). A connection to a peer that kept it waiting closes itself on the keepalive pass, so the
+  // slot goes to a peer it can dial: after idle_peer_timeout, or idle_peer_timeout_stalled while the download is
+  // stalled. See PeerConnectionBase::update_idle_time and PeerList::idle_refuse_seconds.
   static constexpr std::chrono::seconds idle_peer_timeout{5 * 60};
   static constexpr std::chrono::seconds idle_peer_timeout_stalled{90};
 
-  // Called every 30 seconds; two_minute_pass on every fourth call.
-  void                drop_idle_peers(bool two_minute_pass);
+  // Called every tick, before the keepalive pass: sets DownloadInfo::flag_stalled and idle_peer_limit().
+  void                update_idle_peers();
+
+  // How long a connection may stay idle before it closes itself; zero closes none.
+  std::chrono::seconds idle_peer_limit() const    { return m_idle_peer_limit; }
+
+  static std::chrono::seconds idle_peer_limit_for(bool downloading, bool stalled, uint32_t connections,
+                                                  uint32_t min_connections);
 
   void                receive_chunk_done(unsigned int index);
   void                receive_corrupt_chunk(PeerInfo* peerInfo);
@@ -133,6 +139,7 @@ public:
 private:
   // Only while the download is downloading.
   std::unique_ptr<StallWatch> m_stall_watch;
+  std::chrono::seconds        m_idle_peer_limit{};
 
   DownloadInfo*       m_info;
 

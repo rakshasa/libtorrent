@@ -42,6 +42,7 @@ public:
   static constexpr int flag_meta_download       = (1 << 6);
   static constexpr int flag_pex_enabled         = (1 << 7);
   static constexpr int flag_pex_active          = (1 << 8);
+  static constexpr int flag_stalled             = (1 << 9);  // Downloading, and its rate fell away (StallWatch).
 
   static constexpr int public_flags = flag_accepting_seeders;
 
@@ -72,6 +73,7 @@ public:
   bool                is_meta_download() const                     { return m_flags & flag_meta_download; }
   bool                is_pex_enabled() const                       { return m_flags & flag_pex_enabled; }
   bool                is_pex_active() const                        { return m_flags & flag_pex_active; }
+  bool                is_stalled() const                           { return m_flags & flag_stalled; }
 
   int                 flags() const                                { return m_flags; }
 

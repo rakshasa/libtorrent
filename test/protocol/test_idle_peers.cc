@@ -8,7 +8,9 @@
 #include "download/download_main.h"
 #include "download/stall_watch.h"
 #include "protocol/peer_connection_base.h"
+#include "download/available_list.h"
 #include "torrent/download_info.h"
+#include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/peer_list.h"
 
@@ -26,6 +28,8 @@ public:
   bool receive_keepalive() override { return true; }
   void event_read() override {}
   void event_write() override {}
+
+  using torrent::PeerConnectionBase::check_idle;
 
   void start(std::chrono::seconds now) { m_idle_seen = now; }
 
@@ -182,6 +186,58 @@ test_idle_peers::test_clock_paused_while_it_wants_our_pieces() {
   c.wants_ours(false);
 
   CPPUNIT_ASSERT(c.update_idle_time(2320s) == 240s);
+}
+
+void
+test_idle_peers::test_closes_itself_at_limit() {
+  idle_connection c;
+  c.start(1000s);
+  c.state(true, false, false);
+
+  CPPUNIT_ASSERT(!c.check_idle(1120s, timeout));
+  CPPUNIT_ASSERT(!c.check_idle(1240s, timeout));
+  CPPUNIT_ASSERT(!c.is_closed_as_idle());
+  CPPUNIT_ASSERT(c.check_idle(1360s, timeout));
+  CPPUNIT_ASSERT(c.is_closed_as_idle());
+}
+
+void
+test_idle_peers::test_zero_limit_closes_nothing() {
+  idle_connection c;
+  c.start(1000s);
+  c.state(true, false, false);
+
+  CPPUNIT_ASSERT(!c.check_idle(5000s, 0s));
+  CPPUNIT_ASSERT(c.idle_time() == 4000s);  // the clock still runs, so a later limit sees the real idle time
+  CPPUNIT_ASSERT(c.check_idle(5120s, timeout));
+}
+
+void
+test_idle_peers::test_limit_from_download_state() {
+  using torrent::DownloadMain;
+
+  CPPUNIT_ASSERT(DownloadMain::idle_peer_limit_for(true, false, 50, 50) == DownloadMain::idle_peer_timeout);
+  CPPUNIT_ASSERT(DownloadMain::idle_peer_limit_for(true, true, 120, 50) == DownloadMain::idle_peer_timeout_stalled);
+
+  // below min the download dials by itself; stopped, done or fetching metadata: nothing is closed
+  CPPUNIT_ASSERT(DownloadMain::idle_peer_limit_for(true, true, 49, 50) == 0s);
+  CPPUNIT_ASSERT(DownloadMain::idle_peer_limit_for(false, false, 120, 50) == 0s);
+}
+
+void
+test_idle_peers::test_idle_close_not_redialled() {
+  torrent::DownloadInfo info;
+  peer_list             list;
+  list.set_info(&info);
+
+  CPPUNIT_ASSERT(!torrent::ConnectionList::redial_wanted(torrent::ConnectionList::disconnect_idle, true, false, 16384));
+
+  auto a    = address("198.18.1.1", 40001);
+  auto peer = list.connected(reinterpret_cast<sockaddr*>(&a), 0);  // we dialled it
+  CPPUNIT_ASSERT(peer != nullptr);
+
+  list.disconnected(peer, torrent::PeerList::disconnect_set_time | torrent::PeerList::disconnect_idle);
+  CPPUNIT_ASSERT(list.available_list()->empty());
 }
 
 void

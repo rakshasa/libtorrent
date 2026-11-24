@@ -86,6 +86,14 @@ PeerConnection<type>::receive_keepalive() {
   if (this_thread::cached_time() - m_time_last_read > 240s)
     return false;
 
+  if (type == Download::CONNECTION_LEECH &&
+      check_idle(this_thread::cached_seconds(), m_download->idle_peer_limit())) {
+    lt_log_print_info(LOG_PEER_LIST_EVENTS, m_download->info(), "peer_list : closed idle peer : %s : idle:%llds incoming:%i stalled:%i",
+                      sa_pretty_str(m_peerInfo->socket_address()).c_str(), static_cast<long long>(idle_time().count()),
+                      static_cast<int>(m_peerInfo->is_incoming()), static_cast<int>(m_download->info()->is_stalled()));
+    return false;
+  }
+
   // There's no point in adding ourselves to the write poll if the
   // buffer is full, as that will already have been taken care of.
   if (m_up.protocol->get_state() == ProtocolWrite::IDLE &&

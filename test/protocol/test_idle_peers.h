@@ -11,6 +11,10 @@ class test_idle_peers : public TestFixtureWithMainThread {
   CPPUNIT_TEST(test_clock_reset_when_not_interested);
   CPPUNIT_TEST(test_clock_paused_while_our_slots_are_full);
   CPPUNIT_TEST(test_clock_paused_while_it_wants_our_pieces);
+  CPPUNIT_TEST(test_closes_itself_at_limit);
+  CPPUNIT_TEST(test_zero_limit_closes_nothing);
+  CPPUNIT_TEST(test_limit_from_download_state);
+  CPPUNIT_TEST(test_idle_close_not_redialled);
   CPPUNIT_TEST(test_idle_drop_refused_within_window);
   CPPUNIT_TEST(test_plain_disconnect_not_refused);
   CPPUNIT_TEST(test_stall_steady_rate);
@@ -32,6 +36,10 @@ public:
   void test_clock_reset_when_not_interested();
   void test_clock_paused_while_our_slots_are_full();
   void test_clock_paused_while_it_wants_our_pieces();
+  void test_closes_itself_at_limit();
+  void test_zero_limit_closes_nothing();
+  void test_limit_from_download_state();
+  void test_idle_close_not_redialled();
   void test_idle_drop_refused_within_window();
   void test_plain_disconnect_not_refused();
   void test_stall_steady_rate();

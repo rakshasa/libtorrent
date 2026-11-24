@@ -210,6 +210,14 @@ PeerConnectionBase::update_idle_time(std::chrono::seconds now) {
   return m_idle_time;
 }
 
+bool
+PeerConnectionBase::check_idle(std::chrono::seconds now, std::chrono::seconds limit) {
+  auto idle = update_idle_time(now);
+
+  m_closed_as_idle = limit != std::chrono::seconds{} && idle >= limit;
+  return m_closed_as_idle;
+}
+
 void
 PeerConnectionBase::set_upload_snubbed(bool v) {
   if (v)
