@@ -370,19 +370,30 @@ PeerConnection<type>::event_read() {
           return ProtocolRead::buffer_size;
         }();
 
+        bool socket_empty = false;
+
         if (m_down.protocol->buffer()->size_end() < target) {
           unsigned int length = read_stream_throws(m_down.protocol->buffer()->end(), target - m_down.protocol->buffer()->size_end());
           m_down.protocol->throttle()->node_used_unthrottled(length);
 
           if (length == 0) {
-            m_down.protocol->buffer()->move_unused();
-            return;
+            // The buffer can still hold whole messages, e.g. what the
+            // handshake read past the bitfield and passed on with
+            // StateDown::push_unread(). Parse them now rather than wait
+            // for the peer's next message.
+            if (m_down.protocol->buffer()->remaining() == 0) {
+              m_down.protocol->buffer()->move_unused();
+              return;
+            }
+
+            socket_empty = true;
+
+          } else {
+            if (is_encrypted())
+              m_encryption.decrypt(m_down.protocol->buffer()->end(), length);
+
+            m_down.protocol->buffer()->move_end(length);
           }
-
-          if (is_encrypted())
-            m_encryption.decrypt(m_down.protocol->buffer()->end(), length);
-
-          m_down.protocol->buffer()->move_end(length);
         } else {
           // At fill target with no room left but still an incomplete message
           // (corrupt length / hostile peer). Without this, remaining > 0 would
@@ -393,6 +404,18 @@ PeerConnection<type>::event_read() {
 
         while (read_message())
           ; // Do nothing.
+
+        // An incomplete message waits for the next read event. A new
+        // state, e.g. a piece, takes what is buffered and then reads the
+        // socket itself.
+        if (socket_empty) {
+          m_down.protocol->buffer()->move_unused();
+
+          if (m_down.protocol->get_state() == ProtocolRead::IDLE)
+            return;
+
+          break;
+        }
 
         // Continue for another fill when we hit the budget, or when an
         // incomplete message still needs more bytes (poll-churn fix).
