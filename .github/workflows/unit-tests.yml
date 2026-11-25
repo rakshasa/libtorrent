@@ -100,19 +100,11 @@ jobs:
       - uses: vmactions/netbsd-vm@v1
         with:
           prepare: |
-            # 1. Force export the correct package repository path matching your OS version
-            export OS_VERSION=$(uname -r | cut -d_ -f1)
-            export ARCH=$(uname -p)
-            export PKG_PATH="https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/${ARCH}/${OS_VERSION}/All/"
-
-            # 2. Clean up conflicting legacy GCC artifacts
+            # Use the package repository selected by vmactions/netbsd-vm.
             rm -rf /usr/pkg/gcc10/libexec/gcc/x86_64--netbsd/10.5.0/cc1plus
 
-            # 3. Update the package database and install pkgin if not present
-            /usr/sbin/pkg_add -U pkgin || true
+            /usr/sbin/pkg_add -U pkgin
 
-            # 4. Install packages using pkgin (handles dependencies and upgrades automatically)
-            # NOTE: 'openssl' is removed because it is provided by the NetBSD base system.
             pkgin -y update
             pkgin -y install \
               automake \
