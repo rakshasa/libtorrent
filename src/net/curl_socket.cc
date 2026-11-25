@@ -70,8 +70,8 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
     return handle_poll_remove(easy_handle, fd, stack, socket);
 
   if (socket != nullptr && socket->m_curl_zombie) {
-    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : called on zombie CurlSocket, returning CURL_SOCKET_BAD : %p", socket);
-    return CURL_SOCKET_BAD;
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : called on zombie CurlSocket, ignoring poll update : %p", socket);
+    return 0;
   }
 
   if (socket == nullptr) {
