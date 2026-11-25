@@ -125,17 +125,16 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
   auto search = std::make_shared<dht::DhtSearch>(this, target);
   search->add_contacts(contacts);
 
-  auto n = search->get_contact();
+  auto next = search->get_contact();
 
-  while (n != search->end()) {
-    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(search, n)), packet_prio_low);
-    n = search->get_contact();
+  while (next != search->end()) {
+    add_transaction(std::unique_ptr<DhtTransaction>(new DhtTransactionFindNode(search, next)), packet_prio_low);
+    next = search->get_contact();
   }
 
   // This shouldn't happen, it means we had no contactable nodes at all.
   if (!search->start())
-    return;
-    // throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");  ///////////////// TMP
+    throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");
 
   m_searches.insert(search);
 }
@@ -154,8 +153,7 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::
 
   // This can only happen if all nodes we know are bad.
   if (!announce->start())
-    return;
-    // throw internal_error("DhtServer::announce search start failed, no contactable nodes.");  ///////////////// TMP
+    throw internal_error("DhtServer::announce search start failed, no contactable nodes.");
 
   m_searches.insert(announce);
   announce->update_status();
@@ -172,7 +170,7 @@ DhtServer::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht
       auto announce = dynamic_cast<dht::DhtAnnounce*>(itr->second->as_search()->search().get());
 
       if (announce == nullptr)
-        throw internal_error("DhtServer::cancel_announce dynamic_cast to DhtAnnounce failed.");
+        throw internal_error("DhtServer::cancel_announce() dynamic_cast to DhtAnnounce failed.");
 
       bool tracker_match = !tracker.owner_before(announce->tracker()) && !announce->tracker().owner_before(tracker);
 
@@ -188,9 +186,10 @@ DhtServer::cancel_announce(const HashString& info_hash, std::weak_ptr<TrackerDht
 
 void
 DhtServer::update() {
-  // Reset this every 15 minutes. It'll get set back to true if we receive
-  // any valid packets. This allows detecting when the entire network goes
-  // down, and prevents all nodes from getting removed as unresponsive.
+  // Reset this every 15 minutes. It'll get set back to true if we receive any valid packets.
+  //
+  // This allows detecting when the entire network goes down, and prevents all nodes from getting
+  // removed as unresponsive.
   m_network_up = false;
 }
 
@@ -204,7 +203,7 @@ DhtServer::check_search_completed(std::shared_ptr<dht::DhtSearch> search) {
   auto itr = m_searches.find(search);
 
   if (itr == m_searches.end())
-    return; // throw internal_error("DhtServer::mark_search_completed search not found.");
+    throw internal_error("DhtServer::mark_search_completed() search not found.");
 
   // TODO: Verify we got ref_count == 2.
 
@@ -234,8 +233,6 @@ DhtServer::process_query(const HashString& id, const sockaddr* sa, const DhtMess
   m_network_up = true;
 
   raw_string query = msg[key_q].as_raw_string();
-
-  // Construct reply.
   DhtMessage reply;
 
   if (query == raw_string::from_c_str("find_node"))
@@ -251,6 +248,7 @@ DhtServer::process_query(const HashString& id, const sockaddr* sa, const DhtMess
     throw dht::dht_error(dht_error_bad_method, "Unknown query type.");
 
   m_router->node_queried(id, sa);
+
   create_response(msg, sa, reply);
 }
 
@@ -355,8 +353,6 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed known packet : address:%s error:%s",
                      sa_pretty_str(itr->second->address()).c_str(), e.what());
-
-    // create_error(message, itr->second->address(), dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return true;
   }
 
@@ -418,7 +414,6 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed unknown packet : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
-    // create_error(message, sa, dht_error_protocol, "Malformed packet: " + std::string(e.what()));
     return;
   }
 
@@ -460,7 +455,6 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected malformed query : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
-    // create_error(message, sa, dht_error_protocol, "Malformed query: " + std::string(e.what()));
   }
 }
 
@@ -638,16 +632,15 @@ DhtServer::find_node_next(DhtTransactionSearch* transaction) {
 }
 
 std::shared_ptr<DhtMessage>
-DhtServer::create_query(transaction_itr itr, int tID) {
+DhtServer::create_query(transaction_itr itr, int tx_id) {
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
 
-  auto message = std::make_shared<DhtMessage>();
-  auto& query = *message;
-
+  auto  message     = std::make_shared<DhtMessage>();
+  auto& query       = *message;
   auto& transaction = itr->second;
 
-  query[key_t] = std::string{static_cast<char>(tID >> 8), static_cast<char>(tID)};
+  query[key_t] = std::string{static_cast<char>(tx_id >> 8), static_cast<char>(tx_id)};
   query[key_q] = raw_string::from_c_str(queries[transaction->type()]);
   query[key_y] = raw_bencode::from_c_str("1:q");
   query[key_v] = raw_bencode("4:" PEER_VERSION, 6);

@@ -1,7 +1,6 @@
 #ifndef LIBTORRENT_TORRENT_UTILS_ALGORITHM_H
 #define LIBTORRENT_TORRENT_UTILS_ALGORITHM_H
 
-#include <algorithm>
 #include <iterator>
 #include <tuple>
 

@@ -113,7 +113,7 @@ private:
 
   void                find_node_next(DhtTransactionSearch* t);
 
-  std::shared_ptr<DhtMessage> create_query(transaction_itr itr, int tID);
+  std::shared_ptr<DhtMessage> create_query(transaction_itr itr, int tx_id);
 
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
