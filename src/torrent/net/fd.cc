@@ -592,13 +592,13 @@ fd_get_socket_error_using_peek(int fd, int* value) {
   char buffer[1];
   ssize_t result = recv(fd, buffer, sizeof(buffer), MSG_PEEK | MSG_DONTWAIT);
 
-  if (result == -1) {
-    *value = errno;
-    LT_LOG_FD_VALUE("fd_get_socket_error_using_peek() failed", *value);
+  if (result != -1) {
+    *value = 0;
+    LT_LOG_FD_VALUE("fd_get_socket_error_using_peek() did not find an error", *value);
     return false;
   }
 
-  *value = 0;
+  *value = errno;
   LT_LOG_FD_VALUE("fd_get_socket_error_using_peek() succeeded", *value);
   return true;
 }
