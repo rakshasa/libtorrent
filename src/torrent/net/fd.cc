@@ -588,6 +588,22 @@ fd_get_socket_error(int fd, int* value) {
 }
 
 bool
+fd_get_socket_error_using_peek(int fd, int* value) {
+  char buffer[1];
+  ssize_t result = recv(fd, buffer, sizeof(buffer), MSG_PEEK | MSG_DONTWAIT);
+
+  if (result == -1) {
+    *value = errno;
+    LT_LOG_FD_VALUE("fd_get_socket_error_using_peek() failed", *value);
+    return false;
+  }
+
+  *value = 0;
+  LT_LOG_FD_VALUE("fd_get_socket_error_using_peek() succeeded", *value);
+  return true;
+}
+
+bool
 fd_get_type(int fd, int* value) {
   socklen_t length = sizeof(int);
 
