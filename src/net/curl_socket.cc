@@ -327,7 +327,7 @@ CurlSocket::event_write() {
 void
 CurlSocket::event_error() {
   int socket_error{};
-  fd_get_socket_error(file_descriptor(), &socket_error);
+  fd_get_socket_error_using_peek(file_descriptor(), &socket_error);
 
   LT_LOG_DEBUG_THIS("event_error() : errno:%s", system::errno_enum(socket_error));
 
@@ -337,6 +337,9 @@ CurlSocket::event_error() {
 
   // This shouldn't happen, or might be a bug / unexpected behavior in libcurl.
   if (!weak_self.expired()) {
+    // TODO: If self hasn't been deallocated, we should mark it as in error and not allow any more
+    // read/write events to be processed.
+
     LT_LOG_DEBUG_THIS("event_error() : self still exists : is_internal:%i errno:%s", m_curl_internal, system::errno_enum(socket_error));
     throw internal_error("CurlSocket::event_error() self still exists : " + std::to_string(file_descriptor()) +
                          " : is_internal:" + std::to_string(m_curl_internal) + " : errno:" + system::errno_enum_str(socket_error));
