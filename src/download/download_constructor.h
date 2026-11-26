@@ -13,7 +13,7 @@ class Path;
 
 class DownloadConstructor {
 public:
-  void                initialize(Object& b);
+  void                initialize(Object& b, bool is_session);
 
   void                parse_tracker(const Object& b);
 

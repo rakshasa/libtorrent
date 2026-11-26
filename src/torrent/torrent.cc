@@ -130,14 +130,14 @@ Throttle* up_throttle_global()   { return manager->upload_throttle(); }
 const Rate* down_rate()          { return manager->download_throttle()->rate(); }
 const Rate* up_rate()            { return manager->upload_throttle()->rate(); }
 
-Download
-download_add(Object* object, uint32_t tracker_key) {
+static Download
+download_add_impl(Object* object, uint32_t tracker_key, bool is_session) {
   auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
 
   ctor.set_download(download.get());
-  ctor.initialize(*object);
+  ctor.initialize(*object, is_session);
 
   std::string infoHash;
   if (download->info()->is_meta_download())
@@ -178,6 +178,16 @@ download_add(Object* object, uint32_t tracker_key) {
 
   download->set_bencode(object);
   return Download(download.release());
+}
+
+Download
+download_add(Object* object, uint32_t tracker_key) {
+  return download_add_impl(object, tracker_key, false);
+}
+
+Download
+download_add_session(Object* object, uint32_t tracker_key) {
+  return download_add_impl(object, tracker_key, true);
 }
 
 void

@@ -11,6 +11,12 @@ LibTorrent is a BitTorrent library written in C++ for *nix, with a focus on high
 
 To learn how to use libtorrent visit the [Wiki](https://github.com/rakshasa/libtorrent/wiki).
 
+Clients must use `torrent::download_add` for external torrents and magnets.
+Use `torrent::download_add_session` only for trusted session data; it permits
+the internal metadata-download marker needed to restore unfinished magnets.
+Existing clients must switch their session-loading calls to this API before
+upgrading, or saved metadata downloads will be rejected.
+
 Related Projects
 ----------------
 

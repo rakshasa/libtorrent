@@ -62,9 +62,12 @@ any_of_shared_prefix(const std::vector<FileList::split_type>& split_list) {
 } // namespace
 
 void
-DownloadConstructor::initialize(Object& b) {
-  if (!b.has_key_map("info") && b.has_key_string("magnet-uri"))
+DownloadConstructor::initialize(Object& b, bool is_session) {
+  if (!b.has_key_map("info") && b.has_key_string("magnet-uri")) {
     parse_magnet_uri(b, b.get_key_string("magnet-uri"));
+  } else if (!is_session && b.get_key("info").has_key("meta_download")) {
+    throw input_error("External torrent has an internal meta-download marker.");
+  }
 
   if (b.has_key_value("creation date"))
     m_download->info()->set_creation_date(b.get_key_value("creation date"));
@@ -124,6 +127,9 @@ DownloadConstructor::parse_info(const Object& b) {
 
     if (b.get_key_string("pieces").length() != HashString::size_data)
       throw input_error("Meta-download has invalid piece data.");
+
+    if (m_download->info()->name_sanitized() != utils::transform_to_hex_str(b.get_key_string("pieces")) + ".meta")
+      throw input_error("Meta-download has invalid name.");
 
     chunkSize = 1;
     parse_single_file(b, chunkSize);

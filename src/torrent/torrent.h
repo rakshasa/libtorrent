@@ -38,6 +38,9 @@ using DList = std::list<Download>;
 //
 // Might consider redesigning that...
 Download            download_add(Object* s, uint32_t tracker_key) LIBTORRENT_EXPORT;
+
+// Only use for session data loaded from a trusted source.
+Download            download_add_session(Object* s, uint32_t tracker_key) LIBTORRENT_EXPORT;
 void                download_remove(Download d) LIBTORRENT_EXPORT;
 
 // Add all downloads to dlist. The client is responsible for clearing
