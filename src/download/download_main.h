@@ -2,6 +2,7 @@
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
 #include <deque>
+#include <memory>
 #include <utility>
 
 #include "data/chunk_handle.h"
@@ -27,6 +28,7 @@ class HandshakeManager;
 class DownloadInfo;
 class ThrottleList;
 class InitialSeeding;
+class StallWatch;
 
 class DownloadMain {
 public:
@@ -101,6 +103,20 @@ public:
   void                add_peer(const sockaddr* sa);
 
   void                receive_connect_peers();
+
+  // A download that is not done and holds ConnectionList::min_size() connections or more no longer dials (see
+  // receive_connect_peers). A connection to a peer that kept it waiting closes itself on the keepalive pass, so the
+  // slot goes to a peer it can dial: after idle_peer_timeout, or idle_peer_timeout_stalled while the download is
+  // stalled. See protocol::StateDown::update_idle_time and PeerList::idle_refuse_seconds.
+  static constexpr std::chrono::seconds idle_peer_timeout         = 5min;
+  static constexpr std::chrono::seconds idle_peer_timeout_stalled = 90s;
+
+  // Called every tick, before the keepalive pass: sets DownloadInfo::flag_stalled and DownloadInfo::idle_peer_limit().
+  void                update_idle_peers();
+
+  static std::chrono::seconds idle_peer_limit_for(bool downloading, bool stalled, uint32_t connections,
+                                                  uint32_t min_connections);
+
   void                receive_chunk_done(unsigned int index);
   void                receive_corrupt_chunk(PeerInfo* peerInfo);
 
@@ -118,6 +134,9 @@ public:
   auto&               delay_disconnect_peers()    { return m_delay_disconnect_peers; }
 
 private:
+  // Only while the download is downloading.
+  std::unique_ptr<StallWatch> m_stall_watch;
+
   DownloadInfo*       m_info;
 
   tracker::TrackerControllerWrapper m_tracker_controller;

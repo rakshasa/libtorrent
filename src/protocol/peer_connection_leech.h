@@ -27,7 +27,7 @@ public:
 
   void                initialize_custom() override;
   void                update_interested() override;
-  bool                receive_keepalive() override;
+  int                 receive_keepalive() override;
 
   void                event_read() override;
   void                event_write() override;

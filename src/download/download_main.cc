@@ -11,6 +11,7 @@
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_wrapper.h"
+#include "download/stall_watch.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/initial_seed.h"
@@ -185,6 +186,10 @@ DownloadMain::stop() {
   m_slot_stop_handshakes(this);
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
+  info()->unset_flags(DownloadInfo::flag_stalled);
+  m_stall_watch.reset();
+  info()->set_idle_peer_limit(std::chrono::seconds{});
+
   m_initial_seeding.reset();
 
   this_thread::scheduler()->erase(&m_delay_disconnect_peers);
@@ -317,6 +322,30 @@ DownloadMain::receive_connect_peers() {
     if (connection_list()->find(&sa.sa) == connection_list()->end())
       m_slot_start_handshake(&sa.sa, this);
   }
+}
+
+void
+DownloadMain::update_idle_peers() {
+  bool downloading = info()->is_active() && !info()->is_meta_download() && !file_list()->is_done();
+
+  if (!downloading)
+    m_stall_watch.reset();
+  else if (!m_stall_watch)
+    m_stall_watch = std::make_unique<StallWatch>();
+
+  bool stalled = downloading && m_stall_watch->update(info()->down_rate()->total());
+
+  info()->change_flags(DownloadInfo::flag_stalled, stalled);
+  info()->set_idle_peer_limit(idle_peer_limit_for(downloading, stalled, connection_list()->size(), connection_list()->min_size()));
+}
+
+std::chrono::seconds
+DownloadMain::idle_peer_limit_for(bool downloading, bool stalled, uint32_t connections, uint32_t min_connections) {
+  // Below min the download dials by itself, and a small swarm keeps every peer.
+  if (!downloading || connections < min_connections)
+    return std::chrono::seconds{};
+
+  return stalled ? idle_peer_timeout_stalled : idle_peer_timeout;
 }
 
 void

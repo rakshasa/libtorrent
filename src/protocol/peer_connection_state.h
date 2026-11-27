@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_STATE_H
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_STATE_H
 
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -91,6 +92,16 @@ struct StateDown : StateBase {
 
   void                push_unread(const void* data, uint32_t size) const;
 
+  // How long the peer has been of no use to the download: we want its data, it did not unchoke us, and no piece data
+  // went either way (down_total, up_total: the connection's piece bytes so far). A peer that unchoked us while our own
+  // download slots keep us from asking it, or that wants our pieces, is not charged: the wait is ours. Moved on every
+  // keepalive pass; a wait counts from the first pass that saw it.
+  void                 update_idle_time(const StateUp& up, uint64_t down_total, uint64_t up_total, std::chrono::seconds now);
+  std::chrono::seconds idle_time() const;
+
+  // A zero limit is never reached (DownloadInfo::idle_peer_limit).
+  bool                is_idle_for(std::chrono::seconds limit) const;
+
   bool                has_pending_request() const;
   void                schedule_request();
   void                clear_pending_request();
@@ -106,6 +117,13 @@ private:
 
   // NOT_INTERESTED sent by a download choke, not by the pieces.
   bool                m_interest_withheld{};
+
+  std::chrono::seconds m_idle_seen{};
+  std::chrono::seconds m_idle_time{};
+  uint64_t             m_idle_down_total{};
+  uint64_t             m_idle_up_total{};
+  bool                 m_idle_was_waiting{};  // It kept us waiting at the last look.
+  bool                 m_idle_was_unchoked{}; // It unchoked us since the last look.
 };
 
 inline bool StateUp::is_choked() const                    { return choke.choked(); }
@@ -142,11 +160,14 @@ inline bool StateDown::has_pending_interest() const       { return m_send_intere
 inline void StateDown::clear_pending_interest()           { m_send_interested = false; }
 
 inline void StateDown::mark_choked()                      { m_unchoked = false; }
-inline void StateDown::mark_unchoked()                    { m_unchoked = true; }
+inline void StateDown::mark_unchoked()                    { m_unchoked = true; m_idle_was_unchoked = true; }
 inline bool StateDown::has_pending_request() const        { return m_request_pending; }
 inline void StateDown::schedule_request()                 { m_request_pending = true; }
 inline void StateDown::clear_pending_request()            { m_request_pending = false; }
 inline void StateDown::set_pending_request(bool pending)  { m_request_pending = pending; }
+
+inline std::chrono::seconds StateDown::idle_time() const  { return m_idle_time; }
+inline bool StateDown::is_idle_for(std::chrono::seconds limit) const { return limit != std::chrono::seconds{} && m_idle_time >= limit; }
 
 // Restore withheld interest unless the download is complete.
 inline bool StateDown::restore_interest(bool download_done) {
@@ -180,6 +201,27 @@ inline void StateDown::push_unread(const void* data, uint32_t size) const {
 inline void StateDown::mark_interested_and_schedule_if_changed() {
   m_send_interested = !m_interested;
   m_interested = true;
+}
+
+inline void StateDown::update_idle_time(const StateUp& up, uint64_t down_total, uint64_t up_total, std::chrono::seconds now) {
+  auto elapsed     = now - m_idle_seen;
+  bool ours        = (is_unchoked() && !is_local_unchoked()) || up.is_interested();
+  bool was_waiting = m_idle_was_waiting;
+
+  m_idle_seen        = now;
+  m_idle_was_waiting = is_interested() && !ours;
+
+  if (!is_interested() || down_total != m_idle_down_total || up_total != m_idle_up_total || m_idle_was_unchoked) {
+    m_idle_down_total   = down_total;
+    m_idle_up_total     = up_total;
+    m_idle_was_unchoked = false;
+    m_idle_time         = std::chrono::seconds{};
+    return;
+  }
+
+  // Two minutes pass between looks, so only time that began with the peer keeping us waiting counts.
+  if (m_idle_was_waiting && was_waiting)
+    m_idle_time += elapsed;
 }
 
 inline void StateDown::withhold_interest_and_schedule() {

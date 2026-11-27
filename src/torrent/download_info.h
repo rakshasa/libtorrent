@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_INFO_H
 #define LIBTORRENT_DOWNLOAD_INFO_H
 
+#include <chrono>
 #include <cinttypes>
 #include <functional>
 #include <list>
@@ -42,6 +43,7 @@ public:
   static constexpr int flag_meta_download       = (1 << 6);
   static constexpr int flag_pex_enabled         = (1 << 7);
   static constexpr int flag_pex_active          = (1 << 8);
+  static constexpr int flag_stalled             = (1 << 9);  // Downloading, and its rate fell away (StallWatch).
 
   static constexpr int public_flags = flag_accepting_seeders;
 
@@ -72,6 +74,7 @@ public:
   bool                is_meta_download() const                     { return m_flags & flag_meta_download; }
   bool                is_pex_enabled() const                       { return m_flags & flag_pex_enabled; }
   bool                is_pex_active() const                        { return m_flags & flag_pex_active; }
+  bool                is_stalled() const                           { return m_flags & flag_stalled; }
 
   int                 flags() const                                { return m_flags; }
 
@@ -120,6 +123,9 @@ public:
   uint32_t            upload_unchoked() const                      { return m_upload_unchoked; }
   uint32_t            download_unchoked() const                    { return m_download_unchoked; }
 
+  // How long a connection may stay idle before it closes itself; zero closes none (DownloadMain::update_idle_peers).
+  std::chrono::seconds idle_peer_limit() const                     { return m_idle_peer_limit; }
+
   // The list of addresses is guaranteed to be sorted and unique.
   signal_void_type&   signal_tracker_success() const               { return m_signal_tracker_success; }
   signal_string_type& signal_tracker_failed() const                { return m_signal_tracker_failed; }
@@ -132,6 +138,8 @@ public:
 
   void                set_upload_unchoked(uint32_t num)            { m_upload_unchoked = num; }
   void                set_download_unchoked(uint32_t num)          { m_download_unchoked = num; }
+
+  void                set_idle_peer_limit(std::chrono::seconds limit) { m_idle_peer_limit = limit; }
 
   slot_stat_type&     slot_left()                                  { return m_slot_stat_left; }
   slot_stat_type&     slot_completed()                             { return m_slot_stat_completed; }
@@ -166,6 +174,8 @@ private:
 
   uint32_t            m_upload_unchoked{};
   uint32_t            m_download_unchoked{};
+
+  std::chrono::seconds m_idle_peer_limit{};
 
   slot_stat_type      m_slot_stat_left;
   slot_stat_type      m_slot_stat_completed;

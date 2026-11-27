@@ -77,7 +77,9 @@ public:
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
   virtual void        update_interested() = 0;
-  virtual bool        receive_keepalive() = 0;
+
+  // Returns 0 to keep the connection, else the ConnectionList::disconnect_* flags to close it with.
+  virtual int         receive_keepalive() = 0;
 
   bool                receive_upload_choke(bool choke);
   bool                receive_download_choke(bool choke);

@@ -24,6 +24,7 @@ public:
   static constexpr int flag_restart   = (1 << 4);
   static constexpr int flag_unwanted  = (1 << 5);
   static constexpr int flag_preferred = (1 << 6);
+  static constexpr int flag_idle_dropped = (1 << 7);  // Dropped as idle; refused until PeerList::idle_refuse_seconds pass.
 
   static constexpr int mask_ip_table = flag_unwanted | flag_preferred;
 
@@ -37,6 +38,7 @@ public:
   bool                is_restart() const                    { return m_flags & flag_restart; }
   bool                is_unwanted() const                   { return m_flags & flag_unwanted; }
   bool                is_preferred() const                  { return m_flags & flag_preferred; }
+  bool                is_idle_dropped() const               { return m_flags & flag_idle_dropped; }
 
   int                 flags() const                         { return m_flags; }
 

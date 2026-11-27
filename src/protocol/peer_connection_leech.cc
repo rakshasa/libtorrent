@@ -81,10 +81,22 @@ PeerConnection<type>::update_interested() {
 }
 
 template<Download::ConnectionType type>
-bool
+int
 PeerConnection<type>::receive_keepalive() {
   if (this_thread::cached_time() - m_time_last_read > 240s)
-    return false;
+    return ConnectionList::disconnect_available;
+
+  if (type == Download::CONNECTION_LEECH) {
+    m_down.update_idle_time(m_up, m_peer_chunks.download_throttle()->rate()->total(),
+                            m_peer_chunks.upload_throttle()->rate()->total(), this_thread::cached_seconds());
+
+    if (m_down.is_idle_for(m_download->info()->idle_peer_limit())) {
+      lt_log_print_info(LOG_PEER_LIST_EVENTS, m_download->info(), "peer_list : closed idle peer : %s : idle:%llds incoming:%i stalled:%i",
+                        sa_pretty_str(m_peerInfo->socket_address()).c_str(), static_cast<long long>(m_down.idle_time().count()),
+                        static_cast<int>(m_peerInfo->is_incoming()), static_cast<int>(m_download->info()->is_stalled()));
+      return ConnectionList::disconnect_idle;
+    }
+  }
 
   // There's no point in adding ourselves to the write poll if the
   // buffer is full, as that will already have been taken care of.
@@ -101,7 +113,7 @@ PeerConnection<type>::receive_keepalive() {
   }
 
   if (type != Download::CONNECTION_LEECH)
-    return true;
+    return 0;
 
   m_down.schedule_request();
 
@@ -130,7 +142,7 @@ PeerConnection<type>::receive_keepalive() {
   else if (m_down.stall++ != 0)
     request_list()->stall_initial();
 
-  return true;
+  return 0;
 }
 
 // We keep the message in the buffer if it is incomplete instead of

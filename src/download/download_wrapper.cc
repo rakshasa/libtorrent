@@ -259,6 +259,8 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   if (!info()->is_open())
     return;
 
+  m_main->update_idle_peers();
+
   // Every 2 minutes.
   if (ticks % 4 == 0) {
     if (info()->is_active()) {
@@ -275,8 +277,8 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
     }
 
     for (auto itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end();)
-      if (!(*itr)->m_ptr()->receive_keepalive())
-        itr = m_main->connection_list()->erase(itr, ConnectionList::disconnect_available);
+      if (int flags = (*itr)->m_ptr()->receive_keepalive())
+        itr = m_main->connection_list()->erase(itr, flags);
       else
         itr++;
   }
