@@ -447,12 +447,13 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected unknown packet : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
 
-    if (e.code() == dht_error_generic)
+    if (e.code() == dht_error_generic || e.code() == dht_error_protocol)
       create_error(message, sa, e.code(), e.what());
 
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected malformed query : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
+    create_error(message, sa, dht_error_protocol, "Malformed query: " + std::string(e.what()));
   }
 }
 
@@ -797,10 +798,8 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
         failed_transaction(itr, false, true);
       },
       [this, itr](auto, unsigned int) {
-        if (itr->second->has_quick_timeout()) {
-          failed_transaction(itr, false, true);
-          return false;
-        }
+        if (itr->second->has_quick_timeout())
+          failed_transaction(itr, true, false);
 
         return true;
       },

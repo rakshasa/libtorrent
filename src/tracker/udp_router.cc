@@ -2,6 +2,7 @@
 
 #include "tracker/udp_router.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iterator>
 #include <netdb.h>
@@ -498,12 +499,18 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
 
-  if (m_timeout_queue.empty())
+  auto insert_pos = std::upper_bound(m_timeout_queue.begin(), m_timeout_queue.end(), timeout_time,
+                                     [](auto time, const auto& entry) { return time < std::get<1>(entry); });
+  bool was_empty = m_timeout_queue.empty();
+  bool is_first = insert_pos == m_timeout_queue.begin();
+
+  auto timeout_itr = m_timeout_queue.emplace(insert_pos, id, timeout_time, info);
+  info->timeout_ptr = &std::get<2>(*timeout_itr);
+
+  if (was_empty)
     this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
-
-  m_timeout_queue.emplace_back(id, timeout_time, info);
-
-  info->timeout_ptr = &std::get<2>(m_timeout_queue.back());
+  else if (is_first)
+    this_thread::scheduler()->update_wait_until(&m_task_timeout, timeout_time);
 }
 
 void
