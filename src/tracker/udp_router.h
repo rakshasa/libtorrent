@@ -10,6 +10,7 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
 #include "torrent/system/scheduler.h"
+#include "torrent/utils/list_buckets.h"
 
 namespace torrent::tracker {
 
@@ -24,6 +25,9 @@ public:
   using failure_func     = std::function<void(key_type, int, int)>;
   using connected_func   = std::function<void(key_type)>;
   using packet_sent_func = std::function<void(key_type)>;
+
+  static constexpr size_t       max_retries        = 3;
+  static constexpr unsigned int max_read_datagrams = 64;
 
   struct connection_params {
     prepare_func        prepare;
@@ -67,13 +71,11 @@ private:
   UdpRouter(const UdpRouter&) = delete;
   UdpRouter& operator=(const UdpRouter&) = delete;
 
-  static constexpr unsigned int max_read_datagrams = 64;
-
   struct connection_info;
 
   using connection_map     = std::unordered_map<key_type, connection_info>;
   using write_queue_type   = std::deque<std::pair<key_type, connection_info*>>;
-  using timeout_queue_type = std::list<std::tuple<key_type, std::chrono::seconds, connection_info*>>;
+  using timeout_queue_type = utils::list_buckets<std::tuple<key_type, std::chrono::seconds, connection_info*>, max_retries>;
 
   // TODO: Add itr to self in connection_map.
 

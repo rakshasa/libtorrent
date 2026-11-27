@@ -7,7 +7,7 @@
 #include <set>
 
 #include "dht/dht_transaction.h"
-#include "net/socket_datagram.h"
+#include "dht/udp_router.h"
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
 #include "torrent/system/scheduler.h"
@@ -27,23 +27,21 @@ class TrackerDht;
 
 // UDP server that handles the DHT node communications.
 
-class DhtServer : public SocketDatagram {
+class DhtServer {
 public:
   DhtServer(DhtRouter* self);
-  ~DhtServer() override;
+  ~DhtServer();
 
-  const char*         type_name() const override         { return "dht"; }
-
-  bool                is_active() const                  { return is_open(); }
+  bool                is_active() const                  { return m_udp_router.is_open(); }
 
   void                start(int port);
   void                stop();
 
-  unsigned int        queries_received() const           { return m_queriesReceived; }
-  unsigned int        queries_sent() const               { return m_queriesSent; }
-  unsigned int        replies_received() const           { return m_repliesReceived; }
-  unsigned int        errors_received() const            { return m_errorsReceived; }
-  unsigned int        errors_caught() const              { return m_errorsCaught; }
+  unsigned int        queries_received() const           { return m_queries_received; }
+  unsigned int        queries_sent() const               { return m_queries_sent; }
+  unsigned int        replies_received() const           { return m_replies_received; }
+  unsigned int        errors_received() const            { return m_errors_received; }
+  unsigned int        errors_caught() const              { return m_errors_caught; }
   void                reset_statistics();
 
   // Contact a node to see if it replies. Set id=0 if unknown.
@@ -66,20 +64,13 @@ public:
   void                check_search_completed(std::shared_ptr<dht::DhtSearch> search);
   void                check_search_trimming(std::shared_ptr<dht::DhtSearch> search);
 
-  void                event_read() override;
-  void                event_write() override;
-  void                event_error() override;
-
 private:
   // DHT error codes.
   static constexpr int dht_error_generic    = 201;
-  static constexpr int dht_error_server     = 202;
+  // static constexpr int dht_error_server     = 202;
   static constexpr int dht_error_protocol   = 203;
   static constexpr int dht_error_bad_method = 204;
 
-  // Bound work and state created from a single readable socket event.
-  static constexpr unsigned int max_read_datagrams = 64;
-  static constexpr size_t       max_reply_packets  = 1024;
   static constexpr size_t       max_transactions   = 1024;
 
   struct [[gnu::packed]] compact_node_info {
@@ -89,10 +80,8 @@ private:
     HashString&          id()            { return *HashString::cast_from(_id); }
   };
 
-  using packet_queue   = std::deque<std::shared_ptr<DhtTransactionPacket>>;
   using node_info_list = std::list<compact_node_info>;
-
-  using search_set      = std::set<std::shared_ptr<dht::DhtSearch>>;
+  using search_set     = std::set<std::shared_ptr<dht::DhtSearch>>;
 
   // Pending transactions.
   using transaction_map = std::map<DhtTransaction::key_type, std::shared_ptr<DhtTransaction>>;
@@ -106,16 +95,18 @@ private:
     "announce_peer",
   };
 
-  // Priorities for the outgoing packets.
-  static constexpr int packet_prio_high  = 2;  // For important queries we send (announces).
-  static constexpr int packet_prio_low   = 1;  // For (relatively) unimportant queries we send.
-  static constexpr int packet_prio_reply = 0;  // For replies to peer queries.
-
-  void                start_write();
+  static constexpr int packet_prio_high  = 2;
+  static constexpr int packet_prio_low   = 1;
+  static constexpr int packet_prio_reply = 0;
 
   void                process_query(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_response(const HashString& id, const sockaddr* sa, const DhtMessage& req);
-  void                process_error(const sockaddr* sa, const DhtMessage& error);
+
+  bool                process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::buffer_type& buffer);
+  void                process_unknown_incoming(DhtTransaction::key_type key, const sockaddr* sa, dht::UdpRouter::buffer_type& buffer);
+
+  bool                process_response(transaction_itr itr, const HashString& id, const DhtMessage& req);
+  bool                process_error(transaction_itr itr);
+  void                record_search_error(transaction_itr itr, const char* error);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, const DhtMessage& res);
   void                add_search_contacts(DhtTransactionSearch* t, const DhtMessage& res);
@@ -123,12 +114,13 @@ private:
 
   void                find_node_next(DhtTransactionSearch* t);
 
-  void                add_packet(std::shared_ptr<DhtTransactionPacket> packet, int priority);
-  void                drop_packet(const DhtTransactionPacket* packet);
+  std::shared_ptr<DhtMessage> create_query(transaction_itr itr, int tx_id);
 
-  void                create_query(transaction_itr itr, int tID, const sockaddr* sa, int priority);
   void                create_response(const DhtMessage& req, const sockaddr* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const char* msg);
+  void                create_error(const DhtMessage& req, const sockaddr* sa, int num, const std::string& msg);
+
+  void                send_reply(const sockaddr* sa, DhtMessage& reply, int priority);
 
   void                create_find_node_response(const DhtMessage& arg, DhtMessage& reply);
   void                create_get_peers_response(const DhtMessage& arg, const sockaddr* sa, DhtMessage& reply);
@@ -137,31 +129,33 @@ private:
   int                 add_transaction(std::shared_ptr<DhtTransaction> transaction, int priority);
 
   // This returns the iterator after the given one or end()
-  transaction_itr     failed_transaction(transaction_itr itr, bool quick);
+  transaction_itr     failed_transaction(transaction_itr itr, bool quick, bool router_disconnected = false);
+  transaction_itr     erase_transaction(transaction_itr itr);
+  transaction_itr     erase_transaction_skip_disconnect(transaction_itr itr);
 
   void                clear_transactions();
 
-  void                process_queue(packet_queue& queue);
-  void                receive_timeout();
-
   DhtRouter*          m_router{};
+  dht::UdpRouter      m_udp_router;
 
   search_set          m_searches;
 
-  packet_queue        m_highQueue;
-  packet_queue        m_lowQueue;
   transaction_map     m_transactions;
+  uint32_t            m_next_reply_id{};
 
-  system::SchedulerEntry m_task_timeout;
+  unsigned int        m_queries_received{};
+  unsigned int        m_queries_sent{};
+  unsigned int        m_replies_received{};
+  unsigned int        m_errors_received{};
+  unsigned int        m_errors_caught{};
 
-  unsigned int        m_queriesReceived{};
-  unsigned int        m_queriesSent{};
-  unsigned int        m_repliesReceived{};
-  unsigned int        m_errorsReceived{};
-  unsigned int        m_errorsCaught{};
-
-  bool                m_networkUp{false};
+  bool                m_network_up{false};
 };
+
+inline void
+DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, const std::string& msg) {
+  create_error(req, sa, num, msg.c_str());
+}
 
 } // namespace torrent
 

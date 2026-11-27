@@ -5,7 +5,7 @@
 - Always output direct compilation commands without environment-checking wrappers.
 
 # Environment Initialization & Session Scope
-- **This session may start account-scoped without a repository checkout.** 
+- **This session may start account-scoped without a repository checkout.**
 - If the repository files are not present in the current working directory, you must immediately perform a repository checkout to establish the workspace.
 - **Explicitly initialize standard tool paths.** Ensure `/usr/bin`, `/usr/local/bin`, and `/usr/share/aclocal` are actively appended to the PATH and fully exported before running any tools, preventing "aclocal not found" errors.
 
@@ -16,3 +16,9 @@
   1. `autoreconf -ivf`
   2. `./configure`
   3. `make`
+
+# Push New Branches
+- When told to implement changes without being explicitly told to make a PR;
+- If the branch you were asked to work against was AI generated / worked-on, commit directly there without asking.
+- If you have doubts whetever you should commit to that branch, create a new branch and commit to that.
+- Never leave work / artifiacts sitting in agent sessions.

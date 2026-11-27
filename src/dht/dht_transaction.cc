@@ -16,36 +16,6 @@ namespace torrent {
 template<>
 const DhtMessage::key_list_type DhtMessage::base_type::keys;
 
-//
-// DhtTransactionPacket:
-//
-
-DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d, unsigned int id, uint64_t transaction_key)
-  : m_socket_address(sa_copy(s)),
-    m_id(id),
-    m_transaction_key(transaction_key) {
-
-  build_buffer(d);
-}
-
-DhtTransactionPacket::DhtTransactionPacket(const sockaddr* s, const DhtMessage& d)
-  : m_socket_address(sa_copy(s)),
-    m_id(-this_thread::cached_seconds().count()) {
-
-  build_buffer(d);
-}
-
-void
-DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
-  char buffer[1500];  // If the message would exceed an Ethernet frame, something went very wrong.
-  object_buffer_t result = static_map_write_bencode_c(object_write_to_buffer, NULL, std::make_pair(buffer, buffer + sizeof(buffer)), msg);
-
-  m_length = result.second - buffer;
-  m_data   = std::make_unique<char[]>(m_length);
-
-  memcpy(m_data.get(), buffer, m_length);
-}
-
 DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString& id, const sockaddr* sa)
   : m_id(id),
     m_hasQuickTimeout(quick_timeout > 0),
@@ -54,14 +24,10 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
     m_quickTimeout(this_thread::cached_seconds().count() + quick_timeout) {
 }
 
-DhtTransaction::~DhtTransaction() {
-  if (m_packet != NULL)
-    m_packet->set_failed();
-}
+DhtTransaction::~DhtTransaction() = default;
 
-// The upper 32 bits of a key name the node's address: the IPv4 address itself, or a 32-bit FNV-1a fold of the IPv6
-// address (each family's server keeps its own transactions, and a reply is also checked against the full address).
-static uint64_t
+// The upper 32 bits name the node's address, and the lower 32 bits hold its transaction ID.
+uint64_t
 dht_transaction_addr_key(const sockaddr* sa) {
   if (sa_is_inet(sa))
     return reinterpret_cast<const sockaddr_in*>(sa)->sin_addr.s_addr;
@@ -80,7 +46,24 @@ dht_transaction_addr_key(const sockaddr* sa) {
 
 DhtTransaction::key_type
 DhtTransaction::key(const sockaddr* sa, int id) {
-  return (dht_transaction_addr_key(sa) << 32) + id;
+  if (id < 0 || id > 0xffff)
+    throw internal_error("DhtTransaction::key() called with an out-of-range two-byte ID.");
+
+  char bytes[] = {static_cast<char>(id >> 8), static_cast<char>(id)};
+  return key(sa, bytes, sizeof(bytes));
+}
+
+DhtTransaction::key_type
+DhtTransaction::key(const sockaddr* sa, const char* id, size_t length) {
+  if (id == nullptr || length == 0 || length > 4)
+    throw internal_error("DhtTransaction::key() called with an invalid transaction ID.");
+
+  uint32_t value{};
+
+  for (size_t i = 0; i < length; ++i)
+    value = (value << 8) | static_cast<unsigned char>(id[i]);
+
+  return (dht_transaction_addr_key(sa) << 32) | value;
 }
 
 bool

@@ -44,10 +44,12 @@ public:
 
   void                 receive_peers(raw_list peers);
   void                 update_status();
+  void                 record_error(std::string error);
 
 private:
   std::weak_ptr<TrackerDht> m_tracker;
   std::map<HashString, std::string> m_tokens;
+  std::string               m_error;
   bool                      m_primary;
 };
 

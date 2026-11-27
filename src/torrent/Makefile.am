@@ -110,12 +110,14 @@ libtorrent_torrent_la_SOURCES = \
 	types/string_utf8.cc \
 	types/string_utf8.h \
 \
+	utils/algorithm.h \
 	utils/chrono.h \
 	utils/directory_events.cc \
 	utils/directory_events.h \
 	utils/extents.h \
 	utils/file_stat.h \
 	utils/functional.h \
+	utils/list_buckets.h \
 	utils/linked_unordered_set.h \
 	utils/log.cc \
 	utils/log.h \
@@ -243,11 +245,13 @@ libtorrent_torrent_types_include_HEADERS = \
 
 libtorrent_torrent_utils_includedir = $(includedir)/torrent/utils
 libtorrent_torrent_utils_include_HEADERS = \
+	utils/algorithm.h \
 	utils/chrono.h \
 	utils/directory_events.h \
 	utils/extents.h \
 	utils/file_stat.h \
 	utils/functional.h \
+	utils/list_buckets.h \
 	utils/linked_unordered_set.h \
 	utils/log.h \
 	utils/log_buffer.h \
