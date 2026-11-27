@@ -102,7 +102,7 @@ public:
   std::chrono::seconds update_idle_time(std::chrono::seconds now);
   std::chrono::seconds idle_time() const              { return m_idle_time; }
 
-  // receive_keepalive() returned false because the connection was idle for DownloadMain::idle_peer_limit().
+  // receive_keepalive() returned false because the connection was idle for DownloadInfo::idle_peer_limit().
   bool                is_closed_as_idle() const       { return m_closed_as_idle; }
 
 protected:
