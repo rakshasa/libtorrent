@@ -23,7 +23,7 @@ DhtAnnounce::~DhtAnnounce() {
   if (!m_primary)
     return;
 
-  TrackerDht::add_event(m_tracker, [contacted = m_contacted, replied = m_replied](TrackerDht* tracker) {
+  TrackerDht::add_event(m_tracker, [contacted = m_contacted, replied = m_replied, error = std::move(m_error)](TrackerDht* tracker) {
       const char* failure = nullptr;
 
       if (tracker->dht_state() != TrackerDht::state_announcing) {
@@ -40,10 +40,16 @@ DhtAnnounce::~DhtAnnounce() {
       }
 
       if (failure != nullptr)
-        tracker->receive_failed(failure);
+        tracker->receive_failed(error.empty() ? failure : error.c_str());
       else
         tracker->receive_success();
     });
+}
+
+void
+DhtAnnounce::record_error(std::string error) {
+  if (m_error.empty())
+    m_error = std::move(error);
 }
 
 std::vector<DhtAnnounce::announce_target>

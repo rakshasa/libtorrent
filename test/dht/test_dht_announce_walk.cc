@@ -326,13 +326,25 @@ struct EightCloserNodes {
 
 class FailureTracker : public torrent::TrackerDht {
 public:
-  explicit FailureTracker(std::shared_ptr<std::vector<std::string>> failures)
+  explicit FailureTracker(std::shared_ptr<std::vector<std::string>> failures, std::shared_ptr<unsigned int> successes = {})
     : TrackerDht(torrent::TrackerInfo{}, torrent::tracker::TrackerState::flag_deleted) {
     m_slot_failure = [failures = std::move(failures)](std::string message) {
       failures->push_back(std::move(message));
     };
+    m_slot_success = [successes = std::move(successes)](auto) {
+      if (successes)
+        ++*successes;
+    };
   }
 };
+
+void
+wait_for_tracker_events() {
+  auto completed = std::make_shared<std::promise<void>>();
+  auto future = completed->get_future();
+  torrent::tracker_thread::callback([completed] { completed->set_value(); });
+  CPPUNIT_ASSERT(future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+}
 
 std::vector<std::string>
 empty_announce_failures(bool primary) {
@@ -344,10 +356,7 @@ empty_announce_failures(bool primary) {
   Walk walk({});
   walk.announce(tracker, primary);
 
-  auto completed = std::make_shared<std::promise<void>>();
-  auto future = completed->get_future();
-  torrent::tracker_thread::callback([completed] { completed->set_value(); });
-  CPPUNIT_ASSERT(future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+  wait_for_tracker_events();
   return *failures;
 }
 
@@ -592,38 +601,106 @@ TestDhtAnnounceWalk::test_incoming_malformed_query() {
   CPPUNIT_ASSERT(node.send_to_server(stream.str()) > 0);
 
   char buffer[2048];
+  query.get_key("a").insert_key("info_hash", std::string("short"));
+  std::ostringstream short_stream;
+  torrent::object_write_bencode(&short_stream, &query);
+  CPPUNIT_ASSERT(node.send_to_server(short_stream.str()) > 0);
+
+  query.get_key("q") = torrent::Object(std::string("ping"));
+  query.get_key("t") = torrent::Object(std::string("ok"));
+  std::ostringstream ping_stream;
+  torrent::object_write_bencode(&ping_stream, &query);
+  CPPUNIT_ASSERT(node.send_to_server(ping_stream.str()) > 0);
+
   torrent::Object reply;
   CPPUNIT_ASSERT(Walk::pump({}, [&] {
     auto size = node.receive(buffer, sizeof(buffer));
     if (size < 0)
       return false;
     torrent::object_read_bencode_c(buffer, buffer + size, &reply);
-    return true;
-  }, std::chrono::milliseconds(1000)));
-
-  CPPUNIT_ASSERT_EQUAL(std::string("e"), reply.get_key_string("y"));
-  CPPUNIT_ASSERT_EQUAL(std::string("xy"), reply.get_key_string("t"));
-  const auto& error = reply.get_key_list("e");
-  CPPUNIT_ASSERT_EQUAL(size_t{2}, error.size());
-  CPPUNIT_ASSERT_EQUAL(int64_t{203}, error.front().as_value());
-  CPPUNIT_ASSERT(error.back().as_string().find("Malformed query: ") == 0);
-
-  query.get_key("a").insert_key("info_hash", std::string("short"));
-  std::ostringstream short_stream;
-  torrent::object_write_bencode(&short_stream, &query);
-  CPPUNIT_ASSERT(node.send_to_server(short_stream.str()) > 0);
-
-  CPPUNIT_ASSERT(Walk::pump({}, [&] {
-    auto size = node.receive(buffer, sizeof(buffer));
-    if (size < 0)
+    if (reply.get_key_string("y") == "q")
       return false;
-    torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+    CPPUNIT_ASSERT_EQUAL(std::string("r"), reply.get_key_string("y"));
+    CPPUNIT_ASSERT_EQUAL(std::string("ok"), reply.get_key_string("t"));
     return true;
   }, std::chrono::milliseconds(1000)));
 
-  CPPUNIT_ASSERT_EQUAL(std::string("e"), reply.get_key_string("y"));
-  CPPUNIT_ASSERT_EQUAL(int64_t{203}, reply.get_key_list("e").front().as_value());
-  CPPUNIT_ASSERT_EQUAL(std::string("info hash too short"), reply.get_key_list("e").back().as_string());
+  CPPUNIT_ASSERT_EQUAL(std::string("r"), reply.get_key_string("y"));
+  CPPUNIT_ASSERT_EQUAL(std::string("ok"), reply.get_key_string("t"));
+  Walk::pump({}, [&] {
+    auto size = node.receive(buffer, sizeof(buffer));
+    if (size >= 0) {
+      torrent::object_read_bencode_c(buffer, buffer + size, &reply);
+      CPPUNIT_ASSERT_EQUAL(std::string("q"), reply.get_key_string("y"));
+    }
+    return false;
+  }, std::chrono::milliseconds(100));
+}
+
+void
+TestDhtAnnounceWalk::test_malformed_response_reports_failed_search() {
+  auto cache = torrent::Object::create_map();
+  torrent::runtime::network_manager()->dht_controller()->initialize(cache);
+  auto failures = std::make_shared<std::vector<std::string>>();
+  auto tracker = std::make_shared<FailureTracker>(failures);
+  FakeNode node(1);
+  node.silent = true;
+  Walk walk({&node});
+  walk.announce(tracker, true);
+
+  CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("get_peers") == 1; }, std::chrono::milliseconds(1000)));
+  auto reply = torrent::Object::create_map();
+  reply.insert_key("r", torrent::Object::create_map()).insert_key("id", std::string("short"));
+  reply.insert_key("t", node.queries.front().transaction_id);
+  reply.insert_key("y", std::string("r"));
+  std::ostringstream stream;
+  torrent::object_write_bencode(&stream, &reply);
+  CPPUNIT_ASSERT(node.send_to_server(stream.str()) > 0);
+  Walk::pump({}, [] { return false; }, std::chrono::milliseconds(100));
+  char buffer[2048];
+  CPPUNIT_ASSERT(node.receive(buffer, sizeof(buffer)) < 0);
+  wait_for_tracker_events();
+  CPPUNIT_ASSERT(failures->empty());
+
+  for (auto seconds : {16, 31, 46}) {
+    m_main_thread->test_add_cached_time(std::chrono::seconds(seconds));
+    m_main_thread->test_process_events_without_cached_time();
+  }
+  wait_for_tracker_events();
+  CPPUNIT_ASSERT_EQUAL(size_t{1}, failures->size());
+  CPPUNIT_ASSERT_EQUAL(std::string("DHT search: Invalid `id' length"), failures->front());
+}
+
+void
+TestDhtAnnounceWalk::test_malformed_response_does_not_fail_successful_search() {
+  auto cache = torrent::Object::create_map();
+  torrent::runtime::network_manager()->dht_controller()->initialize(cache);
+  auto failures = std::make_shared<std::vector<std::string>>();
+  auto successes = std::make_shared<unsigned int>(0);
+  auto tracker = std::make_shared<FailureTracker>(failures, successes);
+  FakeNode bad(1), good(2);
+  bad.silent = true;
+  Walk walk({&bad, &good});
+  walk.announce(tracker, true);
+  CPPUNIT_ASSERT(Walk::pump({&bad, &good}, [&] { return bad.count("get_peers") == 1 && walk.replies_received() >= 1; }, std::chrono::milliseconds(1000)));
+
+  auto reply = torrent::Object::create_map();
+  reply.insert_key("r", torrent::Object::create_map()).insert_key("id", std::string("short"));
+  reply.insert_key("t", bad.queries.front().transaction_id);
+  reply.insert_key("y", std::string("r"));
+  std::ostringstream stream;
+  torrent::object_write_bencode(&stream, &reply);
+  CPPUNIT_ASSERT(bad.send_to_server(stream.str()) > 0);
+  Walk::pump({&bad, &good}, [] { return false; }, std::chrono::milliseconds(100));
+
+  for (auto seconds : {16, 31, 46}) {
+    m_main_thread->test_add_cached_time(std::chrono::seconds(seconds));
+    m_main_thread->test_process_events_without_cached_time();
+  }
+  Walk::pump({&good}, [] { return false; }, std::chrono::milliseconds(100));
+  wait_for_tracker_events();
+  CPPUNIT_ASSERT(failures->empty());
+  CPPUNIT_ASSERT_EQUAL(1u, *successes);
 }
 
 void
@@ -854,10 +931,14 @@ TestDhtAnnounceWalk::test_sent_transaction_timeout_marks_node_inactive() {
 
 void
 TestDhtAnnounceWalk::test_error_completes_transaction() {
+  auto cache = torrent::Object::create_map();
+  torrent::runtime::network_manager()->dht_controller()->initialize(cache);
+  auto failures = std::make_shared<std::vector<std::string>>();
+  auto tracker = std::make_shared<FailureTracker>(failures);
   FakeNode node(1);
   node.silent = true;
   Walk walk({&node});
-  walk.announce();
+  walk.announce(tracker, true);
 
   CPPUNIT_ASSERT(Walk::pump({&node}, [&] { return node.count("get_peers") == 1; }, std::chrono::milliseconds(1000)));
   auto error = torrent::Object::create_map();
@@ -870,11 +951,31 @@ TestDhtAnnounceWalk::test_error_completes_transaction() {
   torrent::object_write_bencode(&stream, &error);
   CPPUNIT_ASSERT(node.send_to_server(stream.str()) > 0);
   CPPUNIT_ASSERT(Walk::pump({}, [&] { return walk.replies_received() == 1; }, std::chrono::milliseconds(1000)));
+  wait_for_tracker_events();
+  CPPUNIT_ASSERT_EQUAL(size_t{1}, failures->size());
+  CPPUNIT_ASSERT_EQUAL(std::string("DHT search: DHT node returned an error."), failures->front());
 
   m_main_thread->test_add_cached_time(std::chrono::seconds(16));
   m_main_thread->test_process_events_without_cached_time();
   Walk::pump({&node}, [] { return false; }, std::chrono::milliseconds(100));
   CPPUNIT_ASSERT_EQUAL(1u, node.count("get_peers"));
+}
+
+void
+TestDhtAnnounceWalk::test_timeout_bucket_pointer_stability() {
+  torrent::utils::list_buckets<int, 3> buckets;
+  buckets.push_back(1, 10);
+  int* entry = &buckets.back(1);
+  buckets.push_back(0, 20);
+  buckets.push_back(1, 30);
+  buckets.push_back(2, 40);
+  buckets.pop_front(0);
+  buckets.pop_back(1);
+  buckets.clear(2);
+  CPPUNIT_ASSERT_EQUAL(entry, &buckets.front(1));
+  CPPUNIT_ASSERT_EQUAL(10, *entry);
+  CPPUNIT_ASSERT(buckets.empty(0));
+  CPPUNIT_ASSERT(buckets.empty(2));
 }
 
 void
@@ -967,8 +1068,10 @@ TestDhtAnnounceWalk::test_tracker_retry_deadline_order() {
   auto address = torrent::sa_make_inet_h(INADDR_LOOPBACK, node.port());
   uint32_t first = 0;
   uint32_t second = 0;
+  uint32_t third = 0;
   unsigned int first_sends = 0;
   unsigned int second_sends = 0;
+  unsigned int third_sends = 0;
 
   auto connect = [&](uint32_t& id, unsigned int& sends) {
     router.connect(torrent::sa_copy(address.get()), {
@@ -988,12 +1091,23 @@ TestDhtAnnounceWalk::test_tracker_retry_deadline_order() {
   connect(second, second_sends);
   m_main_thread->test_add_cached_time(std::chrono::seconds(16));
   m_main_thread->test_process_events_without_cached_time();
-  router.disconnect(first);
-  router.disconnect(second);
-  router.close();
   CPPUNIT_ASSERT_EQUAL(2u, first_after_retry);
   CPPUNIT_ASSERT_EQUAL(2u, first_sends);
   CPPUNIT_ASSERT_EQUAL(2u, second_sends);
+
+  router.disconnect(second);
+  connect(third, third_sends);
+  m_main_thread->test_add_cached_time(std::chrono::seconds(15));
+  m_main_thread->test_process_events_without_cached_time();
+  CPPUNIT_ASSERT_EQUAL(3u, first_sends);
+  CPPUNIT_ASSERT_EQUAL(2u, second_sends);
+  CPPUNIT_ASSERT_EQUAL(2u, third_sends);
+
+  router.disconnect(first);
+  router.disconnect(third);
+  m_main_thread->test_add_cached_time(std::chrono::seconds(100));
+  m_main_thread->test_process_events_without_cached_time();
+  router.close();
 }
 
 void

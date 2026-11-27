@@ -10,6 +10,7 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
 #include "torrent/system/scheduler.h"
+#include "torrent/utils/list_buckets.h"
 
 namespace torrent::tracker {
 
@@ -68,12 +69,13 @@ private:
   UdpRouter& operator=(const UdpRouter&) = delete;
 
   static constexpr unsigned int max_read_datagrams = 64;
+  static constexpr size_t max_retries = 3;
 
   struct connection_info;
 
   using connection_map     = std::unordered_map<key_type, connection_info>;
   using write_queue_type   = std::deque<std::pair<key_type, connection_info*>>;
-  using timeout_queue_type = std::list<std::tuple<key_type, std::chrono::seconds, connection_info*>>;
+  using timeout_queue_type = utils::list_buckets<std::tuple<key_type, std::chrono::seconds, connection_info*>, max_retries>;
 
   // TODO: Add itr to self in connection_map.
 
@@ -108,6 +110,7 @@ private:
 
   void                clear_timeout(connection_info* info);
   void                queue_timeout(key_type id, connection_info* info);
+  size_t              next_timeout_bucket() const;
   void                queue_write(key_type id, connection_info* info);
 
   key_type            peek_transaction_id(buffer_type& buffer) const;

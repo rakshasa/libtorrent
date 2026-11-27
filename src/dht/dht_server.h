@@ -106,6 +106,7 @@ private:
 
   bool                process_response(transaction_itr itr, const HashString& id, const DhtMessage& req);
   bool                process_error(transaction_itr itr);
+  void                record_search_error(transaction_itr itr, const char* error);
 
   void                parse_find_node_reply(DhtTransactionSearch* t, const DhtMessage& res);
   void                add_search_contacts(DhtTransactionSearch* t, const DhtMessage& res);

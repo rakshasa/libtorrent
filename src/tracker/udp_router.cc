@@ -409,7 +409,7 @@ UdpRouter::try_write(key_type id, connection_info* info) {
   if (!is_open())
     throw internal_error("UdpRouter::try_write() called but router is not open.");
 
-  if (info->retry_count >= 3)
+  if (info->retry_count >= max_retries)
     throw internal_error("UdpRouter::try_write() called but retry_count is not 0.");
 
   int retries{};
@@ -498,19 +498,28 @@ UdpRouter::queue_timeout(key_type id, connection_info* info) {
 
   auto retry_count  = ++info->retry_count;
   auto timeout_time = this_thread::cached_seconds() + retry_count * 15s;
+  auto earliest = next_timeout_bucket();
+  bool reschedule = earliest == max_retries || timeout_time < std::get<1>(m_timeout_queue.front(earliest));
 
-  auto insert_pos = std::upper_bound(m_timeout_queue.begin(), m_timeout_queue.end(), timeout_time,
-                                     [](auto time, const auto& entry) { return time < std::get<1>(entry); });
-  bool was_empty = m_timeout_queue.empty();
-  bool is_first = insert_pos == m_timeout_queue.begin();
+  // Deadlines within each retry bucket are ordered by send time.
+  auto bucket = retry_count - 1;
+  m_timeout_queue.push_back(bucket, {id, timeout_time, info});
+  info->timeout_ptr = &std::get<2>(m_timeout_queue.back(bucket));
 
-  auto timeout_itr = m_timeout_queue.emplace(insert_pos, id, timeout_time, info);
-  info->timeout_ptr = &std::get<2>(*timeout_itr);
-
-  if (was_empty)
-    this_thread::scheduler()->wait_until(&m_task_timeout, timeout_time);
-  else if (is_first)
+  if (reschedule)
     this_thread::scheduler()->update_wait_until(&m_task_timeout, timeout_time);
+}
+
+size_t
+UdpRouter::next_timeout_bucket() const {
+  size_t earliest = max_retries;
+
+  for (size_t i = 0; i < max_retries; ++i)
+    if (!m_timeout_queue.empty(i) &&
+        (earliest == max_retries || std::get<1>(m_timeout_queue.front(i)) < std::get<1>(m_timeout_queue.front(earliest))))
+      earliest = i;
+
+  return earliest;
 }
 
 void
@@ -543,16 +552,16 @@ void
 UdpRouter::receive_timeout() {
   auto now = this_thread::cached_seconds();
 
-  while (!m_timeout_queue.empty()) {
-    auto [id, timeout_time, info] = m_timeout_queue.front();
+  for (auto bucket = next_timeout_bucket(); bucket != max_retries; bucket = next_timeout_bucket()) {
+    auto [id, timeout_time, info] = m_timeout_queue.front(bucket);
 
     if (timeout_time > now)
       break;
 
-    if (info && info->timeout_ptr != &std::get<2>(m_timeout_queue.front()))
+    if (info && info->timeout_ptr != &std::get<2>(m_timeout_queue.front(bucket)))
       throw internal_error("UdpRouter::receive_timeout() timeout queue entry does not match connection info.");
 
-    m_timeout_queue.pop_front();
+    m_timeout_queue.pop_front(bucket);
 
     if (info == nullptr)
       continue;
@@ -562,7 +571,7 @@ UdpRouter::receive_timeout() {
 
     info->timeout_ptr = nullptr;
 
-    if (info->retry_count >= 3) {
+    if (info->retry_count >= max_retries) {
       disconnect_failure_unsafe(m_connections.find(id), ETIMEDOUT, 0);
       continue;
     }
@@ -573,8 +582,9 @@ UdpRouter::receive_timeout() {
     try_write_with_queues(id, info);
   }
 
-  if (!m_timeout_queue.empty())
-    this_thread::scheduler()->update_wait_until(&m_task_timeout, std::get<1>(m_timeout_queue.front()));
+  auto bucket = next_timeout_bucket();
+  if (bucket != max_retries)
+    this_thread::scheduler()->update_wait_until(&m_task_timeout, std::get<1>(m_timeout_queue.front(bucket)));
 }
 
 void

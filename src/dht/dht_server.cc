@@ -357,11 +357,14 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "malformed known packet : address:%s error:%s",
                      sa_pretty_str(itr->second->address()).c_str(), e.what());
+    record_search_error(itr, "Malformed DHT response.");
     return true;
   }
 
-  if (!message[key_y].is_raw_string() || message[key_y].as_raw_string().size() != 1)
+  if (!message[key_y].is_raw_string() || message[key_y].as_raw_string().size() != 1) {
+    record_search_error(itr, "Invalid DHT response type.");
     return true;
+  }
 
   auto type = message[key_y].as_raw_string().data()[0];
 
@@ -393,6 +396,8 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
 
     if (node_id != nullptr)
       m_router->node_inactive(*node_id, itr->second->address());
+
+    record_search_error(itr, e.what());
 
     // Don't reply to potentially malicious probing packets.
     if (e.code() == dht_error_generic)
@@ -447,13 +452,12 @@ DhtServer::process_unknown_incoming([[maybe_unused]] DhtTransaction::key_type ke
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected unknown packet : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
 
-    if (e.code() == dht_error_generic || e.code() == dht_error_protocol)
+    if (e.code() == dht_error_generic)
       create_error(message, sa, e.code(), e.what());
 
   } catch (const bencode_error& e) {
     LT_LOG_DUMP_THIS(buffer.begin_ptr(), buffer.size_end(), "rejected malformed query : address:%s error:%s",
                      sa_pretty_str(sa).c_str(), e.what());
-    create_error(message, sa, dht_error_protocol, "Malformed query: " + std::string(e.what()));
   }
 }
 
@@ -495,7 +499,8 @@ DhtServer::process_response(transaction_itr itr, const HashString& id, const Dht
     // Mark node responsive only if all processing was successful, without errors.
     m_router->node_replied(id, itr->second->address());
 
-  } catch (const dht::dht_error&) {
+  } catch (const dht::dht_error& e) {
+    record_search_error(itr, e.what());
     m_router->node_inactive(id, itr->second->address());
     erase_transaction_skip_disconnect(itr);
 
@@ -513,6 +518,7 @@ DhtServer::process_error(transaction_itr itr) {
   m_errors_received++;
 
   m_network_up = true;
+  record_search_error(itr, "DHT node returned an error.");
 
   // Don't mark node as good (because it replied) or bad (because it returned an error).
   // If it consistently returns errors for valid queries it's probably broken.  But a
@@ -520,6 +526,17 @@ DhtServer::process_error(transaction_itr itr) {
 
   erase_transaction_skip_disconnect(itr);
   return false;
+}
+
+void
+DhtServer::record_search_error(transaction_itr itr, const char* error) {
+  if (!itr->second->is_search())
+    return;
+
+  auto announce = dynamic_cast<dht::DhtAnnounce*>(itr->second->as_search()->search().get());
+
+  if (announce != nullptr)
+    announce->record_error(std::string("DHT search: ") + error);
 }
 
 void
