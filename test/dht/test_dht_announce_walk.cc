@@ -5,11 +5,13 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <chrono>
 #include <functional>
 #include <future>
@@ -33,6 +35,7 @@
 #include "torrent/system/poll.h"
 #include "torrent/system/callbacks.h"
 #include "torrent/tracker/dht_controller.h"
+#include "torrent/utils/functional.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/udp_router.h"
 
@@ -709,7 +712,11 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   FakeNode other(2);
   unsigned int responses = 0;
   unsigned int errors = 0;
+  unsigned int second_responses = 0;
+  unsigned int reentrant_responses = 0;
+  std::vector<torrent::DhtTransaction::key_type> multi_byte_responses;
   torrent::dht::UdpRouter router;
+  torrent::utils::scope_guard close_router([&] { router.close(); });
 
   router.open(AF_INET, 0);
   sockaddr_in server{};
@@ -733,11 +740,21 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     torrent::object_write_bencode(&stream, &packet);
     auto data = stream.str();
     CPPUNIT_ASSERT_EQUAL(static_cast<ssize_t>(data.size()), sender.send_to_port(data, ntohs(server.sin_port)));
+    pollfd ready{router.file_descriptor(), POLLIN, 0};
+    int result;
+    do {
+      result = ::poll(&ready, 1, 1000);
+    } while (result < 0 && errno == EINTR);
+    CPPUNIT_ASSERT_EQUAL(1, result);
+    CPPUNIT_ASSERT(ready.revents & POLLIN);
     static_cast<torrent::system::Event&>(router).event_read();
   };
 
   auto prepare = [](torrent::dht::UdpRouter::key_type, torrent::dht::UdpRouter::buffer_type& buffer) { buffer.write_8('x'); };
-  auto timeout = [](torrent::dht::UdpRouter::key_type, int, int) { CPPUNIT_FAIL("Unexpected router timeout"); };
+  auto timeout = [](torrent::dht::UdpRouter::key_type, int error, int) {
+    if (error != ECANCELED)
+      CPPUNIT_FAIL("Unexpected router failure");
+  };
 
   router.connect(key, address, {
     prepare,
@@ -750,7 +767,6 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   });
 
   auto second_key = torrent::DhtTransaction::key(address.get(), 8);
-  unsigned int second_responses = 0;
   router.connect(second_key, address, {
     prepare,
     [&](torrent::dht::UdpRouter::key_type received_key, torrent::dht::UdpRouter::buffer_type&) {
@@ -790,7 +806,6 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     std::string("\x01\x00\x00", 3),
     std::string("\x01\x00\x00\x00", 4),
   };
-  std::vector<torrent::DhtTransaction::key_type> multi_byte_responses;
   auto no_failure = [](auto, int, int) {};
 
   for (const auto& transaction_id : transaction_ids) {
@@ -809,7 +824,6 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
     send(node, 'r', transaction_id);
 
   auto reentrant_key = torrent::DhtTransaction::key(address.get(), 0x40);
-  unsigned int reentrant_responses = 0;
   router.connect(reentrant_key, address, {
     prepare,
     [&](auto, auto&) {
@@ -830,6 +844,32 @@ TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
 
   for (size_t i = 0; i < transaction_ids.size(); ++i)
     CPPUNIT_ASSERT_EQUAL(torrent::DhtTransaction::key(address.get(), transaction_ids[i].data(), transaction_ids[i].size()), multi_byte_responses[i]);
+}
+
+void
+TestDhtAnnounceWalk::test_udp_router_cleanup_on_exception() {
+  FakeNode node(1);
+  auto address = torrent::sa_make_inet_h(INADDR_LOOPBACK, node.port());
+  int failure = 0;
+
+  auto run = [&] {
+    torrent::dht::UdpRouter router;
+    torrent::utils::scope_guard close_router([&] { router.close(); });
+    router.open(AF_INET, 0);
+    CPPUNIT_ASSERT(router.is_open());
+    router.connect(torrent::DhtTransaction::key(address.get(), 1), torrent::sa_copy(address.get()), {
+      [](auto, auto& buffer) { buffer.write_8('x'); },
+      [](auto, auto&) { return true; },
+      [&](auto, int error, int) { failure = error; },
+      {}
+    });
+    CPPUNIT_FAIL("Expected test failure");
+  };
+
+  CPPUNIT_ASSERT_THROW(run(), CppUnit::Exception);
+  CPPUNIT_ASSERT_EQUAL(ECANCELED, failure);
+  m_main_thread->test_add_cached_time(std::chrono::seconds(60));
+  m_main_thread->test_process_events_without_cached_time();
 }
 
 void
@@ -981,7 +1021,14 @@ TestDhtAnnounceWalk::test_timeout_bucket_pointer_stability() {
 void
 TestDhtAnnounceWalk::test_retry_deadline_order() {
   FakeNode node(1);
+  unsigned int first_sends = 0;
+  unsigned int second_sends = 0;
+  unsigned int terminal_sends = 0;
+  unsigned int terminal_errors = 0;
+  unsigned int removed_sends = 0;
+  int terminal_errno = 0;
   torrent::dht::UdpRouter router;
+  torrent::utils::scope_guard close_router([&] { router.close(); });
   router.open(AF_INET, 0);
 
   sockaddr_in peer{};
@@ -991,14 +1038,11 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
   torrent::c_sa_shared_ptr address = torrent::sa_copy(reinterpret_cast<const sockaddr*>(&peer));
   auto first = torrent::DhtTransaction::key(address.get(), 1);
   auto second = torrent::DhtTransaction::key(address.get(), 2);
-  unsigned int first_sends = 0;
-  unsigned int second_sends = 0;
-
   auto connect = [&](auto key, unsigned int& sends) {
     router.connect(key, address, {
       [](auto, auto& buffer) { buffer.write_8('x'); },
       [](auto, auto&) { return true; },
-      [](auto, int, int) { CPPUNIT_FAIL("Unexpected router timeout"); },
+      [](auto, int error, int) { if (error != ECANCELED) CPPUNIT_FAIL("Unexpected router failure"); },
       {},
       [&sends](auto) { ++sends; }
     });
@@ -1020,13 +1064,10 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
   m_main_thread->test_add_cached_time(std::chrono::seconds(120));
   m_main_thread->test_process_events_without_cached_time();
 
-  unsigned int terminal_sends = 0;
-  unsigned int terminal_errors = 0;
-  int terminal_errno = 0;
   router.connect(first, address, {
     [](auto, auto& buffer) { buffer.write_8('x'); },
     [](auto, auto&) { return true; },
-    [&](auto, int err, int) { ++terminal_errors; terminal_errno = err; },
+    [&](auto, int err, int) { if (err != ECANCELED) { ++terminal_errors; terminal_errno = err; } },
     {},
     [&](auto) { ++terminal_sends; }
   });
@@ -1036,11 +1077,10 @@ TestDhtAnnounceWalk::test_retry_deadline_order() {
   }
 
   auto remove_on_timeout = torrent::DhtTransaction::key(address.get(), 3);
-  unsigned int removed_sends = 0;
   router.connect(remove_on_timeout, address, {
     [](auto, auto& buffer) { buffer.write_8('x'); },
     [](auto, auto&) { return true; },
-    [](auto, int, int) { CPPUNIT_FAIL("Unexpected router failure"); },
+    [](auto, int error, int) { if (error != ECANCELED) CPPUNIT_FAIL("Unexpected router failure"); },
     [](auto, unsigned int) { return false; },
     [&](auto) { ++removed_sends; }
   });
@@ -1062,6 +1102,7 @@ void
 TestDhtAnnounceWalk::test_tracker_retry_deadline_order() {
   FakeNode node(1);
   torrent::tracker::UdpRouter router;
+  torrent::utils::scope_guard close_router([&] { router.close(); });
   router.open(AF_INET);
   CPPUNIT_ASSERT(router.is_open());
 

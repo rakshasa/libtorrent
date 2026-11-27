@@ -17,6 +17,7 @@ class TestDhtAnnounceWalk : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST(test_malformed_response_reports_failed_search);
   CPPUNIT_TEST(test_malformed_response_does_not_fail_successful_search);
   CPPUNIT_TEST(test_udp_router_keyed_dispatch);
+  CPPUNIT_TEST(test_udp_router_cleanup_on_exception);
   CPPUNIT_TEST(test_retry_and_reply);
   CPPUNIT_TEST(test_announce_retry_preserves_query);
   CPPUNIT_TEST(test_sent_transaction_timeout_marks_node_inactive);
@@ -46,6 +47,7 @@ public:
   void test_malformed_response_reports_failed_search();
   void test_malformed_response_does_not_fail_successful_search();
   void test_udp_router_keyed_dispatch();
+  void test_udp_router_cleanup_on_exception();
   void test_retry_and_reply();
   void test_announce_retry_preserves_query();
   void test_sent_transaction_timeout_marks_node_inactive();
