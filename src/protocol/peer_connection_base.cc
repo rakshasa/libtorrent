@@ -219,8 +219,7 @@ bool
 PeerConnectionBase::check_idle(std::chrono::seconds now, std::chrono::seconds limit) {
   auto idle = update_idle_time(now);
 
-  m_closed_as_idle = limit != std::chrono::seconds{} && idle >= limit;
-  return m_closed_as_idle;
+  return limit != std::chrono::seconds{} && idle >= limit;
 }
 
 void

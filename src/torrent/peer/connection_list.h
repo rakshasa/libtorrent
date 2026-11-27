@@ -53,7 +53,8 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
-  // Make sure any change here match PeerList's flags.
+  // Make sure any change here match PeerList's flags. Zero is not to be defined: it means no disconnect, as returned by
+  // PeerConnectionBase::receive_keepalive().
   static constexpr int disconnect_available = (1 << 0);
   static constexpr int disconnect_quick     = (1 << 1);
   static constexpr int disconnect_unwanted  = (1 << 2);

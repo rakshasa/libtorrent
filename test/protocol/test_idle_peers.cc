@@ -25,7 +25,7 @@ class idle_connection : public torrent::PeerConnectionBase {
 public:
   void initialize_custom() override {}
   void update_interested() override {}
-  bool receive_keepalive() override { return true; }
+  int receive_keepalive() override { return 0; }
   void event_read() override {}
   void event_write() override {}
 
@@ -217,9 +217,7 @@ test_idle_peers::test_closes_itself_at_limit() {
 
   CPPUNIT_ASSERT(!c.check_idle(1120s, timeout));
   CPPUNIT_ASSERT(!c.check_idle(1240s, timeout));
-  CPPUNIT_ASSERT(!c.is_closed_as_idle());
   CPPUNIT_ASSERT(c.check_idle(1360s, timeout));
-  CPPUNIT_ASSERT(c.is_closed_as_idle());
 }
 
 void

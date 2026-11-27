@@ -31,10 +31,10 @@ void
 PeerConnectionMetadata::update_interested() {
 }
 
-bool
+int
 PeerConnectionMetadata::receive_keepalive() {
   if (this_thread::cached_time() - m_time_last_read > 240s)
-    return false;
+    return ConnectionList::disconnect_available;
 
   m_down.schedule_request();
 
@@ -52,7 +52,7 @@ PeerConnectionMetadata::receive_keepalive() {
       m_encryption.encrypt(old_end, m_up.protocol->buffer()->end() - old_end);
   }
 
-  return true;
+  return 0;
 }
 
 // We keep the message in the buffer if it is incomplete instead of

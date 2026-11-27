@@ -276,16 +276,11 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
       }
     }
 
-    for (auto itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end();) {
-      auto pcb = (*itr)->m_ptr();
-
-      if (pcb->receive_keepalive())
-        itr++;
-      else if (pcb->is_closed_as_idle())
-        itr = m_main->connection_list()->erase(itr, ConnectionList::disconnect_idle);
+    for (auto itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end();)
+      if (int flags = (*itr)->m_ptr()->receive_keepalive())
+        itr = m_main->connection_list()->erase(itr, flags);
       else
-        itr = m_main->connection_list()->erase(itr, ConnectionList::disconnect_available);
-    }
+        itr++;
   }
 
   auto have_queue = m_main->have_queue();

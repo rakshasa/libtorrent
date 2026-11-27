@@ -77,7 +77,9 @@ public:
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
   virtual void        update_interested() = 0;
-  virtual bool        receive_keepalive() = 0;
+
+  // Returns 0 to keep the connection, else the ConnectionList::disconnect_* flags to close it with.
+  virtual int         receive_keepalive() = 0;
 
   bool                receive_upload_choke(bool choke);
   bool                receive_download_choke(bool choke);
@@ -101,9 +103,6 @@ public:
   // first pass that saw it.
   std::chrono::seconds update_idle_time(std::chrono::seconds now);
   std::chrono::seconds idle_time() const              { return m_idle_time; }
-
-  // receive_keepalive() returned false because the connection was idle for DownloadInfo::idle_peer_limit().
-  bool                is_closed_as_idle() const       { return m_closed_as_idle; }
 
 protected:
   friend class choke_queue;
@@ -167,7 +166,6 @@ protected:
   uint64_t            m_idle_up_total{};
   bool                m_idle_was_waiting{};   // It kept us waiting at the last look.
   bool                m_idle_was_unchoked{};  // It unchoked us since the last look.
-  bool                m_closed_as_idle{};
 
   DataBuffer          m_extension_message;
   uint32_t            m_extension_offset;

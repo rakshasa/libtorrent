@@ -23,7 +23,7 @@ class slot_connection : public torrent::PeerConnectionBase {
 public:
   void initialize_custom() override {}
   void update_interested() override {}
-  bool receive_keepalive() override { return true; }
+  int receive_keepalive() override { return 0; }
   void event_read() override {}
   void event_write() override {}
 
