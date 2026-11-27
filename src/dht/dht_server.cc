@@ -133,8 +133,11 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
   }
 
   // This shouldn't happen, it means we had no contactable nodes at all.
-  if (!search->start())
-    throw internal_error("DhtServer::find_node search start failed, no contactable nodes.");
+  if (!search->start()) {
+    LT_LOG_THIS("find node search start failed, no contactable nodes", 0);
+    // TODO: We should probably report this to the tracker, but we don't have a way to do that here.
+    return;
+  }
 
   m_searches.insert(search);
 }
@@ -152,8 +155,11 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::
   }
 
   // This can only happen if all nodes we know are bad.
-  if (!announce->start())
-    throw internal_error("DhtServer::announce search start failed, no contactable nodes.");
+  if (!announce->start()) {
+    LT_LOG_THIS("announce failed, no contactable nodes", 0);
+    // TODO: We should probably report this to the tracker, but we don't have a way to do that here.
+    return;
+  }
 
   m_searches.insert(announce);
   announce->update_status();
@@ -369,21 +375,15 @@ DhtServer::process_known_incoming(DhtTransaction::key_type key, dht::UdpRouter::
 
       auto& node_id_str = message[key_r_id].as_raw_string();
 
-      if (node_id_str.size() < HashString::size_data)
-        throw dht::dht_error(dht_error_protocol, "`id' value too short");
+      if (node_id_str.size() != HashString::size_data)
+        throw dht::dht_error(dht_error_protocol, "Invalid `id' length");
 
       node_id = HashString::cast_from(node_id_str.data());
 
       if (*node_id == m_router->id())
-        throw dht::dht_error(dht_error_protocol, "Send your own ID, not mine");
+        throw dht::dht_error(dht_error_protocol, "Invalid `id' value, same as ours");
 
-      if (message[key_r_id].is_raw_string() && message[key_r_id].as_raw_string().size() >= HashString::size_data) {
-        auto& id = message[key_r_id].as_raw_string();
-
-        return process_response(itr, *HashString::cast_from(id.data()), message);
-      }
-
-      break;
+      return process_response(itr, *node_id, message);
     }
     case 'e':
       return process_error(itr);
@@ -528,6 +528,7 @@ DhtServer::parse_find_node_reply(DhtTransactionSearch* transaction, const DhtMes
   transaction->complete(true);
 
   add_search_contacts(transaction, response);
+
   find_node_next(transaction);
 }
 
