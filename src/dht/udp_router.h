@@ -28,6 +28,9 @@ public:
   using packet_sent_func = std::function<void(key_type)>;
   using timeout_func     = std::function<bool(key_type, unsigned int)>;
 
+  static constexpr size_t       max_retries        = 3;
+  static constexpr unsigned int max_read_datagrams = 64;
+
   struct connection_params {
     prepare_func        prepare;
     process_func        process;
@@ -71,9 +74,6 @@ private:
   UdpRouter(const UdpRouter&) = delete;
   UdpRouter& operator=(const UdpRouter&) = delete;
 
-  static constexpr unsigned int max_read_datagrams = 64;
-  static constexpr size_t max_retries = 3;
-
   struct connection_info;
 
   using connection_map     = std::unordered_map<key_type, connection_info>;
@@ -113,7 +113,6 @@ private:
 
   void                clear_timeout(connection_info* info);
   void                queue_timeout(key_type id, connection_info* info);
-  size_t              next_timeout_bucket() const;
   void                queue_write(key_type id, connection_info* info);
 
   void                receive_timeout();
