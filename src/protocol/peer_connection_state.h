@@ -96,7 +96,7 @@ struct StateDown : StateBase {
   // went either way (down_total, up_total: the connection's piece bytes so far). A peer that unchoked us while our own
   // download slots keep us from asking it, or that wants our pieces, is not charged: the wait is ours. Moved on every
   // keepalive pass; a wait counts from the first pass that saw it.
-  void                update_idle_time(const StateUp& up, uint64_t down_total, uint64_t up_total, std::chrono::seconds now);
+  void                 update_idle_time(const StateUp& up, uint64_t down_total, uint64_t up_total, std::chrono::seconds now);
   std::chrono::seconds idle_time() const;
 
   // A zero limit is never reached (DownloadInfo::idle_peer_limit).
@@ -120,10 +120,10 @@ private:
 
   std::chrono::seconds m_idle_seen{};
   std::chrono::seconds m_idle_time{};
-  uint64_t            m_idle_down_total{};
-  uint64_t            m_idle_up_total{};
-  bool                m_idle_was_waiting{};   // It kept us waiting at the last look.
-  bool                m_idle_was_unchoked{};  // It unchoked us since the last look.
+  uint64_t             m_idle_down_total{};
+  uint64_t             m_idle_up_total{};
+  bool                 m_idle_was_waiting{};  // It kept us waiting at the last look.
+  bool                 m_idle_was_unchoked{}; // It unchoked us since the last look.
 };
 
 inline bool StateUp::is_choked() const                    { return choke.choked(); }

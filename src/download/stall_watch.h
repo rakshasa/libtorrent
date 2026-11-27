@@ -20,15 +20,15 @@ public:
   static constexpr uint32_t stalled_after   = 2;
 
   // total: the download's whole received count. Returns whether the download is stalled.
-  bool                update(uint64_t total);
-  bool                is_stalled() const            { return m_starved >= stalled_after; }
+  bool update(uint64_t total);
+  bool is_stalled() const { return m_starved >= stalled_after; }
 
 private:
-  Rate                m_history{history_seconds, history_seconds, tick_seconds, history_seconds};
+  Rate                 m_history{ history_seconds, history_seconds, tick_seconds, history_seconds };
 
   std::chrono::seconds m_last_update{};
-  uint64_t            m_last_total{};
-  uint32_t            m_starved{};
+  uint64_t             m_last_total{};
+  uint32_t             m_starved{};
 };
 
 } // namespace torrent

@@ -20,7 +20,7 @@ public:
 
   void initialize_custom() override {}
   void update_interested() override {}
-  int receive_keepalive() override { return 0; }
+  int  receive_keepalive() override { return 0; }
   void event_read() override {}
   void event_write() override {}
 
