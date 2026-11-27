@@ -3,6 +3,8 @@
 class TestDhtAnnounceWalk : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST_SUITE(TestDhtAnnounceWalk);
 
+  CPPUNIT_TEST(test_empty_announce_reports_primary_failure);
+  CPPUNIT_TEST(test_empty_announce_does_not_report_secondary_failure);
   CPPUNIT_TEST(test_announce_reaches_the_eight_closest);
   CPPUNIT_TEST(test_walk_sends_get_peers);
   CPPUNIT_TEST(test_announce_peer_goes_to_eight_closest_with_their_tokens);
@@ -27,6 +29,8 @@ class TestDhtAnnounceWalk : public TestFixtureWithMainNetTrackerThread {
 public:
   void setUp() override;
 
+  void test_empty_announce_reports_primary_failure();
+  void test_empty_announce_does_not_report_secondary_failure();
   void test_announce_reaches_the_eight_closest();
   void test_walk_sends_get_peers();
   void test_announce_peer_goes_to_eight_closest_with_their_tokens();

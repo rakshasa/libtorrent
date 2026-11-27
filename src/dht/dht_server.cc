@@ -135,7 +135,6 @@ DhtServer::find_node(const DhtBucket& contacts, const HashString& target) {
   // This shouldn't happen, it means we had no contactable nodes at all.
   if (!search->start()) {
     LT_LOG_THIS("find node search start failed, no contactable nodes", 0);
-    // TODO: We should probably report this to the tracker, but we don't have a way to do that here.
     return;
   }
 
@@ -157,7 +156,6 @@ DhtServer::announce(const DhtBucket& contacts, const HashString& infoHash, std::
   // This can only happen if all nodes we know are bad.
   if (!announce->start()) {
     LT_LOG_THIS("announce failed, no contactable nodes", 0);
-    // TODO: We should probably report this to the tracker, but we don't have a way to do that here.
     return;
   }
 

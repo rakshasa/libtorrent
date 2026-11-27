@@ -12,6 +12,7 @@
 #include <array>
 #include <chrono>
 #include <functional>
+#include <future>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -30,7 +31,9 @@
 #include "torrent/runtime/network_manager.h"
 #include "torrent/runtime/socket_manager.h"
 #include "torrent/system/poll.h"
+#include "torrent/system/callbacks.h"
 #include "torrent/tracker/dht_controller.h"
+#include "tracker/tracker_dht.h"
 #include "tracker/udp_router.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestDhtAnnounceWalk);
@@ -252,6 +255,7 @@ public:
   ~Walk() { m_router->stop(); }
 
   void announce() { m_router->announce(walk_target(), std::weak_ptr<torrent::TrackerDht>()); }
+  void announce(std::weak_ptr<torrent::TrackerDht> tracker, bool primary) { m_router->announce(walk_target(), std::move(tracker), primary); }
   void cancel() { m_router->cancel_announce(walk_target(), std::weak_ptr<torrent::TrackerDht>()); }
   unsigned int queries_sent() const { return m_router->get_statistics().queries_sent; }
   unsigned int replies_received() const { return m_router->get_statistics().replies_received; }
@@ -320,6 +324,33 @@ struct EightCloserNodes {
   std::vector<FakeNode*>                 all;
 };
 
+class FailureTracker : public torrent::TrackerDht {
+public:
+  explicit FailureTracker(std::shared_ptr<std::vector<std::string>> failures)
+    : TrackerDht(torrent::TrackerInfo{}, torrent::tracker::TrackerState::flag_deleted) {
+    m_slot_failure = [failures = std::move(failures)](std::string message) {
+      failures->push_back(std::move(message));
+    };
+  }
+};
+
+std::vector<std::string>
+empty_announce_failures(bool primary) {
+  auto cache = torrent::Object::create_map();
+  torrent::runtime::network_manager()->dht_controller()->initialize(cache);
+
+  auto failures = std::make_shared<std::vector<std::string>>();
+  auto tracker = std::make_shared<FailureTracker>(failures);
+  Walk walk({});
+  walk.announce(tracker, primary);
+
+  auto completed = std::make_shared<std::promise<void>>();
+  auto future = completed->get_future();
+  torrent::tracker_thread::callback([completed] { completed->set_value(); });
+  CPPUNIT_ASSERT(future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+  return *failures;
+}
+
 } // namespace
 
 void
@@ -327,6 +358,18 @@ TestDhtAnnounceWalk::setUp() {
   TestFixtureWithMainNetTrackerThread::setUp();
 
   torrent::runtime::socket_manager()->set_max_size_and_adjust(1024);
+}
+
+void
+TestDhtAnnounceWalk::test_empty_announce_reports_primary_failure() {
+  auto failures = empty_announce_failures(true);
+  CPPUNIT_ASSERT_EQUAL(size_t{1}, failures.size());
+  CPPUNIT_ASSERT_EQUAL(std::string("No DHT nodes available for peer search."), failures.front());
+}
+
+void
+TestDhtAnnounceWalk::test_empty_announce_does_not_report_secondary_failure() {
+  CPPUNIT_ASSERT(empty_announce_failures(false).empty());
 }
 
 void
