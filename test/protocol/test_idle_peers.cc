@@ -7,7 +7,7 @@
 
 #include "download/download_main.h"
 #include "download/stall_watch.h"
-#include "protocol/peer_connection_base.h"
+#include "protocol/peer_connection_state.h"
 #include "download/available_list.h"
 #include "torrent/download_info.h"
 #include "torrent/peer/connection_list.h"
@@ -20,42 +20,46 @@ using namespace std::chrono_literals;
 
 namespace {
 
-// A connection that is never opened: the idle clock reads only its own state, which a test sets directly.
-class idle_connection : public torrent::PeerConnectionBase {
-public:
-  void initialize_custom() override {}
-  void update_interested() override {}
-  int receive_keepalive() override { return 0; }
-  void event_read() override {}
-  void event_write() override {}
+// One connection's idle clock, on its own state: what a test sets is what the keepalive pass reads.
+struct idle_clock {
+  torrent::protocol::StateUp   up;
+  torrent::protocol::StateDown down;
+  uint64_t                     down_total{};
+  uint64_t                     up_total{};
 
-  using torrent::PeerConnectionBase::check_idle;
-
-  // The last look was at `now`, and it kept us waiting then.
-  void start(std::chrono::seconds now) {
-    m_idle_seen        = now;
-    m_idle_was_waiting = true;
+  // A keepalive pass at `now`.
+  std::chrono::seconds look(std::chrono::seconds now) {
+    down.update_idle_time(up, down_total, up_total, now);
+    return down.idle_time();
   }
+
+  bool check(std::chrono::seconds now, std::chrono::seconds limit) {
+    look(now);
+    return down.is_idle_for(limit);
+  }
+
+  // The first pass, with the state as set.
+  void start(std::chrono::seconds now) { look(now); }
 
   void state(bool interested, bool remote_unchoked, bool local_unchoked) {
     if (interested)
-      m_down.mark_interested();
+      down.mark_interested();
     else
-      m_down.mark_not_interested();
+      down.mark_not_interested();
 
-    if (remote_unchoked)
-      m_down.mark_unchoked();
-    else
-      m_down.mark_choked();
+    if (!remote_unchoked)
+      down.mark_choked();
+    else if (!down.is_unchoked())
+      down.mark_unchoked();  // what the UNCHOKE message handler calls
 
-    m_down.choke.set_unchoked(local_unchoked);
+    down.choke.set_unchoked(local_unchoked);
   }
 
-  void wants_ours(bool v) { m_up.choke.set_queued(v); }
-  void unchoke_received()  { m_idle_was_unchoked = true; }  // what the UNCHOKE message handler sets
+  void wants_ours(bool v)  { up.choke.set_queued(v); }
+  void unchoke_received()  { down.mark_unchoked(); down.mark_choked(); }  // unchoked and choked again between passes
 
-  void received(uint32_t bytes) { m_peer_chunks.download_throttle()->rate()->insert(bytes); }
-  void sent(uint32_t bytes)     { m_peer_chunks.upload_throttle()->rate()->insert(bytes); }
+  void received(uint32_t bytes) { down_total += bytes; }
+  void sent(uint32_t bytes)     { up_total += bytes; }
 };
 
 // PeerList's connect and disconnect calls are for libtorrent's own classes; a test reaches them through a subclass.
@@ -81,154 +85,154 @@ constexpr auto timeout = torrent::DownloadMain::idle_peer_timeout;
 
 void
 test_idle_peers::test_clock_counts_while_choked() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1120s) == 120s);
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 240s);
-  CPPUNIT_ASSERT(c.update_idle_time(1360s) == 360s);
-  CPPUNIT_ASSERT(c.idle_time() >= timeout);
+  CPPUNIT_ASSERT(c.look(1120s) == 120s);
+  CPPUNIT_ASSERT(c.look(1240s) == 240s);
+  CPPUNIT_ASSERT(c.look(1360s) == 360s);
+  CPPUNIT_ASSERT(c.down.idle_time() >= timeout);
 }
 
 void
 test_idle_peers::test_clock_counts_unchoked_silent() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, true, true);  // it unchoked us and we ask it: it answers nothing
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 240s);
-  CPPUNIT_ASSERT(c.update_idle_time(1360s) >= timeout);
+  CPPUNIT_ASSERT(c.look(1240s) == 240s);
+  CPPUNIT_ASSERT(c.look(1360s) >= timeout);
 }
 
 void
 test_idle_peers::test_clock_reset_by_piece_data() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 240s);
+  CPPUNIT_ASSERT(c.look(1240s) == 240s);
 
   c.received(16384);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1360s) == 0s);
-  CPPUNIT_ASSERT(c.update_idle_time(1480s) == 120s);
+  CPPUNIT_ASSERT(c.look(1360s) == 0s);
+  CPPUNIT_ASSERT(c.look(1480s) == 120s);
 }
 
 void
 test_idle_peers::test_clock_reset_by_upload() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 240s);
+  CPPUNIT_ASSERT(c.look(1240s) == 240s);
 
   c.sent(16384);  // it keeps us choked, but takes our pieces: ratio on a private tracker
 
-  CPPUNIT_ASSERT(c.update_idle_time(1360s) == 0s);
+  CPPUNIT_ASSERT(c.look(1360s) == 0s);
 }
 
 void
 test_idle_peers::test_clock_reset_by_unchoke() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 240s);
+  CPPUNIT_ASSERT(c.look(1240s) == 240s);
 
   c.unchoke_received();  // a seed that rotates its slots unchoked us for a while and choked us again
 
-  CPPUNIT_ASSERT(c.update_idle_time(1360s) == 0s);
-  CPPUNIT_ASSERT(c.update_idle_time(1480s) == 120s);
+  CPPUNIT_ASSERT(c.look(1360s) == 0s);
+  CPPUNIT_ASSERT(c.look(1480s) == 120s);
 }
 
 void
 test_idle_peers::test_clock_reset_when_not_interested() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 240s);
+  CPPUNIT_ASSERT(c.look(1240s) == 240s);
 
   c.state(false, false, false);  // it has nothing we want
 
-  CPPUNIT_ASSERT(c.update_idle_time(1360s) == 0s);
-  CPPUNIT_ASSERT(c.update_idle_time(1480s) == 0s);
+  CPPUNIT_ASSERT(c.look(1360s) == 0s);
+  CPPUNIT_ASSERT(c.look(1480s) == 0s);
 }
 
 void
 test_idle_peers::test_clock_paused_while_our_slots_are_full() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1120s) == 120s);
+  CPPUNIT_ASSERT(c.look(1120s) == 120s);
 
   c.state(true, true, false);  // it unchoked us, our download slots are taken: the wait is ours
 
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 120s);
-  CPPUNIT_ASSERT(c.update_idle_time(1960s) == 120s);
+  CPPUNIT_ASSERT(c.look(1240s) == 0s);  // the unchoke
+  CPPUNIT_ASSERT(c.look(1960s) == 0s);
 
   c.state(true, true, true);  // now we ask it, and it sends nothing
 
-  CPPUNIT_ASSERT(c.update_idle_time(2080s) == 120s);  // the wait began after the last look
-  CPPUNIT_ASSERT(c.update_idle_time(2200s) == 240s);
+  CPPUNIT_ASSERT(c.look(2080s) == 0s);  // the wait began after the last look
+  CPPUNIT_ASSERT(c.look(2200s) == 120s);
 }
 
 void
 test_idle_peers::test_clock_paused_while_it_wants_our_pieces() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(c.update_idle_time(1120s) == 120s);
+  CPPUNIT_ASSERT(c.look(1120s) == 120s);
 
   c.wants_ours(true);  // a leecher that keeps us choked and waits for our upload slots: ratio to be had
 
-  CPPUNIT_ASSERT(c.update_idle_time(1240s) == 120s);
-  CPPUNIT_ASSERT(c.update_idle_time(2200s) == 120s);
+  CPPUNIT_ASSERT(c.look(1240s) == 120s);
+  CPPUNIT_ASSERT(c.look(2200s) == 120s);
 
   c.wants_ours(false);
 
-  CPPUNIT_ASSERT(c.update_idle_time(2320s) == 120s);
-  CPPUNIT_ASSERT(c.update_idle_time(2440s) == 240s);
+  CPPUNIT_ASSERT(c.look(2320s) == 120s);
+  CPPUNIT_ASSERT(c.look(2440s) == 240s);
 }
 
 void
 test_idle_peers::test_clock_skips_interval_before_wait() {
   constexpr auto stalled = torrent::DownloadMain::idle_peer_timeout_stalled;
 
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(false, false, false);
-  CPPUNIT_ASSERT(!c.check_idle(1120s, stalled));
+  c.start(1000s);
+  CPPUNIT_ASSERT(!c.check(1120s, stalled));
 
   c.state(true, false, false);  // it got a piece we want just before the look
-  CPPUNIT_ASSERT(!c.check_idle(1240s, stalled));
-  CPPUNIT_ASSERT(c.idle_time() == 0s);
-  CPPUNIT_ASSERT(c.check_idle(1360s, stalled));
+  CPPUNIT_ASSERT(!c.check(1240s, stalled));
+  CPPUNIT_ASSERT(c.down.idle_time() == 0s);
+  CPPUNIT_ASSERT(c.check(1360s, stalled));
 }
 
 void
 test_idle_peers::test_closes_itself_at_limit() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(!c.check_idle(1120s, timeout));
-  CPPUNIT_ASSERT(!c.check_idle(1240s, timeout));
-  CPPUNIT_ASSERT(c.check_idle(1360s, timeout));
+  CPPUNIT_ASSERT(!c.check(1120s, timeout));
+  CPPUNIT_ASSERT(!c.check(1240s, timeout));
+  CPPUNIT_ASSERT(c.check(1360s, timeout));
 }
 
 void
 test_idle_peers::test_zero_limit_closes_nothing() {
-  idle_connection c;
-  c.start(1000s);
+  idle_clock c;
   c.state(true, false, false);
+  c.start(1000s);
 
-  CPPUNIT_ASSERT(!c.check_idle(5000s, 0s));
-  CPPUNIT_ASSERT(c.idle_time() == 4000s);  // the clock still runs, so a later limit sees the real idle time
-  CPPUNIT_ASSERT(c.check_idle(5120s, timeout));
+  CPPUNIT_ASSERT(!c.check(5000s, 0s));
+  CPPUNIT_ASSERT(c.down.idle_time() == 4000s);  // the clock still runs, so a later limit sees the real idle time
+  CPPUNIT_ASSERT(c.check(5120s, timeout));
 }
 
 void

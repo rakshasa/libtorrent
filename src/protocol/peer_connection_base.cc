@@ -118,7 +118,6 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, int f
   this_thread::poll()->insert_write(this);
 
   m_time_last_read = this_thread::cached_time();
-  m_idle_seen = this_thread::cached_seconds();
 
   m_download->chunk_statistics()->received_connect(&m_peer_chunks);
 
@@ -183,43 +182,6 @@ PeerConnectionBase::set_peer_exchange(bool state) {
     m_up.schedule_pex_disable();
     m_extensions->unset_local_enabled(ProtocolExtension::UT_PEX);
   }
-}
-
-std::chrono::seconds
-PeerConnectionBase::update_idle_time(std::chrono::seconds now) {
-  auto elapsed = now - m_idle_seen;
-  auto down    = m_peer_chunks.download_throttle()->rate()->total();
-  auto up      = m_peer_chunks.upload_throttle()->rate()->total();
-
-  m_idle_seen = now;
-
-  // The wait is ours: it unchoked us while our download slots are taken, or it wants our pieces while our upload
-  // slots are.
-  bool ours        = (m_down.is_unchoked() && !m_down.is_local_unchoked()) || m_up.is_interested();
-  bool was_waiting = m_idle_was_waiting;
-
-  m_idle_was_waiting = m_down.is_interested() && !ours;
-
-  if (!m_down.is_interested() || down != m_idle_down_total || up != m_idle_up_total || m_idle_was_unchoked) {
-    m_idle_down_total   = down;
-    m_idle_up_total     = up;
-    m_idle_was_unchoked = false;
-    m_idle_time         = std::chrono::seconds{};
-    return m_idle_time;
-  }
-
-  // Two minutes pass between looks, so only time that began with the peer keeping us waiting counts.
-  if (m_idle_was_waiting && was_waiting)
-    m_idle_time += elapsed;
-
-  return m_idle_time;
-}
-
-bool
-PeerConnectionBase::check_idle(std::chrono::seconds now, std::chrono::seconds limit) {
-  auto idle = update_idle_time(now);
-
-  return limit != std::chrono::seconds{} && idle >= limit;
 }
 
 void

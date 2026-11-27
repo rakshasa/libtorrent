@@ -107,7 +107,7 @@ public:
   // A download that is not done and holds ConnectionList::min_size() connections or more no longer dials (see
   // receive_connect_peers). A connection to a peer that kept it waiting closes itself on the keepalive pass, so the
   // slot goes to a peer it can dial: after idle_peer_timeout, or idle_peer_timeout_stalled while the download is
-  // stalled. See PeerConnectionBase::update_idle_time and PeerList::idle_refuse_seconds.
+  // stalled. See protocol::StateDown::update_idle_time and PeerList::idle_refuse_seconds.
   static constexpr std::chrono::seconds idle_peer_timeout         = 5min;
   static constexpr std::chrono::seconds idle_peer_timeout_stalled = 90s;
 

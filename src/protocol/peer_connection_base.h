@@ -97,13 +97,6 @@ public:
 
   bool                should_connection_unchoke(choke_queue* cq) const;
 
-  // How long this connection has been of no use to the download: we want its data, it did not unchoke us, and no
-  // piece data went either way. A connection that unchoked us while our own download slots keep us from asking it,
-  // or that wants our pieces, is not charged (the wait is ours). Moved on every keepalive pass; a wait counts from the
-  // first pass that saw it.
-  std::chrono::seconds update_idle_time(std::chrono::seconds now);
-  std::chrono::seconds idle_time() const              { return m_idle_time; }
-
 protected:
   friend class choke_queue;
   friend class HandshakeManager;
@@ -147,9 +140,6 @@ protected:
   bool                send_pex_message();
   bool                send_pending_extension();
 
-  // Moves the idle clock; true when it reached limit, a zero limit closing nothing.
-  bool                check_idle(std::chrono::seconds now, std::chrono::seconds limit);
-
   DownloadMain*       m_download{};
 
   PeerChunks          m_peer_chunks;
@@ -159,13 +149,6 @@ protected:
   protocol::StateDown m_down;
 
   std::chrono::microseconds m_time_last_read{};
-
-  std::chrono::seconds m_idle_seen{};
-  std::chrono::seconds m_idle_time{};
-  uint64_t            m_idle_down_total{};
-  uint64_t            m_idle_up_total{};
-  bool                m_idle_was_waiting{};   // It kept us waiting at the last look.
-  bool                m_idle_was_unchoked{};  // It unchoked us since the last look.
 
   DataBuffer          m_extension_message;
   uint32_t            m_extension_offset;
