@@ -69,6 +69,11 @@ CurlSocket::receive_socket(CURL* easy_handle, curl_socket_t fd, int what, CurlSt
   if (what == CURL_POLL_REMOVE)
     return handle_poll_remove(easy_handle, fd, stack, socket);
 
+  if (socket != nullptr && socket->m_curl_zombie) {
+    LT_LOG_DEBUG_SOCKET_FD_HANDLE("receive_socket() : called on zombie CurlSocket, ignoring poll update : %p", socket);
+    return 0;
+  }
+
   if (socket == nullptr) {
     if (!stack->is_running())
       return 0;
@@ -327,7 +332,7 @@ CurlSocket::event_write() {
 void
 CurlSocket::event_error() {
   int socket_error{};
-  fd_get_socket_error(file_descriptor(), &socket_error);
+  fd_get_socket_error_using_peek(file_descriptor(), &socket_error);
 
   LT_LOG_DEBUG_THIS("event_error() : errno:%s", system::errno_enum(socket_error));
 
@@ -335,11 +340,13 @@ CurlSocket::event_error() {
 
   handle_action(CURL_CSELECT_ERR);
 
-  // This shouldn't happen, or might be a bug / unexpected behavior in libcurl.
   if (!weak_self.expired()) {
     LT_LOG_DEBUG_THIS("event_error() : self still exists : is_internal:%i errno:%s", m_curl_internal, system::errno_enum(socket_error));
-    throw internal_error("CurlSocket::event_error() self still exists : " + std::to_string(file_descriptor()) +
-                         " : is_internal:" + std::to_string(m_curl_internal) + " : errno:" + system::errno_enum_str(socket_error));
+
+    this_thread::poll()->remove_read(this);
+    this_thread::poll()->remove_write(this);
+
+    m_curl_zombie = true;
   }
 }
 

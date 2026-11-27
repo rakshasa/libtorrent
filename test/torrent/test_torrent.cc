@@ -45,6 +45,16 @@ create_magnet(const std::string& uri) {
   return object;
 }
 
+torrent::Object*
+create_meta_download(const std::string& name, const std::string& hash) {
+  auto object = new torrent::Object(torrent::Object::create_map());
+  auto& info = object->insert_key("info", torrent::Object::create_map());
+  info.insert_key("meta_download", int64_t{1});
+  info.insert_key("name", name);
+  info.insert_key("pieces", hash);
+  return object;
+}
+
 // Removes the download when the scope ends, so a failed assertion does not leave it registered.
 struct scoped_download {
   ~scoped_download() {
@@ -110,6 +120,61 @@ test_torrent::test_cleanup_removes_downloads() {
 }
 
 void
+test_torrent::test_meta_download_trust_and_name() {
+  auto config = torrent::runtime::client_config();
+  const bool previous_utf8 = config->file_name_allow_legacy_utf8();
+  auto restore = torrent::utils::scope_guard([=]() {
+      config->set_file_name_allow_legacy_utf8(previous_utf8);
+    });
+
+  const std::string hash(20, '\x55');
+  const std::string name = std::string(40, '5') + ".meta";
+
+  {
+    std::unique_ptr<torrent::Object> object(create_meta_download(name, hash));
+    object->insert_key("magnet-uri", "magnet:?xt=urn:btih:" + std::string(40, '5'));
+    CPPUNIT_ASSERT_THROW(torrent::download_add(object.get(), 0), torrent::input_error);
+  }
+
+  {
+    std::unique_ptr<torrent::Object> object(create_metafile("ordinary", 1));
+    object->get_key("info").insert_key("meta_download", int64_t{0});
+    CPPUNIT_ASSERT_THROW(torrent::download_add(object.get(), 0), torrent::input_error);
+  }
+
+  for (const auto& invalid : {std::string(40, '5') + ".torrent", std::string(40, '6') + ".meta",
+                              std::string(40, '5'), std::string("5.meta"), name + ".torrent"}) {
+    std::unique_ptr<torrent::Object> object(create_meta_download(invalid, hash));
+    CPPUNIT_ASSERT_THROW_MESSAGE(invalid, torrent::download_add_session(object.get(), 0), torrent::input_error);
+  }
+
+  for (bool allow_utf8 : {false, true}) {
+    config->set_file_name_allow_legacy_utf8(allow_utf8);
+    std::unique_ptr<torrent::Object> object(create_meta_download(name, hash));
+    object->get_key("info").insert_key("name.utf-8", std::string(40, '5') + ".torrent");
+
+    if (allow_utf8) {
+      CPPUNIT_ASSERT_THROW(torrent::download_add_session(object.get(), 0), torrent::input_error);
+    } else {
+      scoped_download added{torrent::download_add_session(object.get(), 0)};
+      object.release();
+      CPPUNIT_ASSERT_EQUAL(name, added.download.file_list()->front()->path()->front().str());
+    }
+  }
+
+  scoped_download added{torrent::download_add(create_magnet("magnet:?xt=urn:btih:" + std::string(40, '5')), 0)};
+  auto reloaded = std::make_unique<torrent::Object>(*added.download.bencode());
+  torrent::download_remove(added.download);
+  added.download = torrent::Download();
+
+  CPPUNIT_ASSERT_THROW(torrent::download_add(reloaded.get(), 0), torrent::input_error);
+  added.download = torrent::download_add_session(reloaded.get(), 0);
+  reloaded.release();
+  CPPUNIT_ASSERT(added.download.info()->is_meta_download());
+  CPPUNIT_ASSERT_EQUAL(hash, added.download.info()->hash().str());
+}
+
+void
 test_torrent::test_download_add_zero_info_hash() {
   const std::string zero_magnets[] = {
     "magnet:?xt=urn:btih:" + std::string(40, '0'),
@@ -123,13 +188,9 @@ test_torrent::test_download_add_zero_info_hash() {
     CPPUNIT_ASSERT_THROW_MESSAGE(uri, torrent::download_add(object.get(), 0), torrent::input_error);
   }
 
-  std::unique_ptr<torrent::Object> meta_download(new torrent::Object(torrent::Object::create_map()));
-  auto& info = meta_download->insert_key("info", torrent::Object::create_map());
-  info.insert_key("meta_download", int64_t{1});
-  info.insert_key("name", std::string("zero.meta"));
-  info.insert_key("pieces", std::string(20, '\0'));
+  std::unique_ptr<torrent::Object> meta_download(create_meta_download(std::string(40, '0') + ".meta", std::string(20, '\0')));
 
-  CPPUNIT_ASSERT_THROW(torrent::download_add(meta_download.get(), 0), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(torrent::download_add_session(meta_download.get(), 0), torrent::input_error);
 
   // Only an all-zero hash is refused.
   const std::pair<std::string, std::string> valid_magnets[] = {
