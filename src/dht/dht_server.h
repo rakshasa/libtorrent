@@ -157,6 +157,22 @@ DhtServer::create_error(const DhtMessage& req, const sockaddr* sa, int num, cons
   create_error(req, sa, num, msg.c_str());
 }
 
+namespace dht {
+
+class dht_error : public network_error {
+public:
+  dht_error(int code, const char* message) : m_message(message), m_code(code) {}
+
+  int                 code() const noexcept          { return m_code; }
+  const char*         what() const noexcept override { return m_message; }
+
+private:
+  const char*         m_message;
+  int                 m_code;
+};
+
+} // namespace dht
+
 } // namespace torrent
 
 #endif

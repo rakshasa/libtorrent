@@ -1,23 +1,17 @@
 #ifndef LIBTORRENT_TRACKER_UDP_ROUTER_H
 #define LIBTORRENT_TRACKER_UDP_ROUTER_H
 
-#include <deque>
-#include <functional>
-#include <list>
-#include <random>
-#include <unordered_map>
-
-#include "net/protocol_buffer.h"
-#include "net/socket_datagram.h"
-#include "torrent/system/scheduler.h"
-#include "torrent/utils/list_buckets.h"
+#include "net/udp_router_base.h"
 
 namespace torrent::tracker {
 
-class UdpRouter : public SocketDatagram {
+struct UdpRouterInfo {
+  using key_type = uint32_t;
+};
+
+class UdpRouter : public net::UdpRouterBase<UdpRouterInfo> {
 public:
-  using key_type         = uint32_t;
-  using buffer_type      = ProtocolBuffer<2048>;
+  using buffer_type   = ProtocolBuffer<2048>;
   using random_engine = std::independent_bits_engine<std::mt19937, 32, key_type>;
 
   using prepare_func     = std::function<void(key_type, buffer_type&)>;

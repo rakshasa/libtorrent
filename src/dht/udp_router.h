@@ -1,22 +1,16 @@
 #ifndef LIBTORRENT_DHT_UDP_ROUTER_H
 #define LIBTORRENT_DHT_UDP_ROUTER_H
 
-#include <deque>
-#include <functional>
-#include <list>
-#include <random>
-#include <unordered_map>
-
-#include "net/protocol_buffer.h"
-#include "net/socket_datagram.h"
-#include "torrent/system/scheduler.h"
-#include "torrent/utils/list_buckets.h"
+#include "net/udp_router_base.h"
 
 namespace torrent::dht {
 
-class UdpRouter : public SocketDatagram {
+struct UdpRouterInfo {
+  using key_type = uint64_t;
+};
+
+class UdpRouter : public net::UdpRouterBase<UdpRouterInfo> {
 public:
-  using key_type         = uint64_t;
   using buffer_type      = ProtocolBuffer<2048>;
   using random_engine    = std::independent_bits_engine<std::mt19937, 64, key_type>;
 
@@ -140,19 +134,6 @@ private:
 inline bool UdpRouter::has_connection_id(key_type id) const  { return m_connections.find(id) != m_connections.end(); }
 inline void UdpRouter::set_unknown_callback(unknown_func fn) { m_unknown_callback = std::move(fn); }
 inline int  UdpRouter::router_family() const                 { return socket_address()->sa_family; }
-
-// TODO: Move to dht_common.h.
-class dht_error : public network_error {
-public:
-  dht_error(int code, const char* message) : m_message(message), m_code(code) {}
-
-  int                 code() const noexcept          { return m_code; }
-  const char*         what() const noexcept override { return m_message; }
-
-private:
-  const char*         m_message;
-  int                 m_code;
-};
 
 } // namespace torrent::dht
 
