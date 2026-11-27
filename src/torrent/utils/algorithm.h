@@ -8,7 +8,7 @@ namespace torrent::utils {
 
 template <typename T, typename Container>
 std::tuple<T, typename Container::iterator, bool>
-find_available_key(Container& container, T start_key, T min_key, T max_key) {
+find_unused_key(Container& container, T start_key, T min_key, T max_key) {
   auto key = start_key;
   auto itr = container.lower_bound(key);
 

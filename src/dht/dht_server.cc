@@ -762,10 +762,10 @@ DhtServer::add_transaction(std::shared_ptr<DhtTransaction> transaction, [[maybe_
   // node, a collision is extremely unlikely, and a linear search for the first
   // open one is the most efficient.
 
-  auto [key_id, lower_bound, found] = utils::find_available_key(m_transactions,
-                                                                address_key | (1 + random() % 0xffff),
-                                                                address_key | 1,
-                                                                address_key | 0xffff);
+  auto [key_id, lower_bound, found] = utils::find_unused_key(m_transactions,
+                                                             address_key | (1 + random() % 0xffff),
+                                                             address_key | 1,
+                                                             address_key | 0xffff);
 
   if (!found)
     return -1;
