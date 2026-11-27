@@ -7,6 +7,7 @@ class test_dht_controller : public TestFixtureWithMainNetTrackerThread {
   CPPUNIT_TEST(test_add_peer_stores_compact_port_in_network_order);
   CPPUNIT_TEST(test_inet6_router_starts_beside_inet);
   CPPUNIT_TEST(test_inet6_only_start_and_restart);
+  CPPUNIT_TEST(test_start_with_both_families_blocked);
   CPPUNIT_TEST(test_repeated_start);
   CPPUNIT_TEST(test_inet6_peer_node_goes_to_the_inet6_router);
   CPPUNIT_TEST(test_inet6_peer_node_while_inet_is_populated);
@@ -23,6 +24,7 @@ public:
   void test_add_peer_stores_compact_port_in_network_order();
   void test_inet6_router_starts_beside_inet();
   void test_inet6_only_start_and_restart();
+  void test_start_with_both_families_blocked();
   void test_repeated_start();
   void test_inet6_peer_node_goes_to_the_inet6_router();
   void test_inet6_peer_node_while_inet_is_populated();

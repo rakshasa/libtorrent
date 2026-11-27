@@ -6,7 +6,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "helpers/mock_function.h"
 #include "torrent/hash_string.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/object.h"
 #include "torrent/runtime/network_config.h"
@@ -177,8 +179,24 @@ test_dht_controller::test_inet6_router_starts_beside_inet() {
 
 void
 test_dht_controller::test_inet6_only_start_and_restart() {
-  if (!supports_ipv6_sockets())
-    return;
+  if (!supports_ipv6_sockets()) {
+    // Exercise controller startup with an IPv4-backed socket when IPv6 is unavailable.
+    mock_redirect(torrent::fd__socket, std::function<int(int, int, int)>([](int family, int type, int protocol) {
+      return ::socket(family == AF_INET6 ? AF_INET : family, type, protocol);
+    }));
+    mock_redirect(torrent::fd__bind, std::function<int(int, const sockaddr*, socklen_t)>([](int fd, const sockaddr* address, socklen_t length) {
+      if (address->sa_family != AF_INET6)
+        return ::bind(fd, address, length);
+
+      auto loopback = torrent::sa_make_inet_h(INADDR_LOOPBACK, torrent::sa_port(address));
+      return ::bind(fd, loopback.get(), torrent::sa_length(loopback.get()));
+    }));
+    mock_redirect(torrent::fd__setsockopt_int, std::function<int(int, int, int, int)>([](int fd, int level, int option, int value) {
+      if (level == IPPROTO_IPV6 && option == IPV6_V6ONLY)
+        return 0;
+      return ::setsockopt(fd, level, option, &value, sizeof(value));
+    }));
+  }
 
   auto dht = torrent::runtime::network_manager()->dht_controller();
   auto config = torrent::runtime::network_config();
@@ -201,6 +219,27 @@ test_dht_controller::test_inet6_only_start_and_restart() {
 
   dht->stop();
   config->set_block_ipv4(false);
+}
+
+void
+test_dht_controller::test_start_with_both_families_blocked() {
+  auto dht = torrent::runtime::network_manager()->dht_controller();
+  auto config = torrent::runtime::network_config();
+
+  config->set_block_ipv4(true);
+  config->set_block_ipv6(true);
+  dht->initialize(create_dht_cache(0));
+  CPPUNIT_ASSERT(!dht->start());
+  CPPUNIT_ASSERT(!dht->is_active());
+  CPPUNIT_ASSERT_EQUAL(uint16_t{0}, dht->port());
+
+  config->set_block_ipv4(false);
+  CPPUNIT_ASSERT(dht->start());
+  CPPUNIT_ASSERT(dht->is_active());
+  CPPUNIT_ASSERT_EQUAL(dht_port, dht->port());
+
+  dht->stop();
+  config->set_block_ipv6(false);
 }
 
 void

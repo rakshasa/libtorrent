@@ -76,6 +76,10 @@ DhtServer::~DhtServer() {
 void
 DhtServer::start(int port) {
   m_udp_router.open(m_router->family(), port);
+
+  if (!m_udp_router.is_open())
+    throw resource_error("DHT UDP router could not be opened.");
+
   m_router->set_address(m_udp_router.socket_address());
 }
 

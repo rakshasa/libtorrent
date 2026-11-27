@@ -71,7 +71,7 @@ struct Query {
 
 class FakeNode {
 public:
-  explicit FakeNode(uint8_t distance, uint32_t address = INADDR_LOOPBACK)
+  explicit FakeNode(uint8_t distance)
     : m_id(node_id_at(distance)),
       m_token("tk" + std::to_string(distance)) {
 
@@ -79,7 +79,7 @@ public:
 
     sockaddr_in sa{};
     sa.sin_family      = AF_INET;
-    sa.sin_addr.s_addr = htonl(address);
+    sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
     if (m_fd == -1 || ::fcntl(m_fd, F_SETFL, O_NONBLOCK) != 0 ||
         ::bind(m_fd, reinterpret_cast<sockaddr*>(&sa), sizeof(sa)) != 0)
@@ -706,7 +706,7 @@ TestDhtAnnounceWalk::test_malformed_response_does_not_fail_successful_search() {
 void
 TestDhtAnnounceWalk::test_udp_router_keyed_dispatch() {
   FakeNode node(1);
-  FakeNode other(2, 0x7f000002);
+  FakeNode other(2);
   unsigned int responses = 0;
   unsigned int errors = 0;
   torrent::dht::UdpRouter router;
